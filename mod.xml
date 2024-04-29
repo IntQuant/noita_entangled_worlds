@@ -1,0 +1,18 @@
+<Mod
+	name="Quant's Entangled worlds"
+	description="Yet another Noita multiplayer mod"
+	request_no_api_restrictions="1"
+	is_game_mode="0"
+	translation_xml_path=""
+	translation_csv_path=""
+> 
+</Mod>
+
+ <!--
+ 	April 1 2021 - a mod declared as game mode (is_game_mode="1") can enable support for multiple save slots via game_mode_supports_save_slots="1"
+ -->
+<!-- 
+	If a mod requires access to the full lua api e.g. os.* io.* it has to request acesss via 'request_no_api_restrictions="1"'.
+	It is recommended that other options are explored first, as we may completely disable those APIs in the future.
+	By default mods have access to the table, string, math and bit libraries and to the APIs exposed by the game.
+ -->
