@@ -106,11 +106,7 @@ end
 
 function OnModPreInit()
 	register_localizations("mods/quant.ew/translations.csv", 1)
-    if ctx.players ~= nil then
-        print("ctx.players is not nil")
-    else
-        print("ctx.players is nil")
-    end
+    net.init()
 end
 
 function OnModPostInit()
