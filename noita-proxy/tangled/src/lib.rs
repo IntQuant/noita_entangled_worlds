@@ -117,6 +117,11 @@ impl Peer {
         });
         if host_addr.is_none() {
             shared.remote_peers.insert(PeerId(0), RemotePeer::default());
+            shared
+                .inbound_channel
+                .0
+                .send(NetworkEvent::PeerConnected(PeerId(0)))
+                .unwrap();
         }
         reactor::Reactor::start(Arc::clone(&shared));
         Ok(Peer { shared })
@@ -296,7 +301,7 @@ mod test {
             connection_timeout: Duration::from_millis(1000),
             ..Default::default()
         });
-        let addr = "127.0.0.1:56002".parse().unwrap();
+        let addr = "127.0.0.1:56003".parse().unwrap();
         let host = Peer::host(addr, settings.clone()).unwrap();
         thread::sleep(Duration::from_millis(10));
         assert_eq!(
