@@ -8,4 +8,9 @@ edition = "2021"
 [dependencies]
 tungstenite = "0.21.0"
 eframe = "0.27.2"
+tracing-subscriber = "0.3.18"
+tracing = "0.1.40"
+tangled = { path = "tangled" }
+serde = { version = "1.0.199", features = ["serde_derive"] }
+bitcode = "0.6.0"
 

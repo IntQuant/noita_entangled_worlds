@@ -1,8 +1,9 @@
 use eframe::NativeOptions;
-use noita_proxy::{ws_server, App};
+use noita_proxy::App;
 
 fn main() -> Result<(), eframe::Error> {
-    ws_server();
+    let my_subscriber = tracing_subscriber::FmtSubscriber::new();
+    tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
     eframe::run_native(
         "Noita Proxy",
         NativeOptions::default(),
