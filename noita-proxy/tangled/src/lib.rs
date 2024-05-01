@@ -59,7 +59,8 @@ pub enum NetworkEvent {
 /// A message received from a peer.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Message {
-    src: PeerId,
+    /// Original peer who sent the message.
+    pub src: PeerId,
     /// The data that has been sent.
     pub data: Vec<u8>,
 }

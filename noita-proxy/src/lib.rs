@@ -1,5 +1,6 @@
 use std::{
-    io,
+    fmt::Display,
+    io::{self, Write},
     net::TcpListener,
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
@@ -23,6 +24,21 @@ pub struct GameSettings {
     seed: u64,
 }
 
+fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
+    let mut buf = Vec::new();
+    buf.push(2);
+    write!(buf, "{} {}", key, value).unwrap();
+    tungstenite::Message::Binary(buf)
+}
+
+fn ws_encode_mod(peer: PeerId, data: &[u8]) -> tungstenite::Message {
+    let mut buf = Vec::new();
+    buf.push(1u8);
+    buf.extend_from_slice(&peer.0.to_le_bytes());
+    buf.extend_from_slice(data);
+    tungstenite::Message::Binary(buf)
+}
+
 struct NetManager {
     peer: tangled::Peer,
     settings: Mutex<GameSettings>,
@@ -35,7 +51,7 @@ impl NetManager {
     pub fn new(peer: tangled::Peer) -> Arc<Self> {
         Self {
             peer,
-            settings: Mutex::new(GameSettings { seed: 10042 }),
+            settings: Mutex::new(GameSettings { seed: 1663107061 }),
             continue_running: AtomicBool::new(true),
             accept_local: AtomicBool::new(false),
             local_connected: AtomicBool::new(false),
@@ -45,16 +61,12 @@ impl NetManager {
 
     fn send(&self, peer: tangled::PeerId, msg: &NetMsg, reliability: Reliability) {
         let encoded = bitcode::encode(msg);
-        self.peer.send(peer, encoded.clone(), reliability).ok();
+        self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
     }
 
     fn broadcast(&self, msg: &NetMsg, reliability: Reliability) {
         let encoded = bitcode::encode(msg);
-        for peer in self.peer.iter_peer_ids() {
-            if peer != self.peer.my_id().expect("to be connected") {
-                self.peer.send(peer, encoded.clone(), reliability).ok();
-            }
-        }
+        self.peer.broadcast(encoded, reliability).ok(); // TODO log
     }
 
     pub fn start(self: Arc<NetManager>) {
@@ -90,14 +102,18 @@ impl NetManager {
                             info!("New stream connected");
                             if let Some(ws) = &mut websocket {
                                 let settings = self.settings.lock().unwrap();
-                                ws.write(tungstenite::Message::Text(format!(
-                                    "seed {}",
-                                    settings.seed
-                                )))
-                                .ok(); // TODO?
+                                ws.write(ws_encode_proxy("seed", settings.seed)).ok();
+                                ws.write(ws_encode_proxy("name", "test_name")).ok();
+                                // TODO?
+                                for id in self.peer.iter_peer_ids() {
+                                    ws.write(ws_encode_proxy("join", id)).ok();
+                                }
                             }
                         }
                     }
+                }
+                if let Some(ws) = &mut websocket {
+                    ws.flush().ok();
                 }
                 for net_event in self.peer.recv() {
                     match net_event {
@@ -113,8 +129,15 @@ impl NetManager {
                                     tangled::Reliability::Reliable,
                                 );
                             }
+                            if let Some(ws) = &mut websocket {
+                                ws.write(ws_encode_proxy("join", id)).ok();
+                            }
                         }
-                        tangled::NetworkEvent::PeerDisconnected(_) => {}
+                        tangled::NetworkEvent::PeerDisconnected(id) => {
+                            if let Some(ws) = &mut websocket {
+                                ws.write(ws_encode_proxy("leave", id)).ok();
+                            }
+                        }
                         tangled::NetworkEvent::Message(msg) => {
                             let Ok(net_msg) = bitcode::decode::<NetMsg>(&msg.data) else {
                                 continue;
@@ -128,9 +151,7 @@ impl NetManager {
                                 }
                                 NetMsg::ModRaw { data } => {
                                     if let Some(ws) = &mut websocket {
-                                        if let Err(err) =
-                                            ws.write(tungstenite::Message::Binary(data))
-                                        {
+                                        if let Err(err) = ws.write(ws_encode_mod(msg.src, &data)) {
                                             error!(
                                                 "Error occured while sending to websocket: {}",
                                                 err
