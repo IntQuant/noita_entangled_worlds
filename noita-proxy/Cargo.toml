@@ -1,3 +1,6 @@
+[workspace]
+members = ["tangled"]
+
 [package]
 name = "noita-proxy"
 version = "0.1.0"
