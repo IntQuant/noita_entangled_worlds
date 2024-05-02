@@ -1,29 +1,14 @@
-local first = true
+local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 local pollnet = dofile_once("mods/quant.ew/files/lib/pollnet.lua")
+local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+
 local reactor = pollnet.Reactor()
 
-local pending_events = {}
-
-local function poll_until_open(sock)
-    while true do
-      sock:poll()
-      local status = sock:status()
-      if status == "open" then 
-        return true 
-      elseif status == "error" or status == "closed" then
-        return false
-      end
-      coroutine.yield()
-    end
-  end
-
+local net_handling = dofile_once("mods/quant.ew/files/src/net_handling.lua")
 local net = {}
 
-function net.get_events()
+function net.update()
     reactor:update()
-    local c_pending_events = pending_events
-    pending_events = {}
-    return c_pending_events
 end
 
 local function string_split( s, splitter )
@@ -36,24 +21,49 @@ end
 
 function net.init()
     local ready = false
+    net.sock = pollnet.open_ws("ws://127.0.0.1:41251")
     reactor:run(function() 
-        local sock = pollnet.open_ws("ws://127.0.0.1:41251")
+        local sock = net.sock
         --poll_until_open(sock)
         while true do
+          local msg_decoded = nil
           local msg = sock:await()
-          print(msg)
           if string.byte(msg, 1, 1) == 2 then
             local msg_l = string.sub(msg, 2)
             local res = string_split(msg_l, " ")
-            if res[1] == "seed" then
-              print(res[1].." "..res[2])
-              SetWorldSeed(tonumber(res[2]))
-              SetRandomSeed(tonumber(res[2]), 141)
+            if res[1] == "ready" then  
               ready = true
+            else
+              msg_decoded = {
+                kind = "proxy",
+                key = res[1],
+                value = res[2],
+              }
+            end
+          elseif string.byte(msg, 1, 1) == 1 then
+            local peer_id_l, peer_id_h = string.byte(msg, 2, 3)
+            local peer_id = peer_id_l + peer_id_h * 256
+            local msg_l = string.sub(msg, 4)
+            local success, item = pcall(bitser.loads, msg_l)
+            if success then              
+              msg_decoded = {
+                kind = "mod",
+                peer_id = peer_id,
+                key = item.key,
+                value = item.value,
+              }
+            else
+              print("Could not deserialize: "..item)
             end
           else
             print("Unknown msg")
           end
+          if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
+            if ctx.ready or msg_decoded.kind ~= "mod" then 
+              net_handling[msg_decoded.kind][msg_decoded.key](msg_decoded.peer_id, msg_decoded.value)
+            end
+            -- GamePrint("NetHnd: "..msg_decoded.kind.." "..msg_decoded.key)
+          end 
         end
         ready = true
     end)
@@ -63,6 +73,21 @@ function net.init()
         --print("Waiting for connection...")
     end
         
+end
+
+function net.send(key, value)
+  local encoded_msg = bitser.dumps({
+    key = key,
+    value = value,
+  })
+  net.sock:send_binary(encoded_msg)
+end
+
+function net.send_player_update(input_data, pos_data)
+  net.send("player", {
+    inp = input_data,
+    pos = pos_data,
+  })
 end
 
 return net

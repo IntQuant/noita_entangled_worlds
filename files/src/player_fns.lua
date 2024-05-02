@@ -2,7 +2,6 @@ local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 
 local ffi = require("ffi")
 
--- Controls struct
 ffi.cdef([[
 #pragma pack(push, 1)
 typedef struct A {
@@ -37,8 +36,34 @@ typedef struct A {
 } Controls;
 #pragma pack(pop)
 ]])
+ffi.cdef([[
+#pragma pack(push, 1)
+typedef struct D {
+    int frames_in_air;
+    float x;
+    float y;
+    float vel_x;
+    float vel_y;
+    bool is_on_ground:1;
+    bool is_on_slippery_ground:1;
+} CharacterPos;
+#pragma pack(pop)
+]])
+ffi.cdef([[
+#pragma pack(push, 1)
+typedef struct E {
+    float x;
+    float y;
+    float r;
+    int special_seed;
+    int player_action_rng;
+} FireWand;
+#pragma pack(pop)
+]])
 
 local Controls = ffi.typeof("Controls")
+local CharacterPos = ffi.typeof("CharacterPos")
+local FireWand = ffi.typeof("FireWand")
 
 local player_fns = {
     deserialize_inputs = function(message, player_data)
@@ -308,10 +333,86 @@ local player_fns = {
     end,
 }
 
-function player_fns.spawn_player_for(peer_id)
-    GamePrint("spawning player for "..peer_id)
-    local host_ent = ctx.players[ctx.host_id].entity
-    local x, y = EntityGetFirstHitboxCenter(host_ent)
+function player_fns.serialize_position(player_data)
+    local entity = player_data.entity
+    if not EntityGetIsAlive(entity) then
+        return
+    end
+    local x, y = EntityGetTransform(entity)
+    local character_data = EntityGetFirstComponentIncludingDisabled(entity, "CharacterDataComponent")
+    local character_platforming_comp = EntityGetFirstComponentIncludingDisabled(entity, "CharacterPlatformingComponent")
+    local vel_x, vel_y = ComponentGetValue2(character_data, "mVelocity")
+
+    local c = CharacterPos{
+        frames_in_air = ComponentGetValue2(character_platforming_comp, "mFramesInAirCounter"),
+        x = x,
+        y = y,
+        vx = vel_x,
+        vy = vel_y,
+        is_on_ground = ComponentGetValue2(character_data, "is_on_ground"),
+        is_on_slippery_ground = ComponentGetValue2(character_data, "is_on_slippery_ground"),
+    }
+    return c
+end
+
+function player_fns.deserialize_position(message, player_data)
+    local entity = player_data.entity
+    if not EntityGetIsAlive(entity) then
+        return
+    end
+    local character_data = EntityGetFirstComponentIncludingDisabled(entity, "CharacterDataComponent")
+    local velocity_comp = EntityGetFirstComponentIncludingDisabled(entity, "VelocityComponent")
+
+    ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
+    ComponentSetValue2(velocity_comp, "mVelocity", message.vel_x, message.vel_y)
+
+    EntityApplyTransform(entity, message.x, message.y)
+end
+
+function player_fns.serialize_items(player_data)
+    local playerEnt = player_data.entity
+
+    local item_data, spell_data = player_helper.GetItemData()
+    if(item_data ~= nil)then
+        local data = { item_data, force, GameHasFlagRun( "arena_unlimited_spells" ) }
+
+        
+        if (user ~= nil) then
+            table.insert(data, spell_data)
+            steamutils.sendToPlayer("item_update", data, user, true)
+        else
+            if(to_spectators)then
+                table.insert(data, spell_data)
+                steamutils.send("item_update", data, steamutils.messageTypes.Spectators, lobby, true, true)
+            else
+                steamutils.send("item_update", data, steamutils.messageTypes.OtherPlayers, lobby, true, true)
+            end
+        end
+    else
+        if (user ~= nil) then
+            table.insert(data, spell_data)
+            steamutils.sendToPlayer("item_update", {}, user, true)
+        else
+            if(to_spectators)then
+                table.insert(data, spell_data)
+                steamutils.send("item_update", {}, steamutils.messageTypes.Spectators, lobby, true, true)
+            else
+                steamutils.send("item_update", {}, steamutils.messageTypes.OtherPlayers, lobby, true, true)
+            end
+        end
+    end
+end
+
+function player_fns.peer_has_player(peer_id)
+    return ctx.players[peer_id] ~= nil
+end
+
+function player_fns.peer_get_player_data(peer_id)
+    return ctx.players[peer_id]
+end
+
+function player_fns.spawn_player_for(peer_id, x, y)
+    GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = player_fns.make_playerdata_for(new)
     ctx.players[peer_id] = new_playerdata

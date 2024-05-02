@@ -1,9 +1,9 @@
 local ctx = {
-
+    ready = false
 }
 
 ctx.init = function()
-    ctx.host_id = 0
+    ctx.my_id = nil
     ctx.players = {}
 end
 

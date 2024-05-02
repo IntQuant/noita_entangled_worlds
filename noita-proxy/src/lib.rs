@@ -1,7 +1,7 @@
 use std::{
     fmt::Display,
     io::{self, Write},
-    net::TcpListener,
+    net::{SocketAddr, TcpListener},
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
     time::Duration,
@@ -103,7 +103,13 @@ impl NetManager {
                             if let Some(ws) = &mut websocket {
                                 let settings = self.settings.lock().unwrap();
                                 ws.write(ws_encode_proxy("seed", settings.seed)).ok();
+                                ws.write(ws_encode_proxy(
+                                    "peer_id",
+                                    self.peer.my_id().expect("Has peer id at this point"),
+                                ))
+                                .ok();
                                 ws.write(ws_encode_proxy("name", "test_name")).ok();
+                                ws.write(ws_encode_proxy("ready", "")).ok();
                                 // TODO?
                                 for id in self.peer.iter_peer_ids() {
                                     ws.write(ws_encode_proxy("join", id)).ok();
@@ -192,11 +198,13 @@ enum AppState {
 
 pub struct App {
     state: AppState,
+    addr: String,
 }
 
 impl App {
     fn start_server(&mut self) {
-        let peer = Peer::host("0.0.0.0:5123".parse().unwrap(), None).unwrap();
+        let bind_addr = "0.0.0.0:5123".parse().unwrap();
+        let peer = Peer::host(bind_addr, None).unwrap();
         let netman = NetManager::new(peer);
         netman
             .accept_local
@@ -204,8 +212,8 @@ impl App {
         netman.clone().start();
         self.state = AppState::Netman { netman };
     }
-    fn start_connect(&mut self) {
-        let peer = Peer::connect("127.0.0.1:5123".parse().unwrap(), None).unwrap();
+    fn start_connect(&mut self, addr: SocketAddr) {
+        let peer = Peer::connect(addr, None).unwrap();
         let netman = NetManager::new(peer);
         netman.clone().start();
         self.state = AppState::Netman { netman };
@@ -216,6 +224,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             state: AppState::Init,
+            addr: "192.168.1.168:5123".to_string(),
         }
     }
 }
@@ -230,9 +239,15 @@ impl eframe::App for App {
                     if ui.button("Host").clicked() {
                         self.start_server();
                     }
-                    if ui.button("Connect").clicked() {
-                        self.start_connect();
-                    }
+                    ui.text_edit_singleline(&mut self.addr);
+                    let addr = self.addr.parse();
+                    ui.add_enabled_ui(addr.is_ok(), |ui| {
+                        if ui.button("Connect").clicked() {
+                            if let Ok(addr) = addr {
+                                self.start_connect(addr);
+                            }
+                        }
+                    });
                 });
             }
             AppState::Netman { netman } => {
