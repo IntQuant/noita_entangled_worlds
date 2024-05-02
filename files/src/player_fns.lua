@@ -1,4 +1,5 @@
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 
 local ffi = require("ffi")
 
@@ -369,36 +370,19 @@ function player_fns.deserialize_position(message, player_data)
     EntityApplyTransform(entity, message.x, message.y)
 end
 
+
 function player_fns.serialize_items(player_data)
     local playerEnt = player_data.entity
 
-    local item_data, spell_data = player_helper.GetItemData()
+    local item_data, spell_data = inventory_helper.GetItemData()
     if(item_data ~= nil)then
         local data = { item_data, force, GameHasFlagRun( "arena_unlimited_spells" ) }
 
-        
         if (user ~= nil) then
             table.insert(data, spell_data)
             steamutils.sendToPlayer("item_update", data, user, true)
         else
-            if(to_spectators)then
-                table.insert(data, spell_data)
-                steamutils.send("item_update", data, steamutils.messageTypes.Spectators, lobby, true, true)
-            else
-                steamutils.send("item_update", data, steamutils.messageTypes.OtherPlayers, lobby, true, true)
-            end
-        end
-    else
-        if (user ~= nil) then
-            table.insert(data, spell_data)
-            steamutils.sendToPlayer("item_update", {}, user, true)
-        else
-            if(to_spectators)then
-                table.insert(data, spell_data)
-                steamutils.send("item_update", {}, steamutils.messageTypes.Spectators, lobby, true, true)
-            else
-                steamutils.send("item_update", {}, steamutils.messageTypes.OtherPlayers, lobby, true, true)
-            end
+            steamutils.send("item_update", data, steamutils.messageTypes.OtherPlayers, lobby, true, true)
         end
     end
 end
