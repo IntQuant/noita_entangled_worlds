@@ -30,4 +30,13 @@ function net_handling.mod.player(peer_id, value)
     player_fns.deserialize_position(pos_data, player_data)
 end
 
+function net_handling.mod.inventory(peer_id, inventory_state)
+    if not player_fns.peer_has_player(peer_id) then
+        return
+    end
+    local player_data = player_fns.peer_get_player_data(peer_id)
+    player_fns.deserialize_items(inventory_state, player_data)
+    GamePrint("synced inventory")
+end
+
 return net_handling

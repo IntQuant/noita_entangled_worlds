@@ -10,7 +10,7 @@ use std::{
 use bitcode::{Decode, Encode};
 use eframe::egui::{self, Color32};
 use tangled::{Peer, PeerId, Reliability};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use tungstenite::accept;
 
 use crate::messages::NetMsg;
@@ -19,7 +19,7 @@ pub mod messages;
 
 static HOST: PeerId = PeerId(0);
 
-#[derive(Decode, Encode, Clone)]
+#[derive(Debug, Decode, Encode, Clone)]
 pub struct GameSettings {
     seed: u64,
 }
@@ -66,7 +66,9 @@ impl NetManager {
 
     fn broadcast(&self, msg: &NetMsg, reliability: Reliability) {
         let encoded = bitcode::encode(msg);
-        self.peer.broadcast(encoded, reliability).ok(); // TODO log
+        if let Err(err) = self.peer.broadcast(encoded, reliability) {
+            warn!("Error while broadcasting message: {}", err)
+        }
     }
 
     pub fn start(self: Arc<NetManager>) {

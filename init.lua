@@ -11,6 +11,7 @@ np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 
 function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
@@ -70,14 +71,11 @@ local my_player = nil
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
 	GamePrint( "OnPlayerSpawned() - Player entity id: " .. tostring(player_entity) )
-    -- local other = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
-    -- np.SetPlayerEntity(player_entity)
 
     my_player = player_fns.make_playerdata_for(player_entity)
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
     ctx.ready = true
-    -- other_player = player_fns.make_playerdata_for(other)
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
@@ -89,6 +87,13 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
         local input_data = player_fns.serialize_inputs(my_player)
         local pos_data =  player_fns.serialize_position(my_player)
         net.send_player_update(input_data, pos_data)
+    end
+
+    if GameGetFrameNum() % 120 == 0 then
+        local inventory_state = player_fns.serialize_items(my_player)
+        net.send_player_inventory(inventory_state)
+        -- print(pretty.table(inventory_state))
+        GamePrint("sent inventory sync")
     end
 
     -- for i=1,#events do

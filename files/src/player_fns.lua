@@ -372,19 +372,12 @@ end
 
 
 function player_fns.serialize_items(player_data)
-    local playerEnt = player_data.entity
+    local item_data, spell_data = inventory_helper.get_item_data(player_data)
+    return item_data
+end
 
-    local item_data, spell_data = inventory_helper.GetItemData()
-    if(item_data ~= nil)then
-        local data = { item_data, force, GameHasFlagRun( "arena_unlimited_spells" ) }
-
-        if (user ~= nil) then
-            table.insert(data, spell_data)
-            steamutils.sendToPlayer("item_update", data, user, true)
-        else
-            steamutils.send("item_update", data, steamutils.messageTypes.OtherPlayers, lobby, true, true)
-        end
-    end
+function player_fns.deserialize_items(inventory_state, player_data)
+    inventory_helper.set_item_data(inventory_state, player_data)
 end
 
 function player_fns.peer_has_player(peer_id)
@@ -400,6 +393,13 @@ function player_fns.spawn_player_for(peer_id, x, y)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = player_fns.make_playerdata_for(new)
     ctx.players[peer_id] = new_playerdata
+end
+
+function player_fns.is_inventory_open()
+    local player_entity = ctx.players[ctx.my_id].entity
+    local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(player_entity, "InventoryGuiComponent")
+
+    return ComponentGetValue2(inventory_gui_comp, "mActive")
 end
 
 print("Players initialized")

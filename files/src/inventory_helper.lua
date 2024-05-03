@@ -1,3 +1,6 @@
+local np = require("noitapatcher")
+local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
+
 local inventory_helper = {}
 
 local function entity_is_wand(entity_id)
@@ -62,7 +65,7 @@ function inventory_helper.get_item_data(player_data, fresh)
             table.insert(wandData,
                 {
                     data = wand:Serialize(not fresh, not fresh),
-                    id = item_id or (item + Random(1, 10000000)),
+                    -- id = item_id or (item + Random(1, 10000000)),
                     slot_x = slot_x,
                     slot_y = slot_y,
                     active = (mActiveItem == item),
@@ -72,7 +75,7 @@ function inventory_helper.get_item_data(player_data, fresh)
             table.insert(wandData,
                 {
                     data = np.SerializeEntity(item),
-                    id = item_id or (item + Random(1, 10000000)),
+                    -- id = item_id or (item + Random(1, 10000000)),
                     slot_x = slot_x,
                     slot_y = slot_y,
                     active = (mActiveItem == item)
@@ -116,4 +119,111 @@ function inventory_helper.get_item_data(player_data, fresh)
     return wandData, spellData
 end
 
+local function pickup_item(entity, item)
+    local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+    if item_component then
+      ComponentSetValue2(item_component, "has_been_picked_by_player", true)
+    end
+    local entity_children = EntityGetAllChildren(entity) or {}
+    for key, child in pairs( entity_children ) do
+      if EntityGetName( child ) == "inventory_quick" then
+        EntityAddChild( child, item)
+      end
+    end
+  
+    EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
+    EntitySetComponentsWithTagEnabled( item, "enabled_in_hand", false )
+    EntitySetComponentsWithTagEnabled( item, "enabled_in_inventory", true )
+  
+    local wand_children = EntityGetAllChildren(item) or {}
+  
+    for k, v in ipairs(wand_children)do
+      EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
+    end  
+end
+
+function inventory_helper.set_item_data(item_data, player_data)
+    local player = player_data.entity
+    if (player == nil) then
+        return
+    end
+
+    local items = GameGetAllInventoryItems(player) or {}
+    for i, item_id in ipairs(items) do
+        GameKillInventoryItem(player, item_id)
+        EntityKill(item_id)
+    end
+
+    if (item_data ~= nil) then
+        local active_item_entity = nil
+
+        for k, itemInfo in ipairs(item_data) do
+            local x, y = EntityGetTransform(player)
+            local item_entity = nil
+
+            local item = nil
+            if(itemInfo.is_wand)then
+                item = EZWand(itemInfo.data, x, y, GameHasFlagRun("refresh_all_charges"))
+                
+            else
+                item = EntityCreateNew()
+                np.DeserializeEntity(item, itemInfo.data, x, y)
+            end
+
+            if (item == nil) then
+                return
+            end
+
+            if(itemInfo.is_wand)then
+                item:PickUp(player)
+                local itemComp = EntityGetFirstComponentIncludingDisabled(item.entity_id, "ItemComponent")
+                if (itemComp ~= nil) then
+                    ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
+                end
+                item_entity = item.entity_id
+                if (itemInfo.active) then
+                    active_item_entity = item.entity_id
+                end
+            else
+                pickup_item(player, item)
+                local itemComp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+                if (itemComp ~= nil) then
+                    ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
+                end
+                item_entity = item
+                if (itemInfo.active) then
+                    active_item_entity = item
+                end
+            end
+
+            --print("Deserialized wand #"..tostring(k).." - Active? "..tostring(wandInfo.active))
+
+            -- entity.SetVariable(item_entity, "arena_entity_id", itemInfo.id)
+
+            local lua_comps = EntityGetComponentIncludingDisabled(item_entity, "LuaComponent") or {}
+            local has_pickup_script = false
+            for i, lua_comp in ipairs(lua_comps) do
+                if (ComponentGetValue2(lua_comp, "script_item_picked_up") == "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua") then
+                    has_pickup_script = true
+                end
+            end
+
+            if (not has_pickup_script) then
+                EntityAddTag(item_entity, "does_physics_update")
+                EntityAddComponent(item_entity, "LuaComponent", {
+                    _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory",
+                    -- script_item_picked_up = "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua",
+                    -- script_kick = "mods/evaisa.arena/files/scripts/gamemode/misc/item_kick.lua",
+                    -- script_throw_item = "mods/evaisa.arena/files/scripts/gamemode/misc/item_throw.lua",
+                })
+            end
+        end
+
+        if (active_item_entity ~= nil) then
+            np.SetActiveHeldEntity(player, active_item_entity, false, false)
+        end
+    end
+end
+
 return inventory_helper
+

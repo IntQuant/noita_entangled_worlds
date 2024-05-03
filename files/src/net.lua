@@ -75,7 +75,7 @@ function net.init()
         
 end
 
-function net.send(key, value)
+function net.send(key, value, reliable) -- TODO reliability
   local encoded_msg = bitser.dumps({
     key = key,
     value = value,
@@ -88,6 +88,10 @@ function net.send_player_update(input_data, pos_data)
     inp = input_data,
     pos = pos_data,
   })
+end
+
+function net.send_player_inventory(inventory_state)
+  net.send("inventory", inventory_state, true)
 end
 
 return net
