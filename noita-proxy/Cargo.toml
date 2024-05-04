@@ -16,6 +16,7 @@ tracing = "0.1.40"
 tangled = { path = "tangled" }
 serde = { version = "1.0.199", features = ["serde_derive"] }
 bitcode = "0.6.0"
+lz4_flex = { version = "0.11.3", default_features = false, features = ["std"]}
 
 [profile.dev]
 opt-level = 1

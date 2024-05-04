@@ -6,4 +6,5 @@ use crate::GameSettings;
 pub enum NetMsg {
     StartGame { settings: GameSettings },
     ModRaw { data: Vec<u8> },
+    ModCompressed { data: Vec<u8> },
 }
