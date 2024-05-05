@@ -86,7 +86,8 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
     if GameGetFrameNum() % 2 == 0 then
         local input_data = player_fns.serialize_inputs(my_player)
         local pos_data =  player_fns.serialize_position(my_player)
-        net.send_player_update(input_data, pos_data)
+        local current_slot = player_fns.get_current_slot(my_player)
+        net.send_player_update(input_data, pos_data, current_slot)
     end
 
     if GameGetFrameNum() % 120 == 0 then

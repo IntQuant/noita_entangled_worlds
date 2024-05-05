@@ -2,6 +2,7 @@ local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 
 local ffi = require("ffi")
+local np = require("noitapatcher")
 
 ffi.cdef([[
 #pragma pack(push, 1)
@@ -400,6 +401,68 @@ function player_fns.is_inventory_open()
     local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(player_entity, "InventoryGuiComponent")
 
     return ComponentGetValue2(inventory_gui_comp, "mActive")
+end
+
+local function get_active_held_item(player_entity)
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_entity, "Inventory2Component")
+    local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+    return mActiveItem
+end
+
+function player_fns.get_current_slot(player_data)
+    local held_item = get_active_held_item(player_data.entity)
+    if (held_item ~= nil and held_item ~= 0) then
+        local item_comp = EntityGetFirstComponentIncludingDisabled(held_item, "ItemComponent")
+
+        -- the hell??
+        if(item_comp == nil)then
+            return
+        end
+
+        local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
+        local ability_comp = EntityGetFirstComponentIncludingDisabled(held_item, "AbilityComponent")
+        
+        local is_wand = false
+        if(ability_comp and ComponentGetValue2(ability_comp, "use_gun_script"))then
+            is_wand = true
+        end
+        return {is_wand, slot_x, slot_y}
+    end
+end
+
+function player_fns.set_current_slot(slot_data, player_data)
+    local is_wand, slot_x, slot_y = slot_data[1], slot_data[2], slot_data[3]
+    -- GamePrint("Switching item to slot: " .. tostring(slot_x) .. ", " .. tostring(slot_y))
+    if (player_data.entity and EntityGetIsAlive(player_data.entity)) then
+        local items = GameGetAllInventoryItems(player_data.entity) or {}
+        for i, item in ipairs(items) do
+            -- check id
+            local itemComp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+            if itemComp ~= nil then
+                local item_slot_x, item_slot_y = ComponentGetValue2(itemComp, "inventory_slot")
+    
+                local ability_comp = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
+                
+                local item_is_wand = false
+                if(ability_comp and ComponentGetValue2(ability_comp, "use_gun_script"))then
+                    item_is_wand = true
+                end
+    
+                if (item_slot_x == slot_x and item_slot_y == slot_y and item_is_wand == is_wand) then
+                    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(
+                        player_data.entity, "Inventory2Component")
+                    local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+    
+                    if (mActiveItem ~= item) then
+                        np.SetActiveHeldEntity(player_data.entity, item, false, false)
+                    end
+                    return
+                end
+            else
+                print("something in inventory that is not an item")
+            end
+        end
+    end
 end
 
 print("Players initialized")

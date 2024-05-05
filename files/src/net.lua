@@ -83,10 +83,11 @@ function net.send(key, value, reliable) -- TODO reliability
   net.sock:send_binary(encoded_msg)
 end
 
-function net.send_player_update(input_data, pos_data)
+function net.send_player_update(input_data, pos_data, current_slot)
   net.send("player", {
-    inp = input_data,
-    pos = pos_data,
+    i = input_data,
+    p = pos_data,
+    s = current_slot,
   })
 end
 
