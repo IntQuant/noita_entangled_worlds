@@ -184,13 +184,17 @@ impl NetManager {
                     match msg {
                         Ok(msg) => match msg {
                             tungstenite::Message::Binary(msg) => {
-                                if msg.len() > 100 {
+                                // Somewhat arbitrary limit to begin compressing messages.
+                                // Messages shorter than this many bytes probably won't be compressed as much
+                                if msg.len() > 140 {
                                     let compressed = lz4_flex::compress_prepend_size(&msg);
+
                                     info!(
                                         "Compressed {} bytes to {} bytes",
                                         msg.len(),
                                         compressed.len()
                                     );
+
                                     self.broadcast(
                                         &NetMsg::ModCompressed { data: compressed },
                                         Reliability::Unreliable,

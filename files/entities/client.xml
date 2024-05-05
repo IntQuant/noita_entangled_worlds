@@ -118,6 +118,7 @@
     velocity_max_y="350"
   ></CharacterPlatformingComponent>
 
+<!--
   <HitboxComponent 
     aabb_max_x="0" 
     aabb_max_y="-20" 
@@ -127,15 +128,15 @@
     is_item="0" 
     is_player="0"
   ></HitboxComponent>
-
+-->
   <HitboxComponent 
     aabb_max_x="3" 
     aabb_max_y="4" 
     aabb_min_x="-3" 
     aabb_min_y="-12" 
-    is_enemy="1" 
+    is_enemy="0" 
     is_item="0" 
-    is_player="0"
+    is_player="1"
   ></HitboxComponent>
 
     <LiquidDisplacerComponent
@@ -209,7 +210,7 @@
   <SpriteComponent 
     _tags="character,skin_root" 
     alpha="1" 
-    image_file="mods/evaisa.arena/files/gfx/player.xml" 
+    image_file="data/enemies_gfx/player.xml" 
     next_rect_animation="" 
     offset_x="6" 
     offset_y="14" 
