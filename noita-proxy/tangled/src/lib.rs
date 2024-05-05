@@ -18,10 +18,10 @@ use reactor::{Destination, RemotePeer, Shared};
 pub use reactor::{Reliability, Settings};
 use serde::{Deserialize, Serialize};
 
-const DATAGRAM_MAX_LEN: usize = 1500;
+const DATAGRAM_MAX_LEN: usize = 30000; // TODO this probably should be 1500
 
 /// Maximum size of a message which fits into a single datagram.
-pub const MAX_MESSAGE_LEN: usize = 1200;
+pub const MAX_MESSAGE_LEN: usize = DATAGRAM_MAX_LEN - 100;
 
 mod error;
 mod reactor;
