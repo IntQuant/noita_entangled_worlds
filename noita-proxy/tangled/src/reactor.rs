@@ -38,7 +38,7 @@ pub struct Settings {
     /// Default: 1 second.
     pub confirm_max_period: Duration,
     /// Peers will be disconnected after this much time without any datagrams from them has passed.
-    /// Default: 1 second.
+    /// Default: 10 seconds.
     pub connection_timeout: Duration,
 }
 
@@ -139,11 +139,9 @@ impl TryFrom<&NetMessageVariant> for Datagram {
     fn try_from(value: &NetMessageVariant) -> Result<Self, Self::Error> {
         let mut data = Cursor::new([0; DATAGRAM_MAX_LEN]);
         bincode::serialize_into(&mut data, value)?;
+        let size = data.position().try_into().unwrap();
         let data = data.into_inner();
-        Ok(Datagram {
-            data,
-            size: data.len(),
-        })
+        Ok(Datagram { data, size })
     }
 }
 
@@ -534,8 +532,9 @@ impl Reactor {
                             continue 'peers;
                         }
                         peer.resend_pending.push_back((resend_in, msg.clone()));
-                        trace!("Sent {:?} to {}", msg, peer.addr);
+                        trace!("Sent {:?} to {}", msg, peer.addr,);
                         let datagram = Datagram::try_from(&NetMessageVariant::Normal(msg)).unwrap();
+                        trace!("size: {}", datagram.size);
                         self.shared
                             .socket
                             .send_to(&datagram.data[..datagram.size], peer.addr)
@@ -554,6 +553,7 @@ impl Reactor {
                         }
                     }
                     let datagram = Datagram::try_from(&msg).unwrap();
+                    trace!("sent msg size: {}", datagram.size);
                     self.shared
                         .socket
                         .send_to(&datagram.data[..datagram.size], peer.addr)

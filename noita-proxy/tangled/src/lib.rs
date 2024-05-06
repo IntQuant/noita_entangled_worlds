@@ -84,6 +84,16 @@ pub enum PeerState {
     Disconnected,
 }
 
+impl Display for PeerState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PeerState::PendingConnection => write!(f, "Connection pending..."),
+            PeerState::Connected => write!(f, "Connected"),
+            PeerState::Disconnected => write!(f, "Disconnected"),
+        }
+    }
+}
+
 type Channel<T> = (Sender<T>, Receiver<T>);
 
 /// Represents a network endpoint. Can be constructed in either `host` or `client` mode.

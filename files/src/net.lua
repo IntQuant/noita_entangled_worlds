@@ -21,7 +21,7 @@ end
 
 function net.init()
     local ready = false
-    net.sock = pollnet.open_ws("ws://127.0.0.1:41251")
+    net.sock = pollnet.open_ws("ws://127.0.0.1:21251")
     reactor:run(function() 
         local sock = net.sock
         --poll_until_open(sock)

@@ -11,7 +11,7 @@ edition = "2021"
 [dependencies]
 tungstenite = "0.21.0"
 eframe = { version="0.27.2", features = ["persistence", "glow", "default_fonts"], default_features = false }
-tracing-subscriber = "0.3.18"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
 tangled = { path = "tangled" }
 serde = { version = "1.0.199", features = ["serde_derive"] }

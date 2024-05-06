@@ -89,7 +89,7 @@ impl NetManager {
     pub fn start(self: Arc<NetManager>) {
         info!("Starting netmanager");
         thread::spawn(move || {
-            let local_server = TcpListener::bind("127.0.0.1:41251").unwrap();
+            let local_server = TcpListener::bind("127.0.0.1:21251").unwrap();
             // let local_server = TcpListener::bind("127.0.0.1:0").unwrap();
             local_server
                 .set_nonblocking(true)
@@ -288,15 +288,23 @@ impl eframe::App for App {
                     .local_connected
                     .load(std::sync::atomic::Ordering::Relaxed);
                 egui::CentralPanel::default().show(ctx, |ui| {
-                if accept_local {
-                    if local_connected {
-                        ui.colored_label(Color32::GREEN, "Local Noita instance connected");
+                    if accept_local {
+                        if local_connected {
+                            ui.colored_label(Color32::GREEN, "Local Noita instance connected");
+                        } else {
+                            ui.colored_label(Color32::YELLOW, "Awaiting Noita connection. It's time to start new game in Noita now!");
+                        }
                     } else {
-                        ui.colored_label(Color32::YELLOW, "Awaiting Noita connection. It's time to start new game in Noita now!");
+                        ui.label("Not yet ready");
                     }
-                } else {
-                    ui.label("Not yet ready");
-                }});
+                    ui.separator();
+                    ui.heading("Current users");
+                    for peer in netman.peer.iter_peer_ids() {
+                        ui.label(peer.0.to_string());
+                    }
+                    
+                    ui.label(format!("Peer state: {}", netman.peer.state()));
+                });                
             }
         };
     }
