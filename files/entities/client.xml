@@ -323,5 +323,9 @@
     volume_autofade_speed="0.05"
   ></AudioLoopComponent>
 
-
+  <VariableStorageComponent
+    _tags="ew_current_perks"
+    value_string=""
+  >
+  </VariableStorageComponent>
 </Entity>

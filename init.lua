@@ -12,6 +12,7 @@ local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
+local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
 function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
@@ -72,10 +73,18 @@ local my_player = nil
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
 	GamePrint( "OnPlayerSpawned() - Player entity id: " .. tostring(player_entity) )
 
-    my_player = player_fns.make_playerdata_for(player_entity)
+    my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
     ctx.ready = true
+
+    np.SetPauseState(4)
+    np.SetPauseState(0)
+
+    dofile_once("data/scripts/perks/perk.lua")
+    local x, y = EntityGetFirstHitboxCenter(player_entity)
+    perk_spawn(x, y, "LASER_AIM")
+    perk_spawn(x-50, y, "GLASS_CANNON")
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
@@ -93,8 +102,9 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
     if GameGetFrameNum() % 120 == 0 then
         local inventory_state = player_fns.serialize_items(my_player)
         net.send_player_inventory(inventory_state)
-        -- print(pretty.table(inventory_state))
-        GamePrint("sent inventory sync")
+        local perk_data = perk_fns.get_my_perks()
+        -- print(pretty.table(perk_data))
+        net.send_player_perks(perk_data)
     end
 
     -- for i=1,#events do

@@ -326,10 +326,12 @@ local player_fns = {
             return c
         end
     end,
-    make_playerdata_for = function(entity_id)
+    make_playerdata_for = function(entity_id, peer_id)
         GamePrint("Made playerdata for "..entity_id)
         return {
             entity = entity_id,
+            peer_id = peer_id,
+            name = "[Peer "..peer_id.."]",
             controls = {},
         }
     end,
@@ -392,7 +394,7 @@ end
 function player_fns.spawn_player_for(peer_id, x, y)
     GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
-    local new_playerdata = player_fns.make_playerdata_for(new)
+    local new_playerdata = player_fns.make_playerdata_for(new, peer_id)
     ctx.players[peer_id] = new_playerdata
 end
 

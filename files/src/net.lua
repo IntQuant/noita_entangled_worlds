@@ -95,4 +95,8 @@ function net.send_player_inventory(inventory_state)
   net.send("inventory", inventory_state, true)
 end
 
+function net.send_player_perks(perk_data)
+  net.send("perks", perk_data, true)
+end
+
 return net
