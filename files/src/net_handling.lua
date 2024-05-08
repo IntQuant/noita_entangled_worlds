@@ -1,5 +1,6 @@
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
 local net_handling = {
@@ -50,6 +51,12 @@ function net_handling.mod.perks(peer_id, perk_data)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
     perk_fns.update_perks(perk_data, player_data)
+end
+
+function net_handling.mod.enemy(peer_id, enemy_data)
+    if peer_id == ctx.host_id then
+        enemy_sync.handle_enemy_data(enemy_data)
+    end
 end
 
 return net_handling

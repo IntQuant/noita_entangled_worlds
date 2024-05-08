@@ -15,4 +15,31 @@ function util.set_ent_variable(entity, key, value)
     ComponentSetValue2(storage, "value_string", bitser.dumps(value))
 end
 
+function util.get_ent_health(entity)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model == 0 then
+        return 0, 0
+    end
+    local hp = ComponentGetValue2(damage_model, "hp")
+    local max_hp = ComponentGetValue2(damage_model, "max_hp")
+    return hp, max_hp
+end
+
+function util.set_ent_health(entity, hp_data)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model == 0 then
+        return
+    end
+    if hp_data[1] ~= nil then
+        ComponentSetValue2(damage_model, "hp", hp_data[1])
+    end
+    if hp_data[2] ~= nil then
+        ComponentSetValue2(damage_model, "max_hp", hp_data[2])
+    end
+end
+
+function util.lerp(a, b, alpha)
+    return a * alpha + b * (1 - alpha)
+end
+
 return util

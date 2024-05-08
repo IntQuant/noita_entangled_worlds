@@ -13,6 +13,7 @@ local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
+local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 
 function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
@@ -77,14 +78,15 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
     ctx.ready = true
+    ctx.is_host = ctx.my_id == ctx.host_id
 
     np.SetPauseState(4)
     np.SetPauseState(0)
 
     dofile_once("data/scripts/perks/perk.lua")
     local x, y = EntityGetFirstHitboxCenter(player_entity)
-    perk_spawn(x, y, "LASER_AIM")
-    perk_spawn(x-50, y, "GLASS_CANNON")
+    perk_spawn(x, y, "LASER_AIM", true)
+    perk_spawn(x-50, y, "GLASS_CANNON", true)
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
@@ -92,11 +94,19 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
 	-- GamePrint( "Pre-update hook " .. tostring(GameGetFrameNum()) )
     
     net.update()
-    if GameGetFrameNum() % 2 == 0 then
+    if GameGetFrameNum() % 1 == 0 then
         local input_data = player_fns.serialize_inputs(my_player)
         local pos_data =  player_fns.serialize_position(my_player)
         local current_slot = player_fns.get_current_slot(my_player)
         net.send_player_update(input_data, pos_data, current_slot)
+    end
+
+    if GameGetFrameNum() % 2 == 1 then
+        if ctx.is_host then
+            net.send_enemy_data(enemy_sync.host_upload_entities())
+        else
+            enemy_sync.client_cleanup()
+        end
     end
 
     if GameGetFrameNum() % 120 == 0 then
