@@ -19,10 +19,14 @@ function enemy_sync.host_upload_entities()
             goto continue
         end
         local filename = EntityGetFilename(enemy_id)
-        --print("ent "..enemy_id.." "..filename)
         local x, y = EntityGetTransform(enemy_id)
+        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
+        local vx, vy = 0, 0
+        if character_data ~= 0 then
+            vx, vy = ComponentGetValue2(character_data, "mVelocity")
+        end
         local hp, max_hp = util.get_ent_health(enemy_id)
-        table.insert(enemy_data_list, {enemy_id, filename, x, y, hp, max_hp})
+        table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})
         ::continue::
     end
     --print(#enemy_data_list)
@@ -54,8 +58,10 @@ function enemy_sync.handle_enemy_data(enemy_data)
         local filename = enemy_info_raw[2]
         local x = enemy_info_raw[3]
         local y = enemy_info_raw[4]
-        local hp = enemy_info_raw[5]
-        local max_hp = enemy_info_raw[6]
+        local vx = enemy_info_raw[5]
+        local vy = enemy_info_raw[6]
+        local hp = enemy_info_raw[7]
+        local max_hp = enemy_info_raw[8]
 
         local frame = GameGetFrameNum()
         
@@ -66,12 +72,26 @@ function enemy_sync.handle_enemy_data(enemy_data)
         if ctx.enemy_by_remote_id[remote_enemy_id] == nil then
             local enemy_id = EntityLoad(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
+            local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
+            if ai_component ~= 0 then                
+                EntityRemoveComponent(enemy_id, ai_component)
+            end
             ctx.enemy_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
         end
 
         local enemy_data = ctx.enemy_by_remote_id[remote_enemy_id]
         enemy_data.frame = frame
         local enemy_id = enemy_data.id
+
+        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
+        if character_data ~= 0 then
+            ComponentSetValue2(character_data, "mVelocity", vx, vy)
+        end
+        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+        if character_data ~= 0 then
+            ComponentSetValue2(character_data, "mVelocity", vx, vy)
+        end
+
         local px, py = EntityGetTransform(enemy_id)
         local tp_limit = 30
         local alpha = 0.2
