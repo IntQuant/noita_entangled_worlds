@@ -17,7 +17,7 @@ end
 
 function util.get_ent_health(entity)
     local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-    if damage_model == 0 then
+    if damage_model == nil then
         return 0, 0
     end
     local hp = ComponentGetValue2(damage_model, "hp")
@@ -27,7 +27,7 @@ end
 
 function util.set_ent_health(entity, hp_data)
     local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-    if damage_model == 0 then
+    if damage_model == nil then
         return
     end
     if hp_data[1] ~= nil then

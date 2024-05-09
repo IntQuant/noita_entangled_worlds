@@ -11,19 +11,40 @@ local function world_exists_for(entity)
     return DoesWorldExistAt(x - w, y - h, x + w, y + h)
 end
 
+local function table_extend(to, from)
+    for _, e in ipairs(from) do
+        to[#to+1] = e
+    end
+end
+
+local function table_extend_filtered(to, from, filter)
+    for _, e in ipairs(from) do
+        if filter(e) then
+            to[#to+1] = e
+        end
+    end
+end
+
 function enemy_sync.host_upload_entities()
-    local enemy_list = EntityGetWithTag("enemy") -- TODO maybe only sync those close to players?
+    local entities = EntityGetWithTag("enemy") -- TODO maybe only sync those close to players?
+    table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
+        return not EntityHasTag(ent, "projectile_player")
+    end)
     local enemy_data_list = {}
-    for i, enemy_id in ipairs(enemy_list) do
+    for i, enemy_id in ipairs(entities) do
         if not world_exists_for(enemy_id) then
             goto continue
         end
         local filename = EntityGetFilename(enemy_id)
         local x, y = EntityGetTransform(enemy_id)
-        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
+        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
         local vx, vy = 0, 0
-        if character_data ~= 0 then
+        if character_data ~= nil then
             vx, vy = ComponentGetValue2(character_data, "mVelocity")
+        end
+        local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
+        if ai_component ~= nil then
+            ComponentSetValue2(ai_component, "max_distance_to_cam_to_start_hunting", math.pow(2, 29))
         end
         local hp, max_hp = util.get_ent_health(enemy_id)
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})

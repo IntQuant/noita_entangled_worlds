@@ -144,7 +144,7 @@ end
 
 function inventory_helper.set_item_data(item_data, player_data)
     local player = player_data.entity
-    if (player == nil) then
+    if (EntityGetIsAlive(player)) then
         return
     end
 
