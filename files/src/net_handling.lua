@@ -43,7 +43,7 @@ function net_handling.mod.inventory(peer_id, inventory_state)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
     player_fns.deserialize_items(inventory_state, player_data)
-    GamePrint("synced inventory")
+    -- GamePrint("synced inventory")
 end
 
 function net_handling.mod.perks(peer_id, perk_data)

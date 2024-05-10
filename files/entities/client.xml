@@ -328,4 +328,6 @@
     value_string=""
   >
   </VariableStorageComponent>
+  <WalletComponent>
+  </WalletComponent>
 </Entity>
