@@ -396,6 +396,9 @@ function player_fns.spawn_player_for(peer_id, x, y)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = player_fns.make_playerdata_for(new, peer_id)
     ctx.players[peer_id] = new_playerdata
+    if not ctx.is_host then
+        EntityAddComponent2(new, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+    end
 end
 
 function player_fns.is_inventory_open()

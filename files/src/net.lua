@@ -1,6 +1,7 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 local pollnet = dofile_once("mods/quant.ew/files/lib/pollnet.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
 
 local reactor = pollnet.Reactor()
 
@@ -11,13 +12,7 @@ function net.update()
     reactor:update()
 end
 
-local function string_split( s, splitter )
-  local words = {};
-  for word in string.gmatch( s, '([^'..splitter..']+)') do
-      table.insert( words, word );
-  end
-  return words;
-end
+local string_split = util.string_split
 
 function net.init()
     local ready = false
@@ -45,7 +40,7 @@ function net.init()
             local peer_id = peer_id_l + peer_id_h * 256
             local msg_l = string.sub(msg, 4)
             local success, item = pcall(bitser.loads, msg_l)
-            if success then              
+            if success then
               msg_decoded = {
                 kind = "mod",
                 peer_id = peer_id,
@@ -59,16 +54,12 @@ function net.init()
             print("Unknown msg")
           end
           if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
-            if ctx.ready or msg_decoded.kind ~= "mod" then
-              local result, err = pcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value)
-              if not result then
-                  GamePrint(tostring(err))
-              end
+            if ctx.ready or msg_decoded.kind ~= "mod" then              
+                util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value)
             end
             -- GamePrint("NetHnd: "..msg_decoded.kind.." "..msg_decoded.key)
-          end 
+          end
         end
-        ready = true
     end)
     while not ready do
         reactor:update()
@@ -108,6 +99,10 @@ end
 
 function net.send_world_data(world_data)
   net.send("world", world_data)
+end
+
+function net.send_host_player_info(player_info)
+  net.send("host_player", player_info)
 end
 
 return net

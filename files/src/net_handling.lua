@@ -1,5 +1,6 @@
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
@@ -30,8 +31,12 @@ function net_handling.mod.player(peer_id, value)
         player_fns.spawn_player_for(peer_id, pos_data.x, pos_data.y)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
-    player_fns.deserialize_inputs(input_data, player_data)
-    player_fns.deserialize_position(pos_data, player_data)
+    if input_data ~= nil then
+        player_fns.deserialize_inputs(input_data, player_data)
+    end
+    if pos_data ~= nil then
+        player_fns.deserialize_position(pos_data, player_data)
+    end
     if slot_data ~= nil then
         player_fns.set_current_slot(slot_data, player_data)
     end
@@ -63,6 +68,18 @@ end
 function net_handling.mod.world(peer_id, world_data)
     if peer_id == ctx.host_id then
         world_sync.handle_world_data(world_data)
+    end
+end
+
+function net_handling.mod.host_player(peer_id, player_infos)
+    if peer_id ~= ctx.host_id then
+        return
+    end
+    for id, player_data in pairs(ctx.players) do
+        if player_infos[id] ~= nil then
+            local info = player_infos[id]
+            util.set_ent_health(player_data.entity, {info[1], info[2]})
+        end
     end
 end
 

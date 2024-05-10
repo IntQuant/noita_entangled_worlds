@@ -1,8 +1,35 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 
 local util = {}
+
+function util.string_split( s, splitter )
+    local words = {};
+    for word in string.gmatch( s, '([^'..splitter..']+)') do
+        table.insert( words, word );
+    end
+    return words;
+end
+
+function util.print_error(error)
+    local lines = util.string_split(error, "\n")
+    for _, line in ipairs(lines) do
+        GamePrint(line)
+    end
+end
+
+function util.tpcall(fn, ...)
+    local res = {xpcall(fn, debug.traceback, ...)}
+    if not res[1] then
+        util.print_error(res[2])
+    end
+    return unpack(res)
+end
+
 function util.get_ent_variable(entity, key)
     local storage = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", key)
+    if storage == nil then
+        return nil
+    end
     local value = ComponentGetValue2(storage, "value_string")
     if value == "" then
         return nil

@@ -94,10 +94,11 @@ function enemy_sync.handle_enemy_data(enemy_data)
         if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
             ctx.entity_by_remote_id[remote_enemy_id] = nil
         end
-        
+            
         if ctx.entity_by_remote_id[remote_enemy_id] == nil then
             local enemy_id = EntityLoad(filename, x, y)
-            EntityAddTag(enemy_id, "ew_replicated")
+            EntityAddTag(enemy_id, "ew_replicated")            
+            EntityAddComponent2(enemy_id, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
             local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
             if ai_component ~= 0 then                
                 EntityRemoveComponent(enemy_id, ai_component)

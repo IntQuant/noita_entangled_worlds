@@ -10,6 +10,7 @@ np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away
 
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
@@ -84,6 +85,10 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     np.SetPauseState(4)
     np.SetPauseState(0)
 
+    if not ctx.is_host then
+        EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+    end
+
     dofile_once("data/scripts/perks/perk.lua")
     local x, y = EntityGetFirstHitboxCenter(player_entity)
     perk_spawn(x, y, "LASER_AIM", true)
@@ -91,13 +96,12 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
-    local result, err = pcall(on_world_pre_update_inner)
-    if not result then
-        GamePrint(tostring(err))
-    end
+    util.tpcall(on_world_pre_update_inner)
 end
+
 function on_world_pre_update_inner()
     if my_player == nil then return end
+
 	-- GamePrint( "Pre-update hook " .. tostring(GameGetFrameNum()) )
     
     net.update()
@@ -123,13 +127,25 @@ function on_world_pre_update_inner()
         end
     end
 
+    if ctx.is_host and GameGetFrameNum() % 4 == 3 then
+        local player_info = {}
+        for id, player_data in pairs(ctx.players) do
+            local entity = player_data.entity
+            local hp, max_hp = util.get_ent_health(entity)
+            player_info[id] = {hp, max_hp}
+        end
+        net.send_host_player_info(player_info)
+    end
+
     if GameGetFrameNum() % 120 == 0 then
-        -- GamePrint("Serialize items")
         local inventory_state = player_fns.serialize_items(my_player)
-        net.send_player_inventory(inventory_state)
+        if inventory_state ~= nil then
+            net.send_player_inventory(inventory_state)
+        end
         local perk_data = perk_fns.get_my_perks()
-        -- print(pretty.table(perk_data))
-        net.send_player_perks(perk_data)
+        if perk_data ~= nil then
+            net.send_player_perks(perk_data)
+        end
     end
 end
 
