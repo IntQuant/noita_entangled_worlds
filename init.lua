@@ -80,12 +80,13 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
     ctx.ready = true
-    ctx.is_host = ctx.my_id == ctx.host_id
 
     np.SetPauseState(4)
     np.SetPauseState(0)
 
-    if not ctx.is_host then
+    if ctx.is_host then
+        EntityAddTag(player_entity, "ew_host")
+    else
         EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
     end
 
@@ -129,10 +130,11 @@ function on_world_pre_update_inner()
 
     if ctx.is_host and GameGetFrameNum() % 4 == 3 then
         local player_info = {}
+        local hp, max_hp = util.get_ent_health(my_player.entity)
         for id, player_data in pairs(ctx.players) do
             local entity = player_data.entity
-            local hp, max_hp = util.get_ent_health(entity)
-            player_info[id] = {hp, max_hp}
+            local air, max_air = util.get_ent_air(entity)
+            player_info[id] = {hp, max_hp, air, max_air}
         end
         net.send_host_player_info(player_info)
     end

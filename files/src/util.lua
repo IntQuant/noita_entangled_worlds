@@ -52,6 +52,16 @@ function util.get_ent_health(entity)
     return hp, max_hp
 end
 
+function util.get_ent_air(entity)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model == nil then
+        return 0, 0
+    end
+    local air = ComponentGetValue2(damage_model, "air_in_lungs")
+    local max_air = ComponentGetValue2(damage_model, "air_in_lungs_max")
+    return air, max_air
+end
+
 function util.set_ent_health(entity, hp_data)
     local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
     if damage_model == nil then
@@ -62,6 +72,19 @@ function util.set_ent_health(entity, hp_data)
     end
     if hp_data[2] ~= nil then
         ComponentSetValue2(damage_model, "max_hp", hp_data[2])
+    end
+end
+
+function util.set_ent_air(entity, air_data)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model == nil then
+        return
+    end
+    if air_data[1] ~= nil then
+        ComponentSetValue2(damage_model, "air_in_lungs", air_data[1])
+    end
+    if air_data[2] ~= nil then
+        ComponentSetValue2(damage_model, "air_in_lungs_max", air_data[2])
     end
 end
 
