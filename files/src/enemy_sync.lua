@@ -25,11 +25,16 @@ local function table_extend_filtered(to, from, filter)
     end
 end
 
-function enemy_sync.host_upload_entities()
+local function get_sync_entities()
     local entities = EntityGetWithTag("enemy") -- TODO maybe only sync those close to players?
     table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
         return not EntityHasTag(ent, "projectile_player")
     end)
+    return entities
+end
+
+function enemy_sync.host_upload_entities()
+    local entities = get_sync_entities()
     local enemy_data_list = {}
     for i, enemy_id in ipairs(entities) do
         if not world_exists_for(enemy_id) then
@@ -55,19 +60,19 @@ function enemy_sync.host_upload_entities()
 end
 
 function enemy_sync.client_cleanup()
-    local enemy_list = EntityGetWithTag("enemy")
-    for i, enemy_id in ipairs(enemy_list) do
+    local entities = get_sync_entities()
+    for i, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
             print("Despawning unreplicated "..enemy_id)
             EntityKill(enemy_id)
         end
     end
     local frame = GameGetFrameNum()
-    for remote_id, enemy_data in pairs(ctx.enemy_by_remote_id) do
-        if frame - enemy_data.frame > 60*10 then
+    for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
+        if frame - enemy_data.frame > 60*1 then
             print("Despawning stale "..remote_id)
             EntityKill(enemy_data.id)
-            ctx.enemy_by_remote_id[remote_id] = nil
+            ctx.entity_by_remote_id[remote_id] = nil
         end
     end
 end
@@ -86,21 +91,21 @@ function enemy_sync.handle_enemy_data(enemy_data)
 
         local frame = GameGetFrameNum()
         
-        if ctx.enemy_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.enemy_by_remote_id[remote_enemy_id].id) then
-            ctx.enemy_by_remote_id[remote_enemy_id] = nil
+        if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
+            ctx.entity_by_remote_id[remote_enemy_id] = nil
         end
         
-        if ctx.enemy_by_remote_id[remote_enemy_id] == nil then
+        if ctx.entity_by_remote_id[remote_enemy_id] == nil then
             local enemy_id = EntityLoad(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
             local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
             if ai_component ~= 0 then                
                 EntityRemoveComponent(enemy_id, ai_component)
             end
-            ctx.enemy_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
+            ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
         end
 
-        local enemy_data = ctx.enemy_by_remote_id[remote_enemy_id]
+        local enemy_data = ctx.entity_by_remote_id[remote_enemy_id]
         enemy_data.frame = frame
         local enemy_id = enemy_data.id
 
