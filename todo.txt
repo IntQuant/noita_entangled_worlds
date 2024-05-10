@@ -11,6 +11,9 @@
  - Figure out what to do with one-off perks,
  - remove perks, remove other perks
  
+ - Do something about cascading projectiles
+ - Fix replicated projectiles exploding randomly
+ - Sync enemies with sights
  - Позволить менять сид мира
  - Никнеймы игроков
  k Лимит на длину сообщения

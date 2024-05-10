@@ -14,6 +14,7 @@ local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
+local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 
 function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
@@ -90,6 +91,12 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
+    local result, err = pcall(on_world_pre_update_inner)
+    if not result then
+        GamePrint(tostring(err))
+    end
+end
+function on_world_pre_update_inner()
     if my_player == nil then return end
 	-- GamePrint( "Pre-update hook " .. tostring(GameGetFrameNum()) )
     
@@ -109,24 +116,21 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
         end
     end
 
+    if ctx.is_host then
+        local world_data = world_sync.host_upload()
+        if world_data ~= nil then
+            net.send_world_data(world_data)
+        end
+    end
+
     if GameGetFrameNum() % 120 == 0 then
+        -- GamePrint("Serialize items")
         local inventory_state = player_fns.serialize_items(my_player)
         net.send_player_inventory(inventory_state)
         local perk_data = perk_fns.get_my_perks()
         -- print(pretty.table(perk_data))
         net.send_player_perks(perk_data)
     end
-
-    -- for i=1,#events do
-    --     local event = events[i]
-    --     GamePrint("event "..i.." "..event.kind)
-    --     if event.kind == "connect" then
-    --         player_fns.spawn_player_for(event.peer_id)
-    --     end
-    -- end
-
-    -- local sinp = player_fns.serialize_inputs(my_player)
-    -- player_fns.deserialize_inputs(sinp, other_player)
 end
 
 function register_localizations(translation_file, clear_count)

@@ -1,6 +1,7 @@
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
+local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
 local net_handling = {
@@ -42,7 +43,7 @@ function net_handling.mod.inventory(peer_id, inventory_state)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
     player_fns.deserialize_items(inventory_state, player_data)
-    -- GamePrint("synced inventory")
+    GamePrint("synced inventory")
 end
 
 function net_handling.mod.perks(peer_id, perk_data)
@@ -56,6 +57,12 @@ end
 function net_handling.mod.enemy(peer_id, enemy_data)
     if peer_id == ctx.host_id then
         enemy_sync.handle_enemy_data(enemy_data)
+    end
+end
+
+function net_handling.mod.world(peer_id, world_data)
+    if peer_id == ctx.host_id then
+        world_sync.handle_world_data(world_data)
     end
 end
 

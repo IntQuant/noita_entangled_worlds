@@ -1,5 +1,6 @@
 local np = require("noitapatcher")
 local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
+local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 
 local inventory_helper = {}
 
@@ -92,7 +93,7 @@ function inventory_helper.get_item_data(player_data, fresh)
 
         -- local item_id = entity.GetVariable(item, "arena_entity_id")
 
-        GlobalsSetValue(tostring(item) .. "_item", tostring(k))
+        -- GlobalsSetValue(tostring(item) .. "_item", tostring(k))
         if(entity_is_wand(item))then
             local wand = EZWand(item)
             table.insert(spellData,
@@ -144,7 +145,8 @@ end
 
 function inventory_helper.set_item_data(item_data, player_data)
     local player = player_data.entity
-    if (EntityGetIsAlive(player)) then
+    if (not EntityGetIsAlive(player)) then
+        GamePrint("Skip set_item_data, player ".. player_data.name .. " " .. player_data.entity .. " is dead")
         return
     end
 
@@ -154,13 +156,13 @@ function inventory_helper.set_item_data(item_data, player_data)
         EntityKill(item_id)
     end
 
+
     if (item_data ~= nil) then
         local active_item_entity = nil
 
         for k, itemInfo in ipairs(item_data) do
             local x, y = EntityGetTransform(player)
             local item_entity = nil
-
             local item = nil
             if(itemInfo.is_wand)then
                 item = EZWand(itemInfo.data, x, y, GameHasFlagRun("refresh_all_charges"))

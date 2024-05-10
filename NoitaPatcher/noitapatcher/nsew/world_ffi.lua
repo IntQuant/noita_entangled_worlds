@@ -245,7 +245,7 @@ function world_ffi.get_grid_world()
     return grid_world
 end
 
-local material_props_size = 0x28c
+local celldata_size = 0x290
 
 --- Turn a standard material id into a material pointer.
 -- @param id material id that is used in the standard Noita functions
@@ -255,7 +255,7 @@ function world_ffi.get_material_ptr(id)
     local game_global = ffi.cast("char*", gg_ptr)
     local cell_factory = ffi.cast('char**', (game_global + 0x18))[0]
     local begin = ffi.cast('char**', cell_factory + 0x18)[0]
-    local ptr = begin + material_props_size * id
+    local ptr = begin + celldata_size * id
     return ptr
 end
 
@@ -270,7 +270,7 @@ function world_ffi.get_material_id(ptr)
     local cell_factory = ffi.cast('char**', (game_global + 0x18))[0]
     local begin = ffi.cast('char**', cell_factory + 0x18)[0]
     local offset = ffi.cast('char*', ptr) - begin
-    return offset / material_props_size
+    return offset / celldata_size
 end
 
 return world_ffi

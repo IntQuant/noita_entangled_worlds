@@ -59,8 +59,11 @@ function net.init()
             print("Unknown msg")
           end
           if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
-            if ctx.ready or msg_decoded.kind ~= "mod" then 
-              net_handling[msg_decoded.kind][msg_decoded.key](msg_decoded.peer_id, msg_decoded.value)
+            if ctx.ready or msg_decoded.kind ~= "mod" then
+              local result, err = pcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value)
+              if not result then
+                  GamePrint(tostring(err))
+              end
             end
             -- GamePrint("NetHnd: "..msg_decoded.kind.." "..msg_decoded.key)
           end 
@@ -101,6 +104,10 @@ end
 
 function net.send_enemy_data(enemy_data)
   net.send("enemy", enemy_data)
+end
+
+function net.send_world_data(world_data)
+  net.send("world", world_data)
 end
 
 return net
