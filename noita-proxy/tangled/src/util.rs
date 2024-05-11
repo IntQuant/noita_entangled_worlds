@@ -1,5 +1,7 @@
 use std::{
-    collections::{HashSet, VecDeque}, hash::Hash, time::{Duration, Instant}
+    collections::{HashSet, VecDeque},
+    hash::Hash,
+    time::{Duration, Instant},
 };
 
 pub struct RateLimiter {

@@ -8,7 +8,7 @@ function damage_received( damage, message, entity_thats_responsible, is_fatal, p
         end
     end
     local host_ent = EntityGetWithTag("ew_host")[1]
-    if host_ent ~= nil then        
+    if host_ent ~= nil then
         EntityInflictDamage(host_ent, damage, "DAMAGE_CURSE", message, "NONE", 0, 0, entity_thats_responsible)
     end
 end

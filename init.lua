@@ -106,6 +106,22 @@ function on_world_pre_update_inner()
 	-- GamePrint( "Pre-update hook " .. tostring(GameGetFrameNum()) )
     
     net.update()
+
+    if ctx.is_host and not EntityGetIsAlive(my_player.entity) then
+        if not ctx.run_ended then
+            GamePrint("Notifying of run end")
+            net.proxy_notify_game_over()
+            ctx.run_ended = true
+        end
+    end
+    if not ctx.is_host then
+        local hp, _ = util.get_ent_health(my_player.entity)
+        if hp == 0 then
+           EntityInflictDamage(my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
+        end
+    end
+    
+    -- Player sync
     if GameGetFrameNum() % 1 == 0 then
         local input_data = player_fns.serialize_inputs(my_player)
         local pos_data =  player_fns.serialize_position(my_player)
@@ -113,6 +129,7 @@ function on_world_pre_update_inner()
         net.send_player_update(input_data, pos_data, current_slot)
     end
 
+    -- Enemy sync
     if GameGetFrameNum() % 2 == 1 then
         if ctx.is_host then
             net.send_enemy_data(enemy_sync.host_upload_entities())
@@ -121,6 +138,7 @@ function on_world_pre_update_inner()
         end
     end
 
+    -- World sync
     if ctx.is_host then
         local world_data = world_sync.host_upload()
         if world_data ~= nil then
@@ -128,6 +146,7 @@ function on_world_pre_update_inner()
         end
     end
 
+    -- Health and air sync
     if ctx.is_host and GameGetFrameNum() % 4 == 3 then
         local player_info = {}
         local hp, max_hp = util.get_ent_health(my_player.entity)
@@ -139,6 +158,7 @@ function on_world_pre_update_inner()
         net.send_host_player_info(player_info)
     end
 
+    -- Inventory and perk sync
     if GameGetFrameNum() % 120 == 0 then
         local inventory_state = player_fns.serialize_items(my_player)
         if inventory_state ~= nil then

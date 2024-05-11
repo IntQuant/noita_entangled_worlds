@@ -7,6 +7,7 @@ ctx.init = function()
     ctx.my_id = nil
     ctx.players = {}
     ctx.entity_by_remote_id = {}
+    ctx.run_ended = false
 end
 
 return ctx

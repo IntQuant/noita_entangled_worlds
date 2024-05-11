@@ -1,5 +1,8 @@
 use std::{
-    env::args, io::stdin, thread::{sleep, spawn}, time::Duration
+    env::args,
+    io::stdin,
+    thread::{sleep, spawn},
+    time::Duration,
 };
 
 use crossbeam::channel::bounded;

@@ -19,7 +19,6 @@ function net.init()
     net.sock = pollnet.open_ws("ws://127.0.0.1:21251")
     reactor:run(function() 
         local sock = net.sock
-        --poll_until_open(sock)
         while true do
           local msg_decoded = nil
           local msg = sock:await()
@@ -69,12 +68,32 @@ function net.init()
         
 end
 
+local DEST_PROXY = 1
+local DEST_BROADCAST = 2
+
+local MOD_RELIABLE = 4
+
+function net.send_internal(msg, dest, reliable)
+  if reliable then
+    dest = dest + MOD_RELIABLE
+  end
+  net.sock:send_binary(string.char(dest)..msg)
+end
+
 function net.send(key, value, reliable) -- TODO reliability
   local encoded_msg = bitser.dumps({
     key = key,
     value = value,
   })
-  net.sock:send_binary(encoded_msg)
+  net.send_internal(encoded_msg, DEST_BROADCAST, reliable)
+end
+
+function net.proxy_send(key, value)
+  net.send_internal(key.." "..value, DEST_PROXY)
+end
+
+function net.proxy_notify_game_over()
+  net.proxy_send("game_over", 1)
 end
 
 function net.send_player_update(input_data, pos_data, current_slot)
