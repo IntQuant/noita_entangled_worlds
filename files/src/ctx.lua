@@ -8,6 +8,7 @@ ctx.init = function()
     ctx.players = {}
     ctx.entity_by_remote_id = {}
     ctx.run_ended = false
+    ctx.player_data_by_local_entity = {}
 end
 
 return ctx

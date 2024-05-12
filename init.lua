@@ -22,7 +22,7 @@ ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append
 
 local my_player = nil
 
-function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
+function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
@@ -30,8 +30,32 @@ function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_
     local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
     local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
 
-    local rng = math.floor(position_x*17+position_y)
-    GamePrint("on fired "..projectile_id.." "..entity_that_shot.." "..rng)
+    local shooter_player_data = player_fns.get_player_data_by_local_entity_id(shooter_id)
+    local rng = 0
+    -- Was shot locally
+    if shooter_id == my_player.entity then
+        -- If it was an initial shot by host
+        if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
+            rng = initial_rng
+            table.insert(shooter_player_data.projectile_rng_init, rng)
+        else
+            rng = shooter_player_data.projectile_seed_chain[entity_that_shot] + 25
+        end
+    else
+        if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
+            if #shooter_player_data.projectile_rng_init > 0 then                
+                rng = table.remove(shooter_player_data.projectile_rng_init, 1)
+            else
+                -- Shouldn't happen
+                GamePrint("No values in projectile_rng_init")
+                rng = 0
+            end
+        else
+            rng = shooter_player_data.projectile_seed_chain[entity_that_shot] + 25
+        end
+    end
+    shooter_player_data.projectile_seed_chain[projectile_id] = rng
+    -- GamePrint("on fired "..projectile_id.." "..entity_that_shot.." "..shooter_id.." "..rng)
     np.SetProjectileSpreadRNG(rng)
 end
 
@@ -89,6 +113,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
+    ctx.player_data_by_local_entity[player_entity] = my_player
     ctx.ready = true
 
     np.SetPauseState(4)

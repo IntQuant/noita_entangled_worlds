@@ -334,6 +334,8 @@ local player_fns = {
             peer_id = peer_id,
             name = "[Peer "..peer_id.."]",
             controls = {},
+            projectile_rng_init = {},
+            projectile_seed_chain = {}, -- TODO clean
         }
     end,
 }
@@ -392,6 +394,10 @@ function player_fns.peer_get_player_data(peer_id)
     return ctx.players[peer_id]
 end
 
+function player_fns.get_player_data_by_local_entity_id(entity)
+    return ctx.player_data_by_local_entity[entity]
+end
+
 function player_fns.spawn_player_for(peer_id, x, y)
     GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
@@ -403,7 +409,8 @@ function player_fns.spawn_player_for(peer_id, x, y)
     else
         EntityAddComponent2(new, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
     end
-    
+    util.set_ent_firing_blocked(new, true)
+    ctx.player_data_by_local_entity[new] = new_playerdata
 end
 
 function player_fns.is_inventory_open()
@@ -489,7 +496,9 @@ function player_fns.make_fire_data(special_seed, player_data)
             action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0"))
         }
         GlobalsSetValue("ew_player_action_rng", "0")
-        return {{}, c}
+        local rng_init = player_data.projectile_rng_init
+        player_data.projectile_rng_init = {}
+        return {rng_init, c}
     end
 end
 
