@@ -1,5 +1,6 @@
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
 
 local ffi = require("ffi")
 local np = require("noitapatcher")
@@ -396,11 +397,13 @@ function player_fns.spawn_player_for(peer_id, x, y)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = player_fns.make_playerdata_for(new, peer_id)
     ctx.players[peer_id] = new_playerdata
+    EntitySetName(new, tostring(peer_id))
     if ctx.is_host then
         EntityAddComponent2(new, "LuaComponent", {script_damage_received = "mods/quant.ew/files/cbs/redirect_damage_to_host.lua"})
     else
         EntityAddComponent2(new, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
     end
+    
 end
 
 function player_fns.is_inventory_open()
@@ -472,5 +475,22 @@ function player_fns.set_current_slot(slot_data, player_data)
     end
 end
 
-print("Players initialized")
+function player_fns.make_fire_data(special_seed, player_data)
+    local player = player_data.entity
+    local wand = get_active_held_item(player)
+
+    if (wand ~= nil) then
+        local x, y, r = EntityGetTransform(wand)
+        local c = FireWand{
+            x = x,
+            y = y,
+            r = r,
+            special_seed = tonumber(special_seed),
+            action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0"))
+        }
+        GlobalsSetValue("ew_player_action_rng", "0")
+        return {{}, c}
+    end
+end
+
 return player_fns

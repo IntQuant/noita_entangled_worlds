@@ -17,8 +17,22 @@ local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 
+ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
+ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
+
+local my_player = nil
+
 function OnProjectileFired(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
+    if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
+        return -- Not fired by player, we don't care about it (for now?)
+    end
+    local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
+    local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+
+    local rng = math.floor(position_x*17+position_y)
+    GamePrint("on fired "..projectile_id.." "..entity_that_shot.." "..rng)
+    np.SetProjectileSpreadRNG(rng)
 end
 
 function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
@@ -61,17 +75,13 @@ end
 function OnModPostInit()
 	print("Mod - OnModPostInit()") -- Then this is called for all mods
 end
-
-function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
-	GamePrint( "Post-update hook " .. tostring(GameGetFrameNum()) )
-end
-
 ]]--
+
 function OnWorldInitialized() -- This is called once the game world is initialized. Doesn't ensure any world chunks actually exist. Use OnPlayerSpawned to ensure the chunks around player have been loaded or created.
 	--GamePrint( "OnWorldInitialized() " .. tostring(GameGetFrameNum()) )
 end
 
-local my_player = nil
+
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
 	GamePrint( "OnPlayerSpawned() - Player entity id: " .. tostring(player_entity) )
@@ -90,20 +100,18 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
     end
 
+    EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/cbs/count_times_wand_fired.lua"})
+
     dofile_once("data/scripts/perks/perk.lua")
     local x, y = EntityGetFirstHitboxCenter(player_entity)
     perk_spawn(x, y, "LASER_AIM", true)
     perk_spawn(x-50, y, "GLASS_CANNON", true)
 end
 
-function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
-    util.tpcall(on_world_pre_update_inner)
-end
-
-function on_world_pre_update_inner()
+local function on_world_pre_update_inner()
     if my_player == nil then return end
 
-	-- GamePrint( "Pre-update hook " .. tostring(GameGetFrameNum()) )
+    GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
     
     net.update()
 
@@ -170,6 +178,28 @@ function on_world_pre_update_inner()
         end
     end
 end
+
+function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
+    util.tpcall(on_world_pre_update_inner)
+end
+
+local function on_world_post_update_inner()
+    local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
+    GlobalsSetValue("ew_wand_fired", "0")
+    if times_wand_fired > 0 then
+        local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
+        local fire_data = player_fns.make_fire_data(special_seed, my_player)
+        if fire_data ~= nil then
+            net.send_fire(fire_data)
+        end
+    end
+end
+
+function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
+	util.tpcall(on_world_post_update_inner)
+end
+
+
 
 function register_localizations(translation_file, clear_count)
 

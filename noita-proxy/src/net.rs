@@ -73,8 +73,9 @@ impl NetManager {
 
     pub(crate) fn broadcast(&self, msg: &NetMsg, reliability: Reliability) {
         let encoded = bitcode::encode(msg);
+        let len = encoded.len();
         if let Err(err) = self.peer.broadcast(encoded, reliability) {
-            warn!("Error while broadcasting message: {}", err)
+            warn!("Error while broadcasting message of len {}: {}", len, err)
         }
     }
 

@@ -92,4 +92,27 @@ function util.lerp(a, b, alpha)
     return a * alpha + b * (1 - alpha)
 end
 
+function util.set_ent_firing_blocked(entity, do_block)
+    local now = GameGetFrameNum();
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
+    if(inventory2Comp ~= nil)then
+        local items = GameGetAllInventoryItems(entity)
+        for i, item in ipairs(items or {}) do
+            local ability = EntityGetFirstComponentIncludingDisabled( item, "AbilityComponent" );
+            if ability then
+                if(do_block)then
+                    ComponentSetValue2( ability, "mReloadFramesLeft", 2000000 );
+                    ComponentSetValue2( ability, "mNextFrameUsable", now + 2000000 );
+                    ComponentSetValue2( ability, "mReloadNextFrameUsable", now + 2000000 );
+
+                else
+                    ComponentSetValue2( ability, "mReloadFramesLeft", 0 );
+                    ComponentSetValue2( ability, "mNextFrameUsable", now );
+                    ComponentSetValue2( ability, "mReloadNextFrameUsable", now );
+                end
+            end
+        end
+    end
+end
+
 return util

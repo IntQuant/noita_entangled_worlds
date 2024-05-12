@@ -25,7 +25,7 @@ function net.init()
           if string.byte(msg, 1, 1) == 2 then
             local msg_l = string.sub(msg, 2)
             local res = string_split(msg_l, " ")
-            if res[1] == "ready" then  
+            if res[1] == "ready" then
               ready = true
             else
               msg_decoded = {
@@ -80,7 +80,7 @@ function net.send_internal(msg, dest, reliable)
   net.sock:send_binary(string.char(dest)..msg)
 end
 
-function net.send(key, value, reliable) -- TODO reliability
+function net.send(key, value, reliable)
   local encoded_msg = bitser.dumps({
     key = key,
     value = value,
@@ -122,6 +122,10 @@ end
 
 function net.send_host_player_info(player_info)
   net.send("host_player", player_info)
+end
+
+function net.send_fire(fire_info)
+  net.send("fire", fire_info, true)
 end
 
 return net

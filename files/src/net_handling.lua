@@ -5,6 +5,8 @@ local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
+local np = require("noitapatcher")
+
 local net_handling = {
     proxy = {},
     mod = {},
@@ -83,6 +85,59 @@ function net_handling.mod.host_player(peer_id, player_infos)
             util.set_ent_air(player_data.entity, {info[3], info[4]})
         end
     end
+end
+
+function net_handling.mod.fire(peer_id, fire_data)
+    local rng = fire_data[1]
+    local message = fire_data[2]
+    local player_data = player_fns.peer_get_player_data(peer_id)
+    local entity = player_data.entity
+    
+    GlobalsSetValue("ew_shooter_rng_" .. tostring(peer_id), tostring(message.special_seed))
+                
+    GlobalsSetValue("ew_action_rng_"..tostring(peer_id), tostring(message.player_action_rng or 0))
+
+    player_data.projectile_rng_stack = rng
+
+    local controlsComp = EntityGetFirstComponentIncludingDisabled(entity, "ControlsComponent")
+
+    if controlsComp ~= nil then
+        local inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
+
+        if (inventory2Comp == nil) then
+            return
+        end
+
+        local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+
+        if mActiveItem ~= nil then
+            local aimNormal_x, aimNormal_y = ComponentGetValue2(controlsComp, "mAimingVectorNormalized")
+            local aim_x, aim_y = ComponentGetValue2(controlsComp, "mAimingVector")
+            local firing = ComponentGetValue2(controlsComp, "mButtonDownFire")
+
+            ComponentSetValue2(controlsComp, "mButtonDownFire", false)
+
+            local wand_x, wand_y, wand_r = message.x, message.y, message.r
+
+            local x = wand_x + (aimNormal_x * 2)
+            local y = wand_y + (aimNormal_y * 2)
+            y = y - 1
+
+            local target_x = x + aim_x
+            local target_y = y + aim_y
+
+            -- util.set_ent_firing_blocked(entity, false)
+
+            -- Add player_unit tag to fix physics projectile lob strength
+            EntityAddTag(entity, "player_unit")
+            np.UseItem(entity, mActiveItem, true, true, true, x, y, target_x, target_y)
+            EntityRemoveTag(entity, "player_unit")
+
+            -- util.set_ent_firing_blocked(entity, true)
+
+            ComponentSetValue2(controlsComp, "mButtonDownFire", firing)
+        end
+    end 
 end
 
 return net_handling
