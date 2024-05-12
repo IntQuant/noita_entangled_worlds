@@ -52,6 +52,15 @@ function enemy_sync.host_upload_entities()
             ComponentSetValue2(ai_component, "max_distance_to_cam_to_start_hunting", math.pow(2, 29))
         end
         local hp, max_hp = util.get_ent_health(enemy_id)
+        
+        local damage_model = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+        if damage_model ~= nil then
+            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+            if hp <= 0 then
+                ComponentSetValue2(damage_model, "kill_now", true)
+            end
+        end
+
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})
         ::continue::
     end
@@ -97,10 +106,10 @@ function enemy_sync.handle_enemy_data(enemy_data)
             
         if ctx.entity_by_remote_id[remote_enemy_id] == nil then
             local enemy_id = EntityLoad(filename, x, y)
-            EntityAddTag(enemy_id, "ew_replicated")            
+            EntityAddTag(enemy_id, "ew_replicated")
             EntityAddComponent2(enemy_id, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
             local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
-            if ai_component ~= 0 then                
+            if ai_component ~= nil then
                 EntityRemoveComponent(enemy_id, ai_component)
             end
             ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
@@ -127,6 +136,12 @@ function enemy_sync.handle_enemy_data(enemy_data)
         -- else
             -- EntitySetTransform(util.lerp(px, x, alpha), util.lerp(py, y, alpha))
         -- end
+        local current_hp = util.get_ent_health(enemy_id)
+        local dmg = current_hp-hp
+        if dmg > 0 then
+            -- GamePrint("Dealing dmg "..dmg)
+            EntityInflictDamage(enemy_id, dmg, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
+        end
         util.set_ent_health(enemy_id, {hp, max_hp})
     end
 end
