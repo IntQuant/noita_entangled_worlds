@@ -126,18 +126,21 @@ function net_handling.mod.fire(peer_id, fire_data)
             local target_x = x + aim_x
             local target_y = y + aim_y
 
-            -- util.set_ent_firing_blocked(entity, false)
+            util.set_ent_firing_blocked(entity, false)
 
             -- Add player_unit tag to fix physics projectile lob strength
             EntityAddTag(entity, "player_unit")
             np.UseItem(entity, mActiveItem, true, true, true, x, y, target_x, target_y)
             EntityRemoveTag(entity, "player_unit")
 
-            -- util.set_ent_firing_blocked(entity, true)
+            util.set_ent_firing_blocked(entity, true)
 
             ComponentSetValue2(controlsComp, "mButtonDownFire", firing)
         end
-    end 
+    end
+    if #player_data.projectile_rng_init > 0 then
+        GamePrint("unused projectile_rng_init values left "..#player_data.projectile_rng_init)
+    end
 end
 
 return net_handling

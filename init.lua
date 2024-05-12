@@ -43,7 +43,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
         end
     else
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
-            if #shooter_player_data.projectile_rng_init > 0 then                
+            if #shooter_player_data.projectile_rng_init > 0 then
                 rng = table.remove(shooter_player_data.projectile_rng_init, 1)
             else
                 -- Shouldn't happen

@@ -384,6 +384,7 @@ end
 
 function player_fns.deserialize_items(inventory_state, player_data)
     inventory_helper.set_item_data(inventory_state, player_data)
+    util.set_ent_firing_blocked(player_data.entity, true)
 end
 
 function player_fns.peer_has_player(peer_id)
