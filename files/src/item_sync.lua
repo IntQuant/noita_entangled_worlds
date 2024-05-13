@@ -74,7 +74,6 @@ function item_sync.make_item_global(item)
             value_int = id,
         })
     end
-    GamePrint(item_sync.get_global_item_id(item))
     local item_data = inventory_helper.serialize_single_item(item)
     item_data.g_id = id
     ctx.item_prevent_localize[id] = false
