@@ -4,6 +4,7 @@ local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 
 local np = require("noitapatcher")
 
@@ -141,6 +142,13 @@ function net_handling.mod.fire(peer_id, fire_data)
     if #player_data.projectile_rng_init > 0 then
         GamePrint("unused projectile_rng_init values left "..#player_data.projectile_rng_init)
     end
+end
+
+function net_handling.mod.item_global(peer_id, item_data)
+    if peer_id ~= ctx.host_id then
+        return
+    end
+    inventory_helper.deserialize_single_item(item_data)
 end
 
 return net_handling

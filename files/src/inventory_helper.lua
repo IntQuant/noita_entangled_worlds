@@ -10,22 +10,34 @@ local function entity_is_wand(entity_id)
 	return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
+function inventory_helper.get_all_inventory_items(player_data)
+    local items = GameGetAllInventoryItems(player_data.entity)
+    local result = {}
+    for _, item in pairs(items) do
+        table.insert(result, item)
+        for _, sub_item in pairs(EntityGetAllChildren(item) or {}) do
+            table.insert(result, sub_item)
+        end
+    end
+    return result
+end
+
 function inventory_helper.get_inventory_items(player_data, inventory_name)
     local player = player_data.entity
     if(not player)then
         return {}
     end
-    local inventory = nil 
+    local inventory = nil
 
     local player_child_entities = EntityGetAllChildren( player )
     if ( player_child_entities ~= nil ) then
         for i,child_entity in ipairs( player_child_entities ) do
             local child_entity_name = EntityGetName( child_entity )
-            
+
             if ( child_entity_name == inventory_name ) then
                 inventory = child_entity
             end
-    
+
         end
     end
 
@@ -43,6 +55,28 @@ function inventory_helper.get_inventory_items(player_data, inventory_name)
     return items
 end
 
+function inventory_helper.serialize_single_item(item)
+    local x, y = EntityGetTransform(item)
+    if(entity_is_wand(item))then
+        local wand = EZWand(item)
+        return {true, wand:Serialize(true, true), x, y}
+    else
+        return {false, np.SerializeEntity(item), x, y}
+    end
+end
+
+function inventory_helper.deserialize_single_item(item_data)
+    local item = nil
+    local x, y = item_data[3], item_data[4]
+    if item_data[1] then
+        item = EZWand(item_data[2], x, y, false)
+    else
+        item = EntityCreateNew()
+        np.DeserializeEntity(item, item_data[2], x, y)
+    end
+    return item
+end
+
 function inventory_helper.get_item_data(player_data, fresh)
     fresh = fresh or false
 
@@ -57,10 +91,7 @@ function inventory_helper.get_item_data(player_data, fresh)
         local item_x, item_y = EntityGetTransform(item)
 
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
-
-        -- local item_id = entity.GetVariable(item, "arena_entity_id")
-
-        GlobalsSetValue(tostring(item) .. "_item", tostring(k))
+        -- GlobalsSetValue(tostring(item) .. "_item", tostring(k))
         if(entity_is_wand(item))then
             local wand = EZWand(item)
             table.insert(wandData,
@@ -202,23 +233,23 @@ function inventory_helper.set_item_data(item_data, player_data)
 
             -- entity.SetVariable(item_entity, "arena_entity_id", itemInfo.id)
 
-            local lua_comps = EntityGetComponentIncludingDisabled(item_entity, "LuaComponent") or {}
-            local has_pickup_script = false
-            for i, lua_comp in ipairs(lua_comps) do
-                if (ComponentGetValue2(lua_comp, "script_item_picked_up") == "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua") then
-                    has_pickup_script = true
-                end
-            end
+            -- local lua_comps = EntityGetComponentIncludingDisabled(item_entity, "LuaComponent") or {}
+            -- local has_pickup_script = false
+            -- for i, lua_comp in ipairs(lua_comps) do
+            --     if (ComponentGetValue2(lua_comp, "script_item_picked_up") == "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua") then
+            --         has_pickup_script = true
+            --     end
+            -- end
 
-            if (not has_pickup_script) then
-                EntityAddTag(item_entity, "does_physics_update")
-                EntityAddComponent(item_entity, "LuaComponent", {
-                    _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory",
-                    -- script_item_picked_up = "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua",
-                    -- script_kick = "mods/evaisa.arena/files/scripts/gamemode/misc/item_kick.lua",
-                    -- script_throw_item = "mods/evaisa.arena/files/scripts/gamemode/misc/item_throw.lua",
-                })
-            end
+            -- if (not has_pickup_script) then
+            --     EntityAddTag(item_entity, "does_physics_update")
+            --     EntityAddComponent(item_entity, "LuaComponent", {
+            --         _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory",
+            --         -- script_item_picked_up = "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua",
+            --         -- script_kick = "mods/evaisa.arena/files/scripts/gamemode/misc/item_kick.lua",
+            --         -- script_throw_item = "mods/evaisa.arena/files/scripts/gamemode/misc/item_throw.lua",
+            --     })
+            -- end
         end
 
         if (active_item_entity ~= nil) then

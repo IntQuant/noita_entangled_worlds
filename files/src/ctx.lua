@@ -1,5 +1,6 @@
 local ctx = {
-    ready = false
+    ready = false,
+    lib = {},
 }
 
 ctx.init = function()

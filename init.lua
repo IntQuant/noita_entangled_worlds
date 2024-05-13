@@ -16,6 +16,7 @@ local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
+local item_sync = dofile_once("mods/quant.ew/files/src/item_sync.lua")
 
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
@@ -131,6 +132,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     local x, y = EntityGetFirstHitboxCenter(player_entity)
     perk_spawn(x, y, "LASER_AIM", true)
     perk_spawn(x-50, y, "GLASS_CANNON", true)
+    perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
 end
 
 local function on_world_pre_update_inner()
@@ -153,7 +155,11 @@ local function on_world_pre_update_inner()
            EntityInflictDamage(my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
         end
     end
-    
+
+    if ctx.is_host then
+        item_sync.host_upload_items(my_player)
+    end
+
     -- Player sync
     if GameGetFrameNum() % 1 == 0 then
         local input_data = player_fns.serialize_inputs(my_player)

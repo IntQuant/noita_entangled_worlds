@@ -8,6 +8,8 @@ local reactor = pollnet.Reactor()
 local net_handling = dofile_once("mods/quant.ew/files/src/net_handling.lua")
 local net = {}
 
+ctx.lib.net = net
+
 function net.update()
     reactor:update()
 end
@@ -126,6 +128,10 @@ end
 
 function net.send_fire(fire_info)
   net.send("fire", fire_info, true)
+end
+
+function net.send_make_global(item_data)
+  net.send("item_global", item_data, true)
 end
 
 return net
