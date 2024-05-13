@@ -139,7 +139,6 @@ function net.send_localize(peer_id, item_id)
 end
 
 function net.send_localize_request(item_id)
-  GamePrint("sent localize req")
   net.send("item_localize_req", item_id, true)
 end
 

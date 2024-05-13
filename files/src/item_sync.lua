@@ -7,7 +7,6 @@ local item_sync = {}
 function item_sync.ensure_notify_component(ent)
     local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
         if notify == nil then
-            -- GamePrint("Added lua component")
             EntityAddComponent2(ent, "LuaComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component",
                 script_throw_item = "mods/quant.ew/files/cbs/item_notify.lua",
@@ -20,8 +19,6 @@ end
 local function mark_in_inventory(my_player)
     local items = inventory_helper.get_all_inventory_items(my_player)
     for _, ent in pairs(items) do
-        -- GamePrint(tostring(ent))
-        -- EntityAddTag(ent, "ew_was_in_inventory")
         item_sync.ensure_notify_component(ent)
     end
 end
@@ -47,11 +44,9 @@ function item_sync.get_global_item_id(item)
 end
 
 function item_sync.remove_item_with_id(g_id)
-    -- GamePrint("Localize, Remove "..g_id)
     local global_items = EntityGetWithTag("ew_global_item")
     for _, item in ipairs(global_items) do
         local i_g_id = item_sync.get_global_item_id(item)
-        -- GamePrint("Chk "..item.." g_id "..i_g_id)
         if i_g_id == g_id then
             EntityKill(item)
         end
@@ -59,7 +54,6 @@ function item_sync.remove_item_with_id(g_id)
 end
 
 function item_sync.host_localize_item(gid, peer_id)
-    -- GamePrint("Localize "..g_id)
     if ctx.item_prevent_localize[gid] then
         GamePrint("Item localize for "..gid.." prevented")
     end
@@ -75,7 +69,6 @@ function item_sync.make_item_global(item)
     local id = ComponentGetValue2(g_id, "value_int")
     if g_id == nil then
         id = allocate_global_id()
-        GamePrint("Allocating id "..id.." for "..item)
         EntityAddComponent2(item, "VariableStorageComponent", {
             _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
             value_int = id,
@@ -107,7 +100,6 @@ function item_sync.host_upload_items(my_player)
     end
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
-        GamePrint("Picked up "..picked_item)
         local g_id = item_sync.get_global_item_id(picked_item)
         item_sync.host_localize_item(g_id, ctx.my_id)
     end
@@ -119,14 +111,12 @@ function item_sync.client_tick(my_player)
     end
     local thrown_item = get_global_ent("ew_thrown")
     if thrown_item ~= nil then
-        GamePrint("Uploading item")
         ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
         EntityKill(thrown_item)
     end
     
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
-        GamePrint("Picked up "..picked_item)
         local gid = item_sync.get_global_item_id(picked_item)
         ctx.lib.net.send_localize_request(gid)
     end

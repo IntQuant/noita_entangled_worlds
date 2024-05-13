@@ -177,7 +177,6 @@ function net_handling.mod.item_localize_req(peer_id, gid)
     if not ctx.is_host then
         return
     end
-    GamePrint("localize req "..peer_id.." gid "..gid)
     item_sync.host_localize_item(gid, peer_id)
 end
 
