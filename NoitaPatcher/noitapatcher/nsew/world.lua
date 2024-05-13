@@ -190,10 +190,15 @@ function world.decode(grid_world, header, pixel_runs)
         while x < bottom_right_x do
             if world_ffi.chunk_loaded(chunk_map, x, y) then
                 local ppixel = world_ffi.get_cell(chunk_map, x, y)
+
                 local current_material = 0
 
                 if ppixel[0] ~= nil then
                     local pixel = ppixel[0]
+                    local cell_type = pixel.vtable.get_cell_type(pixel)
+                    if cell_type == C.CELL_TYPE_SOLID then
+                        goto skip_set
+                    end
                     current_material = world_ffi.get_material_id(pixel.vtable.get_material(pixel))
 
                     if new_material ~= current_material then
@@ -213,6 +218,8 @@ function world.decode(grid_world, header, pixel_runs)
                     ppixel[0] = pixel
                 end
             end
+
+            ::skip_set::
 
             left = left - 1
             if left <= 0 then
