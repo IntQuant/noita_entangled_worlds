@@ -151,6 +151,7 @@ function net_handling.mod.item_global(peer_id, item_data)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
     EntityAddTag(item, "ew_global_item")
+    item_sync.ensure_notify_component(item)
     -- GamePrint("Got global item: "..item)
     local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     if g_id == nil then
@@ -170,6 +171,15 @@ function net_handling.mod.item_localize(peer_id, localize_data)
     if l_peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(item_id)
     end
+end
+
+function net_handling.mod.item_localize_req(peer_id, gid)
+    if not ctx.is_host then
+        return
+    end
+    -- TODO check for race condition from several clients
+    GamePrint("localize req "..peer_id.." gid "..gid)
+    item_sync.host_localize_item(gid, peer_id)
 end
 
 return net_handling

@@ -156,8 +156,11 @@ local function on_world_pre_update_inner()
         end
     end
 
+    -- Item sync
     if ctx.is_host then
         item_sync.host_upload_items(my_player)
+    else
+        item_sync.client_tick(my_player)
     end
 
     -- Player sync
