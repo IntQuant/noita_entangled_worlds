@@ -10,6 +10,7 @@ ctx.init = function()
     ctx.entity_by_remote_id = {}
     ctx.run_ended = false
     ctx.player_data_by_local_entity = {}
+    ctx.item_prevent_localize = {}
 end
 
 return ctx

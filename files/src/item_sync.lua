@@ -60,6 +60,10 @@ end
 
 function item_sync.host_localize_item(gid, peer_id)
     -- GamePrint("Localize "..g_id)
+    if ctx.item_prevent_localize[gid] then
+        GamePrint("Item localize for "..gid.." prevented")
+    end
+    ctx.item_prevent_localize[gid] = true
     if peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(gid)
     end
@@ -80,6 +84,7 @@ function item_sync.make_item_global(item)
     GamePrint(item_sync.get_global_item_id(item))
     local item_data = inventory_helper.serialize_single_item(item)
     item_data.g_id = id
+    ctx.item_prevent_localize[id] = false
     ctx.lib.net.send_make_global(item_data)
 end
 
@@ -109,12 +114,29 @@ function item_sync.host_upload_items(my_player)
 end
 
 function item_sync.client_tick(my_player)
+    if GameGetFrameNum() % 5 == 4 then
+        mark_in_inventory(my_player)
+    end
+    local thrown_item = get_global_ent("ew_thrown")
+    if thrown_item ~= nil then
+        GamePrint("Uploading item")
+        ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
+        EntityKill(thrown_item)
+    end
+    
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         GamePrint("Picked up "..picked_item)
         local gid = item_sync.get_global_item_id(picked_item)
         ctx.lib.net.send_localize_request(gid)
     end
+end
+
+function item_sync.upload(item_data)
+    local item = inventory_helper.deserialize_single_item(item_data)
+    EntityAddTag(item, "ew_global_item")
+    item_sync.ensure_notify_component(item)
+    item_sync.make_item_global(item)
 end
 
 return item_sync

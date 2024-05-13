@@ -143,4 +143,8 @@ function net.send_localize_request(item_id)
   net.send("item_localize_req", item_id, true)
 end
 
+function net.send_item_upload(item_data)
+  net.send("item_upload", item_data, true)
+end
+
 return net

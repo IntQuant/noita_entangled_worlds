@@ -177,9 +177,15 @@ function net_handling.mod.item_localize_req(peer_id, gid)
     if not ctx.is_host then
         return
     end
-    -- TODO check for race condition from several clients
     GamePrint("localize req "..peer_id.." gid "..gid)
     item_sync.host_localize_item(gid, peer_id)
+end
+
+function net_handling.mod.item_upload(peer_id, item_data)
+    if not ctx.is_host then
+        return
+    end
+    item_sync.upload(item_data)
 end
 
 return net_handling
