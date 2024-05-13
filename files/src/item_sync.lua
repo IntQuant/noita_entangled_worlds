@@ -9,9 +9,9 @@ local function mark_in_inventory(my_player)
     for _, ent in pairs(items) do
         -- GamePrint(tostring(ent))
         EntityAddTag(ent, "ew_was_in_inventory")
-        local notify = EntityGetComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
+        local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
         if notify == nil then
-            GamePrint("Added lua component")
+            -- GamePrint("Added lua component")
             EntityAddComponent2(ent, "LuaComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component",
                 script_throw_item = "mods/quant.ew/files/cbs/item_notify.lua",
@@ -22,12 +22,61 @@ local function mark_in_inventory(my_player)
     end
 end
 
+local function allocate_global_id()
+    local current = tonumber(GlobalsGetValue("ew_global_item_id", "1"))
+    GlobalsSetValue("ew_global_item_id", tostring(current+1))
+    return current
+end
+
 local function is_item_on_ground(item)
     return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent")
 end
 
+function item_sync.get_global_item_id(item)
+    local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+    if g_id == nil then
+        GamePrint("Item has no g_id")
+        return 0
+    end
+    local ret = ComponentGetValue2(g_id, "value_int")
+    return ret or 0
+end
+
+function item_sync.remove_item_with_id(g_id)
+    -- GamePrint("Localize, Remove "..g_id)
+    local global_items = EntityGetWithTag("ew_global_item")
+    for _, item in ipairs(global_items) do
+        local i_g_id = item_sync.get_global_item_id(item)
+        -- GamePrint("Chk "..item.." g_id "..i_g_id)
+        if i_g_id == g_id then
+            EntityKill(item)
+        end
+    end
+end
+
+function item_sync.host_localize_item(item, peer_id)
+    local g_id = item_sync.get_global_item_id(item)
+    -- GamePrint("Localize "..g_id)
+    if peer_id ~= ctx.my_id then
+        item_sync.remove_item_with_id(g_id)
+    end
+    ctx.lib.net.send_localize(peer_id, g_id)
+end
+
 function item_sync.make_item_global(item)
+    local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+    local id = ComponentGetValue2(g_id, "value_int")
+    if g_id == nil then
+        id = allocate_global_id()
+        GamePrint("Allocating id "..id.." for "..item)
+        EntityAddComponent2(item, "VariableStorageComponent", {
+            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
+            value_int = id,
+        })
+    end
+    GamePrint(item_sync.get_global_item_id(item))
     local item_data = inventory_helper.serialize_single_item(item)
+    item_data.g_id = id
     ctx.lib.net.send_make_global(item_data)
 end
 
@@ -42,22 +91,16 @@ end
 function item_sync.host_upload_items(my_player)
     if GameGetFrameNum() % 5 == 4 then
         mark_in_inventory(my_player)
-        -- local x, y = EntityGetTransform(my_player.entity)
-        -- local ents = EntityGetInRadiusWithTag(x, y, 300, "ew_was_in_inventory")
-        -- for _, ent in pairs(ents) do
-        --     if is_item_on_ground(ent) then
-        --         if not EntityHasTag(ent, "ew_global_item") then
-        --             EntityAddTag(ent, "ew_global_item")
-        --             GamePrint(tostring(ent).." "..EntityGetTags(ent))
-        --             item_sync.make_item_global(ent)
-        --         end
-        --     end
-        -- end
     end
     local thrown_item = get_global_ent("ew_thrown")
     if thrown_item ~= nil then
         EntityAddTag(thrown_item, "ew_global_item")
        item_sync.make_item_global(thrown_item)
+    end
+    local picked_item = get_global_ent("ew_picked")
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
+        GamePrint("Picked up "..picked_item)
+        item_sync.host_localize_item(picked_item, ctx.my_id)
     end
 end
 

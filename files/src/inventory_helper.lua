@@ -69,7 +69,8 @@ function inventory_helper.deserialize_single_item(item_data)
     local item = nil
     local x, y = item_data[3], item_data[4]
     if item_data[1] then
-        item = EZWand(item_data[2], x, y, false)
+        item = EZWand(item_data[2], x, y, false).entity_id
+        -- EntityAddTag(item, "does_physics_update")
     else
         item = EntityCreateNew()
         np.DeserializeEntity(item, item_data[2], x, y)
@@ -206,6 +207,8 @@ function inventory_helper.set_item_data(item_data, player_data)
             if (item == nil) then
                 return
             end
+
+            EntityRemoveTag(item, "ew_global_item")
 
             if(itemInfo.is_wand)then
                 item:PickUp(player)

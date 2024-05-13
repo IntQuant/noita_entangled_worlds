@@ -139,7 +139,7 @@ local function on_world_pre_update_inner()
     if my_player == nil then return end
 
     GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
-    
+
     net.update()
 
     if ctx.is_host and not EntityGetIsAlive(my_player.entity) then

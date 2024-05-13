@@ -5,6 +5,7 @@ local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
+local item_sync = dofile_once("mods/quant.ew/files/src/item_sync.lua")
 
 local np = require("noitapatcher")
 
@@ -148,7 +149,27 @@ function net_handling.mod.item_global(peer_id, item_data)
     if peer_id ~= ctx.host_id then
         return
     end
-    inventory_helper.deserialize_single_item(item_data)
+    local item = inventory_helper.deserialize_single_item(item_data)
+    EntityAddTag(item, "ew_global_item")
+    -- GamePrint("Got global item: "..item)
+    local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+    if g_id == nil then
+        EntityAddComponent2(item, "VariableStorageComponent", {
+            _tags = "ew_global_item_id",
+            value_int = item_data.g_id
+        })
+    else
+        ComponentSetValue2(g_id, "value_int", item_data.g_id)
+    end
+end
+
+function net_handling.mod.item_localize(peer_id, localize_data)
+    local l_peer_id = localize_data[1]
+    local item_id = localize_data[2]
+    -- GamePrint("Localize "..item_id.." to "..l_peer_id)
+    if l_peer_id ~= ctx.my_id then
+        item_sync.remove_item_with_id(item_id)
+    end
 end
 
 return net_handling

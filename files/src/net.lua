@@ -134,4 +134,8 @@ function net.send_make_global(item_data)
   net.send("item_global", item_data, true)
 end
 
+function net.send_localize(peer_id, item_id)
+  net.send("item_localize", {peer_id, item_id}, true)
+end
+
 return net
