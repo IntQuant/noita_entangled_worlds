@@ -9,6 +9,7 @@ pub mod messages;
 #[derive(Debug, Decode, Encode, Clone)]
 pub struct GameSettings {
     seed: u64,
+    debug_mode: bool,
 }
 
 pub mod net;
@@ -21,6 +22,8 @@ enum AppState {
 pub struct App {
     state: AppState,
     addr: String,
+    debug_mode: bool,
+    use_constant_seed: bool,
 }
 
 impl App {
@@ -28,6 +31,13 @@ impl App {
         let bind_addr = "0.0.0.0:5123".parse().unwrap();
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(peer);
+        {
+            let mut settings = netman.settings.lock().unwrap();
+            settings.debug_mode = self.debug_mode;
+            if !self.use_constant_seed {
+                settings.seed = rand::random();
+            }
+        }
         netman
             .accept_local
             .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -47,6 +57,8 @@ impl Default for App {
         Self {
             state: AppState::Init,
             addr: "192.168.1.168:5123".to_string(),
+            debug_mode: false,
+            use_constant_seed: false,
         }
     }
 }
@@ -58,9 +70,12 @@ impl eframe::App for App {
             AppState::Init => {
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui.heading("Noita Entangled Worlds proxy");
+                    ui.checkbox(&mut self.debug_mode, "Debug mode");
+                    ui.checkbox(&mut self.use_constant_seed, "Use specified seed");
                     if ui.button("Host").clicked() {
                         self.start_server();
                     }
+                    ui.separator();
                     ui.text_edit_singleline(&mut self.addr);
                     let addr = self.addr.parse();
                     ui.add_enabled_ui(addr.is_ok(), |ui| {

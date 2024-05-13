@@ -58,7 +58,10 @@ impl NetManager {
     pub fn new(peer: tangled::Peer) -> Arc<Self> {
         Self {
             peer,
-            settings: Mutex::new(GameSettings { seed: 1663107061 }),
+            settings: Mutex::new(GameSettings {
+                seed: 1663107061,
+                debug_mode: false,
+            }),
             continue_running: AtomicBool::new(true),
             accept_local: AtomicBool::new(false),
             local_connected: AtomicBool::new(false),
@@ -114,6 +117,10 @@ impl NetManager {
                             self.peer.my_id().expect("Has peer id at this point"),
                         ));
                         state.try_ws_write(ws_encode_proxy("name", "test_name"));
+                        state.try_ws_write(ws_encode_proxy(
+                            "debug",
+                            if settings.debug_mode { "true" } else { "false" },
+                        ));
                         state.try_ws_write(ws_encode_proxy("ready", ""));
                         // TODO? those are currently ignored by mod
                         for id in self.peer.iter_peer_ids() {
@@ -237,12 +244,28 @@ impl NetManager {
         thread::spawn(move || self.start_inner());
     }
 
+    fn resend_game_settings(&self) {
+        let settings = self.settings.lock().unwrap().clone();
+        self.broadcast(&NetMsg::StartGame { settings }, Reliability::Reliable);
+    }
+
+    fn is_host(&self) -> bool {
+        self.peer.my_id() == Some(PeerId::HOST)
+    }
+
     pub(crate) fn handle_message_to_proxy(&self, msg: &[u8]) {
         let msg = String::from_utf8_lossy(msg);
         let mut msg = msg.split_ascii_whitespace();
         let key = msg.next();
         match key {
-            Some("game_over") => {}
+            Some("game_over") => {
+                if self.is_host() {
+                    info!("Game over, resending game settings");
+                    self.settings.lock().unwrap().seed += 1;
+                    info!("New seed: {}", self.settings.lock().unwrap().seed);
+                    self.resend_game_settings();
+                }
+            }
             key => {
                 error!("Unknown msg from mod: {:?}", key)
             }

@@ -37,6 +37,10 @@ struct Datagram {
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct PeerId(pub u16);
 
+impl PeerId {
+    pub const HOST: PeerId = PeerId(0);
+}
+
 impl Display for PeerId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)

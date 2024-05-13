@@ -17,6 +17,7 @@ tangled = { path = "tangled" }
 serde = { version = "1.0.199", features = ["serde_derive"] }
 bitcode = "0.6.0"
 lz4_flex = { version = "0.11.3", default_features = false, features = ["std"]}
+rand = "0.8.5"
 
 [profile.dev]
 opt-level = 1

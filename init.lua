@@ -128,11 +128,13 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 
     EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/cbs/count_times_wand_fired.lua"})
 
-    dofile_once("data/scripts/perks/perk.lua")
-    local x, y = EntityGetFirstHitboxCenter(player_entity)
-    perk_spawn(x, y, "LASER_AIM", true)
-    perk_spawn(x-50, y, "GLASS_CANNON", true)
-    perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
+    if ctx.debug then
+        dofile_once("data/scripts/perks/perk.lua")
+        local x, y = EntityGetFirstHitboxCenter(player_entity)
+        perk_spawn(x, y, "LASER_AIM", true)
+        perk_spawn(x-50, y, "GLASS_CANNON", true)
+        perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
+    end
 end
 
 local function on_world_pre_update_inner()
@@ -153,6 +155,11 @@ local function on_world_pre_update_inner()
         local hp, _ = util.get_ent_health(my_player.entity)
         if hp == 0 then
            EntityInflictDamage(my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
+        end
+        if not ctx.run_ended then
+            GamePrint("Notifying of run end")
+            net.proxy_notify_game_over()
+            ctx.run_ended = true
         end
     end
 

@@ -27,6 +27,10 @@ function net_handling.proxy.peer_id(_, value)
     ctx.is_host = ctx.my_id == ctx.host_id
 end
 
+function net_handling.proxy.debug(_, value)
+    ctx.debug = value == "true"
+end
+
 function net_handling.mod.player(peer_id, value)
     local input_data = value.i
     local pos_data = value.p

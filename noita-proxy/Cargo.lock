@@ -1227,6 +1227,7 @@ dependencies = [
  "bitcode",
  "eframe",
  "lz4_flex",
+ "rand",
  "serde",
  "tangled",
  "tracing",
