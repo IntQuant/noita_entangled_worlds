@@ -330,4 +330,8 @@
   </VariableStorageComponent>
   <WalletComponent>
   </WalletComponent>
+  <MaterialSuckerComponent
+    suck_gold="1"
+    suck_health="1"
+  ></MaterialSuckerComponent>
 </Entity>
