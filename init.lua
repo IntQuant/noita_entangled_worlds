@@ -189,10 +189,7 @@ local function on_world_pre_update_inner()
 
     -- World sync
     if ctx.is_host then
-        local world_data = world_sync.host_upload()
-        if world_data ~= nil then
-            net.send_world_data(world_data)
-        end
+        world_sync.host_upload()
     end
 
     -- Health and air sync

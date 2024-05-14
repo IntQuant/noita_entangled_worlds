@@ -3,12 +3,44 @@ local world = require("noitapatcher.nsew.world")
 local rect = require("noitapatcher.nsew.rect")
 local ffi = require("ffi")
 
+local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+
 local rect_optimiser = rect.Optimiser_new()
 local encoded_area = world.EncodedArea()
 
 local world_sync = {}
+local pending_send_wd = {}
+
+local bandwidth_per_frame = 1024*1024/8/60 -- 1 MBit per second
+local bandwidth_bucket_max = 29000
+local bandwidth_bucket = 0
+
+local function send_pending()
+    local will_send = {}
+    local total_len = 0
+    while #pending_send_wd > 0 do
+        local packet = table.remove(pending_send_wd, 1)
+        local len = string.len(packet)
+        if len > bandwidth_bucket then
+            table.insert(pending_send_wd, 1, packet)
+            break
+        end
+        bandwidth_bucket = bandwidth_bucket - len
+        total_len = total_len + len
+        table.insert(will_send, packet)
+    end
+    if #will_send > 0 then
+        -- GamePrint(#will_send.." "..total_len)
+        ctx.lib.net.send_world_data(will_send)
+    end
+end
 
 function world_sync.host_upload()
+    bandwidth_bucket = bandwidth_bucket + bandwidth_per_frame
+    if bandwidth_bucket > bandwidth_bucket_max then
+        bandwidth_bucket = bandwidth_bucket_max
+    end
+
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     local thread_impl = grid_world.mThreadImpl
@@ -47,20 +79,23 @@ function world_sync.host_upload()
         local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
         rect_optimiser:submit(rectangle)
     end
-    if GameGetFrameNum() % 20 == 0 then
+    if #pending_send_wd == 0 then
         rect_optimiser:scan()
-
-        local result = {}
+        
         for crect in rect.parts(rect_optimiser:iterate(), 256) do
             local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
             if area ~= nil then
                 local str = ffi.string(area, world.encoded_size(area))
-                result[#result+1] = str
+                if string.len(str) > bandwidth_bucket_max then
+                    GamePrint("Discarding chunk update, as it is too large to be sent")
+                else
+                    table.insert(pending_send_wd, str)
+                end
             end
         end
         rect_optimiser:reset()
-        return result
     end
+    send_pending()
 end
 
 local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
