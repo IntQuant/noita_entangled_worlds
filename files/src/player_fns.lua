@@ -123,16 +123,17 @@ local player_fns = {
                 controls_data.action = false
             end
 
-            if(message.throw)then
-                ComponentSetValue2(controlsComp, "mButtonDownThrow", true)
-                if (not controls_data.throw) then
-                    ComponentSetValue2(controlsComp, "mButtonFrameThrow", GameGetFrameNum() + 1)
-                end
-                controls_data.throw = true
-            else
-                ComponentSetValue2(controlsComp, "mButtonDownThrow", false)
-                controls_data.throw = false
-            end
+            -- Do not sync this one, as thrown items are handled by item_sync
+            -- if(message.throw)then
+            --     ComponentSetValue2(controlsComp, "mButtonDownThrow", true)
+            --     if (not controls_data.throw) then
+            --         ComponentSetValue2(controlsComp, "mButtonFrameThrow", GameGetFrameNum() + 1)
+            --     end
+            --     controls_data.throw = true
+            -- else
+            --     ComponentSetValue2(controlsComp, "mButtonDownThrow", false)
+            --     controls_data.throw = false
+            -- end
 
             if(message.interact)then
                 ComponentSetValue2(controlsComp, "mButtonDownInteract", true)

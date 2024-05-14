@@ -11,7 +11,7 @@
  - Общее золото
  - Удаление лишних клиентов при загрузке игры
  - intern pathnames in enemy sync
- - Fix bottles and other items duplicating when thrown (on host?)
+ + Fix bottles and other items duplicating when thrown (on host?)
 
  - Fix weird no gui mode
 
