@@ -11,7 +11,7 @@ local function entity_is_wand(entity_id)
 end
 
 function inventory_helper.get_all_inventory_items(player_data)
-    local items = GameGetAllInventoryItems(player_data.entity)
+    local items = GameGetAllInventoryItems(player_data.entity) or {}
     local result = {}
     for _, item in pairs(items) do
         table.insert(result, item)

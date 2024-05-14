@@ -155,11 +155,11 @@ local function on_world_pre_update_inner()
         local hp, _ = util.get_ent_health(my_player.entity)
         if hp == 0 then
            EntityInflictDamage(my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
-        end
-        if not ctx.run_ended then
-            GamePrint("Notifying of run end")
-            net.proxy_notify_game_over()
-            ctx.run_ended = true
+           if not ctx.run_ended then
+               GamePrint("Notifying of run end")
+               net.proxy_notify_game_over()
+               ctx.run_ended = true
+           end
         end
     end
 
@@ -175,7 +175,9 @@ local function on_world_pre_update_inner()
         local input_data = player_fns.serialize_inputs(my_player)
         local pos_data =  player_fns.serialize_position(my_player)
         local current_slot = player_fns.get_current_slot(my_player)
-        net.send_player_update(input_data, pos_data, current_slot)
+        if input_data ~= nil and pos_data ~= nil then
+            net.send_player_update(input_data, pos_data, current_slot)
+        end
     end
 
     -- Enemy sync
