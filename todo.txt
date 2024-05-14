@@ -35,3 +35,5 @@
  - test tangled better
  - poly on clients
  - proxy: stop receiving connections before another start_game on game over, noita: try to reconnect to proxy.
+ - sync traps
+ 

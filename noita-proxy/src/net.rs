@@ -262,8 +262,15 @@ impl NetManager {
             Some("game_over") => {
                 if self.is_host() {
                     info!("Game over, resending game settings");
-                    self.settings.lock().unwrap().seed += 1;
-                    info!("New seed: {}", self.settings.lock().unwrap().seed);
+                    {
+                        let mut setting = self.settings.lock().unwrap();
+                        if setting.debug_mode {
+                            setting.seed += 1;
+                        } else {
+                            setting.seed = rand::random();
+                        }
+                        info!("New seed: {}", setting.seed);
+                    }
                     self.resend_game_settings();
                 }
             }
