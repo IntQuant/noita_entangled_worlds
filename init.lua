@@ -120,6 +120,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     np.SetPauseState(4)
     np.SetPauseState(0)
 
+    EntityAddTag(player_entity, "polymorphable_NOT") -- TODO
+
     if ctx.is_host then
         EntityAddTag(player_entity, "ew_host")
     else

@@ -59,7 +59,8 @@ impl NetManager {
         Self {
             peer,
             settings: Mutex::new(GameSettings {
-                seed: 1663107061,
+                // seed: 1663107061,
+                seed: 1663107066,
                 debug_mode: false,
             }),
             continue_running: AtomicBool::new(true),
