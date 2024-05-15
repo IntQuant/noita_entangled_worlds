@@ -417,6 +417,11 @@ function player_fns.spawn_player_for(peer_id, x, y)
     util.set_ent_firing_blocked(new, true)
     ctx.player_data_by_local_entity[new] = new_playerdata
     ctx.events.new_player_just_spawned = true
+    local we = GameGetWorldStateEntity()
+    local seen = util.get_ent_variable(we, "player_seen") or {}
+    ctx.events.new_player_seen = seen[peer_id] == nil
+    seen[peer_id] = true
+    util.set_ent_variable(we, "player_seen", seen)
 end
 
 function player_fns.is_inventory_open()

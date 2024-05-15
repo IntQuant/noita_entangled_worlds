@@ -130,9 +130,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     np.SetPauseState(4)
     np.SetPauseState(0)
 
-    local hp = util.get_ent_health(player_entity)
-    util.set_ent_health(player_entity, {hp*3, hp*3})
-
     EntityAddTag(player_entity, "polymorphable_NOT") -- TODO
 
     if ctx.is_host then
@@ -183,6 +180,11 @@ local function on_world_pre_update_inner()
                ctx.run_ended = true
            end
         end
+    end
+
+    if ctx.events.new_player_seen then
+        local hp, max_hp = util.get_ent_health(my_player.entity)
+        util.set_ent_health(my_player.entity, {hp+4, max_hp+4})
     end
 
     if GameGetFrameNum() == 0 then
