@@ -28,6 +28,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
     end
+    EntityAddTag(projectile_id, "ew_shot_by_player")
     local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
     local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
 

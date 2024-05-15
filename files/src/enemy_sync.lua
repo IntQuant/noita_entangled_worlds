@@ -28,7 +28,7 @@ end
 local function get_sync_entities()
     local entities = EntityGetWithTag("enemy") -- TODO maybe only sync those close to players?
     table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
-        return not EntityHasTag(ent, "projectile_player")
+        return not (EntityHasTag(ent, "ew_shot_by_player") or EntityHasTag(ent, "projectile_player"))
     end)
     return entities
 end
@@ -57,7 +57,7 @@ function enemy_sync.host_upload_entities()
         if damage_model ~= nil then
             ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
             if hp <= 0 then
-                ComponentSetValue2(damage_model, "kill_now", true)
+                ComponentSetValue2(damage_model, "kill_now", true) -- TODO this causes all kills to count as accidental
             end
         end
 
