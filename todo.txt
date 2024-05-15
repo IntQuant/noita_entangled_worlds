@@ -9,7 +9,7 @@
    + Sync shuffle
  k Синхронизировать смерти противников
  - Общее золото
- - Удаление лишних клиентов при загрузке игры
+ + Удаление лишних клиентов при загрузке игры
  - intern pathnames in enemy sync
  + Fix bottles and other items duplicating when thrown (on host?)
 
@@ -24,8 +24,9 @@
  + Позволить менять сид мира
  - Никнеймы игроков
  k Лимит на длину сообщения
- - Улучшеная синхронизация инвентаря и перков
- + ...и текущего предмета
+ + Улучшеная синхронизация инвентаря 
+   - ...и перков
+   + ...и текущего предмета
  + reliability
  + Сжатие пакетов
  + Перекидывание предметов
@@ -37,4 +38,3 @@
  - proxy: stop receiving connections before another start_game on game over, noita: try to reconnect to proxy.
  - sync traps
  - holy mountains are screwed up when clients enter it before host does
- 

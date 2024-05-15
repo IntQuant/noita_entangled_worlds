@@ -11,6 +11,8 @@ ctx.init = function()
     ctx.run_ended = false
     ctx.player_data_by_local_entity = {}
     ctx.item_prevent_localize = {}
+    ctx.events = {}
+    ctx.is_inventory_open = false
 end
 
 return ctx

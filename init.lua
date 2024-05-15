@@ -17,6 +17,7 @@ local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
 local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local item_sync = dofile_once("mods/quant.ew/files/src/item_sync.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
@@ -112,6 +113,14 @@ end
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
 	GamePrint( "OnPlayerSpawned() - Player entity id: " .. tostring(player_entity) )
 
+    for _, client in pairs(EntityGetWithTag("ew_client")) do
+        GamePrint("Removing previous client: "..client)
+        EntityKill(client)
+    end
+
+    local x, y = EntityGetTransform(player_entity)
+    ctx.initial_player_pos = {x=x, y=y}
+
     my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
@@ -150,6 +159,13 @@ local function on_world_pre_update_inner()
 
     net.update()
 
+    local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(my_player.entity, "InventoryGuiComponent")
+    local inventory_open = ComponentGetValue2(inventory_gui_comp, "mActive")
+    if ctx.is_inventory_open and not inventory_open then
+        ctx.events.inventory_maybe_just_changed = true
+    end
+    ctx.is_inventory_open = inventory_open
+
     if ctx.is_host and not EntityGetIsAlive(my_player.entity) then
         if not ctx.run_ended then
             GamePrint("Notifying of run end")
@@ -167,6 +183,10 @@ local function on_world_pre_update_inner()
                ctx.run_ended = true
            end
         end
+    end
+
+    if GameGetFrameNum() == 0 then
+        net.send_welcome()
     end
 
     -- Item sync
@@ -212,12 +232,18 @@ local function on_world_pre_update_inner()
         net.send_host_player_info(player_info)
     end
 
+    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or GameGetFrameNum() % 20 == 0 then
+        if ctx.events.new_player_just_connected or inventory_helper.has_inventory_changed(my_player) then            
+            local inventory_state = player_fns.serialize_items(my_player)
+            if inventory_state ~= nil then
+                GamePrint("Sending updated inventory")
+                net.send_player_inventory(inventory_state)
+            end
+        end
+    end
+
     -- Inventory and perk sync
     if GameGetFrameNum() % 120 == 0 then
-        local inventory_state = player_fns.serialize_items(my_player)
-        if inventory_state ~= nil then
-            net.send_player_inventory(inventory_state)
-        end
         local perk_data = perk_fns.get_my_perks()
         if perk_data ~= nil then
             net.send_player_perks(perk_data)
@@ -243,6 +269,7 @@ end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
 	util.tpcall(on_world_post_update_inner)
+    ctx.events = {}
 end
 
 

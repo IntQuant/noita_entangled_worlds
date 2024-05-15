@@ -191,4 +191,8 @@ function net_handling.mod.item_upload(peer_id, item_data)
     item_sync.upload(item_data)
 end
 
+function net_handling.mod.welcome(peer_id, _)
+    ctx.events.new_player_just_connected = true
+end
+
 return net_handling

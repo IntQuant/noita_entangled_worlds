@@ -114,6 +114,10 @@ function net.send_player_perks(perk_data)
   net.send("perks", perk_data, true)
 end
 
+function net.send_welcome()
+  net.send("welcome", nil, true)
+end
+
 function net.send_enemy_data(enemy_data)
   net.send("enemy", enemy_data)
 end

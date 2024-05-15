@@ -393,6 +393,9 @@ function player_fns.peer_has_player(peer_id)
 end
 
 function player_fns.peer_get_player_data(peer_id)
+    if not player_fns.peer_has_player(peer_id) then
+        player_fns.spawn_player_for(peer_id, ctx.initial_player_pos.x, ctx.initial_player_pos.y)
+    end
     return ctx.players[peer_id]
 end
 
@@ -413,6 +416,7 @@ function player_fns.spawn_player_for(peer_id, x, y)
     end
     util.set_ent_firing_blocked(new, true)
     ctx.player_data_by_local_entity[new] = new_playerdata
+    ctx.events.new_player_just_spawned = true
 end
 
 function player_fns.is_inventory_open()
