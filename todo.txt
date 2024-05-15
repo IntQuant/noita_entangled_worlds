@@ -36,4 +36,5 @@
  - poly on clients
  - proxy: stop receiving connections before another start_game on game over, noita: try to reconnect to proxy.
  - sync traps
+ - holy mountains are screwed up when clients enter it before host does
  
