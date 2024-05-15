@@ -208,9 +208,8 @@ function inventory_helper.set_item_data(item_data, player_data)
                 return
             end
 
-            EntityRemoveTag(item, "ew_global_item")
-
             if(itemInfo.is_wand)then
+                EntityAddTag(item.entity_id, "ew_client_item")
                 item:PickUp(player)
                 local itemComp = EntityGetFirstComponentIncludingDisabled(item.entity_id, "ItemComponent")
                 if (itemComp ~= nil) then
@@ -221,6 +220,7 @@ function inventory_helper.set_item_data(item_data, player_data)
                     active_item_entity = item.entity_id
                 end
             else
+                EntityAddTag(item, "ew_client_item")
                 pickup_item(player, item)
                 local itemComp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
                 if (itemComp ~= nil) then
@@ -268,7 +268,7 @@ function inventory_helper.has_inventory_changed(player_data)
     for _, item in ipairs(GameGetAllInventoryItems(player_data.entity)) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
-        inventory_hash = (inventory_hash + (item % 1024 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
+        inventory_hash = (inventory_hash*19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
     end
     player_data.prev_inventory_hash = inventory_hash
     return inventory_hash ~= prev_inventory

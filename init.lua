@@ -232,11 +232,11 @@ local function on_world_pre_update_inner()
         net.send_host_player_info(player_info)
     end
 
-    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or GameGetFrameNum() % 20 == 0 then
+    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or GameGetFrameNum() % 5 == 0 then
         if ctx.events.new_player_just_connected or inventory_helper.has_inventory_changed(my_player) then            
             local inventory_state = player_fns.serialize_items(my_player)
             if inventory_state ~= nil then
-                GamePrint("Sending updated inventory")
+                -- GamePrint("Sending updated inventory")
                 net.send_player_inventory(inventory_state)
             end
         end

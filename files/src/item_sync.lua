@@ -88,6 +88,17 @@ local function get_global_ent(key)
     end
 end
 
+local function remove_client_items_from_world()
+    if GameGetFrameNum() % 5 ~= 3 then
+        return
+    end
+    for _, item in ipairs(EntityGetWithTag("ew_client_item")) do
+        if is_item_on_ground(item) then
+            EntityKill(item)
+        end
+    end
+end
+
 function item_sync.host_upload_items(my_player)
     if GameGetFrameNum() % 5 == 4 then
         mark_in_inventory(my_player)
@@ -102,6 +113,7 @@ function item_sync.host_upload_items(my_player)
         local g_id = item_sync.get_global_item_id(picked_item)
         item_sync.host_localize_item(g_id, ctx.my_id)
     end
+    remove_client_items_from_world()
 end
 
 function item_sync.client_tick(my_player)
@@ -109,7 +121,7 @@ function item_sync.client_tick(my_player)
         mark_in_inventory(my_player)
     end
     local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil then
+    if thrown_item ~= nil and not EntityHasTag(thrown_item, "ew_client_item") then
         ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
         EntityKill(thrown_item)
     end
@@ -119,6 +131,7 @@ function item_sync.client_tick(my_player)
         local gid = item_sync.get_global_item_id(picked_item)
         ctx.lib.net.send_localize_request(gid)
     end
+    remove_client_items_from_world()
 end
 
 function item_sync.upload(item_data)
