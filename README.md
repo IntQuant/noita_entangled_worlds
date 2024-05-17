@@ -10,6 +10,7 @@ What is synced as of now:
  - Enemies and their attacks
  - Pixels of the grid world (this one is far from perfect, however)
 
+There is a video guide/showcase of the mod by Gudyni (in russian): https://www.youtube.com/watch?v=mqSKcDW-epg
 
 Special thanks to:
  - @EvaisaDev for allowing to use code from Noita Arena mod.
