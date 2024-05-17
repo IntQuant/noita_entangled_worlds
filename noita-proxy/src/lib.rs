@@ -3,7 +3,6 @@ use std::{fmt::Display, net::SocketAddr, sync::Arc, thread, time::Duration};
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{self, Color32};
-use serde::de::Error;
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -30,7 +29,7 @@ struct SteamState {
 
 impl SteamState {
     fn new() -> Result<Self, SteamAPIInitError> {
-        let (client, single) = steamworks::Client::init_app(480)?;
+        let (client, single) = steamworks::Client::init_app(881100)?;
         thread::spawn(move || {
             info!("Spawned steam callback thread");
             loop {
