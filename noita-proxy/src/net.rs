@@ -246,6 +246,7 @@ impl NetManager {
                             "peer_id",
                             self.peer.my_id().expect("Has peer id at this point"),
                         ));
+                        state.try_ws_write(ws_encode_proxy("host_id", self.peer.host_id()));
                         state.try_ws_write(ws_encode_proxy("name", "test_name"));
                         state.try_ws_write(ws_encode_proxy(
                             "debug",

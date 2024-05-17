@@ -112,7 +112,6 @@ impl SteamPeer {
         };
         let networking = self.client.networking();
         let res = networking.send_p2p_packet(peer, send_type.clone(), msg);
-        // info!("Sent a packet to {:?}, st {:?}", peer, send_type);
         if !res {
             warn!("Couldn't send a packet to {:?}, st {:?}", peer, send_type)
         }
@@ -165,7 +164,6 @@ impl SteamPeer {
         }
         let networking = self.client.networking();
         while let Some(size) = networking.is_p2p_packet_available() {
-            info!("Got packet {}", size);
             let mut empty_array = vec![0; size];
             let mut buffer = empty_array.as_mut_slice();
             if let Some((sender, _)) = networking.read_p2p_packet(&mut buffer) {
