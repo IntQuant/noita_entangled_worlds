@@ -30,7 +30,7 @@ local function send_pending()
         table.insert(will_send, packet)
     end
     if #will_send > 0 then
-        -- GamePrint(#will_send.." "..total_len)
+        -- GamePrint(#pending_send_wd.." "..#will_send.." "..total_len)
         ctx.lib.net.send_world_data(will_send)
     end
 end

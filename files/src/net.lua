@@ -19,7 +19,7 @@ local string_split = util.string_split
 function net.init()
     local ready = false
     net.sock = pollnet.open_ws("ws://127.0.0.1:21251")
-    reactor:run(function() 
+    reactor:run(function()
         local sock = net.sock
         while true do
           local msg_decoded = nil
@@ -37,9 +37,14 @@ function net.init()
               }
             end
           elseif string.byte(msg, 1, 1) == 1 then
-            local peer_id_l, peer_id_h = string.byte(msg, 2, 3)
-            local peer_id = peer_id_l + peer_id_h * 256
-            local msg_l = string.sub(msg, 4)
+            local peer_id_b = {string.byte(msg, 2, 2+8-1)}
+            local mult = 1
+            local peer_id = 0
+            for _, b in ipairs(peer_id_b) do
+              peer_id = peer_id + b * mult
+              mult = mult * 256
+            end
+            local msg_l = string.sub(msg, 2+8)
             local success, item = pcall(bitser.loads, msg_l)
             if success then
               msg_decoded = {
@@ -55,7 +60,7 @@ function net.init()
             print("Unknown msg")
           end
           if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
-            if ctx.ready or msg_decoded.kind ~= "mod" then              
+            if ctx.ready or msg_decoded.kind ~= "mod" then
                 util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value)
             end
             -- GamePrint("NetHnd: "..msg_decoded.kind.." "..msg_decoded.key)

@@ -1,0 +1,261 @@
+use std::sync::Mutex;
+
+use crossbeam::channel;
+use steamworks::{
+    CallbackHandle, LobbyChatUpdate, LobbyId, LobbyType, P2PSessionRequest, SendType, SteamError,
+    SteamId,
+};
+use tangled::{PeerState, Reliability};
+use tracing::{info, warn};
+
+use super::OmniNetworkEvent;
+
+enum SteamEvent {
+    LobbyCreated(LobbyId),
+    LobbyError(SteamError),
+    LobbyJoinError,
+    PeerConnected(SteamId),
+    PeerDisconnected(SteamId),
+    PeerStateChanged,
+    AcceptConnection(SteamId),
+}
+
+pub struct InnerState {
+    lobby_id: Option<LobbyId>,
+    host_id: SteamId,
+    remote_peers: Vec<SteamId>,
+    state: PeerState,
+}
+
+pub struct SteamPeer {
+    client: steamworks::Client,
+    events: channel::Receiver<SteamEvent>,
+    sender: channel::Sender<SteamEvent>,
+    my_id: SteamId,
+    is_host: bool,
+    inner: Mutex<InnerState>,
+    _cbs: Vec<CallbackHandle>,
+}
+
+impl SteamPeer {
+    pub fn new_host(lobby_type: LobbyType, client: steamworks::Client) -> Self {
+        let (sender, events) = channel::unbounded();
+        let matchmaking = client.matchmaking();
+        {
+            let sender = sender.clone();
+            matchmaking.create_lobby(lobby_type, 20, move |lobby| {
+                let event = match lobby {
+                    Ok(id) => SteamEvent::LobbyCreated(id),
+                    Err(err) => SteamEvent::LobbyError(err),
+                };
+                sender.send(event).ok();
+            });
+        }
+
+        let my_id = client.user().steam_id();
+        let _cbs = make_callbacks(&sender, &client);
+        Self {
+            my_id,
+            client,
+
+            events,
+            sender,
+            is_host: true,
+            inner: Mutex::new(InnerState {
+                lobby_id: None,
+                host_id: my_id,
+                remote_peers: Vec::new(),
+                state: PeerState::PendingConnection,
+            }),
+            _cbs,
+        }
+    }
+
+    pub fn new_connect(lobby: LobbyId, client: steamworks::Client) -> Self {
+        let (sender, events) = channel::unbounded();
+        let matchmaking = client.matchmaking();
+        {
+            let sender = sender.clone();
+            matchmaking.join_lobby(lobby, move |lobby| {
+                let event = match lobby {
+                    Ok(id) => SteamEvent::LobbyCreated(id),
+                    Err(_) => SteamEvent::LobbyJoinError,
+                };
+                sender.send(event).ok();
+            });
+        }
+
+        let my_id = client.user().steam_id();
+        let _cbs = make_callbacks(&sender, &client);
+        Self {
+            my_id,
+            client,
+
+            events,
+            sender,
+            is_host: false,
+            inner: Mutex::new(InnerState {
+                lobby_id: None,
+                remote_peers: Vec::new(),
+                host_id: my_id,
+                state: PeerState::PendingConnection,
+            }),
+            _cbs,
+        }
+    }
+
+    pub fn send_message(&self, peer: SteamId, msg: &[u8], reliability: Reliability) -> bool {
+        let send_type = if reliability == Reliability::Reliable || msg.len() > 1200 {
+            SendType::Reliable
+        } else {
+            SendType::Unreliable
+        };
+        let networking = self.client.networking();
+        let res = networking.send_p2p_packet(peer, send_type.clone(), msg);
+        // info!("Sent a packet to {:?}, st {:?}", peer, send_type);
+        if !res {
+            warn!("Couldn't send a packet to {:?}, st {:?}", peer, send_type)
+        }
+
+        res
+    }
+
+    pub fn broadcast_message(&self, msg: &[u8], reliability: Reliability) {
+        let peers = self.inner.lock().unwrap().remote_peers.clone();
+        for peer in peers {
+            self.send_message(peer, msg, reliability);
+        }
+    }
+
+    pub fn recv(&self) -> Vec<OmniNetworkEvent> {
+        let mut returned_events = Vec::new();
+        for event in self.events.try_iter() {
+            match event {
+                SteamEvent::LobbyCreated(id) => {
+                    info!("Lobby ready");
+                    self.inner.lock().unwrap().lobby_id = Some(id);
+                    if !self.is_host {
+                        let host_id = self.client.matchmaking().lobby_owner(id);
+                        self.inner.lock().unwrap().host_id = host_id;
+                        info!("Got host id: {:?}", host_id)
+                    }
+                    self.update_remote_peers();
+                    self.inner.lock().unwrap().state = PeerState::Connected;
+                }
+                SteamEvent::LobbyError(err) => {
+                    warn!("Could not create lobby: {}", err);
+                    self.inner.lock().unwrap().state = PeerState::Disconnected;
+                }
+                SteamEvent::LobbyJoinError => {
+                    warn!("Could not join lobby");
+                    self.inner.lock().unwrap().state = PeerState::Disconnected;
+                }
+                SteamEvent::PeerConnected(id) => {
+                    returned_events.push(OmniNetworkEvent::PeerConnected(id.into()))
+                }
+                SteamEvent::PeerDisconnected(id) => {
+                    returned_events.push(OmniNetworkEvent::PeerDisconnected(id.into()))
+                }
+                SteamEvent::PeerStateChanged => self.update_remote_peers(),
+                SteamEvent::AcceptConnection(id) => {
+                    info!("p2p accepted");
+                    self.client.networking().accept_p2p_session(id);
+                }
+            }
+        }
+        let networking = self.client.networking();
+        while let Some(size) = networking.is_p2p_packet_available() {
+            info!("Got packet {}", size);
+            let mut empty_array = vec![0; size];
+            let mut buffer = empty_array.as_mut_slice();
+            if let Some((sender, _)) = networking.read_p2p_packet(&mut buffer) {
+                returned_events.push(OmniNetworkEvent::Message {
+                    src: sender.into(),
+                    data: empty_array,
+                })
+            }
+        }
+        returned_events
+    }
+
+    fn update_remote_peers(&self) {
+        let matchmaking = self.client.matchmaking();
+        let lobby = self.inner.lock().unwrap().lobby_id;
+        let mut peers = match lobby {
+            Some(lobby_id) => matchmaking.lobby_members(lobby_id),
+            None => Vec::new(),
+        };
+        peers.retain(|x| *x != self.my_id);
+        peers.sort();
+        let current_peers = &mut self.inner.lock().unwrap().remote_peers;
+
+        // TODO: could be done more efficiently
+        for peer in &peers {
+            if !current_peers.contains(&peer) {
+                self.sender.send(SteamEvent::PeerConnected(*peer)).ok();
+            }
+        }
+        for peer in &mut *current_peers {
+            if !peers.contains(&peer) {
+                self.sender.send(SteamEvent::PeerDisconnected(*peer)).ok();
+            }
+        }
+
+        *current_peers = peers;
+    }
+
+    pub fn get_peer_ids(&self) -> Vec<SteamId> {
+        // let matchmaking = self.client.matchmaking();
+        // let lobby = self.inner.lock().unwrap().lobby_id;
+        // match lobby {
+        //     Some(lobby_id) => matchmaking.lobby_members(lobby_id),
+        //     None => Vec::new(),
+        // }
+        let mut peers = self.inner.lock().unwrap().remote_peers.clone();
+        peers.push(self.my_id);
+        peers
+    }
+
+    pub fn my_id(&self) -> SteamId {
+        self.my_id
+    }
+
+    pub fn host_id(&self) -> SteamId {
+        if self.is_host {
+            self.my_id
+        } else {
+            self.inner.lock().unwrap().host_id
+        }
+    }
+
+    pub fn lobby_id(&self) -> Option<LobbyId> {
+        self.inner.lock().unwrap().lobby_id
+    }
+
+    pub fn state(&self) -> PeerState {
+        self.inner.lock().unwrap().state
+    }
+}
+
+fn make_callbacks(
+    sender: &channel::Sender<SteamEvent>,
+    client: &steamworks::Client,
+) -> Vec<CallbackHandle> {
+    let cb_req = {
+        let sender = sender.clone();
+        client.register_callback(move |request: P2PSessionRequest| {
+            info!("Accepting connection with {:?}", request.remote);
+            sender
+                .send(SteamEvent::AcceptConnection(request.remote))
+                .ok();
+        })
+    };
+    let cb_ch = {
+        let sender = sender.clone();
+        client.register_callback(move |update: LobbyChatUpdate| {
+            info!("User state changed {:?}", update);
+            sender.send(SteamEvent::PeerStateChanged).ok();
+        })
+    };
+    vec![cb_ch, cb_req]
+}

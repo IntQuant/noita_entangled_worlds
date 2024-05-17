@@ -6,15 +6,16 @@ use std::{
     thread,
     time::Duration,
 };
+use steamworks::{LobbyId, SteamId};
 use tracing::debug;
 
-use tangled::{PeerId, Reliability};
+use tangled::{PeerId, PeerState, Reliability};
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
 use crate::{messages::NetMsg, GameSettings};
 
-static HOST: PeerId = PeerId(0);
+pub mod steam_networking;
 
 pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
     let mut buf = Vec::new();
@@ -23,7 +24,7 @@ pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungste
     tungstenite::Message::Binary(buf)
 }
 
-pub(crate) fn ws_encode_mod(peer: PeerId, data: &[u8]) -> tungstenite::Message {
+pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Message {
     let mut buf = Vec::new();
     buf.push(1u8);
     buf.extend_from_slice(&peer.0.to_le_bytes());
@@ -46,8 +47,136 @@ impl NetInnerState {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OmniPeerId(u64);
+
+impl From<PeerId> for OmniPeerId {
+    fn from(value: PeerId) -> Self {
+        Self(value.0.into())
+    }
+}
+
+impl From<SteamId> for OmniPeerId {
+    fn from(value: SteamId) -> Self {
+        Self(value.raw())
+    }
+}
+
+impl From<OmniPeerId> for PeerId {
+    fn from(value: OmniPeerId) -> Self {
+        Self(
+            value
+                .0
+                .try_into()
+                .expect("Assuming PeerId was stored here, so conversion should succeed"),
+        )
+    }
+}
+
+impl From<OmniPeerId> for SteamId {
+    fn from(value: OmniPeerId) -> Self {
+        Self::from_raw(value.0)
+    }
+}
+
+impl Display for OmniPeerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+pub enum OmniNetworkEvent {
+    PeerConnected(OmniPeerId),
+    PeerDisconnected(OmniPeerId),
+    Message { src: OmniPeerId, data: Vec<u8> },
+}
+
+impl From<tangled::NetworkEvent> for OmniNetworkEvent {
+    fn from(value: tangled::NetworkEvent) -> Self {
+        match value {
+            tangled::NetworkEvent::PeerConnected(id) => Self::PeerConnected(id.into()),
+            tangled::NetworkEvent::PeerDisconnected(id) => Self::PeerDisconnected(id.into()),
+            tangled::NetworkEvent::Message(msg) => Self::Message {
+                src: msg.src.into(),
+                data: msg.data,
+            },
+        }
+    }
+}
+
+pub enum PeerVariant {
+    Tangled(tangled::Peer),
+    Steam(steam_networking::SteamPeer),
+}
+
+impl PeerVariant {
+    fn send(
+        &self,
+        peer: OmniPeerId,
+        msg: Vec<u8>,
+        reliability: Reliability,
+    ) -> Result<(), tangled::NetError> {
+        match self {
+            PeerVariant::Tangled(p) => p.send(peer.into(), msg, reliability),
+            PeerVariant::Steam(p) => {
+                p.send_message(peer.into(), &msg, reliability);
+                Ok(())
+            }
+        }
+    }
+
+    fn broadcast(&self, msg: Vec<u8>, reliability: Reliability) -> Result<(), tangled::NetError> {
+        match self {
+            PeerVariant::Tangled(p) => p.broadcast(msg, reliability),
+            PeerVariant::Steam(p) => Ok(p.broadcast_message(&msg, reliability)),
+        }
+    }
+
+    fn my_id(&self) -> Option<OmniPeerId> {
+        match self {
+            PeerVariant::Tangled(p) => p.my_id().map(OmniPeerId::from),
+            PeerVariant::Steam(p) => Some(p.my_id().into()),
+        }
+    }
+
+    pub fn iter_peer_ids(&self) -> Vec<OmniPeerId> {
+        match self {
+            PeerVariant::Tangled(p) => p.iter_peer_ids().map(OmniPeerId::from).collect(),
+            PeerVariant::Steam(p) => p.get_peer_ids().into_iter().map(OmniPeerId::from).collect(),
+        }
+    }
+
+    fn recv(&self) -> Vec<OmniNetworkEvent> {
+        match self {
+            PeerVariant::Tangled(p) => p.recv().map(OmniNetworkEvent::from).collect(),
+            PeerVariant::Steam(p) => p.recv(),
+        }
+    }
+
+    pub fn state(&self) -> PeerState {
+        match self {
+            PeerVariant::Tangled(p) => p.state(),
+            PeerVariant::Steam(p) => p.state(),
+        }
+    }
+
+    pub fn host_id(&self) -> OmniPeerId {
+        match self {
+            PeerVariant::Tangled(_) => PeerId::HOST.into(),
+            PeerVariant::Steam(p) => p.host_id().into(),
+        }
+    }
+
+    pub fn lobby_id(&self) -> Option<LobbyId> {
+        match self {
+            PeerVariant::Tangled(_) => None,
+            PeerVariant::Steam(p) => p.lobby_id(),
+        }
+    }
+}
+
 pub struct NetManager {
-    pub(crate) peer: tangled::Peer,
+    pub(crate) peer: PeerVariant,
     pub(crate) settings: Mutex<GameSettings>,
     pub(crate) continue_running: AtomicBool, // TODO stop on drop
     pub(crate) accept_local: AtomicBool,
@@ -55,7 +184,7 @@ pub struct NetManager {
 }
 
 impl NetManager {
-    pub fn new(peer: tangled::Peer) -> Arc<Self> {
+    pub fn new(peer: PeerVariant) -> Arc<Self> {
         Self {
             peer,
             settings: Mutex::new(GameSettings {
@@ -70,7 +199,7 @@ impl NetManager {
         .into()
     }
 
-    pub(crate) fn send(&self, peer: tangled::PeerId, msg: &NetMsg, reliability: Reliability) {
+    pub(crate) fn send(&self, peer: OmniPeerId, msg: &NetMsg, reliability: Reliability) {
         let encoded = bitcode::encode(msg);
         self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
     }
@@ -135,9 +264,9 @@ impl NetManager {
             }
             for net_event in self.peer.recv() {
                 match net_event {
-                    tangled::NetworkEvent::PeerConnected(id) => {
+                    OmniNetworkEvent::PeerConnected(id) => {
                         info!("Peer connected");
-                        if self.peer.my_id() == Some(HOST) {
+                        if self.peer.my_id() == Some(self.peer.host_id()) {
                             info!("Sending start game message");
                             self.send(
                                 id,
@@ -149,11 +278,11 @@ impl NetManager {
                         }
                         state.try_ws_write(ws_encode_proxy("join", id));
                     }
-                    tangled::NetworkEvent::PeerDisconnected(id) => {
+                    OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id));
                     }
-                    tangled::NetworkEvent::Message(msg) => {
-                        let Ok(net_msg) = bitcode::decode::<NetMsg>(&msg.data) else {
+                    OmniNetworkEvent::Message { src, data } => {
+                        let Ok(net_msg) = bitcode::decode::<NetMsg>(&data) else {
                             continue;
                         };
                         match net_msg {
@@ -164,12 +293,12 @@ impl NetManager {
                                     .store(true, std::sync::atomic::Ordering::SeqCst);
                             }
                             NetMsg::ModRaw { data } => {
-                                state.try_ws_write(ws_encode_mod(msg.src, &data));
+                                state.try_ws_write(ws_encode_mod(src, &data));
                             }
                             NetMsg::ModCompressed { data } => {
                                 if let Ok(decompressed) = lz4_flex::decompress_size_prepended(&data)
                                 {
-                                    state.try_ws_write(ws_encode_mod(msg.src, &decompressed));
+                                    state.try_ws_write(ws_encode_mod(src, &decompressed));
                                 }
                             }
                         }
@@ -251,7 +380,7 @@ impl NetManager {
     }
 
     fn is_host(&self) -> bool {
-        self.peer.my_id() == Some(PeerId::HOST)
+        self.peer.my_id() == Some(self.peer.host_id())
     }
 
     pub(crate) fn handle_message_to_proxy(&self, msg: &[u8]) {
