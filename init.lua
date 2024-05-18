@@ -142,6 +142,9 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 
     net.send_welcome()
 
+    local item_pick = EntityGetFirstComponentIncludingDisabled(player_entity, "ItemPickUpperComponent")
+    ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
+
     if ctx.debug then
         dofile_once("data/scripts/perks/perk.lua")
         local x, y = EntityGetFirstHitboxCenter(player_entity)
