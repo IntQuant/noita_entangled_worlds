@@ -18,7 +18,8 @@ local string_split = util.string_split
 
 function net.init()
     local ready = false
-    net.sock = pollnet.open_ws("ws://127.0.0.1:21251")
+    local addr = os.getenv("NP_NOITA_ADDR") or "127.0.0.1:21251"
+    net.sock = pollnet.open_ws("ws://"..addr)
     reactor:run(function()
         local sock = net.sock
         while true do

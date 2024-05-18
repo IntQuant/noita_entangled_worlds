@@ -1,5 +1,6 @@
 use socket2::{Domain, Socket, Type};
 use std::{
+    env,
     fmt::Display,
     io::{self, Write},
     net::{SocketAddr, TcpListener, TcpStream},
@@ -219,22 +220,33 @@ impl NetManager {
 
     pub(crate) fn start_inner(self: Arc<NetManager>) -> io::Result<()> {
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
-        if let Err(err) = socket.set_reuse_address(true) {
-            error!("Could not allow to reuse address: {}", err)
-        }
-        #[cfg(target_os = "linux")]
-        if let Err(err) = socket.set_reuse_port(true) {
-            error!("Could not allow to reuse port: {}", err)
+
+        // This allows several proxies to listen on the same address.
+        // While this works, I couldn't get Noita to reliably connect to correct proxy instances on my os (linux).
+        if env::var_os("NP_ALLOW_REUSE_ADDR").is_some() {
+            info!("Address reuse allowed");
+            if let Err(err) = socket.set_reuse_address(true) {
+                error!("Could not allow to reuse address: {}", err)
+            }
+            #[cfg(target_os = "linux")]
+            if let Err(err) = socket.set_reuse_port(true) {
+                error!("Could not allow to reuse port: {}", err)
+            }
         }
 
-        let address: SocketAddr = "127.0.0.1:21251".parse().unwrap();
+        let address: SocketAddr = env::var("NP_NOITA_ADDR")
+            .ok()
+            .and_then(|x| x.parse().ok())
+            .unwrap_or_else(|| "127.0.0.1:21251".parse().unwrap());
+
+        info!("Listening for noita connection on {}", address);
+
         let address = address.into();
         socket.bind(&address)?;
-        socket.listen(2)?;
+        socket.listen(1)?;
         socket.set_nonblocking(true)?;
 
         let local_server: TcpListener = socket.into();
-        // let local_server = TcpListener::bind("127.0.0.1:0").unwrap();
 
         let mut state = NetInnerState { ws: None };
 

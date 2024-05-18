@@ -1,9 +1,5 @@
 use std::{
-    fmt::Display,
-    net::SocketAddr,
-    sync::{atomic::Ordering, Arc},
-    thread,
-    time::Duration,
+    env, fmt::Display, net::SocketAddr, sync::{atomic::Ordering, Arc}, thread, time::Duration
 };
 
 use bitcode::{Decode, Encode};
@@ -35,6 +31,9 @@ struct SteamState {
 
 impl SteamState {
     fn new() -> Result<Self, SteamAPIInitError> {
+        if env::var_os("NP_DISABLE_STEAM").is_some() {
+            return Err(SteamAPIInitError::FailedGeneric("Disabled by env variable".to_string()))
+        }
         let (client, single) = steamworks::Client::init_app(881100)?;
         thread::spawn(move || {
             info!("Spawned steam callback thread");
