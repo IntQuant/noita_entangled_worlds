@@ -1,4 +1,10 @@
-use std::{fmt::Display, net::SocketAddr, sync::Arc, thread, time::Duration};
+use std::{
+    fmt::Display,
+    net::SocketAddr,
+    sync::{atomic::Ordering, Arc},
+    thread,
+    time::Duration,
+};
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -65,9 +71,7 @@ impl App {
         if !self.use_constant_seed {
             settings.seed = rand::random();
         }
-        netman
-            .accept_local
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+        netman.accept_local.store(true, Ordering::SeqCst);
     }
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
@@ -109,7 +113,7 @@ impl Default for App {
         info!("Creating the app...");
         Self {
             state: AppState::Init,
-            addr: "192.168.1.168:5123".to_string(),
+            addr: "127.0.0.1:5123".to_string(),
             debug_mode: false,
             use_constant_seed: false,
             steam_state: SteamState::new(),
@@ -168,13 +172,19 @@ impl eframe::App for App {
                 });
             }
             AppState::Netman { netman } => {
-                let accept_local = netman
-                    .accept_local
-                    .load(std::sync::atomic::Ordering::Relaxed);
-                let local_connected = netman
-                    .local_connected
-                    .load(std::sync::atomic::Ordering::Relaxed);
+                let stopped = netman.stopped.load(Ordering::Relaxed);
+                let accept_local = netman.accept_local.load(Ordering::Relaxed);
+                let local_connected = netman.local_connected.load(Ordering::Relaxed);
                 egui::CentralPanel::default().show(ctx, |ui| {
+                    if stopped {
+                        ui.colored_label(Color32::LIGHT_RED, "Netmanager thread has stopped");
+                        if let Some(err) = netman.error.lock().unwrap().as_ref() {
+                            ui.label("With the following error:");
+                            ui.label(err.to_string());
+                        }
+                        ui.separator();
+                    }
+                    
                     if accept_local {
                         if local_connected {
                             ui.colored_label(Color32::GREEN, "Local Noita instance connected");

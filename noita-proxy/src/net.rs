@@ -1,7 +1,8 @@
+use socket2::{Domain, Socket, Type};
 use std::{
     fmt::Display,
     io::{self, Write},
-    net::{TcpListener, TcpStream},
+    net::{SocketAddr, TcpListener, TcpStream},
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
     time::Duration,
@@ -181,6 +182,8 @@ pub struct NetManager {
     pub(crate) continue_running: AtomicBool, // TODO stop on drop
     pub(crate) accept_local: AtomicBool,
     pub(crate) local_connected: AtomicBool,
+    pub(crate) stopped: AtomicBool,
+    pub(crate) error: Mutex<Option<io::Error>>,
 }
 
 impl NetManager {
@@ -195,6 +198,8 @@ impl NetManager {
             continue_running: AtomicBool::new(true),
             accept_local: AtomicBool::new(false),
             local_connected: AtomicBool::new(false),
+            stopped: AtomicBool::new(false),
+            error: Default::default(),
         }
         .into()
     }
@@ -212,12 +217,24 @@ impl NetManager {
         }
     }
 
-    pub(crate) fn start_inner(self: Arc<NetManager>) {
-        let local_server = TcpListener::bind("127.0.0.1:21251").unwrap();
+    pub(crate) fn start_inner(self: Arc<NetManager>) -> io::Result<()> {
+        let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
+        if let Err(err) = socket.set_reuse_address(true) {
+            error!("Could not allow to reuse address: {}", err)
+        }
+        #[cfg(target_os = "linux")]
+        if let Err(err) = socket.set_reuse_port(true) {
+            error!("Could not allow to reuse port: {}", err)
+        }
+
+        let address: SocketAddr = "127.0.0.1:21251".parse().unwrap();
+        let address = address.into();
+        socket.bind(&address)?;
+        socket.listen(2)?;
+        socket.set_nonblocking(true)?;
+
+        let local_server: TcpListener = socket.into();
         // let local_server = TcpListener::bind("127.0.0.1:0").unwrap();
-        local_server
-            .set_nonblocking(true)
-            .expect("can set nonblocking");
 
         let mut state = NetInnerState { ws: None };
 
@@ -311,6 +328,7 @@ impl NetManager {
                 self.handle_mod_message(msg, &mut state);
             }
         }
+        Ok(())
     }
 
     pub(crate) fn handle_mod_message(
@@ -372,7 +390,15 @@ impl NetManager {
 
     pub fn start(self: Arc<NetManager>) {
         info!("Starting netmanager");
-        thread::spawn(move || self.start_inner());
+        thread::spawn(move || {
+            let result = self.clone().start_inner();
+            if let Err(err) = result {
+                error!("Error in netmanager: {}", err);
+                *self.error.lock().unwrap() = Some(err);
+            }
+            self.stopped
+                .store(true, std::sync::atomic::Ordering::Relaxed);
+        });
     }
 
     fn resend_game_settings(&self) {
