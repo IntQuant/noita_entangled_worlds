@@ -20,32 +20,6 @@ local mod_id = "quant.ew" -- This should match the name of your mod's folder.
 mod_settings_version = 1 -- This is a magic global that can be used to migrate settings to new mod versions. call mod_settings_get_version() before mod_settings_update() to get the old value. 
 mod_settings = 
 {
-	{
-		id = "host",
-		ui_name = "Host",
-		ui_description = "Host to connect to",
-		value_default = "127.0.0.1",
-		text_max_length = 20,
-		allowed_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789.",
-		scope = MOD_SETTING_SCOPE_NEW_GAME,
-	},
-	{
-		id = "port",
-		ui_name = "Port",
-		ui_description = "Port to use",
-		value_default = "3124",
-		text_max_length = 6,
-		allowed_characters = "0123456789",
-		scope = MOD_SETTING_SCOPE_NEW_GAME,
-	},
-	{
-		id = "peer_mode",
-		ui_name = "Peer mode",
-		ui_description = "Whether to connect to an existing game or to host a new one.",
-		value_default = "host",
-		values = { {"host","Host"}, {"connect","Connect"} },
-		scope = MOD_SETTING_SCOPE_NEW_GAME,
-	},
 }
 
 -- This function is called to ensure the correct setting values are visible to the game via ModSettingGet(). your mod's settings don't work if you don't have a function like this defined in settings.lua.
