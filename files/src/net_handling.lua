@@ -16,7 +16,7 @@ local net_handling = {
 
 function net_handling.proxy.seed(_, value)
     local seed = tonumber(value)
-        if seed ~= nil then                
+        if seed ~= nil then
         SetWorldSeed(seed)
         SetRandomSeed(seed, 141)
     end

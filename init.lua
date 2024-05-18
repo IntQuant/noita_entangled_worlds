@@ -140,6 +140,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 
     EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/cbs/count_times_wand_fired.lua"})
 
+    net.send_welcome()
+
     if ctx.debug then
         dofile_once("data/scripts/perks/perk.lua")
         local x, y = EntityGetFirstHitboxCenter(player_entity)
@@ -185,10 +187,6 @@ local function on_world_pre_update_inner()
     if ctx.events.new_player_seen then
         local hp, max_hp = util.get_ent_health(my_player.entity)
         util.set_ent_health(my_player.entity, {hp+4, max_hp+4})
-    end
-
-    if GameGetFrameNum() == 0 then
-        net.send_welcome()
     end
 
     -- Item sync
