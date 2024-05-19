@@ -96,6 +96,10 @@ function net.send(key, value, reliable)
   net.send_internal(encoded_msg, DEST_BROADCAST, reliable)
 end
 
+function net.send_to_host(key, value, reliable)
+  net.send(key, value, reliable) -- TODO actually only send to host
+end
+
 function net.proxy_send(key, value)
   net.send_internal(key.." "..value, DEST_PROXY)
 end
@@ -157,7 +161,11 @@ function net.send_localize_request(item_id)
 end
 
 function net.send_item_upload(item_data)
-  net.send("item_upload", item_data, true)
+  net.send_to_host("item_upload", item_data, true)
+end
+
+function net.send_heart_pickup(heart_pickup)
+  net.send("heart_pickup", heart_pickup, true)
 end
 
 return net

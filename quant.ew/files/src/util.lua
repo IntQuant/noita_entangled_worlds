@@ -88,6 +88,23 @@ function util.set_ent_air(entity, air_data)
     end
 end
 
+function util.get_ent_health_cap(entity)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model == nil then
+        return 0
+    end
+    local cap = ComponentGetValue2(damage_model, "max_hp_cap")
+    return cap
+end
+
+function util.set_ent_health_cap(entity, cap)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model == nil then
+        return 0
+    end
+    ComponentSetValue2(damage_model, "max_hp_cap", cap)
+end
+
 function util.lerp(a, b, alpha)
     return a * alpha + b * (1 - alpha)
 end

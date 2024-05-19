@@ -22,6 +22,12 @@ local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.l
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
 
+ModLuaFileAppend("data/scripts/items/heart.lua", "mods/quant.ew/files/append/heart.lua")
+ModLuaFileAppend("data/scripts/items/heart_better.lua", "mods/quant.ew/files/append/heart_better.lua")
+ModLuaFileAppend("data/scripts/items/heart_evil.lua", "mods/quant.ew/files/append/heart_evil.lua")
+ModLuaFileAppend("data/scripts/items/heart_fullhp.lua", "mods/quant.ew/files/append/heart_fullhp.lua")
+ModLuaFileAppend("data/scripts/items/heart_fullhp_temple.lua", "mods/quant.ew/files/append/heart_fullhp_temple.lua")
+
 local my_player = nil
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
@@ -113,6 +119,10 @@ end
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
 	GamePrint( "OnPlayerSpawned() - Player entity id: " .. tostring(player_entity) )
 
+    if GlobalsGetValue("ew_player_count", "") == "" then
+        GlobalsSetValue("ew_player_count", "1")
+    end
+
     for _, client in pairs(EntityGetWithTag("ew_client")) do
         GamePrint("Removing previous client: "..client)
         EntityKill(client)
@@ -126,6 +136,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.players[ctx.my_id] = my_player
     ctx.player_data_by_local_entity[player_entity] = my_player
     ctx.ready = true
+    ctx.my_player = my_player
 
     np.SetPauseState(4)
     np.SetPauseState(0)
@@ -151,6 +162,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         perk_spawn(x, y, "LASER_AIM", true)
         perk_spawn(x-50, y, "GLASS_CANNON", true)
         perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
+        EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
     end
 end
 
@@ -254,6 +266,12 @@ local function on_world_pre_update_inner()
         if perk_data ~= nil then
             net.send_player_perks(perk_data)
         end
+    end
+
+    local heart_pickup = GlobalsGetValue("ew_heart_pickup", "")
+    if heart_pickup ~= "" then
+        net.send_heart_pickup(heart_pickup)
+        GlobalsSetValue("ew_heart_pickup", "")
     end
 end
 

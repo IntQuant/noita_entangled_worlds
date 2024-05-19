@@ -420,6 +420,10 @@ function player_fns.spawn_player_for(peer_id, x, y)
     local we = GameGetWorldStateEntity()
     local seen = util.get_ent_variable(we, "player_seen") or {}
     ctx.events.new_player_seen = seen[peer_id] == nil
+    if ctx.events.new_player_seen then
+        local count = tonumber(GlobalsGetValue("ew_player_count", "1")) + 1
+        GlobalsSetValue("ew_player_count", tostring(count))
+    end
     seen[peer_id] = true
     util.set_ent_variable(we, "player_seen", seen)
 end
