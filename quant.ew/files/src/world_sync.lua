@@ -83,7 +83,13 @@ function world_sync.host_upload()
         rect_optimiser:scan()
         
         for crect in rect.parts(rect_optimiser:iterate(), 256) do
-            local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+            local area = nil
+            -- Make sure we don't send chunks that aren't loaded yet, like holy mountains before host got there.
+            if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+                area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+            else
+                -- Will probably need to try again later?
+            end
             if area ~= nil then
                 local str = ffi.string(area, world.encoded_size(area))
                 if string.len(str) > bandwidth_bucket_max then
