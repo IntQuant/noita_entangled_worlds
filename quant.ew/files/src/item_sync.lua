@@ -99,7 +99,8 @@ local function remove_client_items_from_world()
     end
 end
 
-function item_sync.host_upload_items(my_player)
+function item_sync.on_world_update_host()
+    local my_player = ctx.my_player
     if GameGetFrameNum() % 5 == 4 then
         mark_in_inventory(my_player)
     end
@@ -116,7 +117,8 @@ function item_sync.host_upload_items(my_player)
     remove_client_items_from_world()
 end
 
-function item_sync.client_tick(my_player)
+function item_sync.on_world_update_client()
+    local my_player = ctx.my_player
     if GameGetFrameNum() % 5 == 4 then
         mark_in_inventory(my_player)
     end

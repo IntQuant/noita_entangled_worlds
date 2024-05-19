@@ -8,16 +8,18 @@ np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away...\n")
 
+local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
-local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
-local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
-local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
-local item_sync = dofile_once("mods/quant.ew/files/src/item_sync.lua")
-local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
+
+local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.lua")
+local world_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
+local item_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
@@ -205,13 +207,6 @@ local function on_world_pre_update_inner()
         util.set_ent_health(my_player.entity, {hp+4, max_hp+4})
     end
 
-    -- Item sync
-    if ctx.is_host then
-        item_sync.host_upload_items(my_player)
-    else
-        item_sync.client_tick(my_player)
-    end
-
     -- Player sync
     if GameGetFrameNum() % 1 == 0 then
         local input_data = player_fns.serialize_inputs(my_player)
@@ -233,11 +228,6 @@ local function on_world_pre_update_inner()
         else
             enemy_sync.client_cleanup()
         end
-    end
-
-    -- World sync
-    if ctx.is_host then
-        world_sync.host_upload()
     end
 
     -- Health and air sync
@@ -273,6 +263,13 @@ local function on_world_pre_update_inner()
         net.send_heart_pickup(heart_pickup)
         GlobalsSetValue("ew_heart_pickup", "")
     end
+
+    if ctx.is_host then
+        ctx.hook.on_world_update_host()
+    else
+        ctx.hook.on_world_update_client()
+    end
+    -- ctx.hook.world_update()
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world

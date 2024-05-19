@@ -35,7 +35,7 @@ local function send_pending()
     end
 end
 
-function world_sync.host_upload()
+function world_sync.on_world_update_host()
     bandwidth_bucket = bandwidth_bucket + bandwidth_per_frame
     if bandwidth_bucket > bandwidth_bucket_max then
         bandwidth_bucket = bandwidth_bucket_max
