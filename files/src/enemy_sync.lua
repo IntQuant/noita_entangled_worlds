@@ -33,6 +33,8 @@ local function get_sync_entities()
     return entities
 end
 
+local previous_sync_entities = {}
+
 function enemy_sync.host_upload_entities()
     local entities = get_sync_entities()
     local enemy_data_list = {}
@@ -53,19 +55,29 @@ function enemy_sync.host_upload_entities()
         end
         local hp, max_hp = util.get_ent_health(enemy_id)
         
-        local damage_model = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
-        if damage_model ~= nil then
-            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
-            if hp <= 0 then
-                ComponentSetValue2(damage_model, "kill_now", true) -- TODO this causes all kills to count as accidental
-            end
-        end
+        -- local damage_model = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+        -- if damage_model ~= nil then
+        --     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+        --     if hp <= 0 then
+        --         ComponentSetValue2(damage_model, "kill_now", true) -- TODO this causes all kills to count as accidental
+        --     end
+        -- end
 
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})
         ::continue::
     end
-    --print(#enemy_data_list)
-    return enemy_data_list
+    
+    local dead_entities = {}
+
+    for _, entity in ipairs(previous_sync_entities) do
+        if not EntityGetIsAlive(entity) then
+            -- GamePrint("Entity is no longer alive: "..entity)
+            table.insert(dead_entities, entity)
+        end
+    end
+
+    previous_sync_entities = entities
+    return enemy_data_list, dead_entities
 end
 
 function enemy_sync.client_cleanup()
@@ -86,6 +98,23 @@ function enemy_sync.client_cleanup()
     end
 end
 
+function enemy_sync.handle_death_data(death_data)
+    for _, remote_id in ipairs(death_data) do
+        local enemy_data = ctx.entity_by_remote_id[remote_id]
+        if enemy_data ~= nil then
+            local enemy_id = enemy_data.id
+    
+            local current_hp = util.get_ent_health(enemy_id)
+            local dmg = current_hp
+            if dmg > 0 then
+                EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
+            end
+            EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity()) -- Just to be sure
+            util.set_ent_health(enemy_id, {0, 0})
+        end
+    end
+end
+
 function enemy_sync.handle_enemy_data(enemy_data)
     -- GamePrint("Got enemy data")
     for _, enemy_info_raw in ipairs(enemy_data) do
@@ -97,6 +126,7 @@ function enemy_sync.handle_enemy_data(enemy_data)
         local vy = enemy_info_raw[6]
         local hp = enemy_info_raw[7]
         local max_hp = enemy_info_raw[8]
+        local has_died = filename == nil
 
         local frame = GameGetFrameNum()
         
@@ -105,6 +135,9 @@ function enemy_sync.handle_enemy_data(enemy_data)
         end
             
         if ctx.entity_by_remote_id[remote_enemy_id] == nil then
+            if filename == nil then
+                goto continue
+            end
             local enemy_id = EntityLoad(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddComponent2(enemy_id, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
@@ -119,23 +152,17 @@ function enemy_sync.handle_enemy_data(enemy_data)
         enemy_data.frame = frame
         local enemy_id = enemy_data.id
 
-        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
-        if character_data ~= 0 then
-            ComponentSetValue2(character_data, "mVelocity", vx, vy)
-        end
-        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
-        if character_data ~= 0 then
-            ComponentSetValue2(character_data, "mVelocity", vx, vy)
-        end
-
-        local px, py = EntityGetTransform(enemy_id)
-        local tp_limit = 30
-        local alpha = 0.2
-        -- if math.pow(px-x, 2) + math.pow(py-y, 2) > math.pow(tp_limit, 2) then
+        if not has_died then
+            local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
+            if character_data ~= nil then
+                ComponentSetValue2(character_data, "mVelocity", vx, vy)
+            end
+            local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+            if velocity_data ~= nil then
+                ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
+            end
             EntitySetTransform(enemy_id, x, y)
-        -- else
-            -- EntitySetTransform(util.lerp(px, x, alpha), util.lerp(py, y, alpha))
-        -- end
+        end
         local current_hp = util.get_ent_health(enemy_id)
         local dmg = current_hp-hp
         if dmg > 0 then
@@ -143,6 +170,7 @@ function enemy_sync.handle_enemy_data(enemy_data)
             EntityInflictDamage(enemy_id, dmg, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
         end
         util.set_ent_health(enemy_id, {hp, max_hp})
+        ::continue::
     end
 end
 

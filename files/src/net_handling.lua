@@ -79,6 +79,12 @@ function net_handling.mod.enemy(peer_id, enemy_data)
     end
 end
 
+function net_handling.mod.edeath(peer_id, death_data)
+    if peer_id == ctx.host_id then
+        enemy_sync.handle_death_data(death_data)
+    end
+end
+
 function net_handling.mod.world(peer_id, world_data)
     if peer_id == ctx.host_id then
         world_sync.handle_world_data(world_data)

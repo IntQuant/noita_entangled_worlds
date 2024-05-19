@@ -128,6 +128,10 @@ function net.send_enemy_data(enemy_data)
   net.send("enemy", enemy_data)
 end
 
+function net.send_enemy_death_data(death_data)
+  net.send("edeath", death_data, true)
+end
+
 function net.send_world_data(world_data)
   net.send("world", world_data)
 end

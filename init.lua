@@ -212,7 +212,11 @@ local function on_world_pre_update_inner()
     -- Enemy sync
     if GameGetFrameNum() % 2 == 1 then
         if ctx.is_host then
-            net.send_enemy_data(enemy_sync.host_upload_entities())
+            local enemy_data, death_data = enemy_sync.host_upload_entities()
+            net.send_enemy_data(enemy_data)
+            if #death_data > 0 then
+                net.send_enemy_death_data(death_data)
+            end
         else
             enemy_sync.client_cleanup()
         end
