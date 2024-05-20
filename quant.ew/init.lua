@@ -225,7 +225,10 @@ local function on_world_pre_update_inner()
             if #death_data > 0 then
                 net.send_enemy_death_data(death_data)
             end
-        else
+        end
+    end
+    if GameGetFrameNum() % 20 == 1 then
+        if not ctx.is_host then
             enemy_sync.client_cleanup()
         end
     end
