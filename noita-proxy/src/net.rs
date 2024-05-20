@@ -265,7 +265,9 @@ impl NetManager {
                         .set_read_timeout(Some(Duration::from_millis(1)))
                         .expect("can set read timeout");
 
-                    state.ws = accept(stream).ok();
+                    state.ws = accept(stream)
+                        .inspect_err(|e| error!("Could not init websocket: {}", e))
+                        .ok();
                     if state.ws.is_some() {
                         info!("New stream connected");
 
