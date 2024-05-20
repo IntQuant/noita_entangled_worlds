@@ -16,6 +16,44 @@ end
 
 local string_split = util.string_split
 
+net._rpc_inner = {
+  rpcs = {},
+  opts = {},
+}
+net.rpc = {}
+
+local rpc_inner = net._rpc_inner
+
+local rpc_base = {}
+
+function rpc_base.opts_reliable()
+  rpc_inner.opts.reliable = true
+end
+
+local rpc_meta = {
+  __newindex = function (t, k, v)
+      table.insert(rpc_inner.rpcs, v)
+      local index = #rpc_inner.rpcs
+      local reliable = rpc_inner.opts.reliable == true
+      rawset(t, k, function(...)
+        net.send(index, {...}, reliable)
+      end)
+      net_handling.mod[index] = function(peer_id, args)
+        ctx.rpc_peer_id = peer_id
+        v(unpack(args))
+        ctx.rpc_peer_id = nil
+      end
+      rpc_inner.opts = {}
+  end,
+  __index = rpc_base,
+}
+
+function net.new_rcp_namespace()
+  local ret = {}
+  setmetatable(ret, rpc_meta)
+  return ret
+end
+
 function net.init()
     local ready = false
     local addr = os.getenv("NP_NOITA_ADDR") or "127.0.0.1:21251"
@@ -134,10 +172,6 @@ end
 
 function net.send_enemy_death_data(death_data)
   net.send("edeath", death_data, true)
-end
-
-function net.send_world_data(world_data)
-  net.send("world", world_data)
 end
 
 function net.send_host_player_info(player_info)

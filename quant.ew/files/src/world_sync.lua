@@ -4,6 +4,9 @@ local rect = require("noitapatcher.nsew.rect")
 local ffi = require("ffi")
 
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local net = dofile_once("mods/quant.ew/files/src/net.lua")
+
+local rpc = net.new_rcp_namespace()
 
 local rect_optimiser = rect.Optimiser_new()
 local encoded_area = world.EncodedArea()
@@ -31,7 +34,7 @@ local function send_pending()
     end
     if #will_send > 0 then
         -- GamePrint(#pending_send_wd.." "..#will_send.." "..total_len)
-        ctx.lib.net.send_world_data(will_send)
+        rpc.send_world_data(will_send)
     end
 end
 
@@ -116,5 +119,10 @@ function world_sync.handle_world_data(world_data)
     end
 end
 
+function rpc.send_world_data(world_data)
+    if ctx.rpc_peer_id == ctx.host_id then
+        world_sync.handle_world_data(world_data)
+    end
+end
 
 return world_sync

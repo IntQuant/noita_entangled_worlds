@@ -14,6 +14,7 @@ ctx.init = function()
     ctx.item_prevent_localize = {}
     ctx.events = {}
     ctx.is_inventory_open = false
+    ctx.rpc_peer_id = nil
 end
 
 function ctx.dofile_and_add_hooks(path)

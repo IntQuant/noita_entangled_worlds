@@ -2,7 +2,6 @@ local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local enemy_sync = dofile_once("mods/quant.ew/files/src/enemy_sync.lua")
-local world_sync = dofile_once("mods/quant.ew/files/src/world_sync.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 local item_sync = dofile_once("mods/quant.ew/files/src/item_sync.lua")
@@ -82,12 +81,6 @@ end
 function net_handling.mod.edeath(peer_id, death_data)
     if peer_id == ctx.host_id then
         enemy_sync.handle_death_data(death_data)
-    end
-end
-
-function net_handling.mod.world(peer_id, world_data)
-    if peer_id == ctx.host_id then
-        world_sync.handle_world_data(world_data)
     end
 end
 
