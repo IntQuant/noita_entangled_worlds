@@ -261,15 +261,20 @@ impl NetManager {
                 if let Ok((stream, addr)) = local_server.accept() {
                     info!("New stream incoming from {}", addr);
                     stream.set_nodelay(true).ok();
-                    stream
-                        .set_read_timeout(Some(Duration::from_millis(1)))
-                        .expect("can set read timeout");
 
                     state.ws = accept(stream)
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
                         .ok();
                     if state.ws.is_some() {
                         info!("New stream connected");
+
+                        state
+                            .ws
+                            .as_ref()
+                            .unwrap()
+                            .get_ref()
+                            .set_read_timeout(Some(Duration::from_millis(1)))
+                            .expect("can set read timeout");
 
                         let settings = self.settings.lock().unwrap();
                         state.try_ws_write(ws_encode_proxy("seed", settings.seed));
@@ -288,6 +293,8 @@ impl NetManager {
                         for id in self.peer.iter_peer_ids() {
                             state.try_ws_write(ws_encode_proxy("join", id));
                         }
+
+                        info!("Settings sent")
                     }
                 }
             }
