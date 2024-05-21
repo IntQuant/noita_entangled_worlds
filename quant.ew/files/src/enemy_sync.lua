@@ -53,27 +53,27 @@ function enemy_sync.host_upload_entities()
         if ai_component ~= nil then
             ComponentSetValue2(ai_component, "max_distance_to_cam_to_start_hunting", math.pow(2, 29))
         end
-        local hp, max_hp = util.get_ent_health(enemy_id)
-        
-        -- local damage_model = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
-        -- if damage_model ~= nil then
-        --     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
-        --     if hp <= 0 then
-        --         ComponentSetValue2(damage_model, "kill_now", true) -- TODO this causes all kills to count as accidental
-        --     end
-        -- end
+        local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
+
+        if has_hp then
+            util.ensure_component_present(enemy_id, "LuaComponent", "ew_death_notify", {
+                script_death = "mods/quant.ew/files/cbs/death_notify.lua"
+            })
+        end
 
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})
         ::continue::
     end
-    
+
     local dead_entities = {}
 
-    for _, entity in ipairs(previous_sync_entities) do
-        if not EntityGetIsAlive(entity) then
-            -- GamePrint("Entity is no longer alive: "..entity)
-            table.insert(dead_entities, entity)
-        end
+    local i = 1
+    while GlobalsGetValue("ew_enemy_death_"..i, "0") ~= "0" do
+        local enemy_id = tonumber(GlobalsGetValue("ew_enemy_death_"..i, "0"))
+        GlobalsSetValue("ew_enemy_death_"..i, "0")
+        -- GamePrint("Entity is no longer alive: "..enemy_id)
+        table.insert(dead_entities, enemy_id)
+        i = i + 1
     end
 
     previous_sync_entities = entities
@@ -103,7 +103,7 @@ function enemy_sync.handle_death_data(death_data)
         local enemy_data = ctx.entity_by_remote_id[remote_id]
         if enemy_data ~= nil then
             local enemy_id = enemy_data.id
-    
+
             local current_hp = util.get_ent_health(enemy_id)
             local dmg = current_hp
             if dmg > 0 then
@@ -140,6 +140,7 @@ function enemy_sync.handle_enemy_data(enemy_data)
             end
             local enemy_id = EntityLoad(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
+            EntityAddTag(enemy_id, "polymorphable_NOT")
             EntityAddComponent2(enemy_id, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
             local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
             if ai_component ~= nil then

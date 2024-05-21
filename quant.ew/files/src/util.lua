@@ -45,11 +45,11 @@ end
 function util.get_ent_health(entity)
     local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
     if damage_model == nil then
-        return 0, 0
+        return 0, 0, false
     end
     local hp = ComponentGetValue2(damage_model, "hp")
     local max_hp = ComponentGetValue2(damage_model, "max_hp")
-    return hp, max_hp
+    return hp, max_hp, true
 end
 
 function util.get_ent_air(entity)
@@ -129,6 +129,14 @@ function util.set_ent_firing_blocked(entity, do_block)
                 end
             end
         end
+    end
+end
+
+function util.ensure_component_present(entity, component, tag, data)
+    local current = EntityGetFirstComponentIncludingDisabled(entity, component, tag)
+    data._tags=tag
+    if current == nil then
+        EntityAddComponent2(entity, component, data)
     end
 end
 
