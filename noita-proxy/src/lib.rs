@@ -4,7 +4,7 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Color32};
+use eframe::egui::{self, Color32, Layout};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -168,6 +168,9 @@ impl eframe::App for App {
                             ui.label(format!("Could not init steam networking: {}", err));
                         }
                     }
+                    ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
+                        ui.label(concat!("Noita Proxy version ", env!("CARGO_PKG_VERSION")))
+                    })
                 });
             }
             AppState::Netman { netman } => {

@@ -3,6 +3,12 @@ from zipfile import ZipFile, ZIP_DEFLATED as COMPRESS_TYPE
 import shutil
 import os
 
+def try_remove(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
 COMPRESS_LEVEL = 9
 
 print("Compiling Noita Proxy...")
@@ -16,6 +22,10 @@ os.chdir("..")
 
 os.makedirs("target", exist_ok=True)
 os.makedirs("target/tmp", exist_ok=True)
+
+try_remove("target/noita-proxy-win.zip")
+try_remove("target/noita-proxy-linux.zip")
+try_remove("target/quant.ew.zip")
 
 print("Extracting steam dylib...")
 

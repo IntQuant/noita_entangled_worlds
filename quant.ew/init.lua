@@ -21,6 +21,8 @@ local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.
 local world_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
 local item_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
+local version = dofile_once("mods/quant.ew/files/version.lua")
+
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
 
@@ -119,8 +121,6 @@ end
 
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
-	GamePrint( "OnPlayerSpawned() - Player entity id: " .. tostring(player_entity) )
-
     if GlobalsGetValue("ew_player_count", "") == "" then
         GlobalsSetValue("ew_player_count", "1")
     end
@@ -166,6 +166,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
         EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
     end
+    GamePrint("Noita Entangled Worlds version "..version)
 end
 
 local function on_world_pre_update_inner()
