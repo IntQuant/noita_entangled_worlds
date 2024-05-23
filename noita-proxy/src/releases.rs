@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     fs::File,
     io::{self, Read, Write},
     path::{Path, PathBuf},
@@ -45,7 +46,7 @@ impl From<ZipError> for ReleasesError {
 
 #[derive(Debug, Deserialize)]
 pub struct Release {
-    pub tag_name: String,
+    pub tag_name: Tag,
     assets_url: String,
 }
 
@@ -157,9 +158,10 @@ impl AssetList {
     }
 }
 
+#[derive(Debug, Deserialize)]
 pub struct Tag(String);
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Version {
     pub major: u32,
     pub minor: u32,
@@ -184,6 +186,15 @@ impl Version {
     }
     pub fn current() -> Self {
         Self::parse_from_string(env!("CARGO_PKG_VERSION")).expect("can always parse crate version")
+    }
+    pub fn parse_from_tag(tag: Tag) -> Option<Self> {
+        Self::parse_from_string(tag.0.strip_prefix("v")?)
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "v{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 

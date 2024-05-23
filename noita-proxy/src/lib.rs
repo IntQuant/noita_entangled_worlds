@@ -4,8 +4,9 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Color32, Layout};
+use eframe::egui::{self, Align2, Color32};
 use mod_manager::{Modmanager, ModmanagerSettings};
+use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
@@ -13,6 +14,7 @@ use tracing::info;
 
 pub mod messages;
 mod mod_manager;
+mod self_update;
 pub mod releases;
 
 #[derive(Debug, Decode, Encode, Clone)]
@@ -28,6 +30,7 @@ enum AppState {
     ModManager,
     Netman { netman: Arc<net::NetManager> },
     Error { message: String },
+    SelfUpdate,
 }
 
 struct SteamState {
@@ -56,18 +59,16 @@ impl SteamState {
 struct AppSavedState {
     addr: String,
     debug_mode: bool,
-    use_constant_seed: bool,
-
-    
+    use_constant_seed: bool,    
 }
 
 impl Default for AppSavedState {
     fn default() -> Self {
         Self { 
             addr: "127.0.0.1:5123".to_string(),
-        debug_mode: false,
-        use_constant_seed: false, 
-    }
+            debug_mode: false,
+            use_constant_seed: false, 
+        }
     }
 }
 
@@ -76,7 +77,8 @@ pub struct App {
     modmanager: Modmanager,
     steam_state: Result<SteamState, SteamAPIInitError>,
     saved_state: AppSavedState,
-    modmanager_settings: ModmanagerSettings
+    modmanager_settings: ModmanagerSettings,
+    self_update: SelfUpdateManager,
 }
 
 const MODMANAGER: &str = "modman";
@@ -94,6 +96,7 @@ impl App {
             modmanager: Modmanager::default(),
             steam_state: SteamState::new(),saved_state,
             modmanager_settings,
+            self_update: SelfUpdateManager::new(),
         }
     }
 
@@ -197,9 +200,10 @@ impl eframe::App for App {
                             ui.label(format!("Could not init steam networking: {}", err));
                         }
                     }
-                    ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
-                        ui.label(concat!("Noita Proxy version ", env!("CARGO_PKG_VERSION")))
-                    })
+                    self.self_update.display_version(ui);
+                    if self.self_update.request_update {
+                        self.state = AppState::SelfUpdate;
+                    }
                 });
             }
             AppState::Netman { netman } => {
@@ -261,6 +265,12 @@ impl eframe::App for App {
                     if self.modmanager.is_done() {
                         self.state = AppState::Connect;
                     }
+            },
+            AppState::SelfUpdate => {
+                egui::Window::new("Self update").auto_sized().anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                    .show(ctx, |ui| {
+                        self.self_update.self_update(ui);
+                    });
             },
         };
     }

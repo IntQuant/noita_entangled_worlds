@@ -262,11 +262,11 @@ fn mod_downloader_for(
         .and_then(|asset| asset.download(&client, &download_path))
 }
 
-fn extract_and_remove_zip(zip_file: PathBuf, extact_to: PathBuf) -> Result<(), ReleasesError> {
+fn extract_and_remove_zip(zip_file: PathBuf, extract_to: PathBuf) -> Result<(), ReleasesError> {
     let reader = File::open(&zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     info!("Extracting zip file");
-    zip.extract(extact_to)?;
+    zip.extract(extract_to)?;
     info!("Zip file extracted");
     fs::remove_file(&zip_file).ok();
     Ok(())
