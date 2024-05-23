@@ -1,4 +1,4 @@
-use eframe::NativeOptions;
+use eframe::{egui::ViewportBuilder, NativeOptions};
 use noita_proxy::App;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -14,7 +14,11 @@ fn main() -> Result<(), eframe::Error> {
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
     eframe::run_native(
         "Noita Proxy",
-        NativeOptions::default(),
-        Box::new(|_cc| Box::new(App::default())),
+        NativeOptions {
+            viewport: ViewportBuilder::default().with_min_inner_size([800.0, 600.0]),
+            follow_system_theme: false,
+            ..Default::default()
+        },
+        Box::new(|cc| Box::new(App::new(cc))),
     )
 }

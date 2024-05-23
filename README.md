@@ -14,6 +14,7 @@ There is a video guide/showcase of the mod by Gudyni (in russian): https://www.y
 Discord server: https://discord.gg/RVmAzBNE
 
 Special thanks to:
+ - Contributors.
  - @EvaisaDev for allowing to use code from Noita Arena mod.
  - @dextered for NoitaPatcher.
  - Creators of other libraries used in this project.

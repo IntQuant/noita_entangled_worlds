@@ -2,6 +2,12 @@ import subprocess
 from zipfile import ZipFile, ZIP_DEFLATED as COMPRESS_TYPE
 import shutil
 import os
+import tomllib
+
+cargo_manifest = tomllib.load(open("noita-proxy/Cargo.toml", "rb"))
+version = cargo_manifest["package"]["version"]
+
+print("Current version: ", version)
 
 def try_remove(path):
     try:
@@ -47,3 +53,6 @@ with ZipFile("target/noita-proxy-linux.zip", "w") as release:
 print("Writing mod release...")
 
 shutil.make_archive("target/quant.ew", "zip", "quant.ew")
+
+with ZipFile("target/quant.ew.zip", "a") as release:
+    release.writestr("files/version.lua", f'return "{version}"')

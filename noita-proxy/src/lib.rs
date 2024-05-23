@@ -4,12 +4,16 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Color32, Layout};
+use eframe::egui::{self, Align2, Color32, Layout};
+use mod_manager::{Modmanager, ModmanagerSettings};
+use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
 
 pub mod messages;
+mod mod_manager;
+pub mod releases;
 
 #[derive(Debug, Decode, Encode, Clone)]
 pub struct GameSettings {
@@ -20,7 +24,8 @@ pub struct GameSettings {
 pub mod net;
 
 enum AppState {
-    Init,
+    Connect,
+    ModManager,
     Netman { netman: Arc<net::NetManager> },
     Error { message: String },
 }
@@ -34,7 +39,8 @@ impl SteamState {
         if env::var_os("NP_DISABLE_STEAM").is_some() {
             return Err(SteamAPIInitError::FailedGeneric("Disabled by env variable".to_string()))
         }
-        let (client, single) = steamworks::Client::init_app(881100)?;
+        let app_id = env::var("NP_APPID").ok().and_then(|x| x.parse().ok());
+        let (client, single) = steamworks::Client::init_app(app_id.unwrap_or(881100))?;
         thread::spawn(move || {
             info!("Spawned steam callback thread");
             loop {
@@ -46,15 +52,51 @@ impl SteamState {
     }
 }
 
-pub struct App {
-    state: AppState,
-    steam_state: Result<SteamState, SteamAPIInitError>,
+#[derive(Debug, Serialize, Deserialize)]
+struct AppSavedState {
     addr: String,
     debug_mode: bool,
     use_constant_seed: bool,
+
+    
 }
 
+impl Default for AppSavedState {
+    fn default() -> Self {
+        Self { 
+            addr: "127.0.0.1:5123".to_string(),
+        debug_mode: false,
+        use_constant_seed: false, 
+    }
+    }
+}
+
+pub struct App {
+    state: AppState,
+    modmanager: Modmanager,
+    steam_state: Result<SteamState, SteamAPIInitError>,
+    saved_state: AppSavedState,
+    modmanager_settings: ModmanagerSettings
+}
+
+const MODMANAGER: &str = "modman";
+
 impl App {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let saved_state = cc.storage.and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
+            .unwrap_or_default();
+        let modmanager_settings = cc.storage.and_then(|storage| eframe::get_value(storage, MODMANAGER))
+        .unwrap_or_default();
+
+        info!("Creating the app...");
+        Self {
+            state: AppState::ModManager,
+            modmanager: Modmanager::default(),
+            steam_state: SteamState::new(),saved_state,
+            modmanager_settings,
+        }
+    }
+
     fn start_server(&mut self) {
         let bind_addr = "0.0.0.0:5123".parse().unwrap();
         let peer = Peer::host(bind_addr, None).unwrap();
@@ -66,8 +108,8 @@ impl App {
 
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
         let mut settings = netman.settings.lock().unwrap();
-        settings.debug_mode = self.debug_mode;
-        if !self.use_constant_seed {
+        settings.debug_mode = self.saved_state.debug_mode;
+        if !self.saved_state.use_constant_seed {
             settings.seed = rand::random();
         }
         netman.accept_local.store(true, Ordering::SeqCst);
@@ -107,34 +149,21 @@ impl App {
     }
 }
 
-impl Default for App {
-    fn default() -> Self {
-        info!("Creating the app...");
-        Self {
-            state: AppState::Init,
-            addr: "127.0.0.1:5123".to_string(),
-            debug_mode: false,
-            use_constant_seed: false,
-            steam_state: SteamState::new(),
-        }
-    }
-}
-
 impl eframe::App for App {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_secs(1));
         match &self.state {
-            AppState::Init => {
+            AppState::Connect => {
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui.heading("Noita Entangled Worlds proxy");
-                    ui.checkbox(&mut self.debug_mode, "Debug mode");
-                    ui.checkbox(&mut self.use_constant_seed, "Use specified seed");
+                    ui.checkbox(&mut self.saved_state.debug_mode, "Debug mode");
+                    ui.checkbox(&mut self.saved_state.use_constant_seed, "Use specified seed");
                     if ui.button("Host").clicked() {
                         self.start_server();
                     }
                     ui.separator();
-                    ui.text_edit_singleline(&mut self.addr);
-                    let addr = self.addr.parse();
+                    ui.text_edit_singleline(&mut self.saved_state.addr);
+                    let addr = self.saved_state.addr.parse();
                     ui.add_enabled_ui(addr.is_ok(), |ui| {
                         if ui.button("Connect").clicked() {
                             if let Ok(addr) = addr {
@@ -221,9 +250,23 @@ impl eframe::App for App {
                     })
                     .inner
                 {
-                    self.state = AppState::Init;
+                    self.state = AppState::Connect;
                 }
             }
+            AppState::ModManager => {
+                egui::Window::new("Mod manager").auto_sized().anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                    .show(ctx, |ui| {
+                        self.modmanager.update(ctx, ui, &mut self.modmanager_settings, self.steam_state.as_mut().ok())
+                    });
+                    if self.modmanager.is_done() {
+                        self.state = AppState::Connect;
+                    }
+            },
         };
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, &self.saved_state);
+        eframe::set_value(storage, MODMANAGER, &self.modmanager_settings);
     }
 }

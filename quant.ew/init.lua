@@ -21,7 +21,7 @@ local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.
 local world_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
 local item_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
-local version = dofile_once("mods/quant.ew/files/version.lua")
+local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
