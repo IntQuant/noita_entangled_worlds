@@ -1,4 +1,5 @@
 use std::{
+    env,
     fs::{self, File},
     io,
     path::{Path, PathBuf},
@@ -273,6 +274,9 @@ fn extract_and_remove_zip(zip_file: PathBuf, extract_to: PathBuf) -> Result<(), 
 }
 
 fn is_mod_ok(mod_path: &Path) -> io::Result<bool> {
+    if env::var_os("NP_SKIP_MOD_CHECK").is_some() {
+        return Ok(true);
+    }
     if !mod_path.try_exists()? {
         return Ok(false);
     }
