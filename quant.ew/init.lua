@@ -18,8 +18,9 @@ local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
 local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.lua")
-local world_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
-local item_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/effect_sync.lua")
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 
@@ -159,7 +160,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
 
     if ctx.debug then
-        EntitySetTransform(player_entity, 0, 12600)
+        -- EntitySetTransform(player_entity, 0, 12600)
         util.set_ent_health(player_entity, {1000, 1000})
         local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")
         ComponentSetValue2(wallet, "money", 100000)
@@ -209,7 +210,10 @@ local function on_world_pre_update_inner()
         end
     end
 
-    player_fns.respawn_if_necessary()
+    if GameGetFrameNum() % 120 == 0 then
+        player_fns.respawn_if_necessary()
+        player_fns.spread_max_health()
+    end
 
     if ctx.events.new_player_seen then
         local hp, max_hp = util.get_ent_health(my_player.entity)
@@ -281,7 +285,7 @@ local function on_world_pre_update_inner()
     else
         ctx.hook.on_world_update_client()
     end
-    -- ctx.hook.world_update()
+    ctx.hook.on_world_update()
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
@@ -304,8 +308,6 @@ function OnWorldPostUpdate() -- This is called every time the game has finished 
 	util.tpcall(on_world_post_update_inner)
     ctx.events = {}
 end
-
-
 
 function register_localizations(translation_file, clear_count)
 

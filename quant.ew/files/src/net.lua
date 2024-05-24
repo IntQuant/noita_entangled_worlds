@@ -2,6 +2,7 @@ local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 local pollnet = dofile_once("mods/quant.ew/files/lib/pollnet.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
+local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 
 local reactor = pollnet.Reactor()
 
@@ -40,8 +41,10 @@ local rpc_meta = {
       end)
       net_handling.mod[index] = function(peer_id, args)
         ctx.rpc_peer_id = peer_id
+        ctx.rpc_player_data = player_fns.peer_get_player_data(peer_id)
         v(unpack(args))
         ctx.rpc_peer_id = nil
+        ctx.rpc_player_data = nil
       end
       rpc_inner.opts = {}
   end,

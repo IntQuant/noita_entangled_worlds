@@ -443,6 +443,17 @@ function player_fns.respawn_if_necessary()
     end
 end
 
+function player_fns.spread_max_health()
+    if ctx.is_host then
+        local _, max_hp = util.get_ent_health(ctx.my_player.entity)
+        for peer_id, player_data in pairs(ctx.players) do
+            if peer_id ~= ctx.my_id then
+                util.set_ent_health(player_data.entity, {-1, max_hp})
+            end
+        end
+    end
+end
+
 function player_fns.is_inventory_open()
     local player_entity = ctx.players[ctx.my_id].entity
     local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(player_entity, "InventoryGuiComponent")
