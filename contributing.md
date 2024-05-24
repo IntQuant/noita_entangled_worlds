@@ -18,3 +18,5 @@ This address can be changed using enviromental variable NP_NOITA_ADDR. Example (
 NP_DISABLE_STEAM=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run --release # To start the proxy
 NP_NOITA_ADDR=127.0.0.1:21252 wine noita.exe # To start Noita
 ```
+
+You'll probably want to add NP_SKIP_MOD_CHECK=1 to disable automatic mod installation as well.
