@@ -10,4 +10,14 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
         return
     end
     ComponentSetValue2(host_damageModelComponent, "hp", health - damage)
+
+    -- Change our health back
+    local entity_id = GetUpdatedEntityID();
+    local damageModelComponent = EntityGetFirstComponentIncludingDisabled( entity_id, "DamageModelComponent" )
+    if damageModelComponent ~= nil then
+        local health = ComponentGetValue2( damageModelComponent, "hp" )
+        if health then
+            ComponentSetValue2( damageModelComponent, "hp", health + damage )
+        end
+    end
 end
