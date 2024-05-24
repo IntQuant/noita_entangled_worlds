@@ -403,10 +403,11 @@ function player_fns.get_player_data_by_local_entity_id(entity)
     return ctx.player_data_by_local_entity[entity]
 end
 
-function player_fns.spawn_player_for(peer_id, x, y)
+function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
-    local new_playerdata = player_fns.make_playerdata_for(new, peer_id)
+    local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
+    new_playerdata.entity = new
     ctx.players[peer_id] = new_playerdata
     EntitySetName(new, tostring(peer_id))
     if ctx.is_host then
@@ -426,6 +427,20 @@ function player_fns.spawn_player_for(peer_id, x, y)
     end
     seen[peer_id] = true
     util.set_ent_variable(we, "player_seen", seen)
+end
+
+function player_fns.respawn_if_necessary()
+    for peer_id, player_data in pairs(ctx.players) do
+        if not EntityGetIsAlive(player_data.entity) then
+            GamePrint("Respawning player entity")
+            player_fns.spawn_player_for(peer_id, 0, 0, player_data)
+            local latest_inventory = player_data.latest_inventory
+            if latest_inventory ~= nil then
+                GamePrint("Recovering inventory")
+                player_fns.deserialize_items(latest_inventory, player_data)
+            end
+        end
+    end
 end
 
 function player_fns.is_inventory_open()

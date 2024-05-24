@@ -159,6 +159,12 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
 
     if ctx.debug then
+        EntitySetTransform(player_entity, 0, 12600)
+        util.set_ent_health(player_entity, {1000, 1000})
+        local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")
+        ComponentSetValue2(wallet, "money", 100000)
+        -- GameSetCameraFree(true)
+
         dofile_once("data/scripts/perks/perk.lua")
         local x, y = EntityGetFirstHitboxCenter(player_entity)
         perk_spawn(x, y, "LASER_AIM", true)
@@ -202,6 +208,8 @@ local function on_world_pre_update_inner()
            end
         end
     end
+
+    player_fns.respawn_if_necessary()
 
     if ctx.events.new_player_seen then
         local hp, max_hp = util.get_ent_health(my_player.entity)

@@ -60,6 +60,7 @@ function net_handling.mod.inventory(peer_id, inventory_state)
         return
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
+    player_data.latest_inventory = inventory_state
     player_fns.deserialize_items(inventory_state, player_data)
     -- GamePrint("synced inventory")
 end
