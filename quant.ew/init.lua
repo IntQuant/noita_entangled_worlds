@@ -179,6 +179,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     GamePrint("Noita Entangled Worlds version "..version)
 
     OnPausedChanged(false, false)
+
+    -- GameSetCameraFree(true)
 end
 
 local function on_world_pre_update_inner()
@@ -298,6 +300,11 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
 end
 
 local function on_world_post_update_inner()
+    if my_player == nil then return end
+
+    -- local px, py = EntityGetTransform(my_player.entity)
+    -- GameSetCameraPos(px, py)
+
     local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
     GlobalsSetValue("ew_wand_fired", "0")
     if times_wand_fired > 0 then

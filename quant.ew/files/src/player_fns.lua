@@ -427,6 +427,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
         GlobalsSetValue("ew_player_count", tostring(count))
     end
     GlobalsSetValue(global, "1")
+    -- np.SetPlayerEntity(new, peer_id+1)
 end
 
 function player_fns.respawn_if_necessary()
