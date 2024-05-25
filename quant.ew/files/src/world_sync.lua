@@ -6,7 +6,7 @@ local ffi = require("ffi")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
 
-local rpc = net.new_rcp_namespace()
+local rpc = net.new_rpc_namespace()
 
 local rect_optimiser = rect.Optimiser_new()
 local encoded_area = world.EncodedArea()

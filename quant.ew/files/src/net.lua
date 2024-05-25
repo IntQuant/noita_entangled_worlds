@@ -51,7 +51,7 @@ local rpc_meta = {
   __index = rpc_base,
 }
 
-function net.new_rcp_namespace()
+function net.new_rpc_namespace()
   local ret = {}
   setmetatable(ret, rpc_meta)
   return ret
