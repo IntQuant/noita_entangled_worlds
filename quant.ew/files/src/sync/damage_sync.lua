@@ -1,6 +1,7 @@
+-- This module allows to handle getting damaged locally and redirects that damage to host.
+
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
