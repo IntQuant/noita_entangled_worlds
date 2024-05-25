@@ -294,11 +294,21 @@
   <StatusEffectDataComponent>
   </StatusEffectDataComponent>
 
+  <MaterialInventoryComponent 
+      _tags="ingestion"
+      drop_as_item="0"
+      on_death_spill="0"
+      kill_when_empty="0"
+  ></MaterialInventoryComponent>
+  
   <IngestionComponent 
     ingestion_capacity="7500"
     overingestion_damage="0.002"
     blood_healing_speed="0.0024"
   ></IngestionComponent>
+
+  <DrugEffectComponent>
+  </DrugEffectComponent>
 
   <PlayerCollisionComponent 
     getting_crushed_threshold="6"
