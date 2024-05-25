@@ -175,6 +175,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
         EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
     end
+
     GamePrint("Noita Entangled Worlds version "..version)
 
     OnPausedChanged(false, false)

@@ -418,15 +418,15 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     util.set_ent_firing_blocked(new, true)
     ctx.player_data_by_local_entity[new] = new_playerdata
     ctx.events.new_player_just_spawned = true
-    local we = GameGetWorldStateEntity()
-    local seen = util.get_ent_variable(we, "player_seen") or {}
-    ctx.events.new_player_seen = seen[peer_id] == nil
+
+    local global = "ew_seen_"..peer_id
+    local seen = GlobalsGetValue(global, "0")
+    ctx.events.new_player_seen = seen ~= "1"
     if ctx.events.new_player_seen then
         local count = tonumber(GlobalsGetValue("ew_player_count", "1")) + 1
         GlobalsSetValue("ew_player_count", tostring(count))
     end
-    seen[peer_id] = true
-    util.set_ent_variable(we, "player_seen", seen)
+    GlobalsSetValue(global, "1")
 end
 
 function player_fns.respawn_if_necessary()
