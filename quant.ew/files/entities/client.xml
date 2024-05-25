@@ -1,4 +1,4 @@
-<Entity name="client" tags="ew_client,mortal,human,hittable,peasant,prey,polymorphable_NOT">
+<Entity name="client" tags="ew_client,mortal,human,hittable,peasant,prey,polymorphable_NOT,player_unit">
   <HotspotComponent
     _tags="hat"
     sprite_hotspot_name="hat"
@@ -41,6 +41,9 @@
       <Base file="mods/quant.ew/files/entities/chunk_loader.xml">
       </Base>  
   </Entity>
+
+  <StreamingKeepAliveComponent>
+  </StreamingKeepAliveComponent>
   
 
   <StatusEffectDataComponent/>
@@ -291,7 +294,11 @@
   <StatusEffectDataComponent>
   </StatusEffectDataComponent>
 
-  <IngestionComponent/>
+  <IngestionComponent 
+    ingestion_capacity="7500"
+    overingestion_damage="0.002"
+    blood_healing_speed="0.0024"
+  ></IngestionComponent>
 
   <PlayerCollisionComponent 
     getting_crushed_threshold="6"

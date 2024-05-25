@@ -78,7 +78,7 @@ function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, posit
 end
 
 function OnPausedChanged(paused, is_wand_pickup)
-	local players = EntityGetWithTag("player_unit") or {}
+	local players = EntityGetWithTag("ew_current_player") or {}
 
 	if (players[1]) then
 		np.RegisterPlayerEntityId(players[1])
@@ -152,6 +152,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
     end
 
+    EntityAddTag(player_entity, "ew_current_player")
+
     EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/cbs/count_times_wand_fired.lua"})
 
     net.send_welcome()
@@ -174,6 +176,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
     end
     GamePrint("Noita Entangled Worlds version "..version)
+
+    OnPausedChanged(false, false)
 end
 
 local function on_world_pre_update_inner()
