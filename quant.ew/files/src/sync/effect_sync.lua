@@ -1,5 +1,6 @@
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
@@ -19,17 +20,20 @@ function effect_sync.get_ent_effects(entity)
     return list
 end
 
-function effect_sync.on_world_update()
+function effect_sync.on_world_update_host()
     if GameGetFrameNum() % 30 ~= 9 then
         return
     end
-    local my_player = ctx.my_player
-    local effects = effect_sync.get_ent_effects(my_player.entity)
-    local sync_data = {}
-    for _, effect in ipairs(effects) do
-        table.insert(sync_data, np.SerializeEntity(effect))
+    local all_sync_data = {}
+    for peer_id, player_data in pairs(ctx.players) do
+        local effects = effect_sync.get_ent_effects(player_data.entity)
+        local sync_data = {}
+        for _, effect in ipairs(effects) do
+            table.insert(sync_data, np.SerializeEntity(effect))
+        end
+        all_sync_data[peer_id] = sync_data
     end
-    rpc.send_effects(sync_data)
+    rpc.send_effects(all_sync_data)
 end
 
 function effect_sync.remove_all_effects(entity)
@@ -39,13 +43,15 @@ function effect_sync.remove_all_effects(entity)
     end
 end
 
-function rpc.send_effects(effects)
-    local entity = ctx.rpc_player_data.entity
-    effect_sync.remove_all_effects(entity)
-    for _, effect in ipairs(effects) do
-        local ent = EntityCreateNew()
-        np.DeserializeEntity(ent, effect)
-        EntityAddChild(entity, ent)
+function rpc.send_effects(effects_of_players)
+    for peer_id, effects in pairs(effects_of_players) do
+        local entity = player_fns.peer_get_player_data(peer_id).entity
+        effect_sync.remove_all_effects(entity)
+        for _, effect in ipairs(effects) do
+            local ent = EntityCreateNew()
+            np.DeserializeEntity(ent, effect)
+            EntityAddChild(entity, ent)
+        end
     end
 end
 

@@ -4,6 +4,12 @@ local ctx = {
     hook = {},
 }
 
+setmetatable(ctx.hook, {
+    __index = function (_, k)
+        return function() end
+    end
+})
+
 ctx.init = function()
     ctx.host_id = 0
     ctx.my_id = nil
@@ -22,7 +28,7 @@ function ctx.dofile_and_add_hooks(path)
     for key, value in pairs(result) do
         if string.sub(key, 1, 3) == "on_" then
             local hook_name = key
-            if ctx.hook[hook_name] == nil then
+            if rawget(ctx.hook, hook_name) == nil then
                 local tbl = {}
                 setmetatable(tbl, {
                     __call = function (self, ...)
