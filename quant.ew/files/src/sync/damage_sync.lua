@@ -19,6 +19,9 @@ end)
 function module.on_local_player_spawn(my_player)
     if not ctx.is_host then
         EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/cbs/send_damage_to_host.lua"})
+
+        local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
+        ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0)
     end
 end
 
