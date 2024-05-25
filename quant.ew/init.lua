@@ -21,6 +21,7 @@ local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/effect_sync.lua")
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/damage_sync.lua")
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 
@@ -149,7 +150,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     if ctx.is_host then
         EntityAddTag(player_entity, "ew_host")
     else
-        EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+        -- EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
     end
 
     EntityAddTag(player_entity, "ew_current_player")
@@ -176,10 +177,11 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
     end
 
+    ctx.hook.on_local_player_spawn(my_player)
+
     GamePrint("Noita Entangled Worlds version "..version)
 
     OnPausedChanged(false, false)
-
     -- GameSetCameraFree(true)
 end
 

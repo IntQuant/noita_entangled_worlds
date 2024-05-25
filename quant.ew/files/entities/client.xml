@@ -188,7 +188,7 @@
     falling_damages="0" 
     invincibility_frames="60"
     hp="-1" 
-    materials_damage="1" 
+    materials_damage="0" 
     materials_that_damage="acid,lava,blood_cold_vapour,blood_cold,poison,radioactive_gas,radioactive_gas_static,rock_static_radioactive,rock_static_poison,ice_radioactive_static,ice_radioactive_glass,ice_acid_static,ice_acid_glass,rock_static_cursed,magic_gas_hp_regeneration,gold_radioactive,gold_static_radioactive,rock_static_cursed_green,cursed_liquid,poo_gas"  
     materials_how_much_damage="0.005,0.003,0.0006,0.0009,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.005,-0.005,0.0002,0.0002,0.004,0.0005,0.00001" 
     ragdoll_filenames_file="data/ragdolls/player/filenames.txt" 
@@ -199,7 +199,21 @@
     drop_items_on_death="0"
     critical_damage_resistance="0"
     ><damage_multipliers
-      explosion="0.35" >
+      projectile="0"
+      explosion="0" 
+      electricity="0"
+      fire="0"
+      drill="0"
+      slice="0"
+      ice="0"
+      healing="0"
+      physics_hit="0"
+      radioactive="0"
+      poison="0"
+      overeating="0"
+      curse="0"
+      holy="0"
+      >
     </damage_multipliers>
   </DamageModelComponent>
 
