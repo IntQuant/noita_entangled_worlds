@@ -20,19 +20,19 @@ function effect_sync.get_ent_effects(entity)
     return list
 end
 
-function effect_sync.on_world_update_host()
+function effect_sync.on_world_update()
     if GameGetFrameNum() % 30 ~= 9 then
         return
     end
     local all_sync_data = {}
-    for peer_id, player_data in pairs(ctx.players) do
-        local effects = effect_sync.get_ent_effects(player_data.entity)
-        local sync_data = {}
-        for _, effect in ipairs(effects) do
-            table.insert(sync_data, np.SerializeEntity(effect))
-        end
-        all_sync_data[peer_id] = sync_data
+
+    local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
+    local sync_data = {}
+    for _, effect in ipairs(effects) do
+        table.insert(sync_data, np.SerializeEntity(effect))
     end
+    all_sync_data[ctx.my_id] = sync_data
+
     rpc.send_effects(all_sync_data)
 end
 
