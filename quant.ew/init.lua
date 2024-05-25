@@ -273,8 +273,8 @@ local function on_world_pre_update_inner()
         end
     end
 
-    -- Inventory and perk sync
-    if GameGetFrameNum() % 120 == 0 then
+    -- Perk sync
+    if GameGetFrameNum() % 120 == 0 and not ctx.run_ended then
         local perk_data = perk_fns.get_my_perks()
         if perk_data ~= nil then
             net.send_player_perks(perk_data)
