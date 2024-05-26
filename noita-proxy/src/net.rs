@@ -278,11 +278,12 @@ impl NetManager {
 
                         let settings = self.settings.lock().unwrap();
                         state.try_ws_write(ws_encode_proxy("seed", settings.seed));
+                        let value = self.peer.my_id().expect("Has peer id at this point");
+                        state.try_ws_write(ws_encode_proxy("peer_id", format!("{:016x}", value.0)));
                         state.try_ws_write(ws_encode_proxy(
-                            "peer_id",
-                            self.peer.my_id().expect("Has peer id at this point"),
+                            "host_id",
+                            format!("{:016x}", self.peer.host_id().0),
                         ));
-                        state.try_ws_write(ws_encode_proxy("host_id", self.peer.host_id()));
                         state.try_ws_write(ws_encode_proxy("name", "test_name"));
                         state.try_ws_write(ws_encode_proxy(
                             "debug",

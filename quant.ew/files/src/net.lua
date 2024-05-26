@@ -1,5 +1,6 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 local pollnet = dofile_once("mods/quant.ew/files/lib/pollnet.lua")
+local hex_table = dofile_once("mods/quant.ew/files/lib/hex.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
@@ -80,12 +81,17 @@ function net.init()
             end
           elseif string.byte(msg, 1, 1) == 1 then
             local peer_id_b = {string.byte(msg, 2, 2+8-1)}
-            local mult = 1
-            local peer_id = 0
+            -- local mult = 1
+            -- local peer_id = 0
+            -- for _, b in ipairs(peer_id_b) do
+            --   peer_id = peer_id + b * mult
+            --   mult = mult * 256
+            -- end            
+            local peer_id = ""
             for _, b in ipairs(peer_id_b) do
-              peer_id = peer_id + b * mult
-              mult = mult * 256
+              peer_id = hex_table[b+1] .. peer_id
             end
+
             local msg_l = string.sub(msg, 2+8)
             local success, item = pcall(bitser.loads, msg_l)
             if success then

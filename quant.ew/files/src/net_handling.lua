@@ -22,7 +22,7 @@ function net_handling.proxy.seed(_, value)
 end
 
 function net_handling.proxy.peer_id(_, value)
-    ctx.my_id = tonumber(value)
+    ctx.my_id = value
     ctx.is_host = ctx.my_id == ctx.host_id
 end
 
@@ -31,7 +31,7 @@ function net_handling.proxy.debug(_, value)
 end
 
 function net_handling.proxy.host_id(_, value)
-    ctx.host_id = tonumber(value)
+    ctx.host_id = value
     ctx.is_host = ctx.my_id == ctx.host_id
 end
 
