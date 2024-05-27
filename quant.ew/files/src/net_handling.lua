@@ -93,7 +93,7 @@ function net_handling.mod.host_player(peer_id, player_infos)
         if player_infos[id] ~= nil then
             local info = player_infos[id]
             util.set_ent_health(player_data.entity, {info[1], info[2]})
-            util.set_ent_air(player_data.entity, {info[3], info[4]})
+            -- util.set_ent_air(player_data.entity, {info[3], info[4]})
         end
     end
 end
