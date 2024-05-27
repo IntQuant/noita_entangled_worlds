@@ -1,0 +1,86 @@
+use std::{collections::HashMap, env, thread, time::Duration};
+
+use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui, Widget};
+use steamworks::{SteamAPIInitError, SteamId};
+use tracing::info;
+
+pub struct SteamUserAvatar {
+    avatar: TextureHandle,
+}
+
+impl SteamUserAvatar {
+    pub fn display(&self, ui: &mut Ui) -> egui::Response {
+        egui::Image::new(&self.avatar).ui(ui)
+    }
+    pub fn display_with_labels(&self, ui: &mut Ui, label_top: &str, label_bottom: &str) {
+        let image = egui::Image::new(&self.avatar).fit_to_exact_size([32.0, 32.0].into());
+        ui.group(|ui| {
+            ui.set_min_width(200.0);
+            ui.horizontal(|ui| {
+                ui.add(image);
+                ui.vertical(|ui| {
+                    ui.label(RichText::new(label_top).size(14.0));
+                    ui.label(RichText::new(label_bottom).size(11.0));
+                });
+            });
+        });
+    }
+}
+
+pub struct SteamState {
+    pub client: steamworks::Client,
+    avatar_cache: HashMap<SteamId, SteamUserAvatar>,
+}
+
+impl SteamState {
+    pub(crate) fn new() -> Result<Self, SteamAPIInitError> {
+        if env::var_os("NP_DISABLE_STEAM").is_some() {
+            return Err(SteamAPIInitError::FailedGeneric(
+                "Disabled by env variable".to_string(),
+            ));
+        }
+        let app_id = env::var("NP_APPID").ok().and_then(|x| x.parse().ok());
+        let (client, single) = steamworks::Client::init_app(app_id.unwrap_or(881100))?;
+        thread::spawn(move || {
+            info!("Spawned steam callback thread");
+            loop {
+                single.run_callbacks();
+                thread::sleep(Duration::from_millis(3));
+            }
+        });
+        Ok(SteamState {
+            client,
+            avatar_cache: HashMap::new(),
+        })
+    }
+
+    pub fn get_user_name(&self, id: SteamId) -> String {
+        let friends = self.client.friends();
+        friends.get_friend(id).name()
+    }
+
+    pub fn get_avatar(&mut self, ctx: &egui::Context, id: SteamId) -> Option<&SteamUserAvatar> {
+        let friends = self.client.friends();
+
+        if self.avatar_cache.contains_key(&id) {
+            self.avatar_cache.get(&id)
+        } else {
+            friends
+                .get_friend(id)
+                .small_avatar()
+                .map(|data| {
+                    ctx.load_texture(
+                        format!("steam_avatar_for_{:?}", id),
+                        ColorImage::from_rgba_unmultiplied([32, 32], &data),
+                        TextureOptions::LINEAR,
+                    )
+                })
+                .map(|avatar| {
+                    let avatar = SteamUserAvatar { avatar };
+                    &*self.avatar_cache.entry(id).or_insert(avatar)
+                })
+        }
+
+        // ctx.load_texture(name, image, options)
+    }
+}

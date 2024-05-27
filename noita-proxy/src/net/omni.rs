@@ -133,4 +133,11 @@ impl PeerVariant {
             PeerVariant::Steam(p) => p.lobby_id(),
         }
     }
+
+    pub fn is_steam(&self) -> bool {
+        match self {
+            PeerVariant::Steam(_) => true,
+            _ => false,
+        }
+    }
 }
