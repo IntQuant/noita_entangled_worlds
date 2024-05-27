@@ -1,5 +1,8 @@
 use std::{
-    fmt::Display, net::SocketAddr, sync::{atomic::Ordering, Arc}, time::Duration
+    fmt::Display,
+    net::SocketAddr,
+    sync::{atomic::Ordering, Arc},
+    time::Duration,
 };
 
 use bitcode::{Decode, Encode};
@@ -15,9 +18,9 @@ use tracing::info;
 
 pub mod messages;
 mod mod_manager;
-mod self_update;
-pub mod releases;
 pub mod net;
+pub mod releases;
+mod self_update;
 pub mod steam_helper;
 
 #[derive(Debug, Decode, Encode, Clone)]
@@ -38,15 +41,15 @@ enum AppState {
 struct AppSavedState {
     addr: String,
     debug_mode: bool,
-    use_constant_seed: bool,    
+    use_constant_seed: bool,
 }
 
 impl Default for AppSavedState {
     fn default() -> Self {
-        Self { 
+        Self {
             addr: "127.0.0.1:5123".to_string(),
             debug_mode: false,
-            use_constant_seed: false, 
+            use_constant_seed: false,
         }
     }
 }
@@ -64,16 +67,21 @@ const MODMANAGER: &str = "modman";
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let saved_state = cc.storage.and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
+        let saved_state = cc
+            .storage
+            .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
             .unwrap_or_default();
-        let modmanager_settings = cc.storage.and_then(|storage| eframe::get_value(storage, MODMANAGER))
-        .unwrap_or_default();
+        let modmanager_settings = cc
+            .storage
+            .and_then(|storage| eframe::get_value(storage, MODMANAGER))
+            .unwrap_or_default();
 
         info!("Creating the app...");
         Self {
             state: AppState::ModManager,
             modmanager: Modmanager::default(),
-            steam_state: steam_helper::SteamState::new(),saved_state,
+            steam_state: steam_helper::SteamState::new(),
+            saved_state,
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
         }
@@ -129,12 +137,15 @@ impl App {
         netman.clone().start();
         self.state = AppState::Netman { netman };
     }
-    
+
     fn connect_screen(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Noita Entangled Worlds proxy");
             ui.checkbox(&mut self.saved_state.debug_mode, "Debug mode");
-            ui.checkbox(&mut self.saved_state.use_constant_seed, "Use specified seed");
+            ui.checkbox(
+                &mut self.saved_state.use_constant_seed,
+                "Use specified seed",
+            );
             if ui.button("Host").clicked() {
                 self.start_server();
             }
@@ -193,38 +204,8 @@ impl eframe::App for App {
                 let stopped = netman.stopped.load(Ordering::Relaxed);
                 let accept_local = netman.accept_local.load(Ordering::Relaxed);
                 let local_connected = netman.local_connected.load(Ordering::Relaxed);
-                egui::SidePanel::left("players").resizable(false).exact_width(200.0).show(ctx, |ui| {
-                    ui.heading("Players");
-                    if netman.peer.is_steam() {
-                        let steam = self.steam_state.as_mut().expect("steam should be available, as we are using steam networking");
-                        for peer in netman.peer.iter_peer_ids() {
-                            let role = peer_role(peer, netman);
-                            
-                            let username = steam.get_user_name(peer.into());
-                            let avatar = steam.get_avatar(ctx, peer.into());
-                            if let Some(avatar) = avatar {
-                                avatar.display_with_labels(ui, &username, role);
-                                ui.add_space(5.0);
-                            } else {
-                                ui.label(&username);
-                            }
-                        }
-                    } else {
-                        for peer in netman.peer.iter_peer_ids() {
-                            ui.label(peer.to_string());
-                        }
-                    }
-                });
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    if stopped {
-                        ui.colored_label(Color32::LIGHT_RED, "Netmanager thread has stopped");
-                        if let Some(err) = netman.error.lock().unwrap().as_ref() {
-                            ui.label("With the following error:");
-                            ui.label(err.to_string());
-                        }
-                        ui.separator();
-                    }
-                    
+                egui::TopBottomPanel::top("noita_status").show(ctx, |ui| {
+                    ui.add_space(3.0);
                     if accept_local {
                         if local_connected {
                             ui.colored_label(Color32::GREEN, "Local Noita instance connected");
@@ -234,7 +215,44 @@ impl eframe::App for App {
                     } else {
                         ui.label("Not yet ready");
                     }
-                    ui.separator();
+                });
+                egui::SidePanel::left("players")
+                    .resizable(false)
+                    .exact_width(200.0)
+                    .show(ctx, |ui| {
+                        ui.add_space(3.0);
+                        if netman.peer.is_steam() {
+                            let steam = self.steam_state.as_mut().expect(
+                                "steam should be available, as we are using steam networking",
+                            );
+                            for peer in netman.peer.iter_peer_ids() {
+                                let role = peer_role(peer, netman);
+
+                                let username = steam.get_user_name(peer.into());
+                                let avatar = steam.get_avatar(ctx, peer.into());
+                                if let Some(avatar) = avatar {
+                                    avatar.display_with_labels(ui, &username, role);
+                                    ui.add_space(5.0);
+                                } else {
+                                    ui.label(&username);
+                                }
+                            }
+                        } else {
+                            for peer in netman.peer.iter_peer_ids() {
+                                ui.label(peer.to_string());
+                            }
+                        }
+                    });
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    if stopped {
+                        ui.colored_label(Color32::LIGHT_RED, "Netmanager thread has stopped");
+                        if let Some(err) = netman.error.lock().unwrap().as_ref() {
+                            ui.label("With the following error:");
+                            ui.label(err.to_string());
+                        }
+                        ui.separator();
+                    }
+
                     if netman.peer.is_steam() {
                         if let Some(id) = netman.peer.lobby_id() {
                             if ui.button("Save lobby id to clipboard").clicked() {
@@ -261,20 +279,29 @@ impl eframe::App for App {
                 }
             }
             AppState::ModManager => {
-                egui::Window::new("Mod manager").auto_sized().anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                egui::Window::new("Mod manager")
+                    .auto_sized()
+                    .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
-                        self.modmanager.update(ctx, ui, &mut self.modmanager_settings, self.steam_state.as_mut().ok())
+                        self.modmanager.update(
+                            ctx,
+                            ui,
+                            &mut self.modmanager_settings,
+                            self.steam_state.as_mut().ok(),
+                        )
                     });
-                    if self.modmanager.is_done() {
-                        self.state = AppState::Connect;
-                    }
-            },
+                if self.modmanager.is_done() {
+                    self.state = AppState::Connect;
+                }
+            }
             AppState::SelfUpdate => {
-                egui::Window::new("Self update").auto_sized().anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                egui::Window::new("Self update")
+                    .auto_sized()
+                    .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
                         self.self_update.self_update(ui);
                     });
-            },
+            }
         };
     }
 
