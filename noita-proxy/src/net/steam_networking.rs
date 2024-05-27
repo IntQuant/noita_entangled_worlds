@@ -8,7 +8,7 @@ use steamworks::{
 use tangled::{PeerState, Reliability};
 use tracing::{info, warn};
 
-use super::OmniNetworkEvent;
+use super::omni::{self, OmniNetworkEvent};
 
 enum SteamEvent {
     LobbyCreated(LobbyId),
@@ -150,10 +150,10 @@ impl SteamPeer {
                     self.inner.lock().unwrap().state = PeerState::Disconnected;
                 }
                 SteamEvent::PeerConnected(id) => {
-                    returned_events.push(OmniNetworkEvent::PeerConnected(id.into()))
+                    returned_events.push(omni::OmniNetworkEvent::PeerConnected(id.into()))
                 }
                 SteamEvent::PeerDisconnected(id) => {
-                    returned_events.push(OmniNetworkEvent::PeerDisconnected(id.into()))
+                    returned_events.push(omni::OmniNetworkEvent::PeerDisconnected(id.into()))
                 }
                 SteamEvent::PeerStateChanged => self.update_remote_peers(),
                 SteamEvent::AcceptConnection(id) => {
@@ -167,7 +167,7 @@ impl SteamPeer {
             let mut empty_array = vec![0; size];
             let mut buffer = empty_array.as_mut_slice();
             if let Some((sender, _)) = networking.read_p2p_packet(&mut buffer) {
-                returned_events.push(OmniNetworkEvent::Message {
+                returned_events.push(omni::OmniNetworkEvent::Message {
                     src: sender.into(),
                     data: empty_array,
                 })

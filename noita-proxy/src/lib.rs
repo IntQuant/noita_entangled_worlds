@@ -6,6 +6,7 @@ use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{self, Align2, Color32};
 use mod_manager::{Modmanager, ModmanagerSettings};
+use net::omni::PeerVariant;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
@@ -103,7 +104,7 @@ impl App {
     fn start_server(&mut self) {
         let bind_addr = "0.0.0.0:5123".parse().unwrap();
         let peer = Peer::host(bind_addr, None).unwrap();
-        let netman = net::NetManager::new(net::PeerVariant::Tangled(peer));
+        let netman = net::NetManager::new(PeerVariant::Tangled(peer));
         self.set_netman_settings(&netman);
         netman.clone().start();
         self.state = AppState::Netman { netman };
@@ -119,7 +120,7 @@ impl App {
     }
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
-        let netman = net::NetManager::new(net::PeerVariant::Tangled(peer));
+        let netman = net::NetManager::new(PeerVariant::Tangled(peer));
         netman.clone().start();
         self.state = AppState::Netman { netman };
     }
@@ -129,7 +130,7 @@ impl App {
             steamworks::LobbyType::Private,
             self.steam_state.as_ref().unwrap().client.clone(),
         );
-        let netman = net::NetManager::new(net::PeerVariant::Steam(peer));
+        let netman = net::NetManager::new(PeerVariant::Steam(peer));
         self.set_netman_settings(&netman);
         netman.clone().start();
         self.state = AppState::Netman { netman };
@@ -146,7 +147,7 @@ impl App {
             id,
             self.steam_state.as_ref().unwrap().client.clone(),
         );
-        let netman = net::NetManager::new(net::PeerVariant::Steam(peer));
+        let netman = net::NetManager::new(PeerVariant::Steam(peer));
         netman.clone().start();
         self.state = AppState::Netman { netman };
     }
