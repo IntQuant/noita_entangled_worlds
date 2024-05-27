@@ -20,9 +20,9 @@ local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/effect_sync.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/damage_sync.lua")
 
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
 
 
