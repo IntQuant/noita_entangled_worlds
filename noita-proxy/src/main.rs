@@ -1,4 +1,7 @@
-use eframe::{egui::ViewportBuilder, NativeOptions};
+use eframe::{
+    egui::{IconData, ViewportBuilder},
+    NativeOptions,
+};
 use noita_proxy::App;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -12,10 +15,20 @@ fn main() -> Result<(), eframe::Error> {
         )
         .finish();
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
+    let icon = image::load_from_memory(include_bytes!("../icon.png"))
+        .unwrap()
+        .to_rgba8();
+    let icon = IconData {
+        width: icon.width(),
+        height: icon.height(),
+        rgba: icon.into_vec(),
+    };
     eframe::run_native(
         "Noita Proxy",
         NativeOptions {
-            viewport: ViewportBuilder::default().with_min_inner_size([800.0, 600.0]),
+            viewport: ViewportBuilder::default()
+                .with_min_inner_size([800.0, 600.0])
+                .with_icon(icon),
             follow_system_theme: false,
             ..Default::default()
         },
