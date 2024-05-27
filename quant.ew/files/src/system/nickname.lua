@@ -1,3 +1,9 @@
+local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
+
+local rpc = net.new_rpc_namespace()
+
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 
 local nickname = {}
@@ -64,15 +70,19 @@ function nickname.calculate_textwidth(text, font)
         else				
             local c_id = string.byte(l)
             --GamePrint("Char: ".. l .. ". Id: "..tostring(c_id))
-            textwidth = textwidth + font[c_id]
+            textwidth = textwidth + (font[c_id] or 1)
         end
     end
 
     return textwidth
 end
 
-function nickname.addLabel(player_entity, text, font_filename, scale, font)
-    
+function nickname.add_label(player_entity, text, font_filename, scale, font)
+    local prev_nickname = EntityGetFirstComponentIncludingDisabled(player_entity, "SpriteComponent", "ew_nickname")
+    if prev_nickname ~= nil then
+      EntityRemoveComponent(player_entity, prev_nickname)
+    end
+
     if (scale == nil) then
         scale = 1
     end
@@ -82,6 +92,7 @@ function nickname.addLabel(player_entity, text, font_filename, scale, font)
     local textwidth = nickname.calculate_textwidth(text, font)
 
     local nickname_component = EntityAddComponent2(player_entity, "SpriteComponent", {
+        _tags="ew_nickname",
         image_file=font_filename,
         is_text_sprite=true,
         offset_x=textwidth*0.5,
@@ -90,7 +101,7 @@ function nickname.addLabel(player_entity, text, font_filename, scale, font)
         update_transform_rotation=false,
         fog_of_war_hole = true,
         text=text,
-        z_index="1",
+        z_index=1,
         alpha=0.5,
         emissive = true,
         has_special_scale=true,
@@ -100,6 +111,30 @@ function nickname.addLabel(player_entity, text, font_filename, scale, font)
 
     return nickname_component
 
+end
+
+function nickname.on_local_player_spawn(my_player)
+  if ctx.my_name ~= nil then
+    my_player.name = ctx.my_name
+  end
+end
+
+function nickname.on_client_spawned(peer_id, player_data)
+  nickname.add_label(player_data.entity, player_data.name, "data/fonts/font_pixel_white.xml", 0.5)
+end
+
+function nickname.on_should_send_updates()
+  print("Should send nickname update")
+  if ctx.my_name ~= nil then
+    print("Sending name "..ctx.my_name)
+    rpc.send_name(ctx.my_name)
+  end
+end
+
+rpc.opts_reliable()
+function rpc.send_name(name)
+  ctx.rpc_player_data.name = name
+  nickname.add_label(ctx.rpc_player_data.entity, name, "data/fonts/font_pixel_white.xml", 0.5)
 end
 
 return nickname

@@ -12,9 +12,12 @@ end
 
 function util.print_error(error)
     local lines = util.string_split(error, "\n")
+    print("---err start---")
     for _, line in ipairs(lines) do
         GamePrint(line)
+        print(line)
     end
+    print("---err end---")
 end
 
 function util.tpcall(fn, ...)

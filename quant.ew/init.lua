@@ -23,6 +23,9 @@ ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/effect_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/sync/damage_sync.lua")
 
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
+
+
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
@@ -178,6 +181,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     end
 
     ctx.hook.on_local_player_spawn(my_player)
+    ctx.hook.on_should_send_updates()
 
     GamePrint("Noita Entangled Worlds version "..version)
 

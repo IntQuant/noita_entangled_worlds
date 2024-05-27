@@ -83,4 +83,8 @@ impl SteamState {
 
         // ctx.load_texture(name, image, options)
     }
+
+    pub(crate) fn get_my_id(&self) -> SteamId {
+        self.client.user().steam_id()
+    }
 }

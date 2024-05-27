@@ -22,6 +22,7 @@ function net_handling.proxy.seed(_, value)
 end
 
 function net_handling.proxy.peer_id(_, value)
+    print("My peer_id: "..value)
     ctx.my_id = value
     ctx.is_host = ctx.my_id == ctx.host_id
 end
@@ -33,6 +34,11 @@ end
 function net_handling.proxy.host_id(_, value)
     ctx.host_id = value
     ctx.is_host = ctx.my_id == ctx.host_id
+end
+
+function net_handling.proxy.name(_, value)
+    print("Got name from proxy: "..value)
+    ctx.my_name = value
 end
 
 function net_handling.mod.player(peer_id, value)
@@ -198,6 +204,7 @@ end
 
 function net_handling.mod.welcome(peer_id, _)
     ctx.events.new_player_just_connected = true
+    ctx.hook.on_should_send_updates()
 end
 
 function net_handling.mod.heart_pickup(peer_id, heart_pickup)

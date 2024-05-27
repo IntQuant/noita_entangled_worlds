@@ -50,18 +50,23 @@ impl NetInnerState {
 
 pub mod omni;
 
+pub struct NetManagerInit {
+    pub my_nickname: Option<String>,
+}
+
 pub struct NetManager {
-    pub(crate) peer: omni::PeerVariant,
-    pub(crate) settings: Mutex<GameSettings>,
-    pub(crate) continue_running: AtomicBool, // TODO stop on drop
-    pub(crate) accept_local: AtomicBool,
-    pub(crate) local_connected: AtomicBool,
-    pub(crate) stopped: AtomicBool,
-    pub(crate) error: Mutex<Option<io::Error>>,
+    pub peer: omni::PeerVariant,
+    pub settings: Mutex<GameSettings>,
+    pub continue_running: AtomicBool, // TODO stop on drop
+    pub accept_local: AtomicBool,
+    pub local_connected: AtomicBool,
+    pub stopped: AtomicBool,
+    pub error: Mutex<Option<io::Error>>,
+    pub init_settings: NetManagerInit,
 }
 
 impl NetManager {
-    pub fn new(peer: omni::PeerVariant) -> Arc<Self> {
+    pub fn new(peer: omni::PeerVariant, init: NetManagerInit) -> Arc<Self> {
         Self {
             peer,
             settings: Mutex::new(GameSettings {
@@ -74,6 +79,7 @@ impl NetManager {
             local_connected: AtomicBool::new(false),
             stopped: AtomicBool::new(false),
             error: Default::default(),
+            init_settings: init,
         }
         .into()
     }
@@ -157,7 +163,12 @@ impl NetManager {
                             "host_id",
                             format!("{:016x}", self.peer.host_id().0),
                         ));
-                        state.try_ws_write(ws_encode_proxy("name", "test_name"));
+                        if let Some(nickname) = &self.init_settings.my_nickname {
+                            info!("Chosen nickname: {}", nickname);
+                            state.try_ws_write(ws_encode_proxy("name", nickname));
+                        } else {
+                            info!("No nickname chosen");
+                        }
                         state.try_ws_write(ws_encode_proxy(
                             "debug",
                             if settings.debug_mode { "true" } else { "false" },

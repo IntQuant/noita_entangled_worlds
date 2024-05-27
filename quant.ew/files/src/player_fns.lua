@@ -1,7 +1,6 @@
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
-local nickname = dofile_once("mods/quant.ew/files/src/nickname.lua")
 
 local ffi = require("ffi")
 local np = require("noitapatcher")
@@ -409,7 +408,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
     new_playerdata.entity = new
-    util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)
+    -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)
     ctx.players[peer_id] = new_playerdata
     EntitySetName(new, tostring(peer_id))
     if ctx.is_host then
@@ -430,6 +429,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     end
     GlobalsSetValue(global, "1")
     -- np.SetPlayerEntity(new, peer_id+1)
+    ctx.hook.on_client_spawned(peer_id, new_playerdata)
 end
 
 function player_fns.respawn_if_necessary()

@@ -24,6 +24,7 @@ ctx.init = function()
 end
 
 function ctx.dofile_and_add_hooks(path)
+    print("Loading "..path)
     local result = dofile_once(path)
     for key, value in pairs(result) do
         if string.sub(key, 1, 3) == "on_" then
