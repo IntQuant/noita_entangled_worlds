@@ -120,7 +120,7 @@ function nickname.on_local_player_spawn(my_player)
 end
 
 function nickname.on_client_spawned(peer_id, player_data)
-  nickname.add_label(player_data.entity, player_data.name, "data/fonts/font_pixel_white.xml", 0.5)
+  nickname.add_label(player_data.entity, player_data.name, "data/fonts/font_pixel_white.xml", 0.75)
 end
 
 function nickname.on_should_send_updates()
@@ -134,7 +134,7 @@ end
 rpc.opts_reliable()
 function rpc.send_name(name)
   ctx.rpc_player_data.name = name
-  nickname.add_label(ctx.rpc_player_data.entity, name, "data/fonts/font_pixel_white.xml", 0.5)
+  nickname.add_label(ctx.rpc_player_data.entity, name, "data/fonts/font_pixel_white.xml", 0.75)
 end
 
 return nickname
