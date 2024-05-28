@@ -228,11 +228,6 @@ local function on_world_pre_update_inner()
         player_fns.spread_max_health()
     end
 
-    if ctx.events.new_player_seen then
-        local hp, max_hp = util.get_ent_health(my_player.entity)
-        util.set_ent_health(my_player.entity, {hp+4, max_hp+4})
-    end
-
     -- Player sync
     if GameGetFrameNum() % 1 == 0 then
         local input_data = player_fns.serialize_inputs(my_player)
