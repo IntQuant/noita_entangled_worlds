@@ -186,7 +186,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     GamePrint("Noita Entangled Worlds version "..version)
 
     OnPausedChanged(false, false)
-    -- GameSetCameraFree(true)
+    
+    print("Game state entity: "..GameGetWorldStateEntity())
 end
 
 local function on_world_pre_update_inner()
