@@ -6,7 +6,7 @@ use std::{
     net::{SocketAddr, TcpListener, TcpStream},
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tracing::debug;
 
@@ -147,12 +147,9 @@ impl NetManager {
                         .ok();
                     if state.ws.is_some() {
                         info!("New stream connected");
-
-                        state
-                            .ws
-                            .as_ref()
-                            .unwrap()
-                            .get_ref()
+                        let stream_ref = &state.ws.as_ref().unwrap().get_ref();
+                        stream_ref.set_nonblocking(true).ok();
+                        stream_ref
                             .set_read_timeout(Some(Duration::from_millis(1)))
                             .expect("can set read timeout");
 
@@ -190,6 +187,7 @@ impl NetManager {
             for net_event in self.peer.recv() {
                 match net_event {
                     omni::OmniNetworkEvent::PeerConnected(id) => {
+                        self.broadcast(&NetMsg::Welcome, Reliability::Reliable);
                         info!("Peer connected");
                         if self.peer.my_id() == Some(self.peer.host_id()) {
                             info!("Sending start game message");
@@ -211,6 +209,9 @@ impl NetManager {
                             continue;
                         };
                         match net_msg {
+                            NetMsg::Welcome => {
+                                info!("Got Welcome message from {}", src);
+                            }
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
                                 info!("Settings updated");
@@ -287,7 +288,9 @@ impl NetManager {
                 }
                 _ => {}
             },
-            Err(tungstenite::Error::Io(io_err)) if io_err.kind() == io::ErrorKind::WouldBlock => {}
+            Err(tungstenite::Error::Io(io_err))
+                if io_err.kind() == io::ErrorKind::WouldBlock
+                    || io_err.kind() == io::ErrorKind::TimedOut => {}
             Err(err) => {
                 error!("Error occured while reading from websocket: {}", err);
                 state.ws = None;

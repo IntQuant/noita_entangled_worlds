@@ -2,8 +2,8 @@ use std::sync::Mutex;
 
 use crossbeam::channel;
 use steamworks::{
-    CallbackHandle, LobbyChatUpdate, LobbyId, LobbyType, P2PSessionRequest, SendType, SteamError,
-    SteamId,
+    networking_types::{NetworkingIdentity, SendFlags},
+    CallbackHandle, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
 };
 use tangled::{PeerState, Reliability};
 use tracing::{info, warn};
@@ -17,7 +17,6 @@ enum SteamEvent {
     PeerConnected(SteamId),
     PeerDisconnected(SteamId),
     PeerStateChanged,
-    AcceptConnection(SteamId),
 }
 
 pub struct InnerState {
@@ -105,18 +104,21 @@ impl SteamPeer {
     }
 
     pub fn send_message(&self, peer: SteamId, msg: &[u8], reliability: Reliability) -> bool {
-        let send_type = if reliability == Reliability::Reliable || msg.len() > 1200 {
-            SendType::Reliable
+        let send_type = if reliability == Reliability::Reliable {
+            SendFlags::RELIABLE
         } else {
-            SendType::Unreliable
+            SendFlags::UNRELIABLE
         };
-        let networking = self.client.networking();
-        let res = networking.send_p2p_packet(peer, send_type.clone(), msg);
-        if !res {
-            warn!("Couldn't send a packet to {:?}, st {:?}", peer, send_type)
-        }
-
-        res
+        let networking = self.client.networking_messages();
+        let res = networking
+            .send_message_to_user(NetworkingIdentity::new_steam_id(peer), send_type, msg, 0)
+            .inspect_err(|err| {
+                warn!(
+                    "Couldn't send a packet to {:?}, st {:?}, err {}",
+                    peer, send_type, err
+                )
+            });
+        res.is_ok()
     }
 
     pub fn broadcast_message(&self, msg: &[u8], reliability: Reliability) {
@@ -156,22 +158,19 @@ impl SteamPeer {
                     returned_events.push(omni::OmniNetworkEvent::PeerDisconnected(id.into()))
                 }
                 SteamEvent::PeerStateChanged => self.update_remote_peers(),
-                SteamEvent::AcceptConnection(id) => {
-                    info!("p2p accepted");
-                    self.client.networking().accept_p2p_session(id);
-                }
             }
         }
-        let networking = self.client.networking();
-        while let Some(size) = networking.is_p2p_packet_available() {
-            let mut empty_array = vec![0; size];
-            let mut buffer = empty_array.as_mut_slice();
-            if let Some((sender, _)) = networking.read_p2p_packet(&mut buffer) {
-                returned_events.push(omni::OmniNetworkEvent::Message {
-                    src: sender.into(),
-                    data: empty_array,
-                })
-            }
+        let networking = self.client.networking_messages();
+        let messages = networking.receive_messages_on_channel(0, 1024);
+        for message in messages {
+            let steam_id = message
+                .identity_peer()
+                .steam_id()
+                .expect("only steam ids are supported");
+            returned_events.push(omni::OmniNetworkEvent::Message {
+                src: steam_id.into(),
+                data: message.data().to_vec(), // TODO eliminate clone here.
+            })
         }
         returned_events
     }
@@ -239,14 +238,13 @@ fn make_callbacks(
     sender: &channel::Sender<SteamEvent>,
     client: &steamworks::Client,
 ) -> Vec<CallbackHandle> {
-    let cb_req = {
-        let sender = sender.clone();
-        client.register_callback(move |request: P2PSessionRequest| {
-            info!("Accepting connection with {:?}", request.remote);
-            sender
-                .send(SteamEvent::AcceptConnection(request.remote))
-                .ok();
-        })
+    {
+        client
+            .networking_messages()
+            .session_request_callback(|req| {
+                info!("Accepting connection with {:?}", req.remote());
+                req.accept();
+            });
     };
     let cb_ch = {
         let sender = sender.clone();
@@ -255,5 +253,5 @@ fn make_callbacks(
             sender.send(SteamEvent::PeerStateChanged).ok();
         })
     };
-    vec![cb_ch, cb_req]
+    vec![cb_ch]
 }
