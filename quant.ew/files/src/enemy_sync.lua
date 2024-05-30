@@ -91,7 +91,7 @@ function enemy_sync.client_cleanup()
     local frame = GameGetFrameNum()
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
         if frame - enemy_data.frame > 60*1 then
-            print("Despawning stale "..remote_id)
+            print("Despawning stale "..remote_id.." "..enemy_data.id)
             EntityKill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
         end
@@ -103,14 +103,22 @@ function enemy_sync.handle_death_data(death_data)
         local enemy_data = ctx.entity_by_remote_id[remote_id]
         if enemy_data ~= nil then
             local enemy_id = enemy_data.id
+            local immortal = EntityGetFirstComponentIncludingDisabled(enemy_id, "LuaComponent", "ew_immortal")
+            if immortal ~= nil then
+                EntityRemoveComponent(enemy_id, immortal)
+            end
+            local protection_component_id = GameGetGameEffect(enemy_id, "PROTECTION_ALL")
+            if protection_component_id then
+                EntitySetComponentIsEnabled(enemy_id, protection_component_id, false)
+            end
 
             local current_hp = util.get_ent_health(enemy_id)
             local dmg = current_hp
             if dmg > 0 then
-                EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
+                EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, ctx.my_player.entity)
             end
-            EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity()) -- Just to be sure
-            util.set_ent_health(enemy_id, {0, 0})
+            EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, ctx.my_player.entity) -- Just to be sure
+            EntityKill(enemy_id)
         end
     end
 end
@@ -141,7 +149,7 @@ function enemy_sync.handle_enemy_data(enemy_data)
             local enemy_id = EntityLoad(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
-            EntityAddComponent2(enemy_id, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+            EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
             local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
             if ai_component ~= nil then
                 EntityRemoveComponent(enemy_id, ai_component)
