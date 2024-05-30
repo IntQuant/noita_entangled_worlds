@@ -140,6 +140,7 @@ impl NetManager {
                 if let Ok((stream, addr)) = local_server.accept() {
                     info!("New stream incoming from {}", addr);
                     stream.set_nodelay(true).ok();
+                    stream.set_nonblocking(false).ok();
 
                     state.ws = accept(stream)
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
