@@ -1,5 +1,8 @@
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local net = dofile_once("mods/quant.ew/files/src/net.lua")
+
+local rpc = net.new_rpc_namespace()
 
 local enemy_sync = {}
 
@@ -32,8 +35,6 @@ local function get_sync_entities()
     end)
     return entities
 end
-
-local previous_sync_entities = {}
 
 function enemy_sync.host_upload_entities()
     local entities = get_sync_entities()
@@ -71,13 +72,14 @@ function enemy_sync.host_upload_entities()
     while GlobalsGetValue("ew_enemy_death_"..i, "0") ~= "0" do
         local enemy_id = tonumber(GlobalsGetValue("ew_enemy_death_"..i, "0"))
         GlobalsSetValue("ew_enemy_death_"..i, "0")
-        -- GamePrint("Entity is no longer alive: "..enemy_id)
         table.insert(dead_entities, enemy_id)
         i = i + 1
     end
 
-    previous_sync_entities = entities
-    return enemy_data_list, dead_entities
+    rpc.handle_enemy_data(enemy_data_list)
+    if #dead_entities > 0 then
+        rpc.handle_death_data(dead_entities)
+    end
 end
 
 function enemy_sync.client_cleanup()
@@ -98,7 +100,20 @@ function enemy_sync.client_cleanup()
     end
 end
 
-function enemy_sync.handle_death_data(death_data)
+function enemy_sync.on_world_update_host()
+    if GameGetFrameNum() % 2 == 1 then
+        enemy_sync.host_upload_entities()
+    end
+end
+
+function enemy_sync.on_world_update_client()
+    if GameGetFrameNum() % 20 == 1 then
+        enemy_sync.client_cleanup()
+    end
+end
+
+rpc.opts_reliable()
+function rpc.handle_death_data(death_data)
     for _, remote_id in ipairs(death_data) do
         local enemy_data = ctx.entity_by_remote_id[remote_id]
         if enemy_data ~= nil then
@@ -123,7 +138,7 @@ function enemy_sync.handle_death_data(death_data)
     end
 end
 
-function enemy_sync.handle_enemy_data(enemy_data)
+function rpc.handle_enemy_data(enemy_data)
     -- GamePrint("Got enemy data")
     for _, enemy_info_raw in ipairs(enemy_data) do
         local remote_enemy_id = enemy_info_raw[1]

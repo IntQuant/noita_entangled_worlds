@@ -79,18 +79,6 @@ function net_handling.mod.perks(peer_id, perk_data)
     perk_fns.update_perks(perk_data, player_data)
 end
 
-function net_handling.mod.enemy(peer_id, enemy_data)
-    if peer_id == ctx.host_id then
-        enemy_sync.handle_enemy_data(enemy_data)
-    end
-end
-
-function net_handling.mod.edeath(peer_id, death_data)
-    if peer_id == ctx.host_id then
-        enemy_sync.handle_death_data(death_data)
-    end
-end
-
 function net_handling.mod.host_player(peer_id, player_infos)
     if peer_id ~= ctx.host_id then
         return

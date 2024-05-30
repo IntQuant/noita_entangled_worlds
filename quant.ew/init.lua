@@ -17,10 +17,10 @@ local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.l
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
-local enemy_sync = ctx.dofile_and_add_hooks("mods/quant.ew/files/src/enemy_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
@@ -236,22 +236,6 @@ local function on_world_pre_update_inner()
         local current_slot = player_fns.get_current_slot(my_player)
         if input_data ~= nil and pos_data ~= nil then
             net.send_player_update(input_data, pos_data, current_slot)
-        end
-    end
-
-    -- Enemy sync
-    if GameGetFrameNum() % 2 == 1 then
-        if ctx.is_host then
-            local enemy_data, death_data = enemy_sync.host_upload_entities()
-            net.send_enemy_data(enemy_data)
-            if #death_data > 0 then
-                net.send_enemy_death_data(death_data)
-            end
-        end
-    end
-    if GameGetFrameNum() % 20 == 1 then
-        if not ctx.is_host then
-            enemy_sync.client_cleanup()
         end
     end
 
