@@ -11,7 +11,8 @@ What is synced as of now:
  - Pixels of the grid world (this one is far from perfect, however)
 
 There is a video guide/showcase of the mod by Gudyni (in russian): https://www.youtube.com/watch?v=mqSKcDW-epg
-Discord server: https://discord.gg/RVmAzBNE
+
+Discord server: https://discord.gg/2vHyEzBZ
 
 Special thanks to:
  - Contributors.
