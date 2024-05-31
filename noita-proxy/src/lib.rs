@@ -7,7 +7,7 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Color32, Layout};
+use eframe::egui::{self, Align2, Color32, InnerResponse, Margin, TextureOptions, Ui};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
 use self_update::SelfUpdateManager;
@@ -43,6 +43,7 @@ struct AppSavedState {
     debug_mode: bool,
     use_constant_seed: bool,
     nickname: Option<String>,
+    times_started: u32,
 }
 
 impl Default for AppSavedState {
@@ -52,6 +53,7 @@ impl Default for AppSavedState {
             debug_mode: false,
             use_constant_seed: false,
             nickname: None,
+            times_started: 0,
         }
     }
 }
@@ -67,9 +69,21 @@ pub struct App {
 
 const MODMANAGER: &str = "modman";
 
+fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
+    let style = ui.style();
+    let frame = egui::Frame {
+        inner_margin: Margin::same(6.0), // same and symmetric looks best in corners when nesting groups
+        rounding: style.visuals.widgets.noninteractive.rounding,
+        stroke: style.visuals.widgets.noninteractive.bg_stroke,
+        fill: Color32::from_rgba_premultiplied(20, 20, 20, 180),
+        ..Default::default()
+    };
+    frame.show(ui, add_contents)
+}
+
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let saved_state = cc
+        let mut saved_state: AppSavedState = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
             .unwrap_or_default();
@@ -77,7 +91,8 @@ impl App {
             .storage
             .and_then(|storage| eframe::get_value(storage, MODMANAGER))
             .unwrap_or_default();
-
+        saved_state.times_started += 1;
+        egui_extras::install_image_loaders(&cc.egui_ctx);
         info!("Creating the app...");
         Self {
             state: AppState::ModManager,
@@ -161,12 +176,19 @@ impl App {
                 }
             });
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.saved_state.times_started % 5 == 0 {
+                let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
+                    .texture_options(TextureOptions::NEAREST)
+                    .maintain_aspect_ratio(true);
+                image.paint_at(ui, ui.ctx().screen_rect());
+            }
+
             let item_spacing = ui.spacing().item_spacing.x;
             let rect = ui.max_rect();
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
             let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
             ui.allocate_ui_at_rect(settings_rect.shrink(item_spacing), |ui| {
-                ui.group(|ui| {
+                filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     ui.vertical_centered_justified(|ui| {
                         ui.heading("Game settings");
@@ -177,7 +199,7 @@ impl App {
                 });
             });
             ui.allocate_ui_at_rect(steam_connect_rect.shrink(item_spacing), |ui| {
-                ui.group(|ui| {
+                filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     ui.vertical_centered_justified(|ui| {
                         ui.heading("Connect using steam");
@@ -210,7 +232,7 @@ impl App {
                 });
             });
             ui.allocate_ui_at_rect(ip_connect_rect.shrink(item_spacing), |ui| {
-                ui.group(|ui| {
+                filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     ui.vertical_centered_justified(|ui| {
                         ui.heading("Connect by ip");
