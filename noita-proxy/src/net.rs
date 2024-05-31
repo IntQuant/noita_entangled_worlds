@@ -6,7 +6,7 @@ use std::{
     net::{SocketAddr, TcpListener, TcpStream},
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 use tracing::debug;
 

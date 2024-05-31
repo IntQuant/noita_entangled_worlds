@@ -7,7 +7,7 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Color32};
+use eframe::egui::{self, Align2, Color32, Layout};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
 use self_update::SelfUpdateManager;
@@ -151,56 +151,86 @@ impl App {
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Noita Entangled Worlds proxy");
-            ui.checkbox(&mut self.saved_state.debug_mode, "Debug mode");
-            ui.checkbox(
-                &mut self.saved_state.use_constant_seed,
-                "Use specified seed",
-            );
-            if ui.button("Host").clicked() {
-                self.start_server();
-            }
-            ui.separator();
-            ui.text_edit_singleline(&mut self.saved_state.addr);
-            let addr = self.saved_state.addr.parse();
-            ui.add_enabled_ui(addr.is_ok(), |ui| {
-                if ui.button("Connect").clicked() {
-                    if let Ok(addr) = addr {
-                        self.start_connect(addr);
-                    }
+        egui::TopBottomPanel::bottom("version_panel")
+            .exact_height(25.0)
+            .show(ctx, |ui| {
+                self.self_update.display_version(ui);
+
+                if self.self_update.request_update {
+                    self.state = AppState::SelfUpdate;
                 }
             });
-            ui.separator();
-            ui.heading("Steam networking");
-            match &self.steam_state {
-                Ok(_) => {
-                    if ui.button("Create lobby").clicked() {
-                        self.start_steam_host();
-                    }
-                    if ui.button("Connect to lobby in clipboard").clicked() {
-                        let id = ClipboardProvider::new()
-                            .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
-                        match id {
-                            Ok(id) => {
-                                let id = id.parse().map(LobbyId::from_raw);
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let item_spacing = ui.spacing().item_spacing.x;
+            let rect = ui.max_rect();
+            let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
+            let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
+            ui.allocate_ui_at_rect(settings_rect.shrink(item_spacing), |ui| {
+                ui.group(|ui| {
+                    ui.set_min_size(ui.available_size());
+                    ui.vertical_centered_justified(|ui| {
+                        ui.heading("Game settings");
+                    });
+                    ui.separator();
+                    ui.checkbox(&mut self.saved_state.debug_mode, "Debug mode");
+                    ui.checkbox(&mut self.saved_state.use_constant_seed, "Use fixed seed");
+                });
+            });
+            ui.allocate_ui_at_rect(steam_connect_rect.shrink(item_spacing), |ui| {
+                ui.group(|ui| {
+                    ui.set_min_size(ui.available_size());
+                    ui.vertical_centered_justified(|ui| {
+                        ui.heading("Connect using steam");
+                    });
+                    ui.separator();
+                    match &self.steam_state {
+                        Ok(_) => {
+                            if ui.button("Create lobby").clicked() {
+                                self.start_steam_host();
+                            }
+                            if ui.button("Connect to lobby in clipboard").clicked() {
+                                let id = ClipboardProvider::new()
+                                    .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
                                 match id {
-                                    Ok(id) => self.start_steam_connect(id),
+                                    Ok(id) => {
+                                        let id = id.parse().map(LobbyId::from_raw);
+                                        match id {
+                                            Ok(id) => self.start_steam_connect(id),
+                                            Err(error) => self.notify_error(error),
+                                        }
+                                    }
                                     Err(error) => self.notify_error(error),
                                 }
                             }
-                            Err(error) => self.notify_error(error),
+                        }
+                        Err(err) => {
+                            ui.label(format!("Could not init steam networking: {}", err));
                         }
                     }
-                }
-                Err(err) => {
-                    ui.label(format!("Could not init steam networking: {}", err));
-                }
-            }
-            self.self_update.display_version(ui);
-            if self.self_update.request_update {
-                self.state = AppState::SelfUpdate;
-            }
+                });
+            });
+            ui.allocate_ui_at_rect(ip_connect_rect.shrink(item_spacing), |ui| {
+                ui.group(|ui| {
+                    ui.set_min_size(ui.available_size());
+                    ui.vertical_centered_justified(|ui| {
+                        ui.heading("Connect by ip");
+                    });
+                    ui.separator();
+                    if ui.button("Host").clicked() {
+                        self.start_server();
+                    }
+
+                    ui.text_edit_singleline(&mut self.saved_state.addr);
+                    let addr = self.saved_state.addr.parse();
+                    ui.add_enabled_ui(addr.is_ok(), |ui| {
+                        if ui.button("Connect").clicked() {
+                            if let Ok(addr) = addr {
+                                self.start_connect(addr);
+                            }
+                        }
+                    });
+                });
+            });
         });
     }
 }
