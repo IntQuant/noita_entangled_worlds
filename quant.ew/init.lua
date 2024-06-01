@@ -169,7 +169,10 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
 
     if ctx.debug then
+        -- ~Portal to lab
         -- EntitySetTransform(player_entity, 0, 12600)
+        EntitySetTransform(player_entity, 0, 8600-20)
+
         util.set_ent_health(player_entity, {1000, 1000})
         local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")
         ComponentSetValue2(wallet, "money", 100000)
