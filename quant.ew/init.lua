@@ -27,6 +27,7 @@ ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
 
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
+print("Noita EW version: "..version)
 
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
@@ -36,6 +37,8 @@ ModLuaFileAppend("data/scripts/items/heart_better.lua", "mods/quant.ew/files/app
 ModLuaFileAppend("data/scripts/items/heart_evil.lua", "mods/quant.ew/files/append/heart_evil.lua")
 ModLuaFileAppend("data/scripts/items/heart_fullhp.lua", "mods/quant.ew/files/append/heart_fullhp.lua")
 ModLuaFileAppend("data/scripts/items/heart_fullhp_temple.lua", "mods/quant.ew/files/append/heart_fullhp_temple.lua")
+
+ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local my_player = nil
 

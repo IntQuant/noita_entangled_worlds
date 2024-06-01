@@ -542,7 +542,7 @@ function player_fns.make_fire_data(special_seed, player_data)
             y = y,
             r = r,
             special_seed = tonumber(special_seed),
-            action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0"))
+            player_action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0"))
         }
         GlobalsSetValue("ew_player_action_rng", "0")
         local rng_init = player_data.projectile_rng_init

@@ -100,7 +100,7 @@ function net_handling.mod.fire(peer_id, fire_data)
     
     GlobalsSetValue("ew_shooter_rng_" .. tostring(peer_id), tostring(message.special_seed))
                 
-    GlobalsSetValue("ew_action_rng_"..tostring(peer_id), tostring(message.player_action_rng or 0))
+    GlobalsSetValue("ew_action_rng_"..tostring(peer_id), tostring(message.player_action_rng))
 
     player_data.projectile_rng_init = rng
 
