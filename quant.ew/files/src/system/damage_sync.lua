@@ -40,11 +40,11 @@ function rpc.deal_damage(damage, message)
         -- local entity_thats_responsible = ctx.rpc_player_data.entity
         local host_entity_id = ctx.my_player.entity
         local protection_component_id = GameGetGameEffect(host_entity_id, "PROTECTION_ALL")
-        if protection_component_id then
+        if protection_component_id ~= 0 then
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, false)
         end
         EntityInflictDamage(host_entity_id, damage, "DAMAGE_CURSE", message, "NONE", 0, 0, nil)
-        if protection_component_id then
+        if protection_component_id ~= 0 then
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, true)
         end
     end
