@@ -3,11 +3,24 @@ from zipfile import ZipFile, ZIP_DEFLATED as COMPRESS_TYPE
 import shutil
 import os
 import tomllib
+import json
+from dataclasses import dataclass
 
 cargo_manifest = tomllib.load(open("noita-proxy/Cargo.toml", "rb"))
 version = cargo_manifest["package"]["version"]
 
 print("Current version: ", version)
+
+COMPRESS_LEVEL = 9
+
+@dataclass
+class PullRequest:
+    number: int
+    author: str
+    title: str
+
+    def __str__(self):
+        return f"{self.title} by {self.author} in #{self.number}"
 
 def try_remove(path):
     try:
@@ -15,44 +28,122 @@ def try_remove(path):
     except FileNotFoundError:
         pass
 
-COMPRESS_LEVEL = 9
+class ReleaseNotes:
+    def __init__(self):
+        self.md = []
+    
+    def title(self, t):
+        self.md.append(f"## {t}\n")
 
-print("Compiling Noita Proxy...")
+    def p(self, t):
+        self.md.append(f"\n{t}\n")
+    
+    def l(self, t):
+        self.md.append(f"- {t}")
+    
+    def gen_md(self):
+        return "\n".join(self.md)
 
-os.chdir("noita-proxy")
+def call_parse_json(args):
+    return json.loads(subprocess.check_output(args))
 
-subprocess.run(["cargo", "build", "--release"])
-subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"])
+def check_release_exists(tag):
+    print("Checking if release exists:", tag)
+    ret = subprocess.call(["gh", "release", "view", tag])
+    exists = ret == 0
+    return exists
 
-os.chdir("..")
+def get_last_release():
+    return call_parse_json(["gh", "release", "view", "--json", "publishedAt,name"])
 
-os.makedirs("target", exist_ok=True)
-os.makedirs("target/tmp", exist_ok=True)
+def get_pull_requests_from(date):
+    parsed = call_parse_json(["gh", "pr", "list", "--state", "merged", "--search", "merged:>"+date, "--json", "number,title,author"])
+    return [PullRequest(entry["number"], entry["author"]["login"], entry["title"]) for entry in parsed]
 
-try_remove("target/noita-proxy-win.zip")
-try_remove("target/noita-proxy-linux.zip")
-try_remove("target/quant.ew.zip")
+def make_release_assets():
+    print("Compiling Noita Proxy...")
 
-print("Extracting steam dylib...")
+    os.chdir("noita-proxy")
 
-with ZipFile("redist/steam_dylib.zip", "r") as steam_dylib_zip:
-    steam_dylib_zip.extractall("target/tmp")
+    subprocess.run(["cargo", "build", "--release"])
+    subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"])
 
-print("Writing win release...")
+    os.chdir("..")
 
-with ZipFile("target/noita-proxy-win.zip", "w") as release:
-    release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-    release.write("target/tmp/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    os.makedirs("target", exist_ok=True)
+    os.makedirs("target/tmp", exist_ok=True)
 
-print("Writing linux release...")
+    try_remove("target/noita-proxy-win.zip")
+    try_remove("target/noita-proxy-linux.zip")
+    try_remove("target/quant.ew.zip")
 
-with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-    release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-    release.write("target/tmp/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    print("Extracting steam dylib...")
 
-print("Writing mod release...")
+    with ZipFile("redist/steam_dylib.zip", "r") as steam_dylib_zip:
+        steam_dylib_zip.extractall("target/tmp")
 
-shutil.make_archive("target/quant.ew", "zip", "quant.ew")
+    print("Writing win release...")
 
-with ZipFile("target/quant.ew.zip", "a") as release:
-    release.writestr("files/version.lua", f'return "{version}"')
+    with ZipFile("target/noita-proxy-win.zip", "w") as release:
+        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("target/tmp/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+
+    print("Writing linux release...")
+
+    with ZipFile("target/noita-proxy-linux.zip", "w") as release:
+        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("target/tmp/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+
+    print("Writing mod release...")
+
+    shutil.make_archive("target/quant.ew", "zip", "quant.ew")
+
+    with ZipFile("target/quant.ew.zip", "a") as release:
+        release.writestr("files/version.lua", f'return "{version}"')
+
+def main():
+    tag = "v"+version
+    if check_release_exists(tag):
+        print("Release already exists, exiting")
+        exit(1)
+
+    last_release = get_last_release()
+    print("Last release is:", last_release["name"])
+
+    pull_requests = get_pull_requests_from(last_release["publishedAt"])
+    print()
+
+    make_release_assets()
+
+    print()
+    print("Will release:", tag)
+    print("Accepted pull requests:")
+
+    for request in pull_requests:
+        print(request)
+
+    print()
+
+    notes = ReleaseNotes()
+
+    notes.title("Noita Entangle Worlds "+tag)
+
+    notes.p("")
+
+    notes.title("Accepted pull requests")
+    for request in pull_requests:
+        notes.l(request)
+
+    print()
+    notes_path = "/tmp/rnotes.md"
+    with open(notes_path, "w") as f:
+        print(notes.gen_md(), file=f)
+    
+    subprocess.check_call(["nano", notes_path])
+
+    title = input("Release title: ")
+
+    subprocess.call(["gh", "release", "create", tag, "--title", f"{tag} - {title}, " "-F", notes_path, "--draft", "./target/noita-proxy-linux.zip", "./target/noita-proxy-win.zip", "./target/quant.ew.zip"])
+
+if __name__ == "__main__":
+    main()
