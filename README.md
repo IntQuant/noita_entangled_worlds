@@ -17,5 +17,5 @@ Discord server: https://discord.gg/2vHyEzBZ
 Special thanks to:
  - Contributors.
  - @EvaisaDev for allowing to use code from Noita Arena mod.
- - @dextered for NoitaPatcher.
+ - @dextercd for NoitaPatcher.
  - Creators of other libraries used in this project.
