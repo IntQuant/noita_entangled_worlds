@@ -24,6 +24,7 @@ ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
 
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
@@ -167,24 +168,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 
     local item_pick = EntityGetFirstComponentIncludingDisabled(player_entity, "ItemPickUpperComponent")
     ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
-
-    if ctx.debug then
-        -- ~Portal to lab
-        -- EntitySetTransform(player_entity, 0, 12600)
-        EntitySetTransform(player_entity, 0, 8600-20)
-
-        util.set_ent_health(player_entity, {1000, 1000})
-        local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")
-        ComponentSetValue2(wallet, "money", 100000)
-        -- GameSetCameraFree(true)
-
-        dofile_once("data/scripts/perks/perk.lua")
-        local x, y = EntityGetFirstHitboxCenter(player_entity)
-        perk_spawn(x, y, "LASER_AIM", true)
-        perk_spawn(x-50, y, "GLASS_CANNON", true)
-        perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
-        EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
-    end
 
     ctx.hook.on_local_player_spawn(my_player)
     ctx.hook.on_should_send_updates()
