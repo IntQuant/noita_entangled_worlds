@@ -123,7 +123,7 @@ function rpc.handle_death_data(death_data)
                 EntityRemoveComponent(enemy_id, immortal)
             end
             local protection_component_id = GameGetGameEffect(enemy_id, "PROTECTION_ALL")
-            if protection_component_id then
+            if protection_component_id ~= 0 then
                 EntitySetComponentIsEnabled(enemy_id, protection_component_id, false)
             end
 
