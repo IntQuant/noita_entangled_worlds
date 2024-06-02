@@ -206,7 +206,7 @@ function rpc.handle_enemy_data(enemy_data)
         local dmg = current_hp-hp
         if dmg > 0 then
             -- GamePrint("Dealing dmg "..dmg)
-            EntityInflictDamage(enemy_id, dmg, "DAMAGE_CURSE", "", "NONE", 0, 0, ctx.my_player.entity)
+            EntityInflictDamage(enemy_id, dmg, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
         end
         util.set_ent_health(enemy_id, {hp, max_hp})
         ::continue::
