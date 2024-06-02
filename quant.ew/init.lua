@@ -26,6 +26,8 @@ ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
 
+ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync2.lua")
+
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 print("Noita EW version: "..version)

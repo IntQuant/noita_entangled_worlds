@@ -125,8 +125,9 @@ end
 
 local DEST_PROXY = 1
 local DEST_BROADCAST = 2
+local DEST_PROXY_BIN = 3
 
-local MOD_RELIABLE = 4
+local MOD_RELIABLE = 4 -- 0b100
 
 function net.send_internal(msg, dest, reliable)
   if reliable then
@@ -149,6 +150,10 @@ end
 
 function net.proxy_send(key, value)
   net.send_internal(key.." "..value, DEST_PROXY)
+end
+
+function net.proxy_bin_send(key, value)
+  net.sock:send_binary(string.char(DEST_PROXY_BIN, key)..value)
 end
 
 function net.proxy_notify_game_over()

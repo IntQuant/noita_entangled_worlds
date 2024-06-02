@@ -31,6 +31,8 @@ zip = "1.3.1"
 self-replace = "1.3.7"
 image = { version = "0.25.1", default_features = false, features = ["png"] }
 egui_extras = { version = "*", features = ["all_loaders"] }
+bytemuck = { version = "1.16.0", features = ["derive"] }
+bincode = "1.3.3"
 
 [profile.dev]
 opt-level = 1

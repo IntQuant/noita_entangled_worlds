@@ -9,6 +9,7 @@ use std::{
     time::Duration,
 };
 use tracing::debug;
+use world::{RunLengthUpdate, WorldManager};
 
 use tangled::Reliability;
 use tracing::{error, info, warn};
@@ -17,6 +18,7 @@ use tungstenite::{accept, WebSocket};
 use crate::{messages::NetMsg, GameSettings};
 
 pub mod steam_networking;
+pub mod world;
 
 pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
     let mut buf = Vec::new();
@@ -35,6 +37,7 @@ pub(crate) fn ws_encode_mod(peer: omni::OmniPeerId, data: &[u8]) -> tungstenite:
 
 pub(crate) struct NetInnerState {
     pub(crate) ws: Option<WebSocket<TcpStream>>,
+    world: WorldManager,
 }
 
 impl NetInnerState {
@@ -127,7 +130,10 @@ impl NetManager {
 
         let local_server: TcpListener = socket.into();
 
-        let mut state = NetInnerState { ws: None };
+        let mut state = NetInnerState {
+            ws: None,
+            world: WorldManager::new(),
+        };
 
         while self
             .continue_running
@@ -281,6 +287,8 @@ impl NetManager {
                                 },
                             );
                         }
+                        // Binary message to proxy
+                        3 => self.handle_bin_message_to_proxy(&msg[1..], state),
                         msg_variant => {
                             error!("Unknown msg variant from mod: {}", msg_variant)
                         }
@@ -342,6 +350,25 @@ impl NetManager {
             }
             key => {
                 error!("Unknown msg from mod: {:?}", key)
+            }
+        }
+    }
+
+    fn handle_bin_message_to_proxy(&self, msg: &[u8], state: &mut NetInnerState) {
+        let key = msg[0];
+        let data = &msg[1..];
+        match key {
+            // world frame
+            0 => {
+                let update = RunLengthUpdate::load(data);
+                state.world.add_update(update);
+            }
+            // world end
+            1 => {
+                state.world.add_end();
+            }
+            key => {
+                error!("Unknown bin msg from mod: {:?}", key)
             }
         }
     }
