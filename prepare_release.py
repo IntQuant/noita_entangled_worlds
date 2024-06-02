@@ -131,8 +131,11 @@ def main():
     notes.p("")
 
     notes.title("Accepted pull requests")
-    for request in pull_requests:
-        notes.l(request)
+    if pull_requests:
+        for request in pull_requests:
+            notes.l(request)
+    else:
+        notes.p("No pull requests have been accepted in this release.")
 
     print()
     notes_path = "/tmp/rnotes.md"
