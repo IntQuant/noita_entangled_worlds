@@ -1,10 +1,25 @@
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
+local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
 
 local enemy_sync = {}
+
+local dead_entities = {}
+
+np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
+    local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
+    local responsible = nil
+    if player_data ~= nil then
+        responsible = player_data.peer_id
+    else
+        responsible = responsible_id
+    end
+    table.insert(dead_entities, {enemy_id, responsible})
+end)
 
 local function world_exists_for(entity)
     local x, y = EntityGetFirstHitboxCenter(entity)
@@ -66,20 +81,11 @@ function enemy_sync.host_upload_entities()
         ::continue::
     end
 
-    local dead_entities = {}
-
-    local i = 1
-    while GlobalsGetValue("ew_enemy_death_"..i, "0") ~= "0" do
-        local enemy_id = tonumber(GlobalsGetValue("ew_enemy_death_"..i, "0"))
-        GlobalsSetValue("ew_enemy_death_"..i, "0")
-        table.insert(dead_entities, enemy_id)
-        i = i + 1
-    end
-
     rpc.handle_enemy_data(enemy_data_list)
     if #dead_entities > 0 then
         rpc.handle_death_data(dead_entities)
     end
+    dead_entities = {}
 end
 
 function enemy_sync.client_cleanup()
@@ -114,7 +120,16 @@ end
 
 rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
-    for _, remote_id in ipairs(death_data) do
+    for _, remote_data in ipairs(death_data) do
+        local remote_id = remote_data[1]
+        local responsible_entity = 0
+        local peer_data = player_fns.peer_get_player_data(remote_data[2], true)
+        if peer_data ~= nil then
+            responsible_entity = peer_data.entity
+        elseif ctx.entity_by_remote_id[remote_data[2]] ~= nil then
+            responsible_entity = ctx.entity_by_remote_id[remote_data[2]]
+        end
+
         local enemy_data = ctx.entity_by_remote_id[remote_id]
         if enemy_data ~= nil then
             local enemy_id = enemy_data.id
@@ -130,9 +145,9 @@ function rpc.handle_death_data(death_data)
             local current_hp = util.get_ent_health(enemy_id)
             local dmg = current_hp
             if dmg > 0 then
-                EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, ctx.my_player.entity)
+                EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity)
             end
-            EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, ctx.my_player.entity) -- Just to be sure
+            EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
             EntityKill(enemy_id)
         end
     end

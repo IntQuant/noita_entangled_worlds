@@ -392,8 +392,8 @@ function player_fns.peer_has_player(peer_id)
     return ctx.players[peer_id] ~= nil
 end
 
-function player_fns.peer_get_player_data(peer_id)
-    if not player_fns.peer_has_player(peer_id) then
+function player_fns.peer_get_player_data(peer_id, dont_spawn_new)
+    if (not dont_spawn_new) and (not player_fns.peer_has_player(peer_id)) then
         player_fns.spawn_player_for(peer_id, ctx.initial_player_pos.x, ctx.initial_player_pos.y)
     end
     return ctx.players[peer_id]
