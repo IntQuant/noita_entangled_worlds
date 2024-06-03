@@ -107,7 +107,7 @@ mod test {
         let mut entry_id = 0;
         while let Ok(entry) = bincode::deserialize_from::<_, WorldUpdateKind>(&mut file) {
             if let WorldUpdateKind::Update(entry) = entry {
-                model.apply_update(&entry);
+                model.apply_noita_update(&entry);
                 // println!("{:?}", entry.header)
                 entry_id += 1;
                 // if entry_id > 1000000 {
