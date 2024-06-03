@@ -33,7 +33,7 @@ struct ByteParser<'a> {
 }
 
 pub struct WorldManager {
-    // writer: BufWriter<File>,
+    writer: BufWriter<File>,
 }
 
 impl<'a> ByteParser<'a> {
@@ -81,16 +81,16 @@ pub enum WorldUpdateKind {
 impl WorldManager {
     pub fn new() -> Self {
         Self {
-            // writer: BufWriter::new(File::create("worldlog.bin").unwrap()),
+            writer: BufWriter::new(File::create("worldlog.bin").unwrap()),
         }
     }
 
     pub fn add_update(&mut self, update: RunLengthUpdate) {
-        // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::Update(update)).unwrap();
+        bincode::serialize_into(&mut self.writer, &WorldUpdateKind::Update(update)).unwrap();
     }
 
     pub fn add_end(&mut self) {
-        // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::End).unwrap();
+        bincode::serialize_into(&mut self.writer, &WorldUpdateKind::End).unwrap();
     }
 }
 
@@ -110,16 +110,25 @@ mod test {
                 model.apply_update(&entry);
                 // println!("{:?}", entry.header)
                 entry_id += 1;
-                if entry_id > 1000000 {
-                    break;
-                }
+                // if entry_id > 1000000 {
+                //     break;
+                // }
                 if entry_id % 10000 == 0 {
-                    println!("{}", model.pixels.len());
                     let (x, y) = model.get_start();
                     let img = model.gen_image(x, y, 2048, 2048);
                     img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
                 }
             }
+        }
+
+        let (x, y) = model.get_start();
+        let img = model.gen_image(x, y, 2048 * 2, 2048 * 2);
+        img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
+
+        let mut mats = model.mats.iter().copied().collect::<Vec<_>>();
+        mats.sort();
+        for mat in mats {
+            println!("{}", mat)
         }
     }
 }

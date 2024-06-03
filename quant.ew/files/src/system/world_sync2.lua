@@ -18,6 +18,9 @@ local bandwidth_bucket_max = 29000
 local KEY_WORLD_FRAME = 0
 local KEY_WORLD_END = 1
 
+local initialized_chunks = {}
+local CHUNK_SIZE = 256
+
 function world_sync.on_world_update_host()
 
     local grid_world = world_ffi.get_grid_world()
@@ -28,7 +31,6 @@ function world_sync.on_world_update_host()
     local end_ = begin + thread_impl.chunk_update_count
 
     local count = thread_impl.chunk_update_count
-    -- GamePrint("w update "..count)
     for i = 0, count - 1 do
         local it = begin[i]
 
@@ -42,11 +44,8 @@ function world_sync.on_world_update_host()
         end_x = end_x + 1
         end_y = end_y + 2
 
-        -- if i < 9 then            
-        --     GamePrint(start_x.." "..start_y.." "..end_x.." "..end_y)
-        -- end
         local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-        rect_optimiser:submit(rectangle)
+        -- rect_optimiser:submit(rectangle)
     end
     for i = 0, tonumber(thread_impl.world_update_params_count) - 1 do
         local wup = thread_impl.world_update_params.begin[i]
@@ -56,11 +55,28 @@ function world_sync.on_world_update_host()
         local end_y = wup.update_region.bottom_right.y
 
         local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-        rect_optimiser:submit(rectangle)
+        -- rect_optimiser:submit(rectangle)
     end
+
+    local px, py = EntityGetTransform(ctx.my_player.entity)
+    local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
+    for cx = ocx-1,ocx+1 do
+        for cy = ocy-1,ocy+1 do
+            local chunk_id = cx.." "..cy
+            if initialized_chunks[chunk_id] == nil then
+                local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
+                if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+                    GamePrint("Sending chunk "..chunk_id)
+                    initialized_chunks[chunk_id] = true
+                    rect_optimiser:submit(crect)
+                end
+            end
+        end
+    end
+
     if GameGetFrameNum() % 1 == 0 then
         rect_optimiser:scan()
-        
+
         for crect in rect.parts(rect_optimiser:iterate(), 256) do
             local area = nil
             -- Make sure we don't send chunks that aren't loaded yet, like holy mountains before host got there.
