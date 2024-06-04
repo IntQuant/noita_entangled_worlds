@@ -1,7 +1,9 @@
+use bitcode::{Decode, Encode};
 use chunk::{Chunk, Pixel, PixelFlags};
 use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
 use image::{Rgb, RgbImage};
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::collections::HashSet;
 
 mod chunk;
 pub mod encoding;
@@ -11,8 +13,8 @@ const CHUNK_SIZE: usize = 256;
 type ChunkCoord = (i32, i32);
 
 pub struct WorldModel {
-    chunks: HashMap<ChunkCoord, Chunk>,
-    pub mats: HashSet<u16>,
+    chunks: FxHashMap<ChunkCoord, Chunk>,
+    pub mats: FxHashSet<u16>,
     palette: MatPalette,
     changed_chunks: HashSet<ChunkCoord>,
 }
@@ -21,7 +23,7 @@ struct MatPalette {
     colors: Vec<Rgb<u8>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Encode, Decode)]
 pub struct ChunkDelta {
     runs: Vec<PixelRun<Option<Pixel>>>,
     chunk_coord: (i32, i32),

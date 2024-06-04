@@ -45,7 +45,7 @@ function world_sync.on_world_update_host()
         end_y = end_y + 2
 
         local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-        -- rect_optimiser:submit(rectangle)
+        rect_optimiser:submit(rectangle)
     end
     for i = 0, tonumber(thread_impl.world_update_params_count) - 1 do
         local wup = thread_impl.world_update_params.begin[i]
@@ -55,7 +55,7 @@ function world_sync.on_world_update_host()
         local end_y = wup.update_region.bottom_right.y
 
         local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-        -- rect_optimiser:submit(rectangle)
+        rect_optimiser:submit(rectangle)
     end
 
     local px, py = EntityGetTransform(ctx.my_player.entity)
@@ -74,7 +74,7 @@ function world_sync.on_world_update_host()
         end
     end
 
-    if GameGetFrameNum() % 1 == 0 then
+    if GameGetFrameNum() % 10 == 0 then
         rect_optimiser:scan()
 
         for crect in rect.parts(rect_optimiser:iterate(), 256) do

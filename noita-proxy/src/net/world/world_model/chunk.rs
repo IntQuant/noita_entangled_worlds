@@ -1,6 +1,8 @@
+use bitcode::{Decode, Encode};
+
 use super::{encoding::RawPixel, CHUNK_SIZE};
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
 pub enum PixelFlags {
     #[default]
     Unknown,
@@ -8,7 +10,7 @@ pub enum PixelFlags {
     Fluid,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
 pub struct Pixel {
     pub flags: PixelFlags,
     pub material: u16,

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufWriter};
+use world_model::WorldModel;
 
 pub use world_model::encoding::NoitaWorldUpdate;
 
@@ -12,22 +13,25 @@ pub enum WorldUpdateKind {
 }
 
 pub struct WorldManager {
-    pub(crate) writer: BufWriter<File>,
+    // pub(crate) writer: BufWriter<File>,
+    model: WorldModel,
 }
 
 impl WorldManager {
     pub fn new() -> Self {
         Self {
-            writer: BufWriter::new(File::create("worldlog.bin").unwrap()),
+            // writer: BufWriter::new(File::create("worldlog.bin").unwrap()),
+            model: WorldModel::new(),
         }
     }
 
     pub fn add_update(&mut self, update: NoitaWorldUpdate) {
-        bincode::serialize_into(&mut self.writer, &WorldUpdateKind::Update(update)).unwrap();
+        // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::Update(update)).unwrap();
+        self.model.apply_noita_update(&update);
     }
 
     pub fn add_end(&mut self) {
-        bincode::serialize_into(&mut self.writer, &WorldUpdateKind::End).unwrap();
+        // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::End).unwrap();
     }
 }
 
@@ -43,6 +47,8 @@ mod test {
         let mut model = WorldModel::new();
         let mut model2 = WorldModel::new();
         let mut entry_id = 0;
+        let mut deltas_size = 0;
+
         while let Ok(entry) = bincode::deserialize_from::<_, WorldUpdateKind>(&mut file)
             .inspect_err(|e| println!("{}", e))
         {
@@ -59,7 +65,7 @@ mod test {
                         entry.header.w as u32 + 1,
                         entry.header.h as u32 + 1,
                     );
-                    // TODO
+
                     assert_eq!(entry, new_update);
                 }
                 WorldUpdateKind::End => {
@@ -70,6 +76,7 @@ mod test {
                         img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
                     }
                     let deltas = model.get_all_deltas();
+                    deltas_size += lz4_flex::compress_prepend_size(&bitcode::encode(&deltas)).len();
 
                     model.reset_change_tracking();
                     model2.apply_all_deltas(&deltas);
@@ -84,6 +91,7 @@ mod test {
         let img = model2.gen_image(x, y, 2048 * 2, 2048 * 2);
         img.save(format!("/tmp/img_model2.png")).unwrap();
 
+        println!("Deltas: {} bytes", deltas_size)
         // let mut mats = model.mats.iter().copied().collect::<Vec<_>>();
         // mats.sort();
         // for mat in mats {

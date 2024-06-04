@@ -1,8 +1,7 @@
+use bitcode::{Decode, Encode};
 use bytemuck::{bytes_of, pod_read_unaligned, AnyBitPattern, NoUninit};
 use serde::{Deserialize, Serialize};
 use std::mem::size_of;
-
-use super::chunk::Pixel;
 
 #[derive(Debug, Clone, Copy, AnyBitPattern, NoUninit, Serialize, Deserialize, PartialEq, Eq)]
 #[repr(C)]
@@ -28,7 +27,7 @@ pub(crate) struct RawPixel {
 
 /// Stores a run of pixels.
 /// Not specific to Noita side - length is an actual length
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
 pub struct PixelRun<Pixel> {
     pub length: u32,
     pub data: Pixel,
