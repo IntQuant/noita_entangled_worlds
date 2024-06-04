@@ -1,5 +1,5 @@
 use chunk::{Chunk, Pixel, PixelFlags};
-use encoding::{NoitaWorldUpdate, PixelRunner};
+use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
 use image::{Rgb, RgbImage};
 use std::collections::{HashMap, HashSet};
 
@@ -19,6 +19,12 @@ pub struct WorldModel {
 
 struct MatPalette {
     colors: Vec<Rgb<u8>>,
+}
+
+#[derive(Debug)]
+pub struct ChunkDelta {
+    runs: Vec<PixelRun<Option<Pixel>>>,
+    chunk_coord: (i32, i32),
 }
 
 impl MatPalette {
@@ -57,6 +63,7 @@ impl WorldModel {
         if current != pixel {
             chunk.set_pixel(offset, pixel);
         }
+        self.changed_chunks.insert(chunk_coord);
     }
 
     fn get_pixel(&self, x: i32, y: i32) -> Pixel {
@@ -117,6 +124,53 @@ impl WorldModel {
             }
         }
         runner.to_noita(x, y, (w - 1) as u8, (h - 1) as u8)
+    }
+
+    fn apply_chunk_delta(&mut self, delta: &ChunkDelta) {
+        // TODO: Also mark as updated?
+        let chunk = self.chunks.entry(delta.chunk_coord).or_default();
+        let mut offset = 0;
+        for run in &delta.runs {
+            for _ in 0..(run.length) {
+                if let Some(pixel) = run.data {
+                    chunk.set_pixel(offset, pixel)
+                }
+                offset += 1;
+            }
+        }
+        assert_eq!(offset, CHUNK_SIZE * CHUNK_SIZE)
+    }
+
+    fn get_chunk_delta(&self, chunk_coord: ChunkCoord) -> Option<ChunkDelta> {
+        let chunk = self.chunks.get(&chunk_coord)?;
+        let mut runner = PixelRunner::new();
+        for i in 0..CHUNK_SIZE * CHUNK_SIZE {
+            runner.put_pixel(chunk.changed(i).then(|| chunk.pixel(i)))
+        }
+        let runs = runner.build();
+        Some(ChunkDelta { chunk_coord, runs })
+    }
+
+    pub fn apply_all_deltas(&mut self, deltas: &[ChunkDelta]) {
+        for delta in deltas {
+            self.apply_chunk_delta(delta)
+        }
+    }
+
+    pub fn get_all_deltas(&self) -> Vec<ChunkDelta> {
+        self.changed_chunks
+            .iter()
+            .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord))
+            .collect()
+    }
+
+    pub fn reset_change_tracking(&mut self) {
+        for chunk_pos in &self.changed_chunks {
+            if let Some(chunk) = self.chunks.get_mut(&chunk_pos) {
+                chunk.clear_changed();
+            }
+        }
+        self.changed_chunks.clear();
     }
 
     pub fn get_start(&self) -> (i32, i32) {

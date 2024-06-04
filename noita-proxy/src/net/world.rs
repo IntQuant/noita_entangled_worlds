@@ -41,8 +41,11 @@ mod test {
     fn read_replay() {
         let mut file = BufReader::new(File::open("worldlog.bin").unwrap());
         let mut model = WorldModel::new();
+        let mut model2 = WorldModel::new();
         let mut entry_id = 0;
-        while let Ok(entry) = bincode::deserialize_from::<_, WorldUpdateKind>(&mut file) {
+        while let Ok(entry) = bincode::deserialize_from::<_, WorldUpdateKind>(&mut file)
+            .inspect_err(|e| println!("{}", e))
+        {
             match entry {
                 WorldUpdateKind::Update(entry) => {
                     let saved = entry.save();
@@ -56,6 +59,7 @@ mod test {
                         entry.header.w as u32 + 1,
                         entry.header.h as u32 + 1,
                     );
+                    // TODO
                     assert_eq!(entry, new_update);
                 }
                 WorldUpdateKind::End => {
@@ -65,6 +69,10 @@ mod test {
                         let img = model.gen_image(x, y, 2048, 2048);
                         img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
                     }
+                    let deltas = model.get_all_deltas();
+
+                    model.reset_change_tracking();
+                    model2.apply_all_deltas(&deltas);
                 }
             }
         }
@@ -72,6 +80,9 @@ mod test {
         let (x, y) = model.get_start();
         let img = model.gen_image(x, y, 2048 * 2, 2048 * 2);
         img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
+
+        let img = model2.gen_image(x, y, 2048 * 2, 2048 * 2);
+        img.save(format!("/tmp/img_model2.png")).unwrap();
 
         // let mut mats = model.mats.iter().copied().collect::<Vec<_>>();
         // mats.sort();

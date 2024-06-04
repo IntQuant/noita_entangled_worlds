@@ -1,6 +1,6 @@
 use super::{encoding::RawPixel, CHUNK_SIZE};
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum PixelFlags {
     #[default]
     Unknown,
@@ -8,7 +8,7 @@ pub enum PixelFlags {
     Fluid,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Pixel {
     pub flags: PixelFlags,
     pub material: u16,

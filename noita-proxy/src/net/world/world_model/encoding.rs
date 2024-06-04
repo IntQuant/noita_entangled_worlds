@@ -60,7 +60,7 @@ impl<Pixel: Eq + Copy> PixelRunner<Pixel> {
                     data: current,
                 });
                 self.current_pixel = Some(pixel);
-                self.current_run_len = 0;
+                self.current_run_len = 1;
             } else {
                 self.current_run_len += 1;
             }
