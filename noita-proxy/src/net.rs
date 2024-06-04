@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 use tracing::debug;
-use world::{RunLengthUpdate, WorldManager};
+use world::{NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
 use tracing::{error, info, warn};
@@ -360,7 +360,7 @@ impl NetManager {
         match key {
             // world frame
             0 => {
-                let update = RunLengthUpdate::load(data);
+                let update = NoitaWorldUpdate::load(data);
                 state.world.add_update(update);
             }
             // world end

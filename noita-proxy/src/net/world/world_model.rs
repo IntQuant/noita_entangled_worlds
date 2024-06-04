@@ -1,9 +1,10 @@
-use super::RunLengthUpdate;
 use chunk::{Chunk, Pixel, PixelFlags};
 use image::{Rgb, RgbImage};
+use noita_encoding::NoitaWorldUpdate;
 use std::collections::{HashMap, HashSet};
 
 mod chunk;
+pub mod noita_encoding;
 
 const CHUNK_SIZE: usize = 256;
 
@@ -75,7 +76,7 @@ impl WorldModel {
         }
     }
 
-    pub fn apply_noita_update(&mut self, update: &RunLengthUpdate) {
+    pub fn apply_noita_update(&mut self, update: &NoitaWorldUpdate) {
         let header = &update.header;
         let runs = &update.runs;
 
