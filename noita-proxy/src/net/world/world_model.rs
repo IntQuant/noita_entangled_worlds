@@ -1,10 +1,10 @@
 use chunk::{Chunk, Pixel, PixelFlags};
+use encoding::{NoitaWorldUpdate, PixelRunner};
 use image::{Rgb, RgbImage};
-use noita_encoding::NoitaWorldUpdate;
 use std::collections::{HashMap, HashSet};
 
 mod chunk;
-pub mod noita_encoding;
+pub mod encoding;
 
 const CHUNK_SIZE: usize = 256;
 
@@ -12,7 +12,7 @@ type ChunkCoord = (i32, i32);
 
 pub struct WorldModel {
     chunks: HashMap<ChunkCoord, Chunk>,
-    pub mats: HashSet<i16>,
+    pub mats: HashSet<u16>,
     palette: MatPalette,
     changed_chunks: HashSet<ChunkCoord>,
 }
@@ -84,17 +84,17 @@ impl WorldModel {
         let mut y = 0;
 
         for run in runs {
-            let flags = if run.flags > 0 {
+            let flags = if run.data.flags > 0 {
                 PixelFlags::Fluid
             } else {
                 PixelFlags::Normal
             };
-            for _ in 0..(u32::from(run.length) + 1) {
+            for _ in 0..(run.length) {
                 self.set_pixel(
                     header.x + x,
                     header.y + y,
                     Pixel {
-                        material: run.material,
+                        material: run.data.material,
                         flags,
                     },
                 );
@@ -105,6 +105,18 @@ impl WorldModel {
                 }
             }
         }
+    }
+
+    pub fn get_noita_update(&self, x: i32, y: i32, w: u32, h: u32) -> NoitaWorldUpdate {
+        assert!(w <= 256);
+        assert!(h <= 256);
+        let mut runner = PixelRunner::new();
+        for j in 0..(h as i32) {
+            for i in 0..(w as i32) {
+                runner.put_pixel(self.get_pixel(x + i, y + j).to_raw())
+            }
+        }
+        runner.to_noita(x, y, (w - 1) as u8, (h - 1) as u8)
     }
 
     pub fn get_start(&self) -> (i32, i32) {

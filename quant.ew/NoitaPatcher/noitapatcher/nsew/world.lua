@@ -10,7 +10,7 @@ local C = ffi.C
 ffi.cdef([[
 
 enum ENCODE_CONST {
-    PIXEL_RUN_MAX = 4096,
+    PIXEL_RUN_MAX = 16000,
 
     LIQUID_FLAG_STATIC = 1,
 };

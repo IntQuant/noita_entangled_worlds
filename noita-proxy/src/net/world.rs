@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufWriter};
 
-pub use world_model::noita_encoding::NoitaWorldUpdate;
+pub use world_model::encoding::NoitaWorldUpdate;
 
 pub mod world_model;
 
@@ -35,7 +35,7 @@ impl WorldManager {
 mod test {
     use std::{fs::File, io::BufReader};
 
-    use super::{world_model::WorldModel, WorldUpdateKind};
+    use super::{world_model::WorldModel, NoitaWorldUpdate, WorldUpdateKind};
 
     #[test]
     fn read_replay() {
@@ -43,17 +43,28 @@ mod test {
         let mut model = WorldModel::new();
         let mut entry_id = 0;
         while let Ok(entry) = bincode::deserialize_from::<_, WorldUpdateKind>(&mut file) {
-            if let WorldUpdateKind::Update(entry) = entry {
-                model.apply_noita_update(&entry);
-                // println!("{:?}", entry.header)
-                entry_id += 1;
-                // if entry_id > 1000000 {
-                //     break;
-                // }
-                if entry_id % 10000 == 0 {
-                    let (x, y) = model.get_start();
-                    let img = model.gen_image(x, y, 2048, 2048);
-                    img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
+            match entry {
+                WorldUpdateKind::Update(entry) => {
+                    let saved = entry.save();
+                    let loaded = NoitaWorldUpdate::load(&saved);
+                    assert_eq!(entry, loaded);
+
+                    model.apply_noita_update(&entry);
+                    let new_update = model.get_noita_update(
+                        entry.header.x,
+                        entry.header.y,
+                        entry.header.w as u32 + 1,
+                        entry.header.h as u32 + 1,
+                    );
+                    assert_eq!(entry, new_update);
+                }
+                WorldUpdateKind::End => {
+                    entry_id += 1;
+                    if entry_id % 10000 == 0 {
+                        let (x, y) = model.get_start();
+                        let img = model.gen_image(x, y, 2048, 2048);
+                        img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
+                    }
                 }
             }
         }
@@ -62,10 +73,10 @@ mod test {
         let img = model.gen_image(x, y, 2048 * 2, 2048 * 2);
         img.save(format!("/tmp/img_{}.png", entry_id)).unwrap();
 
-        let mut mats = model.mats.iter().copied().collect::<Vec<_>>();
-        mats.sort();
-        for mat in mats {
-            println!("{}", mat)
-        }
+        // let mut mats = model.mats.iter().copied().collect::<Vec<_>>();
+        // mats.sort();
+        // for mat in mats {
+        //     println!("{}", mat)
+        // }
     }
 }

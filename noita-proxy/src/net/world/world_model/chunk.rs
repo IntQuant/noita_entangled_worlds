@@ -1,4 +1,4 @@
-use super::CHUNK_SIZE;
+use super::{encoding::RawPixel, CHUNK_SIZE};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum PixelFlags {
@@ -11,7 +11,20 @@ pub enum PixelFlags {
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub struct Pixel {
     pub flags: PixelFlags,
-    pub material: i16,
+    pub material: u16,
+}
+
+impl Pixel {
+    pub fn to_raw(self) -> RawPixel {
+        RawPixel {
+            material: self.material,
+            flags: if self.flags == PixelFlags::Normal {
+                0
+            } else {
+                1
+            },
+        }
+    }
 }
 
 pub struct Chunk {
