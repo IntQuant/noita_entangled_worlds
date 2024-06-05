@@ -3,7 +3,6 @@ use chunk::{Chunk, Pixel, PixelFlags};
 use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
 use image::{Rgb, RgbImage};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::collections::HashSet;
 
 mod chunk;
 pub mod encoding;
@@ -16,7 +15,7 @@ pub struct WorldModel {
     chunks: FxHashMap<ChunkCoord, Chunk>,
     pub mats: FxHashSet<u16>,
     palette: MatPalette,
-    changed_chunks: HashSet<ChunkCoord>,
+    changed_chunks: FxHashSet<ChunkCoord>,
 }
 
 struct MatPalette {
@@ -128,8 +127,22 @@ impl WorldModel {
         runner.to_noita(x, y, (w - 1) as u8, (h - 1) as u8)
     }
 
+    pub fn get_all_noita_updates(&self) -> Vec<Vec<u8>> {
+        let mut updates = Vec::new();
+        for chunk_coord in &self.changed_chunks {
+            let update = self.get_noita_update(
+                chunk_coord.0 * (CHUNK_SIZE as i32),
+                chunk_coord.1 * (CHUNK_SIZE as i32),
+                CHUNK_SIZE as u32,
+                CHUNK_SIZE as u32,
+            );
+            updates.push(update.save());
+        }
+        updates
+    }
+
     fn apply_chunk_delta(&mut self, delta: &ChunkDelta) {
-        // TODO: Also mark as updated?
+        self.changed_chunks.insert(delta.chunk_coord);
         let chunk = self.chunks.entry(delta.chunk_coord).or_default();
         let mut offset = 0;
         for run in &delta.runs {

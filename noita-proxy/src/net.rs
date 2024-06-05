@@ -27,6 +27,14 @@ pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungste
     tungstenite::Message::Binary(buf)
 }
 
+pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
+    let mut buf = Vec::new();
+    buf.push(3);
+    buf.push(key);
+    buf.extend(data);
+    tungstenite::Message::Binary(buf)
+}
+
 pub(crate) fn ws_encode_mod(peer: omni::OmniPeerId, data: &[u8]) -> tungstenite::Message {
     let mut buf = Vec::new();
     buf.push(1u8);
@@ -211,6 +219,7 @@ impl NetManager {
                         state.try_ws_write(ws_encode_proxy("leave", id));
                     }
                     omni::OmniNetworkEvent::Message { src, data } => {
+                        // TODO move all compression here.
                         let Ok(net_msg) = bitcode::decode::<NetMsg>(&data) else {
                             continue;
                         };
@@ -231,6 +240,13 @@ impl NetManager {
                                 if let Ok(decompressed) = lz4_flex::decompress_size_prepended(&data)
                                 {
                                     state.try_ws_write(ws_encode_mod(src, &decompressed));
+                                }
+                            }
+                            NetMsg::WorldDeltas { deltas } => {
+                                state.world.handle_deltas(deltas);
+                                let updates = state.world.get_noita_updates();
+                                for update in updates {
+                                    state.try_ws_write(ws_encode_proxy_bin(0, &update));
                                 }
                             }
                         }
@@ -365,7 +381,8 @@ impl NetManager {
             }
             // world end
             1 => {
-                state.world.add_end();
+                let deltas = state.world.add_end();
+                self.broadcast(&NetMsg::WorldDeltas { deltas }, Reliability::Reliable);
             }
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)

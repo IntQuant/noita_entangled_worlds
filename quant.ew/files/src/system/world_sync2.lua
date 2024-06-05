@@ -74,7 +74,7 @@ function world_sync.on_world_update_host()
         end
     end
 
-    if GameGetFrameNum() % 10 == 0 then
+    if GameGetFrameNum() % 30 == 0 then
         rect_optimiser:scan()
 
         for crect in rect.parts(rect_optimiser:iterate(), 256) do
@@ -109,6 +109,10 @@ function world_sync.handle_world_data(world_data)
         local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
         world.decode(grid_world, header, runs)
     end
+end
+
+net.net_handling.proxy[0] = function(_, value)
+    world_sync.handle_world_data(value)
 end
 
 return world_sync

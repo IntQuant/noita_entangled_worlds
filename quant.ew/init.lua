@@ -17,7 +17,7 @@ local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.l
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
+-- ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
 ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")

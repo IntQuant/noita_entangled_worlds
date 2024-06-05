@@ -10,6 +10,8 @@ local reactor = pollnet.Reactor()
 local net_handling = dofile_once("mods/quant.ew/files/src/net_handling.lua")
 local net = {}
 
+net.net_handling = net_handling
+
 ctx.lib.net = net
 
 function net.update()
@@ -104,6 +106,13 @@ function net.init()
             else
               print("Could not deserialize: "..item)
             end
+          elseif string.byte(msg, 1, 1) == 2 then
+            msg_decoded = {
+              kind = "proxy",
+              peer_id = nil,
+              key = string.byte(msg, 2, 2),
+              value = string.sub(msg, 3),
+            }
           else
             print("Unknown msg")
           end

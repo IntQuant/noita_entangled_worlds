@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::BufWriter};
 use world_model::WorldModel;
 
 pub use world_model::encoding::NoitaWorldUpdate;
@@ -30,8 +29,21 @@ impl WorldManager {
         self.model.apply_noita_update(&update);
     }
 
-    pub fn add_end(&mut self) {
+    pub fn add_end(&mut self) -> Vec<world_model::ChunkDelta> {
+        let deltas = self.model.get_all_deltas();
+        self.model.reset_change_tracking();
+        deltas
         // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::End).unwrap();
+    }
+
+    pub fn handle_deltas(&mut self, deltas: Vec<world_model::ChunkDelta>) {
+        self.model.apply_all_deltas(&deltas);
+    }
+
+    pub fn get_noita_updates(&mut self) -> Vec<Vec<u8>> {
+        let updates = self.model.get_all_noita_updates();
+        self.model.reset_change_tracking();
+        updates
     }
 }
 
