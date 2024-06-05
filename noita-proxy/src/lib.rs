@@ -238,6 +238,7 @@ impl App {
                         ui.heading("Connect by ip");
                     });
                     ui.separator();
+                    ui.label("Note: steam networking is more reliable. Use it, if possible.");
                     if ui.button("Host").clicked() {
                         self.start_server();
                     }
