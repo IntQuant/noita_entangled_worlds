@@ -1,5 +1,8 @@
+use std::mem;
+
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
-use world_model::WorldModel;
+use world_model::{ChunkDelta, WorldModel};
 
 pub use world_model::encoding::NoitaWorldUpdate;
 
@@ -16,34 +19,59 @@ pub struct WorldManager {
     model: WorldModel,
 }
 
+#[derive(Debug, Decode, Encode)]
+pub struct WorldDelta(Vec<ChunkDelta>);
+
+impl WorldDelta {
+    pub fn split(self, limit: usize) -> Vec<WorldDelta> {
+        let mut res = Vec::new();
+        let mut current = Vec::new();
+        let mut current_size = 0;
+        for delta in self.0 {
+            if current_size < limit || current.is_empty() {
+                current_size += delta.estimate_size();
+                current.push(delta);
+            } else {
+                res.push(WorldDelta(mem::take(&mut current)));
+                current_size = 0;
+            }
+        }
+        if !current.is_empty() {
+            res.push(WorldDelta(mem::take(&mut current)));
+        }
+        res
+    }
+}
+
 impl WorldManager {
     pub fn new() -> Self {
         Self {
-            // writer: BufWriter::new(File::create("worldlog.bin").unwrap()),
             model: WorldModel::new(),
         }
     }
 
     pub fn add_update(&mut self, update: NoitaWorldUpdate) {
-        // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::Update(update)).unwrap();
         self.model.apply_noita_update(&update);
     }
 
-    pub fn add_end(&mut self) -> Vec<world_model::ChunkDelta> {
+    pub fn add_end(&mut self) -> WorldDelta {
         let deltas = self.model.get_all_deltas();
         self.model.reset_change_tracking();
-        deltas
-        // bincode::serialize_into(&mut self.writer, &WorldUpdateKind::End).unwrap();
+        WorldDelta(deltas)
     }
 
-    pub fn handle_deltas(&mut self, deltas: Vec<world_model::ChunkDelta>) {
-        self.model.apply_all_deltas(&deltas);
+    pub fn handle_deltas(&mut self, deltas: WorldDelta) {
+        self.model.apply_all_deltas(&deltas.0);
     }
 
     pub fn get_noita_updates(&mut self) -> Vec<Vec<u8>> {
         let updates = self.model.get_all_noita_updates();
         self.model.reset_change_tracking();
         updates
+    }
+
+    pub(crate) fn send_world(&self) -> WorldDelta {
+        WorldDelta(self.model.get_world_as_deltas())
     }
 }
 

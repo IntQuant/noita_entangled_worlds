@@ -211,7 +211,12 @@ function world.decode(grid_world, header, pixel_runs)
                 end
 
                 if current_material ~= new_material and new_material ~= 0 then
-                    local pixel = world_ffi.construct_cell(grid_world, x, y, world_ffi.get_material_ptr(new_material), nil)
+                    local mat_ptr = world_ffi.get_material_ptr(new_material)
+                    if mat_ptr == nil then
+                        GamePrint("NULL mat_ptr encountered")
+                        goto next_pixel
+                    end
+                    local pixel = world_ffi.construct_cell(grid_world, x, y, mat_ptr, nil)
                     if pixel == nil then
                         -- TODO: This can happen when the material texture has a
                         -- transparent pixel at the given coordinate. There's

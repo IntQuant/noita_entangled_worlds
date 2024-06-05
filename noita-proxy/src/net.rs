@@ -227,7 +227,20 @@ impl NetManager {
                         };
                         match net_msg {
                             NetMsg::Welcome => {
-                                info!("Got Welcome message from {}", src);
+                                // info!("Got Welcome message from {}", src);
+                                // let limit = if self.peer.is_steam() {
+                                //     1024 * 1024
+                                // } else {
+                                //     30000
+                                // };
+                                // let deltas = state.world.send_world().split(limit);
+                                // for delta in deltas {
+                                //     self.send(
+                                //         src,
+                                //         &NetMsg::WorldDelta { delta },
+                                //         Reliability::Reliable,
+                                //     );
+                                // }
                             }
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
@@ -244,8 +257,10 @@ impl NetManager {
                                     state.try_ws_write(ws_encode_mod(src, &decompressed));
                                 }
                             }
-                            NetMsg::WorldDeltas { deltas } => {
+                            NetMsg::WorldDelta { delta: deltas } => {
                                 state.world.handle_deltas(deltas);
+                            }
+                            NetMsg::WorldFrame => {
                                 let updates = state.world.get_noita_updates();
                                 for update in updates {
                                     state.try_ws_write(ws_encode_proxy_bin(0, &update));
@@ -382,7 +397,15 @@ impl NetManager {
             // world end
             1 => {
                 let deltas = state.world.add_end();
-                self.broadcast(&NetMsg::WorldDeltas { deltas }, Reliability::Reliable);
+                let limit = if self.peer.is_steam() {
+                    1024 * 1024
+                } else {
+                    30000
+                };
+                for delta in deltas.split(limit) {
+                    self.broadcast(&NetMsg::WorldDelta { delta }, Reliability::Reliable);
+                }
+                self.broadcast(&NetMsg::WorldFrame, Reliability::Reliable);
             }
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)

@@ -1,3 +1,5 @@
+use std::mem::size_of;
+
 use bitcode::{Decode, Encode};
 use chunk::{Chunk, Pixel, PixelFlags};
 use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
@@ -26,6 +28,12 @@ struct MatPalette {
 pub struct ChunkDelta {
     runs: Vec<PixelRun<Option<Pixel>>>,
     chunk_coord: (i32, i32),
+}
+
+impl ChunkDelta {
+    pub fn estimate_size(&self) -> usize {
+        8 + self.runs.len() * size_of::<PixelRun<Option<Pixel>>>()
+    }
 }
 
 impl MatPalette {
@@ -156,11 +164,11 @@ impl WorldModel {
         assert_eq!(offset, CHUNK_SIZE * CHUNK_SIZE)
     }
 
-    fn get_chunk_delta(&self, chunk_coord: ChunkCoord) -> Option<ChunkDelta> {
+    fn get_chunk_delta(&self, chunk_coord: ChunkCoord, ignore_changed: bool) -> Option<ChunkDelta> {
         let chunk = self.chunks.get(&chunk_coord)?;
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE {
-            runner.put_pixel(chunk.changed(i).then(|| chunk.pixel(i)))
+            runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.pixel(i)))
         }
         let runs = runner.build();
         Some(ChunkDelta { chunk_coord, runs })
@@ -175,7 +183,7 @@ impl WorldModel {
     pub fn get_all_deltas(&self) -> Vec<ChunkDelta> {
         self.changed_chunks
             .iter()
-            .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord))
+            .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, false))
             .collect()
     }
 
@@ -211,5 +219,12 @@ impl WorldModel {
                 Rgb([25, 0, 0])
             }
         })
+    }
+
+    pub fn get_world_as_deltas(&self) -> Vec<ChunkDelta> {
+        self.chunks
+            .keys()
+            .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, true))
+            .collect()
     }
 }

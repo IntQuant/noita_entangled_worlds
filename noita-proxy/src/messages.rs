@@ -1,6 +1,6 @@
 use bitcode::{Decode, Encode};
 
-use crate::{net::world::world_model::ChunkDelta, GameSettings};
+use crate::{net::world::WorldDelta, GameSettings};
 
 #[derive(Debug, Decode, Encode)]
 pub enum NetMsg {
@@ -8,5 +8,6 @@ pub enum NetMsg {
     StartGame { settings: GameSettings },
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
-    WorldDeltas { deltas: Vec<ChunkDelta> },
+    WorldDelta { delta: WorldDelta },
+    WorldFrame,
 }

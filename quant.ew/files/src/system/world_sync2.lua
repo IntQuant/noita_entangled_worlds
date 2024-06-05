@@ -13,8 +13,6 @@ local encoded_area = world.EncodedArea()
 
 local world_sync = {}
 
-local bandwidth_bucket_max = 29000
-
 local KEY_WORLD_FRAME = 0
 local KEY_WORLD_END = 1
 
@@ -66,7 +64,7 @@ function world_sync.on_world_update_host()
             if initialized_chunks[chunk_id] == nil then
                 local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
                 if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                    GamePrint("Sending chunk "..chunk_id)
+                    -- GamePrint("Sending chunk "..chunk_id)
                     initialized_chunks[chunk_id] = true
                     rect_optimiser:submit(crect)
                 end
