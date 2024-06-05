@@ -87,11 +87,7 @@ function world_sync.on_world_update_host()
             end
             if area ~= nil then
                 local str = ffi.string(area, world.encoded_size(area))
-                if string.len(str) > bandwidth_bucket_max then
-                    GamePrint("Discarding chunk update, as it is too large to be sent")
-                else
-                    net.proxy_bin_send(KEY_WORLD_FRAME, str)
-                end
+                net.proxy_bin_send(KEY_WORLD_FRAME, str)
             end
         end
         net.proxy_bin_send(KEY_WORLD_END, "")
@@ -101,14 +97,12 @@ end
 
 local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
-function world_sync.handle_world_data(world_data)
+function world_sync.handle_world_data(datum)
     local grid_world = world_ffi.get_grid_world()
-    for i, datum in ipairs(world_data) do
         -- GamePrint("Decoding world data "..i)
-        local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast('char const*', datum))
-        local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
-        world.decode(grid_world, header, runs)
-    end
+    local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast('char const*', datum))
+    local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
+    world.decode(grid_world, header, runs)
 end
 
 net.net_handling.proxy[0] = function(_, value)

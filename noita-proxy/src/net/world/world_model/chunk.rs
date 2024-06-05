@@ -19,7 +19,11 @@ pub struct Pixel {
 impl Pixel {
     pub fn to_raw(self) -> RawPixel {
         RawPixel {
-            material: self.material,
+            material: if self.flags != PixelFlags::Unknown {
+                self.material
+            } else {
+                u16::MAX
+            },
             flags: if self.flags == PixelFlags::Normal {
                 0
             } else {

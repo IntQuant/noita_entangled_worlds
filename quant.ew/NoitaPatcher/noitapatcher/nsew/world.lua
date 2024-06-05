@@ -193,6 +193,10 @@ function world.decode(grid_world, header, pixel_runs)
 
                 local current_material = 0
 
+                if new_material == -1 then
+                    goto next_pixel
+                end
+
                 if ppixel[0] ~= nil then
                     local pixel = ppixel[0]
                     local cell_type = pixel.vtable.get_cell_type(pixel)

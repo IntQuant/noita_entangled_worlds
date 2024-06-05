@@ -96,12 +96,12 @@ impl NetManager {
     }
 
     pub(crate) fn send(&self, peer: omni::OmniPeerId, msg: &NetMsg, reliability: Reliability) {
-        let encoded = bitcode::encode(msg);
+        let encoded = lz4_flex::compress_prepend_size(&bitcode::encode(msg));
         self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
     }
 
     pub(crate) fn broadcast(&self, msg: &NetMsg, reliability: Reliability) {
-        let encoded = bitcode::encode(msg);
+        let encoded = lz4_flex::compress_prepend_size(&bitcode::encode(msg));
         let len = encoded.len();
         if let Err(err) = self.peer.broadcast(encoded, reliability) {
             warn!("Error while broadcasting message of len {}: {}", len, err)
@@ -219,8 +219,10 @@ impl NetManager {
                         state.try_ws_write(ws_encode_proxy("leave", id));
                     }
                     omni::OmniNetworkEvent::Message { src, data } => {
-                        // TODO move all compression here.
-                        let Ok(net_msg) = bitcode::decode::<NetMsg>(&data) else {
+                        let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)
+                            .ok()
+                            .and_then(|decomp| bitcode::decode::<NetMsg>(&decomp).ok())
+                        else {
                             continue;
                         };
                         match net_msg {
@@ -276,9 +278,7 @@ impl NetManager {
                         }
                         // Broadcast
                         2 => {
-                            // Somewhat arbitrary limit to begin compressing messages.
-                            // Messages shorter than this many bytes probably won't be compressed as much
-                            let msg_to_send = if msg.len() > 140 {
+                            let msg_to_send = if false {
                                 let compressed = lz4_flex::compress_prepend_size(&msg[1..]);
 
                                 debug!(

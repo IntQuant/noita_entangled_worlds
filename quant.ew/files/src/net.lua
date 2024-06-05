@@ -106,7 +106,7 @@ function net.init()
             else
               print("Could not deserialize: "..item)
             end
-          elseif string.byte(msg, 1, 1) == 2 then
+          elseif string.byte(msg, 1, 1) == 3 then
             msg_decoded = {
               kind = "proxy",
               peer_id = nil,
