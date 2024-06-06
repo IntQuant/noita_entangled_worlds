@@ -40,6 +40,11 @@ function net_handling.proxy.name(_, value)
     ctx.my_name = value
 end
 
+function net_handling.proxy.proxy_opt(_, key, value)
+    print("Proxy opt: "..key.." = "..value)
+    ctx.proxy_opt[key] = value
+end
+
 function net_handling.mod.player(peer_id, value)
     local input_data = value.i
     local pos_data = value.p

@@ -7,7 +7,7 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Color32, InnerResponse, Margin, TextureOptions, Ui};
+use eframe::egui::{self, Align2, Color32, InnerResponse, Margin, RichText, TextureOptions, Ui};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
 use self_update::SelfUpdateManager;
@@ -27,6 +27,7 @@ pub mod steam_helper;
 pub struct GameSettings {
     seed: u64,
     debug_mode: bool,
+    world_sync_version: u32,
 }
 
 enum AppState {
@@ -44,6 +45,7 @@ struct AppSavedState {
     use_constant_seed: bool,
     nickname: Option<String>,
     times_started: u32,
+    world_sync_version: u32,
 }
 
 impl Default for AppSavedState {
@@ -54,6 +56,7 @@ impl Default for AppSavedState {
             use_constant_seed: false,
             nickname: None,
             times_started: 0,
+            world_sync_version: 1,
         }
     }
 }
@@ -79,6 +82,13 @@ fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> Inne
         ..Default::default()
     };
     frame.show(ui, add_contents)
+}
+
+fn heading_with_underline(ui: &mut Ui, text: impl Into<RichText>) {
+    ui.vertical_centered_justified(|ui| {
+        ui.heading(text);
+    });
+    ui.separator();
 }
 
 impl App {
@@ -190,21 +200,31 @@ impl App {
             ui.allocate_ui_at_rect(settings_rect.shrink(item_spacing), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    ui.vertical_centered_justified(|ui| {
-                        ui.heading("Game settings");
-                    });
-                    ui.separator();
-                    ui.checkbox(&mut self.saved_state.debug_mode, "Debug mode");
+                    heading_with_underline(ui, "Game settings");
+
+                    ui.label("Debug settings");
+                    ui.checkbox(&mut self.saved_state.debug_mode, "Debug/cheat mode");
                     ui.checkbox(&mut self.saved_state.use_constant_seed, "Use fixed seed");
+
+                    ui.add_space(20.0);
+
+                    ui.label("World sync version to use:");
+                    ui.horizontal(|ui| {
+                        ui.radio_value(&mut self.saved_state.world_sync_version, 1, "v1");
+                        ui.radio_value(
+                            &mut self.saved_state.world_sync_version,
+                            2,
+                            "v2 (experimental)",
+                        );
+                    });
                 });
             });
             ui.allocate_ui_at_rect(steam_connect_rect.shrink(item_spacing), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    ui.vertical_centered_justified(|ui| {
-                        ui.heading("Connect using steam");
-                    });
-                    ui.separator();
+
+                    heading_with_underline(ui, "Connect using steam");
+
                     match &self.steam_state {
                         Ok(_) => {
                             if ui.button("Create lobby").clicked() {
@@ -234,10 +254,9 @@ impl App {
             ui.allocate_ui_at_rect(ip_connect_rect.shrink(item_spacing), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    ui.vertical_centered_justified(|ui| {
-                        ui.heading("Connect by ip");
-                    });
-                    ui.separator();
+
+                    heading_with_underline(ui, "Connect by ip");
+
                     ui.label("Note: steam networking is more reliable. Use it, if possible.");
                     if ui.button("Host").clicked() {
                         self.start_server();

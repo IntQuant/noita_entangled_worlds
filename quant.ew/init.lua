@@ -17,18 +17,6 @@ local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.l
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 
--- ctx.dofile_and_add_hooks("mods/quant.ew/files/src/world_sync.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
-
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
-
-ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync2.lua")
-
-
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 print("Noita EW version: "..version)
 
@@ -44,6 +32,22 @@ ModLuaFileAppend("data/scripts/items/heart_fullhp_temple.lua", "mods/quant.ew/fi
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local my_player = nil
+
+local function load_modules()
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
+
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
+
+    if ctx.proxy_opt.world_sync_version == "1" then
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v1.lua")
+    else
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v2.lua")
+    end
+end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
@@ -336,6 +340,7 @@ function OnModPreInit()
 	register_localizations("mods/quant.ew/translations.csv", 1)
     ctx.init()
     net.init()
+    load_modules()
 end
 
 function OnModPostInit()

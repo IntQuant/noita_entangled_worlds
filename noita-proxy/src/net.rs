@@ -27,6 +27,13 @@ pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungste
     tungstenite::Message::Binary(buf)
 }
 
+pub(crate) fn ws_encode_proxy_opt(key: &'static str, value: impl Display) -> tungstenite::Message {
+    let mut buf = Vec::new();
+    buf.push(2);
+    write!(buf, "proxy_opt {} {}", key, value).unwrap();
+    tungstenite::Message::Binary(buf)
+}
+
 pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
     let mut buf = Vec::new();
     buf.push(3);
@@ -84,6 +91,7 @@ impl NetManager {
                 // seed: 1663107061,
                 seed: 1663107066,
                 debug_mode: false,
+                world_sync_version: 1,
             }),
             continue_running: AtomicBool::new(true),
             accept_local: AtomicBool::new(false),
@@ -160,38 +168,7 @@ impl NetManager {
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
                         .ok();
                     if state.ws.is_some() {
-                        info!("New stream connected");
-                        let stream_ref = &state.ws.as_ref().unwrap().get_ref();
-                        stream_ref.set_nonblocking(true).ok();
-                        stream_ref
-                            .set_read_timeout(Some(Duration::from_millis(1)))
-                            .expect("can set read timeout");
-
-                        let settings = self.settings.lock().unwrap();
-                        state.try_ws_write(ws_encode_proxy("seed", settings.seed));
-                        let value = self.peer.my_id().expect("Has peer id at this point");
-                        state.try_ws_write(ws_encode_proxy("peer_id", format!("{:016x}", value.0)));
-                        state.try_ws_write(ws_encode_proxy(
-                            "host_id",
-                            format!("{:016x}", self.peer.host_id().0),
-                        ));
-                        if let Some(nickname) = &self.init_settings.my_nickname {
-                            info!("Chosen nickname: {}", nickname);
-                            state.try_ws_write(ws_encode_proxy("name", nickname));
-                        } else {
-                            info!("No nickname chosen");
-                        }
-                        state.try_ws_write(ws_encode_proxy(
-                            "debug",
-                            if settings.debug_mode { "true" } else { "false" },
-                        ));
-                        state.try_ws_write(ws_encode_proxy("ready", ""));
-                        // TODO? those are currently ignored by mod
-                        for id in self.peer.iter_peer_ids() {
-                            state.try_ws_write(ws_encode_proxy("join", id));
-                        }
-
-                        info!("Settings sent")
+                        self.on_ws_connection(&mut state);
                     }
                 }
             }
@@ -276,6 +253,46 @@ impl NetManager {
             }
         }
         Ok(())
+    }
+
+    fn on_ws_connection(self: &Arc<NetManager>, state: &mut NetInnerState) {
+        info!("New stream connected");
+        let stream_ref = &state.ws.as_ref().unwrap().get_ref();
+        stream_ref.set_nonblocking(true).ok();
+        stream_ref
+            .set_read_timeout(Some(Duration::from_millis(1)))
+            .expect("can set read timeout");
+
+        let settings = self.settings.lock().unwrap();
+        state.try_ws_write(ws_encode_proxy("seed", settings.seed));
+        let value = self.peer.my_id().expect("Has peer id at this point");
+        state.try_ws_write(ws_encode_proxy("peer_id", format!("{:016x}", value.0)));
+        state.try_ws_write(ws_encode_proxy(
+            "host_id",
+            format!("{:016x}", self.peer.host_id().0),
+        ));
+        if let Some(nickname) = &self.init_settings.my_nickname {
+            info!("Chosen nickname: {}", nickname);
+            state.try_ws_write(ws_encode_proxy("name", nickname));
+        } else {
+            info!("No nickname chosen");
+        }
+        state.try_ws_write(ws_encode_proxy(
+            "debug",
+            if settings.debug_mode { "true" } else { "false" },
+        ));
+        state.try_ws_write(ws_encode_proxy_opt(
+            "world_sync_version",
+            settings.world_sync_version,
+        ));
+
+        state.try_ws_write(ws_encode_proxy("ready", ""));
+        // TODO? those are currently ignored by mod
+        for id in self.peer.iter_peer_ids() {
+            state.try_ws_write(ws_encode_proxy("join", id));
+        }
+
+        info!("Settings sent")
     }
 
     pub(crate) fn handle_mod_message(

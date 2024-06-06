@@ -17,7 +17,7 @@ local KEY_WORLD_FRAME = 0
 local KEY_WORLD_END = 1
 
 local initialized_chunks = {}
-local CHUNK_SIZE = 256
+local CHUNK_SIZE = 128
 
 function world_sync.on_world_update_host()
 

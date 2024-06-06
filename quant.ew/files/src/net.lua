@@ -79,6 +79,7 @@ function net.init()
                 kind = "proxy",
                 key = res[1],
                 value = res[2],
+                value2 = res[3],
               }
             end
           elseif string.byte(msg, 1, 1) == 1 then
@@ -118,7 +119,7 @@ function net.init()
           end
           if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
             if ctx.ready or msg_decoded.kind ~= "mod" then
-                util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value)
+                util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value, msg_decoded.value2)
             end
             -- GamePrint("NetHnd: "..msg_decoded.kind.." "..msg_decoded.key)
           end
