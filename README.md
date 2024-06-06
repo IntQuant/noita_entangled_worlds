@@ -12,7 +12,7 @@ What is synced as of now:
 
 There is a video guide/showcase of the mod by Gudyni (in russian): https://www.youtube.com/watch?v=mqSKcDW-epg
 
-Discord server: https://discord.gg/2vHyEzBZ
+Discord server: [https://discord.gg/2vHyEzBZ](https://discord.gg/uAK7utvVWN)
 
 Special thanks to:
  - Contributors.
