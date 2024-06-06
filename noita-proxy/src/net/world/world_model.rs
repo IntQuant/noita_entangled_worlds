@@ -9,7 +9,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 mod chunk;
 pub mod encoding;
 
-const CHUNK_SIZE: usize = 256;
+const CHUNK_SIZE: usize = 128;
 
 type ChunkCoord = (i32, i32);
 

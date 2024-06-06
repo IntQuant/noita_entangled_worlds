@@ -136,6 +136,7 @@ impl App {
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
         let mut settings = netman.settings.lock().unwrap();
         settings.debug_mode = self.saved_state.debug_mode;
+        settings.world_sync_version = self.saved_state.world_sync_version;
         if !self.saved_state.use_constant_seed {
             settings.seed = rand::random();
         }

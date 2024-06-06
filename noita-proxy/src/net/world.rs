@@ -15,7 +15,6 @@ pub enum WorldUpdateKind {
 }
 
 pub struct WorldManager {
-    // pub(crate) writer: BufWriter<File>,
     model: WorldModel,
 }
 
@@ -70,7 +69,7 @@ impl WorldManager {
         updates
     }
 
-    pub(crate) fn send_world(&self) -> WorldDelta {
+    pub fn send_world(&self) -> WorldDelta {
         WorldDelta(self.model.get_world_as_deltas())
     }
 }

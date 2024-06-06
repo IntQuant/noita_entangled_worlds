@@ -5,6 +5,7 @@ local ffi = require("ffi")
 
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 
 -- local rpc = net.new_rpc_namespace()
 
@@ -28,45 +29,51 @@ function world_sync.on_world_update_host()
     local begin = thread_impl.updated_grid_worlds.begin
     local end_ = begin + thread_impl.chunk_update_count
 
-    local count = thread_impl.chunk_update_count
-    for i = 0, count - 1 do
-        local it = begin[i]
-
-        local start_x = it.update_region.top_left.x
-        local start_y = it.update_region.top_left.y
-        local end_x = it.update_region.bottom_right.x
-        local end_y = it.update_region.bottom_right.y
-
-        start_x = start_x - 1
-        start_y = start_y - 1
-        end_x = end_x + 1
-        end_y = end_y + 2
-
-        local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-        rect_optimiser:submit(rectangle)
+    if false then
+        local count = thread_impl.chunk_update_count
+        for i = 0, count - 1 do
+            local it = begin[i]
+    
+            local start_x = it.update_region.top_left.x
+            local start_y = it.update_region.top_left.y
+            local end_x = it.update_region.bottom_right.x
+            local end_y = it.update_region.bottom_right.y
+    
+            start_x = start_x - 1
+            start_y = start_y - 1
+            end_x = end_x + 1
+            end_y = end_y + 2
+    
+            local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
+            rect_optimiser:submit(rectangle)
+        end
+        for i = 0, tonumber(thread_impl.world_update_params_count) - 1 do
+            local wup = thread_impl.world_update_params.begin[i]
+            local start_x = wup.update_region.top_left.x
+            local start_y = wup.update_region.top_left.y
+            local end_x = wup.update_region.bottom_right.x
+            local end_y = wup.update_region.bottom_right.y
+    
+            local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
+            rect_optimiser:submit(rectangle)
+        end
     end
-    for i = 0, tonumber(thread_impl.world_update_params_count) - 1 do
-        local wup = thread_impl.world_update_params.begin[i]
-        local start_x = wup.update_region.top_left.x
-        local start_y = wup.update_region.top_left.y
-        local end_x = wup.update_region.bottom_right.x
-        local end_y = wup.update_region.bottom_right.y
 
-        local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-        rect_optimiser:submit(rectangle)
-    end
-
-    local px, py = EntityGetTransform(ctx.my_player.entity)
-    local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
-    for cx = ocx-1,ocx+1 do
-        for cy = ocy-1,ocy+1 do
-            local chunk_id = cx.." "..cy
-            if initialized_chunks[chunk_id] == nil then
-                local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
-                if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                    -- GamePrint("Sending chunk "..chunk_id)
-                    initialized_chunks[chunk_id] = true
-                    rect_optimiser:submit(crect)
+    if GameGetFrameNum() % 10 == 0 then
+        for _, player_data in pairs(ctx.players) do
+            local px, py = EntityGetTransform(player_data.entity)
+            local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
+            for cx = ocx-1,ocx+1 do
+                for cy = ocy-1,ocy+1 do
+                    local chunk_id = cx.." "..cy
+                    if initialized_chunks[chunk_id] == nil or GameGetFrameNum() % 60 == 0 then
+                        local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
+                        if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+                            -- GamePrint("Sending chunk "..chunk_id)
+                            initialized_chunks[chunk_id] = true
+                            rect_optimiser:submit(crect)
+                        end
+                    end
                 end
             end
         end
