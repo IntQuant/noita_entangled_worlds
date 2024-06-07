@@ -17,8 +17,33 @@ local world_sync = {}
 local KEY_WORLD_FRAME = 0
 local KEY_WORLD_END = 1
 
-local initialized_chunks = {}
 local CHUNK_SIZE = 128
+
+local function chunk_producer()
+    local initialized_chunks = {}
+    local sent_anything = false
+
+    for _, player_data in pairs(ctx.players) do
+        local px, py = EntityGetTransform(player_data.entity)
+        local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
+
+        for cx = ocx-1,ocx+1 do
+            for cy = ocy-1,ocy+1 do
+                local chunk_id = cx.." "..cy
+                if initialized_chunks[chunk_id] == nil then
+                    local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
+                    if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+                        -- GamePrint("Sending chunk "..chunk_id)
+                        initialized_chunks[chunk_id] = true
+                        coroutine.yield(crect)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local producer_coro = nil
 
 function world_sync.on_world_update_host()
 
@@ -26,77 +51,30 @@ function world_sync.on_world_update_host()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     local thread_impl = grid_world.mThreadImpl
 
-    local begin = thread_impl.updated_grid_worlds.begin
-    local end_ = begin + thread_impl.chunk_update_count
+    local sent_anything = false
 
-    if false then
-        local count = thread_impl.chunk_update_count
-        for i = 0, count - 1 do
-            local it = begin[i]
-    
-            local start_x = it.update_region.top_left.x
-            local start_y = it.update_region.top_left.y
-            local end_x = it.update_region.bottom_right.x
-            local end_y = it.update_region.bottom_right.y
-    
-            start_x = start_x - 1
-            start_y = start_y - 1
-            end_x = end_x + 1
-            end_y = end_y + 2
-    
-            local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-            rect_optimiser:submit(rectangle)
-        end
-        for i = 0, tonumber(thread_impl.world_update_params_count) - 1 do
-            local wup = thread_impl.world_update_params.begin[i]
-            local start_x = wup.update_region.top_left.x
-            local start_y = wup.update_region.top_left.y
-            local end_x = wup.update_region.bottom_right.x
-            local end_y = wup.update_region.bottom_right.y
-    
-            local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
-            rect_optimiser:submit(rectangle)
-        end
+    if producer_coro == nil then
+        producer_coro = coroutine.wrap(chunk_producer)
     end
 
-    if GameGetFrameNum() % 10 == 0 then
-        for _, player_data in pairs(ctx.players) do
-            local px, py = EntityGetTransform(player_data.entity)
-            local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
-            for cx = ocx-1,ocx+1 do
-                for cy = ocy-1,ocy+1 do
-                    local chunk_id = cx.." "..cy
-                    if initialized_chunks[chunk_id] == nil or GameGetFrameNum() % 60 == 0 then
-                        local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
-                        if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                            -- GamePrint("Sending chunk "..chunk_id)
-                            initialized_chunks[chunk_id] = true
-                            rect_optimiser:submit(crect)
-                        end
-                    end
-                end
-            end
-        end
-    end
+    if GameGetFrameNum() % 4 == 0 then
+        local crect = producer_coro()
 
-    if GameGetFrameNum() % 30 == 0 then
-        rect_optimiser:scan()
-
-        for crect in rect.parts(rect_optimiser:iterate(), 256) do
-            local area = nil
-            -- Make sure we don't send chunks that aren't loaded yet, like holy mountains before host got there.
-            if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
-            else
-                -- Will probably need to try again later?
-            end
-            if area ~= nil then
-                local str = ffi.string(area, world.encoded_size(area))
-                net.proxy_bin_send(KEY_WORLD_FRAME, str)
-            end
+        if crect == nil then
+            producer_coro = nil
+            return
         end
-        net.proxy_bin_send(KEY_WORLD_END, "")
-        rect_optimiser:reset()
+
+        local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+        if area ~= nil then
+            local str = ffi.string(area, world.encoded_size(area))
+            net.proxy_bin_send(KEY_WORLD_FRAME, str)
+            sent_anything = true
+        end
+
+        if sent_anything then
+            net.proxy_bin_send(KEY_WORLD_END, "")
+        end
     end
 end
 
