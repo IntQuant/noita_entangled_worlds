@@ -321,9 +321,10 @@
     blood_healing_speed="0.0024"
   ></IngestionComponent>
 
+<!--
   <DrugEffectComponent>
   </DrugEffectComponent>
-
+-->
   <PlayerCollisionComponent 
     getting_crushed_threshold="6"
     moving_up_before_getting_crushed_threshold="6"
