@@ -41,6 +41,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/fungal_shift/sync.lua")
 
     if ctx.proxy_opt.world_sync_version == "1" then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v1.lua")
