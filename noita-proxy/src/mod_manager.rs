@@ -120,10 +120,11 @@ impl Modmanager {
                     settings.game_path = path.to_path_buf();
                     if !check_path_valid(&settings.game_path) {
                         self.state = State::InvalidPath;
+                    } else {
+                        self.state = State::PreCheckMod;
                     }
                 }
                 if self.file_dialog.state() == DialogState::Cancelled {
-                    // self.select_noita_file()
                     self.state = State::JustStarted
                 }
             }
@@ -134,8 +135,6 @@ impl Modmanager {
                 }
             }
             State::PreCheckMod => {
-                // settings.game_path = PathBuf::new();
-                // self.state = State::JustStarted;
                 ui.label("Will check mod install now...");
                 self.state = State::CheckMod;
                 ctx.request_repaint();
