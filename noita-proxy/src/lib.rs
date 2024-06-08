@@ -7,7 +7,9 @@ use std::{
 
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Color32, InnerResponse, Margin, RichText, TextureOptions, Ui};
+use eframe::egui::{
+    self, Align2, Button, Color32, InnerResponse, Key, Margin, RichText, TextureOptions, Ui,
+};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
@@ -95,6 +97,11 @@ fn heading_with_underline(ui: &mut Ui, text: impl Into<RichText>) {
         ui.heading(text);
     });
     ui.separator();
+}
+
+fn square_button_icon(ui: &mut Ui, text: &str) -> egui::Response {
+    let side = ui.available_width();
+    ui.add_sized([side, side], Button::new(RichText::new(text).size(23.0)))
 }
 
 impl App {
@@ -208,24 +215,33 @@ impl App {
                 image.paint_at(ui, ui.ctx().screen_rect());
             }
 
-            let item_spacing = ui.spacing().item_spacing.x;
+            let group_shrink = ui.spacing().item_spacing.x * 0.5;
             let rect = ui.max_rect();
             let (rect, right_b_panel) =
-                rect.split_left_right_at_x(rect.right() - (50.0 + item_spacing));
+                rect.split_left_right_at_x(rect.right() - (50.0 + group_shrink * 2.0));
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
             let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
 
-            ui.allocate_ui_at_rect(right_b_panel.shrink(item_spacing), |ui| {
+            ui.allocate_ui_at_rect(right_b_panel.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    if ui.button("EN").clicked() {
+                    if square_button_icon(ui, "🔠")
+                        .on_hover_text(tr("button_set_lang"))
+                        .clicked()
+                    {
+                        self.state = AppState::LangPick;
+                    }
+                    let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
+                    if secret_active && ui.button("reset all data").clicked() {
+                        self.saved_state = Default::default();
+                        self.modmanager_settings = Default::default();
                         self.state = AppState::LangPick;
                     }
                 })
             });
 
-            ui.allocate_ui_at_rect(settings_rect.shrink(item_spacing), |ui| {
+            ui.allocate_ui_at_rect(settings_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     heading_with_underline(ui, tr("connect_settings"));
@@ -253,7 +269,7 @@ impl App {
                     });
                 });
             });
-            ui.allocate_ui_at_rect(steam_connect_rect.shrink(item_spacing), |ui| {
+            ui.allocate_ui_at_rect(steam_connect_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
@@ -285,7 +301,7 @@ impl App {
                     }
                 });
             });
-            ui.allocate_ui_at_rect(ip_connect_rect.shrink(item_spacing), |ui| {
+            ui.allocate_ui_at_rect(ip_connect_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
@@ -312,7 +328,7 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_secs(1));
         match &self.state {
             AppState::Connect => {

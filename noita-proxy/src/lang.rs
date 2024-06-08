@@ -13,8 +13,7 @@ fluent_templates::static_loader! {
     };
 }
 
-// static LANG: LanguageIdentifier = langid!("en-US");
-static LANG: RwLock<LanguageIdentifier> = RwLock::new(langid!("ru-RU"));
+static LANG: RwLock<LanguageIdentifier> = RwLock::new(langid!("en-US"));
 
 pub struct LangDesc {
     name: &'static str,

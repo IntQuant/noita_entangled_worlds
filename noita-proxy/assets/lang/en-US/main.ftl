@@ -13,3 +13,10 @@ connect_settings_wsv = World sync version to use:
 lang_picker = Choose a language
 
 button_confirm = Confirm
+button_continue = Continue
+
+button_set_lang = Select language
+
+modman_found_automatically = Found a path automatically:
+modman_use_this = Use this one
+modman_select_manually = Select manually

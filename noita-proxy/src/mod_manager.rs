@@ -13,6 +13,7 @@ use steamworks::AppId;
 use tracing::{error, info};
 
 use crate::{
+    lang::tr,
     releases::{get_release_by_tag, Downloader, ReleasesError, Version},
     steam_helper::SteamState,
 };
@@ -105,13 +106,13 @@ impl Modmanager {
         match &self.state {
             State::JustStarted => unreachable!(),
             State::IsAutomaticPathOk => {
-                ui.heading("Found a path automatically:");
+                ui.heading(tr("modman_found_automatically"));
                 ui.label(settings.game_path.display().to_string());
-                if ui.button("Use this one").clicked() {
+                if ui.button(tr("modman_use_this")).clicked() {
                     self.state = State::PreCheckMod;
                     ctx.request_repaint();
                 }
-                if ui.button("Select manually").clicked() {
+                if ui.button(tr("modman_select_manually")).clicked() {
                     self.select_noita_file();
                 }
             }
@@ -160,7 +161,7 @@ impl Modmanager {
                     mod_path.display()
                 ));
                 ui.horizontal(|ui| {
-                    if ui.button("Confirm").clicked() {
+                    if ui.button(tr("button_confirm")).clicked() {
                         let download_path = PathBuf::from("mod.zip");
                         let tag = Version::current().into();
                         let promise = Promise::spawn_thread("release-request", move || {
@@ -207,7 +208,7 @@ impl Modmanager {
             State::UnpackMod(promise) => match promise.ready() {
                 Some(Ok(_)) => {
                     ui.label("Mod has been installed!");
-                    if ui.button("Continue").clicked() {
+                    if ui.button(tr("button_continue")).clicked() {
                         self.state = State::Done;
                     };
                 }

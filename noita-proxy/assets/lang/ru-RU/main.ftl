@@ -13,3 +13,10 @@ connect_settings_wsv = Версия синхронизатора мира:
 lang_picker = Выберите язык
 
 button_confirm = Подтвердить
+button_continue = Продолжить
+
+button_set_lang = Выбрать язык
+
+modman_found_automatically = Автоматически найденный путь:
+modman_use_this = Использовать этот
+modman_select_manually = Выбрать вручную
