@@ -34,6 +34,8 @@ egui_extras = { version = "*", features = ["all_loaders"] }
 bytemuck = { version = "1.16.0", features = ["derive"] }
 bincode = "1.3.3"
 rustc-hash = "1.1.0"
+fluent-templates = "0.9.4"
+unic-langid = { version = "0.9.5", features = ["serde"] }
 
 [profile.dev]
 opt-level = 1

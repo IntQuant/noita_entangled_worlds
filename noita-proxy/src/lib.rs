@@ -8,6 +8,7 @@ use std::{
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{self, Align2, Color32, InnerResponse, Margin, RichText, TextureOptions, Ui};
+use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
 use self_update::SelfUpdateManager;
@@ -15,7 +16,9 @@ use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
+use unic_langid::LanguageIdentifier;
 
+pub mod lang;
 pub mod messages;
 mod mod_manager;
 pub mod net;
@@ -36,6 +39,7 @@ enum AppState {
     Netman { netman: Arc<net::NetManager> },
     Error { message: String },
     SelfUpdate,
+    LangPick,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,6 +50,7 @@ struct AppSavedState {
     nickname: Option<String>,
     times_started: u32,
     world_sync_version: u32,
+    lang_id: Option<LanguageIdentifier>,
 }
 
 impl Default for AppSavedState {
@@ -57,6 +62,7 @@ impl Default for AppSavedState {
             nickname: None,
             times_started: 0,
             world_sync_version: 1,
+            lang_id: None,
         }
     }
 }
@@ -102,10 +108,18 @@ impl App {
             .and_then(|storage| eframe::get_value(storage, MODMANAGER))
             .unwrap_or_default();
         saved_state.times_started += 1;
+
+        let state = if let Some(lang_id) = &saved_state.lang_id {
+            set_current_locale(lang_id.clone());
+            AppState::ModManager
+        } else {
+            AppState::LangPick
+        };
+
         egui_extras::install_image_loaders(&cc.egui_ctx);
         info!("Creating the app...");
         Self {
-            state: AppState::ModManager,
+            state,
             modmanager: Modmanager::default(),
             steam_state: steam_helper::SteamState::new(),
             saved_state,
@@ -196,20 +210,39 @@ impl App {
 
             let item_spacing = ui.spacing().item_spacing.x;
             let rect = ui.max_rect();
+            let (rect, right_b_panel) =
+                rect.split_left_right_at_x(rect.right() - (50.0 + item_spacing));
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
             let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
+
+            ui.allocate_ui_at_rect(right_b_panel.shrink(item_spacing), |ui| {
+                filled_group(ui, |ui| {
+                    ui.set_min_size(ui.available_size());
+
+                    if ui.button("EN").clicked() {
+                        self.state = AppState::LangPick;
+                    }
+                })
+            });
+
             ui.allocate_ui_at_rect(settings_rect.shrink(item_spacing), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    heading_with_underline(ui, "Game settings");
+                    heading_with_underline(ui, tr("connect_settings"));
 
-                    ui.label("Debug settings");
-                    ui.checkbox(&mut self.saved_state.debug_mode, "Debug/cheat mode");
-                    ui.checkbox(&mut self.saved_state.use_constant_seed, "Use fixed seed");
+                    ui.label(tr("connect_settings_debug"));
+                    ui.checkbox(
+                        &mut self.saved_state.debug_mode,
+                        tr("connect_settings_debug_en"),
+                    );
+                    ui.checkbox(
+                        &mut self.saved_state.use_constant_seed,
+                        tr("connect_settings_debug_fixed_seed"),
+                    );
 
                     ui.add_space(20.0);
 
-                    ui.label("World sync version to use:");
+                    ui.label(tr("connect_settings_wsv"));
                     ui.horizontal(|ui| {
                         ui.radio_value(&mut self.saved_state.world_sync_version, 1, "v1");
                         ui.radio_value(
@@ -224,14 +257,14 @@ impl App {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    heading_with_underline(ui, "Connect using steam");
+                    heading_with_underline(ui, tr("connect_steam"));
 
                     match &self.steam_state {
                         Ok(_) => {
-                            if ui.button("Create lobby").clicked() {
+                            if ui.button(tr("connect_steam_create")).clicked() {
                                 self.start_steam_host();
                             }
-                            if ui.button("Connect to lobby in clipboard").clicked() {
+                            if ui.button(tr("connect_steam_connect")).clicked() {
                                 let id = ClipboardProvider::new()
                                     .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
                                 match id {
@@ -256,7 +289,7 @@ impl App {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    heading_with_underline(ui, "Connect by ip");
+                    heading_with_underline(ui, tr("connect_ip"));
 
                     ui.label("Note: steam networking is more reliable. Use it, if possible.");
                     if ui.button("Host").clicked() {
@@ -385,6 +418,25 @@ impl eframe::App for App {
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
                         self.self_update.self_update(ui);
+                    });
+            }
+            AppState::LangPick => {
+                egui::Window::new(tr("lang_picker"))
+                    .auto_sized()
+                    .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                    .show(ctx, |ui| {
+                        for lang in &LANGS {
+                            ui.set_max_width(200.0);
+                            ui.vertical_centered_justified(|ui| {
+                                if ui.button(lang.name()).clicked() {
+                                    self.saved_state.lang_id = Some(lang.id());
+                                    set_current_locale(lang.id())
+                                }
+                            });
+                        }
+                        if ui.button(tr("button_confirm")).clicked() {
+                            self.state = AppState::ModManager;
+                        }
                     });
             }
         };

@@ -15,6 +15,7 @@ fn main() -> Result<(), eframe::Error> {
         )
         .finish();
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
+
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
         .unwrap()
         .to_rgba8();
