@@ -101,7 +101,7 @@ fn heading_with_underline(ui: &mut Ui, text: impl Into<RichText>) {
 
 fn square_button_icon(ui: &mut Ui, text: &str) -> egui::Response {
     let side = ui.available_width();
-    ui.add_sized([side, side], Button::new(RichText::new(text).size(23.0)))
+    ui.add_sized([side, side], Button::new(RichText::new(text).size(21.0)))
 }
 
 impl App {
@@ -226,7 +226,13 @@ impl App {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    if square_button_icon(ui, "🔠")
+                    let lang_label = self
+                        .saved_state
+                        .lang_id
+                        .clone()
+                        .unwrap_or_default()
+                        .language;
+                    if square_button_icon(ui, &lang_label.to_string().to_uppercase())
                         .on_hover_text(tr("button_set_lang"))
                         .clicked()
                     {
@@ -307,15 +313,15 @@ impl App {
 
                     heading_with_underline(ui, tr("connect_ip"));
 
-                    ui.label("Note: steam networking is more reliable. Use it, if possible.");
-                    if ui.button("Host").clicked() {
+                    ui.label(tr("ip_note"));
+                    if ui.button(tr("ip_host")).clicked() {
                         self.start_server();
                     }
 
                     ui.text_edit_singleline(&mut self.saved_state.addr);
                     let addr = self.saved_state.addr.parse();
                     ui.add_enabled_ui(addr.is_ok(), |ui| {
-                        if ui.button("Connect").clicked() {
+                        if ui.button(tr("ip_connect")).clicked() {
                             if let Ok(addr) = addr {
                                 self.start_connect(addr);
                             }
@@ -342,12 +348,12 @@ impl eframe::App for App {
                     ui.add_space(3.0);
                     if accept_local {
                         if local_connected {
-                            ui.colored_label(Color32::GREEN, "Local Noita instance connected");
+                            ui.colored_label(Color32::GREEN, tr("noita_not_yet"));
                         } else {
-                            ui.colored_label(Color32::YELLOW, "Awaiting Noita connection. It's time to start new game in Noita now!");
+                            ui.colored_label(Color32::YELLOW, tr("noita_can_connect"));
                         }
                     } else {
-                        ui.label("Not yet ready");
+                        ui.label(tr("noita_not_yet"));
                     }
                 });
                 egui::SidePanel::left("players")
@@ -389,12 +395,10 @@ impl eframe::App for App {
 
                     if netman.peer.is_steam() {
                         if let Some(id) = netman.peer.lobby_id() {
-                            if ui.button("Save lobby id to clipboard").clicked() {
+                            if ui.button(tr("netman_save_lobby")).clicked() {
                                 let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
                                 let _ = ctx.set_contents(id.raw().to_string());
                             }
-                        } else {
-                            ui.label("Lobby id not available");
                         }
                     }
                     ui.label(format!("Peer state: {}", netman.peer.state()));
@@ -429,7 +433,7 @@ impl eframe::App for App {
                 }
             }
             AppState::SelfUpdate => {
-                egui::Window::new("Self update")
+                egui::Window::new(tr("selfupdate"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {

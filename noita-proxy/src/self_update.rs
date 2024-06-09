@@ -88,7 +88,7 @@ impl SelfUpdateManager {
         let ctx = ui.ctx();
         match &self.state {
             State::Initial => {
-                if ui.button("Confirm update").clicked() {
+                if ui.button(tr("selfupdate_confirm")).clicked() {
                     let promise = Promise::spawn_thread("get_release", || {
                         proxy_downloader_for("newer.zip".into())
                     });
@@ -113,20 +113,20 @@ impl SelfUpdateManager {
                 }
                 Some(Err(err)) => self.state = State::ReleasesError(err.clone()),
                 None => {
-                    ui.label("Receiving release info...");
+                    ui.label(tr("selfupdate_receiving_rel_info"));
                     ui.spinner();
                 }
             },
             State::Unpack(promise) => match promise.ready() {
                 Some(Ok(_)) => {
-                    ui.label("Proxy updated! Restart it now.");
+                    ui.label(tr("selfupdate_updated"));
                 }
                 Some(Err(err)) => {
                     ui.label(format!("Could not update proxy: {}", err));
                 }
                 None => {
                     ctx.request_repaint();
-                    ui.label("Unpacking...");
+                    ui.label(tr("selfupdate_unpacking"));
                     ui.spinner();
                 }
             },

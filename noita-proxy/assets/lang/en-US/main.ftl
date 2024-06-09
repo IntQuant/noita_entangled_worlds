@@ -40,3 +40,19 @@ version_latest = (latest)
 version_check_failed = (could not check for updates)
 version_checking = (checking for updates)
 version_new_available = Update available to { $new_version }
+
+selfupdate = Self update
+selfupdate_confirm = Confirm update
+selfupdate_receiving_rel_info = Receiving release info...
+selfupdate_updated = Proxy updated! Restart it now.
+selfupdate_unpacking = Unpacking...
+
+noita_not_yet = Not yet ready. Please wait before starting noita.
+noita_can_connect = Awaiting Noita connection. It's time to start new game in Noita now!
+noita_connected = Local Noita instance connected.
+
+netman_save_lobby = Save lobby id to clipboard
+
+ip_note = Note: steam networking is more reliable. Use it, if possible.
+ip_connect = Connect to IP
+ip_host = Create a server

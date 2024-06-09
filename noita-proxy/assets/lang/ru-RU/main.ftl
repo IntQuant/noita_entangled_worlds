@@ -40,3 +40,19 @@ version_latest = (последняя)
 version_check_failed = (не удалось проверить обновления)
 version_checking = (проверка обновлений)
 version_new_available = Доступно обновление до { $new_version }
+
+selfupdate = Автообновления
+selfupdate_confirm = Подтвердить обновление
+selfupdate_receiving_rel_info = Идёт получение информации о релизе...
+selfupdate_updated = Прокси был обновлён! Теперь его можно перезапустить.
+selfupdate_unpacking = Распаковка...
+
+noita_not_yet = Ещё не готово. Подождите, прежде чем запускать игру.
+noita_can_connect = Ожидается подключение из игры. Можно запускать игру.
+noita_connected = Локальный инстанс Ноиты подключен.
+
+netman_save_lobby = Сохранить код лобби в буфер обмена
+
+ip_note = Рекомендуется использовать подключение через Steam, поскольку оно работает стабильнее.
+ip_connect = Подключиться по IP
+ip_host = Создать сервер
