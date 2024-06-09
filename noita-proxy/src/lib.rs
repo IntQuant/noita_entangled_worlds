@@ -365,7 +365,7 @@ impl eframe::App for App {
                                 let username = steam.get_user_name(peer.into());
                                 let avatar = steam.get_avatar(ctx, peer.into());
                                 if let Some(avatar) = avatar {
-                                    avatar.display_with_labels(ui, &username, role);
+                                    avatar.display_with_labels(ui, &username, &role);
                                     ui.add_space(5.0);
                                 } else {
                                     ui.label(&username);
@@ -413,7 +413,7 @@ impl eframe::App for App {
                 }
             }
             AppState::ModManager => {
-                egui::Window::new("Mod manager")
+                egui::Window::new(tr("modman"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
@@ -464,14 +464,14 @@ impl eframe::App for App {
     }
 }
 
-fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> &str {
+fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> String {
     if peer == netman.peer.host_id() {
-        "Host"
+        tr("player_host")
     } else {
         if Some(peer) == netman.peer.my_id() {
-            "Me"
+            tr("player_me")
         } else {
-            "Player"
+            tr("player_player")
         }
     }
 }

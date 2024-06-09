@@ -46,7 +46,7 @@ impl Default for Modmanager {
             state: Default::default(),
             file_dialog: FileDialog::default()
                 .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                .title("Select path to noita.exe"),
+                .title(&tr("modman_path_to_exe")),
         }
     }
 }
@@ -130,8 +130,8 @@ impl Modmanager {
                 }
             }
             State::InvalidPath => {
-                ui.label("This path is not valid");
-                if ui.button("Select again").clicked() {
+                ui.label(tr("modman_invalid_path"));
+                if ui.button(tr("button_select_again")).clicked() {
                     self.select_noita_file();
                 }
             }
@@ -156,10 +156,8 @@ impl Modmanager {
             }
             State::ConfirmInstall => {
                 let mod_path = settings.mod_path();
-                ui.label(format!(
-                    "Proxy will install the mod to {}",
-                    mod_path.display()
-                ));
+                ui.label(tr("modman_will_install_to"));
+                ui.label(mod_path.display().to_string());
                 ui.horizontal(|ui| {
                     if ui.button(tr("button_confirm")).clicked() {
                         let download_path = PathBuf::from("mod.zip");
@@ -174,13 +172,13 @@ impl Modmanager {
 
                         self.state = State::DownloadMod(promise)
                     }
-                    if ui.button("Select a different path").clicked() {
+                    if ui.button(tr("modman_another_path")).clicked() {
                         self.select_noita_file()
                     }
                 });
             }
             State::DownloadMod(promise) => {
-                ui.label("Downloading mod...");
+                ui.label(tr("modman_downloading"));
                 match promise.ready() {
                     Some(Ok(downloader)) => {
                         downloader.show_progress(ui);
@@ -200,14 +198,14 @@ impl Modmanager {
                     }
                     Some(Err(err)) => self.state = State::ReleasesError(err.clone()),
                     None => {
-                        ui.label("Receiving release info...");
+                        ui.label(tr("modman_receiving_rel_info"));
                         ui.spinner();
                     }
                 }
             }
             State::UnpackMod(promise) => match promise.ready() {
                 Some(Ok(_)) => {
-                    ui.label("Mod has been installed!");
+                    ui.label(tr("modman_installed"));
                     if ui.button(tr("button_continue")).clicked() {
                         self.state = State::Done;
                     };
@@ -216,18 +214,18 @@ impl Modmanager {
                     self.state = State::ReleasesError(err.clone());
                 }
                 None => {
-                    ui.label("Unpacking mod");
+                    ui.label(tr("modman_unpacking"));
                 }
             },
             State::Error(err) => {
                 ui.label(format!("Encountered an error: {}", err));
-                if ui.button("Retry").clicked() {
+                if ui.button(tr("button_retry")).clicked() {
                     self.state = State::JustStarted;
                 }
             }
             State::ReleasesError(err) => {
                 ui.label(format!("Encountered an error: {}", err));
-                if ui.button("Retry").clicked() {
+                if ui.button(tr("button_retry")).clicked() {
                     self.state = State::JustStarted;
                 }
             }

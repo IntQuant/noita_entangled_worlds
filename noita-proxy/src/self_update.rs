@@ -10,7 +10,10 @@ use poll_promise::Promise;
 use reqwest::blocking::Client;
 use tracing::info;
 
-use crate::releases::{get_latest_release, Downloader, ReleasesError, Version};
+use crate::{
+    lang::{tr, tr_a},
+    releases::{get_latest_release, Downloader, ReleasesError, Version},
+};
 
 struct VersionCheckResult {
     newest: Version,
@@ -57,24 +60,27 @@ impl SelfUpdateManager {
                     newest: _,
                     ord: Ordering::Equal,
                 })) => {
-                    ui.label("(latest)");
+                    ui.label(tr("version_latest"));
                 }
                 Some(&Some(VersionCheckResult { newest, ord: _ })) => {
                     if ui
-                        .small_button(format!("Update available to {}", newest))
+                        .small_button(tr_a(
+                            "version_new_available",
+                            &[("new_version", newest.to_string().into())],
+                        ))
                         .clicked()
                     {
                         self.request_update = true;
                     }
                 }
                 Some(None) => {
-                    ui.label("(could not check for updates)");
+                    ui.label(tr("version_check_failed"));
                 }
                 None => {
-                    ui.label("(checking for updates)");
+                    ui.label(tr("version_checking"));
                 }
             }
-            ui.label(concat!("Noita Proxy version v", env!("CARGO_PKG_VERSION"),));
+            ui.label(concat!("Noita Proxy v", env!("CARGO_PKG_VERSION"),));
         });
     }
 
