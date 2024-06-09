@@ -1,6 +1,7 @@
 connect_steam = Connect using steam
 connect_steam_create = Create lobby
 connect_steam_connect = Connect to lobby in clipboard
+connect_steam_connect_invalid_lobby_id = Clipboard does not contain a lobby code
 
 connect_ip = Connect using ip
 
@@ -16,6 +17,7 @@ button_confirm = Confirm
 button_continue = Continue
 button_retry = Retry
 button_select_again = Select again
+button_back = Back
 
 button_set_lang = Select language
 
@@ -56,3 +58,5 @@ netman_save_lobby = Save lobby id to clipboard
 ip_note = Note: steam networking is more reliable. Use it, if possible.
 ip_connect = Connect to IP
 ip_host = Create a server
+
+error_occured = An error occured:

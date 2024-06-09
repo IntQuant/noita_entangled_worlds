@@ -291,10 +291,12 @@ impl App {
                                     .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
                                 match id {
                                     Ok(id) => {
-                                        let id = id.parse().map(LobbyId::from_raw);
+                                        let id = id.trim().parse().map(LobbyId::from_raw);
                                         match id {
                                             Ok(id) => self.start_steam_connect(id),
-                                            Err(error) => self.notify_error(error),
+                                            Err(_error) => self.notify_error(tr(
+                                                "connect_steam_connect_invalid_lobby_id",
+                                            )),
                                         }
                                     }
                                     Err(error) => self.notify_error(error),
@@ -407,9 +409,9 @@ impl eframe::App for App {
             AppState::Error { message } => {
                 if egui::CentralPanel::default()
                     .show(ctx, |ui| {
-                        ui.heading("An error occured:");
+                        ui.heading(tr("error_occured"));
                         ui.label(message);
-                        ui.button("Back").clicked()
+                        ui.button(tr("button_back")).clicked()
                     })
                     .inner
                 {
