@@ -362,4 +362,10 @@
     suck_gold="1"
     suck_health="1"
   ></MaterialSuckerComponent>
+
+  <PathFindingGridMarkerComponent
+    player_marker_radius="100.0"
+    marker_offset_y="-3"
+    marker_work_flag="8"
+  ></PathFindingGridMarkerComponent>
 </Entity>
