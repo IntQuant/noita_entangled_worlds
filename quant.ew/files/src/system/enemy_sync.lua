@@ -66,7 +66,7 @@ function enemy_sync.host_upload_entities()
             vx, vy = ComponentGetValue2(character_data, "mVelocity")
         end
         local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
-        if ai_component ~= nil then
+        if ai_component ~= 0 then
             ComponentSetValue2(ai_component, "max_distance_to_cam_to_start_hunting", math.pow(2, 29))
         end
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
@@ -134,7 +134,7 @@ function rpc.handle_death_data(death_data)
         if enemy_data ~= nil then
             local enemy_id = enemy_data.id
             local immortal = EntityGetFirstComponentIncludingDisabled(enemy_id, "LuaComponent", "ew_immortal")
-            if immortal ~= nil then
+            if immortal ~= 0 then
                 EntityRemoveComponent(enemy_id, immortal)
             end
             local protection_component_id = GameGetGameEffect(enemy_id, "PROTECTION_ALL")
@@ -180,9 +180,11 @@ function rpc.handle_enemy_data(enemy_data)
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
             EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
-            local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
-            if ai_component ~= nil then
-                EntityRemoveComponent(enemy_id, ai_component)
+            for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "PhysicsBodyComponent"}) do
+                local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
+                if ai_component ~= 0 then
+                    EntityRemoveComponent(enemy_id, ai_component)
+                end
             end
             ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
         end

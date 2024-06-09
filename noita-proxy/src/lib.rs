@@ -350,7 +350,7 @@ impl eframe::App for App {
                     ui.add_space(3.0);
                     if accept_local {
                         if local_connected {
-                            ui.colored_label(Color32::GREEN, tr("noita_not_yet"));
+                            ui.colored_label(Color32::GREEN, tr("noita_connected"));
                         } else {
                             ui.colored_label(Color32::YELLOW, tr("noita_can_connect"));
                         }
