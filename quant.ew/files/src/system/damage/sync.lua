@@ -1,4 +1,5 @@
 -- This module allows to handle getting damaged locally and redirects that damage to host.
+-- Also recalculates percentage-based damage
 
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
@@ -17,8 +18,10 @@ np.CrossCallAdd("ew_ds_damaged", function (damage, message)
 end)
 
 function module.on_local_player_spawn(my_player)
-    if not ctx.is_host then
-        EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/cbs/send_damage_to_host.lua"})
+    if ctx.is_host then
+        EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/host_adjust_received_damage.lua"})
+    else
+        EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"})
 
         local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
         -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0)

@@ -1,3 +1,5 @@
+local adjust_damage = dofile_once("mods/quant.ew/files/src/system/damage/cbs/adjust_damage.lua").adjust_damage
+
 -- Called on clients when they get damage and redirects it to the host's hp over the network, ignoring any resists.
 function damage_received(damage, message, entity_thats_responsible, is_fatal, projectile_thats_responsible)
     -- Change our health back
@@ -10,6 +12,8 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
         end
     end
 
+    local dtypes = GetDamageDetails().damage_types
+    damage = adjust_damage(damage, dtypes)
     -- Damage the host
     CrossCall("ew_ds_damaged", damage, message)
 end
