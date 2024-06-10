@@ -8,7 +8,8 @@ use std::{
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
-    self, Align2, Button, Color32, InnerResponse, Key, Margin, RichText, TextureOptions, Ui,
+    self, Align2, Button, Color32, InnerResponse, Key, Margin, Rect, RichText, TextureOptions, Ui,
+    Vec2,
 };
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
@@ -198,29 +199,35 @@ impl App {
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::bottom("version_panel")
-            .exact_height(25.0)
-            .show(ctx, |ui| {
-                self.self_update.display_version(ui);
-
-                if self.self_update.request_update {
-                    self.state = AppState::SelfUpdate;
-                }
-            });
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.saved_state.times_started % 5 == 0 {
+            if self.saved_state.times_started % 20 == 0 {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
-                    .texture_options(TextureOptions::NEAREST)
-                    .maintain_aspect_ratio(true);
+                    .texture_options(TextureOptions::NEAREST);
                 image.paint_at(ui, ui.ctx().screen_rect());
+            } else {
+                draw_bg(ui);
             }
 
             let group_shrink = ui.spacing().item_spacing.x * 0.5;
             let rect = ui.max_rect();
+            let (rect, bottom_panel) =
+                rect.split_top_bottom_at_y(rect.height() - (25.0 + group_shrink * 2.0));
+
             let (rect, right_b_panel) =
-                rect.split_left_right_at_x(rect.right() - (50.0 + group_shrink * 2.0));
+                rect.split_left_right_at_x(rect.width() - (50.0 + group_shrink * 2.0));
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
             let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
+
+            ui.allocate_ui_at_rect(bottom_panel.shrink(group_shrink), |ui| {
+                filled_group(ui, |ui| {
+                    ui.set_min_size(ui.available_size());
+                    self.self_update.display_version(ui);
+
+                    if self.self_update.request_update {
+                        self.state = AppState::SelfUpdate;
+                    }
+                });
+            });
 
             ui.allocate_ui_at_rect(right_b_panel.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
@@ -335,6 +342,19 @@ impl App {
     }
 }
 
+fn draw_bg(ui: &mut Ui) {
+    let image = egui::Image::new(egui::include_image!("../assets/noita_ew_logo_sq.webp"))
+        .texture_options(TextureOptions::NEAREST);
+
+    let rect = ui.ctx().screen_rect();
+    let aspect_ratio = 1.0;
+    let new_height = f32::max(rect.width() * aspect_ratio, rect.height());
+    let new_width = new_height / aspect_ratio;
+    let rect = Rect::from_center_size(rect.center(), Vec2::new(new_width, new_height));
+
+    image.paint_at(ui, rect);
+}
+
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_secs(1));
@@ -419,6 +439,7 @@ impl eframe::App for App {
                 }
             }
             AppState::ModManager => {
+                egui::CentralPanel::default().show(ctx, draw_bg);
                 egui::Window::new(tr("modman"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
@@ -435,6 +456,7 @@ impl eframe::App for App {
                 }
             }
             AppState::SelfUpdate => {
+                egui::CentralPanel::default().show(ctx, draw_bg);
                 egui::Window::new(tr("selfupdate"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
@@ -443,6 +465,7 @@ impl eframe::App for App {
                     });
             }
             AppState::LangPick => {
+                egui::CentralPanel::default().show(ctx, draw_bg);
                 egui::Window::new(tr("lang_picker"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
