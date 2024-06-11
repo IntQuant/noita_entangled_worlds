@@ -3,7 +3,7 @@ members = ["tangled"]
 
 [package]
 name = "noita-proxy"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -23,7 +23,7 @@ crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 clipboard = "0.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }
 egui-file-dialog = "0.5.0"
-reqwest = { version = "0.12.4", features = ["blocking", "json"] }
+reqwest = { version = "0.12.4", features = ["blocking", "json", "http2", "rustls-tls-native-roots", "charset"], default_features = false}
 serde_json = "1.0.117"
 thiserror = "1.0.61"
 poll-promise = "0.3.0"
