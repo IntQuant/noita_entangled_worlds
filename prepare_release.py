@@ -65,7 +65,7 @@ def make_release_assets():
 
     os.chdir("noita-proxy")
 
-    subprocess.run(["cargo", "build", "--release"])
+    subprocess.run(["~/.cargo/bin/cross", "build", "--release", "--target", "x86_64-unknown-linux-gnu"])
     subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"])
 
     os.chdir("..")
@@ -91,7 +91,7 @@ def make_release_assets():
     print("Writing linux release...")
 
     with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("target/tmp/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing mod release...")
@@ -136,6 +136,14 @@ def main():
             notes.l(request)
     else:
         notes.p("No pull requests have been accepted in this release.")
+
+    notes.title("Installation")
+    notes.p("Download and unpack `noita-proxy-win.zip` or `noita-proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
+    notes.p("Proxy is able to download and install the mod automatically. There is no need to download the mod (`quant.ew.zip`) manually.")
+    notes.p("""
+        You'll be prompted for a path to `noita.exe` when launching the proxy for the first time. 
+        It should be detected automatically as long as you use steam version of the game and steam is launched.
+        """)
 
     print()
     notes_path = "/tmp/rnotes.md"

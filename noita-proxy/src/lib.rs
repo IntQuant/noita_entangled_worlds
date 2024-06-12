@@ -8,8 +8,8 @@ use std::{
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
-    self, Align2, Button, Color32, InnerResponse, Key, Margin, Rect, RichText, TextureOptions, Ui,
-    Vec2,
+    self, Align2, Button, Color32, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
+    TextureOptions, Ui, Vec2,
 };
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
@@ -100,9 +100,9 @@ fn heading_with_underline(ui: &mut Ui, text: impl Into<RichText>) {
     ui.separator();
 }
 
-fn square_button_icon(ui: &mut Ui, text: &str) -> egui::Response {
+fn square_button_text(ui: &mut Ui, text: &str, size: f32) -> egui::Response {
     let side = ui.available_width();
-    ui.add_sized([side, side], Button::new(RichText::new(text).size(21.0)))
+    ui.add_sized([side, side], Button::new(RichText::new(text).size(size)))
 }
 
 impl App {
@@ -239,11 +239,14 @@ impl App {
                         .clone()
                         .unwrap_or_default()
                         .language;
-                    if square_button_icon(ui, &lang_label.to_string().to_uppercase())
+                    if square_button_text(ui, &lang_label.to_string().to_uppercase(), 21.0)
                         .on_hover_text(tr("button_set_lang"))
                         .clicked()
                     {
                         self.state = AppState::LangPick;
+                    }
+                    if square_button_text(ui, "Discord server", 10.0).clicked() {
+                        ctx.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
                     }
                     let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
                     if secret_active && ui.button("reset all data").clicked() {
