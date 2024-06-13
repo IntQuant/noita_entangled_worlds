@@ -24,6 +24,9 @@ local function chunk_producer()
     local sent_anything = false
 
     for _, player_data in pairs(ctx.players) do
+        if not EntityGetIsAlive(player_data.entity) then
+            goto continue
+        end
         local px, py = EntityGetTransform(player_data.entity)
         local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
 
@@ -40,6 +43,7 @@ local function chunk_producer()
                 end
             end
         end
+        ::continue::
     end
 end
 

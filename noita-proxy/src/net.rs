@@ -387,7 +387,7 @@ impl NetManager {
                     {
                         let mut setting = self.settings.lock().unwrap();
                         if setting.debug_mode {
-                            setting.seed += 1;
+                            // setting.seed += 1;
                         } else {
                             setting.seed = rand::random();
                         }

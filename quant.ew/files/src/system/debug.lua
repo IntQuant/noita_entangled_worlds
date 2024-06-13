@@ -8,7 +8,8 @@ function module.on_local_player_spawn(my_player)
         local player_entity = my_player.entity
         -- ~Portal to lab
         -- EntitySetTransform(player_entity, 0, 12600)
-        EntitySetTransform(player_entity, 0, 8600-20)
+        -- The vault
+        -- EntitySetTransform(player_entity, 0, 8600-20)
 
         util.set_ent_health(player_entity, {1000, 1000})
         local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")

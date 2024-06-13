@@ -31,8 +31,6 @@ ModLuaFileAppend("data/scripts/items/heart_fullhp_temple.lua", "mods/quant.ew/fi
 
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
-local my_player = nil
-
 local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
@@ -43,6 +41,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/fungal_shift/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/weather_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/polymorph/sync.lua")
 
     if ctx.proxy_opt.world_sync_version == "1" then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v1.lua")
@@ -63,7 +62,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     local shooter_player_data = player_fns.get_player_data_by_local_entity_id(shooter_id)
     local rng = 0
     -- Was shot locally
-    if shooter_id == my_player.entity then
+    if shooter_id == ctx.my_player.entity then
         -- If it was an initial shot by host
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
             rng = initial_rng
@@ -150,7 +149,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     local x, y = EntityGetTransform(player_entity)
     ctx.initial_player_pos = {x=x, y=y}
 
-    my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
+    local my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
     GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
     ctx.player_data_by_local_entity[player_entity] = my_player
@@ -160,7 +159,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     np.SetPauseState(4)
     np.SetPauseState(0)
 
-    EntityAddTag(player_entity, "polymorphable_NOT") -- TODO
+    -- EntityAddTag(player_entity, "polymorphable_NOT") -- TODO
 
     if ctx.is_host then
         EntityAddTag(player_entity, "ew_host")
@@ -188,20 +187,20 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 end
 
 local function on_world_pre_update_inner()
-    if my_player == nil then return end
+    if ctx.my_player == nil then return end
 
     GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
 
     net.update()
 
-    local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(my_player.entity, "InventoryGuiComponent")
+    local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     local inventory_open = ComponentGetValue2(inventory_gui_comp, "mActive")
     if ctx.is_inventory_open and not inventory_open then
         ctx.events.inventory_maybe_just_changed = true
     end
     ctx.is_inventory_open = inventory_open
 
-    if ctx.is_host and not EntityGetIsAlive(my_player.entity) then
+    if ctx.is_host and not EntityGetIsAlive(ctx.my_player.entity) then
         if not ctx.run_ended then
             GamePrint("Notifying of run end")
             net.proxy_notify_game_over()
@@ -209,9 +208,9 @@ local function on_world_pre_update_inner()
         end
     end
     if not ctx.is_host then
-        local hp, _ = util.get_ent_health(my_player.entity)
+        local hp, _ = util.get_ent_health(ctx.my_player.entity)
         if hp == 0 then
-           EntityInflictDamage(my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
+           EntityInflictDamage(ctx.my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
            GameTriggerGameOver()
            if not ctx.run_ended then
                GamePrint("Notifying of run end")
@@ -228,9 +227,9 @@ local function on_world_pre_update_inner()
 
     -- Player sync
     if GameGetFrameNum() % 1 == 0 then
-        local input_data = player_fns.serialize_inputs(my_player)
-        local pos_data =  player_fns.serialize_position(my_player)
-        local current_slot = player_fns.get_current_slot(my_player)
+        local input_data = player_fns.serialize_inputs(ctx.my_player)
+        local pos_data =  player_fns.serialize_position(ctx.my_player)
+        local current_slot = player_fns.get_current_slot(ctx.my_player)
         if input_data ~= nil and pos_data ~= nil then
             net.send_player_update(input_data, pos_data, current_slot)
         end
@@ -239,7 +238,7 @@ local function on_world_pre_update_inner()
     -- Health and air sync
     if ctx.is_host and GameGetFrameNum() % 4 == 3 then
         local player_info = {}
-        local hp, max_hp = util.get_ent_health(my_player.entity)
+        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
         for id, player_data in pairs(ctx.players) do
             local entity = player_data.entity
             local air, max_air = util.get_ent_air(entity)
@@ -248,8 +247,8 @@ local function on_world_pre_update_inner()
         net.send_host_player_info(player_info)
     end
 
-    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(my_player)) then
-        local inventory_state = player_fns.serialize_items(my_player)
+    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)) then
+        local inventory_state = player_fns.serialize_items(ctx.my_player)
         if inventory_state ~= nil then
             -- GamePrint("Sending updated inventory")
             net.send_player_inventory(inventory_state)
@@ -283,7 +282,7 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
 end
 
 local function on_world_post_update_inner()
-    if my_player == nil then return end
+    if ctx.my_player == nil then return end
 
     -- local px, py = EntityGetTransform(my_player.entity)
     -- GameSetCameraPos(px, py)
@@ -292,7 +291,7 @@ local function on_world_post_update_inner()
     GlobalsSetValue("ew_wand_fired", "0")
     if times_wand_fired > 0 then
         local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
-        local fire_data = player_fns.make_fire_data(special_seed, my_player)
+        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
         if fire_data ~= nil then
             net.send_fire(fire_data)
         end

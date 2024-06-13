@@ -437,10 +437,18 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     ctx.hook.on_client_spawned(peer_id, new_playerdata)
 end
 
+function player_fns.replace_player_entity(new_entity, player_data)
+    local old_entity = player_data.entity
+    player_data.entity = new_entity
+    ctx.player_data_by_local_entity[new_entity] = player_data
+    print("Replaced player entity: "..old_entity.." -> "..new_entity)
+end
+
 function player_fns.respawn_if_necessary()
     for peer_id, player_data in pairs(ctx.players) do
-        if not EntityGetIsAlive(player_data.entity) then
+        if peer_id ~= ctx.my_player.peer_id and not EntityGetIsAlive(player_data.entity) then
             GamePrint("Respawning player entity")
+            print("Respawning player entity")
             player_fns.spawn_player_for(peer_id, 0, 0, player_data)
             local latest_inventory = player_data.latest_inventory
             if latest_inventory ~= nil then
