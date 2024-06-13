@@ -65,8 +65,8 @@ def make_release_assets():
 
     os.chdir("noita-proxy")
 
-    subprocess.run(["~/.cargo/bin/cross", "build", "--release", "--target", "x86_64-unknown-linux-gnu"])
-    subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"])
+    subprocess.run(["cross", "build", "--profile", "release-lto", "--target", "x86_64-unknown-linux-gnu"], check=True)
+    subprocess.run(["cargo", "build", "--profile", "release-lto", "--target", "x86_64-pc-windows-gnu"], check=True)
 
     os.chdir("..")
 
@@ -85,13 +85,13 @@ def make_release_assets():
     print("Writing win release...")
 
     with ZipFile("target/noita-proxy-win.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release-lto/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("target/tmp/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing linux release...")
 
     with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release-lto/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("target/tmp/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing mod release...")
@@ -140,9 +140,8 @@ def main():
     notes.title("Installation")
     notes.p("Download and unpack `noita-proxy-win.zip` or `noita-proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
     notes.p("Proxy is able to download and install the mod automatically. There is no need to download the mod (`quant.ew.zip`) manually.")
-    notes.p("""
-        You'll be prompted for a path to `noita.exe` when launching the proxy for the first time. 
-        It should be detected automatically as long as you use steam version of the game and steam is launched.
+    notes.p("""You'll be prompted for a path to `noita.exe` when launching the proxy for the first time. 
+It should be detected automatically as long as you use steam version of the game and steam is launched.
         """)
 
     print()

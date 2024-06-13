@@ -9,6 +9,7 @@ local rpc = net.new_rpc_namespace()
 local enemy_sync = {}
 
 local dead_entities = {}
+local confirmed_kills = {}
 
 np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
     local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
@@ -122,6 +123,7 @@ rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
         local remote_id = remote_data[1]
+        confirmed_kills[remote_id] = true
         local responsible_entity = 0
         local peer_data = player_fns.peer_get_player_data(remote_data[2], true)
         if peer_data ~= nil then
@@ -168,6 +170,10 @@ function rpc.handle_enemy_data(enemy_data)
 
         local frame = GameGetFrameNum()
         
+        if confirmed_kills[remote_enemy_id] then
+            goto continue
+        end
+
         if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
             ctx.entity_by_remote_id[remote_enemy_id] = nil
         end
@@ -207,7 +213,9 @@ function rpc.handle_enemy_data(enemy_data)
         local current_hp = util.get_ent_health(enemy_id)
         local dmg = current_hp-hp
         if dmg > 0 then
-            -- GamePrint("Dealing dmg "..dmg)
+            -- Make sure the enemy doesn't die from the next EntityInflictDamage.
+            util.set_ent_health(enemy_id, {dmg*2, dmg*2})
+            -- Deal damage, so that game displays damage numbers.
             EntityInflictDamage(enemy_id, dmg, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
         end
         util.set_ent_health(enemy_id, {hp, max_hp})
