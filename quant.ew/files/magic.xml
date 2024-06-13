@@ -1,4 +1,5 @@
 <MagicNumbers
+	_DEBUG_DONT_SAVE_MAGIC_NUMBERS="1"
   STREAMING_CHUNK_TARGET="15"
   >
 </MagicNumbers>

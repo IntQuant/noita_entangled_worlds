@@ -67,7 +67,7 @@ function enemy_sync.host_upload_entities()
             vx, vy = ComponentGetValue2(character_data, "mVelocity")
         end
         local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
-        if ai_component ~= 0 then
+        if ai_component ~= 0 and ai_component ~= nil then
             ComponentSetValue2(ai_component, "max_distance_to_cam_to_start_hunting", math.pow(2, 29))
         end
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
