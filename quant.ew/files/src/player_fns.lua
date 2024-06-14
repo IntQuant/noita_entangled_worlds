@@ -479,8 +479,12 @@ end
 
 local function get_active_held_item(player_entity)
     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_entity, "Inventory2Component")
-    local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
-    return mActiveItem
+    if inventory2Comp and inventory2Comp ~= 0 then
+        local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+        return mActiveItem
+    else
+        return 0
+    end
 end
 
 function player_fns.get_current_slot(player_data)
