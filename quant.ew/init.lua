@@ -35,7 +35,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
+    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
@@ -55,7 +55,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
     end
-    EntityAddTag(projectile_id, "ew_shot_by_player")
+    EntityAddTag(projectile_id, "ew_no_enemy_sync")
     local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
     local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
 
@@ -179,11 +179,13 @@ local function on_world_pre_update_inner()
     net.update()
 
     local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
-    local inventory_open = ComponentGetValue2(inventory_gui_comp, "mActive")
-    if ctx.is_inventory_open and not inventory_open then
-        ctx.events.inventory_maybe_just_changed = true
+    if inventory_gui_comp and inventory_gui_comp ~= 0 then
+        local inventory_open = ComponentGetValue2(inventory_gui_comp, "mActive")
+        if ctx.is_inventory_open and not inventory_open then
+            ctx.events.inventory_maybe_just_changed = true
+        end
+        ctx.is_inventory_open = inventory_open
     end
-    ctx.is_inventory_open = inventory_open
 
     if not ctx.is_host then
         local hp, _ = util.get_ent_health(ctx.my_player.entity)

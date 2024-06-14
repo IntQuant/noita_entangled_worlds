@@ -83,6 +83,10 @@ function inventory_helper.get_item_data(player_data, fresh)
 
     local player = player_data.entity
     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
+    if (not inventory2Comp) or inventory2Comp == 0 then
+        return {}, {}
+    end
+    
     local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
     local wandData = {}
     local spellData = {}

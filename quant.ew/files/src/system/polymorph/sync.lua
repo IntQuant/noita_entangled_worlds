@@ -12,6 +12,7 @@ function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
     if ent ~= ctx.my_player.entity then
         player_fns.replace_player_entity(ent, ctx.my_player)
+        EntityAddTag(ent, "ew_no_enemy_sync")
     end
 end
 

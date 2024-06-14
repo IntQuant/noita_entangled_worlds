@@ -45,9 +45,12 @@ local function table_extend_filtered(to, from, filter)
 end
 
 local function get_sync_entities()
-    local entities = EntityGetWithTag("enemy") -- TODO maybe only sync those close to players?
+    local entities = {} -- TODO maybe only sync those close to players?
+    table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
+        return not (EntityHasTag(ent, "ew_no_enemy_sync"))
+    end)
     table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
-        return not (EntityHasTag(ent, "ew_shot_by_player") or EntityHasTag(ent, "projectile_player"))
+        return not (EntityHasTag(ent, "ew_no_enemy_sync") or EntityHasTag(ent, "projectile_player"))
     end)
     return entities
 end
