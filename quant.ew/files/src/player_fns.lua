@@ -337,6 +337,7 @@ local player_fns = {
             controls = {},
             projectile_rng_init = {},
             projectile_seed_chain = {}, -- TODO clean
+            currently_polymorphed = false,
         }
     end,
 }

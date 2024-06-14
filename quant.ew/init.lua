@@ -52,6 +52,7 @@ end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
+    ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
     end
