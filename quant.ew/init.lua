@@ -113,23 +113,6 @@ function OnPausedChanged(paused, is_wand_pickup)
 	end
 end
 
--- all functions below are optional and can be left out
-
---[[
-
-function OnModPreInit()
-	print("Mod - OnModPreInit()") -- First this is called for all mods
-end
-
-function OnModInit()
-	print("Mod - OnModInit()") -- After that this is called for all mods
-end
-
-function OnModPostInit()
-	print("Mod - OnModPostInit()") -- Then this is called for all mods
-end
-]]--
-
 function OnWorldInitialized() -- This is called once the game world is initialized. Doesn't ensure any world chunks actually exist. Use OnPlayerSpawned to ensure the chunks around player have been loaded or created.
 	--GamePrint( "OnWorldInitialized() " .. tostring(GameGetFrameNum()) )
 end
@@ -137,6 +120,8 @@ end
 
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
+    print("Initial player entity: "..player_entity)
+    
     if GlobalsGetValue("ew_player_count", "") == "" then
         GlobalsSetValue("ew_player_count", "1")
     end
@@ -200,13 +185,6 @@ local function on_world_pre_update_inner()
     end
     ctx.is_inventory_open = inventory_open
 
-    if ctx.is_host and not EntityGetIsAlive(ctx.my_player.entity) then
-        if not ctx.run_ended then
-            GamePrint("Notifying of run end")
-            net.proxy_notify_game_over()
-            ctx.run_ended = true
-        end
-    end
     if not ctx.is_host then
         local hp, _ = util.get_ent_health(ctx.my_player.entity)
         if hp == 0 then
@@ -286,6 +264,7 @@ local function on_world_post_update_inner()
 
     -- local px, py = EntityGetTransform(my_player.entity)
     -- GameSetCameraPos(px, py)
+    ctx.hook.on_world_update_post()
 
     local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
     GlobalsSetValue("ew_wand_fired", "0")
@@ -294,6 +273,15 @@ local function on_world_post_update_inner()
         local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
         if fire_data ~= nil then
             net.send_fire(fire_data)
+        end
+    end
+
+    if ctx.is_host and not EntityGetIsAlive(ctx.my_player.entity) then
+        GamePrint("My player is not alive "..ctx.my_player.entity)
+        if not ctx.run_ended then
+            GamePrint("Notifying of run end")
+            net.proxy_notify_game_over()
+            ctx.run_ended = true
         end
     end
 end
@@ -344,8 +332,9 @@ function OnModPreInit()
     load_modules()
 end
 
-function OnModPostInit()
-	
-end
+function OnModInit() end
+
+
+function OnModPostInit() end
 
 print("entangled_worlds init ok")

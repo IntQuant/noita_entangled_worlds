@@ -6,14 +6,13 @@ local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
 
-np.CrossCallAdd("ew_player_polymorphing_to", function(ent)
-    player_fns.replace_player_entity(ent, ctx.my_player)
-end)
-
 local module = {}
 
-function module.on_local_player_spawn(my_player)
-    EntityAddComponent2(my_player.entity, "LuaComponent", {script_polymorphing_to = "mods/quant.ew/files/src/system/polymorph/cbs/polymorphing_to.lua"})
+function module.on_world_update_post()
+    local ent = np.GetPlayerEntity()
+    if ent ~= ctx.my_player.entity then
+        player_fns.replace_player_entity(ent, ctx.my_player)
+    end
 end
 
 return module
