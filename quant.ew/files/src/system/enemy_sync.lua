@@ -133,7 +133,7 @@ function rpc.handle_death_data(death_data)
         end
 
         local enemy_data = ctx.entity_by_remote_id[remote_id]
-        if enemy_data ~= nil then
+        if enemy_data ~= nil and EntityGetIsAlive(enemy_data.id) then
             local enemy_id = enemy_data.id
             local immortal = EntityGetFirstComponentIncludingDisabled(enemy_id, "LuaComponent", "ew_immortal")
             if immortal ~= 0 then
