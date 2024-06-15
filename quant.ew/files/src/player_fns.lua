@@ -439,10 +439,18 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
 end
 
 function player_fns.replace_player_entity(new_entity, player_data)
-    local old_entity = player_data.entity
-    player_data.entity = new_entity
-    ctx.player_data_by_local_entity[new_entity] = player_data
-    print("Replaced player entity: "..old_entity.." -> "..new_entity)
+    if new_entity ~= nil then
+        local old_entity = player_data.entity
+        player_data.entity = new_entity
+        ctx.player_data_by_local_entity[new_entity] = player_data
+        print("Replaced player entity: "..old_entity.." -> "..new_entity)
+    else
+        player_fns.spawn_player_for(player_data.peer_id, 0, 0, player_data)
+        local latest_inventory = player_data.latest_inventory
+        if latest_inventory ~= nil then
+            player_fns.deserialize_items(latest_inventory, player_data)
+        end
+    end
 end
 
 function player_fns.respawn_if_necessary()
