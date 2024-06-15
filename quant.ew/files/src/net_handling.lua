@@ -83,19 +83,6 @@ function net_handling.mod.perks(peer_id, perk_data)
     perk_fns.update_perks(perk_data, player_data)
 end
 
-function net_handling.mod.host_player(peer_id, player_infos)
-    if peer_id ~= ctx.host_id then
-        return
-    end
-    for id, player_data in pairs(ctx.players) do
-        if player_infos[id] ~= nil then
-            local info = player_infos[id]
-            util.set_ent_health(player_data.entity, {info[1], info[2]})
-            -- util.set_ent_air(player_data.entity, {info[3], info[4]})
-        end
-    end
-end
-
 function net_handling.mod.fire(peer_id, fire_data)
     local rng = fire_data[1]
     local message = fire_data[2]

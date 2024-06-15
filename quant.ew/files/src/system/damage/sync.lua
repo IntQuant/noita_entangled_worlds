@@ -1,8 +1,10 @@
 -- This module allows to handle getting damaged locally and redirects that damage to host.
--- Also recalculates percentage-based damage
+-- Also handles shared health system in general.
+-- Also recalculates percentage-based damage.
 
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
 local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
@@ -36,6 +38,14 @@ function module.on_world_update_client()
     end
 end
 
+function module.on_world_update_host()
+    if GameGetFrameNum() % 4 == 3 then
+        local player_info = {}
+        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+        rpc.update_shared_health(hp, max_hp)
+    end
+end
+
 rpc.opts_reliable()
 function rpc.deal_damage(damage, message)
     local message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.rpc_player_data.name
@@ -52,6 +62,10 @@ function rpc.deal_damage(damage, message)
         end
     end
     GamePrint("Got ".. (damage*25) .." damage: "..message)
+end
+
+function rpc.update_shared_health(hp, max_hp)
+    util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
 end
 
 return module

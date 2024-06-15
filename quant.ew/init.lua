@@ -216,18 +216,6 @@ local function on_world_pre_update_inner()
         end
     end
 
-    -- Health and air sync
-    if ctx.is_host and GameGetFrameNum() % 4 == 3 then
-        local player_info = {}
-        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
-        for id, player_data in pairs(ctx.players) do
-            local entity = player_data.entity
-            local air, max_air = util.get_ent_air(entity)
-            player_info[id] = {hp, max_hp, air, max_air}
-        end
-        net.send_host_player_info(player_info)
-    end
-
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)) then
         local inventory_state = player_fns.serialize_items(ctx.my_player)
         if inventory_state ~= nil then

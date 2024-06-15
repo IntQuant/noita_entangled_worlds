@@ -190,10 +190,6 @@ function net.send_welcome()
   net.send("welcome", nil, true)
 end
 
-function net.send_host_player_info(player_info)
-  net.send("host_player", player_info)
-end
-
 function net.send_fire(fire_info)
   net.send("fire", fire_info, true)
 end
