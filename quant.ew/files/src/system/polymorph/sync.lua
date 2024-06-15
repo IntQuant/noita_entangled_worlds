@@ -28,20 +28,19 @@ function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, posi
     if ctx.my_player.currently_polymorphed and shooter_id == ctx.my_player.entity then
         local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
-        GamePrint("Shot "..entity_that_shot)
         if entity_that_shot == 0 then
-            GamePrint("Sending projectile")
-            local x, y = EntityGetTransform(projectile_id)
-            rpc.replicate_projectile(x, y, np.SerializeEntity(projectile_id))
+            rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y)
         end
     end
     EntityAddTag(projectile_id, "ew_replicated")
+    EntityAddTag(projectile_id, "ew_no_enemy_sync")
 end
 
-function rpc.replicate_projectile(x, y, seri_ent)
+function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, target_y)
     local ent = EntityCreateNew()
-    np.DeserializeEntity(ent, seri_ent, x, y)
+    np.DeserializeEntity(ent, seri_ent)
     EntityAddTag(ent, "ew_no_enemy_sync")
+    GameShootProjectile(ctx.rpc_player_data.entity, position_x, position_y, target_x, target_y, ent)
 end
 
 return module
