@@ -48,6 +48,7 @@ local function chunk_producer()
 end
 
 local producer_coro = nil
+local sent_anything = false
 
 function world_sync.on_world_update_host()
 
@@ -55,13 +56,12 @@ function world_sync.on_world_update_host()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     local thread_impl = grid_world.mThreadImpl
 
-    local sent_anything = false
 
     if producer_coro == nil then
         producer_coro = coroutine.wrap(chunk_producer)
     end
 
-    if GameGetFrameNum() % 4 == 0 then
+    if GameGetFrameNum() % 2 == 0 then
         local crect = producer_coro()
 
         if crect == nil then
@@ -76,7 +76,7 @@ function world_sync.on_world_update_host()
             sent_anything = true
         end
 
-        if sent_anything then
+        if GameGetFrameNum() % 4 == 0 then
             net.proxy_bin_send(KEY_WORLD_END, "")
         end
     end
