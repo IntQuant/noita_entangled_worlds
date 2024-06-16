@@ -70,9 +70,9 @@ function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, posi
         if entity_that_shot == 0 then
             rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y)
         end
+        EntityAddTag(projectile_id, "ew_replicated")
+        EntityAddTag(projectile_id, "ew_no_enemy_sync")
     end
-    EntityAddTag(projectile_id, "ew_replicated")
-    EntityAddTag(projectile_id, "ew_no_enemy_sync")
 end
 
 rpc.opts_reliable()

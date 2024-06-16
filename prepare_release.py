@@ -153,7 +153,7 @@ It should be detected automatically as long as you use steam version of the game
 
     title = input("Release title: ")
 
-    subprocess.call(["gh", "release", "create", tag, "--title", f"{tag} - {title}", "-F", notes_path, "--draft", "./target/noita-proxy-linux.zip", "./target/noita-proxy-win.zip", "./target/quant.ew.zip"])
+    subprocess.call(["gh", "release", "create", tag, "--title", f"{tag} - {title}", "-F", notes_path, "./target/noita-proxy-linux.zip", "./target/noita-proxy-win.zip", "./target/quant.ew.zip"])
 
 if __name__ == "__main__":
     main()
