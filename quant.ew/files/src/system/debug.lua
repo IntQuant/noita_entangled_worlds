@@ -29,7 +29,7 @@ function module.on_world_update_host()
     if ctx.debug then
         local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
         if hp < max_hp / 2 then
-            util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
+            -- util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
         end
     end
 end

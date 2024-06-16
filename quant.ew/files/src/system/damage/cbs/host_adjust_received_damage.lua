@@ -11,8 +11,8 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
     if damageModelComponent ~= nil then
         local health = ComponentGetValue2( damageModelComponent, "hp" )
         if health then
-            ComponentSetValue2( damageModelComponent, "hp", health + (damage - new_damage) )
+            ComponentSetValue2( damageModelComponent, "hp", health + damage )
         end
     end
-
+    CrossCall("ew_ds_damaged", new_damage, message)
 end

@@ -17,6 +17,9 @@ module.recent_message = "unknown"
 np.CrossCallAdd("ew_ds_damaged", function (damage, message)
     module.recent_damage = module.recent_damage + damage
     module.recent_message = message
+    if ctx.is_host then
+        module.inflict_damage(damage)
+    end
 end)
 
 function module.on_local_player_spawn(my_player)
@@ -40,10 +43,38 @@ end
 
 function module.on_world_update_host()
     if GameGetFrameNum() % 4 == 3 then
-        local player_info = {}
-        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+        local hp, max_hp = module.health(), module.max_health()
+        if not ctx.my_player.currently_polymorphed then
+            util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+        end
         rpc.update_shared_health(hp, max_hp)
     end
+end
+
+function module.on_new_player_seen(new_playerdata)
+    module.set_max_health(module.max_health()+4)
+    module.set_health(module.health()+4)
+end
+
+function module.health()
+    return tonumber(GlobalsGetValue("ew_shared_hp", "4"))
+end
+
+function module.max_health()
+    return tonumber(GlobalsGetValue("ew_shared_max_hp", "4"))
+end
+
+function module.set_health(hp)
+    GlobalsSetValue("ew_shared_hp", tostring(hp))
+end
+
+function module.set_max_health(hp)
+    GlobalsSetValue("ew_shared_max_hp", tostring(hp))
+end
+
+function module.inflict_damage(dmg)
+    local hp = module.health()
+    module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
 end
 
 rpc.opts_reliable()
@@ -56,7 +87,8 @@ function rpc.deal_damage(damage, message)
         if protection_component_id ~= 0 then
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, false)
         end
-        EntityInflictDamage(host_entity_id, damage, "DAMAGE_CURSE", message, "NONE", 0, 0, nil)
+        -- EntityInflictDamage(host_entity_id, damage, "DAMAGE_CURSE", message, "NONE", 0, 0, nil)
+        module.inflict_damage(damage)
         if protection_component_id ~= 0 then
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, true)
         end
@@ -65,7 +97,9 @@ function rpc.deal_damage(damage, message)
 end
 
 function rpc.update_shared_health(hp, max_hp)
-    util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+    if not ctx.my_player.currently_polymorphed then
+        util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+    end
 end
 
 return module

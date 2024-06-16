@@ -8,7 +8,7 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
     if damageModelComponent ~= nil then
         local health = ComponentGetValue2( damageModelComponent, "hp" )
         if health then
-            ComponentSetValue2( damageModelComponent, "hp", health + damage )
+            ComponentSetValue2( damageModelComponent, "hp", math.max(health + damage, 0.01) )
         end
     end
 
