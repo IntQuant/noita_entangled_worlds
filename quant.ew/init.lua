@@ -188,18 +188,18 @@ local function on_world_pre_update_inner()
         ctx.is_inventory_open = inventory_open
     end
 
-    if not ctx.is_host then
-        local hp, _ = util.get_ent_health(ctx.my_player.entity)
-        if hp == 0 then
-           EntityInflictDamage(ctx.my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
-           GameTriggerGameOver()
-           if not ctx.run_ended then
-               GamePrint("Notifying of run end")
-               net.proxy_notify_game_over()
-               ctx.run_ended = true
-           end
-        end
-    end
+    -- if not ctx.is_host then
+    --     local hp, _ = util.get_ent_health(ctx.my_player.entity)
+    --     if hp == 0 then
+    --        EntityInflictDamage(ctx.my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
+    --        GameTriggerGameOver()
+    --        if not ctx.run_ended then
+    --            GamePrint("Notifying of run end")
+    --            net.proxy_notify_game_over()
+    --            ctx.run_ended = true
+    --        end
+    --     end
+    -- end
 
     if GameGetFrameNum() % 120 == 0 then
         player_fns.respawn_if_necessary()

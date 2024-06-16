@@ -201,7 +201,7 @@ function net_handling.mod.heart_pickup(peer_id, heart_pickup)
     local do_heal = do_heal_table[heart_pickup] or false
     local max_hp_increase = max_hp_increase_table[heart_pickup]
 
-    local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+    local hp, max_hp = ctx.cap.health.health(), ctx.cap.health.max_health()
     local cap = util.get_ent_health_cap(ctx.my_player.entity)
     local player_count = tonumber(GlobalsGetValue("ew_player_count", "1"))
     
@@ -220,7 +220,9 @@ function net_handling.mod.heart_pickup(peer_id, heart_pickup)
         hp = hp + healing
     end
 
-    util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+    ctx.cap.health.set_max_health(max_hp)
+    ctx.cap.health.set_health(hp)
+    -- util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
 
     local peer_data = player_fns.peer_get_player_data(peer_id)
     if max_hp ~= max_hp_old and heart_pickup == "evil" then

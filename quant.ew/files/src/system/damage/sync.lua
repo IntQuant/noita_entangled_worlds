@@ -28,9 +28,11 @@ function module.on_local_player_spawn(my_player)
     else
         EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"})
 
-        local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
         -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0)
     end
+    local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
+    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    
 end
 
 function module.on_world_update_client()
@@ -48,6 +50,12 @@ function module.on_world_update_host()
             util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
         end
         rpc.update_shared_health(hp, max_hp)
+        if hp <= 0 then
+            GameTriggerGameOver()
+            ctx.run_ended = true
+            net.proxy_notify_game_over()
+            rpc.trigger_game_over()
+        end
     end
 end
 
@@ -77,6 +85,14 @@ function module.inflict_damage(dmg)
     module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
 end
 
+ctx.cap.health = {
+    health = module.health,
+    max_health = module.max_health,
+    set_health = module.set_health,
+    set_max_health = module.set_max_health,
+    inflict_damage = module.inflict_damage,
+}
+
 rpc.opts_reliable()
 function rpc.deal_damage(damage, message)
     local message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.rpc_player_data.name
@@ -100,6 +116,12 @@ function rpc.update_shared_health(hp, max_hp)
     if not ctx.my_player.currently_polymorphed then
         util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
     end
+end
+
+function rpc.trigger_game_over()
+    GameTriggerGameOver()
+    net.proxy_notify_game_over()
+    ctx.run_ended = true
 end
 
 return module

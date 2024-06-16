@@ -3,6 +3,7 @@ local ctx = {
     lib = {},
     hook = {},
     proxy_opt = {},
+    cap = {}, -- Capabilities
 }
 
 setmetatable(ctx.hook, {
