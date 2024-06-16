@@ -28,6 +28,10 @@ function util.tpcall(fn, ...)
     return unpack(res)
 end
 
+function util.print_traceback()
+    util.print_error(debug.traceback())
+end
+
 function util.get_ent_variable(entity, key)
     local storage = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", key)
     if storage == nil then

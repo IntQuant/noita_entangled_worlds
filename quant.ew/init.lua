@@ -184,19 +184,6 @@ local function on_world_pre_update_inner()
         ctx.is_inventory_open = inventory_open
     end
 
-    -- if not ctx.is_host then
-    --     local hp, _ = util.get_ent_health(ctx.my_player.entity)
-    --     if hp == 0 then
-    --        EntityInflictDamage(ctx.my_player.entity, 10000000, "DAMAGE_CURSE", "Out of shared health", "NONE", 0, 0, GameGetWorldStateEntity())
-    --        GameTriggerGameOver()
-    --        if not ctx.run_ended then
-    --            GamePrint("Notifying of run end")
-    --            net.proxy_notify_game_over()
-    --            ctx.run_ended = true
-    --        end
-    --     end
-    -- end
-
     if GameGetFrameNum() % 120 == 0 then
         player_fns.respawn_if_necessary()
         player_fns.spread_max_health()
@@ -228,12 +215,14 @@ local function on_world_pre_update_inner()
         end
     end
 
-    if ctx.is_host then
-        ctx.hook.on_world_update_host()
-    else
-        ctx.hook.on_world_update_client()
+    if not ctx.run_ended then
+        if ctx.is_host then
+            ctx.hook.on_world_update_host()
+        else
+            ctx.hook.on_world_update_client()
+        end
+        ctx.hook.on_world_update()
     end
-    ctx.hook.on_world_update()
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
@@ -245,7 +234,9 @@ local function on_world_post_update_inner()
 
     -- local px, py = EntityGetTransform(my_player.entity)
     -- GameSetCameraPos(px, py)
-    ctx.hook.on_world_update_post()
+    if not ctx.run_ended then
+        ctx.hook.on_world_update_post()
+    end
 
     local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
     GlobalsSetValue("ew_wand_fired", "0")
@@ -254,15 +245,6 @@ local function on_world_post_update_inner()
         local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
         if fire_data ~= nil then
             net.send_fire(fire_data)
-        end
-    end
-
-    if ctx.is_host and not EntityGetIsAlive(ctx.my_player.entity) then
-        GamePrint("My player is not alive "..ctx.my_player.entity)
-        if not ctx.run_ended then
-            GamePrint("Notifying of run end")
-            net.proxy_notify_game_over()
-            ctx.run_ended = true
         end
     end
 end

@@ -13,6 +13,8 @@ local function entity_changed()
 
     ctx.my_player.currently_polymorphed = currently_polymorphed
     if currently_polymorphed then
+        local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
         rpc.change_entity(np.SerializeEntity(ctx.my_player.entity))
     else
         rpc.change_entity(nil)
@@ -39,7 +41,17 @@ local function remove_all_effects(entity)
     end
 end
 
+local gameover_requested = false
 
+function module.on_world_update()
+    if ctx.my_player.currently_polymorphed then
+        local hp = util.get_ent_health(ctx.my_player.entity)
+        if hp <= 0 and not gameover_requested then
+            ctx.cap.health.do_game_over()
+            gameover_requested = true
+        end
+    end
+end
 
 function module.on_world_update_post()
     local ent = np.GetPlayerEntity()

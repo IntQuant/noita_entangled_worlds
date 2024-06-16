@@ -14,6 +14,7 @@ Functions:
  - `set_health(hp: num)`
  - `set_max_health(hp: num)`
  - `inflict_damage(dmg: num)`
+ - `do_game_over(msg: str)`
 
 Provided by:
  - damage (shared health) system

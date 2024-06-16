@@ -2,6 +2,10 @@ local adjust_damage = dofile_once("mods/quant.ew/files/src/system/damage/cbs/adj
 
 -- Called on clients when they get damage and redirects it to the host's hp over the network, ignoring any resists.
 function damage_received(damage, message, entity_thats_responsible, is_fatal, projectile_thats_responsible)
+    if entity_thats_responsible == GameGetWorldStateEntity() then
+        return
+    end
+    
     -- Change our health back
     local entity_id = GetUpdatedEntityID();
     local damageModelComponent = EntityGetFirstComponentIncludingDisabled( entity_id, "DamageModelComponent" )

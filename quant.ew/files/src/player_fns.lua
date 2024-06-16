@@ -394,7 +394,7 @@ function player_fns.peer_has_player(peer_id)
 end
 
 function player_fns.peer_get_player_data(peer_id, dont_spawn_new)
-    if (not dont_spawn_new) and (not player_fns.peer_has_player(peer_id)) then
+    if peer_id ~= ctx.my_player.peer_id and (not dont_spawn_new) and (not player_fns.peer_has_player(peer_id)) then
         player_fns.spawn_player_for(peer_id, ctx.initial_player_pos.x, ctx.initial_player_pos.y)
     end
     return ctx.players[peer_id]
@@ -405,6 +405,9 @@ function player_fns.get_player_data_by_local_entity_id(entity)
 end
 
 function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
+    if ctx.run_ended then
+        util.print_traceback()
+    end
     GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
