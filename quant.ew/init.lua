@@ -23,12 +23,6 @@ print("Noita EW version: "..version)
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
 
-ModLuaFileAppend("data/scripts/items/heart.lua", "mods/quant.ew/files/append/heart.lua")
-ModLuaFileAppend("data/scripts/items/heart_better.lua", "mods/quant.ew/files/append/heart_better.lua")
-ModLuaFileAppend("data/scripts/items/heart_evil.lua", "mods/quant.ew/files/append/heart_evil.lua")
-ModLuaFileAppend("data/scripts/items/heart_fullhp.lua", "mods/quant.ew/files/append/heart_fullhp.lua")
-ModLuaFileAppend("data/scripts/items/heart_fullhp_temple.lua", "mods/quant.ew/files/append/heart_fullhp_temple.lua")
-
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local function load_modules()
@@ -48,6 +42,8 @@ local function load_modules()
     else
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v2.lua")
     end
+
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/heart_pickups/sync.lua")
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
@@ -230,12 +226,6 @@ local function on_world_pre_update_inner()
         if perk_data ~= nil then
             net.send_player_perks(perk_data)
         end
-    end
-
-    local heart_pickup = GlobalsGetValue("ew_heart_pickup", "")
-    if heart_pickup ~= "" then
-        net.send_heart_pickup(heart_pickup)
-        GlobalsSetValue("ew_heart_pickup", "")
     end
 
     if ctx.is_host then

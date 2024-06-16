@@ -210,8 +210,4 @@ function net.send_item_upload(item_data)
   net.send_to_host("item_upload", item_data, true)
 end
 
-function net.send_heart_pickup(heart_pickup)
-  net.send("heart_pickup", heart_pickup, true)
-end
-
 return net
