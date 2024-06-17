@@ -49,9 +49,9 @@ local function get_sync_entities()
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
         return not (EntityHasTag(ent, "ew_no_enemy_sync"))
     end)
-    table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
-        return not (EntityHasTag(ent, "ew_no_enemy_sync") or EntityHasTag(ent, "projectile_player"))
-    end)
+    -- table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
+    --     return not (EntityHasTag(ent, "ew_no_enemy_sync") or EntityHasTag(ent, "projectile_player"))
+    -- end)
     return entities
 end
 
@@ -225,5 +225,27 @@ function rpc.handle_enemy_data(enemy_data)
         ::continue::
     end
 end
+
+function enemy_sync.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
+    unknown1, multicast_index, unknown3)
+    local not_a_player = not EntityHasTag(shooter_id, "ew_no_enemy_sync") and not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client")
+    if not_a_player and ctx.is_host then
+        local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
+        local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+        if entity_that_shot == 0 then
+            rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y, shooter_id, initial_rng)
+        end
+    end
+end
+
+rpc.opts_reliable()
+function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, target_y, remote_source_ent, rng)
+    np.SetProjectileSpreadRNG(rng)
+    local source_ent = ctx.entity_by_remote_id[remote_source_ent].id
+    local ent = EntityCreateNew()
+    np.DeserializeEntity(ent, seri_ent)
+    GameShootProjectile(source_ent, position_x, position_y, target_x, target_y, ent)
+end
+
 
 return enemy_sync
