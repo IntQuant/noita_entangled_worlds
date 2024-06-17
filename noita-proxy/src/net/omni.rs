@@ -88,7 +88,10 @@ impl PeerVariant {
     ) -> Result<(), tangled::NetError> {
         match self {
             PeerVariant::Tangled(p) => p.broadcast(msg, reliability),
-            PeerVariant::Steam(p) => Ok(p.broadcast_message(&msg, reliability)),
+            PeerVariant::Steam(p) => {
+                p.broadcast_message(&msg, reliability);
+                Ok(())
+            }
         }
     }
 
@@ -135,9 +138,6 @@ impl PeerVariant {
     }
 
     pub fn is_steam(&self) -> bool {
-        match self {
-            PeerVariant::Steam(_) => true,
-            _ => false,
-        }
+        matches!(self, PeerVariant::Steam(_))
     }
 }

@@ -301,8 +301,8 @@ impl NetManager {
         state: &mut NetInnerState,
     ) {
         match msg {
-            Ok(msg) => match msg {
-                tungstenite::Message::Binary(msg) => {
+            Ok(msg) => {
+                if let tungstenite::Message::Binary(msg) = msg {
                     match msg[0] & 0b11 {
                         // Message to proxy
                         1 => {
@@ -342,8 +342,7 @@ impl NetManager {
                         }
                     }
                 }
-                _ => {}
-            },
+            }
             Err(tungstenite::Error::Io(io_err))
                 if io_err.kind() == io::ErrorKind::WouldBlock
                     || io_err.kind() == io::ErrorKind::TimedOut => {}

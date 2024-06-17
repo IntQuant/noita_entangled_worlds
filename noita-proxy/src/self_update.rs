@@ -40,7 +40,7 @@ impl SelfUpdateManager {
             get_latest_release(&client)
                 .map(|release| release.tag_name)
                 .ok()
-                .and_then(|tag| Version::parse_from_tag(tag))
+                .and_then(Version::parse_from_tag)
                 .map(|ver| VersionCheckResult {
                     ord: ver.cmp(&Version::current()),
                     newest: ver,
@@ -170,7 +170,7 @@ fn extract_and_remove_zip(zip_file: PathBuf) -> Result<(), ReleasesError> {
     let reader = File::open(&zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     info!("Extracting zip file");
-    let mut src = zip.by_name(&bin_name)?;
+    let mut src = zip.by_name(bin_name)?;
     let mut dst = File::create(extract_to)?;
     io::copy(&mut src, &mut dst)?;
 

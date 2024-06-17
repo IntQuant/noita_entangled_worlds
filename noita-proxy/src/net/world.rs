@@ -14,6 +14,7 @@ pub enum WorldUpdateKind {
     End,
 }
 
+#[derive(Default)]
 pub struct WorldManager {
     model: WorldModel,
 }
@@ -44,9 +45,7 @@ impl WorldDelta {
 
 impl WorldManager {
     pub fn new() -> Self {
-        Self {
-            model: WorldModel::new(),
-        }
+        Self::default()
     }
 
     pub fn add_update(&mut self, update: NoitaWorldUpdate) {

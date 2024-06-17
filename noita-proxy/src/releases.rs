@@ -68,28 +68,27 @@ impl Asset {
         let handle = {
             let shared = shared.clone();
             Promise::spawn_thread("downloader", move || {
-                download_thread(client, url, shared, file)
+                download_thread(client, &url, shared, file)
             })
         };
 
-        let downloader = Ok(Downloader {
+        Ok(Downloader {
             shared,
             handle,
             path: path.to_path_buf(),
             size: self.size,
-        });
-        downloader
+        })
     }
 }
 
 fn download_thread(
     client: Client,
-    url: String,
+    url: &str,
     shared: Arc<DownloaderSharedState>,
     mut file: File,
 ) -> Result<(), ReleasesError> {
     let mut response = client
-        .get(&url)
+        .get(url)
         .header("Accept", "application/octet-stream")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
@@ -170,11 +169,11 @@ pub struct Version {
 
 impl Version {
     pub fn parse_from_mod(version: &str) -> Option<Self> {
-        let strip_suffix = version.strip_prefix("return \"")?.strip_suffix("\"")?;
+        let strip_suffix = version.strip_prefix("return \"")?.strip_suffix('"')?;
         Self::parse_from_string(strip_suffix)
     }
     fn parse_from_string(version: &str) -> Option<Self> {
-        let mut nums = version.split(".");
+        let mut nums = version.split('.');
         let major = nums.next()?.parse().ok()?;
         let minor = nums.next()?.parse().ok()?;
         let patch = nums.next()?.parse().ok()?;
@@ -188,7 +187,7 @@ impl Version {
         Self::parse_from_string(env!("CARGO_PKG_VERSION")).expect("can always parse crate version")
     }
     pub fn parse_from_tag(tag: Tag) -> Option<Self> {
-        Self::parse_from_string(tag.0.strip_prefix("v")?)
+        Self::parse_from_string(tag.0.strip_prefix('v')?)
     }
 }
 

@@ -239,11 +239,7 @@ impl Modmanager {
     }
 
     pub fn is_done(&self) -> bool {
-        if let State::Done = self.state {
-            true
-        } else {
-            false
-        }
+        matches!(self.state, State::Done)
     }
 }
 
@@ -279,7 +275,7 @@ fn is_mod_ok(mod_path: &Path) -> io::Result<bool> {
         return Ok(false);
     }
     let version_path = mod_path.join("files/version.lua");
-    let version = fs::read_to_string(&version_path)
+    let version = fs::read_to_string(version_path)
         .ok()
         .and_then(|v| Version::parse_from_mod(&v));
 

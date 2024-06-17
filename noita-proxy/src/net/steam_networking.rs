@@ -188,12 +188,12 @@ impl SteamPeer {
 
         // TODO: could be done more efficiently
         for peer in &peers {
-            if !current_peers.contains(&peer) {
+            if !current_peers.contains(peer) {
                 self.sender.send(SteamEvent::PeerConnected(*peer)).ok();
             }
         }
         for peer in &mut *current_peers {
-            if !peers.contains(&peer) {
+            if !peers.contains(peer) {
                 self.sender.send(SteamEvent::PeerDisconnected(*peer)).ok();
             }
         }

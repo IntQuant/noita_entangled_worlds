@@ -430,14 +430,12 @@ impl eframe::App for App {
                 });
             }
             AppState::Error { message } => {
-                if egui::CentralPanel::default()
-                    .show(ctx, |ui| {
-                        ui.heading(tr("error_occured"));
-                        ui.label(message);
-                        ui.button(tr("button_back")).clicked()
-                    })
-                    .inner
-                {
+                let add_contents = |ui: &mut Ui| {
+                    ui.heading(tr("error_occured"));
+                    ui.label(message);
+                    ui.button(tr("button_back")).clicked()
+                };
+                if egui::CentralPanel::default().show(ctx, add_contents).inner {
                     self.state = AppState::Connect;
                 }
             }
@@ -499,11 +497,9 @@ impl eframe::App for App {
 fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> String {
     if peer == netman.peer.host_id() {
         tr("player_host")
+    } else if Some(peer) == netman.peer.my_id() {
+        tr("player_me")
     } else {
-        if Some(peer) == netman.peer.my_id() {
-            tr("player_me")
-        } else {
-            tr("player_player")
-        }
+        tr("player_player")
     }
 }

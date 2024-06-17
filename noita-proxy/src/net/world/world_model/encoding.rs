@@ -43,6 +43,12 @@ pub struct PixelRunner<Pixel> {
     runs: Vec<PixelRun<Pixel>>,
 }
 
+impl<Pixel: Eq + Copy> Default for PixelRunner<Pixel> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Pixel: Eq + Copy> PixelRunner<Pixel> {
     pub fn new() -> Self {
         Self {

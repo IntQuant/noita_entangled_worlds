@@ -126,6 +126,10 @@ rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
         local remote_id = remote_data[1]
+        if confirmed_kills[remote_id] then
+            GamePrint("Remote id has been killed already..?")
+            goto continue
+        end
         confirmed_kills[remote_id] = true
         local responsible_entity = 0
         local peer_data = player_fns.peer_get_player_data(remote_data[2], true)
@@ -147,6 +151,11 @@ function rpc.handle_death_data(death_data)
                 EntitySetComponentIsEnabled(enemy_id, protection_component_id, false)
             end
 
+            local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+            if damage_component and damage_component ~= 0 then
+                ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
+            end
+
             local current_hp = util.get_ent_health(enemy_id)
             local dmg = current_hp
             if dmg > 0 then
@@ -155,6 +164,7 @@ function rpc.handle_death_data(death_data)
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
             EntityKill(enemy_id)
         end
+        ::continue::
     end
 end
 
@@ -189,6 +199,10 @@ function rpc.handle_enemy_data(enemy_data)
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
             EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+            local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+            if damage_component and damage_component ~= 0 then
+                ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
+            end
             for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "PhysicsBodyComponent"}) do
                 local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
                 if ai_component ~= 0 then

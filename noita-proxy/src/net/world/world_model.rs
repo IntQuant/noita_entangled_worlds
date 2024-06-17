@@ -13,6 +13,7 @@ const CHUNK_SIZE: usize = 128;
 
 type ChunkCoord = (i32, i32);
 
+#[derive(Default)]
 pub struct WorldModel {
     chunks: FxHashMap<ChunkCoord, Chunk>,
     pub mats: FxHashSet<u16>,
@@ -33,6 +34,12 @@ pub struct ChunkDelta {
 impl ChunkDelta {
     pub fn estimate_size(&self) -> usize {
         8 + self.runs.len() * size_of::<PixelRun<Option<Pixel>>>()
+    }
+}
+
+impl Default for MatPalette {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -84,12 +91,7 @@ impl WorldModel {
     }
 
     pub fn new() -> Self {
-        Self {
-            chunks: Default::default(),
-            mats: Default::default(),
-            palette: MatPalette::new(),
-            changed_chunks: Default::default(),
-        }
+        Self::default()
     }
 
     pub fn apply_noita_update(&mut self, update: &NoitaWorldUpdate) {
@@ -189,7 +191,7 @@ impl WorldModel {
 
     pub fn reset_change_tracking(&mut self) {
         for chunk_pos in &self.changed_chunks {
-            if let Some(chunk) = self.chunks.get_mut(&chunk_pos) {
+            if let Some(chunk) = self.chunks.get_mut(chunk_pos) {
                 chunk.clear_changed();
             }
         }
@@ -205,12 +207,10 @@ impl WorldModel {
     pub fn gen_image(&self, x: i32, y: i32, w: u32, h: u32) -> RgbImage {
         RgbImage::from_fn(w, h, |lx, ly| {
             let pixel = self.get_pixel(x + lx as i32, y + ly as i32);
-            // let b = if pixel.material != 0 { 255 } else { 0 };
-            // Rgb([pixel.material as u8, (pixel.material >> 8) as u8, b])
             let mat_color = self
                 .palette
                 .colors
-                .get(usize::try_from(pixel.material).unwrap_or_default())
+                .get(usize::from(pixel.material))
                 .copied()
                 .unwrap_or(Rgb([0, 0, 0]));
             if pixel.flags != PixelFlags::Unknown {
