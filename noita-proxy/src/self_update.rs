@@ -54,7 +54,8 @@ impl SelfUpdateManager {
     }
 
     pub fn display_version(&mut self, ui: &mut Ui) {
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+        ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+            ui.label(concat!("Noita Proxy v", env!("CARGO_PKG_VERSION"),));
             match self.latest_check.ready() {
                 Some(&Some(VersionCheckResult {
                     newest: _,
@@ -80,7 +81,6 @@ impl SelfUpdateManager {
                     ui.label(tr("version_checking"));
                 }
             }
-            ui.label(concat!("Noita Proxy v", env!("CARGO_PKG_VERSION"),));
         });
     }
 
