@@ -73,7 +73,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
                 rng = table.remove(shooter_player_data.projectile_rng_init, 1)
             else
                 -- Shouldn't happen
-                GamePrint("No values in projectile_rng_init")
+                -- GamePrint("No values in projectile_rng_init")
                 rng = 0
             end
         else

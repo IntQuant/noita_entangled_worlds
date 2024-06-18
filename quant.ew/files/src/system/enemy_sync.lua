@@ -254,7 +254,13 @@ end
 
 rpc.opts_reliable()
 function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, target_y, remote_source_ent, rng)
-    np.SetProjectileSpreadRNG(rng)
+    if rng ~= nil then
+        np.SetProjectileSpreadRNG(rng)
+    end
+    if ctx.entity_by_remote_id[remote_source_ent] == nil then
+        GamePrint("Can't replicate projectile for "..(remote_source_ent or "nil"))
+        return
+    end
     local source_ent = ctx.entity_by_remote_id[remote_source_ent].id
     local ent = EntityCreateNew()
     np.DeserializeEntity(ent, seri_ent)

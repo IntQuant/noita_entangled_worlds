@@ -135,7 +135,7 @@ function net_handling.mod.fire(peer_id, fire_data)
         end
     end
     if #player_data.projectile_rng_init > 0 then
-        GamePrint("unused projectile_rng_init values left "..#player_data.projectile_rng_init)
+        -- GamePrint("unused projectile_rng_init values left "..#player_data.projectile_rng_init)
     end
 end
 
