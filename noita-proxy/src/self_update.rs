@@ -54,7 +54,7 @@ impl SelfUpdateManager {
     }
 
     pub fn display_version(&mut self, ui: &mut Ui) {
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+        ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
             match self.latest_check.ready() {
                 Some(&Some(VersionCheckResult {
                     newest: _,
