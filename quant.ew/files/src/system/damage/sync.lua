@@ -15,7 +15,14 @@ module.recent_damage = 0
 module.recent_message = "unknown"
 module.last_damage_message = "unknown"
 
-np.CrossCallAdd("ew_ds_damaged", function (damage, message)
+ModLuaFileAppend("data/scripts/game_helpers.lua", "mods/quant.ew/files/src/system/damage/append/game_helpers.lua")
+
+np.CrossCallAdd("ew_ds_damaged", function (damage, message, entity_id)
+    local was_my_player = entity_id == nil or ctx.my_player.entity == entity_id
+    if not was_my_player then
+        return
+    end
+    
     module.recent_damage = module.recent_damage + damage
     module.recent_message = message
     if ctx.is_host then
