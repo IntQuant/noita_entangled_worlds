@@ -205,7 +205,7 @@ function rpc.handle_enemy_data(enemy_data)
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
             end
-            for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "PhysicsBodyComponent"}) do
+            for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "PhysicsBodyComponent", "CameraBoundComponent"}) do
                 local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
                 if ai_component ~= 0 then
                     EntityRemoveComponent(enemy_id, ai_component)
