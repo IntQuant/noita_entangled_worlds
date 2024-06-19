@@ -49,6 +49,7 @@ local function get_sync_entities()
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
         return not (EntityHasTag(ent, "ew_no_enemy_sync"))
     end)
+    table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
     -- table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
     --     return not (EntityHasTag(ent, "ew_no_enemy_sync") or EntityHasTag(ent, "projectile_player"))
     -- end)
@@ -96,7 +97,8 @@ function enemy_sync.client_cleanup()
     local entities = get_sync_entities()
     for i, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
-            print("Despawning unreplicated "..enemy_id)
+            local filename = EntityGetFilename(enemy_id)
+            print("Despawning unreplicated "..enemy_id.." "..filename)
             EntityKill(enemy_id)
         end
     end

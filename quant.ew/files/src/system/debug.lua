@@ -11,6 +11,8 @@ function module.on_local_player_spawn(my_player)
         -- The vault
         -- EntitySetTransform(player_entity, 0, 8600-20)
 
+        EntitySetTransform(player_entity, -1990, 2171)
+
         util.set_ent_health(player_entity, {1000, 1000})
         local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")
         ComponentSetValue2(wallet, "money", 100000)

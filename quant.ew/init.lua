@@ -44,6 +44,7 @@ local function load_modules()
     end
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/heart_pickups/sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/spawn_hooks/init.lua")
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
