@@ -48,12 +48,13 @@ local function do_game_over(message)
 end
 
 function module.on_local_player_spawn(my_player)
+    util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
+        script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"
+    })
     if ctx.is_host then
-        EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/host_adjust_received_damage.lua"})
+    
     else
-        EntityAddComponent2(my_player.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"})
-
-        -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0)
+        -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0) -- TODO
     end
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
@@ -139,9 +140,28 @@ function rpc.deal_damage(damage, message)
     GamePrint("Got ".. (damage*25) .." damage: "..message)
 end
 
+local last_health = nil
+local new_shared_vals = nil
+
+function module.on_world_update_post()
+    if new_shared_vals ~= nil then
+        local current_hp = util.get_ent_health(ctx.my_player.entity)
+        util.set_ent_health(ctx.my_player.entity, new_shared_vals)
+        if last_health ~= nil then
+            local diff = last_health - current_hp
+            if diff ~= 0 then
+                GamePrint("Diff "..diff.." lh "..last_health.." c_hp "..current_hp)
+                damage_received(diff, "Hp diff")
+            end
+        end
+        last_health = util.get_ent_health(ctx.my_player.entity)
+    end
+end
+
 function rpc.update_shared_health(hp, max_hp)
     if not ctx.my_player.currently_polymorphed then
-        util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+        new_shared_vals = {hp, max_hp}
+        -- util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
     end
 end
 
