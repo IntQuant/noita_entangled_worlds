@@ -118,10 +118,25 @@ function enemy_sync.on_world_update_host()
     end
 end
 
+local killed_replicated = false
+
 function enemy_sync.on_world_update_client()
     if GameGetFrameNum() % 20 == 1 then
         enemy_sync.client_cleanup()
     end
+
+    if GameGetFrameNum() > 60 and not killed_replicated then
+        local replicated = EntityGetWithTag("ew_replicated")
+        GamePrint("Killing replicated enemies")
+        for _, entity in ipairs(replicated) do
+            EntityKill(entity)
+        end
+        killed_replicated = true
+    end
+end
+
+function enemy_sync.on_local_client_spawn()
+    
 end
 
 rpc.opts_reliable()
