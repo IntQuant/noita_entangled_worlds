@@ -141,27 +141,18 @@ function rpc.deal_damage(damage, message)
 end
 
 local last_health = nil
-local new_shared_vals = nil
-
-function module.on_world_update_post()
-    if new_shared_vals ~= nil then
-        local current_hp = util.get_ent_health(ctx.my_player.entity)
-        util.set_ent_health(ctx.my_player.entity, new_shared_vals)
-        if last_health ~= nil then
-            local diff = last_health - current_hp
-            if diff ~= 0 then
-                GamePrint("Diff "..diff.." lh "..last_health.." c_hp "..current_hp)
-                damage_received(diff, "Hp diff")
-            end
-        end
-        last_health = util.get_ent_health(ctx.my_player.entity)
-    end
-end
 
 function rpc.update_shared_health(hp, max_hp)
     if not ctx.my_player.currently_polymorphed then
-        new_shared_vals = {hp, max_hp}
-        -- util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+        local current_hp = util.get_ent_health(ctx.my_player.entity)
+        util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+        if last_health ~= nil then
+            local diff = last_health - current_hp
+            if diff ~= 0 then
+                damage_received(diff, "hp diff")
+            end
+        end
+        last_health = util.get_ent_health(ctx.my_player.entity)
     end
 end
 
