@@ -17,7 +17,7 @@ module.last_damage_message = "unknown"
 
 ModLuaFileAppend("data/scripts/game_helpers.lua", "mods/quant.ew/files/src/system/damage/append/game_helpers.lua")
 
-np.CrossCallAdd("ew_ds_damaged", function (damage, message, entity_id)
+local function damage_received(damage, message, entity_id, add_healing_effect)
     local was_my_player = entity_id == nil or ctx.my_player.entity == entity_id
     if not was_my_player then
         return
@@ -29,7 +29,12 @@ np.CrossCallAdd("ew_ds_damaged", function (damage, message, entity_id)
         module.inflict_damage(damage)
     end
     module.last_damage_message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.my_player.name
-end)
+    if add_healing_effect then
+        rpc.healing_effect()
+    end
+end
+
+np.CrossCallAdd("ew_ds_damaged", damage_received)
 
 local function do_game_over(message)
     net.proxy_notify_game_over()
@@ -140,8 +145,16 @@ function rpc.update_shared_health(hp, max_hp)
     end
 end
 
+rpc.opts_reliable()
 function rpc.trigger_game_over(message)
     do_game_over(message)
+end
+
+function rpc.healing_effect()
+    local entity_id = ctx.rpc_player_data.entity
+    local x, y = EntityGetTransform( entity_id )
+	local entity_fx = EntityLoad( "data/entities/particles/heal_effect.xml", x, y )
+	EntityAddChild( entity_id, entity_fx )
 end
 
 return module
