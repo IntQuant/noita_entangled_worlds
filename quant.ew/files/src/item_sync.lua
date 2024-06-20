@@ -2,6 +2,8 @@ local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.l
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 
+dofile_once("data/scripts/lib/coroutines.lua")
+
 local item_sync = {}
 
 function item_sync.ensure_notify_component(ent)
@@ -65,19 +67,27 @@ function item_sync.host_localize_item(gid, peer_id)
 end
 
 function item_sync.make_item_global(item)
-    local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
-    local id = ComponentGetValue2(g_id, "value_int")
-    if g_id == nil then
-        id = allocate_global_id()
-        EntityAddComponent2(item, "VariableStorageComponent", {
-            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
-            value_int = id,
-        })
-    end
-    local item_data = inventory_helper.serialize_single_item(item)
-    item_data.g_id = id
-    ctx.item_prevent_localize[id] = false
-    ctx.lib.net.send_make_global(item_data)
+    async(function()
+        wait(1) -- Wait 1 frame so that game sets proper velocity.
+        local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+        local id = ComponentGetValue2(g_id, "value_int")
+        if g_id == nil then
+            id = allocate_global_id()
+            EntityAddComponent2(item, "VariableStorageComponent", {
+                _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
+                value_int = id,
+            })
+        end
+        local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+        if vel then
+            local vx, vy = ComponentGetValue2(vel, "mVelocity")
+            GamePrint("v "..vx.." "..vy)
+        end
+        local item_data = inventory_helper.serialize_single_item(item)
+        item_data.g_id = id
+        ctx.item_prevent_localize[id] = false
+        ctx.lib.net.send_make_global(item_data)
+    end)
 end
 
 local function get_global_ent(key)
@@ -124,7 +134,10 @@ function item_sync.on_world_update_client()
     end
     local thrown_item = get_global_ent("ew_thrown")
     if thrown_item ~= nil and not EntityHasTag(thrown_item, "ew_client_item") then
-        ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
+        async(function ()
+           wait(1) -- Wait 1 frame so that game sets proper velocity.
+           ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
+        end)
         EntityKill(thrown_item)
     end
     

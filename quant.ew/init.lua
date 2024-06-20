@@ -20,6 +20,8 @@ local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 print("Noita EW version: "..version)
 
+dofile_once("data/scripts/lib/coroutines.lua")
+
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
 
@@ -224,6 +226,8 @@ local function on_world_pre_update_inner()
         end
         ctx.hook.on_world_update()
     end
+
+    wake_up_waiting_threads(1)
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world

@@ -124,10 +124,7 @@ function net_handling.mod.fire(peer_id, fire_data)
 
             util.set_ent_firing_blocked(entity, false)
 
-            -- Add player_unit tag to fix physics projectile lob strength
-            EntityAddTag(entity, "player_unit")
             np.UseItem(entity, mActiveItem, true, true, true, x, y, target_x, target_y)
-            EntityRemoveTag(entity, "player_unit")
 
             util.set_ent_firing_blocked(entity, true)
 
