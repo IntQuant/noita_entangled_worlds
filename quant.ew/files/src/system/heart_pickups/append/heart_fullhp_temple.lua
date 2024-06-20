@@ -28,7 +28,7 @@ function item_pickup( entity_item, entity_who_picked, name )
 			-- if( hp > max_hp ) then hp = max_hp end
 			ComponentSetValue( damagemodel, "max_hp_cap", max_hp_cap)
 			ComponentSetValue( damagemodel, "max_hp", max_hp)
-			ComponentSetValue( damagemodel, "hp", hp+healing)
+			-- ComponentSetValue( damagemodel, "hp", hp+healing)
 		end
 	end
 

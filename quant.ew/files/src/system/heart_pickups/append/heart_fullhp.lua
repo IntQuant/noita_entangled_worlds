@@ -17,7 +17,7 @@ function item_pickup( entity_item, entity_who_picked, name )
 			
 			healing = math.min(max_hp - hp, max_hp / player_count)
 			
-			ComponentSetValue( damagemodel, "hp", hp+healing)
+			-- ComponentSetValue( damagemodel, "hp", hp+healing)
 		end
 	end
 
