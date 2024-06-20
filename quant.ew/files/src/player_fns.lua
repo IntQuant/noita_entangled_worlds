@@ -256,7 +256,6 @@ local player_fns = {
             local children = EntityGetAllChildren(player_data.entity) or {}
             for i, child in ipairs(children) do
                 if (EntityGetName(child) == "cursor") then
-                    --EntitySetTransform(child, message.mouse_x, message.mouse_y)
                     EntityApplyTransform(child, message.mouse_x, message.mouse_y)
                 end
             end
