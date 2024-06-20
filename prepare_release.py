@@ -143,6 +143,9 @@ def main():
     notes.p("""You'll be prompted for a path to `noita.exe` when launching the proxy for the first time. 
 It should be detected automatically as long as you use steam version of the game and steam is launched.
         """)
+    
+    notes.title("Updating")
+    notes.p("There is a button in bottom-left corner on noita-proxy's main screen that allows to auto-update to a new version when one is available")
 
     print()
     notes_path = "/tmp/rnotes.md"
