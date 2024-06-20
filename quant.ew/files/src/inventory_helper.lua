@@ -55,11 +55,20 @@ function inventory_helper.get_inventory_items(player_data, inventory_name)
     return items
 end
 
+local ability_component_extra_fields = {"stat_times_player_has_shot", "stat_times_player_has_edited", "gun_level"}
+
 function inventory_helper.serialize_single_item(item)
     local x, y = EntityGetTransform(item)
     if(entity_is_wand(item))then
         local wand = EZWand(item)
-        return {true, wand:Serialize(true, true), x, y}
+        local extra = {}
+        local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
+        if ability and ability ~= 0 then
+            for i, field in ipairs(ability_component_extra_fields) do
+                extra[i] = ComponentGetValue2(ability, field)
+            end
+        end
+        return {true, wand:Serialize(true, true), x, y, extra}
     else
         return {false, np.SerializeEntity(item), x, y}
     end
@@ -70,6 +79,15 @@ function inventory_helper.deserialize_single_item(item_data)
     local x, y = item_data[3], item_data[4]
     if item_data[1] then
         item = EZWand(item_data[2], x, y, false).entity_id
+        local extra = item_data[5]
+        local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
+        if extra ~= nil and ability ~= nil then
+            for i, field in ipairs(ability_component_extra_fields) do
+                if extra[i] ~= nil then
+                    ComponentSetValue2(ability, field, extra[i])
+                end
+            end
+        end
         -- EntityAddTag(item, "does_physics_update")
     else
         item = EntityCreateNew()

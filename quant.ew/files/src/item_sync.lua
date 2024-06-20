@@ -137,8 +137,8 @@ function item_sync.on_world_update_client()
         async(function ()
            wait(1) -- Wait 1 frame so that game sets proper velocity.
            ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
+           EntityKill(thrown_item)
         end)
-        EntityKill(thrown_item)
     end
     
     local picked_item = get_global_ent("ew_picked")
