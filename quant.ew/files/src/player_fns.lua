@@ -454,6 +454,12 @@ function player_fns.replace_player_entity(new_entity, player_data)
 end
 
 function player_fns.respawn_if_necessary()
+    for _, entity in ipairs(EntityGetWithTag("ew_client")) do
+        if ctx.player_data_by_local_entity[entity] == nil then
+            EntityKill(entity)
+            GamePrint("Removed phantom player entity")
+        end
+    end
     for peer_id, player_data in pairs(ctx.players) do
         if peer_id ~= ctx.my_player.peer_id and not EntityGetIsAlive(player_data.entity) then
             GamePrint("Respawning player entity")
