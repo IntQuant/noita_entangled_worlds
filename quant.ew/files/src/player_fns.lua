@@ -408,7 +408,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
         util.print_traceback()
     end
     GamePrint("Spawning player for "..peer_id)
-    local new = EntityLoad("mods/quant.ew/files/entities/client.xml", x, y)
+    local new = util.load_ephemerial("mods/quant.ew/files/entities/client.xml", x, y)
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
     new_playerdata.entity = new
     -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)
