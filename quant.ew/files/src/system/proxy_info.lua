@@ -15,7 +15,7 @@ local KEY_WORLD_END = 1
 local CHUNK_SIZE = 128
 
 function module.on_world_update_host()
-    if GameGetFrameNum() % 60 ~= 6 then
+    if GameGetFrameNum() % 30 ~= 6 then
         return
     end
     for peer_id, player_data in pairs(ctx.players) do
