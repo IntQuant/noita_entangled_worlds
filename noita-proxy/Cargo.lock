@@ -1937,6 +1937,7 @@ dependencies = [
  "bitcode",
  "bytemuck",
  "clipboard",
+ "crc",
  "crossbeam",
  "eframe",
  "egui-file-dialog",

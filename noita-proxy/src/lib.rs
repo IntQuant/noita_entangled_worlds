@@ -11,7 +11,7 @@ use eframe::egui::{
     self, Align2, Button, Color32, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
     TextureOptions, Ui, Vec2,
 };
-use egui_plot::{Plot, PlotPoint, PlotUi, Points, Text};
+use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};

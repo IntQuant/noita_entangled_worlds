@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 use bitcode::{Decode, Encode};
-use chunk::{Chunk, Pixel, PixelFlags};
+use chunk::{Chunk, CompactPixel, Pixel, PixelFlags};
 use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
 use image::{Rgb, RgbImage};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -27,13 +27,14 @@ struct MatPalette {
 
 #[derive(Debug, Encode, Decode)]
 pub struct ChunkDelta {
-    runs: Vec<PixelRun<Option<Pixel>>>,
+    runs: Vec<PixelRun<Option<CompactPixel>>>,
     chunk_coord: (i32, i32),
+    crc: u64,
 }
 
 impl ChunkDelta {
     pub fn estimate_size(&self) -> usize {
-        8 + self.runs.len() * size_of::<PixelRun<Option<Pixel>>>()
+        8 + self.runs.len() * size_of::<PixelRun<Option<CompactPixel>>>()
     }
 }
 
@@ -158,7 +159,7 @@ impl WorldModel {
         for run in &delta.runs {
             for _ in 0..(run.length) {
                 if let Some(pixel) = run.data {
-                    chunk.set_pixel(offset, pixel)
+                    chunk.set_compact_pixel(offset, pixel)
                 }
                 offset += 1;
             }
@@ -168,12 +169,17 @@ impl WorldModel {
 
     fn get_chunk_delta(&self, chunk_coord: ChunkCoord, ignore_changed: bool) -> Option<ChunkDelta> {
         let chunk = self.chunks.get(&chunk_coord)?;
+        let crc = chunk.crc();
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE {
-            runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.pixel(i)))
+            runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.compact_pixel(i)))
         }
         let runs = runner.build();
-        Some(ChunkDelta { chunk_coord, runs })
+        Some(ChunkDelta {
+            chunk_coord,
+            runs,
+            crc,
+        })
     }
 
     pub fn apply_all_deltas(&mut self, deltas: &[ChunkDelta]) {
