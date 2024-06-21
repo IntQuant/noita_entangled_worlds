@@ -3,7 +3,7 @@ use std::fmt::Display;
 use steamworks::{LobbyId, SteamId};
 use tangled::{PeerId, PeerState, Reliability};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OmniPeerId(pub u64);
 
 impl From<PeerId> for OmniPeerId {
@@ -38,6 +38,13 @@ impl From<OmniPeerId> for SteamId {
 impl Display for OmniPeerId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl OmniPeerId {
+    pub fn from_hex(val: &str) -> Option<Self> {
+        let raw = u64::from_str_radix(val, 16).ok()?;
+        Some(Self(raw))
     }
 }
 

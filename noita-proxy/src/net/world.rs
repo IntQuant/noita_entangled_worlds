@@ -6,6 +6,7 @@ use world_model::{ChunkDelta, WorldModel};
 
 pub use world_model::encoding::NoitaWorldUpdate;
 
+pub mod world_info;
 pub mod world_model;
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,3 +1,5 @@
+use messages::NetMsg;
+use omni::OmniPeerId;
 use socket2::{Domain, Socket, Type};
 use std::{
     env,
@@ -9,14 +11,15 @@ use std::{
     time::Duration,
 };
 use tracing::debug;
-use world::{NoitaWorldUpdate, WorldManager};
+use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::{messages::NetMsg, GameSettings};
+use crate::GameSettings;
 
+pub mod messages;
 pub mod steam_networking;
 pub mod world;
 
@@ -81,6 +84,7 @@ pub struct NetManager {
     pub stopped: AtomicBool,
     pub error: Mutex<Option<io::Error>>,
     pub init_settings: NetManagerInit,
+    pub world_info: WorldInfo,
 }
 
 impl NetManager {
@@ -99,6 +103,7 @@ impl NetManager {
             stopped: AtomicBool::new(false),
             error: Default::default(),
             init_settings: init,
+            world_info: Default::default(),
         }
         .into()
     }
@@ -303,44 +308,7 @@ impl NetManager {
         match msg {
             Ok(msg) => {
                 if let tungstenite::Message::Binary(msg) = msg {
-                    match msg[0] & 0b11 {
-                        // Message to proxy
-                        1 => {
-                            self.handle_message_to_proxy(&msg[1..]);
-                        }
-                        // Broadcast
-                        2 => {
-                            let msg_to_send = if false {
-                                let compressed = lz4_flex::compress_prepend_size(&msg[1..]);
-
-                                debug!(
-                                    "Compressed {} bytes to {} bytes",
-                                    msg.len(),
-                                    compressed.len()
-                                );
-
-                                NetMsg::ModCompressed { data: compressed }
-                            } else {
-                                NetMsg::ModRaw {
-                                    data: msg[1..].to_owned(),
-                                }
-                            };
-                            let reliable = msg[0] & 4 > 0;
-                            self.broadcast(
-                                &msg_to_send,
-                                if reliable {
-                                    Reliability::Reliable
-                                } else {
-                                    Reliability::Unreliable
-                                },
-                            );
-                        }
-                        // Binary message to proxy
-                        3 => self.handle_bin_message_to_proxy(&msg[1..], state),
-                        msg_variant => {
-                            error!("Unknown msg variant from mod: {}", msg_variant)
-                        }
-                    }
+                    self.handle_mod_message_2(msg, state);
                 }
             }
             Err(tungstenite::Error::Io(io_err))
@@ -349,6 +317,47 @@ impl NetManager {
             Err(err) => {
                 error!("Error occured while reading from websocket: {}", err);
                 state.ws = None;
+            }
+        }
+    }
+
+    fn handle_mod_message_2(&self, msg: Vec<u8>, state: &mut NetInnerState) {
+        match msg[0] & 0b11 {
+            // Message to proxy
+            1 => {
+                self.handle_message_to_proxy(&msg[1..]);
+            }
+            // Broadcast
+            2 => {
+                let msg_to_send = if false {
+                    let compressed = lz4_flex::compress_prepend_size(&msg[1..]);
+
+                    debug!(
+                        "Compressed {} bytes to {} bytes",
+                        msg.len(),
+                        compressed.len()
+                    );
+
+                    NetMsg::ModCompressed { data: compressed }
+                } else {
+                    NetMsg::ModRaw {
+                        data: msg[1..].to_owned(),
+                    }
+                };
+                let reliable = msg[0] & 4 > 0;
+                self.broadcast(
+                    &msg_to_send,
+                    if reliable {
+                        Reliability::Reliable
+                    } else {
+                        Reliability::Unreliable
+                    },
+                );
+            }
+            // Binary message to proxy
+            3 => self.handle_bin_message_to_proxy(&msg[1..], state),
+            msg_variant => {
+                error!("Unknown msg variant from mod: {}", msg_variant)
             }
         }
     }
@@ -393,6 +402,14 @@ impl NetManager {
                         info!("New seed: {}", setting.seed);
                     }
                     self.resend_game_settings();
+                }
+            }
+            Some("peer_pos") => {
+                let peer_id = msg.next().and_then(OmniPeerId::from_hex);
+                let x: Option<f64> = msg.next().and_then(|s| s.parse().ok());
+                let y: Option<f64> = msg.next().and_then(|s| s.parse().ok());
+                if let (Some(peer_id), Some(x), Some(y)) = (peer_id, x, y) {
+                    self.world_info.update_player_pos(peer_id, x, y);
                 }
             }
             key => {

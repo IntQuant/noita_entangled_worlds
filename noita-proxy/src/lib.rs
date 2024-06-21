@@ -11,6 +11,7 @@ use eframe::egui::{
     self, Align2, Button, Color32, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
     TextureOptions, Ui, Vec2,
 };
+use egui_plot::{Plot, Points};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
@@ -22,7 +23,6 @@ use tracing::info;
 use unic_langid::LanguageIdentifier;
 
 pub mod lang;
-pub mod messages;
 mod mod_manager;
 pub mod net;
 pub mod releases;
@@ -425,8 +425,18 @@ impl eframe::App for App {
                                 let _ = ctx.set_contents(id.raw().to_string());
                             }
                         }
+                    } else {
+                        ui.label(format!("Peer state: {}", netman.peer.state()));
                     }
-                    ui.label(format!("Peer state: {}", netman.peer.state()));
+
+                    let mut series = Vec::new();
+                    netman.world_info.with_player_infos(|_peer, info| {
+                        series.push([info.x, -info.y]);
+                    });
+                    let points = Points::new(series);
+                    Plot::new("map").show(ui, |plot| {
+                        plot.points(points);
+                    })
                 });
             }
             AppState::Error { message } => {

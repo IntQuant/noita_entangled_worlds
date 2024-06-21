@@ -925,6 +925,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_plot"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7854b86dc1c2d352c5270db3d600011daa913d6b554141a03939761323288a1"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "ehttp"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1932,6 +1941,7 @@ dependencies = [
  "eframe",
  "egui-file-dialog",
  "egui_extras",
+ "egui_plot",
  "fluent-bundle",
  "fluent-templates",
  "image",
