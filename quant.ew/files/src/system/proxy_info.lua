@@ -14,7 +14,7 @@ local KEY_WORLD_END = 1
 
 local CHUNK_SIZE = 128
 
-function module.on_world_update_host()
+function module.on_world_update()
     if GameGetFrameNum() % 30 ~= 6 then
         return
     end

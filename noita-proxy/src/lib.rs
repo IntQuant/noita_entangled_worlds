@@ -77,6 +77,7 @@ pub struct App {
     saved_state: AppSavedState,
     modmanager_settings: ModmanagerSettings,
     self_update: SelfUpdateManager,
+    show_map_plot: bool,
 }
 
 const MODMANAGER: &str = "modman";
@@ -133,6 +134,7 @@ impl App {
             saved_state,
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
+            show_map_plot: false,
         }
     }
 
@@ -360,7 +362,7 @@ fn draw_bg(ui: &mut Ui) {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.request_repaint_after(Duration::from_secs(1));
+        ctx.request_repaint_after(Duration::from_millis(500));
         match &self.state {
             AppState::Connect => {
                 self.connect_screen(ctx);
@@ -429,14 +431,20 @@ impl eframe::App for App {
                         ui.label(format!("Peer state: {}", netman.peer.state()));
                     }
 
-                    let mut series = Vec::new();
-                    netman.world_info.with_player_infos(|_peer, info| {
-                        series.push([info.x, -info.y]);
-                    });
-                    let points = Points::new(series);
-                    Plot::new("map").show(ui, |plot| {
-                        plot.points(points);
-                    })
+                    if self.show_map_plot {
+                        let mut series = Vec::new();
+                        netman.world_info.with_player_infos(|_peer, info| {
+                            series.push([info.x, -info.y]);
+                        });
+                        let points = Points::new(series).radius(10.0);
+                        Plot::new("map").data_aspect(1.0).show(ui, |plot| {
+                            plot.points(points);
+                        });
+                    } else {
+                        if ui.button("Show debug plot").clicked() {
+                            self.show_map_plot = true;
+                        }
+                    }
                 });
             }
             AppState::Error { message } => {
