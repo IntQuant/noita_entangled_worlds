@@ -118,25 +118,10 @@ function enemy_sync.on_world_update_host()
     end
 end
 
-local killed_replicated = false
-
 function enemy_sync.on_world_update_client()
     if GameGetFrameNum() % 20 == 1 then
         enemy_sync.client_cleanup()
     end
-
-    if GameGetFrameNum() > 60 and not killed_replicated then
-        local replicated = EntityGetWithTag("ew_replicated")
-        GamePrint("Killing replicated enemies")
-        for _, entity in ipairs(replicated) do
-            EntityKill(entity)
-        end
-        killed_replicated = true
-    end
-end
-
-function enemy_sync.on_local_client_spawn()
-    
 end
 
 rpc.opts_reliable()
@@ -212,7 +197,7 @@ function rpc.handle_enemy_data(enemy_data)
             if filename == nil then
                 goto continue
             end
-            local enemy_id = EntityLoad(filename, x, y)
+            local enemy_id = util.load_ephemerial(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
             EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})

@@ -147,4 +147,39 @@ function util.ensure_component_present(entity, component, tag, data)
     end
 end
 
+-- Caches function's results by first argument
+function util.cached_fn(fn)
+    local cache = {}
+    function cached(arg, ...)
+        if cache[arg] ~= nil then
+            return cache[arg]
+        end
+        local result = fn(arg, ...)
+        cache[arg] = result
+        return result
+    end
+    return cached
+end
+
+util.load_ents_tags = util.cached_fn(function(path)
+    local entity = EntityLoad(path)
+    local tags = util.string_split(EntityGetTags(entity), ",")
+    EntityKill(entity)
+    return tags
+end)
+
+-- Load an entity that doesn't get saved.
+function util.load_ephemerial(path, x, y)
+    local entity = EntityCreateNew()
+    EntityLoadToEntity(path, entity)
+    if x ~= nil then
+        EntitySetTransform(entity, x, y)
+    end
+    local tags = util.load_ents_tags(path)
+    for _, tag in ipairs(tags) do
+        EntityAddTag(entity, tag)
+    end
+    return entity
+end
+
 return util

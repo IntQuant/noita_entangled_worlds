@@ -81,7 +81,6 @@ function item_sync.make_item_global(item)
         local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
         if vel then
             local vx, vy = ComponentGetValue2(vel, "mVelocity")
-            GamePrint("v "..vx.." "..vy)
         end
         local item_data = inventory_helper.serialize_single_item(item)
         item_data.g_id = id
