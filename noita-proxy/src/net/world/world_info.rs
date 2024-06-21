@@ -4,6 +4,8 @@ use rustc_hash::FxHashMap;
 
 use crate::net::omni::OmniPeerId;
 
+use super::world_model::ChunkCoord;
+
 #[derive(Default, Clone, Copy)]
 pub struct PlayerInfo {
     pub x: f64,
@@ -29,7 +31,6 @@ impl WorldInfo {
     pub(in crate::net) fn update_player_pos(&self, peer_id: OmniPeerId, x: f64, y: f64) {
         self.with_inner(|inner| {
             let info = inner.players.entry(peer_id).or_default();
-            // info.peer_id = peer_id;
             info.x = x;
             info.y = y;
         })

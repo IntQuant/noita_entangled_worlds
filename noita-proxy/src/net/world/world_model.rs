@@ -11,14 +11,14 @@ pub mod encoding;
 
 const CHUNK_SIZE: usize = 128;
 
-type ChunkCoord = (i32, i32);
+pub type ChunkCoord = (i32, i32);
 
 #[derive(Default)]
 pub struct WorldModel {
     chunks: FxHashMap<ChunkCoord, Chunk>,
     pub mats: FxHashSet<u16>,
     palette: MatPalette,
-    changed_chunks: FxHashSet<ChunkCoord>,
+    updated_chunks: FxHashSet<ChunkCoord>,
 }
 
 struct MatPalette {
@@ -79,7 +79,7 @@ impl WorldModel {
         if current != pixel {
             chunk.set_pixel(offset, pixel);
         }
-        self.changed_chunks.insert(chunk_coord);
+        self.updated_chunks.insert(chunk_coord);
     }
 
     fn get_pixel(&self, x: i32, y: i32) -> Pixel {
@@ -139,7 +139,7 @@ impl WorldModel {
 
     pub fn get_all_noita_updates(&self) -> Vec<Vec<u8>> {
         let mut updates = Vec::new();
-        for chunk_coord in &self.changed_chunks {
+        for chunk_coord in &self.updated_chunks {
             let update = self.get_noita_update(
                 chunk_coord.0 * (CHUNK_SIZE as i32),
                 chunk_coord.1 * (CHUNK_SIZE as i32),
@@ -152,7 +152,7 @@ impl WorldModel {
     }
 
     fn apply_chunk_delta(&mut self, delta: &ChunkDelta) {
-        self.changed_chunks.insert(delta.chunk_coord);
+        self.updated_chunks.insert(delta.chunk_coord);
         let chunk = self.chunks.entry(delta.chunk_coord).or_default();
         let mut offset = 0;
         for run in &delta.runs {
@@ -183,19 +183,19 @@ impl WorldModel {
     }
 
     pub fn get_all_deltas(&self) -> Vec<ChunkDelta> {
-        self.changed_chunks
+        self.updated_chunks
             .iter()
             .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, false))
             .collect()
     }
 
     pub fn reset_change_tracking(&mut self) {
-        for chunk_pos in &self.changed_chunks {
+        for chunk_pos in &self.updated_chunks {
             if let Some(chunk) = self.chunks.get_mut(chunk_pos) {
                 chunk.clear_changed();
             }
         }
-        self.changed_chunks.clear();
+        self.updated_chunks.clear();
     }
 
     pub fn get_start(&self) -> (i32, i32) {

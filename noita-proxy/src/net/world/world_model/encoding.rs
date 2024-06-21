@@ -37,6 +37,7 @@ struct ByteParser<'a> {
     data: &'a [u8],
 }
 
+/// Converts a normal sequence of pixels to a run-length-encoded one.
 pub struct PixelRunner<Pixel> {
     current_pixel: Option<Pixel>,
     current_run_len: u32,
