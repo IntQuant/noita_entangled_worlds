@@ -34,7 +34,11 @@ local function load_modules()
     -- ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
+
+    if ctx.debug then
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
+    end
+    
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/fungal_shift/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/weather_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/polymorph/sync.lua")
@@ -124,11 +128,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     
     if GlobalsGetValue("ew_player_count", "") == "" then
         GlobalsSetValue("ew_player_count", "1")
-    end
-
-    for _, client in pairs(EntityGetWithTag("ew_client")) do
-        GamePrint("Removing previous client: "..client)
-        EntityKill(client)
     end
 
     local x, y = EntityGetTransform(player_entity)
