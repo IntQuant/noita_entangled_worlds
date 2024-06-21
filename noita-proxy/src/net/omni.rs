@@ -46,6 +46,10 @@ impl OmniPeerId {
         let raw = u64::from_str_radix(val, 16).ok()?;
         Some(Self(raw))
     }
+
+    pub(crate) fn to_hex(&self) -> String {
+        format!("{:016x}", self.0)
+    }
 }
 
 pub enum OmniNetworkEvent {

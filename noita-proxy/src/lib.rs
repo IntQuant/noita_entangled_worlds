@@ -11,7 +11,7 @@ use eframe::egui::{
     self, Align2, Button, Color32, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
     TextureOptions, Ui, Vec2,
 };
-use egui_plot::{Plot, Points};
+use egui_plot::{Plot, PlotPoint, PlotUi, Points, Text};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, NetManagerInit};
@@ -432,18 +432,22 @@ impl eframe::App for App {
                     }
 
                     if self.show_map_plot {
-                        let mut series = Vec::new();
-                        netman.world_info.with_player_infos(|_peer, info| {
-                            series.push([info.x, -info.y]);
-                        });
-                        let points = Points::new(series).radius(10.0);
-                        Plot::new("map").data_aspect(1.0).show(ui, |plot| {
-                            plot.points(points);
-                        });
-                    } else {
-                        if ui.button("Show debug plot").clicked() {
-                            self.show_map_plot = true;
-                        }
+                        let build_fn = |plot: &mut PlotUi| {
+                            netman.world_info.with_player_infos(|peer, info| {
+                                let username = if netman.peer.is_steam() {
+                                    let steam = self.steam_state.as_mut().expect(
+                                        "steam should be available, as we are using steam networking",
+                                    );
+                                    steam.get_user_name(peer.into())
+                                } else {
+                                    peer.to_hex()
+                                };
+                                plot.text(Text::new(PlotPoint::new(info.x, -info.y), username).highlight(true))
+                            });
+                        };
+                        Plot::new("map").data_aspect(1.0).show(ui, build_fn);
+                    } else if ui.button("Show debug plot").clicked() {
+                        self.show_map_plot = true;
                     }
                 });
             }
