@@ -4,8 +4,6 @@ use rustc_hash::FxHashMap;
 
 use crate::net::omni::OmniPeerId;
 
-use super::world_model::ChunkCoord;
-
 #[derive(Default, Clone, Copy)]
 pub struct PlayerInfo {
     pub x: f64,
