@@ -1,4 +1,4 @@
-<Entity name="chunk_loader" tags="chunk_loader,spectator_no_clear">
+<Entity name="chunk_loader" tags="">
     <StreamingKeepAliveComponent/>
     <HitboxComponent
         aabb_min_x="-500"

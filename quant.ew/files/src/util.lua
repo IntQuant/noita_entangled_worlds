@@ -173,14 +173,6 @@ function util.load_ephemerial(path, x, y)
     local entity = EntityCreateNew()
     local ent_2 = EntityLoad(path, x, y)
     EntityAddChild(entity, ent_2)
-    -- EntityLoadToEntity(path, entity)
-    -- if x ~= nil then
-    --     EntitySetTransform(entity, x, y)
-    -- end
-    -- local tags = util.load_ents_tags(path)
-    -- for _, tag in ipairs(tags) do
-    --     EntityAddTag(entity, tag)
-    -- end
     return ent_2
 end
 
