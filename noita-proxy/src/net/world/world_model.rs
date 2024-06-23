@@ -30,7 +30,7 @@ struct MatPalette {
 pub struct ChunkDelta {
     runs: Vec<PixelRun<Option<CompactPixel>>>,
     chunk_coord: (i32, i32),
-    crc: u64,
+    crc: Option<u64>,
 }
 
 impl ChunkDelta {
@@ -170,7 +170,6 @@ impl WorldModel {
 
     fn get_chunk_delta(&self, chunk_coord: ChunkCoord, ignore_changed: bool) -> Option<ChunkDelta> {
         let chunk = self.chunks.get(&chunk_coord)?;
-        let crc = chunk.crc();
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE {
             runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.compact_pixel(i)))
@@ -179,7 +178,7 @@ impl WorldModel {
         Some(ChunkDelta {
             chunk_coord,
             runs,
-            crc,
+            crc: None,
         })
     }
 
@@ -187,12 +186,14 @@ impl WorldModel {
         for delta in deltas {
             self.apply_chunk_delta(delta);
             if let Some(chunk) = self.chunks.get(&delta.chunk_coord) {
-                let crc = chunk.crc();
-                if crc != delta.crc {
-                    info!(
-                        "Crc mismatch: {:?} ({} vs {})",
-                        delta.chunk_coord, crc, delta.crc
-                    )
+                if let Some(delta_crc) = delta.crc {
+                    let crc = chunk.crc();
+                    if crc != delta_crc {
+                        info!(
+                            "Crc mismatch: {:?} ({} vs {})",
+                            delta.chunk_coord, crc, delta_crc
+                        )
+                    }
                 }
             }
         }
