@@ -24,11 +24,13 @@ local function damage_received(damage, message, entity_id, add_healing_effect)
     end
     
     module.recent_damage = module.recent_damage + damage
-    module.recent_message = message
+    if message ~= nil then
+        module.recent_message = message
+        module.last_damage_message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.my_player.name
+    end
     if ctx.is_host then
         module.inflict_damage(damage)
     end
-    module.last_damage_message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.my_player.name
     if add_healing_effect then
         rpc.healing_effect()
     end
@@ -79,7 +81,7 @@ local function do_health_diff(hp, max_hp)
     if last_health ~= nil then
         local diff = last_health - current_hp
         if diff ~= 0 then
-            damage_received(diff, "hp diff")
+            damage_received(diff, nil)
         end
     end
     last_health = util.get_ent_health(ctx.my_player.entity)
