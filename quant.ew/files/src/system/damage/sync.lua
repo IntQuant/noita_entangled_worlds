@@ -71,11 +71,25 @@ function module.on_world_update_client()
     end
 end
 
+local last_health = nil
+
+local function do_health_diff(hp, max_hp)
+    local current_hp = util.get_ent_health(ctx.my_player.entity)
+    util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+    if last_health ~= nil then
+        local diff = last_health - current_hp
+        if diff ~= 0 then
+            damage_received(diff, "hp diff")
+        end
+    end
+    last_health = util.get_ent_health(ctx.my_player.entity)
+end
+
 function module.on_world_update_host()
     if GameGetFrameNum() % 4 == 3 then
         local hp, max_hp = module.health(), module.max_health()
         if not ctx.my_player.currently_polymorphed then
-            util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+            do_health_diff(hp, max_hp)
         end
         rpc.update_shared_health(hp, max_hp)
         if hp <= 0 and not ctx.run_ended then
@@ -112,6 +126,7 @@ function module.inflict_damage(dmg)
     module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
 end
 
+-- Provides health capability
 ctx.cap.health = {
     health = module.health,
     max_health = module.max_health,
@@ -140,19 +155,9 @@ function rpc.deal_damage(damage, message)
     GamePrint("Got ".. (damage*25) .." damage: "..message)
 end
 
-local last_health = nil
-
 function rpc.update_shared_health(hp, max_hp)
     if not ctx.my_player.currently_polymorphed then
-        local current_hp = util.get_ent_health(ctx.my_player.entity)
-        util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
-        if last_health ~= nil then
-            local diff = last_health - current_hp
-            if diff ~= 0 then
-                damage_received(diff, "hp diff")
-            end
-        end
-        last_health = util.get_ent_health(ctx.my_player.entity)
+        do_health_diff(hp, max_hp)
     end
 end
 
