@@ -5,6 +5,7 @@ use chunk::{Chunk, CompactPixel, Pixel, PixelFlags};
 use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
 use image::{Rgb, RgbImage};
 use rustc_hash::{FxHashMap, FxHashSet};
+use tracing::info;
 
 mod chunk;
 pub mod encoding;
@@ -184,7 +185,16 @@ impl WorldModel {
 
     pub fn apply_all_deltas(&mut self, deltas: &[ChunkDelta]) {
         for delta in deltas {
-            self.apply_chunk_delta(delta)
+            self.apply_chunk_delta(delta);
+            if let Some(chunk) = self.chunks.get(&delta.chunk_coord) {
+                let crc = chunk.crc();
+                if crc != delta.crc {
+                    info!(
+                        "Crc mismatch: {:?} ({} vs {})",
+                        delta.chunk_coord, crc, delta.crc
+                    )
+                }
+            }
         }
     }
 
