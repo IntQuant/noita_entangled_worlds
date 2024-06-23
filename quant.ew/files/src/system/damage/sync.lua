@@ -138,7 +138,7 @@ ctx.cap.health = {
 
 rpc.opts_reliable()
 function rpc.deal_damage(damage, message)
-    local message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.rpc_player_data.name
+    local message = GameTextGetTranslatedOrNot(message) .. " ("..ctx.rpc_player_data.name..")"
     module.last_damage_message = message
     if ctx.is_host then
         local host_entity_id = ctx.my_player.entity
