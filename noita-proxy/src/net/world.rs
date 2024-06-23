@@ -72,6 +72,10 @@ impl WorldManager {
     pub fn send_world(&self) -> WorldDelta {
         WorldDelta(self.model.get_world_as_deltas())
     }
+
+    pub fn reset(&mut self) {
+        self.model.reset();
+    }
 }
 
 #[cfg(test)]

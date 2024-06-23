@@ -244,4 +244,10 @@ impl WorldModel {
             .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, true))
             .collect()
     }
+
+    pub fn reset(&mut self) {
+        self.chunks.clear();
+        self.updated_chunks.clear();
+        info!("World model reset");
+    }
 }

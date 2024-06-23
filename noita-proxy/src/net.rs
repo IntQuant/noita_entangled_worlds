@@ -229,6 +229,7 @@ impl NetManager {
                                 info!("Settings updated");
                                 self.accept_local
                                     .store(true, std::sync::atomic::Ordering::SeqCst);
+                                state.world.reset();
                             }
                             NetMsg::ModRaw { data } => {
                                 state.try_ws_write(ws_encode_mod(src, &data));
@@ -325,7 +326,7 @@ impl NetManager {
         match msg[0] & 0b11 {
             // Message to proxy
             1 => {
-                self.handle_message_to_proxy(&msg[1..]);
+                self.handle_message_to_proxy(&msg[1..], state);
             }
             // Broadcast
             2 => {
@@ -384,7 +385,7 @@ impl NetManager {
         self.peer.my_id() == Some(self.peer.host_id())
     }
 
-    pub(crate) fn handle_message_to_proxy(&self, msg: &[u8]) {
+    pub(crate) fn handle_message_to_proxy(&self, msg: &[u8], state: &mut NetInnerState) {
         let msg = String::from_utf8_lossy(msg);
         let mut msg = msg.split_ascii_whitespace();
         let key = msg.next();
@@ -400,6 +401,7 @@ impl NetManager {
                             setting.seed = rand::random();
                         }
                         info!("New seed: {}", setting.seed);
+                        state.world.reset()
                     }
                     self.resend_game_settings();
                 }
