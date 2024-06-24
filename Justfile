@@ -12,3 +12,7 @@ run2:
 
 release:
     python prepare_release.py
+
+noita:
+    cd /home/quant/.local/share/Steam/steamapps/common/Noita/ && NP_NOITA_ADDR=127.0.0.1:21252 wine noita.exe -gamemode 0
+    
