@@ -66,9 +66,15 @@ function item_sync.host_localize_item(gid, peer_id)
     ctx.lib.net.send_localize(peer_id, gid)
 end
 
-function item_sync.make_item_global(item)
+function item_sync.make_item_global(item, instant)
     async(function()
-        wait(1) -- Wait 1 frame so that game sets proper velocity.
+        if not instant then
+            wait(1) -- Wait 1 frame so that game sets proper velocity.
+        end
+        if not EntityGetIsAlive(item) then
+            GamePrint("Thrown item vanished before we could send it")
+            return
+        end
         local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
         local id = ComponentGetValue2(g_id, "value_int")
         if g_id == nil then
@@ -134,9 +140,13 @@ function item_sync.on_world_update_client()
     local thrown_item = get_global_ent("ew_thrown")
     if thrown_item ~= nil and not EntityHasTag(thrown_item, "ew_client_item") then
         async(function ()
-           wait(1) -- Wait 1 frame so that game sets proper velocity.
-           ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
-           EntityKill(thrown_item)
+            wait(1) -- Wait 1 frame so that game sets proper velocity.
+            if not EntityGetIsAlive(thrown_item) then
+                GamePrint("Thrown item vanished before we could send it")
+                return
+            end
+            ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
+            EntityKill(thrown_item)
         end)
     end
     
@@ -152,7 +162,7 @@ function item_sync.upload(item_data)
     local item = inventory_helper.deserialize_single_item(item_data)
     EntityAddTag(item, "ew_global_item")
     item_sync.ensure_notify_component(item)
-    item_sync.make_item_global(item)
+    item_sync.make_item_global(item, true)
 end
 
 return item_sync
