@@ -80,7 +80,9 @@ function net_handling.mod.perks(peer_id, perk_data)
         return
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
-    perk_fns.update_perks(perk_data, player_data)
+    if not player_data.currently_polymorphed then
+        perk_fns.update_perks(perk_data, player_data)
+    end
 end
 
 function net_handling.mod.fire(peer_id, fire_data)

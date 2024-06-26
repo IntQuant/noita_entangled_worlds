@@ -100,9 +100,11 @@ function rpc.change_entity(seri_ent)
         
         EntityKill(ctx.rpc_player_data.entity)
         player_fns.replace_player_entity(ent, ctx.rpc_player_data)
+        ctx.rpc_player_data.currently_polymorphed = true
     else
         EntityKill(ctx.rpc_player_data.entity)
         player_fns.replace_player_entity(nil, ctx.rpc_player_data)
+        ctx.rpc_player_data.currently_polymorphed = false
     end
 end
 
