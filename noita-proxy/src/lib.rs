@@ -8,7 +8,7 @@ use std::{
 use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
-    self, Align2, Button, Color32, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
+    self, Align2, Button, Color32, DragValue, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
     TextureOptions, Ui, Vec2,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
@@ -54,7 +54,7 @@ struct AppSavedState {
     times_started: u32,
     world_sync_version: u32,
     lang_id: Option<LanguageIdentifier>,
-    constant_seed: String,
+    constant_seed: u64,
 }
 
 impl Default for AppSavedState {
@@ -67,7 +67,7 @@ impl Default for AppSavedState {
             times_started: 0,
             world_sync_version: 1,
             lang_id: None,
-            constant_seed: "0".to_string(),
+            constant_seed: 0,
         }
     }
 }
@@ -165,16 +165,9 @@ impl App {
         settings.world_sync_version = self.saved_state.world_sync_version;
         if !self.saved_state.use_constant_seed {
             settings.seed = rand::random();
-        }
-        else {
-            match self.saved_state.constant_seed.parse::<u64>() {
-                Ok(i) => settings.seed = i,
-                Err(..) => {
-                    println!("fail {}", self.saved_state.constant_seed);
-                    settings.seed = 0;
-                    self.notify_error("bad seed");
-                },
-            };
+        } else {
+            settings.seed = self.saved_state.constant_seed;
+            info!("Using constant seed: {}", settings.seed);
         }
         netman.accept_local.store(true, Ordering::SeqCst);
     }
@@ -285,7 +278,11 @@ impl App {
                         &mut self.saved_state.use_constant_seed,
                         tr("connect_settings_debug_fixed_seed"),
                     );
-                    ui.text_edit_singleline(&mut self.saved_state.constant_seed);
+
+                    ui.horizontal(|ui| {
+                        ui.label(tr("connect_settings_seed"));
+                        ui.add(DragValue::new(&mut self.saved_state.constant_seed));
+                    });
 
                     ui.add_space(20.0);
 

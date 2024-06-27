@@ -9,6 +9,7 @@ connect_settings = Настройки игры
 connect_settings_debug = Настройки разработчика
 connect_settings_debug_en = Подрубить читы
 connect_settings_debug_fixed_seed = Фиксированный сид мира
+connect_settings_seed = Сид:
 connect_settings_wsv = Версия синхронизатора мира:
 
 lang_picker = Выберите язык
