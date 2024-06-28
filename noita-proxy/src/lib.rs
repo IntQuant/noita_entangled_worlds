@@ -80,6 +80,7 @@ pub struct App {
     modmanager_settings: ModmanagerSettings,
     self_update: SelfUpdateManager,
     show_map_plot: bool,
+    lobby_id_field: String,
 }
 
 const MODMANAGER: &str = "modman";
@@ -137,6 +138,7 @@ impl App {
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
             show_map_plot: false,
+            lobby_id_field: "".to_string(),
         }
     }
 
@@ -313,15 +315,18 @@ impl App {
                                     .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
                                 match id {
                                     Ok(id) => {
-                                        let id = id.trim().parse().map(LobbyId::from_raw);
-                                        match id {
-                                            Ok(id) => self.start_steam_connect(id),
-                                            Err(_error) => self.notify_error(tr(
-                                                "connect_steam_connect_invalid_lobby_id",
-                                            )),
-                                        }
+                                        self.connect_to_steam_lobby(id);
                                     }
                                     Err(error) => self.notify_error(error),
+                                }
+                            }
+
+                            if cfg!(target_os = "linux") {
+                                ui.add_space(30.0);
+                                ui.label(tr("connect_steam_workaround_label"));
+                                ui.text_edit_singleline(&mut self.lobby_id_field);
+                                if ui.button(tr("connect_steam_connect_2")).clicked() {
+                                    self.connect_to_steam_lobby(self.lobby_id_field.clone());
                                 }
                             }
                         }
@@ -354,6 +359,14 @@ impl App {
                 });
             });
         });
+    }
+
+    fn connect_to_steam_lobby(&mut self, lobby_id: String) {
+        let id = lobby_id.trim().parse().map(LobbyId::from_raw);
+        match id {
+            Ok(id) => self.start_steam_connect(id),
+            Err(_error) => self.notify_error(tr("connect_steam_connect_invalid_lobby_id")),
+        }
     }
 }
 
