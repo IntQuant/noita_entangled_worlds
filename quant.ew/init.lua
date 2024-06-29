@@ -85,7 +85,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
                 rng = 0
             end
         else
-            rng = shooter_player_data.projectile_seed_chain[entity_that_shot] + 25
+            rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     end
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
