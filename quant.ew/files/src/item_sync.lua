@@ -6,6 +6,8 @@ dofile_once("data/scripts/lib/coroutines.lua")
 
 local item_sync = {}
 
+local pending_remove = {}
+
 function item_sync.ensure_notify_component(ent)
     local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
         if notify == nil then
@@ -46,6 +48,10 @@ function item_sync.get_global_item_id(item)
 end
 
 function item_sync.remove_item_with_id(g_id)
+    table.insert(pending_remove, g_id)
+end
+
+function item_sync.remove_item_with_id_now(g_id)
     local global_items = EntityGetWithTag("ew_global_item")
     for _, item in ipairs(global_items) do
         local i_g_id = item_sync.get_global_item_id(item)
@@ -60,6 +66,12 @@ function item_sync.host_localize_item(gid, peer_id)
         GamePrint("Item localize for "..gid.." prevented")
     end
     ctx.item_prevent_localize[gid] = true
+    
+    if table.contains(pending_remove, gid) then
+        GamePrint("Item localize prevented, already taken")
+        return
+    end
+
     if peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(gid)
     end
@@ -156,6 +168,16 @@ function item_sync.on_world_update_client()
         ctx.lib.net.send_localize_request(gid)
     end
     remove_client_items_from_world()
+end
+
+function item_sync.on_world_update()
+    -- TODO check that we not removing item we are going to pick now, instead of checking if picker gui is open.
+    if not ctx.is_wand_pickup then
+        if #pending_remove > 0 then
+            local g_id = table.remove(pending_remove)
+            item_sync.remove_item_with_id_now(g_id)
+        end
+    end
 end
 
 function item_sync.upload(item_data)

@@ -23,6 +23,7 @@ ctx.init = function()
     ctx.events = {}
     ctx.is_inventory_open = false
     ctx.rpc_peer_id = nil
+    ctx.is_wand_pickup = false
 end
 
 function ctx.dofile_and_add_hooks(path)
