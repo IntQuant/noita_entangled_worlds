@@ -9,7 +9,7 @@ use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, DragValue, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
-    TextureOptions, Ui, Vec2,
+    ScrollArea, TextureOptions, Ui, Vec2,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use lang::{set_current_locale, tr, LANGS};
@@ -415,18 +415,20 @@ impl eframe::App for App {
                             let steam = self.steam_state.as_mut().expect(
                                 "steam should be available, as we are using steam networking",
                             );
-                            for peer in netman.peer.iter_peer_ids() {
-                                let role = peer_role(peer, netman);
+                            ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                                for peer in netman.peer.iter_peer_ids() {
+                                    let role = peer_role(peer, netman);
 
-                                let username = steam.get_user_name(peer.into());
-                                let avatar = steam.get_avatar(ctx, peer.into());
-                                if let Some(avatar) = avatar {
-                                    avatar.display_with_labels(ui, &username, &role);
-                                    ui.add_space(5.0);
-                                } else {
-                                    ui.label(&username);
+                                    let username = steam.get_user_name(peer.into());
+                                    let avatar = steam.get_avatar(ctx, peer.into());
+                                    if let Some(avatar) = avatar {
+                                        avatar.display_with_labels(ui, &username, &role);
+                                        ui.add_space(5.0);
+                                    } else {
+                                        ui.label(&username);
+                                    }
                                 }
-                            }
+                            });
                         } else {
                             for peer in netman.peer.iter_peer_ids() {
                                 ui.label(peer.to_string());

@@ -42,7 +42,7 @@ impl SteamPeer {
         let matchmaking = client.matchmaking();
         {
             let sender = sender.clone();
-            matchmaking.create_lobby(lobby_type, 20, move |lobby| {
+            matchmaking.create_lobby(lobby_type, 100, move |lobby| {
                 let event = match lobby {
                     Ok(id) => SteamEvent::LobbyCreated(id),
                     Err(err) => SteamEvent::LobbyError(err),
