@@ -103,8 +103,9 @@ function module.on_world_update_host()
 end
 
 function module.on_new_player_seen(new_playerdata)
-    module.set_max_health(module.max_health()+4)
-    module.set_health(module.health()+4)
+    local hp = 4
+    module.set_max_health(module.max_health()+hp)
+    module.set_health(module.health()+hp)
 end
 
 function module.health()

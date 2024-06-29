@@ -15,4 +15,7 @@ release:
 
 noita:
     cd /home/quant/.local/share/Steam/steamapps/common/Noita/ && NP_NOITA_ADDR=127.0.0.1:21252 wine noita.exe -gamemode 0
+
+noita1:
+    cd /home/quant/.local/share/Steam/steamapps/common/Noita/ && wine noita.exe
     
