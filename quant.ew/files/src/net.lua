@@ -34,13 +34,22 @@ function rpc_base.opts_reliable()
   rpc_inner.opts.reliable = true
 end
 
+-- Also call rpc on client who initiated it.
+function rpc_base.opts_everywhere()
+  rpc_inner.opts.everywhere = true
+end
+
 local rpc_meta = {
   __newindex = function (t, k, v)
       table.insert(rpc_inner.rpcs, v)
       local index = #rpc_inner.rpcs
       local reliable = rpc_inner.opts.reliable == true
+      local everywhere = rpc_inner.opts.everywhere == true
       rawset(t, k, function(...)
         net.send(index, {...}, reliable)
+        if everywhere then
+          v(...)
+        end
       end)
       net_handling.mod[index] = function(peer_id, args)
         ctx.rpc_peer_id = peer_id
