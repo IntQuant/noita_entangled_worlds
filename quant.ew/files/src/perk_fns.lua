@@ -5,6 +5,7 @@ local perk_fns = {}
 
 local perks_to_ignore = {
     GAMBLE = true,
+    PERKS_LOTTERY = true,
 }
 
 function perk_fns.get_my_perks()
