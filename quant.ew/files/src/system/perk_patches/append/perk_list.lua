@@ -9,6 +9,11 @@ local function patch_perk(perk_id, fn, ignore_original_func)
     end
 end
 
+local function hide_perk(perk_id)
+    local perk_data = get_perk_with_id(perk_list, perk_id)
+    perk_data.not_in_default_perk_pool = true
+end
+
 patch_perk("EXTRA_HP", function(entity_perk_item, entity_who_picked)
     if EntityHasTag(entity_who_picked, "player_unit") then
         CrossCall("ew_perks_modify_max_hp", 1.5, true)
@@ -20,3 +25,11 @@ patch_perk("VAMPIRISM", function(entity_perk_item, entity_who_picked)
         CrossCall("ew_perks_modify_max_hp", 0.75)
     end
 end, true)
+
+hide_perk("ABILITY_ACTIONS_MATERIALIZED")
+hide_perk("RESPAWN")
+hide_perk("TELEKINESIS")
+hide_perk("SAVING_GRACE")
+hide_perk("INVISIBILITY")
+hide_perk("CORDYCEPS")
+hide_perk("HOMUNCULUS")
