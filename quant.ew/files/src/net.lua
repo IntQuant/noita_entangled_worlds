@@ -179,14 +179,6 @@ function net.proxy_notify_game_over()
   net.proxy_send("game_over", 1)
 end
 
-function net.send_player_update(input_data, pos_data, current_slot)
-  net.send("player", {
-    i = input_data,
-    p = pos_data,
-    s = current_slot,
-  })
-end
-
 function net.send_player_inventory(inventory_state)
   net.send("inventory", inventory_state, true)
 end

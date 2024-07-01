@@ -29,7 +29,8 @@ ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
-
+    
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
     -- ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
@@ -187,16 +188,6 @@ local function on_world_pre_update_inner()
     if GameGetFrameNum() % 120 == 0 then
         player_fns.respawn_if_necessary()
         player_fns.spread_max_health()
-    end
-
-    -- Player sync
-    if GameGetFrameNum() % 1 == 0 then
-        local input_data = player_fns.serialize_inputs(ctx.my_player)
-        local pos_data =  player_fns.serialize_position(ctx.my_player)
-        local current_slot = player_fns.get_current_slot(ctx.my_player)
-        if input_data ~= nil and pos_data ~= nil then
-            net.send_player_update(input_data, pos_data, current_slot)
-        end
     end
 
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)) then

@@ -45,26 +45,6 @@ function net_handling.proxy.proxy_opt(_, key, value)
     ctx.proxy_opt[key] = value
 end
 
-function net_handling.mod.player(peer_id, value)
-    local input_data = value.i
-    local pos_data = value.p
-    local slot_data = value.s
-    -- GamePrint("Player update for "..peer_id.." "..pos_data.x.." "..pos_data.y)
-    if not player_fns.peer_has_player(peer_id) then
-        player_fns.spawn_player_for(peer_id, pos_data.x, pos_data.y)
-    end
-    local player_data = player_fns.peer_get_player_data(peer_id)
-    if input_data ~= nil then
-        player_fns.deserialize_inputs(input_data, player_data)
-    end
-    if pos_data ~= nil then
-        player_fns.deserialize_position(pos_data, player_data)
-    end
-    if slot_data ~= nil then
-        player_fns.set_current_slot(slot_data, player_data)
-    end
-end
-
 function net_handling.mod.inventory(peer_id, inventory_state)
     if not player_fns.peer_has_player(peer_id) then
         return
