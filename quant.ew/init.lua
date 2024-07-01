@@ -191,11 +191,15 @@ local function on_world_pre_update_inner()
     end
 
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)) then
-        local inventory_state = player_fns.serialize_items(ctx.my_player)
-        if inventory_state ~= nil then
-            -- GamePrint("Sending updated inventory")
-            net.send_player_inventory(inventory_state)
-        end
+        async(function()
+            -- Wait 1 frame because apperently it takes some time for an item to get properly "registered" in an inventory?
+            wait(1)
+            local inventory_state = player_fns.serialize_items(ctx.my_player)
+            if inventory_state ~= nil then
+                -- GamePrint("Sending updated inventory")
+                net.send_player_inventory(inventory_state)
+            end
+        end)
     end
 
     -- Perk sync
@@ -225,8 +229,6 @@ end
 local function on_world_post_update_inner()
     if ctx.my_player == nil then return end
 
-    -- local px, py = EntityGetTransform(my_player.entity)
-    -- GameSetCameraPos(px, py)
     if not ctx.run_ended then
         ctx.hook.on_world_update_post()
     end
@@ -234,9 +236,16 @@ local function on_world_post_update_inner()
     local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
     GlobalsSetValue("ew_wand_fired", "0")
     if times_wand_fired > 0 then
+        local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+        local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
+        local switched_now = last_switch == GameGetFrameNum()
+        
         local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
         local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
         if fire_data ~= nil then
+            if switched_now then
+                fire_data.switched_now = true
+            end
             net.send_fire(fire_data)
         end
     end

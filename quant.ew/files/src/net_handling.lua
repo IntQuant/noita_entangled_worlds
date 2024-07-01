@@ -65,11 +65,29 @@ function net_handling.mod.perks(peer_id, perk_data)
     end
 end
 
+local function reset_cast_state_if_has_any_other_item(player_data)
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
+    local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+
+    for k, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_quick") or {}) do
+        if item ~= mActiveItem then
+            np.SetActiveHeldEntity(player_data.entity, item)
+            np.SetActiveHeldEntity(player_data.entity, mActiveItem)
+            break
+        end
+    end
+end
+
 function net_handling.mod.fire(peer_id, fire_data)
     local rng = fire_data[1]
     local message = fire_data[2]
     local player_data = player_fns.peer_get_player_data(peer_id)
     local entity = player_data.entity
+
+    local switched_now = fire_data.switched_now == true
+    if switched_now then
+        reset_cast_state_if_has_any_other_item(player_data)
+    end
     
     GlobalsSetValue("ew_shooter_rng_" .. tostring(peer_id), tostring(message.special_seed))
                 
