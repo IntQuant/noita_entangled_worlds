@@ -65,7 +65,7 @@ impl Default for AppSavedState {
             use_constant_seed: false,
             nickname: None,
             times_started: 0,
-            world_sync_version: 1,
+            world_sync_version: 2,
             lang_id: None,
             constant_seed: 0,
         }
@@ -291,11 +291,7 @@ impl App {
                     ui.label(tr("connect_settings_wsv"));
                     ui.horizontal(|ui| {
                         ui.radio_value(&mut self.saved_state.world_sync_version, 1, "v1");
-                        ui.radio_value(
-                            &mut self.saved_state.world_sync_version,
-                            2,
-                            "v2 (experimental)",
-                        );
+                        ui.radio_value(&mut self.saved_state.world_sync_version, 2, "v2");
                     });
                 });
             });
