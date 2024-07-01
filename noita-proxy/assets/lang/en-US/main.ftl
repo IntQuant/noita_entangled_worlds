@@ -15,7 +15,7 @@ connect_settings_seed = Seed:
 connect_settings_wsv = World sync version to use:
 connect_settings_player_tether = Player tether enabled
 connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
-connect_settings_player_tether_length = Tether lenght
+connect_settings_player_tether_length = Tether length
 
 lang_picker = Choose a language
 
