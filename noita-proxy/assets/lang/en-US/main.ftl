@@ -13,6 +13,7 @@ connect_settings_debug_en = Debug/cheat mode
 connect_settings_debug_fixed_seed = Use fixed seed
 connect_settings_seed = Seed:
 connect_settings_wsv = World sync version to use:
+connect_settings_player_tether = Player tether
 
 lang_picker = Choose a language
 

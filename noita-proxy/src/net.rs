@@ -91,12 +91,7 @@ impl NetManager {
     pub fn new(peer: omni::PeerVariant, init: NetManagerInit) -> Arc<Self> {
         Self {
             peer,
-            settings: Mutex::new(GameSettings {
-                // seed: 1663107061,
-                seed: 1663107066,
-                debug_mode: false,
-                world_sync_version: 1,
-            }),
+            settings: Mutex::new(GameSettings::default()),
             continue_running: AtomicBool::new(true),
             accept_local: AtomicBool::new(false),
             local_connected: AtomicBool::new(false),
@@ -291,6 +286,7 @@ impl NetManager {
             "world_sync_version",
             settings.world_sync_version,
         ));
+        state.try_ws_write(ws_encode_proxy_opt("player_tether", settings.player_tether));
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod

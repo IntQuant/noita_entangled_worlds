@@ -11,6 +11,7 @@ connect_settings_debug_en = Подрубить читы
 connect_settings_debug_fixed_seed = Фиксированный сид мира
 connect_settings_seed = Сид:
 connect_settings_wsv = Версия синхронизатора мира:
+connect_settings_player_tether = Предел расстояния до хоста
 
 lang_picker = Выберите язык
 

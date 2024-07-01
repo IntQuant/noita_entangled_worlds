@@ -29,11 +29,23 @@ pub mod releases;
 mod self_update;
 pub mod steam_helper;
 
-#[derive(Debug, Decode, Encode, Clone)]
+#[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize)]
 pub struct GameSettings {
     seed: u64,
     debug_mode: bool,
     world_sync_version: u32,
+    player_tether: bool,
+}
+
+impl Default for GameSettings {
+    fn default() -> Self {
+        GameSettings {
+            seed: 0,
+            debug_mode: false,
+            world_sync_version: 2,
+            player_tether: false,
+        }
+    }
 }
 
 enum AppState {
@@ -48,26 +60,24 @@ enum AppState {
 #[derive(Debug, Serialize, Deserialize)]
 struct AppSavedState {
     addr: String,
-    debug_mode: bool,
     use_constant_seed: bool,
     nickname: Option<String>,
     times_started: u32,
-    world_sync_version: u32,
     lang_id: Option<LanguageIdentifier>,
     constant_seed: u64,
+    game_settings: GameSettings,
 }
 
 impl Default for AppSavedState {
     fn default() -> Self {
         Self {
             addr: "127.0.0.1:5123".to_string(),
-            debug_mode: false,
             use_constant_seed: false,
             nickname: None,
             times_started: 0,
-            world_sync_version: 2,
             lang_id: None,
             constant_seed: 0,
+            game_settings: GameSettings::default(),
         }
     }
 }
@@ -163,8 +173,7 @@ impl App {
 
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
         let mut settings = netman.settings.lock().unwrap();
-        settings.debug_mode = self.saved_state.debug_mode;
-        settings.world_sync_version = self.saved_state.world_sync_version;
+        *settings = self.saved_state.game_settings.clone();
         if !self.saved_state.use_constant_seed {
             settings.seed = rand::random();
         } else {
@@ -273,7 +282,7 @@ impl App {
 
                     ui.label(tr("connect_settings_debug"));
                     ui.checkbox(
-                        &mut self.saved_state.debug_mode,
+                        &mut self.saved_state.game_settings.debug_mode,
                         tr("connect_settings_debug_en"),
                     );
                     ui.checkbox(
@@ -290,9 +299,22 @@ impl App {
 
                     ui.label(tr("connect_settings_wsv"));
                     ui.horizontal(|ui| {
-                        ui.radio_value(&mut self.saved_state.world_sync_version, 1, "v1");
-                        ui.radio_value(&mut self.saved_state.world_sync_version, 2, "v2");
+                        ui.radio_value(
+                            &mut self.saved_state.game_settings.world_sync_version,
+                            1,
+                            "v1",
+                        );
+                        ui.radio_value(
+                            &mut self.saved_state.game_settings.world_sync_version,
+                            2,
+                            "v2",
+                        );
                     });
+
+                    ui.checkbox(
+                        &mut self.saved_state.game_settings.player_tether,
+                        tr("connect_settings_player_tether"),
+                    )
                 });
             });
             ui.allocate_ui_at_rect(steam_connect_rect.shrink(group_shrink), |ui| {
