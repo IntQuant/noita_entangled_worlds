@@ -9,7 +9,7 @@ use bitcode::{Decode, Encode};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, DragValue, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
-    ScrollArea, TextureOptions, Ui, Vec2,
+    ScrollArea, Slider, TextureOptions, Ui, Vec2,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use lang::{set_current_locale, tr, LANGS};
@@ -35,6 +35,7 @@ pub struct GameSettings {
     debug_mode: bool,
     world_sync_version: u32,
     player_tether: bool,
+    tether_length: u32,
 }
 
 impl Default for GameSettings {
@@ -44,6 +45,7 @@ impl Default for GameSettings {
             debug_mode: false,
             world_sync_version: 2,
             player_tether: false,
+            tether_length: 750,
         }
     }
 }
@@ -311,10 +313,17 @@ impl App {
                         );
                     });
 
+                    ui.add_space(20.0);
+
+                    ui.label(tr("connect_settings_player_tether_desc"));
                     ui.checkbox(
                         &mut self.saved_state.game_settings.player_tether,
                         tr("connect_settings_player_tether"),
-                    )
+                    );
+                    ui.add(
+                        Slider::new(&mut self.saved_state.game_settings.tether_length, 10..=5000)
+                            .text(tr("connect_settings_player_tether_length")),
+                    );
                 });
             });
             ui.allocate_ui_at_rect(steam_connect_rect.shrink(group_shrink), |ui| {

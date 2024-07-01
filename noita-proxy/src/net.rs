@@ -287,6 +287,7 @@ impl NetManager {
             settings.world_sync_version,
         ));
         state.try_ws_write(ws_encode_proxy_opt("player_tether", settings.player_tether));
+        state.try_ws_write(ws_encode_proxy_opt("tether_length", settings.tether_length));
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod

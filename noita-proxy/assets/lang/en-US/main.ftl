@@ -13,7 +13,9 @@ connect_settings_debug_en = Debug/cheat mode
 connect_settings_debug_fixed_seed = Use fixed seed
 connect_settings_seed = Seed:
 connect_settings_wsv = World sync version to use:
-connect_settings_player_tether = Player tether
+connect_settings_player_tether = Player tether enabled
+connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
+connect_settings_player_tether_length = Tether lenght
 
 lang_picker = Choose a language
 

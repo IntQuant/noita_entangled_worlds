@@ -1,0 +1,32 @@
+<Entity>
+	<InheritTransformComponent
+		only_position="1"
+		>
+		<Transform 
+			position.x="0" 
+			position.y="-8" >
+		</Transform>
+	</InheritTransformComponent>
+	
+	<ParticleEmitterComponent
+		emitted_material_name="spark_yellow"
+		gravity.y="0.0"
+		lifetime_min="0.1"
+		lifetime_max="0.5"
+		count_min="200"
+		count_max="300"
+		render_on_grid="0"
+        render_ultrabright="1"
+		fade_based_on_lifetime="1"
+		area_circle_radius.min="100"
+		area_circle_radius.max="100"
+		cosmetic_force_create="0"
+		airflow_force="0.3"
+		airflow_time="0.01"
+		airflow_scale="0.05"
+		emission_interval_min_frames="0"
+		emission_interval_max_frames="0"
+		emit_cosmetic_particles="1"
+		is_emitting="1" >
+	</ParticleEmitterComponent>
+</Entity>

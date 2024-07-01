@@ -54,6 +54,10 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/spawn_hooks/init.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/proxy_info.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/perk_patches/init.lua")
+
+    if ctx.proxy_opt.player_tether == "true" then
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_tether/player_tether.lua")
+    end
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
