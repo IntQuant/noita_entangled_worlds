@@ -1,0 +1,40 @@
+<Entity>
+	<InheritTransformComponent 
+		_enabled="1" >
+    </InheritTransformComponent>	
+    
+    <LuaComponent
+		script_source_file="mods/quant.ew/files/src/system/damage/append/hearty_start.lua"
+		execute_every_n_frame="4"
+		remove_after_executed="1"
+		>
+	</LuaComponent>
+	
+	<LuaComponent
+		script_source_file="mods/quant.ew/files/src/system/damage/append/hearty_end.lua"
+		execute_every_n_frame="-1"
+		execute_on_removed="1"
+		>
+	</LuaComponent>
+	
+	<VariableStorageComponent
+		name="effect_hearty"
+		value_float="0.0"
+		>
+	</VariableStorageComponent>
+	
+	<LifetimeComponent
+		lifetime="1200"
+		>
+	</LifetimeComponent>
+	
+	<UIIconComponent
+		name="$status_hearty"
+		description="$statusdesc_hearty"
+		icon_sprite_file="data/ui_gfx/status_indicators/hearty.png"
+		is_perk="0"
+		display_above_head="0"
+		display_in_hud="1"
+		>
+	</UIIconComponent>
+</Entity>

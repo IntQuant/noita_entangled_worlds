@@ -16,6 +16,9 @@ module.recent_message = "unknown"
 module.last_damage_message = "unknown"
 
 ModLuaFileAppend("data/scripts/game_helpers.lua", "mods/quant.ew/files/src/system/damage/append/game_helpers.lua")
+-- ModLuaFileAppend("data/scripts/status_effects/hearty_start.lua", "mods/quant.ew/files/src/system/damage/append/hearty_start.lua")
+-- ModLuaFileAppend("data/scripts/status_effects/hearty_end.lua", "mods/quant.ew/files/src/system/damage/append/hearty_end.lua")
+ModTextFileSetContent("data/entities/misc/effect_hearty.xml", ModTextFileGetContent("mods/quant.ew/files/src/system/damage/append/hearty_effect.xml"))
 
 local function damage_received(damage, message, entity_id, add_healing_effect)
     local was_my_player = entity_id == nil or ctx.my_player.entity == entity_id
@@ -175,5 +178,35 @@ function rpc.healing_effect()
 	local entity_fx = EntityLoad( "data/entities/particles/heal_effect.xml", x, y )
 	EntityAddChild( entity_id, entity_fx )
 end
+
+rpc.opts_reliable()
+rpc.opts_everywhere()
+function rpc.effect_hearty(applied)
+    if not ctx.is_host then
+        return
+    end
+    local hearty_applied_count = tonumber(GlobalsGetValue("ew_effect_hearty", "0"))
+    if applied then
+        -- The effect was added
+        if module.max_health() <= 0.4 then
+            return
+        end
+
+        module.set_health(math.max(module.health() * 0.5, 0.04))
+        module.set_max_health(module.max_health() * 0.5)
+        hearty_applied_count = hearty_applied_count + 1
+    else
+        -- The effect was removed
+        if hearty_applied_count <= 0 then
+            return
+        end
+        module.set_max_health(module.max_health() * 2)
+        module.set_health(module.health() * 2)
+        hearty_applied_count = hearty_applied_count - 1
+    end
+    GlobalsSetValue("ew_effect_hearty", tostring(hearty_applied_count))
+end
+
+np.CrossCallAdd("ew_ds_effect_hearty", rpc.effect_hearty)
 
 return module
