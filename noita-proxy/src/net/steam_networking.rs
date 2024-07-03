@@ -1,6 +1,7 @@
-use std::sync::Mutex;
+use std::{fmt::Display, sync::Mutex};
 
 use crossbeam::channel;
+use fluent_bundle::FluentValue;
 use steamworks::{
     networking_types::{NetworkingIdentity, SendFlags},
     CallbackHandle, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
@@ -8,7 +9,41 @@ use steamworks::{
 use tangled::{PeerState, Reliability};
 use tracing::{info, warn};
 
+use crate::{
+    lang::{tr, tr_a},
+    releases::Version,
+};
+
 use super::omni::{self, OmniNetworkEvent};
+
+pub enum ConnectError {
+    VersionMismatch { remote_version: Version },
+    VersionMissing,
+}
+
+impl Display for ConnectError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectError::VersionMismatch { remote_version } => {
+                let translated = tr_a(
+                    "error_version_mismatch",
+                    &[
+                        (
+                            "remote_version",
+                            FluentValue::from(remote_version.to_string()),
+                        ),
+                        (
+                            "current_version",
+                            FluentValue::from(Version::current().to_string()),
+                        ),
+                    ],
+                );
+                write!(f, "{}", translated)
+            }
+            ConnectError::VersionMissing => write!(f, "{}", tr("error_missing_version_field")),
+        }
+    }
+}
 
 enum SteamEvent {
     LobbyCreated(LobbyId),
@@ -42,12 +77,23 @@ impl SteamPeer {
         let matchmaking = client.matchmaking();
         {
             let sender = sender.clone();
-            matchmaking.create_lobby(lobby_type, 100, move |lobby| {
-                let event = match lobby {
-                    Ok(id) => SteamEvent::LobbyCreated(id),
-                    Err(err) => SteamEvent::LobbyError(err),
-                };
-                sender.send(event).ok();
+            matchmaking.create_lobby(lobby_type, 100, {
+                let client = client.clone();
+                move |lobby| {
+                    let matchmaking = client.matchmaking();
+                    let event = match lobby {
+                        Ok(id) => {
+                            matchmaking.set_lobby_data(
+                                id,
+                                "ew_version",
+                                &Version::current().to_string(),
+                            );
+                            SteamEvent::LobbyCreated(id)
+                        }
+                        Err(err) => SteamEvent::LobbyError(err),
+                    };
+                    sender.send(event).ok();
+                }
             });
         }
 
@@ -70,11 +116,30 @@ impl SteamPeer {
         }
     }
 
-    pub fn new_connect(lobby: LobbyId, client: steamworks::Client) -> Self {
+    pub fn new_connect(lobby: LobbyId, client: steamworks::Client) -> Result<Self, ConnectError> {
         let (sender, events) = channel::unbounded();
         let matchmaking = client.matchmaking();
         {
             let sender = sender.clone();
+            match matchmaking
+                .lobby_data(lobby, "ew_version")
+                .and_then(Version::parse_from_diplay)
+            {
+                Some(remote_version) => {
+                    if remote_version != Version::current() {
+                        warn!(
+                            "Could not connect: version mismatch, remote: {}, current: {}",
+                            remote_version,
+                            Version::current()
+                        );
+                        return Err(ConnectError::VersionMismatch { remote_version });
+                    }
+                }
+                None => {
+                    warn!("Could not connect: version data missing/could not be parsed");
+                    return Err(ConnectError::VersionMissing);
+                }
+            };
             matchmaking.join_lobby(lobby, move |lobby| {
                 let event = match lobby {
                     Ok(id) => SteamEvent::LobbyCreated(id),
@@ -86,7 +151,7 @@ impl SteamPeer {
 
         let my_id = client.user().steam_id();
         let _cbs = make_callbacks(&sender, &client);
-        Self {
+        Ok(Self {
             my_id,
             client,
 
@@ -100,7 +165,7 @@ impl SteamPeer {
                 state: PeerState::PendingConnection,
             }),
             _cbs,
-        }
+        })
     }
 
     pub fn send_message(&self, peer: SteamId, msg: &[u8], reliability: Reliability) -> bool {

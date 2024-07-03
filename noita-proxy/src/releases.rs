@@ -172,6 +172,9 @@ impl Version {
         let strip_suffix = version.strip_prefix("return \"")?.strip_suffix('"')?;
         Self::parse_from_string(strip_suffix)
     }
+    pub fn parse_from_diplay(version: &str) -> Option<Self> {
+        Self::parse_from_string(version.strip_prefix("v")?)
+    }
     fn parse_from_string(version: &str) -> Option<Self> {
         let mut nums = version.split('.');
         let major = nums.next()?.parse().ok()?;

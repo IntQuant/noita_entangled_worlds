@@ -66,3 +66,5 @@ ip_connect = Connect to IP
 ip_host = Create a server
 
 error_occured = An error occured:
+error_missing_version_field = Lobby does not have a version field. The lobby was created by an old proxy version or does not exist.
+error_version_mismatch = Lobby was created by proxy with a different version: { $remote_version }. You have { $current_version } currently installed.

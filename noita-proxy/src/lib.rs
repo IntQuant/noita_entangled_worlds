@@ -213,9 +213,16 @@ impl App {
             id,
             self.steam_state.as_ref().unwrap().client.clone(),
         );
-        let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
-        netman.clone().start();
-        self.state = AppState::Netman { netman };
+        match peer {
+            Ok(peer) => {
+                let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
+                netman.clone().start();
+                self.state = AppState::Netman { netman };
+            }
+            Err(err) => {
+                self.notify_error(err);
+            }
+        }
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
