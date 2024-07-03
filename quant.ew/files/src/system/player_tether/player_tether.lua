@@ -4,6 +4,7 @@ local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 
 local tether_length = tonumber(ctx.proxy_opt.tether_length)
+local tether_length_2 = tether_length + 100
 
 local module = {}
 
@@ -28,7 +29,7 @@ function module.on_world_update_client()
         local dx = x1-x2
         local dy = y1-y2
         local dist_sq = dx*dx + dy*dy
-        if dist_sq > tether_length * tether_length then
+        if dist_sq > tether_length_2 * tether_length_2 then
             EntitySetTransform(ctx.my_player.entity, x1, y1)
         end
     end
