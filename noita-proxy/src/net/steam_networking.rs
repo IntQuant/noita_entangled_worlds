@@ -19,6 +19,7 @@ use super::omni::{self, OmniNetworkEvent};
 pub enum ConnectError {
     VersionMismatch { remote_version: Version },
     VersionMissing,
+    LobbyDoesNotExist,
 }
 
 impl Display for ConnectError {
@@ -41,6 +42,7 @@ impl Display for ConnectError {
                 write!(f, "{}", translated)
             }
             ConnectError::VersionMissing => write!(f, "{}", tr("error_missing_version_field")),
+            ConnectError::LobbyDoesNotExist => write!(f, "{}", tr("error_lobby_does_not_exist")),
         }
     }
 }
@@ -121,6 +123,12 @@ impl SteamPeer {
         let matchmaking = client.matchmaking();
         {
             let sender = sender.clone();
+            // Empty lobbies don't exist because lobbies are deleted when they become empty,
+            // thus, it's likely that it doesn't exist.
+            if matchmaking.lobby_member_count(lobby) == 0 {
+                return Err(ConnectError::LobbyDoesNotExist);
+            }
+
             match matchmaking
                 .lobby_data(lobby, "ew_version")
                 .and_then(Version::parse_from_diplay)
