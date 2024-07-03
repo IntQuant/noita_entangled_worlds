@@ -4,7 +4,7 @@ local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 
 local tether_length = tonumber(ctx.proxy_opt.tether_length)
-local tether_length_2 = tether_length + 100
+local tether_length_2 = tether_length + 200
 
 local module = {}
 
