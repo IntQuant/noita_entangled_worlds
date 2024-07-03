@@ -14,7 +14,7 @@ use eframe::egui::{
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
-use net::{omni::PeerVariant, NetManagerInit};
+use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit};
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
@@ -213,16 +213,10 @@ impl App {
             id,
             self.steam_state.as_ref().unwrap().client.clone(),
         );
-        match peer {
-            Ok(peer) => {
-                let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
-                netman.clone().start();
-                self.state = AppState::Netman { netman };
-            }
-            Err(err) => {
-                self.notify_error(err);
-            }
-        }
+
+        let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
+        netman.clone().start();
+        self.state = AppState::Netman { netman };
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
@@ -425,6 +419,10 @@ impl eframe::App for App {
                 self.connect_screen(ctx);
             }
             AppState::Netman { netman } => {
+                if let ExtraPeerState::CouldNotConnect(err) = netman.peer.state() {
+                    self.notify_error(err);
+                    return;
+                }
                 let stopped = netman.stopped.load(Ordering::Relaxed);
                 let accept_local = netman.accept_local.load(Ordering::Relaxed);
                 let local_connected = netman.local_connected.load(Ordering::Relaxed);
@@ -487,7 +485,7 @@ impl eframe::App for App {
                             }
                         }
                     } else {
-                        ui.label(format!("Peer state: {}", netman.peer.state()));
+                        ui.label(format!("Peer state: {:?}", netman.peer.state()));
                     }
 
                     if self.show_map_plot {

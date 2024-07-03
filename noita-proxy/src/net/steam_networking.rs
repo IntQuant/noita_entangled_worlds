@@ -16,6 +16,7 @@ use crate::{
 
 use super::omni::{self, OmniNetworkEvent};
 
+#[derive(Clone, Copy, Debug)]
 pub enum ConnectError {
     VersionMismatch { remote_version: Version },
     VersionMissing,
@@ -50,17 +51,23 @@ impl Display for ConnectError {
 enum SteamEvent {
     LobbyCreated(LobbyId),
     LobbyError(SteamError),
-    LobbyJoinError,
+    LobbyJoinError(ConnectError),
     PeerConnected(SteamId),
     PeerDisconnected(SteamId),
     PeerStateChanged,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ExtraPeerState {
+    Tangled(PeerState),
+    CouldNotConnect(ConnectError),
 }
 
 pub struct InnerState {
     lobby_id: Option<LobbyId>,
     host_id: SteamId,
     remote_peers: Vec<SteamId>,
-    state: PeerState,
+    state: ExtraPeerState,
 }
 
 pub struct SteamPeer {
@@ -112,54 +119,58 @@ impl SteamPeer {
                 lobby_id: None,
                 host_id: my_id,
                 remote_peers: Vec::new(),
-                state: PeerState::PendingConnection,
+                state: ExtraPeerState::Tangled(PeerState::PendingConnection),
             }),
             _cbs,
         }
     }
 
-    pub fn new_connect(lobby: LobbyId, client: steamworks::Client) -> Result<Self, ConnectError> {
+    pub fn new_connect(lobby: LobbyId, client: steamworks::Client) -> Self {
         let (sender, events) = channel::unbounded();
         let matchmaking = client.matchmaking();
         {
             let sender = sender.clone();
-            // Empty lobbies don't exist because lobbies are deleted when they become empty,
-            // thus, it's likely that it doesn't exist.
-            if matchmaking.lobby_member_count(lobby) == 0 {
-                return Err(ConnectError::LobbyDoesNotExist);
-            }
 
-            match matchmaking
-                .lobby_data(lobby, "ew_version")
-                .and_then(Version::parse_from_diplay)
-            {
-                Some(remote_version) => {
-                    if remote_version != Version::current() {
-                        warn!(
-                            "Could not connect: version mismatch, remote: {}, current: {}",
-                            remote_version,
-                            Version::current()
-                        );
-                        return Err(ConnectError::VersionMismatch { remote_version });
-                    }
+            matchmaking.join_lobby(lobby, {
+                let client = client.clone();
+                move |lobby| {
+                    let matchmaking = client.matchmaking();
+
+                    let event = match lobby {
+                        Ok(id) => {
+                            match matchmaking
+                                .lobby_data(id, "ew_version")
+                                .and_then(Version::parse_from_diplay)
+                            {
+                                Some(remote_version) => {
+                                    if remote_version != Version::current() {
+                                        warn!(
+                                            "Could not connect: version mismatch, remote: {}, current: {}",
+                                            remote_version,
+                                            Version::current()
+                                        );
+                                        SteamEvent::LobbyJoinError(ConnectError::VersionMismatch { remote_version })
+                                    } else {
+                                        SteamEvent::LobbyCreated(id)
+                                    }
+                                }
+                                None => {
+                                    warn!("Could not connect: version data missing/could not be parsed");
+                                    SteamEvent::LobbyJoinError(ConnectError::VersionMissing)
+                                }
+                            }
+                        }
+                        Err(_) => SteamEvent::LobbyJoinError(ConnectError::LobbyDoesNotExist),
+                    };
+
+                    sender.send(event).ok();
                 }
-                None => {
-                    warn!("Could not connect: version data missing/could not be parsed");
-                    return Err(ConnectError::VersionMissing);
-                }
-            };
-            matchmaking.join_lobby(lobby, move |lobby| {
-                let event = match lobby {
-                    Ok(id) => SteamEvent::LobbyCreated(id),
-                    Err(_) => SteamEvent::LobbyJoinError,
-                };
-                sender.send(event).ok();
             });
         }
 
         let my_id = client.user().steam_id();
         let _cbs = make_callbacks(&sender, &client);
-        Ok(Self {
+        Self {
             my_id,
             client,
 
@@ -170,10 +181,10 @@ impl SteamPeer {
                 lobby_id: None,
                 remote_peers: Vec::new(),
                 host_id: my_id,
-                state: PeerState::PendingConnection,
+                state: ExtraPeerState::Tangled(PeerState::PendingConnection),
             }),
             _cbs,
-        })
+        }
     }
 
     pub fn send_message(&self, peer: SteamId, msg: &[u8], reliability: Reliability) -> bool {
@@ -214,15 +225,17 @@ impl SteamPeer {
                         info!("Got host id: {:?}", host_id)
                     }
                     self.update_remote_peers();
-                    self.inner.lock().unwrap().state = PeerState::Connected;
+                    self.inner.lock().unwrap().state =
+                        ExtraPeerState::Tangled(PeerState::Connected);
                 }
                 SteamEvent::LobbyError(err) => {
                     warn!("Could not create lobby: {}", err);
-                    self.inner.lock().unwrap().state = PeerState::Disconnected;
+                    self.inner.lock().unwrap().state =
+                        ExtraPeerState::Tangled(PeerState::Disconnected);
                 }
-                SteamEvent::LobbyJoinError => {
+                SteamEvent::LobbyJoinError(err) => {
                     warn!("Could not join lobby");
-                    self.inner.lock().unwrap().state = PeerState::Disconnected;
+                    self.inner.lock().unwrap().state = ExtraPeerState::CouldNotConnect(err);
                 }
                 SteamEvent::PeerConnected(id) => {
                     returned_events.push(omni::OmniNetworkEvent::PeerConnected(id.into()))
@@ -302,7 +315,7 @@ impl SteamPeer {
         self.inner.lock().unwrap().lobby_id
     }
 
-    pub fn state(&self) -> PeerState {
+    pub fn state(&self) -> ExtraPeerState {
         self.inner.lock().unwrap().state
     }
 }

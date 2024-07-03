@@ -1,7 +1,7 @@
-use super::steam_networking;
+use super::steam_networking::{self, ExtraPeerState};
 use std::fmt::Display;
 use steamworks::{LobbyId, SteamId};
-use tangled::{PeerId, PeerState, Reliability};
+use tangled::{PeerId, Reliability};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OmniPeerId(pub u64);
@@ -127,9 +127,9 @@ impl PeerVariant {
         }
     }
 
-    pub fn state(&self) -> PeerState {
+    pub fn state(&self) -> ExtraPeerState {
         match self {
-            PeerVariant::Tangled(p) => p.state(),
+            PeerVariant::Tangled(p) => ExtraPeerState::Tangled(p.state()),
             PeerVariant::Steam(p) => p.state(),
         }
     }
