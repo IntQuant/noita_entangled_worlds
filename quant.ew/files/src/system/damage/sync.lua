@@ -16,8 +16,6 @@ module.recent_message = "unknown"
 module.last_damage_message = "unknown"
 
 ModLuaFileAppend("data/scripts/game_helpers.lua", "mods/quant.ew/files/src/system/damage/append/game_helpers.lua")
--- ModLuaFileAppend("data/scripts/status_effects/hearty_start.lua", "mods/quant.ew/files/src/system/damage/append/hearty_start.lua")
--- ModLuaFileAppend("data/scripts/status_effects/hearty_end.lua", "mods/quant.ew/files/src/system/damage/append/hearty_end.lua")
 ModTextFileSetContent("data/entities/misc/effect_hearty.xml", ModTextFileGetContent("mods/quant.ew/files/src/system/damage/append/hearty_effect.xml"))
 
 local function damage_received(damage, message, entity_id, add_healing_effect)
