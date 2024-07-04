@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env, thread, time::Duration};
 
-use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui, Widget};
+use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui};
 use steamworks::{SteamAPIInitError, SteamId};
 use tracing::info;
 
@@ -9,9 +9,6 @@ pub struct SteamUserAvatar {
 }
 
 impl SteamUserAvatar {
-    pub fn display(&self, ui: &mut Ui) -> egui::Response {
-        egui::Image::new(&self.avatar).ui(ui)
-    }
     pub fn display_with_labels(&self, ui: &mut Ui, label_top: &str, label_bottom: &str) {
         let image = egui::Image::new(&self.avatar).fit_to_exact_size([32.0, 32.0].into());
         ui.group(|ui| {

@@ -22,12 +22,12 @@ use tangled::Peer;
 use tracing::info;
 use unic_langid::LanguageIdentifier;
 
-pub mod lang;
+mod lang;
 mod mod_manager;
 pub mod net;
-pub mod releases;
+mod releases;
 mod self_update;
-pub mod steam_helper;
+mod steam_helper;
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize)]
 pub struct GameSettings {

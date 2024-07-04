@@ -135,10 +135,5 @@ mod test {
         img.save(format!("/tmp/img_model2.png")).unwrap();
 
         println!("Deltas: {} bytes", deltas_size)
-        // let mut mats = model.mats.iter().copied().collect::<Vec<_>>();
-        // mats.sort();
-        // for mat in mats {
-        //     println!("{}", mat)
-        // }
     }
 }

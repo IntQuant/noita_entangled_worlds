@@ -40,6 +40,7 @@ unic-langid = { version = "0.9.5", features = ["serde"] }
 fluent-bundle = "0.15.3"
 egui_plot = "0.27.2"
 crc = "3.2.1"
+argh = "0.1.12"
 
 [build-dependencies]
 winresource = "0.1.17"
