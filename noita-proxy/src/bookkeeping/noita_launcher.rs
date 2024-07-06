@@ -29,7 +29,6 @@ pub struct LaunchToken<'a>(&'a mut NoitaLauncher);
 
 pub struct NoitaLauncher {
     game_dir_path: PathBuf,
-    // game_exe_path: PathBuf,
     start_args: Option<NoitaStartCmd>,
     noita_process: Option<Child>,
 }
