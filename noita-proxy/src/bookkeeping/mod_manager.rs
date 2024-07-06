@@ -53,7 +53,7 @@ impl Default for Modmanager {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ModmanagerSettings {
-    game_path: PathBuf,
+    pub game_exe_path: PathBuf,
 }
 
 impl ModmanagerSettings {
@@ -64,15 +64,18 @@ impl ModmanagerSettings {
             let app_id = AppId::from(881100);
             if apps.is_app_installed(app_id) {
                 let app_install_dir = apps.app_install_dir(app_id);
-                self.game_path = PathBuf::from(app_install_dir).join("noita.exe");
-                info!("Found game path with steam: {}", self.game_path.display())
+                self.game_exe_path = PathBuf::from(app_install_dir).join("noita.exe");
+                info!(
+                    "Found game path with steam: {}",
+                    self.game_exe_path.display()
+                )
             } else {
                 info!("App not installed");
             }
         }
     }
     fn mod_path(&self) -> PathBuf {
-        let mut path = self.game_path.clone();
+        let mut path = self.game_exe_path.clone();
         path.pop();
         path.push("mods");
         path.push("quant.ew");
@@ -89,12 +92,12 @@ impl Modmanager {
         steam_state: Option<&mut SteamState>,
     ) {
         if let State::JustStarted = self.state {
-            if check_path_valid(&settings.game_path) {
+            if check_path_valid(&settings.game_exe_path) {
                 info!("Path is valid, checking mod now");
                 self.state = State::PreCheckMod;
             } else {
                 settings.try_find_game_path(steam_state);
-                let could_find_automatically = check_path_valid(&settings.game_path);
+                let could_find_automatically = check_path_valid(&settings.game_exe_path);
                 if could_find_automatically {
                     self.state = State::IsAutomaticPathOk;
                 } else {
@@ -107,7 +110,7 @@ impl Modmanager {
             State::JustStarted => unreachable!(),
             State::IsAutomaticPathOk => {
                 ui.heading(tr("modman_found_automatically"));
-                ui.label(settings.game_path.display().to_string());
+                ui.label(settings.game_exe_path.display().to_string());
                 if ui.button(tr("modman_use_this")).clicked() {
                     self.state = State::PreCheckMod;
                     ctx.request_repaint();
@@ -118,8 +121,8 @@ impl Modmanager {
             }
             State::SelectPath => {
                 if let Some(path) = self.file_dialog.update(ctx).selected() {
-                    settings.game_path = path.to_path_buf();
-                    if !check_path_valid(&settings.game_path) {
+                    settings.game_exe_path = path.to_path_buf();
+                    if !check_path_valid(&settings.game_exe_path) {
                         self.state = State::InvalidPath;
                     } else {
                         self.state = State::PreCheckMod;

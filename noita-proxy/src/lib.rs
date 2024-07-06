@@ -6,6 +6,7 @@ use std::{
 };
 
 use bitcode::{Decode, Encode};
+use bookkeeping::noita_launcher::{LaunchTokenResult, NoitaLauncher};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, DragValue, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
@@ -23,6 +24,7 @@ use tracing::info;
 use unic_langid::LanguageIdentifier;
 
 mod util;
+use util::args::Args;
 pub use util::{args, lang, steam_helper};
 
 mod bookkeeping;
@@ -54,8 +56,13 @@ impl Default for GameSettings {
 enum AppState {
     Connect,
     ModManager,
-    Netman { netman: Arc<net::NetManager> },
-    Error { message: String },
+    Netman {
+        netman: Arc<net::NetManager>,
+        noita_launcher: NoitaLauncher,
+    },
+    Error {
+        message: String,
+    },
     SelfUpdate,
     LangPick,
 }
@@ -94,6 +101,7 @@ pub struct App {
     self_update: SelfUpdateManager,
     show_map_plot: bool,
     lobby_id_field: String,
+    args: Args,
 }
 
 const MODMANAGER: &str = "modman";
@@ -123,7 +131,7 @@ fn square_button_text(ui: &mut Ui, text: &str, size: f32) -> egui::Response {
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
         let mut saved_state: AppSavedState = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
@@ -152,6 +160,7 @@ impl App {
             self_update: SelfUpdateManager::new(),
             show_map_plot: false,
             lobby_id_field: "".to_string(),
+            args,
         }
     }
 
@@ -165,13 +174,23 @@ impl App {
         NetManagerInit { my_nickname }
     }
 
+    fn change_state_to_netman(&mut self, netman: Arc<net::NetManager>) {
+        self.state = AppState::Netman {
+            netman,
+            noita_launcher: NoitaLauncher::new(
+                &self.modmanager_settings.game_exe_path,
+                self.args.launch_cmd.as_ref().map(|x| x.as_str()),
+            ),
+        };
+    }
+
     fn start_server(&mut self) {
         let bind_addr = "0.0.0.0:5123".parse().unwrap();
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
         netman.clone().start();
-        self.state = AppState::Netman { netman };
+        self.change_state_to_netman(netman);
     }
 
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
@@ -189,7 +208,7 @@ impl App {
         let peer = Peer::connect(addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         netman.clone().start();
-        self.state = AppState::Netman { netman };
+        self.change_state_to_netman(netman);
     }
 
     fn start_steam_host(&mut self) {
@@ -200,7 +219,7 @@ impl App {
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
         netman.clone().start();
-        self.state = AppState::Netman { netman };
+        self.change_state_to_netman(netman);
     }
 
     fn notify_error(&mut self, error: impl Display) {
@@ -217,7 +236,7 @@ impl App {
 
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         netman.clone().start();
-        self.state = AppState::Netman { netman };
+        self.change_state_to_netman(netman);
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
@@ -415,11 +434,14 @@ fn draw_bg(ui: &mut Ui) {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_millis(500));
-        match &self.state {
+        match &mut self.state {
             AppState::Connect => {
                 self.connect_screen(ctx);
             }
-            AppState::Netman { netman } => {
+            AppState::Netman {
+                netman,
+                noita_launcher,
+            } => {
                 if let ExtraPeerState::CouldNotConnect(err) = netman.peer.state() {
                     self.notify_error(err);
                     return;
@@ -489,6 +511,18 @@ impl eframe::App for App {
                         ui.label(format!("Peer state: {:?}", netman.peer.state()));
                     }
 
+                    match noita_launcher.launch_token() {
+                        LaunchTokenResult::Ok(mut token) => if ui.button(tr("launcher_start_game")).clicked() {
+                            token.start_game();
+                        },
+                        LaunchTokenResult::AlreadyStarted => {
+                            ui.label(tr("launcher_already_started"));
+                        },
+                        LaunchTokenResult::CantStart => {
+                            ui.label(tr("launcher_no_command"));
+                        },
+                    }
+
                     if self.show_map_plot {
                         let build_fn = |plot: &mut PlotUi| {
                             netman.world_info.with_player_infos(|peer, info| {
@@ -512,7 +546,7 @@ impl eframe::App for App {
             AppState::Error { message } => {
                 let add_contents = |ui: &mut Ui| {
                     ui.heading(tr("error_occured"));
-                    ui.label(message);
+                    ui.label(&*message);
                     ui.button(tr("button_back")).clicked()
                 };
                 if egui::CentralPanel::default().show(ctx, add_contents).inner {

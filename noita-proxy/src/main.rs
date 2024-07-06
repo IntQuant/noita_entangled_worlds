@@ -2,8 +2,8 @@ use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
 };
-use noita_proxy::App;
-use tracing::level_filters::LevelFilter;
+use noita_proxy::{args::Args, App};
+use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 fn main() -> Result<(), eframe::Error> {
@@ -15,6 +15,10 @@ fn main() -> Result<(), eframe::Error> {
         )
         .finish();
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
+
+    let args: Args = argh::from_env();
+
+    info!("{:?}", args.launch_cmd);
 
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
         .unwrap()
@@ -33,6 +37,6 @@ fn main() -> Result<(), eframe::Error> {
             follow_system_theme: false,
             ..Default::default()
         },
-        Box::new(|cc| Box::new(App::new(cc))),
+        Box::new(|cc| Box::new(App::new(cc, args))),
     )
 }

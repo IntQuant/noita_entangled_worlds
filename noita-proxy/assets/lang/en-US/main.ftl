@@ -69,3 +69,7 @@ error_occured = An error occured:
 error_missing_version_field = Lobby does not have a version field. The lobby was created by an old proxy version.
 error_version_mismatch = Lobby was created by proxy with a different version: { $remote_version }. You have { $current_version } currently installed.
 error_lobby_does_not_exist = Lobby does not exist.
+
+launcher_already_started = Noita is already started.
+launcher_no_command = Can't start noita: no launch command.
+launcher_start_game = Start noita
