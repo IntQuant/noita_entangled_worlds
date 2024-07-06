@@ -76,6 +76,7 @@ struct AppSavedState {
     lang_id: Option<LanguageIdentifier>,
     constant_seed: u64,
     game_settings: GameSettings,
+    start_game_automatically: bool,
 }
 
 impl Default for AppSavedState {
@@ -88,6 +89,7 @@ impl Default for AppSavedState {
             lang_id: None,
             constant_seed: 0,
             game_settings: GameSettings::default(),
+            start_game_automatically: false,
         }
     }
 }
@@ -102,6 +104,7 @@ pub struct App {
     show_map_plot: bool,
     lobby_id_field: String,
     args: Args,
+    can_start_automatically: bool,
 }
 
 const MODMANAGER: &str = "modman";
@@ -161,6 +164,7 @@ impl App {
             show_map_plot: false,
             lobby_id_field: "".to_string(),
             args,
+            can_start_automatically: false,
         }
     }
 
@@ -182,6 +186,7 @@ impl App {
                 self.args.launch_cmd.as_ref().map(|x| x.as_str()),
             ),
         };
+        self.can_start_automatically = true;
     }
 
     fn start_server(&mut self) {
@@ -344,6 +349,12 @@ impl App {
                     ui.add(
                         Slider::new(&mut self.saved_state.game_settings.tether_length, 10..=5000)
                             .text(tr("connect_settings_player_tether_length")),
+                    );
+
+                    heading_with_underline(ui, tr("connect_settings_local"));
+                    ui.checkbox(
+                        &mut self.saved_state.start_game_automatically,
+                        tr("connect_settings_autostart"),
                     );
                 });
             });
@@ -511,18 +522,27 @@ impl eframe::App for App {
                         ui.label(format!("Peer state: {:?}", netman.peer.state()));
                     }
                     ui.add_space(15.0);
-                    match noita_launcher.launch_token() {
-                        LaunchTokenResult::Ok(mut token) => if ui.button(tr("launcher_start_game")).clicked() {
-                            token.start_game();
-                        },
-                        LaunchTokenResult::AlreadyStarted => {
-                            ui.label(tr("launcher_already_started"));
-                        },
-                        LaunchTokenResult::CantStart => {
-                            ui.label(tr("launcher_no_command"));
-                            ui.label(tr("launcher_no_command_2"));
-                            ui.label(tr("launcher_no_command_3"));
-                        },
+                    if accept_local && !local_connected {
+                        match noita_launcher.launch_token() {
+                            LaunchTokenResult::Ok(mut token) => {
+                                let start_auto = self.can_start_automatically && self.saved_state.start_game_automatically;
+                                if start_auto || ui.button(tr("launcher_start_game")).clicked() {
+                                    info!("Starting the game now");
+                                    token.start_game();
+                                    self.can_start_automatically = false;
+                                }
+                            },
+                            LaunchTokenResult::AlreadyStarted => {
+                                ui.label(tr("launcher_already_started"));
+                            },
+                            LaunchTokenResult::CantStart => {
+                                ui.label(tr("launcher_no_command"));
+                                ui.label(tr("launcher_no_command_2"));
+                                ui.label(tr("launcher_no_command_3"));
+                            },
+                        }
+                    } else {
+                        ui.label(tr("launcher_only_when_awaiting"));
                     }
                     ui.add_space(15.0);
 
