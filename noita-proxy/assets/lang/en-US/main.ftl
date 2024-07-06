@@ -72,4 +72,6 @@ error_lobby_does_not_exist = Lobby does not exist.
 
 launcher_already_started = Noita is already started.
 launcher_no_command = Can't start noita: no launch command.
+launcher_no_command_2 = Launch command can be specified with --launch-cmd <command> option.
+launcher_no_command_3 = You can put `noita-proxy --launch-cmd "%command%"` in steam's launch options to intercept whatever command steam uses to start the game.
 launcher_start_game = Start noita

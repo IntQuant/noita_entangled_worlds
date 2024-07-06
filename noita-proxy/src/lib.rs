@@ -510,7 +510,7 @@ impl eframe::App for App {
                     } else {
                         ui.label(format!("Peer state: {:?}", netman.peer.state()));
                     }
-
+                    ui.add_space(15.0);
                     match noita_launcher.launch_token() {
                         LaunchTokenResult::Ok(mut token) => if ui.button(tr("launcher_start_game")).clicked() {
                             token.start_game();
@@ -520,8 +520,11 @@ impl eframe::App for App {
                         },
                         LaunchTokenResult::CantStart => {
                             ui.label(tr("launcher_no_command"));
+                            ui.label(tr("launcher_no_command_2"));
+                            ui.label(tr("launcher_no_command_3"));
                         },
                     }
+                    ui.add_space(15.0);
 
                     if self.show_map_plot {
                         let build_fn = |plot: &mut PlotUi| {
