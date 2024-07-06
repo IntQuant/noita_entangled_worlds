@@ -153,6 +153,8 @@ impl App {
         };
 
         egui_extras::install_image_loaders(&cc.egui_ctx);
+
+        cc.egui_ctx.set_zoom_factor(args.ui_zoom_factor);
         info!("Creating the app...");
         Self {
             state,
