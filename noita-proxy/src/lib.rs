@@ -516,6 +516,10 @@ impl eframe::App for App {
 
                     if netman.peer.is_steam() {
                         if let Some(id) = netman.peer.lobby_id() {
+                            if cfg!(target_os = "linux") {
+                                ui.label(id.raw().to_string());
+                            }
+
                             if ui.button(tr("netman_save_lobby")).clicked() {
                                 let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
                                 let _ = ctx.set_contents(id.raw().to_string());
