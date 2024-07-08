@@ -45,8 +45,9 @@ local gameover_requested = false
 
 function module.on_world_update()
     if ctx.my_player.currently_polymorphed then
-        local hp = util.get_ent_health(ctx.my_player.entity)
-        if hp <= 0 and not gameover_requested then
+        local hp, _, has_hp_component = util.get_ent_health(ctx.my_player.entity)
+        -- Added a check for having damage model component at all, as entity can't die from lack of health in that case.
+        if has_hp_component and hp <= 0 and not gameover_requested then
             ctx.cap.health.do_game_over()
             gameover_requested = true
         end

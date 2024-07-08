@@ -32,7 +32,6 @@ local function load_modules()
     
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
-    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/effect_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
 
