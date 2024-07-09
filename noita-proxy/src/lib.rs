@@ -589,6 +589,7 @@ impl eframe::App for App {
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
+                        ui.set_max_width(600.0);
                         self.modmanager.update(
                             ctx,
                             ui,
@@ -606,6 +607,7 @@ impl eframe::App for App {
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
+                        ui.set_max_width(600.0);
                         self.self_update.self_update(ui);
                     });
             }
