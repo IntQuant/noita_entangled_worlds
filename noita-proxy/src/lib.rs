@@ -39,6 +39,7 @@ pub struct GameSettings {
     world_sync_version: u32,
     player_tether: bool,
     tether_length: u32,
+    use_constant_seed: bool,
 }
 
 impl Default for GameSettings {
@@ -49,6 +50,7 @@ impl Default for GameSettings {
             world_sync_version: 2,
             player_tether: false,
             tether_length: 750,
+            use_constant_seed: false,
         }
     }
 }
@@ -70,11 +72,9 @@ enum AppState {
 #[derive(Debug, Serialize, Deserialize)]
 struct AppSavedState {
     addr: String,
-    use_constant_seed: bool,
     nickname: Option<String>,
     times_started: u32,
     lang_id: Option<LanguageIdentifier>,
-    constant_seed: u64,
     game_settings: GameSettings,
     start_game_automatically: bool,
 }
@@ -83,11 +83,9 @@ impl Default for AppSavedState {
     fn default() -> Self {
         Self {
             addr: "127.0.0.1:5123".to_string(),
-            use_constant_seed: false,
             nickname: None,
             times_started: 0,
             lang_id: None,
-            constant_seed: 0,
             game_settings: GameSettings::default(),
             start_game_automatically: false,
         }
@@ -102,8 +100,11 @@ pub struct App {
     modmanager_settings: ModmanagerSettings,
     self_update: SelfUpdateManager,
     show_map_plot: bool,
+    /// Show settings in netman screen?
+    show_settings: bool,
     lobby_id_field: String,
     args: Args,
+    /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
 }
 
@@ -165,6 +166,7 @@ impl App {
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
             show_map_plot: false,
+            show_settings: false,
             lobby_id_field: "".to_string(),
             args,
             can_start_automatically: false,
@@ -204,10 +206,9 @@ impl App {
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
         let mut settings = netman.settings.lock().unwrap();
         *settings = self.saved_state.game_settings.clone();
-        if !self.saved_state.use_constant_seed {
+        if !self.saved_state.game_settings.use_constant_seed {
             settings.seed = rand::random();
         } else {
-            settings.seed = self.saved_state.constant_seed;
             info!("Using constant seed: {}", settings.seed);
         }
         netman.accept_local.store(true, Ordering::SeqCst);
@@ -309,56 +310,7 @@ impl App {
             ui.allocate_ui_at_rect(settings_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    heading_with_underline(ui, tr("connect_settings"));
-
-                    ui.label(tr("connect_settings_debug"));
-                    ui.checkbox(
-                        &mut self.saved_state.game_settings.debug_mode,
-                        tr("connect_settings_debug_en"),
-                    );
-                    ui.checkbox(
-                        &mut self.saved_state.use_constant_seed,
-                        tr("connect_settings_debug_fixed_seed"),
-                    );
-
-                    ui.horizontal(|ui| {
-                        ui.label(tr("connect_settings_seed"));
-                        ui.add(DragValue::new(&mut self.saved_state.constant_seed));
-                    });
-
-                    ui.add_space(20.0);
-
-                    ui.label(tr("connect_settings_wsv"));
-                    ui.horizontal(|ui| {
-                        ui.radio_value(
-                            &mut self.saved_state.game_settings.world_sync_version,
-                            1,
-                            "v1",
-                        );
-                        ui.radio_value(
-                            &mut self.saved_state.game_settings.world_sync_version,
-                            2,
-                            "v2",
-                        );
-                    });
-
-                    ui.add_space(20.0);
-
-                    ui.label(tr("connect_settings_player_tether_desc"));
-                    ui.checkbox(
-                        &mut self.saved_state.game_settings.player_tether,
-                        tr("connect_settings_player_tether"),
-                    );
-                    ui.add(
-                        Slider::new(&mut self.saved_state.game_settings.tether_length, 10..=5000)
-                            .text(tr("connect_settings_player_tether_length")),
-                    );
-
-                    heading_with_underline(ui, tr("connect_settings_local"));
-                    ui.checkbox(
-                        &mut self.saved_state.start_game_automatically,
-                        tr("connect_settings_autostart"),
-                    );
+                    self.show_game_settings(ui);
                 });
             });
             ui.allocate_ui_at_rect(steam_connect_rect.shrink(group_shrink), |ui| {
@@ -421,6 +373,59 @@ impl App {
                 });
             });
         });
+    }
+
+    fn show_game_settings(&mut self, ui: &mut Ui) {
+        heading_with_underline(ui, tr("connect_settings"));
+
+        ui.label(tr("connect_settings_debug"));
+        ui.checkbox(
+            &mut self.saved_state.game_settings.debug_mode,
+            tr("connect_settings_debug_en"),
+        );
+        ui.checkbox(
+            &mut self.saved_state.game_settings.use_constant_seed,
+            tr("connect_settings_debug_fixed_seed"),
+        );
+
+        ui.horizontal(|ui| {
+            ui.label(tr("connect_settings_seed"));
+            ui.add(DragValue::new(&mut self.saved_state.game_settings.seed));
+        });
+
+        ui.add_space(20.0);
+
+        ui.label(tr("connect_settings_wsv"));
+        ui.horizontal(|ui| {
+            ui.radio_value(
+                &mut self.saved_state.game_settings.world_sync_version,
+                1,
+                "v1",
+            );
+            ui.radio_value(
+                &mut self.saved_state.game_settings.world_sync_version,
+                2,
+                "v2",
+            );
+        });
+
+        ui.add_space(20.0);
+
+        ui.label(tr("connect_settings_player_tether_desc"));
+        ui.checkbox(
+            &mut self.saved_state.game_settings.player_tether,
+            tr("connect_settings_player_tether"),
+        );
+        ui.add(
+            Slider::new(&mut self.saved_state.game_settings.tether_length, 10..=5000)
+                .text(tr("connect_settings_player_tether_length")),
+        );
+
+        heading_with_underline(ui, tr("connect_settings_local"));
+        ui.checkbox(
+            &mut self.saved_state.start_game_automatically,
+            tr("connect_settings_autostart"),
+        );
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -553,6 +558,10 @@ impl eframe::App for App {
                     }
                     ui.add_space(15.0);
 
+                    if ui.button(tr("netman_show_settings")).clicked() {
+                        self.show_settings = true;
+                    }
+                    
                     if self.show_map_plot {
                         let build_fn = |plot: &mut PlotUi| {
                             netman.world_info.with_player_infos(|peer, info| {
@@ -572,6 +581,15 @@ impl eframe::App for App {
                         self.show_map_plot = true;
                     }
                 });
+                let mut show = self.show_settings;
+                let netman = netman.clone();
+                egui::Window::new(tr("connect_settings")).open(&mut show).show(ctx, |ui| {
+                    self.show_game_settings(ui);
+                    if ui.button(tr("netman_apply_settings")).clicked() {
+                        *netman.pending_settings.lock().unwrap() = self.saved_state.game_settings.clone();
+                    }
+                });
+                self.show_settings = show;
             }
             AppState::Error { message } => {
                 let add_contents = |ui: &mut Ui| {

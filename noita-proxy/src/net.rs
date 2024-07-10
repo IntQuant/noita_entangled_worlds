@@ -77,6 +77,7 @@ pub struct NetManagerInit {
 
 pub struct NetManager {
     pub peer: omni::PeerVariant,
+    pub pending_settings: Mutex<GameSettings>,
     pub settings: Mutex<GameSettings>,
     pub continue_running: AtomicBool, // TODO stop on drop
     pub accept_local: AtomicBool,
@@ -91,6 +92,7 @@ impl NetManager {
     pub fn new(peer: omni::PeerVariant, init: NetManagerInit) -> Arc<Self> {
         Self {
             peer,
+            pending_settings: Mutex::new(GameSettings::default()),
             settings: Mutex::new(GameSettings::default()),
             continue_running: AtomicBool::new(true),
             accept_local: AtomicBool::new(false),
@@ -391,13 +393,12 @@ impl NetManager {
                 if self.is_host() {
                     info!("Game over, resending game settings");
                     {
-                        let mut setting = self.settings.lock().unwrap();
-                        if setting.debug_mode {
-                            // setting.seed += 1;
-                        } else {
-                            setting.seed = rand::random();
+                        let mut settings = self.pending_settings.lock().unwrap().clone();
+                        if !settings.use_constant_seed {
+                            settings.seed = rand::random();
                         }
-                        info!("New seed: {}", setting.seed);
+                        info!("New seed: {}", settings.seed);
+                        *self.settings.lock().unwrap() = settings;
                         state.world.reset()
                     }
                     self.resend_game_settings();
