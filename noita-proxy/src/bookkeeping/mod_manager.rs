@@ -382,6 +382,6 @@ fn enable_mod(saves_path: &Path) -> Result<(), Box<dyn Error>> {
     let mut data: Mods = quick_xml::de::from_reader(BufReader::new(File::open(&config_path)?))?;
     data.entry("quant.ew").enabled = 1;
     let xml = quick_xml::se::to_string(&data)?;
-    fs::write(saves_path.join("save00/mod_config.xml"), xml)?;
+    fs::write(&config_path, xml)?;
     Ok(())
 }
