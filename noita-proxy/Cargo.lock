@@ -1980,6 +1980,7 @@ dependencies = [
  "image",
  "lz4_flex",
  "poll-promise",
+ "quick-xml 0.36.0",
  "rand",
  "reqwest",
  "rustc-hash",
@@ -2379,6 +2380,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.36.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4091e032efecb09d7b1f711f487b85ab925632a842627e3200fb088382cde32c"
+dependencies = [
+ "memchr",
+ "serde",
 ]
 
 [[package]]
@@ -3777,7 +3788,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b3a62929287001986fb58c789dce9b67604a397c15c611ad9f747300b6c283"
 dependencies = [
  "proc-macro2",
- "quick-xml",
+ "quick-xml 0.31.0",
  "quote",
 ]
 

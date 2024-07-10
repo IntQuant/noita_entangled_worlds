@@ -1,7 +1,8 @@
 use std::{
     env,
+    error::Error,
     fs::{self, File},
-    io,
+    io::{self, BufReader},
     path::{Path, PathBuf},
 };
 
@@ -10,7 +11,7 @@ use egui_file_dialog::{DialogState, FileDialog};
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
 use steamworks::AppId;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::{
     lang::tr,
@@ -54,6 +55,7 @@ impl Default for Modmanager {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ModmanagerSettings {
     pub game_exe_path: PathBuf,
+    pub game_save_path: Option<PathBuf>,
 }
 
 impl ModmanagerSettings {
@@ -74,6 +76,41 @@ impl ModmanagerSettings {
             }
         }
     }
+
+    fn try_find_save_path(&mut self) {
+        if cfg!(target_os = "windows") {
+            let appdata_path = PathBuf::from(
+                std::env::var_os("APPDATA").expect("appdata to be defined on windows"),
+            );
+            info!("Appdata path: {}", appdata_path.display());
+            let save_path = appdata_path.join("LocalLow/Nolla_Games_Noita/");
+            if save_path.exists() {
+                info!("Save path exists");
+                self.game_save_path = Some(save_path);
+            }
+        }
+        if cfg!(target_os = "linux") {
+            let mut save_path = self.game_exe_path.clone();
+            // Reach steamapps/
+            save_path.pop();
+            save_path.pop();
+            save_path.pop();
+            save_path.push(
+                "compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita/",
+            );
+            info!("Probable save_path: {}", save_path.display());
+            if save_path.exists() {
+                info!("Save path exists");
+                self.game_save_path = Some(save_path);
+            }
+        }
+
+        match &self.game_save_path {
+            Some(path) => info!("Found game save path: {}", path.display()),
+            None => warn!("Could not find game save path"),
+        }
+    }
+
     fn mod_path(&self) -> PathBuf {
         let mut path = self.game_exe_path.clone();
         path.pop();
@@ -139,6 +176,12 @@ impl Modmanager {
                 }
             }
             State::PreCheckMod => {
+                if settings.game_save_path.is_none() {
+                    settings.try_find_save_path();
+                }
+                if let Some(path) = &settings.game_save_path {
+                    info!("Trying to enable mod: {:?}", enable_mod(path));
+                }
                 ui.label("Will check mod install now...");
                 self.state = State::CheckMod;
                 ctx.request_repaint();
@@ -296,4 +339,49 @@ fn is_mod_ok(mod_path: &Path) -> io::Result<bool> {
 
 fn check_path_valid(game_path: &Path) -> bool {
     game_path.ends_with("noita.exe") && game_path.exists()
+}
+
+// Mod enabled="0" name="daily_practice" settings_fold_open="0" workshop_item_id="0"
+#[derive(Serialize, Deserialize)]
+struct ModEntry {
+    #[serde(rename = "@enabled")]
+    enabled: u8,
+    #[serde(rename = "@name")]
+    name: String,
+    #[serde(rename = "@settings_fold_open")]
+    settings_fold_open: u8,
+    #[serde(rename = "@workshop_item_id")]
+    workshop_item_id: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Mods {
+    #[serde(rename = "Mod")]
+    mod_entries: Vec<ModEntry>,
+}
+
+impl Mods {
+    fn entry(&mut self, name: &str) -> &mut ModEntry {
+        let index = self.mod_entries.iter().position(|ent| ent.name == name);
+        if let Some(index) = index {
+            &mut self.mod_entries[index]
+        } else {
+            self.mod_entries.push(ModEntry {
+                enabled: 0,
+                name: name.to_owned(),
+                settings_fold_open: 0,
+                workshop_item_id: 0,
+            });
+            self.mod_entries.last_mut().unwrap()
+        }
+    }
+}
+
+fn enable_mod(saves_path: &Path) -> Result<(), Box<dyn Error>> {
+    let config_path = saves_path.join("save00/mod_config.xml");
+    let mut data: Mods = quick_xml::de::from_reader(BufReader::new(File::open(&config_path)?))?;
+    data.entry("quant.ew").enabled = 1;
+    let xml = quick_xml::se::to_string(&data)?;
+    fs::write(saves_path.join("save00/mod_config.xml"), xml)?;
+    Ok(())
 }
