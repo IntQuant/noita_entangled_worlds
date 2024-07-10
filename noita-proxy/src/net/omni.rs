@@ -151,4 +151,8 @@ impl PeerVariant {
     pub fn is_steam(&self) -> bool {
         matches!(self, PeerVariant::Steam(_))
     }
+
+    pub fn is_host(&self) -> bool {
+        Some(self.host_id()) == self.my_id()
+    }
 }

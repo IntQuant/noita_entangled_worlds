@@ -581,15 +581,17 @@ impl eframe::App for App {
                         self.show_map_plot = true;
                     }
                 });
-                let mut show = self.show_settings;
-                let netman = netman.clone();
-                egui::Window::new(tr("connect_settings")).open(&mut show).show(ctx, |ui| {
-                    self.show_game_settings(ui);
-                    if ui.button(tr("netman_apply_settings")).clicked() {
-                        *netman.pending_settings.lock().unwrap() = self.saved_state.game_settings.clone();
-                    }
-                });
-                self.show_settings = show;
+                if netman.peer.is_host() {
+                    let mut show = self.show_settings;
+                    let netman = netman.clone();
+                    egui::Window::new(tr("connect_settings")).open(&mut show).show(ctx, |ui| {
+                        self.show_game_settings(ui);
+                        if ui.button(tr("netman_apply_settings")).clicked() {
+                            *netman.pending_settings.lock().unwrap() = self.saved_state.game_settings.clone();
+                        }
+                    });
+                    self.show_settings = show;
+                }
             }
             AppState::Error { message } => {
                 let add_contents = |ui: &mut Ui| {
