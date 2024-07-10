@@ -82,6 +82,13 @@ function enemy_sync.host_upload_entities()
             })
         end
 
+        -- TODO: figure out how to sync those.
+        -- local laser_sight_data = nil
+        -- local laser_sight = EntityGetFirstComponentIncludingDisabled(enemy_id, "SpriteComponent", "laser_sight")
+        -- if laser_sight ~= nil and laser_sight ~= 0 then
+        --     -- local x, y, r = 
+        -- end
+
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})
         ::continue::
     end
