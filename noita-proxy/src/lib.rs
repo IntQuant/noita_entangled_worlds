@@ -211,6 +211,7 @@ impl App {
         } else {
             info!("Using constant seed: {}", settings.seed);
         }
+        *netman.pending_settings.lock().unwrap() = settings.clone();
         netman.accept_local.store(true, Ordering::SeqCst);
     }
     fn start_connect(&mut self, addr: SocketAddr) {
