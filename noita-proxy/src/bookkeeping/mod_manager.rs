@@ -79,14 +79,19 @@ impl ModmanagerSettings {
 
     fn try_find_save_path(&mut self) {
         if cfg!(target_os = "windows") {
+            // Noita uses AppData folder instead of %AppData%
             let appdata_path = PathBuf::from(
-                std::env::var_os("APPDATA").expect("appdata to be defined on windows"),
-            );
+                std::env::var_os("USERPROFILE").expect("homepath to be defined on windows"),
+            )
+            .join("AppData");
             info!("Appdata path: {}", appdata_path.display());
             let save_path = appdata_path.join("LocalLow/Nolla_Games_Noita/");
+            info!("Trying save path: {}", save_path.display());
             if save_path.exists() {
                 info!("Save path exists");
                 self.game_save_path = Some(save_path);
+            } else {
+                info!("Save path does not exist");
             }
         }
         if cfg!(target_os = "linux") {
@@ -176,9 +181,8 @@ impl Modmanager {
                 }
             }
             State::PreCheckMod => {
-                if settings.game_save_path.is_none() {
-                    settings.try_find_save_path();
-                }
+                settings.try_find_save_path();
+
                 if let Some(path) = &settings.game_save_path {
                     info!("Trying to enable mod: {:?}", enable_mod(path));
                 }
