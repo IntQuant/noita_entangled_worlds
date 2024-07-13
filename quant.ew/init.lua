@@ -28,7 +28,7 @@ ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local function load_modules()
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/item_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/item_sync.lua")
     
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")

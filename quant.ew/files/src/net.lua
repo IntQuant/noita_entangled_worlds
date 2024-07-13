@@ -195,20 +195,4 @@ function net.send_fire(fire_info)
   net.send("fire", fire_info, true)
 end
 
-function net.send_make_global(item_data)
-  net.send("item_global", item_data, true)
-end
-
-function net.send_localize(peer_id, item_id)
-  net.send("item_localize", {peer_id, item_id}, true)
-end
-
-function net.send_localize_request(item_id)
-  net.send("item_localize_req", item_id, true)
-end
-
-function net.send_item_upload(item_data)
-  net.send_to_host("item_upload", item_data, true)
-end
-
 return net

@@ -1,8 +1,11 @@
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local util = dofile_once("mods/quant.ew/files/src/util.lua")
 
 dofile_once("data/scripts/lib/coroutines.lua")
+
+local rpc = net.new_rpc_namespace()
 
 local item_sync = {}
 
@@ -38,24 +41,24 @@ local function is_item_on_ground(item)
 end
 
 function item_sync.get_global_item_id(item)
-    local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
-    if g_id == nil then
-        GamePrint("Item has no g_id")
+    local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+    if gid == nil then
+        GamePrint("Item has no gid")
         return 0
     end
-    local ret = ComponentGetValue2(g_id, "value_int")
+    local ret = ComponentGetValue2(gid, "value_int")
     return ret or 0
 end
 
-function item_sync.remove_item_with_id(g_id)
-    table.insert(pending_remove, g_id)
+function item_sync.remove_item_with_id(gid)
+    table.insert(pending_remove, gid)
 end
 
-function item_sync.remove_item_with_id_now(g_id)
+function item_sync.remove_item_with_id_now(gid)
     local global_items = EntityGetWithTag("ew_global_item")
     for _, item in ipairs(global_items) do
-        local i_g_id = item_sync.get_global_item_id(item)
-        if i_g_id == g_id then
+        local i_gid = item_sync.get_global_item_id(item)
+        if i_gid == gid then
             EntityKill(item)
         end
     end
@@ -75,7 +78,7 @@ function item_sync.host_localize_item(gid, peer_id)
     if peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(gid)
     end
-    ctx.lib.net.send_localize(peer_id, gid)
+    rpc.item_localize(peer_id, gid)
 end
 
 function item_sync.make_item_global(item, instant)
@@ -87,9 +90,9 @@ function item_sync.make_item_global(item, instant)
             GamePrint("Thrown item vanished before we could send it")
             return
         end
-        local g_id = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
-        local id = ComponentGetValue2(g_id, "value_int")
-        if g_id == nil then
+        local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+        local id = ComponentGetValue2(gid, "value_int")
+        if gid == nil then
             id = allocate_global_id()
             EntityAddComponent2(item, "VariableStorageComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
@@ -101,9 +104,9 @@ function item_sync.make_item_global(item, instant)
             local vx, vy = ComponentGetValue2(vel, "mVelocity")
         end
         local item_data = inventory_helper.serialize_single_item(item)
-        item_data.g_id = id
+        item_data.g_d = id
         ctx.item_prevent_localize[id] = false
-        ctx.lib.net.send_make_global(item_data)
+        rpc.item_global(item_data)
     end)
 end
 
@@ -138,8 +141,8 @@ function item_sync.on_world_update_host()
     end
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
-        local g_id = item_sync.get_global_item_id(picked_item)
-        item_sync.host_localize_item(g_id, ctx.my_id)
+        local gid = item_sync.get_global_item_id(picked_item)
+        item_sync.host_localize_item(gid, ctx.my_id)
     end
     remove_client_items_from_world()
 end
@@ -157,7 +160,7 @@ function item_sync.on_world_update_client()
                 GamePrint("Thrown item vanished before we could send it")
                 return
             end
-            ctx.lib.net.send_item_upload(inventory_helper.serialize_single_item(thrown_item))
+            rpc.item_upload(inventory_helper.serialize_single_item(thrown_item))
             EntityKill(thrown_item)
         end)
     end
@@ -165,7 +168,7 @@ function item_sync.on_world_update_client()
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
-        ctx.lib.net.send_localize_request(gid)
+        rpc.item_localize_req(gid)
     end
     remove_client_items_from_world()
 end
@@ -174,8 +177,8 @@ function item_sync.on_world_update()
     -- TODO check that we not removing item we are going to pick now, instead of checking if picker gui is open.
     if not ctx.is_wand_pickup then
         if #pending_remove > 0 then
-            local g_id = table.remove(pending_remove)
-            item_sync.remove_item_with_id_now(g_id)
+            local gid = table.remove(pending_remove)
+            item_sync.remove_item_with_id_now(gid)
         end
     end
 end
@@ -185,6 +188,49 @@ function item_sync.upload(item_data)
     EntityAddTag(item, "ew_global_item")
     item_sync.ensure_notify_component(item)
     item_sync.make_item_global(item, true)
+end
+
+rpc.opts_reliable()
+function rpc.item_global(item_data)
+    if ctx.rpc_peer_id ~= ctx.host_id then
+        return
+    end
+    local item = inventory_helper.deserialize_single_item(item_data)
+    EntityAddTag(item, "ew_global_item")
+    item_sync.ensure_notify_component(item)
+    -- GamePrint("Got global item: "..item)
+    local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+    if gid == nil then
+        EntityAddComponent2(item, "VariableStorageComponent", {
+            _tags = "ew_global_item_id",
+            value_int = item_data.gid
+        })
+    else
+        ComponentSetValue2(gid, "value_int", item_data.gid)
+    end
+end
+
+rpc.opts_reliable()
+function rpc.item_localize(l_peer_id, item_id)
+    if l_peer_id ~= ctx.my_id then
+        item_sync.remove_item_with_id(item_id)
+    end
+end
+
+rpc.opts_reliable()
+function rpc.item_localize_req(gid)
+    if not ctx.is_host then
+        return
+    end
+    item_sync.host_localize_item(gid, ctx.rpc_peer_id)
+end
+
+rpc.opts_reliable()
+function rpc.item_upload(item_data)
+    if not ctx.is_host then
+        return
+    end
+    item_sync.upload(item_data)
 end
 
 return item_sync
