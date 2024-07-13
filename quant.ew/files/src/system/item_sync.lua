@@ -33,7 +33,7 @@ end
 local function allocate_global_id()
     local current = tonumber(GlobalsGetValue("ew_global_item_id", "1"))
     GlobalsSetValue("ew_global_item_id", tostring(current+1))
-    return current
+    return ctx.my_player.peer_id..":"..current
 end
 
 local function is_item_on_ground(item)
@@ -44,10 +44,10 @@ function item_sync.get_global_item_id(item)
     local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     if gid == nil then
         GamePrint("Item has no gid")
-        return 0
+        return "unknown"
     end
-    local ret = ComponentGetValue2(gid, "value_int")
-    return ret or 0
+    local ret = ComponentGetValue2(gid, "value_string")
+    return ret or "unknown"
 end
 
 function item_sync.remove_item_with_id(gid)
@@ -90,13 +90,13 @@ function item_sync.make_item_global(item, instant)
             GamePrint("Thrown item vanished before we could send it")
             return
         end
-        local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
-        local id = ComponentGetValue2(gid, "value_int")
-        if gid == nil then
-            id = allocate_global_id()
+        local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+        local gid = ComponentGetValue2(gid_component, "value_string")
+        if gid_component == nil then
+            gid = allocate_global_id()
             EntityAddComponent2(item, "VariableStorageComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
-                value_int = id,
+                value_string = gid,
             })
         end
         local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
@@ -104,8 +104,8 @@ function item_sync.make_item_global(item, instant)
             local vx, vy = ComponentGetValue2(vel, "mVelocity")
         end
         local item_data = inventory_helper.serialize_single_item(item)
-        item_data.g_d = id
-        ctx.item_prevent_localize[id] = false
+        item_data.gid = gid
+        ctx.item_prevent_localize[gid] = false
         rpc.item_global(item_data)
     end)
 end
@@ -203,10 +203,10 @@ function rpc.item_global(item_data)
     if gid == nil then
         EntityAddComponent2(item, "VariableStorageComponent", {
             _tags = "ew_global_item_id",
-            value_int = item_data.gid
+            value_string = item_data.gid
         })
     else
-        ComponentSetValue2(gid, "value_int", item_data.gid)
+        ComponentSetValue2(gid, "value_string", item_data.gid)
     end
 end
 
