@@ -65,6 +65,7 @@ function item_sync.remove_item_with_id_now(gid)
 end
 
 function item_sync.host_localize_item(gid, peer_id)
+    GamePrint("Will localize")
     if ctx.item_prevent_localize[gid] then
         GamePrint("Item localize for "..gid.." prevented")
     end
@@ -75,6 +76,7 @@ function item_sync.host_localize_item(gid, peer_id)
         return
     end
 
+
     if peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(gid)
     end
@@ -82,6 +84,7 @@ function item_sync.host_localize_item(gid, peer_id)
 end
 
 function item_sync.make_item_global(item, instant)
+    EntityAddTag(item, "ew_global_item")
     async(function()
         if not instant then
             wait(1) -- Wait 1 frame so that game sets proper velocity.
@@ -106,7 +109,7 @@ function item_sync.make_item_global(item, instant)
         local item_data = inventory_helper.serialize_single_item(item)
         item_data.gid = gid
         ctx.item_prevent_localize[gid] = false
-        rpc.item_global(item_data)
+        rpc.item_globalize(item_data)
     end)
 end
 
@@ -136,8 +139,7 @@ function item_sync.on_world_update_host()
     end
     local thrown_item = get_global_ent("ew_thrown")
     if thrown_item ~= nil then
-        EntityAddTag(thrown_item, "ew_global_item")
-       item_sync.make_item_global(thrown_item)
+        item_sync.make_item_global(thrown_item)
     end
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
@@ -154,15 +156,7 @@ function item_sync.on_world_update_client()
     end
     local thrown_item = get_global_ent("ew_thrown")
     if thrown_item ~= nil and not EntityHasTag(thrown_item, "ew_client_item") then
-        async(function ()
-            wait(1) -- Wait 1 frame so that game sets proper velocity.
-            if not EntityGetIsAlive(thrown_item) then
-                GamePrint("Thrown item vanished before we could send it")
-                return
-            end
-            rpc.item_upload(inventory_helper.serialize_single_item(thrown_item))
-            EntityKill(thrown_item)
-        end)
+        item_sync.make_item_global(thrown_item)
     end
     
     local picked_item = get_global_ent("ew_picked")
@@ -183,18 +177,8 @@ function item_sync.on_world_update()
     end
 end
 
-function item_sync.upload(item_data)
-    local item = inventory_helper.deserialize_single_item(item_data)
-    EntityAddTag(item, "ew_global_item")
-    item_sync.ensure_notify_component(item)
-    item_sync.make_item_global(item, true)
-end
-
 rpc.opts_reliable()
-function rpc.item_global(item_data)
-    if ctx.rpc_peer_id ~= ctx.host_id then
-        return
-    end
+function rpc.item_globalize(item_data)
     local item = inventory_helper.deserialize_single_item(item_data)
     EntityAddTag(item, "ew_global_item")
     item_sync.ensure_notify_component(item)
@@ -208,6 +192,7 @@ function rpc.item_global(item_data)
     else
         ComponentSetValue2(gid, "value_string", item_data.gid)
     end
+    ctx.item_prevent_localize[item_data.gid] = false
 end
 
 rpc.opts_reliable()
@@ -225,12 +210,5 @@ function rpc.item_localize_req(gid)
     item_sync.host_localize_item(gid, ctx.rpc_peer_id)
 end
 
-rpc.opts_reliable()
-function rpc.item_upload(item_data)
-    if not ctx.is_host then
-        return
-    end
-    item_sync.upload(item_data)
-end
 
 return item_sync
