@@ -11,6 +11,7 @@ local rpc = net.new_rpc_namespace()
 local item_sync = {}
 
 local pending_remove = {}
+local pickup_handlers = {}
 
 function item_sync.ensure_notify_component(ent)
     local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
@@ -55,6 +56,16 @@ function item_sync.remove_item_with_id(gid)
     table.insert(pending_remove, gid)
 end
 
+function item_sync.find_by_gid(gid)
+    local global_items = EntityGetWithTag("ew_global_item")
+    for _, item in ipairs(global_items) do
+        local i_gid = item_sync.get_global_item_id(item)
+        if i_gid == gid then
+            return item
+        end
+    end
+end
+
 function item_sync.remove_item_with_id_now(gid)
     local global_items = EntityGetWithTag("ew_global_item")
     for _, item in ipairs(global_items) do
@@ -66,7 +77,6 @@ function item_sync.remove_item_with_id_now(gid)
 end
 
 function item_sync.host_localize_item(gid, peer_id)
-    GamePrint("Will localize")
     if ctx.item_prevent_localize[gid] then
         GamePrint("Item localize for "..gid.." prevented")
     end
@@ -77,7 +87,12 @@ function item_sync.host_localize_item(gid, peer_id)
         return
     end
 
-
+    local item_ent_id = item_sync.find_by_gid(gid)
+    if item_ent_id ~= nil then
+        for _, handler in ipairs(pickup_handlers) do
+            handler(item_ent_id)
+        end
+    end
     if peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(gid)
     end
@@ -94,6 +109,7 @@ function item_sync.make_item_global(item, instant)
             GamePrint("Thrown item vanished before we could send it")
             return
         end
+        item_sync.ensure_notify_component(item)
         local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
         local gid = ComponentGetValue2(gid_component, "value_string")
         if gid_component == nil then
@@ -198,6 +214,12 @@ end
 
 rpc.opts_reliable()
 function rpc.item_localize(l_peer_id, item_id)
+    local item_ent_id = item_sync.find_by_gid(item_id)
+    if item_ent_id ~= nil then
+        for _, handler in ipairs(pickup_handlers) do
+            handler(item_ent_id)
+        end
+    end
     if l_peer_id ~= ctx.my_id then
         item_sync.remove_item_with_id(item_id)
     end
@@ -212,7 +234,10 @@ function rpc.item_localize_req(gid)
 end
 
 ctx.cap.item_sync = {
-    globalize = item_sync.make_item_global
+    globalize = item_sync.make_item_global,
+    register_pickup_handler = function(handler)
+        table.insert(pickup_handlers, handler)
+    end
 }
 
 return item_sync

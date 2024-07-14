@@ -26,6 +26,7 @@ Used by:
 
 Functions:
  - `globalize(entity_id, instantly: bool)`
+ - `register_pickup_handler(fn(local_item_id))`
 
 Provided by:
  - item_sync system
