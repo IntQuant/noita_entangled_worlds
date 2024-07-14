@@ -30,8 +30,12 @@ end)
 
 ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
-        dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
-        item_pickup(item_id)
+        -- Check if it's the first time we pick it up to avoid that sound on later pickups.
+        if not GameHasFlagRun("ew_sampo_picked") then
+            GameAddFlagRun("ew_sampo_picked")
+            dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
+            item_pickup(item_id)
+        end
     end
 end)
 
