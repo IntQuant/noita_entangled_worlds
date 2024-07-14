@@ -1,3 +1,4 @@
+-- Synchronizes item pickup and item drop
 local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
 local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/src/net.lua")
@@ -210,5 +211,8 @@ function rpc.item_localize_req(gid)
     item_sync.host_localize_item(gid, ctx.rpc_peer_id)
 end
 
+ctx.cap.item_sync = {
+    globalize = item_sync.make_item_global
+}
 
 return item_sync

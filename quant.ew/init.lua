@@ -57,6 +57,8 @@ local function load_modules()
     if ctx.proxy_opt.player_tether == "true" then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_tether/player_tether.lua")
     end
+
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/kolmi/kolmi.lua")
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,

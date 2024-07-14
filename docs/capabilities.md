@@ -20,4 +20,12 @@ Provided by:
  - damage (shared health) system
 
 Used by:
- - heart pickups (core)
+ - heart pickups system
+
+## 'item_sync' capability
+
+Functions:
+ - `globalize(entity_id, instantly: bool)`
+
+Provided by:
+ - item_sync system
