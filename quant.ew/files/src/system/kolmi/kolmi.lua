@@ -5,11 +5,16 @@ local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local np = require("noitapatcher")
 
 ModLuaFileAppend("data/scripts/biomes/boss_arena.lua", "mods/quant.ew/files/src/system/kolmi/append/boss_arena.lua")
+ModLuaFileAppend("data/entities/animals/boss_centipede/boss_centipede_update.lua", "mods/quant.ew/files/src/system/kolmi/append/boss_update.lua")
 
 local rpc = net.new_rpc_namespace()
 
 local module = {}
 
+net.opts_reliable()
+function rpc.spawn_portal(x, y)
+    EntityLoad( "data/entities/buildings/teleport_ending_victory_delay.xml", x, y )
+end
 
 np.CrossCallAdd("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
@@ -27,6 +32,8 @@ np.CrossCallAdd("ew_sampo_spawned", function()
         EntityKill(sampo_ent)
     end
 end)
+
+np.CrossCallAdd("ew_kolmi_spawn_portal", rpc.spawn_portal())
 
 ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
