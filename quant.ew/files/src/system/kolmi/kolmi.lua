@@ -11,7 +11,7 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-net.opts_reliable()
+rpc.opts_reliable()
 function rpc.spawn_portal(x, y)
     EntityLoad( "data/entities/buildings/teleport_ending_victory_delay.xml", x, y )
 end
@@ -33,7 +33,7 @@ np.CrossCallAdd("ew_sampo_spawned", function()
     end
 end)
 
-np.CrossCallAdd("ew_kolmi_spawn_portal", rpc.spawn_portal())
+np.CrossCallAdd("ew_kolmi_spawn_portal", rpc.spawn_portal)
 
 ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
