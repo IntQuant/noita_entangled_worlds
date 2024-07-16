@@ -176,4 +176,11 @@ function util.load_ephemerial(path, x, y)
     return ent_2
 end
 
+function util.replace_text_in(filename, pattern, to)
+    local initial_text = ModTextFileGetContent(filename)
+    local res_text = string.gsub(initial_text, pattern, to)
+    ModTextFileSetContent(filename, res_text)
+    print("Replaced text in "..filename)
+end
+
 return util

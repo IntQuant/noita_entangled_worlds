@@ -6,6 +6,8 @@ local np = require("noitapatcher")
 
 ModLuaFileAppend("data/scripts/biomes/boss_arena.lua", "mods/quant.ew/files/src/system/kolmi/append/boss_arena.lua")
 ModLuaFileAppend("data/entities/animals/boss_centipede/boss_centipede_update.lua", "mods/quant.ew/files/src/system/kolmi/append/boss_update.lua")
+util.replace_text_in("data/entities/animals/boss_centipede/boss_centipede_before_fight.lua",
+    [[local player_nearby = false]], [[local player_nearby = #EntityGetInRadiusWithTag(x, y, 128, "ew_peer") > 0]])
 
 local rpc = net.new_rpc_namespace()
 
