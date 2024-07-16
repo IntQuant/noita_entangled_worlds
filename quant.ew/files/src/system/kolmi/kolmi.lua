@@ -4,6 +4,8 @@ local net = dofile_once("mods/quant.ew/files/src/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
 local np = require("noitapatcher")
 
+dofile_once("data/scripts/lib/coroutines.lua")
+
 ModLuaFileAppend("data/scripts/biomes/boss_arena.lua", "mods/quant.ew/files/src/system/kolmi/append/boss_arena.lua")
 ModLuaFileAppend("data/entities/animals/boss_centipede/boss_centipede_update.lua", "mods/quant.ew/files/src/system/kolmi/append/boss_update.lua")
 util.replace_text_in("data/entities/animals/boss_centipede/boss_centipede_before_fight.lua",
@@ -35,6 +37,51 @@ function rpc.kolmi_anim(current_name, next_name, is_aggro)
     end
 end
 
+local function switch_shield(entity_id, is_on)
+    local children = EntityGetAllChildren(entity_id)
+    if children == nil then return end
+    for _,v in ipairs(children) do
+        if EntityGetName(v) == "shield_entity" then
+            if is_on then
+                EntitySetComponentsWithTagEnabled( v, "shield", true )
+                -- muzzle flash
+                local x, y = EntityGetTransform(entity_id)
+                EntityLoad( "data/entities/particles/muzzle_flashes/muzzle_flash_circular_large_pink_reverse.xml", x, y)
+                GameEntityPlaySound( v, "activate" )
+                return true
+            else
+                EntitySetComponentsWithTagEnabled( v, "shield", false )
+                -- muzzle flash
+                local x, y = EntityGetTransform(entity_id)
+                EntityLoad( "data/entities/particles/muzzle_flashes/muzzle_flash_circular_large_pink.xml", x, y)
+                GameEntityPlaySound( v, "deactivate" )
+                return true
+            end
+        end
+    end
+end
+
+rpc.opts_reliable()
+function rpc.kolmi_shield(is_on, orbcount)
+    local kolmi = EntityGetClosestWithTag(0, 0, "boss_centipede")
+    if kolmi == nil or kolmi == 0 then
+        return
+    end
+    
+    if switch_shield(kolmi, is_on) then
+        return
+    end
+
+    -- No shield?
+    local pos_x, pos_y = EntityGetTransform(kolmi)
+    if orbcount == 0 then
+        EntityAddChild(kolmi, EntityLoad("data/entities/animals/boss_centipede/boss_centipede_shield_weak.xml", pos_x, pos_y))
+    else
+        EntityAddChild(kolmi, EntityLoad("data/entities/animals/boss_centipede/boss_centipede_shield_strong.xml", pos_x, pos_y))
+    end
+    switch_shield(kolmi, is_on)
+end
+
 np.CrossCallAdd("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
     if sampo_ent == nil or sampo_ent == 0 then
@@ -56,6 +103,8 @@ np.CrossCallAdd("ew_kolmi_spawn_portal", rpc.spawn_portal)
 
 np.CrossCallAdd("ew_kolmi_anim", rpc.kolmi_anim)
 
+np.CrossCallAdd("ew_kolmi_shield", rpc.kolmi_shield)
+
 ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
         -- Check if it's the first time we pick it up to avoid that sound on later pickups.
@@ -63,6 +112,12 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
             GameAddFlagRun("ew_sampo_picked")
             dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
             item_pickup(item_id)
+            async(function()
+                wait(10) -- Wait a bit for enemy sync to do it's thing.
+                local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
+	            local orbcount = GameGetOrbCountThisRun() + newgame_n
+                rpc.kolmi_shield(true, orbcount)
+            end)
         end
     end
 end)
