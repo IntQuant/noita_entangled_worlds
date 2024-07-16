@@ -18,6 +18,23 @@ function rpc.spawn_portal(x, y)
     EntityLoad( "data/entities/buildings/teleport_ending_victory_delay.xml", x, y )
 end
 
+local function animate_sprite( current_name, next_name )
+	local kolmi = EntityGetClosestWithTag(0, 0, "boss_centipede")
+    if kolmi ~= nil and kolmi ~= 0 then
+        GamePlayAnimation( kolmi, current_name, 0, next_name, 0 )
+    end
+end
+
+rpc.opts_reliable()
+function rpc.kolmi_anim(current_name, next_name, is_aggro)
+    if not is_aggro then
+        animate_sprite( current_name, next_name )
+    else
+        -- aggro overrides animations
+        animate_sprite( "aggro", "aggro" )
+    end
+end
+
 np.CrossCallAdd("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
     if sampo_ent == nil or sampo_ent == 0 then
@@ -36,6 +53,8 @@ np.CrossCallAdd("ew_sampo_spawned", function()
 end)
 
 np.CrossCallAdd("ew_kolmi_spawn_portal", rpc.spawn_portal)
+
+np.CrossCallAdd("ew_kolmi_anim", rpc.kolmi_anim)
 
 ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
