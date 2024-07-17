@@ -72,12 +72,6 @@ function inventory_helper.serialize_single_item(item)
         local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         if item_component and item_component ~= 0 then
             is_new = ComponentGetValue2(item_component, "play_hover_animation")
-            GamePrint(tostring(is_new))
-            if is_new then
-                GamePrint("new")
-            else
-                GamePrint("old")
-            end
         end
         local vx = 0
         local vy = 0

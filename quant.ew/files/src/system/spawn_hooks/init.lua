@@ -8,15 +8,39 @@ local module = {}
 
 ModLuaFileAppend("data/scripts/director_helpers.lua", "mods/quant.ew/files/src/system/spawn_hooks/append/director_helpers.lua")
 
+local marked = {}
+-- This entity needs to be synced by item_sync
+local function is_sync_item(ent_path)
+    local start = "data/entities/items/"
+    if string.sub(ent_path, 1, #start) ~= start then
+        return false
+    end
+    print(ent_path)
+    return true
+    -- if marked[ent_path] == nil then
+    --     marked[ent_path] = true
+    -- end
+end
+
 np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
     if ctx.is_host then
-        return true
+        if is_sync_item(ent_path) then
+            local ent_id = EntityLoad(ent_path, x, y)
+            ctx.cap.item_sync.globalize(ent_id, true)
+            return false
+        else
+            return true
+        end
     else
-        return not module.entity_is_enemy(ent_path)
+        if is_sync_item(ent_path) then
+            return false
+        else
+            return not module.entity_is_enemy(ent_path)
+        end
     end
 end)
 
-np.CrossCallAdd("ew_spawn_hook_post", function(ent)
+np.CrossCallAdd("ew_spawn_hook_post", function(ent_path, ent)
     -- if not EntityHasTag(ent, "enemy") then
     --     EntityAddTag(ent, "ew_enemy_sync_extra")
     -- end
