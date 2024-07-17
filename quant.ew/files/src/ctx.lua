@@ -49,4 +49,8 @@ function ctx.dofile_and_add_hooks(path)
     return result
 end
 
+function ctx.load_system(system_name)
+    return ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/"..system_name.."/"..system_name..".lua")
+end
+
 return ctx
