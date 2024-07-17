@@ -68,7 +68,24 @@ function inventory_helper.serialize_single_item(item)
                 extra[i] = ComponentGetValue2(ability, field)
             end
         end
-        return {true, wand:Serialize(true, true), x, y, extra}
+        local is_new = true
+        local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+        if item_component and item_component ~= 0 then
+            is_new = ComponentGetValue2(item_component, "play_hover_animation")
+            GamePrint(tostring(is_new))
+            if is_new then
+                GamePrint("new")
+            else
+                GamePrint("old")
+            end
+        end
+        local vx = 0
+        local vy = 0
+        local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+        if vel and vel ~= 0 then
+            vx, vy = ComponentGetValue2(vel, "mVelocity")
+        end
+        return {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}}
     else
         return {false, np.SerializeEntity(item), x, y}
     end
@@ -80,12 +97,26 @@ function inventory_helper.deserialize_single_item(item_data)
     if item_data[1] then
         item = EZWand(item_data[2], x, y, false).entity_id
         local extra = item_data[5]
+        local is_new = item_data[6]
+        local vx, vy = item_data[7][1], item_data[7][2]
         local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
         if extra ~= nil and ability ~= nil then
             for i, field in ipairs(ability_component_extra_fields) do
                 if extra[i] ~= nil then
                     ComponentSetValue2(ability, field, extra[i])
                 end
+            end
+        end
+        if not is_new then
+            local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+            ComponentSetValue2(item_component, "play_hover_animation", false)
+            local phys = EntityGetFirstComponentIncludingDisabled(item, "SimplePhysicsComponent")
+            EntitySetComponentIsEnabled(item, phys, true)
+            local part = EntityGetFirstComponentIncludingDisabled(item, "SpriteParticleEmitterComponent")
+            EntitySetComponentIsEnabled(item, part, false)
+            local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+            if vel and vel ~= 0 then
+                ComponentSetValue2(vel, "mVelocity", vx, vy)
             end
         end
         -- EntityAddTag(item, "does_physics_update")
