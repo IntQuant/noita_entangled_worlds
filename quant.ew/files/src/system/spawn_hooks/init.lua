@@ -29,10 +29,10 @@ local function is_sync_item(ent_path)
         return false
     end
     local start = "data/entities/items/"
-    if string.sub(ent_path, 1, #start) ~= start then
-        return false
+    if string.sub(ent_path, 1, #start) == start then
+        return true
     end
-    return true
+    return false
 end
 
 np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
