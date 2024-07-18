@@ -39,7 +39,7 @@ local function allocate_global_id()
 end
 
 local function is_item_on_ground(item)
-    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent")
+    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent") ~= nil
 end
 
 function item_sync.get_global_item_id(item)
@@ -56,10 +56,19 @@ function item_sync.remove_item_with_id(gid)
     table.insert(pending_remove, gid)
 end
 
+local find_by_gid_cache = {}
 function item_sync.find_by_gid(gid)
+    if find_by_gid_cache[gid] ~= nil and EntityGetIsAlive(find_by_gid_cache[gid]) then
+        print("find_by_gid: found cached")
+        return find_by_gid_cache[gid]
+    end
+
+    print("find_by_gid: searching")
+
     local global_items = EntityGetWithTag("ew_global_item")
     for _, item in ipairs(global_items) do
         local i_gid = item_sync.get_global_item_id(item)
+        find_by_gid_cache[i_gid] = item
         if i_gid == gid then
             return item
         end
@@ -190,6 +199,34 @@ function item_sync.on_world_update()
         if #pending_remove > 0 then
             local gid = table.remove(pending_remove)
             item_sync.remove_item_with_id_now(gid)
+        end
+    end
+end
+
+function item_sync.on_should_send_updates()
+    if not ctx.is_host then
+        return
+    end
+    local global_items = EntityGetWithTag("ew_global_item")
+    local item_list = {}
+    for _, item in ipairs(global_items) do
+        if is_item_on_ground(item) then
+            local item_data = inventory_helper.serialize_single_item(item)
+            local gid = item_sync.get_global_item_id(item)
+            item_data.gid = gid
+            table.insert(item_list, item_data)
+        end
+    end
+    rpc.initial_items(item_list)
+end
+
+rpc.opts_reliable()
+function rpc.initial_items(item_list)
+    for _, item_data in ipairs(item_list) do
+        local item = item_sync.find_by_gid(item_data.gid)
+        if item == nil then
+            local item = inventory_helper.deserialize_single_item(item_data)
+            item_sync.ensure_notify_component(item)
         end
     end
 end
