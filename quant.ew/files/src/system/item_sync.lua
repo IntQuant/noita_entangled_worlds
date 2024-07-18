@@ -189,6 +189,7 @@ function item_sync.on_world_update_client()
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
+        GamePrint("localize req")
         rpc.item_localize_req(gid)
     end
     remove_client_items_from_world()
@@ -221,6 +222,22 @@ function item_sync.on_should_send_updates()
     rpc.initial_items(item_list)
 end
 
+local function add_stuff_to_localized_item(item, gid)
+    EntityAddTag(item, "ew_global_item")
+    item_sync.ensure_notify_component(item)
+    -- GamePrint("Got global item: "..item)
+    local gid_c = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+    if gid_c == nil then
+        EntityAddComponent2(item, "VariableStorageComponent", {
+            _tags = "ew_global_item_id",
+            value_string = gid
+        })
+    else
+        ComponentSetValue2(gid_c, "value_string", gid)
+    end
+    ctx.item_prevent_localize[gid] = false
+end
+
 rpc.opts_reliable()
 function rpc.initial_items(item_list)
     -- Only run once ever, as it tends to duplicate items otherwise
@@ -232,7 +249,7 @@ function rpc.initial_items(item_list)
         local item = item_sync.find_by_gid(item_data.gid)
         if item == nil then
             local item = inventory_helper.deserialize_single_item(item_data)
-            item_sync.ensure_notify_component(item)
+            add_stuff_to_localized_item(item, item_data.gid)
         end
     end
 end
@@ -240,19 +257,7 @@ end
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
     local item = inventory_helper.deserialize_single_item(item_data)
-    EntityAddTag(item, "ew_global_item")
-    item_sync.ensure_notify_component(item)
-    -- GamePrint("Got global item: "..item)
-    local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
-    if gid == nil then
-        EntityAddComponent2(item, "VariableStorageComponent", {
-            _tags = "ew_global_item_id",
-            value_string = item_data.gid
-        })
-    else
-        ComponentSetValue2(gid, "value_string", item_data.gid)
-    end
-    ctx.item_prevent_localize[item_data.gid] = false
+    add_stuff_to_localized_item(item, item_data.gid)
 end
 
 rpc.opts_reliable()
