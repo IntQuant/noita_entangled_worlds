@@ -189,7 +189,6 @@ function item_sync.on_world_update_client()
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
-        GamePrint("localize req")
         rpc.item_localize_req(gid)
     end
     remove_client_items_from_world()
