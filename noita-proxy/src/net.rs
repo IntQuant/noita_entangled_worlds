@@ -194,10 +194,10 @@ impl NetManager {
                                 tangled::Reliability::Reliable,
                             );
                         }
-                        state.try_ws_write(ws_encode_proxy("join", id));
+                        state.try_ws_write(ws_encode_proxy("join", id.to_hex()));
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
-                        state.try_ws_write(ws_encode_proxy("leave", id));
+                        state.try_ws_write(ws_encode_proxy("leave", id.to_hex()));
                     }
                     omni::OmniNetworkEvent::Message { src, data } => {
                         let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)
@@ -291,7 +291,7 @@ impl NetManager {
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod
         for id in self.peer.iter_peer_ids() {
-            state.try_ws_write(ws_encode_proxy("join", id));
+            state.try_ws_write(ws_encode_proxy("join", id.to_hex()));
         }
 
         info!("Settings sent")

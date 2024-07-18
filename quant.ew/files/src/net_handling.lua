@@ -49,6 +49,17 @@ function net_handling.proxy.proxy_opt_bool(_, key, value)
     ctx.proxy_opt[key] = value == "true"
 end
 
+function net_handling.proxy.leave(_, peer_id)
+    local player = ctx.players[peer_id]
+    if player ~= nil then
+        GamePrint("Player "..player.name.." left")
+        EntityKill(player.entity)
+        ctx.players[peer_id] = nil
+    else
+        GamePrint("Player "..peer_id.." left")
+    end
+end
+
 function net_handling.mod.inventory(peer_id, inventory_state)
     if not player_fns.peer_has_player(peer_id) then
         return
