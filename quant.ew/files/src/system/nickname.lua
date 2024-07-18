@@ -114,8 +114,8 @@ function nickname.add_label(player_entity, text, font_filename, scale, font)
 end
 
 function nickname.on_local_player_spawn(my_player)
-  if ctx.my_name ~= nil then
-    my_player.name = ctx.my_name
+  if ctx.proxy_opt.name ~= nil then
+    my_player.name = ctx.proxy_opt.name
   end
 end
 
@@ -125,9 +125,9 @@ end
 
 function nickname.on_should_send_updates()
   print("Should send nickname update")
-  if ctx.my_name ~= nil then
-    print("Sending name "..ctx.my_name)
-    rpc.send_name(ctx.my_name)
+  if ctx.proxy_opt.name ~= nil then
+    print("Sending name "..ctx.proxy_opt.name)
+    rpc.send_name(ctx.proxy_opt.name)
   end
 end
 

@@ -34,11 +34,6 @@ function net_handling.proxy.host_id(_, value)
     ctx.is_host = ctx.my_id == ctx.host_id
 end
 
-function net_handling.proxy.name(_, value)
-    print("Got name from proxy: "..value)
-    ctx.my_name = value
-end
-
 function net_handling.proxy.proxy_opt(_, key, value)
     print("Proxy opt [str]: "..key.." = "..value)
     ctx.proxy_opt[key] = value
