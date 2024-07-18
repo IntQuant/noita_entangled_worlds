@@ -38,8 +38,9 @@ local function allocate_global_id()
     return ctx.my_player.peer_id..":"..current
 end
 
+-- Try to guess if the item is in world.
 local function is_item_on_ground(item)
-    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent") ~= nil
+    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent") ~= nil or EntityGetComponent(item, "SpriteParticleEmitterComponent") ~= nil
 end
 
 function item_sync.get_global_item_id(item)
