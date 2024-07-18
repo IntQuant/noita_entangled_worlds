@@ -139,9 +139,10 @@ function util.set_ent_firing_blocked(entity, do_block)
     end
 end
 
-function util.ensure_component_present(entity, component, tag, data)
+-- Adds this component with given data if it doesn't exist
+function util.ensure_component_present(entity, component, tag, data, tags)
     local current = EntityGetFirstComponentIncludingDisabled(entity, component, tag)
-    data._tags=tag
+    data._tags=tags or tag
     if current == nil then
         EntityAddComponent2(entity, component, data)
     end
@@ -181,6 +182,17 @@ function util.replace_text_in(filename, pattern, to)
     local res_text = string.gsub(initial_text, pattern, to)
     ModTextFileSetContent(filename, res_text)
     print("Replaced text in "..filename)
+end
+
+-- Gets (or creates, if it doesn't exist) this component
+function util.get_or_create_component(entity, component_name, tag)
+    local component = EntityGetFirstComponentIncludingDisabled(entity, component_name, tag)
+    if component == nil or component == 0 then
+        component = EntityAddComponent2(entity, component_name, {
+            _tags = tag,
+        })
+    end
+    return component
 end
 
 return util

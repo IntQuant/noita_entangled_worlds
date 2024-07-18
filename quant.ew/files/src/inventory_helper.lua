@@ -1,6 +1,7 @@
 local np = require("noitapatcher")
 local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
 
 local inventory_helper = {}
 
@@ -58,6 +59,7 @@ end
 local ability_component_extra_fields = {"stat_times_player_has_shot", "stat_times_player_has_edited", "gun_level"}
 
 function inventory_helper.serialize_single_item(item)
+    local item_data
     local x, y = EntityGetTransform(item)
     if(entity_is_wand(item))then
         local wand = EZWand(item)
@@ -79,10 +81,18 @@ function inventory_helper.serialize_single_item(item)
         if vel and vel ~= 0 then
             vx, vy = ComponentGetValue2(vel, "mVelocity")
         end
-        return {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}}
+        item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}}
     else
-        return {false, np.SerializeEntity(item), x, y}
+        item_data = {false, np.SerializeEntity(item), x, y}
     end
+    local item_cost_component = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
+    if item_cost_component and item_cost_component ~= 0 then
+        local cost = ComponentGetValue2(item_cost_component, "cost")
+        local stealable = ComponentGetValue2(item_cost_component, "stealable")
+        item_data.shop_info = {cost, stealable}
+    end
+
+    return item_data
 end
 
 function inventory_helper.deserialize_single_item(item_data)
@@ -118,6 +128,41 @@ function inventory_helper.deserialize_single_item(item_data)
         item = EntityCreateNew()
         np.DeserializeEntity(item, item_data[2], x, y)
     end
+
+    if item_data.shop_info ~= nil then
+        local item_cost_component = util.get_or_create_component(item, "ItemCostComponent")
+        ComponentAddTag(item_cost_component, "enabled_in_world")
+        ComponentAddTag(item_cost_component, "shop_cost")
+        ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
+        ComponentSetValue2(item_cost_component, "stealable", false)
+        -- Item is stealable
+        if item_data.shop_info[2] then
+            async(function()
+                local timer = 0
+                while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
+                    wait(1) -- Wait for a while, in case shop hasn't loaded yet.
+                    timer = timer + 1
+                    if timer > 60 * 60 then
+                        GamePrint("Waiting for shop: giving up. Made item non-stealable.")
+                        return
+                    end
+                end
+                ComponentSetValue2(item_cost_component, "stealable", true)
+            end)
+        end
+
+        util.ensure_component_present(item, "SpriteComponent", "shop_cost", {
+            image_file = "data/fonts/font_pixel_white.xml",
+            is_text_sprite = true,
+            offset_x = 7,
+            offset_y = 25,
+            alpha = 1,
+            z_index = -1,
+            update_transform_rotation = false,
+        }, "shop_cost,enabled_in_world")
+    end
+
+
     return item
 end
 

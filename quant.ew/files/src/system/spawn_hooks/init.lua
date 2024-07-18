@@ -17,6 +17,7 @@ exclude["data/entities/items/pickup/heart_better.xml"] = true
 exclude["data/entities/items/pickup/heart_evil.xml"] = true
 exclude["data/entities/items/pickup/heart_fullhp.xml"] = true
 exclude["data/entities/items/pickup/heart_fullhp_temple.xml"] = true
+exclude["data/entities/items/pickup/perk_reroll.xml"] = true
 
 -- This entity needs to be synced by item_sync
 local function is_sync_item(ent_path)
