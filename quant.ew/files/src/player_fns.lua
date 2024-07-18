@@ -427,11 +427,11 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     local seen = GlobalsGetValue(global, "0")
     ctx.events.new_player_seen = seen ~= "1"
     if ctx.events.new_player_seen then
-        ctx.hook.on_new_player_seen(new_playerdata)
         local count = tonumber(GlobalsGetValue("ew_player_count", "1")) + 1
         GlobalsSetValue("ew_player_count", tostring(count))
         GamePrint("Player count "..count)
         print("Player count "..count)
+        ctx.hook.on_new_player_seen(new_playerdata, count)
     end
     GlobalsSetValue(global, "1")
     -- np.SetPlayerEntity(new, peer_id+1)

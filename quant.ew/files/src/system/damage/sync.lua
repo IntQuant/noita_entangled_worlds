@@ -103,8 +103,11 @@ function module.on_world_update_host()
     end
 end
 
-function module.on_new_player_seen(new_playerdata)
+function module.on_new_player_seen(new_playerdata, player_count)
     local hp = 4
+    if player_count > 4 then
+        hp = 1
+    end
     module.set_max_health(module.max_health()+hp)
     module.set_health(module.health()+hp)
 end
