@@ -23,6 +23,12 @@ impl ProxyOpt for u32 {
     }
 }
 
+impl ProxyOpt for f32 {
+    fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
+        write!(buf, "proxy_opt_num {} {}", key, self).unwrap();
+    }
+}
+
 impl ProxyOpt for &str {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
         write!(buf, "proxy_opt {} {}", key, self).unwrap();

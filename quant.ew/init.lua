@@ -61,6 +61,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/kolmi/kolmi.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/ending/ending.lua")
     ctx.load_system("spell_patches")
+    ctx.load_system("enemy_scaling")
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,

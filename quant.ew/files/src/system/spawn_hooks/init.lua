@@ -40,10 +40,10 @@ np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
     end
 end)
 
+-- Called after entity was loaded.
+-- Might be useless in some cases, as entity was already despawned/serialized due to CameraBoundComponent.
 np.CrossCallAdd("ew_spawn_hook_post", function(ent_path, ent)
-    -- if not EntityHasTag(ent, "enemy") then
-    --     EntityAddTag(ent, "ew_enemy_sync_extra")
-    -- end
+    
 end)
 
 local entity_is_enemy_cache = {}

@@ -17,6 +17,7 @@ connect_settings_player_tether = Player tether enabled
 connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
 connect_settings_player_tether_length = Tether length
 connect_settings_item_dedup = Deduplicate (sync) items spawned by world generation.
+connect_settings_enemy_hp_scale = Enemy hp scale.
 connect_settings_local = Local settings
 connect_settings_autostart = Start the game automatically
 

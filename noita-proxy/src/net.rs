@@ -287,6 +287,7 @@ impl NetManager {
         state.try_ws_write_option("player_tether", settings.player_tether);
         state.try_ws_write_option("tether_length", settings.tether_length);
         state.try_ws_write_option("item_dedup", settings.item_dedup);
+        state.try_ws_write_option("enemy_hp_scale", settings.enemy_hp_mult);
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod

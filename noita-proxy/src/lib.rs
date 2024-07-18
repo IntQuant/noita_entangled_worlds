@@ -41,6 +41,7 @@ pub struct GameSettings {
     tether_length: u32,
     use_constant_seed: bool,
     item_dedup: bool,
+    enemy_hp_mult: f32,
 }
 
 impl Default for GameSettings {
@@ -53,6 +54,7 @@ impl Default for GameSettings {
             tether_length: 750,
             use_constant_seed: false,
             item_dedup: true,
+            enemy_hp_mult: 1.0,
         }
     }
 }
@@ -423,7 +425,10 @@ impl App {
             Slider::new(&mut self.saved_state.game_settings.tether_length, 10..=5000)
                 .text(tr("connect_settings_player_tether_length")),
         );
+        ui.add_space(20.0);
         ui.checkbox(&mut self.saved_state.game_settings.item_dedup, tr("connect_settings_item_dedup"));
+        ui.add_space(20.0);
+        ui.add(Slider::new(&mut self.saved_state.game_settings.enemy_hp_mult, 1.0..=1000.0).logarithmic(true).text(tr("connect_settings_enemy_hp_scale")));
 
         heading_with_underline(ui, tr("connect_settings_local"));
         ui.checkbox(
