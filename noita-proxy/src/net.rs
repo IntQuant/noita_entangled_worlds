@@ -1,5 +1,6 @@
 use messages::NetMsg;
 use omni::OmniPeerId;
+use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
 use std::{
     env,
@@ -20,6 +21,7 @@ use tungstenite::{accept, WebSocket};
 use crate::GameSettings;
 
 pub mod messages;
+mod proxy_opt;
 pub mod steam_networking;
 pub mod world;
 
@@ -27,13 +29,6 @@ pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungste
     let mut buf = Vec::new();
     buf.push(2);
     write!(buf, "{} {}", key, value).unwrap();
-    tungstenite::Message::Binary(buf)
-}
-
-pub(crate) fn ws_encode_proxy_opt(key: &'static str, value: impl Display) -> tungstenite::Message {
-    let mut buf = Vec::new();
-    buf.push(2);
-    write!(buf, "proxy_opt {} {}", key, value).unwrap();
     tungstenite::Message::Binary(buf)
 }
 
@@ -66,6 +61,13 @@ impl NetInnerState {
                 self.ws = None;
             };
         }
+    }
+    pub(crate) fn try_ws_write_option(&mut self, key: &str, value: impl ProxyOpt) {
+        let mut buf = Vec::new();
+        buf.push(2);
+        value.write_opt(&mut buf, key);
+        let message = tungstenite::Message::Binary(buf);
+        self.try_ws_write(message);
     }
 }
 
@@ -276,20 +278,15 @@ impl NetManager {
         ));
         if let Some(nickname) = &self.init_settings.my_nickname {
             info!("Chosen nickname: {}", nickname);
-            state.try_ws_write(ws_encode_proxy("name", nickname));
+            state.try_ws_write_option("name", nickname.as_str());
         } else {
             info!("No nickname chosen");
         }
-        state.try_ws_write(ws_encode_proxy(
-            "debug",
-            if settings.debug_mode { "true" } else { "false" },
-        ));
-        state.try_ws_write(ws_encode_proxy_opt(
-            "world_sync_version",
-            settings.world_sync_version,
-        ));
-        state.try_ws_write(ws_encode_proxy_opt("player_tether", settings.player_tether));
-        state.try_ws_write(ws_encode_proxy_opt("tether_length", settings.tether_length));
+        state.try_ws_write_option("debug", settings.debug_mode);
+        state.try_ws_write_option("world_sync_version", settings.world_sync_version);
+        state.try_ws_write_option("player_tether", settings.player_tether);
+        state.try_ws_write_option("tether_length", settings.tether_length);
+        state.try_ws_write_option("item_dedup", settings.item_dedup);
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod

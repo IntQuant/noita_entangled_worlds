@@ -1,6 +1,9 @@
 run:
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run
 
+build:
+    cd noita-proxy && cargo build --release
+
 run-rel:
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run --release
 

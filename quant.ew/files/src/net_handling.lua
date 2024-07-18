@@ -40,8 +40,18 @@ function net_handling.proxy.name(_, value)
 end
 
 function net_handling.proxy.proxy_opt(_, key, value)
-    print("Proxy opt: "..key.." = "..value)
+    print("Proxy opt [str]: "..key.." = "..value)
     ctx.proxy_opt[key] = value
+end
+
+function net_handling.proxy.proxy_opt_num(_, key, value)
+    print("Proxy opt [num]: "..key.." = "..value)
+    ctx.proxy_opt[key] = tonumber(value)
+end
+
+function net_handling.proxy.proxy_opt_bool(_, key, value)
+    print("Proxy opt [bool]: "..key.." = "..value)
+    ctx.proxy_opt[key] = value == "true"
 end
 
 function net_handling.mod.inventory(peer_id, inventory_state)

@@ -35,7 +35,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
 
-    if ctx.debug then
+    if ctx.proxy_opt.debug then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
     end
     
@@ -43,7 +43,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/weather_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/polymorph/sync.lua")
 
-    if ctx.proxy_opt.world_sync_version == "1" then
+    if ctx.proxy_opt.world_sync_version == 1 then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v1.lua")
     else
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v2.lua")
@@ -54,7 +54,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/proxy_info.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/perk_patches/init.lua")
 
-    if ctx.proxy_opt.player_tether == "true" then
+    if ctx.proxy_opt.player_tether then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_tether/player_tether.lua")
     end
 
