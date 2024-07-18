@@ -223,6 +223,11 @@ end
 
 rpc.opts_reliable()
 function rpc.initial_items(item_list)
+    -- Only run once ever, as it tends to duplicate items otherwise
+    if GameHasFlagRun("ew_initial_items") then
+        return
+    end
+    GameAddFlagRun("ew_initial_items")
     for _, item_data in ipairs(item_list) do
         local item = item_sync.find_by_gid(item_data.gid)
         if item == nil then
