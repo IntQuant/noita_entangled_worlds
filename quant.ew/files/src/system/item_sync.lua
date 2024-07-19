@@ -89,6 +89,7 @@ end
 function item_sync.host_localize_item(gid, peer_id)
     if ctx.item_prevent_localize[gid] then
         GamePrint("Item localize for "..gid.." prevented")
+        return
     end
     ctx.item_prevent_localize[gid] = true
     
@@ -221,7 +222,7 @@ function item_sync.on_should_send_updates()
     rpc.initial_items(item_list)
 end
 
-local function add_stuff_to_localized_item(item, gid)
+local function add_stuff_to_globalized_item(item, gid)
     EntityAddTag(item, "ew_global_item")
     item_sync.ensure_notify_component(item)
     -- GamePrint("Got global item: "..item)
@@ -248,7 +249,7 @@ function rpc.initial_items(item_list)
         local item = item_sync.find_by_gid(item_data.gid)
         if item == nil then
             local item = inventory_helper.deserialize_single_item(item_data)
-            add_stuff_to_localized_item(item, item_data.gid)
+            add_stuff_to_globalized_item(item, item_data.gid)
         end
     end
 end
@@ -256,7 +257,7 @@ end
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
     local item = inventory_helper.deserialize_single_item(item_data)
-    add_stuff_to_localized_item(item, item_data.gid)
+    add_stuff_to_globalized_item(item, item_data.gid)
 end
 
 rpc.opts_reliable()
