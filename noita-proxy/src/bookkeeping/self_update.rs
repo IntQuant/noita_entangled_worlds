@@ -33,6 +33,12 @@ pub struct SelfUpdateManager {
     state: State,
 }
 
+impl Default for SelfUpdateManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SelfUpdateManager {
     pub fn new() -> Self {
         let latest_check = Promise::spawn_thread("version check", || {
