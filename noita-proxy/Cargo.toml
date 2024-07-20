@@ -1,5 +1,6 @@
 [workspace]
 members = ["tangled"]
+resolver = "2"
 
 [package]
 name = "noita-proxy"
@@ -10,11 +11,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = { version="0.28.1", features = ["persistence", "glow", "default_fonts"], default_features = false }
+winit = {version = "*", features = ["default"]}
+eframe = { version="0.28.1", features = ["persistence", "wgpu", "default_fonts"], default-features = false }
 egui-file-dialog = "0.6.0"
 egui_extras = { version = "0.28.1", features = ["all_loaders"] }
 egui_plot = "0.28.1"
-image = { version = "0.25.1", default_features = false, features = ["png", "webp"] }
+image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 
 tungstenite = "0.21.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -22,13 +24,13 @@ tracing = "0.1.40"
 tangled = { path = "tangled" }
 serde = { version = "1.0.199", features = ["serde_derive", "derive"] }
 bitcode = "0.6.0"
-lz4_flex = { version = "0.11.3", default_features = false, features = ["std"]}
+lz4_flex = { version = "0.11.3", default-features = false, features = ["std"]}
 rand = "0.8.5"
 steamworks = "0.11.0"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 clipboard = "0.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }
-reqwest = { version = "0.12.4", features = ["blocking", "json", "http2", "rustls-tls-native-roots", "charset"], default_features = false}
+reqwest = { version = "0.12.4", features = ["blocking", "json", "http2", "rustls-tls-native-roots", "charset"], default-features = false}
 serde_json = "1.0.117"
 thiserror = "1.0.61"
 poll-promise = "0.3.0"
