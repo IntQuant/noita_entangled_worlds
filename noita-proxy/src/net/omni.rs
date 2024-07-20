@@ -47,7 +47,7 @@ impl OmniPeerId {
         Some(Self(raw))
     }
 
-    pub(crate) fn to_hex(&self) -> String {
+    pub(crate) fn as_hex(&self) -> String {
         format!("{:016x}", self.0)
     }
 }

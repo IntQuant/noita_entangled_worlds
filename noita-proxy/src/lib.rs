@@ -192,7 +192,7 @@ impl App {
             netman,
             noita_launcher: NoitaLauncher::new(
                 &self.modmanager_settings.game_exe_path,
-                self.args.launch_cmd.as_ref().map(|x| x.as_str()),
+                self.args.launch_cmd.as_deref(),
             ),
         };
         self.can_start_automatically = true;
@@ -580,7 +580,7 @@ impl eframe::App for App {
                                     );
                                     steam.get_user_name(peer.into())
                                 } else {
-                                    peer.to_hex()
+                                    peer.as_hex()
                                 };
                                 plot.text(Text::new(PlotPoint::new(info.x, -info.y), username).highlight(true))
                             });
