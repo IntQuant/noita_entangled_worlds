@@ -10,8 +10,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+eframe = { version="0.28.1", features = ["persistence", "glow", "default_fonts"], default_features = false }
+egui-file-dialog = "0.6.0"
+egui_extras = { version = "0.28.1", features = ["all_loaders"] }
+egui_plot = "0.28.1"
+image = { version = "0.25.1", default_features = false, features = ["png", "webp"] }
+
 tungstenite = "0.21.0"
-eframe = { version="0.27.2", features = ["persistence", "glow", "default_fonts"], default_features = false }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
 tangled = { path = "tangled" }
@@ -23,22 +28,18 @@ steamworks = "0.11.0"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 clipboard = "0.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }
-egui-file-dialog = "0.5.0"
 reqwest = { version = "0.12.4", features = ["blocking", "json", "http2", "rustls-tls-native-roots", "charset"], default_features = false}
 serde_json = "1.0.117"
 thiserror = "1.0.61"
 poll-promise = "0.3.0"
 zip = "1.3.1"
 self-replace = "1.3.7"
-image = { version = "0.24.9", default_features = false, features = ["png", "webp"] }
-egui_extras = { version = "*", features = ["all_loaders"] }
 bytemuck = { version = "1.16.0", features = ["derive"] }
 bincode = "1.3.3"
 rustc-hash = "1.1.0"
 fluent-templates = "0.9.4"
 unic-langid = { version = "0.9.5", features = ["serde"] }
 fluent-bundle = "0.15.3"
-egui_plot = "0.27.2"
 crc = "3.2.1"
 argh = "0.1.12"
 shlex = "1.3.0"

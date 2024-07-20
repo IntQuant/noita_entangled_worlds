@@ -37,6 +37,6 @@ fn main() -> Result<(), eframe::Error> {
             follow_system_theme: false,
             ..Default::default()
         },
-        Box::new(|cc| Box::new(App::new(cc, args))),
+        Box::new(|cc| Ok(Box::new(App::new(cc, args)))),
     )
 }
