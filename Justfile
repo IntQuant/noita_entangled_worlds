@@ -1,33 +1,27 @@
-run:
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run
+extract_steam_redist:
+    python scripts/extract_steam_redist.py
+
+add_dylib_debug: extract_steam_redist
+    cp target/tmp/libsteam_api.so noita-proxy/target/debug/
+
+add_dylib_release: extract_steam_redist
+    cp target/tmp/libsteam_api.so noita-proxy/target/release/
 
 build:
     cd noita-proxy && cargo build
     cd noita-proxy && cargo build --release
-    cp target/tmp/libsteam_api.so noita-proxy/target/debug/
-    cp target/tmp/libsteam_api.so noita-proxy/target/release/
 
-run-rel:
+run-rel: add_dylib_release
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run --release
 
-run-rel-n:
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
+run: add_dylib_debug
+    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run
 
-run-rel-n-2:
-    cd noita-proxy && NP_NOITA_ADDR=127.0.0.1:21252 NP_SKIP_MOD_CHECK=1 cargo run --release
-
-run2:
+run2: add_dylib_debug
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 
-run3:
+run3: add_dylib_debug
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 
-release: build
-    python prepare_release.py
-
-noita:
-    cd /home/quant/.local/share/Steam/steamapps/common/Noita/ && NP_NOITA_ADDR=127.0.0.1:21252 wine noita.exe -gamemode 0
-
-noita1:
-    cd /home/quant/.local/share/Steam/steamapps/common/Noita/ && wine noita.exe
-    
+release: build add_dylib_release
+    python scripts/prepare_release.py

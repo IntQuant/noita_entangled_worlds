@@ -60,6 +60,10 @@ def get_pull_requests_from(date):
     parsed = call_parse_json(["gh", "pr", "list", "--state", "merged", "--search", "merged:>"+date, "--json", "number,title,author"])
     return [PullRequest(entry["number"], entry["author"]["login"], entry["title"]) for entry in parsed]
 
+def extract_steam_redist():
+    with ZipFile("redist/steam_dylib.zip", "r") as steam_dylib_zip:
+        steam_dylib_zip.extractall("target/tmp")
+
 def make_release_assets():
     print("Compiling Noita Proxy...")
 
@@ -79,8 +83,7 @@ def make_release_assets():
 
     print("Extracting steam dylib...")
 
-    with ZipFile("redist/steam_dylib.zip", "r") as steam_dylib_zip:
-        steam_dylib_zip.extractall("target/tmp")
+    extract_steam_redist()
 
     print("Writing win release...")
 
