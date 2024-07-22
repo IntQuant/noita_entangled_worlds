@@ -2,7 +2,7 @@ connect_steam = Connect using steam
 connect_steam_create = Create lobby
 connect_steam_connect = Connect to lobby in clipboard
 connect_steam_workaround_label = Connect by pasting lobby id in this field: (In case you are using Wayland and the normal way doesn't work)
-connect_steam_connect_2 = Connnect to lobby in the text field
+connect_steam_connect_2 = Connect to lobby in the text field
 connect_steam_connect_invalid_lobby_id = Clipboard does not contain a lobby code
 
 connect_ip = Connect using ip
