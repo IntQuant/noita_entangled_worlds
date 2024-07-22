@@ -5,7 +5,7 @@ connect_steam_workaround_label = フィールドにロビーIDを貼り付けて
 connect_steam_connect_2 = テキストフィールドでロビーに接続
 connect_steam_connect_invalid_lobby_id = クリップボードにロビーIDが含まれていません
 
-connect_ip = IPで接続する
+connect_ip = IP接続する
 
 connect_settings = ゲーム設定
 connect_settings_debug = デバッグ設定
