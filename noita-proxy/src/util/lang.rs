@@ -7,9 +7,9 @@ use unic_langid::langid;
 fluent_templates::static_loader! {
     // Declare our `StaticLoader` named `LOCALES`.
     static LOCALES = {
-        // The directory of localisations and fluent resources.
+        // The directory of localizations and fluent resources.
         locales: "./assets/lang",
-        // The language to falback on if something is not present.
+        // The language to fallback on if something is not present.
         fallback_language: "en-US",
     };
 }
