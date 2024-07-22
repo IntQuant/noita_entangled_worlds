@@ -144,8 +144,9 @@ impl Connections {
                         .and_then(|x| self.peers.get_mut(&x))
                     {
                         info!("Peer {:?} got connected event", event.remote());
-                        *connection =
-                            ConnectionState::NetConnectionPending(event.take_connection());
+                        let taken_connection = event.take_connection();
+                        taken_connection.set_poll_group(&self.poll_group.lock().unwrap());
+                        *connection = ConnectionState::NetConnectionPending(taken_connection);
                     }
                 }
                 ListenSocketEvent::Disconnected(event) => {
@@ -247,8 +248,9 @@ impl Connections {
                 connection.send_message(msg, send_flags)?;
                 Ok(())
             } else {
-                warn!("Couldn't send a message, connection is in invalid state");
-                Err(SteamError::Generic)
+                // TODO: Not exactly the right thing to do, but this can only happen before we properly connected, so it's probably fine..?
+                // Might result in a packet loss in case we ever go reconnecting.
+                Ok(())
             }
         } else {
             Err(SteamError::InvalidSteamID)

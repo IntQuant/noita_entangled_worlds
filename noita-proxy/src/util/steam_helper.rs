@@ -38,6 +38,7 @@ impl SteamState {
         }
         let app_id = env::var("NP_APPID").ok().and_then(|x| x.parse().ok());
         let (client, single) = steamworks::Client::init_app(app_id.unwrap_or(881100))?;
+        client.networking_utils().init_relay_network_access();
         if let Err(err) = client.networking_sockets().init_authentication() {
             error!("Failed to init_authentication: {}", err)
         }
