@@ -61,6 +61,7 @@ def get_pull_requests_from(date):
     return [PullRequest(entry["number"], entry["author"]["login"], entry["title"]) for entry in parsed]
 
 def extract_steam_redist():
+    os.makedirs("target/tmp", exist_ok=True)
     with ZipFile("redist/steam_dylib.zip", "r") as steam_dylib_zip:
         steam_dylib_zip.extractall("target/tmp")
 

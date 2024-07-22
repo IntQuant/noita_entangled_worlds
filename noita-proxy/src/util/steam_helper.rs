@@ -2,7 +2,7 @@ use std::{collections::HashMap, env, thread, time::Duration};
 
 use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui};
 use steamworks::{SteamAPIInitError, SteamId};
-use tracing::info;
+use tracing::{error, info};
 
 pub struct SteamUserAvatar {
     avatar: TextureHandle,
@@ -38,6 +38,9 @@ impl SteamState {
         }
         let app_id = env::var("NP_APPID").ok().and_then(|x| x.parse().ok());
         let (client, single) = steamworks::Client::init_app(app_id.unwrap_or(881100))?;
+        if let Err(err) = client.networking_sockets().init_authentication() {
+            error!("Failed to init_authentication: {}", err)
+        }
         thread::spawn(move || {
             info!("Spawned steam callback thread");
             loop {

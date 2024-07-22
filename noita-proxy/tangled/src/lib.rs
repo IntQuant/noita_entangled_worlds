@@ -76,7 +76,7 @@ struct OutboundMessage {
 }
 
 /// Current peer state
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PeerState {
     /// Waiting for connection. Switches to `Connected` right after id from the host has been acquired.
     /// Note: hosts switches to 'Connected' basically instantly.

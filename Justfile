@@ -2,9 +2,11 @@ extract_steam_redist:
     python scripts/extract_steam_redist.py
 
 add_dylib_debug: extract_steam_redist
+    mkdir noita-proxy/target/debug/ -p
     cp target/tmp/libsteam_api.so noita-proxy/target/debug/
 
 add_dylib_release: extract_steam_redist
+    mkdir noita-proxy/target/release/ -p
     cp target/tmp/libsteam_api.so noita-proxy/target/release/
 
 build:
