@@ -51,7 +51,7 @@ player_player = プレイヤー
 version_latest = (最新)
 version_check_failed = (更新を確認できませんでした)
 version_checking = (更新を確認中)
-version_new_available = バージョン { $new_version } に更新が可能です
+version_new_available = バージョン { $new_version } に更新可能です
 
 selfupdate = 自動更新
 selfupdate_confirm = 更新を確認
