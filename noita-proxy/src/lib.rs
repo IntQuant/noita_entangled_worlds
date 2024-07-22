@@ -9,8 +9,8 @@ use bitcode::{Decode, Encode};
 use bookkeeping::noita_launcher::{LaunchTokenResult, NoitaLauncher};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
-    self, Align2, Button, Color32, DragValue, InnerResponse, Key, Margin, OpenUrl, Rect, RichText,
-    ScrollArea, Slider, TextureOptions, Ui, Vec2,
+    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
+    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use lang::{set_current_locale, tr, LANGS};
@@ -150,6 +150,7 @@ impl App {
             .unwrap_or_default();
         saved_state.times_started += 1;
 
+        Self::set_fonts(&cc.egui_ctx);
         let state = if let Some(lang_id) = &saved_state.lang_id {
             set_current_locale(lang_id.clone());
             AppState::ModManager
@@ -443,6 +444,43 @@ impl App {
             Ok(id) => self.start_steam_connect(id),
             Err(_error) => self.notify_error(tr("connect_steam_connect_invalid_lobby_id")),
         }
+    }
+
+    fn set_fonts(ctx: &Context) {
+        let mut font_definitions = FontDefinitions::default();
+
+        font_definitions.font_data.insert(
+            "noto_sans".to_owned(),
+            egui::FontData::from_static(include_bytes!("../assets/font/NotoSans-Regular.ttf")),
+        );
+        font_definitions.font_data.insert(
+            "noto_sans_jp".to_owned(),
+            egui::FontData::from_static(include_bytes!("../assets/font/NotoSansJP-Light.ttf")),
+        );
+
+        font_definitions
+            .families
+            .entry(FontFamily::Proportional)
+            .or_default()
+            .push("noto_sans".to_owned());
+        font_definitions
+            .families
+            .entry(FontFamily::Proportional)
+            .or_default()
+            .push("noto_sans_jp".to_owned());
+
+        font_definitions
+            .families
+            .entry(FontFamily::Monospace)
+            .or_default()
+            .push("noto_sans".to_owned());
+        font_definitions
+            .families
+            .entry(FontFamily::Monospace)
+            .or_default()
+            .push("noto_sans_jp".to_owned());
+
+        ctx.set_fonts(font_definitions);
     }
 }
 
