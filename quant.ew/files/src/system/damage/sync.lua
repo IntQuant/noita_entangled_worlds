@@ -51,12 +51,15 @@ local function do_game_over(message)
 end
 
 function module.on_local_player_spawn(my_player)
-    util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
-        script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"
-    })
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
-    if not ctx.is_host then
-        -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0)
+    if ctx.is_host then
+        util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
+            script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/host_adjust_received_damage.lua"
+        })
+    else
+        util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
+            script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"
+        })
     end
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
     
