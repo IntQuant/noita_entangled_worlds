@@ -367,4 +367,3 @@ function inventory_helper.has_inventory_changed(player_data)
 end
 
 return inventory_helper
-

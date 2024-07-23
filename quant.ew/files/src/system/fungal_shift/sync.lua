@@ -91,4 +91,3 @@ np.CrossCallAdd("ew_fungal_shift", function(iter, from_material_name)
 end)
 
 return module
-
