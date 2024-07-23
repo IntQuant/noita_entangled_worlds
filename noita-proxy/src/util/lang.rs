@@ -7,9 +7,9 @@ use unic_langid::langid;
 fluent_templates::static_loader! {
     // Declare our `StaticLoader` named `LOCALES`.
     static LOCALES = {
-        // The directory of localisations and fluent resources.
+        // The directory of localizations and fluent resources.
         locales: "./assets/lang",
-        // The language to falback on if something is not present.
+        // The language to fallback on if something is not present.
         fallback_language: "en-US",
     };
 }
@@ -35,9 +35,10 @@ impl LangDesc {
     }
 }
 
-pub static LANGS: [LangDesc; 2] = [
+pub static LANGS: [LangDesc; 3] = [
     LangDesc::new("English", langid!("en-US")),
     LangDesc::new("Русский", langid!("ru-RU")),
+    LangDesc::new("日本語", langid!("ja-JP")),
 ];
 
 pub fn set_current_locale(lang_id: LanguageIdentifier) {
