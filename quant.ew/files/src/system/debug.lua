@@ -23,6 +23,8 @@ function module.on_local_player_spawn(my_player)
 
     -- EntitySetTransform(player_entity, 1333, 770)
 
+    EntitySetTransform(player_entity, 7427, -4960)
+
     -- util.load_ephemerial("mods/quant.ew/files/entities/client.xml", 512*3+20, 512*3+10)
     -- EntityLoad("mods/quant.ew/files/entities/client.xml", 512*3+20, 512*3+10)
 
