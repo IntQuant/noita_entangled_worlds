@@ -414,11 +414,6 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)
     ctx.players[peer_id] = new_playerdata
     EntitySetName(new, tostring(peer_id))
-    if ctx.is_host then
-        EntityAddComponent2(new, "LuaComponent", {script_damage_received = "mods/quant.ew/files/cbs/redirect_damage_to_host.lua"})
-    else
-        EntityAddComponent2(new, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
-    end
     util.set_ent_firing_blocked(new, true)
     ctx.player_data_by_local_entity[new] = new_playerdata
     ctx.events.new_player_just_spawned = true

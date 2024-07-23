@@ -54,12 +54,10 @@ function module.on_local_player_spawn(my_player)
     util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
         script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_host.lua"
     })
-    if ctx.is_host then
-    
-    else
-        -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0) -- TODO
-    end
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
+    if not ctx.is_host then
+        -- ComponentSetValue2(damage_model, "damage_multipliers", "melee", 0)
+    end
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
     
 end
@@ -112,6 +110,15 @@ function module.on_new_player_seen(new_playerdata, player_count)
     module.set_health(module.health()+hp)
 end
 
+function module.on_client_spawned(peer_id, playerdata)
+    if ctx.is_host then
+        -- EntityAddComponent2(playerdata.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/cbs/redirect_damage_to_host.lua"})
+        EntityAddComponent2(playerdata.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/src/system/damage/cbs/send_damage_to_client.lua"})
+    else
+        EntityAddComponent2(playerdata.entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+    end
+end
+
 function module.health()
     return tonumber(GlobalsGetValue("ew_shared_hp", "4"))
 end
@@ -159,7 +166,7 @@ function rpc.deal_damage(damage, message)
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, true)
         end
     end
-    GamePrint("Got ".. (damage*25) .." damage: "..message)
+    GamePrint(string.format("Got %.2f damage: %s", damage*25, message))
 end
 
 function rpc.update_shared_health(hp, max_hp)
@@ -209,5 +216,13 @@ function rpc.effect_hearty(applied)
 end
 
 np.CrossCallAdd("ew_ds_effect_hearty", rpc.effect_hearty)
+
+rpc.opts_reliable()
+function rpc.melee_damage_client(target_peer, damage, message)
+    if ctx.my_player.peer_id == target_peer then
+        EntityInflictDamage(ctx.my_player.entity, damage, "DAMAGE_MELEE", message, "NONE", 0, 0, 0)
+    end
+end
+np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
 
 return module

@@ -18,6 +18,9 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
 
     local dtypes = GetDamageDetails().damage_types
     damage = adjust_damage(damage, dtypes)
-    -- Damage the host
-    CrossCall("ew_ds_damaged", damage, message)
+
+    if dtypes ~= 1 or entity_thats_responsible == 0 then
+        -- Damage the host
+        CrossCall("ew_ds_damaged", damage, message)
+    end
 end
