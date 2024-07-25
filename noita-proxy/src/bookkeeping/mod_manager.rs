@@ -382,10 +382,16 @@ impl Mods {
 }
 
 fn enable_mod(saves_path: &Path) -> Result<(), Box<dyn Error>> {
-    let config_path = saves_path.join("save00/mod_config.xml");
-    let mut data: Mods = quick_xml::de::from_reader(BufReader::new(File::open(&config_path)?))?;
+    let shared_config_path = saves_path.join("save_shared/config.xml");
+    // Certainly not the cleanest solution, but parsing that config properly is _hard_.
+    let config = fs::read_to_string(&shared_config_path)?;
+    let config = config.replace("mods_sandbox_enabled=\"1\"", "mods_sandbox_enabled=\"0\"");
+    fs::write(&shared_config_path, config)?;
+
+    let mod_config_path = saves_path.join("save00/mod_config.xml");
+    let mut data: Mods = quick_xml::de::from_reader(BufReader::new(File::open(&mod_config_path)?))?;
     data.entry("quant.ew").enabled = 1;
     let xml = quick_xml::se::to_string(&data)?;
-    fs::write(&config_path, xml)?;
+    fs::write(&mod_config_path, xml)?;
     Ok(())
 }
