@@ -136,20 +136,20 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
         ComponentSetValue2(item_cost_component, "stealable", false)
         -- Item is stealable
-        -- if item_data.shop_info[2] then
-        --     async(function()
-        --         local timer = 0
-        --         while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
-        --             wait(1) -- Wait for a while, in case shop hasn't loaded yet.
-        --             timer = timer + 1
-        --             if timer > 60 * 60 then
-        --                 GamePrint("Waiting for shop: giving up. Made item non-stealable.")
-        --                 return
-        --             end
-        --         end
-        --         ComponentSetValue2(item_cost_component, "stealable", true)
-        --     end)
-        -- end
+        if item_data.shop_info[2] then
+            async(function()
+                local timer = 0
+                while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
+                    wait(1) -- Wait for a while, in case shop hasn't loaded yet.
+                    timer = timer + 1
+                    if timer > 60 * 60 then
+                        GamePrint("Waiting for shop: giving up. Made item non-stealable.")
+                        return
+                    end
+                end
+                ComponentSetValue2(item_cost_component, "stealable", true)
+            end)
+        end
         
 
         util.ensure_component_present(item, "SpriteComponent", "shop_cost", {
