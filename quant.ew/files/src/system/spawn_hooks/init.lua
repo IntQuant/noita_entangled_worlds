@@ -39,7 +39,7 @@ np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
     if ctx.is_host then
         if is_sync_item(ent_path) then
             local ent_id = EntityLoad(ent_path, x, y)
-            ctx.cap.item_sync.globalize(ent_id, true)
+            ctx.cap.item_sync.globalize(ent_id, false)
             return ent_id
         else
             return true
