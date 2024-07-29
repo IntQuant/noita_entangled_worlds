@@ -152,7 +152,7 @@ impl NetManager {
 
         let mut state = NetInnerState {
             ws: None,
-            world: WorldManager::new(),
+            world: WorldManager::new(self.is_host()),
         };
 
         while self
@@ -207,22 +207,7 @@ impl NetManager {
                             continue;
                         };
                         match net_msg {
-                            NetMsg::Welcome => {
-                                // info!("Got Welcome message from {}", src);
-                                // let limit = if self.peer.is_steam() {
-                                //     1024 * 1024
-                                // } else {
-                                //     30000
-                                // };
-                                // let deltas = state.world.send_world().split(limit);
-                                // for delta in deltas {
-                                //     self.send(
-                                //         src,
-                                //         &NetMsg::WorldDelta { delta },
-                                //         Reliability::Reliable,
-                                //     );
-                                // }
-                            }
+                            NetMsg::Welcome => {}
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
                                 info!("Settings updated");
@@ -248,6 +233,7 @@ impl NetManager {
                                     state.try_ws_write(ws_encode_proxy_bin(0, &update));
                                 }
                             }
+                            NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
                         }
                     }
                 }

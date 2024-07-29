@@ -12,7 +12,8 @@ pub mod encoding;
 
 const CHUNK_SIZE: usize = 128;
 
-pub type ChunkCoord = (i32, i32);
+#[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct ChunkCoord(pub i32, pub i32);
 
 #[derive(Default)]
 pub struct WorldModel {
@@ -26,10 +27,17 @@ struct MatPalette {
     colors: Vec<Rgb<u8>>,
 }
 
+/// Basically the same as ChunkDelta, but doesn't assume we know anything about the chunk.
+/// Also doesn't need crc field.
+#[derive(Debug, Encode, Decode, Clone)]
+pub struct ChunkData {
+    runs: Vec<PixelRun<CompactPixel>>,
+}
+
 #[derive(Debug, Encode, Decode)]
 pub struct ChunkDelta {
     runs: Vec<PixelRun<Option<CompactPixel>>>,
-    chunk_coord: (i32, i32),
+    pub chunk_coord: ChunkCoord,
     crc: Option<u64>,
 }
 
@@ -70,7 +78,7 @@ impl WorldModel {
         let x = x.rem_euclid(CHUNK_SIZE as i32) as usize;
         let y = y.rem_euclid(CHUNK_SIZE as i32) as usize;
         let offset = x + y * CHUNK_SIZE;
-        ((chunk_x, chunk_y), offset)
+        (ChunkCoord(chunk_x, chunk_y), offset)
     }
 
     fn set_pixel(&mut self, x: i32, y: i32, pixel: Pixel) {
@@ -249,5 +257,13 @@ impl WorldModel {
         self.chunks.clear();
         self.updated_chunks.clear();
         info!("World model reset");
+    }
+
+    pub(crate) fn apply_chunk_data(&mut self, chunk: ChunkCoord, chunk_data: ChunkData) {
+        todo!()
+    }
+
+    pub(crate) fn get_chunk_data(&mut self, chunk: ChunkCoord) -> ChunkData {
+        todo!()
     }
 }

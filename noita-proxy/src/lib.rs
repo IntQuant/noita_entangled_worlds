@@ -30,7 +30,7 @@ pub use util::{args, lang, steam_helper};
 mod bookkeeping;
 pub use bookkeeping::{mod_manager, releases, self_update};
 
-pub mod net;
+mod net;
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize)]
 pub struct GameSettings {

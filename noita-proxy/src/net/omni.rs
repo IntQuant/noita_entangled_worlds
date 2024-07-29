@@ -1,9 +1,10 @@
 use super::steam_networking::{self, ExtraPeerState};
+use bitcode::{Decode, Encode};
 use std::fmt::Display;
 use steamworks::{LobbyId, SteamId};
 use tangled::{PeerId, Reliability};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct OmniPeerId(pub u64);
 
 impl From<PeerId> for OmniPeerId {
