@@ -173,7 +173,6 @@ impl WorldModel {
                 offset += 1;
             }
         }
-        assert_eq!(offset, CHUNK_SIZE * CHUNK_SIZE)
     }
 
     fn get_chunk_delta(&self, chunk_coord: ChunkCoord, ignore_changed: bool) -> Option<ChunkDelta> {
@@ -260,10 +259,25 @@ impl WorldModel {
     }
 
     pub(crate) fn apply_chunk_data(&mut self, chunk: ChunkCoord, chunk_data: ChunkData) {
-        todo!()
+        self.updated_chunks.insert(chunk);
+        let chunk = self.chunks.entry(chunk).or_default();
+        let mut offset = 0;
+        for run in &chunk_data.runs {
+            for _ in 0..(run.length) {
+                let pixel = run.data;
+                chunk.set_compact_pixel(offset, pixel);
+                offset += 1;
+            }
+        }
     }
 
-    pub(crate) fn get_chunk_data(&mut self, chunk: ChunkCoord) -> ChunkData {
-        todo!()
+    pub(crate) fn get_chunk_data(&mut self, chunk: ChunkCoord) -> Option<ChunkData> {
+        let chunk = self.chunks.get(&chunk)?;
+        let mut runner = PixelRunner::new();
+        for i in 0..CHUNK_SIZE * CHUNK_SIZE {
+            runner.put_pixel(chunk.compact_pixel(i))
+        }
+        let runs = runner.build();
+        Some(ChunkData { runs })
     }
 }

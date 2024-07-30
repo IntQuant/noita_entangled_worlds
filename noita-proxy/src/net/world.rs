@@ -48,7 +48,7 @@ pub(crate) enum WorldNetMessage {
     // Listen responses/messages
     ListenInitialResponse {
         chunk: ChunkCoord,
-        chunk_data: ChunkData,
+        chunk_data: Option<ChunkData>,
     },
     ListenUpdate {
         delta: ChunkDelta,
@@ -241,7 +241,11 @@ impl WorldManager {
             WorldNetMessage::ListenInitialResponse { chunk, chunk_data } => {
                 self.chunk_state
                     .insert(chunk, ChunkState::Listening { authority: source });
-                self.inbound_model.apply_chunk_data(chunk, chunk_data);
+                if let Some(chunk_data) = chunk_data {
+                    self.inbound_model.apply_chunk_data(chunk, chunk_data);
+                } else {
+                    warn!("Initial listen response has None chunk_data. It's generally supposed to have some.");
+                }
             }
             WorldNetMessage::ListenUpdate { delta } => {
                 let Some(ChunkState::Listening { authority }) =
