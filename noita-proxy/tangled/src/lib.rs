@@ -200,7 +200,7 @@ impl Peer {
         self.shared.inbound_channel.1.iter()
     }
 
-    /// Returns own `PeerId`, whcih can be used by any remote peer to send a message to this one.
+    /// Returns own `PeerId`, which can be used by any remote peer to send a message to this one.
     /// None is returned when not connected yet.
     pub fn my_id(&self) -> Option<PeerId> {
         self.shared.my_id.load()

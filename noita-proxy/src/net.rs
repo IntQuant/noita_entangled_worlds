@@ -150,9 +150,14 @@ impl NetManager {
 
         let local_server: TcpListener = socket.into();
 
+        while self.peer.my_id().is_none() {
+            info!("Waiting on my_id...");
+            thread::sleep(Duration::from_millis(100));
+        }
+
         let mut state = NetInnerState {
             ws: None,
-            world: WorldManager::new(self.is_host()),
+            world: WorldManager::new(self.is_host(), self.peer.my_id().unwrap()),
         };
 
         while self
@@ -245,6 +250,7 @@ impl NetManager {
             for msg in state.world.get_emitted_msgs() {
                 self.do_message_request(msg)
             }
+            state.world.update();
         }
         Ok(())
     }

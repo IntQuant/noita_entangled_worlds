@@ -35,7 +35,7 @@ pub(crate) enum WorldNetMessage {
     },
     RelinquishAuthority {
         chunk: ChunkCoord,
-        chunk_data: ChunkData,
+        chunk_data: Option<ChunkData>,
     },
     // When listening
     AuthorityAlreadyTaken {
@@ -85,10 +85,18 @@ impl WorldDelta {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 enum ChunkState {
+    /// Chunk isn't synced yet.
     Unsynced,
+    /// Transitioning into Listening or Authority state.
+    WaitingForAuthority,
+    /// Listening for chunk updates from this peer.
     Listening { authority: OmniPeerId },
+    /// Sending chunk updates to these listeners.
     Authority { listeners: FxHashSet<OmniPeerId> },
+    /// Chunk is to be cleaned up.
+    Unloaded,
 }
 impl ChunkState {
     fn authority() -> ChunkState {
@@ -100,6 +108,7 @@ impl ChunkState {
 
 pub struct WorldManager {
     is_host: bool,
+    my_peer_id: OmniPeerId,
     /// We receive changes from other clients here, intending to send them to Noita.
     inbound_model: WorldModel,
     /// We use that to create changes to be sent to other clients.
@@ -111,12 +120,19 @@ pub struct WorldManager {
     /// Chunk states, according to docs/distributed_world_sync.drawio
     chunk_state: FxHashMap<ChunkCoord, ChunkState>,
     emitted_messages: Vec<MessageRequest<WorldNetMessage>>,
+    /// Which update it is?
+    /// Incremented every time `add_end()` gets called.
+    current_update: u64,
+    /// Update number in which chunk has been updated locally.
+    /// Used to track which chunks can be unloaded.
+    chunk_last_update: FxHashMap<ChunkCoord, u64>,
 }
 
 impl WorldManager {
-    pub fn new(is_host: bool) -> Self {
+    pub fn new(is_host: bool, my_peer_id: OmniPeerId) -> Self {
         WorldManager {
             is_host,
+            my_peer_id,
             inbound_model: Default::default(),
             outbound_model: Default::default(),
             authority_map: Default::default(),
@@ -124,6 +140,8 @@ impl WorldManager {
             chunk_storage: Default::default(),
             chunk_state: Default::default(),
             emitted_messages: Default::default(),
+            current_update: 0,
+            chunk_last_update: Default::default(),
         }
     }
 
@@ -132,9 +150,100 @@ impl WorldManager {
     }
 
     pub(crate) fn add_end(&mut self) -> WorldDelta {
-        let deltas = self.inbound_model.get_all_deltas();
+        let deltas = self.outbound_model.get_all_deltas();
+        let updated_chunks = self
+            .outbound_model
+            .updated_chunks()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        self.current_update += 1;
+        for chunk in updated_chunks {
+            self.chunk_updated_locally(chunk);
+        }
         self.outbound_model.reset_change_tracking();
         WorldDelta(deltas)
+    }
+
+    fn chunk_updated_locally(&mut self, chunk: ChunkCoord) {
+        let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
+            info!("Created entry for {chunk:?}");
+            ChunkState::Unsynced
+        });
+        let mut emit_queue = Vec::new();
+        self.chunk_last_update.insert(chunk, self.current_update);
+        if let ChunkState::Authority { listeners } = entry {
+            let Some(delta) = self.outbound_model.get_chunk_delta(chunk, false) else {
+                return;
+            };
+            for &listener in listeners.iter() {
+                emit_queue.push((
+                    Destination::Peer(listener),
+                    WorldNetMessage::ListenUpdate {
+                        delta: delta.clone(),
+                    },
+                ));
+            }
+        }
+        for (dst, msg) in emit_queue {
+            self.emit_msg(dst, msg)
+        }
+    }
+
+    pub(crate) fn update(&mut self) {
+        let mut emit_queue = Vec::new();
+
+        let unload_limit = 60;
+
+        for (&chunk, state) in self.chunk_state.iter_mut() {
+            let chunk_last_update = self
+                .chunk_last_update
+                .get(&chunk)
+                .copied()
+                .unwrap_or_default();
+            match state {
+                ChunkState::Unsynced => {
+                    emit_queue.push((
+                        Destination::Host,
+                        WorldNetMessage::RequestAuthority { chunk },
+                    ));
+                    *state = ChunkState::WaitingForAuthority;
+                    info!("Requested authority for {chunk:?}")
+                }
+                // This state doesn't have much to do.
+                ChunkState::WaitingForAuthority => {}
+                ChunkState::Listening { authority } => {
+                    if self.current_update - chunk_last_update > unload_limit {
+                        info!("Unloading [listening] chunk {chunk:?}");
+                        emit_queue.push((
+                            Destination::Peer(*authority),
+                            WorldNetMessage::ListenStopRequest { chunk },
+                        ));
+                        *state = ChunkState::Unloaded;
+                    }
+                }
+                ChunkState::Authority { listeners } => {
+                    if self.current_update - chunk_last_update > unload_limit {
+                        info!("Unloading [authority] chunk {chunk:?}");
+                        emit_queue.push((
+                            Destination::Host,
+                            WorldNetMessage::RelinquishAuthority {
+                                chunk,
+                                chunk_data: self.outbound_model.get_chunk_data(chunk),
+                            },
+                        ));
+                        *state = ChunkState::Unloaded;
+                    }
+                }
+                ChunkState::Unloaded => {}
+            }
+        }
+
+        for (dst, msg) in emit_queue {
+            self.emit_msg(dst, msg)
+        }
+        self.chunk_state
+            .retain(|_chunk, state| *state != ChunkState::Unloaded);
     }
 
     pub(crate) fn handle_deltas(&mut self, deltas: WorldDelta) {
@@ -157,6 +266,12 @@ impl WorldManager {
     }
 
     fn emit_msg(&mut self, dst: Destination, msg: WorldNetMessage) {
+        // Short-circuit for messages intended for myself
+        if (self.is_host && dst == Destination::Host) || dst == Destination::Peer(self.my_peer_id) {
+            self.handle_msg(self.my_peer_id, msg);
+            return;
+        }
+
         self.emitted_messages.push(MessageRequest {
             reliability: tangled::Reliability::Reliable,
             dst,
@@ -217,6 +332,9 @@ impl WorldManager {
                     return;
                 }
                 self.authority_map.remove(&chunk);
+                if let Some(chunk_data) = chunk_data {
+                    self.chunk_storage.insert(chunk, chunk_data);
+                }
                 // TODO notify others?
             }
 

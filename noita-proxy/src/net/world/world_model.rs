@@ -1,4 +1,4 @@
-use std::mem::size_of;
+use std::{mem::size_of, sync::Arc};
 
 use bitcode::{Decode, Encode};
 use chunk::{Chunk, CompactPixel, Pixel, PixelFlags};
@@ -20,6 +20,8 @@ pub struct WorldModel {
     chunks: FxHashMap<ChunkCoord, Chunk>,
     pub mats: FxHashSet<u16>,
     palette: MatPalette,
+    /// Tracks chunks which we written to.
+    /// This includes any write, not just those that actually changed at least one pixel.
     updated_chunks: FxHashSet<ChunkCoord>,
 }
 
@@ -34,9 +36,9 @@ pub struct ChunkData {
     runs: Vec<PixelRun<CompactPixel>>,
 }
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub struct ChunkDelta {
-    runs: Vec<PixelRun<Option<CompactPixel>>>,
+    runs: Arc<Vec<PixelRun<Option<CompactPixel>>>>,
     pub chunk_coord: ChunkCoord,
     crc: Option<u64>,
 }
@@ -165,7 +167,7 @@ impl WorldModel {
         self.updated_chunks.insert(delta.chunk_coord);
         let chunk = self.chunks.entry(delta.chunk_coord).or_default();
         let mut offset = 0;
-        for run in &delta.runs {
+        for run in delta.runs.iter() {
             for _ in 0..(run.length) {
                 if let Some(pixel) = run.data {
                     chunk.set_compact_pixel(offset, pixel)
@@ -175,13 +177,17 @@ impl WorldModel {
         }
     }
 
-    fn get_chunk_delta(&self, chunk_coord: ChunkCoord, ignore_changed: bool) -> Option<ChunkDelta> {
+    pub fn get_chunk_delta(
+        &self,
+        chunk_coord: ChunkCoord,
+        ignore_changed: bool,
+    ) -> Option<ChunkDelta> {
         let chunk = self.chunks.get(&chunk_coord)?;
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE {
             runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.compact_pixel(i)))
         }
-        let runs = runner.build();
+        let runs = runner.build().into();
         Some(ChunkDelta {
             chunk_coord,
             runs,
@@ -211,6 +217,10 @@ impl WorldModel {
             .iter()
             .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, false))
             .collect()
+    }
+
+    pub fn updated_chunks(&self) -> &FxHashSet<ChunkCoord> {
+        &self.updated_chunks
     }
 
     pub fn reset_change_tracking(&mut self) {

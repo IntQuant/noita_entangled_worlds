@@ -4,6 +4,7 @@ use crate::{net::world::WorldDelta, GameSettings};
 
 use super::{omni::OmniPeerId, world::WorldNetMessage};
 
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Destination {
     Peer(OmniPeerId),
     Host,
