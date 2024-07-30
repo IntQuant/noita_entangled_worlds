@@ -1,4 +1,4 @@
-use messages::NetMsg;
+use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
@@ -242,8 +242,24 @@ impl NetManager {
                 let msg = ws.read();
                 self.handle_mod_message(msg, &mut state);
             }
+            for msg in state.world.get_emitted_msgs() {
+                self.do_message_request(msg)
+            }
         }
         Ok(())
+    }
+
+    fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
+        let request: MessageRequest<NetMsg> = request.into();
+        match request.dst {
+            messages::Destination::Peer(peer) => {
+                self.send(peer, &request.msg, request.reliability);
+            }
+            messages::Destination::Host => {
+                self.send(self.peer.host_id(), &request.msg, request.reliability);
+            }
+            messages::Destination::Broadcast => self.broadcast(&request.msg, request.reliability),
+        }
     }
 
     fn on_ws_connection(self: &Arc<NetManager>, state: &mut NetInnerState) {

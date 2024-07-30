@@ -8,7 +8,10 @@ use world_model::{ChunkCoord, ChunkData, ChunkDelta, WorldModel};
 
 pub use world_model::encoding::NoitaWorldUpdate;
 
-use super::{messages::Destination, omni::OmniPeerId};
+use super::{
+    messages::{Destination, MessageRequest},
+    omni::OmniPeerId,
+};
 
 pub mod world_info;
 pub mod world_model;
@@ -105,9 +108,9 @@ pub struct WorldManager {
     chunk_storage: FxHashMap<ChunkCoord, ChunkData>,
     /// Who is the current chunk authority.
     authority_map: FxHashMap<ChunkCoord, OmniPeerId>,
-    /// Which chunks we have authority of.
-    //authority_of: FxHashSet<ChunkCoord>,
+    /// Chunk states, according to docs/distributed_world_sync.drawio
     chunk_state: FxHashMap<ChunkCoord, ChunkState>,
+    emitted_messages: Vec<MessageRequest<WorldNetMessage>>,
 }
 
 impl WorldManager {
@@ -120,6 +123,7 @@ impl WorldManager {
             // TODO this needs to be persisted between proxy restarts.
             chunk_storage: Default::default(),
             chunk_state: Default::default(),
+            emitted_messages: Default::default(),
         }
     }
 
@@ -148,8 +152,16 @@ impl WorldManager {
         self.outbound_model.reset();
     }
 
+    pub(crate) fn get_emitted_msgs(&mut self) -> Vec<MessageRequest<WorldNetMessage>> {
+        mem::take(&mut self.emitted_messages)
+    }
+
     fn emit_msg(&mut self, dst: Destination, msg: WorldNetMessage) {
-        todo!()
+        self.emitted_messages.push(MessageRequest {
+            reliability: tangled::Reliability::Reliable,
+            dst,
+            msg,
+        })
     }
 
     fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId) {
@@ -222,12 +234,10 @@ impl WorldManager {
                     return;
                 };
                 listeners.insert(source);
+                let chunk_data = self.outbound_model.get_chunk_data(chunk);
                 self.emit_msg(
                     Destination::Peer(source),
-                    WorldNetMessage::ListenInitialResponse {
-                        chunk,
-                        chunk_data: self.outbound_model.get_chunk_data(chunk),
-                    },
+                    WorldNetMessage::ListenInitialResponse { chunk, chunk_data },
                 );
             }
             WorldNetMessage::ListenStopRequest { chunk } => {
