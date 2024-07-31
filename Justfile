@@ -16,6 +16,9 @@ build:
 run-rel: add_dylib_release
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run --release
 
+flamegraph: add_dylib_debug
+    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo flamegraph
+
 run: add_dylib_debug
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run
 

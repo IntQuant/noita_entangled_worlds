@@ -9,7 +9,7 @@ use std::{
     net::{SocketAddr, TcpListener, TcpStream},
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tracing::debug;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
@@ -160,6 +160,8 @@ impl NetManager {
             world: WorldManager::new(self.is_host(), self.peer.my_id().unwrap()),
         };
 
+        let mut last_iter = Instant::now();
+
         while self
             .continue_running
             .load(std::sync::atomic::Ordering::Relaxed)
@@ -271,6 +273,13 @@ impl NetManager {
             for update in updates {
                 state.try_ws_write(ws_encode_proxy_bin(0, &update));
             }
+            // Don't do excessive busy-waiting;
+            let min_update_time = Duration::from_millis(1);
+            let elapsed = last_iter.elapsed();
+            if elapsed < min_update_time {
+                thread::sleep(min_update_time - elapsed);
+            }
+            last_iter = Instant::now();
         }
         Ok(())
     }
