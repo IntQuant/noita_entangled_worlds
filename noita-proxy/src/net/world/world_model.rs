@@ -163,7 +163,7 @@ impl WorldModel {
         updates
     }
 
-    fn apply_chunk_delta(&mut self, delta: &ChunkDelta) {
+    pub(crate) fn apply_chunk_delta(&mut self, delta: &ChunkDelta) {
         self.updated_chunks.insert(delta.chunk_coord);
         let chunk = self.chunks.entry(delta.chunk_coord).or_default();
         let mut offset = 0;
@@ -177,7 +177,7 @@ impl WorldModel {
         }
     }
 
-    pub fn get_chunk_delta(
+    pub(crate) fn get_chunk_delta(
         &self,
         chunk_coord: ChunkCoord,
         ignore_changed: bool,

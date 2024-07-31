@@ -229,28 +229,26 @@ impl NetManager {
                                     state.try_ws_write(ws_encode_mod(src, &decompressed));
                                 }
                             }
-                            NetMsg::WorldDelta { delta: deltas } => {
-                                state.world.handle_deltas(deltas);
-                            }
-                            NetMsg::WorldFrame => {
-                                let updates = state.world.get_noita_updates();
-                                for update in updates {
-                                    state.try_ws_write(ws_encode_proxy_bin(0, &update));
-                                }
-                            }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
                         }
                     }
                 }
             }
+
+            // TODO: Are we really reading only one message per loop?
             if let Some(ws) = &mut state.ws {
                 let msg = ws.read();
                 self.handle_mod_message(msg, &mut state);
             }
+
             for msg in state.world.get_emitted_msgs() {
                 self.do_message_request(msg)
             }
             state.world.update();
+            let updates = state.world.get_noita_updates();
+            for update in updates {
+                state.try_ws_write(ws_encode_proxy_bin(0, &update));
+            }
         }
         Ok(())
     }
@@ -435,16 +433,7 @@ impl NetManager {
             }
             // world end
             1 => {
-                let deltas = state.world.add_end();
-                let limit = if self.peer.is_steam() {
-                    1024 * 1024
-                } else {
-                    30000
-                };
-                for delta in deltas.split(limit) {
-                    self.broadcast(&NetMsg::WorldDelta { delta }, Reliability::Reliable);
-                }
-                self.broadcast(&NetMsg::WorldFrame, Reliability::Reliable);
+                state.world.add_end();
             }
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)

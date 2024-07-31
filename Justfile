@@ -22,6 +22,9 @@ run: add_dylib_debug
 run2: add_dylib_debug
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 
+run2-alt: add_dylib_debug
+    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run
+
 run3: add_dylib_debug
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 

@@ -19,66 +19,37 @@ local KEY_WORLD_END = 1
 
 local CHUNK_SIZE = 128
 
-local function chunk_producer()
-    local initialized_chunks = {}
-    local sent_anything = false
-
-    for _, player_data in pairs(ctx.players) do
-        if not EntityGetIsAlive(player_data.entity) then
-            goto continue
-        end
-        local px, py = EntityGetTransform(player_data.entity)
-        local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
-
-        for cx = ocx-1,ocx+1 do
-            for cy = ocy-1,ocy+1 do
-                local chunk_id = cx.." "..cy
-                if initialized_chunks[chunk_id] == nil then
-                    local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
-                    if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                        -- GamePrint("Sending chunk "..chunk_id)
-                        initialized_chunks[chunk_id] = true
-                        coroutine.yield(crect)
-                    end
-                end
-            end
-        end
-        ::continue::
-    end
-end
-
-local producer_coro = nil
-local sent_anything = false
-
-function world_sync.on_world_update_host()
+function world_sync.on_world_update()
 
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     local thread_impl = grid_world.mThreadImpl
 
-
-    if producer_coro == nil then
-        producer_coro = coroutine.wrap(chunk_producer)
-    end
-
-    if GameGetFrameNum() % 1 == 0 then
-        local crect = producer_coro()
-
-        if crect == nil then
-            producer_coro = nil
+    if GameGetFrameNum() % 10 == 0 then
+        local player_data = ctx.my_player
+        if not EntityGetIsAlive(player_data.entity) then
             return
         end
+        local px, py = EntityGetTransform(player_data.entity)
+        local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
 
-        local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
-        if area ~= nil then
-            local str = ffi.string(area, world.encoded_size(area))
-            net.proxy_bin_send(KEY_WORLD_FRAME, str)
-            sent_anything = true
+        for cx = ocx-2,ocx+2 do
+            for cy = ocy-2,ocy+2 do
+                local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
+                if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+                    local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+                    if area ~= nil then
+                        if ctx.proxy_opt.debug then
+                            GameCreateSpriteForXFrames("mods/quant.ew/files/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
+                        end
+                        local str = ffi.string(area, world.encoded_size(area))
+                        net.proxy_bin_send(KEY_WORLD_FRAME, str)
+                    end
+                end
+            end
         end
 
-        if GameGetFrameNum() % 4 == 0 then
-            net.proxy_bin_send(KEY_WORLD_END, "")
-        end
+        net.proxy_bin_send(KEY_WORLD_END, "")
     end
 end
 
