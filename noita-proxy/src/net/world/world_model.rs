@@ -290,4 +290,9 @@ impl WorldModel {
         let runs = runner.build();
         Some(ChunkData { runs })
     }
+
+    pub(crate) fn forget_chunk(&mut self, chunk: ChunkCoord) {
+        self.chunks.remove(&chunk);
+        self.updated_chunks.remove(&chunk);
+    }
 }

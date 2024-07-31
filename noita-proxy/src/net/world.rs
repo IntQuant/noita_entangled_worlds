@@ -105,7 +105,8 @@ impl ChunkState {
         }
     }
 }
-
+// TODO handle returning authority when player disconnects.
+// TODO handle exits.
 pub(crate) struct WorldManager {
     is_host: bool,
     my_peer_id: OmniPeerId,
@@ -240,8 +241,15 @@ impl WorldManager {
         for (dst, msg) in emit_queue {
             self.emit_msg(dst, msg)
         }
-        self.chunk_state
-            .retain(|_chunk, state| *state != ChunkState::UnloadPending);
+        self.chunk_state.retain(|chunk, state| {
+            let retain = *state != ChunkState::UnloadPending;
+            if !retain {
+                // Models are basically caches, no need to keep the chunk around in them.
+                self.inbound_model.forget_chunk(*chunk);
+                self.outbound_model.forget_chunk(*chunk);
+            }
+            retain
+        });
     }
 
     pub(crate) fn get_noita_updates(&mut self) -> Vec<Vec<u8>> {
@@ -315,7 +323,6 @@ impl WorldManager {
                     self.inbound_model.apply_chunk_data(chunk, chunk_data);
                 }
                 self.chunk_state.insert(chunk, ChunkState::authority());
-                // TODO these chunks will need to be returned to host.
             }
             WorldNetMessage::RelinquishAuthority { chunk, chunk_data } => {
                 if !self.is_host {
