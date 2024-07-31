@@ -1,6 +1,6 @@
 use bitcode::{Decode, Encode};
 
-use crate::{net::world::WorldDelta, GameSettings};
+use crate::GameSettings;
 
 use super::{omni::OmniPeerId, world::WorldNetMessage};
 

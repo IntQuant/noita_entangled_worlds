@@ -244,10 +244,6 @@ impl WorldManager {
             .retain(|_chunk, state| *state != ChunkState::UnloadPending);
     }
 
-    pub(crate) fn handle_deltas(&mut self, deltas: WorldDelta) {
-        self.inbound_model.apply_all_deltas(&deltas.0);
-    }
-
     pub(crate) fn get_noita_updates(&mut self) -> Vec<Vec<u8>> {
         let updates = self.inbound_model.get_all_noita_updates();
         self.inbound_model.reset_change_tracking();
