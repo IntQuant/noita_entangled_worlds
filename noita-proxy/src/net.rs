@@ -235,10 +235,32 @@ impl NetManager {
                 }
             }
 
-            // TODO: Are we really reading only one message per loop?
-            if let Some(ws) = &mut state.ws {
-                let msg = ws.read();
-                self.handle_mod_message(msg, &mut state);
+            // Handle all available messages from Noita.
+            loop {
+                if let Some(ws) = &mut state.ws {
+                    let msg = ws.read();
+                    {
+                        match msg {
+                            Ok(msg) => {
+                                if let tungstenite::Message::Binary(msg) = msg {
+                                    self.handle_mod_message_2(msg, &mut state);
+                                }
+                            }
+                            Err(tungstenite::Error::Io(io_err))
+                                if io_err.kind() == io::ErrorKind::WouldBlock
+                                    || io_err.kind() == io::ErrorKind::TimedOut =>
+                            {
+                                break
+                            }
+                            Err(err) => {
+                                error!("Error occured while reading from websocket: {}", err);
+                                state.ws = None;
+                            }
+                        }
+                    };
+                } else {
+                    break;
+                }
             }
 
             for msg in state.world.get_emitted_msgs() {
@@ -302,27 +324,6 @@ impl NetManager {
         }
 
         info!("Settings sent")
-    }
-
-    pub(crate) fn handle_mod_message(
-        &self,
-        msg: Result<tungstenite::Message, tungstenite::Error>,
-        state: &mut NetInnerState,
-    ) {
-        match msg {
-            Ok(msg) => {
-                if let tungstenite::Message::Binary(msg) = msg {
-                    self.handle_mod_message_2(msg, state);
-                }
-            }
-            Err(tungstenite::Error::Io(io_err))
-                if io_err.kind() == io::ErrorKind::WouldBlock
-                    || io_err.kind() == io::ErrorKind::TimedOut => {}
-            Err(err) => {
-                error!("Error occured while reading from websocket: {}", err);
-                state.ws = None;
-            }
-        }
     }
 
     fn handle_mod_message_2(&self, msg: Vec<u8>, state: &mut NetInnerState) {
