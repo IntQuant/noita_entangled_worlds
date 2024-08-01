@@ -70,3 +70,9 @@ error_lobby_does_not_exist = Лобби не существует.
 
 Higher-values-result-in-less-performance-impact = Higher values result in less performance impact
 World-will-be-synced-every-this-many-frames = World will be synced every this many frames
+## Savestate
+
+New-game = New game
+Continue = Continue
+savestate_desc = Savestate from a previous run has been detected. Do you wish to continue that run, or to start a new game (and reset the savestate)?
+An-in-progress-run-has-been-detected = An in-progress run has been detected.

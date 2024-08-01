@@ -1,12 +1,9 @@
 use std::{
-    fmt::Display,
-    net::SocketAddr,
-    sync::{atomic::Ordering, Arc},
-    time::Duration,
+    fmt::Display, net::SocketAddr, ops::Deref, sync::{atomic::Ordering, Arc}, thread::JoinHandle, time::Duration
 };
 
 use bitcode::{Decode, Encode};
-use bookkeeping::noita_launcher::{LaunchTokenResult, NoitaLauncher};
+use bookkeeping::{noita_launcher::{LaunchTokenResult, NoitaLauncher}, save_state::SaveState};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
@@ -15,7 +12,7 @@ use eframe::egui::{
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
-use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit};
+use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
@@ -61,11 +58,28 @@ impl Default for GameSettings {
     }
 }
 
+pub struct NetManStopOnDrop(pub Arc<net::NetManager>, Option<JoinHandle<()>>);
+
+impl Deref for NetManStopOnDrop {
+    type Target = Arc<net::NetManager>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Drop for NetManStopOnDrop {
+    fn drop(&mut self) {
+        self.0.continue_running.store(false, Ordering::Relaxed);
+        self.1.take().unwrap().join().unwrap();
+    }
+} 
+
 enum AppState {
     Connect,
     ModManager,
     Netman {
-        netman: Arc<net::NetManager>,
+        netman: NetManStopOnDrop,
         noita_launcher: NoitaLauncher,
     },
     Error {
@@ -73,6 +87,7 @@ enum AppState {
     },
     SelfUpdate,
     LangPick,
+    AskSavestateReset,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -103,7 +118,8 @@ pub struct App {
     state: AppState,
     modmanager: Modmanager,
     steam_state: Result<steam_helper::SteamState, SteamAPIInitError>,
-    saved_state: AppSavedState,
+    app_saved_state: AppSavedState,
+    run_save_state: SaveState,
     modmanager_settings: ModmanagerSettings,
     self_update: SelfUpdateManager,
     show_map_plot: bool,
@@ -170,7 +186,7 @@ impl App {
             state,
             modmanager: Modmanager::default(),
             steam_state: steam_helper::SteamState::new(),
-            saved_state,
+            app_saved_state: saved_state,
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
             show_map_plot: false,
@@ -178,6 +194,7 @@ impl App {
             lobby_id_field: "".to_string(),
             args,
             can_start_automatically: false,
+            run_save_state: SaveState::new("./save_state/".into())
         }
     }
 
@@ -187,13 +204,14 @@ impl App {
         } else {
             None
         };
-        let my_nickname = self.saved_state.nickname.clone().or(steam_nickname);
-        NetManagerInit { my_nickname }
+        let my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
+        NetManagerInit { my_nickname, save_state: self.run_save_state.clone() }
     }
 
     fn change_state_to_netman(&mut self, netman: Arc<net::NetManager>) {
+        let handle = netman.clone().start();
         self.state = AppState::Netman {
-            netman,
+            netman: NetManStopOnDrop(netman, Some(handle)),
             noita_launcher: NoitaLauncher::new(
                 &self.modmanager_settings.game_exe_path,
                 self.args.launch_cmd.as_deref(),
@@ -207,15 +225,21 @@ impl App {
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
-        netman.clone().start();
         self.change_state_to_netman(netman);
     }
 
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
+        let run_info: Option<RunInfo> = self.run_save_state.load();
         let mut settings = netman.settings.lock().unwrap();
-        *settings = self.saved_state.game_settings.clone();
-        if !self.saved_state.game_settings.use_constant_seed {
-            settings.seed = rand::random();
+        *settings = self.app_saved_state.game_settings.clone();
+        if !self.app_saved_state.game_settings.use_constant_seed {
+            if let Some(info) = run_info {
+                settings.seed = info.seed;
+                info!("Using saved seed: {}", settings.seed);
+            } else {
+                settings.seed = rand::random();
+                info!("Using random seed: {}", settings.seed);
+            }
         } else {
             info!("Using constant seed: {}", settings.seed);
         }
@@ -225,7 +249,6 @@ impl App {
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
-        netman.clone().start();
         self.change_state_to_netman(netman);
     }
 
@@ -236,7 +259,6 @@ impl App {
         );
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
-        netman.clone().start();
         self.change_state_to_netman(netman);
     }
 
@@ -253,13 +275,12 @@ impl App {
         );
 
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
-        netman.clone().start();
         self.change_state_to_netman(netman);
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.saved_state.times_started % 20 == 0 {
+            if self.app_saved_state.times_started % 20 == 0 {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
                     .texture_options(TextureOptions::NEAREST);
                 image.paint_at(ui, ui.ctx().screen_rect());
@@ -293,7 +314,7 @@ impl App {
                     ui.set_min_size(ui.available_size());
 
                     let lang_label = self
-                        .saved_state
+                        .app_saved_state
                         .lang_id
                         .clone()
                         .unwrap_or_default()
@@ -309,7 +330,7 @@ impl App {
                     }
                     let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
                     if secret_active && ui.button("reset all data").clicked() {
-                        self.saved_state = Default::default();
+                        self.app_saved_state = Default::default();
                         self.modmanager_settings = Default::default();
                         self.state = AppState::LangPick;
                     }
@@ -370,8 +391,8 @@ impl App {
                         self.start_server();
                     }
 
-                    ui.text_edit_singleline(&mut self.saved_state.addr);
-                    let addr = self.saved_state.addr.parse();
+                    ui.text_edit_singleline(&mut self.app_saved_state.addr);
+                    let addr = self.app_saved_state.addr.parse();
                     ui.add_enabled_ui(addr.is_ok(), |ui| {
                         if ui.button(tr("ip_connect")).clicked() {
                             if let Ok(addr) = addr {
@@ -386,7 +407,7 @@ impl App {
 
     fn show_game_settings(&mut self, ui: &mut Ui) {
         heading_with_underline(ui, tr("connect_settings"));
-        let game_settings = &mut self.saved_state.game_settings;
+        let game_settings = &mut self.app_saved_state.game_settings;
 
         ui.label(tr("connect_settings_debug"));
         ui.checkbox(
@@ -445,7 +466,7 @@ impl App {
 
         heading_with_underline(ui, tr("connect_settings_local"));
         ui.checkbox(
-            &mut self.saved_state.start_game_automatically,
+            &mut self.app_saved_state.start_game_automatically,
             tr("connect_settings_autostart"),
         );
     }
@@ -493,6 +514,14 @@ impl App {
             .push("noto_sans_jp".to_owned());
 
         ctx.set_fonts(font_definitions);
+    }
+    
+    fn switch_to_connect(&mut self) {
+        self.state = if self.run_save_state.has_savestate() {
+            AppState::AskSavestateReset
+        } else {
+            AppState::Connect
+        };
     }
 }
 
@@ -596,7 +625,7 @@ impl eframe::App for App {
                     if accept_local && !local_connected {
                         match noita_launcher.launch_token() {
                             LaunchTokenResult::Ok(mut token) => {
-                                let start_auto = self.can_start_automatically && self.saved_state.start_game_automatically;
+                                let start_auto = self.can_start_automatically && self.app_saved_state.start_game_automatically;
                                 if start_auto || ui.button(tr("launcher_start_game")).clicked() {
                                     info!("Starting the game now");
                                     token.start_game();
@@ -646,7 +675,7 @@ impl eframe::App for App {
                     egui::Window::new(tr("connect_settings")).open(&mut show).show(ctx, |ui| {
                         self.show_game_settings(ui);
                         if ui.button(tr("netman_apply_settings")).clicked() {
-                            *netman.pending_settings.lock().unwrap() = self.saved_state.game_settings.clone();
+                            *netman.pending_settings.lock().unwrap() = self.app_saved_state.game_settings.clone();
                         }
                     });
                     self.show_settings = show;
@@ -677,7 +706,7 @@ impl eframe::App for App {
                         )
                     });
                 if self.modmanager.is_done() {
-                    self.state = AppState::Connect;
+                    self.switch_to_connect();
                 }
             }
             AppState::SelfUpdate => {
@@ -700,7 +729,7 @@ impl eframe::App for App {
                             ui.set_max_width(200.0);
                             ui.vertical_centered_justified(|ui| {
                                 if ui.button(lang.name()).clicked() {
-                                    self.saved_state.lang_id = Some(lang.id());
+                                    self.app_saved_state.lang_id = Some(lang.id());
                                     set_current_locale(lang.id())
                                 }
                             });
@@ -710,11 +739,29 @@ impl eframe::App for App {
                         }
                     });
             }
+            AppState::AskSavestateReset => {
+                egui::Window::new(tr("An-in-progress-run-has-been-detected"))
+                    .auto_sized()
+                    .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                    .show(ctx, |ui| {
+                        ui.label(tr("savestate_desc"));
+                        ui.horizontal(|ui| {
+                            if ui.button(tr("Continue")).clicked() {
+                                self.state = AppState::Connect;
+                            }
+                            if ui.button(tr("New-game")).clicked() {
+                                self.state = AppState::Connect;
+                                self.run_save_state.reset();
+                            }
+                        });
+                    }
+                );
+            },
         };
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, &self.saved_state);
+        eframe::set_value(storage, eframe::APP_KEY, &self.app_saved_state);
         eframe::set_value(storage, MODMANAGER, &self.modmanager_settings);
     }
 }

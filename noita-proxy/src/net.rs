@@ -1,3 +1,4 @@
+use bitcode::{Decode, Encode};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
@@ -8,7 +9,7 @@ use std::{
     io::{self, Write},
     net::{SocketAddr, TcpListener, TcpStream},
     sync::{atomic::AtomicBool, Arc, Mutex},
-    thread,
+    thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
 use tracing::debug;
@@ -18,7 +19,10 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::GameSettings;
+use crate::{
+    bookkeeping::save_state::{SaveState, SaveStateEntry},
+    GameSettings,
+};
 
 pub mod messages;
 mod proxy_opt;
@@ -48,6 +52,15 @@ pub(crate) fn ws_encode_mod(peer: omni::OmniPeerId, data: &[u8]) -> tungstenite:
     tungstenite::Message::Binary(buf)
 }
 
+#[derive(Encode, Decode)]
+pub(crate) struct RunInfo {
+    pub(crate) seed: u64,
+}
+
+impl SaveStateEntry for RunInfo {
+    const FILENAME: &'static str = "run_info";
+}
+
 pub(crate) struct NetInnerState {
     pub(crate) ws: Option<WebSocket<TcpStream>>,
     world: WorldManager,
@@ -75,6 +88,7 @@ pub mod omni;
 
 pub struct NetManagerInit {
     pub my_nickname: Option<String>,
+    pub save_state: SaveState,
 }
 
 pub struct NetManager {
@@ -157,7 +171,11 @@ impl NetManager {
 
         let mut state = NetInnerState {
             ws: None,
-            world: WorldManager::new(self.is_host(), self.peer.my_id().unwrap()),
+            world: WorldManager::new(
+                self.is_host(),
+                self.peer.my_id().unwrap(),
+                self.init_settings.save_state.clone(),
+            ),
         };
 
         let mut last_iter = Instant::now();
@@ -299,6 +317,7 @@ impl NetManager {
     }
 
     fn on_ws_connection(self: &Arc<NetManager>, state: &mut NetInnerState) {
+        self.init_settings.save_state.mark_game_started();
         info!("New stream connected");
         let stream_ref = &state.ws.as_ref().unwrap().get_ref();
         stream_ref.set_nonblocking(true).ok();
@@ -378,7 +397,7 @@ impl NetManager {
         }
     }
 
-    pub fn start(self: Arc<NetManager>) {
+    pub fn start(self: Arc<NetManager>) -> JoinHandle<()> {
         info!("Starting netmanager");
         thread::spawn(move || {
             let result = self.clone().start_inner();
@@ -388,7 +407,7 @@ impl NetManager {
             }
             self.stopped
                 .store(true, std::sync::atomic::Ordering::Relaxed);
-        });
+        })
     }
 
     fn resend_game_settings(&self) {
@@ -408,6 +427,7 @@ impl NetManager {
             Some("game_over") => {
                 if self.is_host() {
                     info!("Game over, resending game settings");
+                    self.init_settings.save_state.reset();
                     {
                         let mut settings = self.pending_settings.lock().unwrap().clone();
                         if !settings.use_constant_seed {
@@ -450,6 +470,20 @@ impl NetManager {
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)
             }
+        }
+    }
+}
+
+impl Drop for NetManager {
+    fn drop(&mut self) {
+        if self.is_host() {
+            let run_info = RunInfo {
+                seed: self.settings.lock().unwrap().seed,
+            };
+            self.init_settings.save_state.save(&run_info);
+            info!("Saved run info");
+        } else {
+            info!("Skip saving run info: not a host");
         }
     }
 }

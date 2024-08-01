@@ -8,6 +8,8 @@ use world_model::{ChunkCoord, ChunkData, ChunkDelta, WorldModel};
 
 pub use world_model::encoding::NoitaWorldUpdate;
 
+use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
+
 use super::{
     messages::{Destination, MessageRequest},
     omni::OmniPeerId,
@@ -109,6 +111,7 @@ impl ChunkState {
 pub(crate) struct WorldManager {
     is_host: bool,
     my_peer_id: OmniPeerId,
+    save_state: SaveState,
     /// We receive changes from other clients here, intending to send them to Noita.
     inbound_model: WorldModel,
     /// We use that to create changes to be sent to other clients.
@@ -129,15 +132,17 @@ pub(crate) struct WorldManager {
 }
 
 impl WorldManager {
-    pub(crate) fn new(is_host: bool, my_peer_id: OmniPeerId) -> Self {
+    pub(crate) fn new(is_host: bool, my_peer_id: OmniPeerId, save_state: SaveState) -> Self {
+        let chunk_storage = save_state.load().unwrap_or_default();
         WorldManager {
             is_host,
             my_peer_id,
+            save_state,
             inbound_model: Default::default(),
             outbound_model: Default::default(),
             authority_map: Default::default(),
             // TODO this needs to be persisted between proxy restarts.
-            chunk_storage: Default::default(),
+            chunk_storage,
             chunk_state: Default::default(),
             emitted_messages: Default::default(),
             current_update: 0,
@@ -421,6 +426,19 @@ impl WorldManager {
             self.emit_msg(Destination::Broadcast, message)
         }
     }
+}
+
+impl Drop for WorldManager {
+    fn drop(&mut self) {
+        if self.is_host {
+            self.save_state.save(&self.chunk_storage);
+            info!("Saved chunk data");
+        }
+    }
+}
+
+impl SaveStateEntry for FxHashMap<ChunkCoord, ChunkData> {
+    const FILENAME: &'static str = "world_chunks";
 }
 
 #[cfg(test)]
