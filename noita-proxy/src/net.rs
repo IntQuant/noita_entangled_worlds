@@ -205,6 +205,7 @@ impl NetManager {
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
+                        state.world.handle_peer_left(id);
                     }
                     omni::OmniNetworkEvent::Message { src, data } => {
                         let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)

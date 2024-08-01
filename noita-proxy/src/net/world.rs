@@ -22,7 +22,7 @@ pub enum WorldUpdateKind {
     End,
 }
 
-#[derive(Debug, Decode, Encode)]
+#[derive(Debug, Decode, Encode, Clone)]
 pub(crate) enum WorldNetMessage {
     // Authority request
     RequestAuthority {
@@ -105,7 +105,6 @@ impl ChunkState {
         }
     }
 }
-// TODO handle returning authority when player disconnects.
 // TODO handle exits.
 pub(crate) struct WorldManager {
     is_host: bool,
@@ -274,6 +273,10 @@ impl WorldManager {
             self.handle_msg(self.my_peer_id, msg);
             return;
         }
+        // Also handle broadcast messages this way.
+        if dst == Destination::Broadcast {
+            self.handle_msg(self.my_peer_id, msg.clone());
+        }
 
         self.emitted_messages.push(MessageRequest {
             reliability: tangled::Reliability::Reliable,
@@ -395,6 +398,27 @@ impl WorldManager {
             WorldNetMessage::ListenAuthorityRelinquished { chunk } => {
                 self.chunk_state.insert(chunk, ChunkState::UnloadPending);
             }
+        }
+    }
+
+    /// Should be called when player disconnects.
+    /// This frees up any authority that player had.
+    pub(crate) fn handle_peer_left(&mut self, source: OmniPeerId) {
+        if !self.is_host {
+            return;
+        }
+        let mut pending_messages = Vec::new();
+
+        for (&chunk, peer) in self.authority_map.iter() {
+            if *peer == source {
+                info!("Removing authority from disconnected peer: {chunk:?}");
+                pending_messages.push(WorldNetMessage::ListenAuthorityRelinquished { chunk });
+            }
+        }
+        self.authority_map.retain(|_, peer| *peer != source);
+
+        for message in pending_messages {
+            self.emit_msg(Destination::Broadcast, message)
         }
     }
 }
