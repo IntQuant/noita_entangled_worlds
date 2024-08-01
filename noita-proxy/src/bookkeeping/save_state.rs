@@ -51,7 +51,8 @@ impl SaveState {
 
         let path = self.path_for_filename(D::FILENAME);
         let encoded = bitcode::encode(data);
-        if let Err(err) = fs::write(&path, encoded) {
+        let compressed = lz4_flex::compress_prepend_size(&encoded);
+        if let Err(err) = fs::write(&path, compressed) {
             error!("Error while saving to {:?}: {err}", D::FILENAME);
         }
         info!("Saved {}", path.display());
@@ -61,6 +62,9 @@ impl SaveState {
         let path = self.path_for_filename(D::FILENAME);
         let data = fs::read(&path)
             .inspect_err(|err| warn!("Could not read {:?}: {err}", D::FILENAME))
+            .ok()?;
+        let data = lz4_flex::decompress_size_prepended(&data)
+            .inspect_err(|err| warn!("Could not decompress {:?}: {err}", D::FILENAME))
             .ok()?;
         bitcode::decode(&data)
             .inspect_err(|err| error!("Could not decode {:?}: {err}", D::FILENAME))
