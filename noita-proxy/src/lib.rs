@@ -42,6 +42,7 @@ pub struct GameSettings {
     use_constant_seed: bool,
     item_dedup: bool,
     enemy_hp_mult: f32,
+    world_sync_interval: u32,
 }
 
 impl Default for GameSettings {
@@ -55,6 +56,7 @@ impl Default for GameSettings {
             use_constant_seed: false,
             item_dedup: true,
             enemy_hp_mult: 1.0,
+            world_sync_interval: 10,
         }
     }
 }
@@ -79,6 +81,7 @@ struct AppSavedState {
     nickname: Option<String>,
     times_started: u32,
     lang_id: Option<LanguageIdentifier>,
+    #[serde(default)]
     game_settings: GameSettings,
     start_game_automatically: bool,
 }
@@ -383,20 +386,21 @@ impl App {
 
     fn show_game_settings(&mut self, ui: &mut Ui) {
         heading_with_underline(ui, tr("connect_settings"));
+        let game_settings = &mut self.saved_state.game_settings;
 
         ui.label(tr("connect_settings_debug"));
         ui.checkbox(
-            &mut self.saved_state.game_settings.debug_mode,
+            &mut game_settings.debug_mode,
             tr("connect_settings_debug_en"),
         );
         ui.checkbox(
-            &mut self.saved_state.game_settings.use_constant_seed,
+            &mut game_settings.use_constant_seed,
             tr("connect_settings_debug_fixed_seed"),
         );
 
         ui.horizontal(|ui| {
             ui.label(tr("connect_settings_seed"));
-            ui.add(DragValue::new(&mut self.saved_state.game_settings.seed));
+            ui.add(DragValue::new(&mut game_settings.seed));
         });
 
         ui.add_space(20.0);
@@ -404,32 +408,40 @@ impl App {
         ui.label(tr("connect_settings_wsv"));
         ui.horizontal(|ui| {
             ui.radio_value(
-                &mut self.saved_state.game_settings.world_sync_version,
+                &mut game_settings.world_sync_version,
                 1,
                 "v1",
             );
             ui.radio_value(
-                &mut self.saved_state.game_settings.world_sync_version,
+                &mut game_settings.world_sync_version,
                 2,
                 "v2",
             );
         });
 
+        if game_settings.world_sync_version == 2 {
+            ui.add_space(10.0);
+            ui.label(tr("World-will-be-synced-every-this-many-frames"));
+            ui.label(tr("Higher-values-result-in-less-performance-impact"));
+            ui.add(Slider::new(&mut game_settings.world_sync_interval, 1..=60));
+        }
+        
+
         ui.add_space(20.0);
 
         ui.label(tr("connect_settings_player_tether_desc"));
         ui.checkbox(
-            &mut self.saved_state.game_settings.player_tether,
+            &mut game_settings.player_tether,
             tr("connect_settings_player_tether"),
         );
         ui.add(
-            Slider::new(&mut self.saved_state.game_settings.tether_length, 10..=5000)
+            Slider::new(&mut game_settings.tether_length, 10..=5000)
                 .text(tr("connect_settings_player_tether_length")),
         );
         ui.add_space(20.0);
-        ui.checkbox(&mut self.saved_state.game_settings.item_dedup, tr("connect_settings_item_dedup"));
+        ui.checkbox(&mut game_settings.item_dedup, tr("connect_settings_item_dedup"));
         ui.add_space(20.0);
-        ui.add(Slider::new(&mut self.saved_state.game_settings.enemy_hp_mult, 1.0..=1000.0).logarithmic(true).text(tr("connect_settings_enemy_hp_scale")));
+        ui.add(Slider::new(&mut game_settings.enemy_hp_mult, 1.0..=1000.0).logarithmic(true).text(tr("connect_settings_enemy_hp_scale")));
 
         heading_with_underline(ui, tr("connect_settings_local"));
         ui.checkbox(

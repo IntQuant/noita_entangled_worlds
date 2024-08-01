@@ -65,3 +65,8 @@ error_occured = Произошла ошибка:
 error_missing_version_field = Лобби было создано очень старой версией прокси.
 error_version_mismatch = Версии прокси не совпадают. Версия хоста: { $remote_version }. Установленная сейчас версия: { $current_version }.
 error_lobby_does_not_exist = Лобби не существует.
+
+## Game settings
+
+Higher-values-result-in-less-performance-impact = Higher values result in less performance impact
+World-will-be-synced-every-this-many-frames = World will be synced every this many frames

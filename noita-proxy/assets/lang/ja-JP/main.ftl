@@ -7,20 +7,6 @@ connect_steam_connect_invalid_lobby_id = クリップボードにロビーIDが�
 
 connect_ip = IP接続する
 
-connect_settings = ゲーム設定
-connect_settings_debug = デバッグ設定
-connect_settings_debug_en = デバッグ/チートモード
-connect_settings_debug_fixed_seed = 固定Seedを利用する
-connect_settings_seed = Seed:
-connect_settings_wsv = World syncに利用する同期バージョン:
-connect_settings_player_tether = プレイヤーテザーを有効にする
-connect_settings_player_tether_desc = プレイヤーテザーとは: 参加者がホストから一定の範囲以上離れた場合にてレポートする
-connect_settings_player_tether_length = テザーの長さ
-connect_settings_item_dedup = ワールド生成の同期で重複したアイテムを削除する
-connect_settings_enemy_hp_scale = 敵HPのスケーリング
-connect_settings_local = ローカル設定
-connect_settings_autostart = ゲームを自動的に開始する
-
 lang_picker = 言語を選択する
 
 button_confirm = 確認
@@ -82,3 +68,23 @@ launcher_no_command_2 = 起動コマンドは --launch-cmd <command> オプシ�
 launcher_no_command_3 = Steamの起動オプションに `noita-proxy --launch-cmd "%command%"` を入力すると、Steamがゲームを開始する際のコマンドを確認できます。
 launcher_start_game = Noitaを開始する
 launcher_only_when_awaiting = 「Noita接続待機中」状態のときのみゲームを開始できます。
+
+connect_settings = ゲーム設定
+connect_settings_debug = デバッグ設定
+connect_settings_debug_en = デバッグ/チートモード
+connect_settings_debug_fixed_seed = 固定Seedを利用する
+connect_settings_seed = Seed:
+connect_settings_wsv = World syncに利用する同期バージョン:
+connect_settings_player_tether = プレイヤーテザーを有効にする
+connect_settings_player_tether_desc = プレイヤーテザーとは: 参加者がホストから一定の範囲以上離れた場合にてレポートする
+connect_settings_player_tether_length = テザーの長さ
+connect_settings_item_dedup = ワールド生成の同期で重複したアイテムを削除する
+connect_settings_enemy_hp_scale = 敵HPのスケーリング
+connect_settings_local = ローカル設定
+connect_settings_autostart = ゲームを自動的に開始する
+
+## Game settings
+
+Higher-values-result-in-less-performance-impact = Higher values result in less performance impact.
+World-will-be-synced-every-this-many-frames = World will be synced every this many frames.
+

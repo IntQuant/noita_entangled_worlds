@@ -25,7 +25,7 @@ function world_sync.on_world_update()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     local thread_impl = grid_world.mThreadImpl
 
-    if GameGetFrameNum() % 10 == 0 then
+    if GameGetFrameNum() % ctx.proxy_opt.world_sync_interval == 0 then
         local player_data = ctx.my_player
         if not EntityGetIsAlive(player_data.entity) then
             return

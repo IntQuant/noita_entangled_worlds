@@ -7,20 +7,6 @@ connect_steam_connect_invalid_lobby_id = Clipboard does not contain a lobby code
 
 connect_ip = Connect using ip
 
-connect_settings = Game settings
-connect_settings_debug = Debug settings
-connect_settings_debug_en = Debug/cheat mode
-connect_settings_debug_fixed_seed = Use fixed seed
-connect_settings_seed = Seed:
-connect_settings_wsv = World sync version to use:
-connect_settings_player_tether = Player tether enabled
-connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
-connect_settings_player_tether_length = Tether length
-connect_settings_item_dedup = Deduplicate (sync) items spawned by world generation.
-connect_settings_enemy_hp_scale = Enemy hp scale.
-connect_settings_local = Local settings
-connect_settings_autostart = Start the game automatically
-
 lang_picker = Choose a language
 
 button_confirm = Confirm
@@ -82,3 +68,23 @@ launcher_no_command_2 = Launch command can be specified with --launch-cmd <comma
 launcher_no_command_3 = You can put `noita-proxy --launch-cmd "%command%"` in steam's launch options to intercept whatever command steam uses to start the game.
 launcher_start_game = Start noita
 launcher_only_when_awaiting = Can only launch the game in "waiting for noita connection" state.
+
+connect_settings = Game settings
+connect_settings_debug = Debug settings
+connect_settings_debug_en = Debug/cheat mode
+connect_settings_debug_fixed_seed = Use fixed seed
+connect_settings_seed = Seed:
+connect_settings_wsv = World sync version to use:
+connect_settings_player_tether = Player tether enabled
+connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
+connect_settings_player_tether_length = Tether length
+connect_settings_item_dedup = Deduplicate (sync) items spawned by world generation.
+connect_settings_enemy_hp_scale = Enemy hp scale.
+connect_settings_local = Local settings
+connect_settings_autostart = Start the game automatically
+
+## Game settings
+
+Higher-values-result-in-less-performance-impact = Higher values result in less performance impact.
+World-will-be-synced-every-this-many-frames = World will be synced every this many frames.
+
