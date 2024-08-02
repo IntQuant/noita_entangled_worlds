@@ -182,6 +182,12 @@ impl App {
         cc.egui_ctx
             .set_zoom_factor(args.ui_zoom_factor.unwrap_or(1.0));
         info!("Creating the app...");
+        let run_save_state = if let Ok(path) = std::env::current_exe()
+        {
+            SaveState::new(path.parent().unwrap().join("save_state"))
+        }else{
+            SaveState::new("./save_state/".into())
+        };
         Self {
             state,
             modmanager: Modmanager::default(),
@@ -194,7 +200,7 @@ impl App {
             lobby_id_field: "".to_string(),
             args,
             can_start_automatically: false,
-            run_save_state: SaveState::new("./save_state/".into())
+            run_save_state
         }
     }
 
