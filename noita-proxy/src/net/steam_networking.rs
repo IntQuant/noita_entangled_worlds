@@ -532,6 +532,10 @@ impl SteamPeer {
     pub fn state(&self) -> ExtraPeerState {
         self.inner.lock().unwrap().state
     }
+
+    pub fn is_host(&self) -> bool {
+        self.is_host
+    }
 }
 
 fn make_callbacks(

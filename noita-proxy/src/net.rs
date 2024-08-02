@@ -169,10 +169,12 @@ impl NetManager {
             thread::sleep(Duration::from_millis(100));
         }
 
+        let is_host = self.is_host();
+        info!("Is host: {is_host}");
         let mut state = NetInnerState {
             ws: None,
             world: WorldManager::new(
-                self.is_host(),
+                is_host,
                 self.peer.my_id().unwrap(),
                 self.init_settings.save_state.clone(),
             ),
@@ -416,7 +418,7 @@ impl NetManager {
     }
 
     fn is_host(&self) -> bool {
-        self.peer.my_id() == Some(self.peer.host_id())
+        self.peer.is_host()
     }
 
     pub(crate) fn handle_message_to_proxy(&self, msg: &[u8], state: &mut NetInnerState) {

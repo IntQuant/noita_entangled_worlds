@@ -154,6 +154,9 @@ impl PeerVariant {
     }
 
     pub fn is_host(&self) -> bool {
-        Some(self.host_id()) == self.my_id()
+        match self {
+            PeerVariant::Tangled(_) => Some(self.host_id()) == self.my_id(),
+            PeerVariant::Steam(p) => p.is_host(),
+        }
     }
 }
