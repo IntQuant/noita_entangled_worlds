@@ -221,6 +221,7 @@ impl App {
             noita_launcher: NoitaLauncher::new(
                 &self.modmanager_settings.game_exe_path,
                 self.args.launch_cmd.as_deref(),
+                self.steam_state.as_mut().ok()
             ),
         };
         self.can_start_automatically = true;
