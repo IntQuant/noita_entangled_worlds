@@ -68,6 +68,7 @@ error_lobby_does_not_exist = Лобби не существует.
 
 ## Game settings
 
+world-sync-is-pixel-sync-note = Note: World sync refers to the part that syncs pixels(materials) of the world. Enemies and other entities aren't affected by this.
 Higher-values-result-in-less-performance-impact = Higher values result in less performance impact
 World-will-be-synced-every-this-many-frames = World will be synced every this many frames
 ## Savestate

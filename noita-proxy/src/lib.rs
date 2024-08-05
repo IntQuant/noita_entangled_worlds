@@ -441,13 +441,14 @@ impl App {
                 "v2",
             );
         });
-
+        
         if game_settings.world_sync_version == 2 {
             ui.add_space(10.0);
             ui.label(tr("World-will-be-synced-every-this-many-frames"));
             ui.label(tr("Higher-values-result-in-less-performance-impact"));
             ui.add(Slider::new(&mut game_settings.world_sync_interval, 1..=60));
         }
+        ui.label(tr("world-sync-is-pixel-sync-note"));
         
 
         ui.add_space(20.0);

@@ -85,6 +85,7 @@ connect_settings_autostart = Start the game automatically
 
 ## Game settings
 
+world-sync-is-pixel-sync-note = Note: World sync refers to the part that syncs pixels(materials) of the world. Enemies and other entities aren't affected by this.
 Higher-values-result-in-less-performance-impact = Higher values result in less performance impact.
 World-will-be-synced-every-this-many-frames = World will be synced every this many frames.
 
