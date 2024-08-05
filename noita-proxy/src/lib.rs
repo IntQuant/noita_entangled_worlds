@@ -437,11 +437,6 @@ impl App {
         ui.horizontal(|ui| {
             ui.radio_value(
                 &mut game_settings.world_sync_version,
-                1,
-                "v1",
-            );
-            ui.radio_value(
-                &mut game_settings.world_sync_version,
                 2,
                 "v2",
             );
