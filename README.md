@@ -8,7 +8,7 @@ What is synced as of now:
  - Item usage
  - Items in world (One player can throw a wand/potion/spell/item, another can pick it up)
  - Enemies and their attacks
- - Pixels of the grid world (this one is far from perfect, however)
+ - Pixels of the grid world
  - Fungal shifts
  - Polymorphing
 
