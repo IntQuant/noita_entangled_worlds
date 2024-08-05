@@ -79,7 +79,11 @@ function module.on_world_update()
 
         if okay_to_display then
             local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
-            GuiImage(gui, gui_id, x, y, "mods/quant.ew/files/src/system/player_arrows/arrow.png", 1, 0.5, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
+            local img_path = "mods/quant.ew/files/src/system/player_arrows/arrow.png"
+            if ctx.host_id == player_data.peer_id then
+                img_path = "mods/quant.ew/files/src/system/player_arrows/arrow_host.png"
+            end
+            GuiImage(gui, gui_id, x, y, img_path, 1, 0.5, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
             gui_id = gui_id + 1
         end
 
