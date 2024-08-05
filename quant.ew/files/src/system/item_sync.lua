@@ -195,9 +195,13 @@ function item_sync.on_world_update_client()
     remove_client_items_from_world()
 end
 
+local function is_safe_to_remove()
+    return not ctx.is_wand_pickup
+end
+
 function item_sync.on_world_update()
     -- TODO check that we not removing item we are going to pick now, instead of checking if picker gui is open.
-    if not ctx.is_wand_pickup then
+    if is_safe_to_remove() then
         if #pending_remove > 0 then
             local gid = table.remove(pending_remove)
             item_sync.remove_item_with_id_now(gid)
@@ -256,6 +260,9 @@ end
 
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
+    if is_safe_to_remove() then
+        item_sync.remove_item_with_id_now(item_data.gid)
+    end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
 end
