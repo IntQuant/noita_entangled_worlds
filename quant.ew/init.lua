@@ -64,6 +64,7 @@ local function load_modules()
     ctx.load_system("enemy_scaling")
     ctx.load_system("kivi_patch")
     ctx.load_system("patch_meat_biome")
+    ctx.load_system("player_arrows")
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,

@@ -1,0 +1,90 @@
+local util = dofile_once("mods/quant.ew/files/src/util.lua")
+local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local net = dofile_once("mods/quant.ew/files/src/net.lua")
+local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
+
+local rpc = net.new_rpc_namespace()
+
+local gui = GuiCreate()
+
+local module = {}
+
+-- "Borrowed" from MK VIII QF 2-puntaa NAVAL-ASE in Noita discord server.
+-- https://discord.com/channels/453998283174576133/632303734877192192/1178002118368559175
+local function world2gui( x, y )
+    in_camera_ref = in_camera_ref or false
+
+    local gui = GuiCreate()
+    GuiStartFrame(gui)
+    local w, h = GuiGetScreenDimensions( gui )
+    GuiDestroy(gui)
+
+    local vres_scaling_factor = w/( MagicNumbersGetValue( "VIRTUAL_RESOLUTION_X" ) + MagicNumbersGetValue( "VIRTUAL_RESOLUTION_OFFSET_X" ))
+    local cam_x, cam_y = GameGetCameraPos()
+    x, y = w/2 + vres_scaling_factor*( x - cam_x ), h/2 + vres_scaling_factor*( y - cam_y )
+
+    return x, y, vres_scaling_factor
+end
+
+function module.on_world_update()
+    GuiStartFrame(gui)
+
+    GuiZSet(gui, 10)
+
+    local ccx, ccy = GameGetCameraPos()
+    local csx, csy, tcw, tch = GameGetCameraBounds()
+
+    local cw = tcw - 10
+    local ch = tch - 10
+    local half_cw = cw / 2
+    local half_ch = ch / 2
+
+    local gui_id = 2
+
+    for _, player_data in pairs(ctx.players) do
+        if player_data.peer_id == ctx.my_id then
+            goto continue
+        end
+
+        local px, py = EntityGetTransform(player_data.entity)
+        local player_dir_x = px - ccx
+        local player_dir_y = py - ccy
+        -- local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y
+        -- player_dir_x = player_dir_x / dist
+        -- player_dir_y = player_dir_y / dist
+        
+        local okay_to_display = false
+
+        -- Contain the arrow in screen rect.
+        if player_dir_x > half_cw then
+            player_dir_y = player_dir_y / (player_dir_x / half_cw)
+            player_dir_x = half_cw
+            okay_to_display = true
+        end
+        if player_dir_x < -half_cw then
+            player_dir_y = player_dir_y / (player_dir_x / -half_cw)
+            player_dir_x = -half_cw
+            okay_to_display = true
+        end
+        if player_dir_y > half_ch then
+            player_dir_x = player_dir_x / (player_dir_y / half_ch)
+            player_dir_y = half_ch
+            okay_to_display = true
+        end
+        if player_dir_y < -half_ch then
+            player_dir_x = player_dir_x / (player_dir_y / -half_ch)
+            player_dir_y = -half_ch
+            okay_to_display = true
+        end
+
+        if okay_to_display then
+            local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
+            GuiImage(gui, gui_id, x, y, "mods/quant.ew/files/sprites/arrow.png", 1, 0.5, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
+            gui_id = gui_id + 1
+        end
+
+        ::continue::
+    end
+end
+
+return module
