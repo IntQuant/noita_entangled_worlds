@@ -62,8 +62,11 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/ending/ending.lua")
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")
+
     ctx.load_system("kivi_patch")
     ctx.load_system("patch_meat_biome")
+    ctx.load_system("patch_dragon_boss")
+
     ctx.load_system("player_arrows")
 end
 
@@ -133,7 +136,11 @@ function OnPausedChanged(paused, is_wand_pickup)
 end
 
 function OnWorldInitialized() -- This is called once the game world is initialized. Doesn't ensure any world chunks actually exist. Use OnPlayerSpawned to ensure the chunks around player have been loaded or created.
-	--GamePrint( "OnWorldInitialized() " .. tostring(GameGetFrameNum()) )
+    if ctx.is_host then
+        GameAddFlagRun("ew_flag_this_is_host")
+    else
+        GameRemoveFlagRun("ew_flag_this_is_host")
+    end
 end
 
 
@@ -306,6 +313,7 @@ function OnModPreInit()
 	register_localizations("mods/quant.ew/translations.csv", 1)
     ctx.init()
     net.init()
+
     load_modules()
 end
 

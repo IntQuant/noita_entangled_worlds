@@ -17,3 +17,16 @@
 | spell2       = Black Hole
 | spell3       = Black Hole
 }}
+
+
+{{Wand Card
+| wandPic      = Wand handgun.png
+| castDelay    = -10.0
+| rechargeTime = -10.0
+| manaMax      = 30000.00
+| manaCharge   = 30000.00
+| capacity     = 10
+| spread       = -30
+| speed        = 1.00
+| spell1       = Spark bolt
+}}
