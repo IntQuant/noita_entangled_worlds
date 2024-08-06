@@ -53,7 +53,7 @@ impl Default for GameSettings {
             use_constant_seed: false,
             item_dedup: true,
             enemy_hp_mult: 1.0,
-            world_sync_interval: 10,
+            world_sync_interval: 2,
         }
     }
 }
@@ -446,7 +446,7 @@ impl App {
             ui.add_space(10.0);
             ui.label(tr("World-will-be-synced-every-this-many-frames"));
             ui.label(tr("Higher-values-result-in-less-performance-impact"));
-            ui.add(Slider::new(&mut game_settings.world_sync_interval, 1..=60));
+            ui.add(Slider::new(&mut game_settings.world_sync_interval, 1..=10));
         }
         ui.label(tr("world-sync-is-pixel-sync-note"));
         

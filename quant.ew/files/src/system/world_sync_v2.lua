@@ -19,6 +19,8 @@ local KEY_WORLD_END = 1
 
 local CHUNK_SIZE = 128
 
+local iter = 0
+
 function world_sync.on_world_update()
 
     local grid_world = world_ffi.get_grid_world()
@@ -31,22 +33,26 @@ function world_sync.on_world_update()
             return
         end
         local px, py = EntityGetTransform(player_data.entity)
+        -- Original Chunk x/y
         local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
 
-        for cx = ocx-2,ocx+2 do
-            for cy = ocy-2,ocy+2 do
-                local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
-                if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                    local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
-                    if area ~= nil then
-                        if ctx.proxy_opt.debug then
-                            GameCreateSpriteForXFrames("mods/quant.ew/files/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
-                        end
-                        local str = ffi.string(area, world.encoded_size(area))
-                        net.proxy_bin_send(KEY_WORLD_FRAME, str)
+        local cx = ocx - 2 + iter
+        for cy = ocy-2,ocy+2 do
+            local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
+            if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+                local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+                if area ~= nil then
+                    if ctx.proxy_opt.debug then
+                        GameCreateSpriteForXFrames("mods/quant.ew/files/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
                     end
+                    local str = ffi.string(area, world.encoded_size(area))
+                    net.proxy_bin_send(KEY_WORLD_FRAME, str)
                 end
             end
+        end
+        iter = iter + 1
+        if iter > 5 then
+            iter = 0
         end
 
         net.proxy_bin_send(KEY_WORLD_END, "")

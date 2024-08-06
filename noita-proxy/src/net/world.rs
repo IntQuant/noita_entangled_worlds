@@ -196,7 +196,8 @@ impl WorldManager {
     pub(crate) fn update(&mut self) {
         let mut emit_queue = Vec::new();
 
-        let unload_limit = 1;
+        // How many updates till we relinquish authority/stop listening.
+        let unload_limit = 6;
 
         for (&chunk, state) in self.chunk_state.iter_mut() {
             let chunk_last_update = self
