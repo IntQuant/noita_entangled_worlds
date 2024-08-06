@@ -267,7 +267,6 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
         np.SetProjectileSpreadRNG(rng)
     end
     if ctx.entity_by_remote_id[remote_source_ent] == nil then
-        GamePrint("Can't replicate projectile for "..(remote_source_ent or "nil"))
         return
     end
     local source_ent = ctx.entity_by_remote_id[remote_source_ent].id
