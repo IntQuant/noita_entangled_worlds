@@ -162,12 +162,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.ready = true
     ctx.my_player = my_player
 
-    if ctx.is_host then
-        EntityAddTag(player_entity, "ew_host")
-    else
-        -- EntityAddComponent2(player_entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
-    end
-
     EntityAddTag(player_entity, "ew_current_player") -- TODO maybe remove and replace uses with player_unit tag
     EntityAddTag(player_entity, "ew_peer")
 
