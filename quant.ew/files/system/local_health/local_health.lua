@@ -5,6 +5,7 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
@@ -16,8 +17,23 @@ local module = {}
 function module.on_player_died(player_entity)
     GamePrint("d "..player_entity)
     local x, y = EntityGetTransform(player_entity)
-    local orb = EntityLoad("mods/quant.ew/files/system/local_health/entities/soul_orb.xml", x, y)
-    np.SetPlayerEntity(orb)
+    local notplayer = EntityLoad("mods/quant.ew/files/system/local_health/notplayer/notplayer.xml", x, y)
+
+    -- for _, child in ipairs(EntityGetAllChildren(player_entity) or {}) do
+    --     GamePrint("moved "..child.." "..EntityGetName(child))
+    --     EntityRemoveFromParent(child)
+    --     EntityAddChild(notplayer, child)
+    -- end
+
+    local item_data = inventory_helper.get_item_data(ctx.my_player)
+
+    np.SetPlayerEntity(notplayer)
+
+    local tmp_player_data = {
+        entity = notplayer,
+    }
+
+    inventory_helper.set_item_data(item_data, tmp_player_data)
 end
 
 local function do_game_over(message)

@@ -185,13 +185,11 @@ function inventory_helper.get_item_data(player_data, fresh)
         local item_x, item_y = EntityGetTransform(item)
 
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
-        -- GlobalsSetValue(tostring(item) .. "_item", tostring(k))
+        
         if(entity_is_wand(item))then
-            local wand = EZWand(item)
             table.insert(wandData,
                 {
-                    data = wand:Serialize(not fresh, not fresh),
-                    -- id = item_id or (item + Random(1, 10000000)),
+                    data = inventory_helper.serialize_single_item(item),
                     slot_x = slot_x,
                     slot_y = slot_y,
                     active = (mActiveItem == item),
@@ -200,8 +198,7 @@ function inventory_helper.get_item_data(player_data, fresh)
         else
             table.insert(wandData,
                 {
-                    data = np.SerializeEntity(item),
-                    -- id = item_id or (item + Random(1, 10000000)),
+                    data = inventory_helper.serialize_single_item(item),
                     slot_x = slot_x,
                     slot_y = slot_y,
                     active = (mActiveItem == item)
@@ -220,10 +217,9 @@ function inventory_helper.get_item_data(player_data, fresh)
 
         -- GlobalsSetValue(tostring(item) .. "_item", tostring(k))
         if(entity_is_wand(item))then
-            local wand = EZWand(item)
             table.insert(spellData,
                 {
-                    data = wand:Serialize(not fresh, not fresh),
+                    data = inventory_helper.serialize_single_item(item),
                     -- id = item_id or (item + Random(1, 10000000)),
                     slot_x = slot_x,
                     slot_y = slot_y,
@@ -233,7 +229,7 @@ function inventory_helper.get_item_data(player_data, fresh)
         else
             table.insert(spellData,
                 {
-                    data = np.SerializeEntity(item),
+                    data = inventory_helper.serialize_single_item(item),
                     -- id = item_id or (item + Random(1, 10000000)),
                     slot_x = slot_x,
                     slot_y = slot_y,
@@ -290,11 +286,10 @@ function inventory_helper.set_item_data(item_data, player_data)
             local item_entity = nil
             local item = nil
             if(itemInfo.is_wand)then
-                item = EZWand(itemInfo.data, x, y, GameHasFlagRun("refresh_all_charges"))
-                
+                item = inventory_helper.deserialize_single_item(itemInfo.data)
+                item = EZWand(item)
             else
-                item = EntityCreateNew()
-                np.DeserializeEntity(item, itemInfo.data, x, y)
+                item = inventory_helper.deserialize_single_item(itemInfo.data)
             end
 
             if (item == nil) then
