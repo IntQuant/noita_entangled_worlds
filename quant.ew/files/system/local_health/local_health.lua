@@ -15,25 +15,28 @@ local rpc = net.new_rpc_namespace()
 local module = {}
 
 function module.on_player_died(player_entity)
-    GamePrint("d "..player_entity)
-    local x, y = EntityGetTransform(player_entity)
-    local notplayer = EntityLoad("mods/quant.ew/files/system/local_health/notplayer/notplayer.xml", x, y)
+    -- This would be a good place to put on death logic
+    -- BUT... player entity is already dead at this point, so it's a bit problematic to do stuff.
+    -- Also inventory items seem to be borked.
+end
 
-    -- for _, child in ipairs(EntityGetAllChildren(player_entity) or {}) do
-    --     GamePrint("moved "..child.." "..EntityGetName(child))
-    --     EntityRemoveFromParent(child)
-    --     EntityAddChild(notplayer, child)
-    -- end
-
+local function player_died()
+    -- Serialize inventory, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
+    local _, max_hp = util.get_ent_health(ctx.my_player.entity)
 
-    np.SetPlayerEntity(notplayer)
+    -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
+    -- Which is, like, perfect.
+    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
 
-    local tmp_player_data = {
-        entity = notplayer,
-    }
+    GameAddFlagRun("ew_flag_notplayer_active")
 
-    inventory_helper.set_item_data(item_data, tmp_player_data)
+    -- We kinda need to wait a frame for things to update.
+    async(function ()
+        wait(1)
+        inventory_helper.set_item_data(item_data, ctx.my_player)
+        util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
+    end)
 end
 
 local function do_game_over(message)
@@ -50,7 +53,25 @@ end
 function module.on_local_player_spawn(my_player)
     util.set_ent_health(my_player.entity, {0.2, 4}) -- TODO remember to remove
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
-    -- ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+end
+
+function module.on_world_update()
+    local hp, max_hp, has_hp = util.get_ent_health(ctx.my_player.entity)
+    if not ctx.my_player.currently_polymorphed and has_hp then
+        if hp <= 0 then
+            -- Restore the player back to small amount of hp.
+            util.set_ent_health(ctx.my_player.entity, {1/25, max_hp})
+            player_died()
+        end
+    end
+
+    local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
+    if notplayer_active then
+        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+        -- ComponentSetValue2(controls, "mButtonDownRight", true)
+        -- ComponentSetValue2(controls, "mButtonFrameRight", GameGetFrameNum() + 1)
+    end
 end
 
 function module.on_world_update_client()
@@ -89,6 +110,19 @@ function module.inflict_damage(dmg)
     module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
 end
 
+local function end_poly_effect(ent)
+    local children = EntityGetAllChildren(ent) or {}
+    for _, child in pairs(children)do
+        local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+        if game_effect_comp then
+            local effect = ComponentGetValue2(game_effect_comp, "effect")
+            if effect == "POLYMORPH" then
+                ComponentSetValue2(game_effect_comp, "frames", 1)
+            end
+        end
+    end
+end
+
 -- Provides health capability
 ctx.cap.health = {
     health = module.health,
@@ -97,7 +131,19 @@ ctx.cap.health = {
     set_max_health = module.set_max_health,
     inflict_damage = module.inflict_damage,
     do_game_over = function(message) do_game_over(message) rpc.trigger_game_over(message) end,
-    on_poly_death = function() end,
+    on_poly_death = function()
+        local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
+        if notplayer_active then
+            GameRemoveFlagRun("ew_flag_notplayer_active")
+            end_poly_effect(ctx.my_player.entity)
+        else
+            end_poly_effect(ctx.my_player.entity)
+            async(function ()
+                wait(1)
+                player_died()
+            end)
+        end
+    end,
 }
 
 rpc.opts_reliable()

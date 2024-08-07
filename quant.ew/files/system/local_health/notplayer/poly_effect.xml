@@ -1,0 +1,13 @@
+<!--Borrowed from Evaisa's become stuff mod-->
+<Entity>
+    <InheritTransformComponent>
+    </InheritTransformComponent>    
+    
+    <GameEffectComponent 
+        effect="POLYMORPH"
+        frames="9999999"
+        disable_movement="0"
+        polymorph_target="mods/quant.ew/files/system/local_health/notplayer/notplayer.xml"
+    >
+    </GameEffectComponent >
+</Entity>

@@ -9,7 +9,7 @@ local rpc = net.new_rpc_namespace()
 local module = {}
 
 local function entity_changed()
-    local currently_polymorphed = not EntityHasTag(ctx.my_player.entity, "player_unit")
+    local currently_polymorphed = EntityGetName(ctx.my_player.entity) ~= "DEBUG_NAME:player"
 
     ctx.my_player.currently_polymorphed = currently_polymorphed
     if currently_polymorphed then
@@ -55,6 +55,8 @@ function module.on_world_update()
             ctx.cap.health.on_poly_death()
             gameover_requested = true
         end
+    else
+        gameover_requested = false
     end
 end
 
