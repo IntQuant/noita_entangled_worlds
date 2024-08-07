@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use crate::GameMode;
+
 /// Trait that allows to pass value to mod as proxy options.
 pub(crate) trait ProxyOpt {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str);
@@ -32,5 +34,18 @@ impl ProxyOpt for f32 {
 impl ProxyOpt for &str {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
         write!(buf, "proxy_opt {} {}", key, self).unwrap();
+    }
+}
+
+impl ProxyOpt for GameMode {
+    fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
+        match self {
+            GameMode::SharedHealth => {
+                write!(buf, "proxy_opt {} shared_health", key).unwrap();
+            }
+            GameMode::LocalHealth => {
+                write!(buf, "proxy_opt {} local_health", key).unwrap();
+            }
+        }
     }
 }

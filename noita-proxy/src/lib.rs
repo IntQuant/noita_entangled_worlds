@@ -29,6 +29,13 @@ pub use bookkeeping::{mod_manager, releases, self_update};
 
 mod net;
 
+#[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+pub(crate) enum GameMode {
+    SharedHealth,
+    LocalHealth,
+    // MestariMina, // TODO later
+}
+
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize)]
 pub struct GameSettings {
     seed: u64,
@@ -40,6 +47,7 @@ pub struct GameSettings {
     item_dedup: bool,
     enemy_hp_mult: f32,
     world_sync_interval: u32,
+    game_mode: GameMode,
 }
 
 impl Default for GameSettings {
@@ -54,6 +62,7 @@ impl Default for GameSettings {
             item_dedup: true,
             enemy_hp_mult: 1.0,
             world_sync_interval: 2,
+            game_mode: GameMode::SharedHealth,
         }
     }
 }
@@ -415,6 +424,23 @@ impl App {
     fn show_game_settings(&mut self, ui: &mut Ui) {
         heading_with_underline(ui, tr("connect_settings"));
         let game_settings = &mut self.app_saved_state.game_settings;
+
+        ui.label("Game mode");
+        ui.radio_value(&mut game_settings.game_mode, GameMode::SharedHealth, "Shared health");
+        ui.radio_value(&mut game_settings.game_mode, GameMode::LocalHealth, "Local health");
+
+        match game_settings.game_mode {
+            GameMode::SharedHealth => {
+                ui.label("Health is shared, but scales with player count.");
+                ui.label("Percentage-based damage and full heals are adjusted.");
+                ui.label("The original mode.");
+            },
+            GameMode::LocalHealth => {
+                ui.label("Every player has their own health, run ends when all player are dead.");
+            },
+        }
+
+        ui.add_space(20.0);
 
         ui.label(tr("connect_settings_debug"));
         ui.checkbox(
