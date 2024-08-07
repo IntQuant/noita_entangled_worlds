@@ -404,7 +404,7 @@ function player_fns.get_player_data_by_local_entity_id(entity)
 end
 
 function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
-    if ctx.run_ended then
+    if ctx.run_ended or peer_id == ctx.my_id then
         util.print_traceback()
     end
     GamePrint("Spawning player for "..peer_id)

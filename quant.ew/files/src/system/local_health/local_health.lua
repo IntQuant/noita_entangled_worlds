@@ -15,7 +15,6 @@ local module = {}
 
 function module.on_player_died(player_entity)
     GamePrint("d "..player_entity)
-    ctx.run_ended = true
 end
 
 local function do_game_over(message)
@@ -30,6 +29,7 @@ local function do_game_over(message)
 end
 
 function module.on_local_player_spawn(my_player)
+    util.set_ent_health(my_player.entity, {0.2, 4}) -- TODO remember to remove
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
     -- ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
