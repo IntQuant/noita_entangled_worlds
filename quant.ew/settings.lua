@@ -1,3 +1,14 @@
+local function early_init()
+	if #ModLuaFileGetAppends("mods/quant.ew/files/src/early_init.lua") == 0 then
+		-- Use appends to store data
+		ModLuaFileAppend("mods/quant.ew/files/src/early_init.lua", "data/scripts/empty.lua")
+
+		-- Early init stuff, called before main "mod" is loaded. Meaning we can append to data/scripts/init.lua
+	end
+	ModLuaFileAppend("data/scripts/init.lua", "mods/quant.ew/files/append/no_default_death_handling.lua")
+end
+
+
 dofile("data/scripts/lib/mod_settings.lua") -- see this file for documentation on some of the features.
 
 -- This file can't access other files from this or other mods in all circumstances.
@@ -31,6 +42,10 @@ mod_settings =
 function ModSettingsUpdate( init_scope )
 	local old_version = mod_settings_get_version( mod_id ) -- This can be used to migrate some settings between mod versions.
 	mod_settings_update( mod_id, mod_settings, init_scope )
+	if ModIsEnabled(mod_id) then
+		print("Running early init fn")
+		early_init()
+	end
 end
 
 -- This function should return the number of visible setting UI elements.

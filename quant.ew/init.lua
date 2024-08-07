@@ -318,6 +318,8 @@ function OnModPreInit()
     net.init()
 
     load_modules()
+    
+    print("Entangled worlds init ok")
 end
 
 function OnModInit() end
@@ -325,4 +327,7 @@ function OnModInit() end
 
 function OnModPostInit() end
 
-print("entangled_worlds init ok")
+function OnPlayerDied(player_entity)
+    ctx.hook.on_player_died(player_entity)
+    print("player died")
+end

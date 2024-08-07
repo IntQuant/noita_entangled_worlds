@@ -9,14 +9,14 @@ local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
 
+
+
 local module = {}
 
-module.recent_damage = 0
-module.recent_message = "unknown"
-module.last_damage_message = "unknown"
-
-ModLuaFileAppend("data/scripts/game_helpers.lua", "mods/quant.ew/files/src/system/damage/append/game_helpers.lua")
-ModTextFileSetContent("data/entities/misc/effect_hearty.xml", ModTextFileGetContent("mods/quant.ew/files/src/system/damage/append/hearty_effect.xml"))
+function module.on_player_died(player_entity)
+    GamePrint("d "..player_entity)
+    ctx.run_ended = true
+end
 
 local function do_game_over(message)
     net.proxy_notify_game_over()
@@ -31,7 +31,7 @@ end
 
 function module.on_local_player_spawn(my_player)
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
-    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    -- ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
 
 function module.on_world_update_client()
