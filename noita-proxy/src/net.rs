@@ -204,7 +204,9 @@ impl NetManager {
                 }
             }
             if let Some(ws) = &mut state.ws {
-                ws.flush().ok();
+                if let Err(err) = ws.flush() {
+                    warn!("Websocket flush not ok: {err}");
+                }
             }
             for net_event in self.peer.recv() {
                 match net_event {
@@ -326,6 +328,10 @@ impl NetManager {
         stream_ref
             .set_read_timeout(Some(Duration::from_millis(1)))
             .expect("can set read timeout");
+        // Set write timeout to a somewhat high value just in case.
+        stream_ref
+            .set_write_timeout(Some(Duration::from_secs(5)))
+            .expect("can set write timeout");
 
         let settings = self.settings.lock().unwrap();
         state.try_ws_write(ws_encode_proxy("seed", settings.seed));
