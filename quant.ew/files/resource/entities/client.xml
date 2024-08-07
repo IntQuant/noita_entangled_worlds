@@ -38,7 +38,7 @@
 
   
   <Entity name="chunk_loader">  
-      <Base file="mods/quant.ew/files/entities/chunk_loader.xml">
+      <Base file="mods/quant.ew/files/resource/entities/chunk_loader.xml">
       </Base>  
   </Entity>
 
@@ -51,7 +51,7 @@
   <Entity name="cursor">
     <SpriteComponent 
         alpha="1" 
-        image_file="mods/quant.ew/files/sprites/cursor.png" 
+        image_file="mods/quant.ew/files/resource/sprites/cursor.png" 
         next_rect_animation="" 
         offset_x="6.5" 
         offset_y="6.5" 

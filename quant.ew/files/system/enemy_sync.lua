@@ -78,7 +78,7 @@ function enemy_sync.host_upload_entities()
 
         if has_hp then
             util.ensure_component_present(enemy_id, "LuaComponent", "ew_death_notify", {
-                script_death = "mods/quant.ew/files/cbs/death_notify.lua"
+                script_death = "mods/quant.ew/files/resource/cbs/death_notify.lua"
             })
         end
 
@@ -207,7 +207,7 @@ function rpc.handle_enemy_data(enemy_data)
             local enemy_id = util.load_ephemerial(filename, x, y)
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
-            EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+            EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
             local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)

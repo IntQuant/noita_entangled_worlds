@@ -88,7 +88,7 @@ function rpc.change_entity(seri_ent)
     if seri_ent ~= nil then
         local ent = EntityCreateNew()
         np.DeserializeEntity(ent, seri_ent)
-        EntityAddComponent2(ent, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/cbs/immortal.lua"})
+        EntityAddComponent2(ent, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
         EntityAddTag(ent, "ew_no_enemy_sync")
         
         -- Remove all poly-like effects to prevent spawn of another player character when it runs out

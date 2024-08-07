@@ -22,8 +22,8 @@ print("Noita EW version: "..version)
 
 dofile_once("data/scripts/lib/coroutines.lua")
 
-ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/append/gun.lua")
-ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append/action_fix.lua")
+ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/resource/append/gun.lua")
+ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/resource/append/action_fix.lua")
 
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
@@ -174,7 +174,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     EntityAddTag(player_entity, "ew_current_player") -- TODO maybe remove and replace uses with player_unit tag
     EntityAddTag(player_entity, "ew_peer")
 
-    EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/cbs/count_times_wand_fired.lua"})
+    EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
 
     net.send_welcome()
 

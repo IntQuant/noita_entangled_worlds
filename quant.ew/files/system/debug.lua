@@ -29,8 +29,8 @@ function module.on_local_player_spawn(my_player)
     -- Meat biome
     -- EntitySetTransform(player_entity, 7328, 9263)
 
-    -- util.load_ephemerial("mods/quant.ew/files/entities/client.xml", 512*3+20, 512*3+10)
-    -- EntityLoad("mods/quant.ew/files/entities/client.xml", 512*3+20, 512*3+10)
+    -- util.load_ephemerial("mods/quant.ew/files/resource/entities/client.xml", 512*3+20, 512*3+10)
+    -- EntityLoad("mods/quant.ew/files/resource/entities/client.xml", 512*3+20, 512*3+10)
 
     ctx.cap.health.set_max_health(1000)
     ctx.cap.health.set_health(1000)

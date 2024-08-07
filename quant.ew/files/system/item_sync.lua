@@ -18,9 +18,9 @@ function item_sync.ensure_notify_component(ent)
         if notify == nil then
             EntityAddComponent2(ent, "LuaComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component",
-                script_throw_item = "mods/quant.ew/files/cbs/item_notify.lua",
-                script_item_picked_up = "mods/quant.ew/files/cbs/item_notify.lua",
-                -- script_kick = "mods/quant.ew/files/cbs/item_notify.lua",
+                script_throw_item = "mods/quant.ew/files/resource/cbs/item_notify.lua",
+                script_item_picked_up = "mods/quant.ew/files/resource/cbs/item_notify.lua",
+                -- script_kick = "mods/quant.ew/files/resource/cbs/item_notify.lua",
             })
         end
 end

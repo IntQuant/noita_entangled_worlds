@@ -5,7 +5,7 @@ local function early_init()
 
 		-- Early init stuff, called before main "mod" is loaded. Meaning we can append to data/scripts/init.lua
 	end
-	ModLuaFileAppend("data/scripts/init.lua", "mods/quant.ew/files/append/no_default_death_handling.lua")
+	ModLuaFileAppend("data/scripts/init.lua", "mods/quant.ew/files/resource/append/no_default_death_handling.lua")
 end
 
 
