@@ -457,17 +457,6 @@ impl App {
             ui.add(DragValue::new(&mut game_settings.seed));
         });
 
-        ui.add_space(20.0);
-
-        ui.label(tr("connect_settings_wsv"));
-        ui.horizontal(|ui| {
-            ui.radio_value(
-                &mut game_settings.world_sync_version,
-                2,
-                "v2",
-            );
-        });
-        
         if game_settings.world_sync_version == 2 {
             ui.add_space(10.0);
             ui.label(tr("World-will-be-synced-every-this-many-frames"));
