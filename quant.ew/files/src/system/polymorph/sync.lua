@@ -48,7 +48,7 @@ function module.on_world_update()
         local hp, _, has_hp_component = util.get_ent_health(ctx.my_player.entity)
         -- Added a check for having damage model component at all, as entity can't die from lack of health in that case.
         if has_hp_component and hp <= 0 and not gameover_requested then
-            ctx.cap.health.do_game_over()
+            ctx.cap.health.on_poly_death()
             gameover_requested = true
         end
     end

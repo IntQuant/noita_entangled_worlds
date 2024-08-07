@@ -15,9 +15,11 @@ Functions:
  - `set_max_health(hp: num)`
  - `inflict_damage(dmg: num)`
  - `do_game_over(msg: str)`
+ - `on_poly_death(msg: str)`
 
 Provided by:
  - damage (shared health) system
+ - local health system
 
 Used by:
  - heart pickups system

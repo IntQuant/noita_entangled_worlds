@@ -149,7 +149,8 @@ ctx.cap.health = {
     set_health = module.set_health,
     set_max_health = module.set_max_health,
     inflict_damage = module.inflict_damage,
-    do_game_over = function(message) do_game_over(message) rpc.trigger_game_over(message) end
+    do_game_over = function(message) do_game_over(message) rpc.trigger_game_over(message) end,
+    on_poly_death = function(message) do_game_over(message) rpc.trigger_game_over(message) end,
 }
 
 rpc.opts_reliable()

@@ -32,7 +32,19 @@ local function load_modules()
     
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
+
+
+    if ctx.proxy_opt.game_mode == "shared_health" then
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/heart_pickups/sync.lua")
+        ctx.load_system("patch_meat_biome")
+        ctx.load_system("kivi_patch")
+    end
+    if ctx.proxy_opt.game_mode == "local_health" then
+        ctx.load_system("local_health")
+    end
+
+
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
 
     if ctx.proxy_opt.debug then
@@ -49,7 +61,6 @@ local function load_modules()
         ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v2.lua")
     end
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/heart_pickups/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/spawn_hooks/init.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/proxy_info.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/perk_patches/init.lua")
@@ -63,8 +74,6 @@ local function load_modules()
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")
 
-    ctx.load_system("kivi_patch")
-    ctx.load_system("patch_meat_biome")
     ctx.load_system("patch_dragon_boss")
 
     ctx.load_system("player_arrows")
