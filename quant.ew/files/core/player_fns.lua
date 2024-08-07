@@ -344,6 +344,7 @@ local player_fns = {
 function player_fns.serialize_position(player_data)
     local entity = player_data.entity
     if not EntityGetIsAlive(entity) then
+        GamePrint("notalive")
         return
     end
     local x, y = EntityGetTransform(entity)

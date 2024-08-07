@@ -15,6 +15,9 @@ local module = {}
 
 function module.on_player_died(player_entity)
     GamePrint("d "..player_entity)
+    local x, y = EntityGetTransform(player_entity)
+    local orb = EntityLoad("mods/quant.ew/files/system/local_health/entities/soul_orb.xml", x, y)
+    np.SetPlayerEntity(orb)
 end
 
 local function do_game_over(message)

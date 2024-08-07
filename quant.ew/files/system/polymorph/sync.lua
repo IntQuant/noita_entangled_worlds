@@ -21,7 +21,11 @@ local function entity_changed()
     end
 end
 
-
+function module.on_should_send_updates()
+    if ctx.my_player.currently_polymorphed then
+        entity_changed()
+    end
+end
 
 local function get_ent_effects(entity)
     local list = {}
