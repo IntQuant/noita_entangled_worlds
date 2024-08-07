@@ -8,14 +8,14 @@ np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away...\n")
 
-local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
+local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 
-local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
-local net = dofile_once("mods/quant.ew/files/src/net.lua")
-local util = dofile_once("mods/quant.ew/files/src/util.lua")
-local inventory_helper = dofile_once("mods/quant.ew/files/src/inventory_helper.lua")
+local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
+local net = dofile_once("mods/quant.ew/files/core/net.lua")
+local util = dofile_once("mods/quant.ew/files/core/util.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
-local perk_fns = dofile_once("mods/quant.ew/files/src/perk_fns.lua")
+local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
 print("Noita EW version: "..version)
@@ -28,15 +28,15 @@ ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/append
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local function load_modules()
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/item_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
     
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/enemy_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
 
 
     if ctx.proxy_opt.game_mode == "shared_health" then
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/damage/sync.lua")
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/heart_pickups/sync.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/damage/sync.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/heart_pickups/sync.lua")
         ctx.load_system("patch_meat_biome")
         ctx.load_system("kivi_patch")
     end
@@ -45,32 +45,32 @@ local function load_modules()
     end
 
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/nickname.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/nickname.lua")
 
     if ctx.proxy_opt.debug then
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/debug.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/debug.lua")
     end
     
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/fungal_shift/sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/weather_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/polymorph/sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/fungal_shift/sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/weather_sync.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/polymorph/sync.lua")
 
     if ctx.proxy_opt.world_sync_version == 1 then
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v1.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/world_sync_v1.lua")
     else
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/world_sync_v2.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/world_sync_v2.lua")
     end
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/spawn_hooks/init.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/proxy_info.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/perk_patches/init.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/spawn_hooks/init.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/perk_patches/init.lua")
 
     if ctx.proxy_opt.player_tether then
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/player_tether/player_tether.lua")
+        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_tether/player_tether.lua")
     end
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/kolmi/kolmi.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/src/system/ending/ending.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/kolmi/kolmi.lua")
+    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/ending/ending.lua")
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")
 
