@@ -8,7 +8,12 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perk_list.lua")
+ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_common.lua")
+
+if ctx.proxy_opt.game_mode == "shared_health" then
+    print("Loading extra perk patches for shared health mode")
+    ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_shared.lua")
+end
 
 rpc.opts_reliable()
 rpc.opts_everywhere()
