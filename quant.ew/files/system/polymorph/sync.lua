@@ -15,7 +15,9 @@ local function entity_changed()
     if currently_polymorphed then
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
-        rpc.change_entity(np.SerializeEntity(ctx.my_player.entity))
+        
+        local skip_disabling_controls = EntityGetName(ctx.my_player.entity) == "notplayer"
+        rpc.change_entity({data = np.SerializeEntity(ctx.my_player.entity), skip_disabling_controls = skip_disabling_controls})
     else
         rpc.change_entity(nil)
     end
@@ -93,16 +95,19 @@ rpc.opts_reliable()
 function rpc.change_entity(seri_ent)
     if seri_ent ~= nil then
         local ent = EntityCreateNew()
-        np.DeserializeEntity(ent, seri_ent)
-        EntityAddComponent2(ent, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        np.DeserializeEntity(ent, seri_ent.data)
         EntityAddTag(ent, "ew_no_enemy_sync")
+    
+        EntityAddComponent2(ent, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
         
         -- Remove all poly-like effects to prevent spawn of another player character when it runs out
         remove_all_effects(ent)
 
-        local controls = EntityGetFirstComponentIncludingDisabled(ent, "ControlsComponent")
-        if controls then
-            EntitySetComponentIsEnabled(ent, controls, false)
+        if seri_ent.skip_disabling_controls then
+            local controls = EntityGetFirstComponentIncludingDisabled(ent, "ControlsComponent")
+            if controls then
+                EntitySetComponentIsEnabled(ent, controls, false)
+            end
         end
         
         EntityKill(ctx.rpc_player_data.entity)

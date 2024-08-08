@@ -1,6 +1,6 @@
 <Entity 
   name="notplayer"
-  tags="mortal,human,hittable,peasant,prey,teleportable,polymorphable_NOT" >
+  tags="mortal,human,hittable,peasant,prey,teleportable,polymorphable_NOT,player_unit,ew_client" >
   
   <HotspotComponent
       _tags="hand"
@@ -123,7 +123,7 @@
   ></CharacterPlatformingComponent>
 
   <ControlsComponent 
-    enabled="0" 
+    enabled="1" 
     gamepad_fire_on_thumbstick_extend="0"
     gamepad_fire_on_thumbstick_extend_threshold="0.9"
     gamepad_indirect_aiming_enabled="0"
@@ -191,9 +191,11 @@
     quick_inventory_slots="10"
     full_inventory_slots_x="16"
     full_inventory_slots_y="1"
+    mSavedActiveItemIndex="0"
   ></Inventory2Component>
 
 <!--<InventoryGuiComponent />-->
+<InventoryGuiComponent />
 
   <SpriteAnimatorComponent>
   </SpriteAnimatorComponent>
