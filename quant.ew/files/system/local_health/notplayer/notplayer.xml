@@ -603,4 +603,10 @@
   </ParticleEmitterComponent>
   <Entity name="inventory_quick"></Entity>
   <Entity name="inventory_full"/>
+
+  <VariableStorageComponent
+    _tags="ew_current_perks"
+    value_string=""
+  >
+  </VariableStorageComponent>
 </Entity>

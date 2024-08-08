@@ -7,6 +7,7 @@ local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local np = require("noitapatcher")
+local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
 local rpc = net.new_rpc_namespace()
 
@@ -27,9 +28,19 @@ local function do_switch_effect()
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect.xml")
 end
 
+local function allow_notplayer_perk(perk_id)
+    local ignored_perks = {
+        GAMBLE = true,
+        PERKS_LOTTERY = true,
+        MEGA_BEAM_STONE = true,
+    }
+    return not ignored_perks[perk_id]
+end
+
 local function player_died()
-    -- Serialize inventory, we'll need to copy it over to notplayer.
+    -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
+    local perk_data = perk_fns.get_my_perks()
     local _, max_hp = util.get_ent_health(ctx.my_player.entity)
 
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
@@ -43,6 +54,7 @@ local function player_died()
         wait(1)
         do_switch_effect()
         inventory_helper.set_item_data(item_data, ctx.my_player)
+        perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
     end)
 end
