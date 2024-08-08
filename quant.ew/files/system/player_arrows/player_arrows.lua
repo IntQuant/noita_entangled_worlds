@@ -78,10 +78,25 @@ function module.on_world_update()
         end
 
         if okay_to_display then
+            local is_host = ctx.host_id == player_data.peer_id
+            local is_notplayer = false
+            if player_data.status and not player_data.status.is_alive then
+                is_notplayer = true
+            end
             local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
-            local img_path = "mods/quant.ew/files/system/player_arrows/arrow.png"
-            if ctx.host_id == player_data.peer_id then
-                img_path = "mods/quant.ew/files/system/player_arrows/arrow_host.png"
+            local img_path
+            if is_host then
+                if is_notplayer then
+                    img_path = "mods/quant.ew/files/system/player_arrows/arrow_host_notplayer.png"
+                else
+                    img_path = "mods/quant.ew/files/system/player_arrows/arrow_host.png"
+                end
+            else
+                if is_notplayer then
+                    img_path = "mods/quant.ew/files/system/player_arrows/arrow_notplayer.png"
+                else
+                    img_path = "mods/quant.ew/files/system/player_arrows/arrow.png"
+                end
             end
             GuiImage(gui, gui_id, x, y, img_path, 1, 0.5, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
             gui_id = gui_id + 1
