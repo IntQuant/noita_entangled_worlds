@@ -195,7 +195,6 @@
   ></Inventory2Component>
 
 <!--<InventoryGuiComponent />-->
-<InventoryGuiComponent />
 
   <SpriteAnimatorComponent>
   </SpriteAnimatorComponent>

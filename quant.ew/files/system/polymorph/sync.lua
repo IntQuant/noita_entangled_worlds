@@ -103,7 +103,8 @@ function rpc.change_entity(seri_ent)
         -- Remove all poly-like effects to prevent spawn of another player character when it runs out
         remove_all_effects(ent)
 
-        if seri_ent.skip_disabling_controls then
+        -- Prevent crash with notplayer
+        if not seri_ent.skip_disabling_controls then
             local controls = EntityGetFirstComponentIncludingDisabled(ent, "ControlsComponent")
             if controls then
                 EntitySetComponentIsEnabled(ent, controls, false)
