@@ -20,6 +20,13 @@ function module.on_player_died(player_entity)
     -- Also inventory items seem to be borked.
 end
 
+local function do_switch_effect()
+    -- Make an effect
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+    rpc.switch_effect(x, y)
+    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect.xml")
+end
+
 local function player_died()
     -- Serialize inventory, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
@@ -34,6 +41,7 @@ local function player_died()
     -- We kinda need to wait a frame for things to update.
     async(function ()
         wait(1)
+        do_switch_effect()
         inventory_helper.set_item_data(item_data, ctx.my_player)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
     end)
@@ -70,7 +78,7 @@ function module.on_world_update()
     if not ctx.my_player.currently_polymorphed and has_hp then
         if hp <= 0 then
             -- Restore the player back to small amount of hp.
-            util.set_ent_health(ctx.my_player.entity, {1/25, max_hp})
+            util.set_ent_health(ctx.my_player.entity, {5/25, max_hp})
             player_died()
         end
     end
@@ -160,6 +168,10 @@ ctx.cap.health = {
         if notplayer_active then
             GameRemoveFlagRun("ew_flag_notplayer_active")
             end_poly_effect(ctx.my_player.entity)
+            async(function ()
+                wait(1)
+                do_switch_effect()
+            end)
         else
             end_poly_effect(ctx.my_player.entity)
             async(function ()
@@ -187,6 +199,11 @@ np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
 rpc.opts_everywhere()
 function rpc.send_status(status)
     ctx.rpc_player_data.status = status
+end
+
+rpc.opts_everywhere()
+function rpc.switch_effect(x, y)
+    EntityLoad("data/entities/particles/image_emitters/magical_symbol_fast.xml", x, y)
 end
 
 return module
