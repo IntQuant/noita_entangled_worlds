@@ -91,7 +91,7 @@
   ></CharacterDataComponent>
 
   <GenomeDataComponent 
-    herd_id="player"
+    herd_id="notplayer"
     food_chain_rank="20"
     is_predator="1"
     berserk_dont_attack_friends="1"

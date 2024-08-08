@@ -77,6 +77,7 @@ local function load_modules()
     ctx.load_system("patch_dragon_boss")
 
     ctx.load_system("player_arrows")
+    ctx.load_system("extra_genomes")
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
