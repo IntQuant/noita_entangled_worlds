@@ -156,7 +156,9 @@ end
 
 function net_handling.mod.welcome(peer_id, _)
     ctx.events.new_player_just_connected = true
-    ctx.hook.on_should_send_updates()
+    if not ctx.run_ended then
+        ctx.hook.on_should_send_updates()
+    end
 end
 
 return net_handling
