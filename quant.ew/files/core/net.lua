@@ -48,7 +48,11 @@ local rpc_meta = {
       rawset(t, k, function(...)
         net.send(index, {...}, reliable)
         if everywhere then
+          ctx.rpc_peer_id = ctx.my_id
+          ctx.rpc_player_data = ctx.my_player
           v(...)
+          ctx.rpc_peer_id = nil
+          ctx.rpc_player_data = nil
         end
       end)
       net_handling.mod[index] = function(peer_id, args)

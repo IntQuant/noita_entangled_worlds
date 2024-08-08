@@ -54,9 +54,18 @@ function module.on_local_player_spawn(my_player)
     util.set_ent_health(my_player.entity, {0.2, 4}) -- TODO remember to remove
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    ctx.my_player.status = { is_alive = true }
 end
 
 function module.on_world_update()
+    local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
+    if GameGetFrameNum() % 15 == 6 then
+        local status = {
+            is_alive = not notplayer_active
+        }
+        rpc.send_status(status)
+    end
+    
     local hp, max_hp, has_hp = util.get_ent_health(ctx.my_player.entity)
     if not ctx.my_player.currently_polymorphed and has_hp then
         if hp <= 0 then
@@ -66,7 +75,6 @@ function module.on_world_update()
         end
     end
 
-    local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     if notplayer_active then
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
         -- ComponentSetValue2(controls, "mButtonDownRight", true)
@@ -78,14 +86,30 @@ function module.on_world_update_client()
     
 end
 
+-- Do not lose the game if there aren't any players alive from the start. (If alive players haven't connected yet)
+local gameover_primed = false
+
 function module.on_world_update_host()
-    
+    if GameGetFrameNum() % 60 == 15 then
+        local any_player_alive = false
+        for _, player_data in pairs(ctx.players) do
+            local is_alive = player_data.status.is_alive
+            if is_alive then
+                gameover_primed = true
+                any_player_alive = true
+            end
+        end
+        if gameover_primed and not any_player_alive then
+            rpc.trigger_game_over("No players are alive")
+        end
+    end
 end
 
 function module.on_new_player_seen(new_playerdata, player_count)
 end
 
 function module.on_client_spawned(peer_id, playerdata)
+    playerdata.status = { is_alive = true }
     if ctx.is_host then
         EntityAddComponent2(playerdata.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua"})
     else
@@ -147,6 +171,7 @@ ctx.cap.health = {
 }
 
 rpc.opts_reliable()
+rpc.opts_everywhere()
 function rpc.trigger_game_over(message)
     do_game_over(message)
 end
@@ -158,5 +183,10 @@ function rpc.melee_damage_client(target_peer, damage, message)
     end
 end
 np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
+
+rpc.opts_everywhere()
+function rpc.send_status(status)
+    ctx.rpc_player_data.status = status
+end
 
 return module
