@@ -1,0 +1,53 @@
+<Sprite
+  filename="mods/quant.ew/files/system/local_health/notplayer/notplayer_arm.png"
+  hotspots_filename="data/enemies_gfx/player_arm_hotspots.png"
+  offset_x="0"
+  offset_y="2" 
+  default_animation="default" >
+
+  <!-- hotspots -->
+
+  <Hotspot
+    color="00ff0000"
+    name="hand" >
+  </Hotspot>
+
+ <!-- animations -->
+
+ <RectAnimation
+  name="default"
+  pos_x="0"
+  pos_y="0"
+  frame_count="1"
+  frame_width="5"
+  frame_height="5"
+  frame_wait="0.2"
+  frames_per_row="8"
+  loop="1"   >
+ </RectAnimation>
+
+ <RectAnimation
+  name="down"
+  pos_x="0"
+  pos_y="0"
+  frame_count="1"
+  frame_width="5"
+  frame_height="5"
+  frame_wait="0.2"
+  frames_per_row="8"
+  loop="1"   >
+ </RectAnimation>
+
+ <RectAnimation
+  name="without_item"
+  pos_x="0"
+  pos_y="10"
+  frame_count="1"
+  frame_width="5"
+  frame_height="5"
+  frame_wait="0.2"
+  frames_per_row="8"
+  loop="1"   >
+ </RectAnimation>
+
+</Sprite>

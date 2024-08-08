@@ -233,7 +233,7 @@
     <SpriteComponent 
       _tags="with_item" 
       alpha="1" 
-      image_file="data/enemies_gfx/player_arm.xml" 
+      image_file="mods/quant.ew/files/system/local_health/notplayer/notplayer_arm.xml" 
       next_rect_animation="" 
       rect_animation="default" 
       z_index="0.59"
@@ -352,8 +352,11 @@
   </HotspotComponent>
 
   <Entity name="cape">  
+    <!--
+      Not sure how to recolor the cape properly.
       <Base file="data/entities/verlet_chains/cape/cape.xml">
       </Base>  
+    -->
   </Entity>
   
   <!-- belt -->
