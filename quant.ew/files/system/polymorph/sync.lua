@@ -16,8 +16,7 @@ local function entity_changed()
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
         
-        local skip_disabling_controls = EntityGetName(ctx.my_player.entity) == "notplayer"
-        rpc.change_entity({data = np.SerializeEntity(ctx.my_player.entity), skip_disabling_controls = skip_disabling_controls})
+        rpc.change_entity({data = np.SerializeEntity(ctx.my_player.entity)})
     else
         rpc.change_entity(nil)
     end
@@ -103,13 +102,10 @@ function rpc.change_entity(seri_ent)
         -- Remove all poly-like effects to prevent spawn of another player character when it runs out
         remove_all_effects(ent)
 
-        -- Prevent crash with notplayer
-        if not seri_ent.skip_disabling_controls then
-            local controls = EntityGetFirstComponentIncludingDisabled(ent, "ControlsComponent")
-            if controls then
-                EntitySetComponentIsEnabled(ent, controls, false)
-            end
-        end
+        local controls = EntityGetFirstComponentIncludingDisabled(ent, "ControlsComponent")
+        if controls then
+            ComponentSetValue2(controls, "enabled", false)
+        end        
         
         EntityKill(ctx.rpc_player_data.entity)
         player_fns.replace_player_entity(ent, ctx.rpc_player_data)
