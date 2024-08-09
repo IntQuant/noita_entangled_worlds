@@ -1,5 +1,5 @@
 dofile_once("mods/quant.ew/NoitaPatcher/load.lua")
-local np = require("noitapatcher")
+np = require("noitapatcher")
 
 dofile_once( "data/scripts/lib/utilities.lua" )
 
@@ -8,12 +8,13 @@ np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away...\n")
 
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
+-- Make some stuff global, as it's way too annoying to import each time.
+ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
+player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
+net = dofile_once("mods/quant.ew/files/core/net.lua")
+util = dofile_once("mods/quant.ew/files/core/util.lua")
+inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 

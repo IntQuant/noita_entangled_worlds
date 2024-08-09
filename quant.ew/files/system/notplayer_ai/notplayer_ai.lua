@@ -1,4 +1,5 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
+local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfinder.lua")
 
 local MAX_RADIUS = 128*3
 
@@ -36,7 +37,9 @@ end
 local function init_state()
     state = {
         entity = ctx.my_player.entity,
-        control = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+        control = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
+        
+        attack_wand = wandfinder.find_attack_wand(),
     }
 end
 
@@ -51,6 +54,7 @@ end
 
 local function choose_wand_actions()
     if target ~= nil then
+        np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         local t_x, t_y = EntityGetTransform(target)
         aim_at(t_x, t_y)
     end
