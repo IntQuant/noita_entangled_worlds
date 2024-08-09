@@ -616,8 +616,6 @@
 
   <InventoryGuiComponent/>
 
-  <!--
-    <BossHealthBarComponent gui_max_distance_visible="1500" gui_special_final_boss="1" gui="1"/>
-  -->
+  <BossHealthBarComponent gui_max_distance_visible="1500" gui="1"/>  
 
 </Entity>

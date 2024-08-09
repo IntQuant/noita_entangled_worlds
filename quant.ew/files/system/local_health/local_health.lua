@@ -47,6 +47,7 @@ local function player_died()
     async(function ()
         wait(1)
         GameAddFlagRun("ew_flag_notplayer_active")
+        EntitySetName(ctx.my_player.entity, ctx.my_player.name.."?")
         do_switch_effect()
         inventory_helper.set_item_data(item_data, ctx.my_player)
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
@@ -74,9 +75,12 @@ end
 
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
+    local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
     if GameGetFrameNum() % 15 == 6 then
         local status = {
-            is_alive = not notplayer_active
+            is_alive = not notplayer_active,
+            hp = hp,
+            max_hp = max_hp,
         }
         rpc.send_status(status)
     end
@@ -206,6 +210,7 @@ np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
 rpc.opts_everywhere()
 function rpc.send_status(status)
     ctx.rpc_player_data.status = status
+    util.set_ent_health(ctx.rpc_player_data.entity, {status.hp, status.max_hp})
 end
 
 rpc.opts_everywhere()

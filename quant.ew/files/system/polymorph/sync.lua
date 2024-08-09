@@ -116,6 +116,7 @@ function rpc.change_entity(seri_ent)
         if inv then
             EntityRemoveComponent(ent, inv)
         end
+        EntitySetName(ent, ctx.rpc_player_data.name.."?")
         
         EntityKill(ctx.rpc_player_data.entity)
         player_fns.replace_player_entity(ent, ctx.rpc_player_data)
