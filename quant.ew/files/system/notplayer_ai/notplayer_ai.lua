@@ -116,7 +116,7 @@ local function update()
         target = nil
     end
 
-    if target == nil or (GameGetFrameNum() % 4 == 0) then
+--    if target == nil or (GameGetFrameNum() % 4 == 0) then
         log("Trying to choose target")
         local ch_x, ch_y = EntityGetTransform(state.entity)
         local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
@@ -139,9 +139,18 @@ local function update()
                 end
             end
         end
-    end
+    local    do_kick = last_length < 100
+--    end
 
-    choose_wand_actions()
+    if do_kick then
+        fire_wand(false)
+        ComponentSetValue2(state.control_component, "mButtonDownKick", true)
+        ComponentSetValue2(state.control_component, "mButtonFrameKick", GameGetFrameNum()+1)
+    end
+    if not do_kick then
+        ComponentSetValue2(state.control_component, "mButtonDownKick", false)
+        choose_wand_actions()
+    end
     choose_movement()
 
     ComponentSetValue2(state.control_component, "mButtonDownLeft", state.control_a)
