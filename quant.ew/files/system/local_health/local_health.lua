@@ -67,7 +67,6 @@ local function do_game_over(message)
 end
 
 function module.on_local_player_spawn(my_player)
-    util.set_ent_health(my_player.entity, {0.2, 4}) -- TODO remember to remove
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
     ctx.my_player.status = { is_alive = true }
@@ -96,8 +95,6 @@ function module.on_world_update()
 
     if notplayer_active then
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-        -- ComponentSetValue2(controls, "mButtonDownRight", true)
-        -- ComponentSetValue2(controls, "mButtonFrameRight", GameGetFrameNum() + 1)
     end
 end
 
