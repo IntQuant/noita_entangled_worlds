@@ -67,6 +67,8 @@ end
 
 local target = nil
 
+local last_length = nil
+
 local function is_suitable_target(entity)
     return EntityGetIsAlive(entity) and EntityGetName(entity)~="notplayer"
 end
@@ -114,33 +116,31 @@ local function update()
 
     if target ~= nil and not is_suitable_target(target) then
         target = nil
+        last_length = nil
     end
 
---    if target == nil or (GameGetFrameNum() % 4 == 0) then
-        log("Trying to choose target")
-        local ch_x, ch_y = EntityGetTransform(state.entity)
-        local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
-        local x, y = EntityGetTransform(ctx.my_player.entity)
-        local last_length=nil
-        for _, potential_target in ipairs(potential_targets) do
-            log("Trying "..potential_target)
-            if is_suitable_target(potential_target) then
-                local t_x, t_y = EntityGetFirstHitboxCenter(potential_target)
-                if t_x == nil then
-                    t_x, t_y = EntityGetTransform(potential_target)
-                end
-                local dx=x-t_x
-                local dy=y-t_y
-                local length=dx*dx+dy*dy
-                local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-                if last_length==nil or (not did_hit and last_length>length) then
-                    last_length=length
-                    target=potential_target
-                end
+    log("Trying to choose target")
+    local ch_x, ch_y = EntityGetTransform(state.entity)
+    local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+    for _, potential_target in ipairs(potential_targets) do
+        log("Trying "..potential_target)
+        if is_suitable_target(potential_target) then
+            local t_x, t_y = EntityGetFirstHitboxCenter(potential_target)
+            if t_x == nil then
+                t_x, t_y = EntityGetTransform(potential_target)
+            end
+            local dx = x - t_x
+            local dy = y - t_y
+            local length = dx * dx + dy * dy
+            local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+            if last_length == nil or (not did_hit and last_length > length) then
+                last_length = length
+                target = potential_target
             end
         end
-    local    do_kick = last_length < 100
---    end
+    end
+    local do_kick = last_length < 100
 
     if do_kick then
         fire_wand(false)
