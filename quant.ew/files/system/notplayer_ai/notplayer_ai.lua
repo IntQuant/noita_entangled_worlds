@@ -68,10 +68,7 @@ end
 local target = nil
 
 local function is_suitable_target(entity)
-    if not EntityGetIsAlive(entity) then
-        return false
-    end
-    return true
+    return EntityGetIsAlive(entity) and EntityGetName(entity)~="notplayer"
 end
 
 local function choose_wand_actions()
@@ -83,7 +80,7 @@ local function choose_wand_actions()
             t_x, t_y = EntityGetTransform(target)
         end
         aim_at(t_x, t_y)
-        local did_hit, hit_x, hit_y = RaytracePlatforms(x, y, t_x, t_y)
+        local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
 
         fire_wand(not did_hit)
     end
@@ -135,7 +132,8 @@ local function update()
                 local dx=x-t_x
                 local dy=y-t_y
                 local length=dx*dx+dy*dy
-                if last_length==nil or last_length>length then
+                local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+                if last_length==nil or (not did_hit and last_length>length) then
                     last_length=length
                     target=potential_target
                 end
