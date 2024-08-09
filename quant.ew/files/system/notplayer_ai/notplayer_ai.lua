@@ -7,7 +7,7 @@ local state = nil
 local module = {}
 
 local function log(...)
-    GamePrint(...)
+    -- GamePrint(...)
 end
 
 local function aim_at(world_x, world_y)

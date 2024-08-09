@@ -22,6 +22,11 @@ local function entity_changed()
     end
 end
 
+function module.on_local_player_spawn()
+    local currently_polymorphed = EntityGetName(ctx.my_player.entity) ~= "DEBUG_NAME:player"
+    ctx.my_player.currently_polymorphed = currently_polymorphed
+end
+
 function module.on_should_send_updates()
     if ctx.my_player.currently_polymorphed then
         entity_changed()
