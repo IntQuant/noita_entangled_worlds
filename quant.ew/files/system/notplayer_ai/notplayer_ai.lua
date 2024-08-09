@@ -38,7 +38,6 @@ local function init_state()
         entity = ctx.my_player.entity,
         control = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
     }
-    ComponentSetValue2(state.control, "enabled", false)
 end
 
 local target = nil
@@ -62,6 +61,9 @@ local function choose_movement()
 end
 
 local function update()
+    -- No taking control back, even after pressing esc.
+    ComponentSetValue2(state.control, "enabled", false)
+
     if target ~= nil and not is_suitable_target(target) then
         target = nil
     end
