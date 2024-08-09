@@ -1,7 +1,3 @@
--- This module allows to handle getting damaged locally and redirects that damage to host.
--- Also handles shared health system in general.
--- Also recalculates percentage-based damage.
-
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
@@ -47,11 +43,10 @@ local function player_died()
     -- Which is, like, perfect.
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
 
-    GameAddFlagRun("ew_flag_notplayer_active")
-
     -- We kinda need to wait a frame for things to update.
     async(function ()
         wait(1)
+        GameAddFlagRun("ew_flag_notplayer_active")
         do_switch_effect()
         inventory_helper.set_item_data(item_data, ctx.my_player)
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)

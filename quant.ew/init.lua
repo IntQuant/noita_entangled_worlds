@@ -42,6 +42,7 @@ local function load_modules()
     end
     if ctx.proxy_opt.game_mode == "local_health" then
         ctx.load_system("local_health")
+        ctx.load_system("notplayer_ai")
     end
 
 

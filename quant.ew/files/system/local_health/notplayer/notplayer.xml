@@ -123,7 +123,7 @@
   ></CharacterPlatformingComponent>
 
   <ControlsComponent 
-    enabled="1" 
+    enabled="0" 
     gamepad_fire_on_thumbstick_extend="0"
     gamepad_fire_on_thumbstick_extend_threshold="0.9"
     gamepad_indirect_aiming_enabled="0"
@@ -320,6 +320,7 @@
 
   <ItemPickUpperComponent
     drop_items_on_death="0"
+    is_immune_to_kicks="1"
   ></ItemPickUpperComponent>
 
 	<Base file="data/entities/base_jetpack_nosound.xml">
