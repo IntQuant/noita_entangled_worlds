@@ -33,6 +33,18 @@ local function aim_at(world_x, world_y)
     end
 end
 
+local function fire_wand(enable)
+    ComponentSetValue2(state.control, "mButtonDownFire", enable)
+    ComponentSetValue2(state.control, "mButtonDownFire2", enable)
+    if enable then
+        if not state.was_firing_wand then
+            ComponentSetValue2(state.control, "mButtonFrameFire", GameGetFrameNum()+1)
+        end
+        ComponentSetValue2(state.control, "mButtonLastFrameFire", GameGetFrameNum())
+    end
+    state.was_firing_wand = enable
+end
+
 
 local function init_state()
     state = {
@@ -40,6 +52,9 @@ local function init_state()
         control = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         
         attack_wand = wandfinder.find_attack_wand(),
+
+        was_firing_wand = false,
+        init_timer = 0,
     }
 end
 
@@ -53,10 +68,11 @@ local function is_suitable_target(entity)
 end
 
 local function choose_wand_actions()
-    if target ~= nil then
+    if state.attack_wand ~= nil and target ~= nil then
         np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         local t_x, t_y = EntityGetTransform(target)
         aim_at(t_x, t_y)
+        fire_wand(true)
     end
 end
 
@@ -67,6 +83,8 @@ end
 local function update()
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control, "enabled", false)
+
+    state.init_timer = state.init_timer + 1
 
     if target ~= nil and not is_suitable_target(target) then
         target = nil

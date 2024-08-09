@@ -77,7 +77,8 @@ end
 
 function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
-    if ctx.my_player.currently_polymorphed and shooter_id == ctx.my_player.entity then
+    -- Do not sync notplayer's projectiles extra time.
+    if ctx.my_player.currently_polymorphed and shooter_id == ctx.my_player.entity and not EntityHasTag(shooter_id, "player_unit") then
         local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
         if entity_that_shot == 0 then
@@ -116,6 +117,14 @@ function rpc.change_entity(seri_ent)
         if inv then
             EntityRemoveComponent(ent, inv)
         end
+        for _, comp in ipairs(EntityGetAllComponents(ent)) do
+            if ComponentHasTag(comp, "ew_remove_on_send") then
+                EntityRemoveComponent(ent, comp)
+            end
+        end
+        util.set_ent_firing_blocked(ent, true)
+        EntityRemoveTag(ent, "player_unit")
+
         EntitySetName(ent, ctx.rpc_player_data.name.."?")
         
         EntityKill(ctx.rpc_player_data.entity)

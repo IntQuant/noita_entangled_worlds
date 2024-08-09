@@ -176,7 +176,9 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 
     EntityAddTag(player_entity, "ew_peer")
 
-    EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
+    if not GameHasFlagRun("ew_flag_notplayer_active") then
+        EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
+    end
 
     net.send_welcome()
 
