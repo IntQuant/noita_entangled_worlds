@@ -1,7 +1,7 @@
 <Entity 
   name="notplayer"
-  tags="mortal,human,hittable,peasant,prey,teleportable,polymorphable_NOT,player_unit" >
-  
+  tags="mortal,human,hittable,peasant,prey,teleportable,polymorphable_NOT,player_unit,notplayer" >
+
   <HotspotComponent
       _tags="hand"
       sprite_hotspot_name="hand"

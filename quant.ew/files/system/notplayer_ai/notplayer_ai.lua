@@ -70,7 +70,8 @@ local target = nil
 local last_length = nil
 
 local function is_suitable_target(entity)
-    return EntityGetIsAlive(entity) and EntityGetName(entity)~="notplayer"
+    local tags = EntityGetTags(entity)
+    return tags ~= nil and not string.match(tags,"notplayer")
 end
 
 local function choose_wand_actions()
@@ -140,7 +141,8 @@ local function update()
             end
         end
     end
-    local do_kick = last_length < 100
+
+    local do_kick = last_length ~= nil and last_length < 100
 
     if do_kick then
         fire_wand(false)
