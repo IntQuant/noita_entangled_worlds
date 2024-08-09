@@ -31,3 +31,4 @@ patch_perk("GLASS_CANNON", true, function()
 end)
 
 hide_perk("SAVING_GRACE")
+hide_perk("RESPAWN")

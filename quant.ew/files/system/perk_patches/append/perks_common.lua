@@ -15,7 +15,6 @@ local function hide_perk(perk_id)
 end
 
 hide_perk("ABILITY_ACTIONS_MATERIALIZED")
-hide_perk("RESPAWN")
 hide_perk("TELEKINESIS")
 hide_perk("INVISIBILITY")
 hide_perk("CORDYCEPS")
