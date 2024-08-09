@@ -70,7 +70,10 @@ end
 local function choose_wand_actions()
     if state.attack_wand ~= nil and target ~= nil then
         np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
-        local t_x, t_y = EntityGetTransform(target)
+        local t_x, t_y = EntityGetFirstHitboxCenter(target)
+        if t_x == nil then
+            t_x, t_y = EntityGetTransform(target)
+        end
         aim_at(t_x, t_y)
         fire_wand(true)
     end
