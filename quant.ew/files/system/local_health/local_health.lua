@@ -134,6 +134,8 @@ function module.on_client_spawned(peer_id, playerdata)
     else
         EntityAddComponent2(playerdata.entity, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
     end
+    local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
+    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
 
 function module.health()
