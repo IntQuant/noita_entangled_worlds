@@ -68,10 +68,7 @@ end
 local target = nil
 
 local function is_suitable_target(entity)
-    if not EntityGetIsAlive(entity) then
-        return false
-    end
-    return true
+    return EntityGetIsAlive(entity) and EntityGetName(entity)~="notplayer"
 end
 
 local function choose_wand_actions()
@@ -83,7 +80,7 @@ local function choose_wand_actions()
             t_x, t_y = EntityGetTransform(target)
         end
         aim_at(t_x, t_y)
-        local did_hit, hit_x, hit_y = RaytracePlatforms(x, y, t_x, t_y)
+        local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
 
         fire_wand(not did_hit)
     end
@@ -119,20 +116,41 @@ local function update()
         target = nil
     end
 
-    if target == nil then
+--    if target == nil or (GameGetFrameNum() % 4 == 0) then
         log("Trying to choose target")
         local ch_x, ch_y = EntityGetTransform(state.entity)
         local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        local last_length=nil
         for _, potential_target in ipairs(potential_targets) do
             log("Trying "..potential_target)
             if is_suitable_target(potential_target) then
-                target = potential_target
-                break
+                local t_x, t_y = EntityGetFirstHitboxCenter(potential_target)
+                if t_x == nil then
+                    t_x, t_y = EntityGetTransform(potential_target)
+                end
+                local dx=x-t_x
+                local dy=y-t_y
+                local length=dx*dx+dy*dy
+                local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+                if last_length==nil or (not did_hit and last_length>length) then
+                    last_length=length
+                    target=potential_target
+                end
             end
         end
-    end
+    local    do_kick = last_length < 100
+--    end
 
-    choose_wand_actions()
+    if do_kick then
+        fire_wand(false)
+        ComponentSetValue2(state.control_component, "mButtonDownKick", true)
+        ComponentSetValue2(state.control_component, "mButtonFrameKick", GameGetFrameNum()+1)
+    end
+    if not do_kick then
+        ComponentSetValue2(state.control_component, "mButtonDownKick", false)
+        choose_wand_actions()
+    end
     choose_movement()
 
     ComponentSetValue2(state.control_component, "mButtonDownLeft", state.control_a)
