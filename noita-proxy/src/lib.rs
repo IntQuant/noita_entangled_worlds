@@ -437,6 +437,7 @@ impl App {
             },
             GameMode::LocalHealth => {
                 ui.label("Every player has their own health, run ends when all player are dead.");
+                ui.label("There is a respawn mechanic.");
             },
         }
 
