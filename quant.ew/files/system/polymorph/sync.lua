@@ -111,7 +111,11 @@ function rpc.change_entity(seri_ent)
         local controls = EntityGetFirstComponentIncludingDisabled(ent, "ControlsComponent")
         if controls then
             ComponentSetValue2(controls, "enabled", false)
-        end        
+        end
+        local inv = EntityGetFirstComponentIncludingDisabled(ent, "InventoryGuiComponent")
+        if inv then
+            EntityRemoveComponent(ent, inv)
+        end
         
         EntityKill(ctx.rpc_player_data.entity)
         player_fns.replace_player_entity(ent, ctx.rpc_player_data)
