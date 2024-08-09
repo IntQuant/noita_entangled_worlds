@@ -96,6 +96,7 @@ function rpc.change_entity(seri_ent)
         local ent = EntityCreateNew()
         np.DeserializeEntity(ent, seri_ent.data)
         EntityAddTag(ent, "ew_no_enemy_sync")
+        EntityAddTag(ent, "ew_client")
     
         EntityAddComponent2(ent, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
         
