@@ -119,15 +119,26 @@ local function update()
         target = nil
     end
 
-    if target == nil then
+    if target == nil then -- or (GameGetFrameNum() % 60 == 10) then
         log("Trying to choose target")
         local ch_x, ch_y = EntityGetTransform(state.entity)
         local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        local last_length=nil
         for _, potential_target in ipairs(potential_targets) do
             log("Trying "..potential_target)
             if is_suitable_target(potential_target) then
-                target = potential_target
-                break
+                local t_x, t_y = EntityGetFirstHitboxCenter(potential_target)
+                if t_x == nil then
+                    t_x, t_y = EntityGetTransform(potential_target)
+                end
+                local dx=x-t_x
+                local dy=y-t_y
+                local length=dx*dx+dy*dy
+                if last_length==nil or last_length>length then
+                    last_length=length
+                    target=potential_target
+                end
             end
         end
     end
