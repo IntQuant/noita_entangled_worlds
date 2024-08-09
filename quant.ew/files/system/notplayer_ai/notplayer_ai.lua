@@ -119,7 +119,7 @@ local function update()
         target = nil
     end
 
-    if target == nil then -- or (GameGetFrameNum() % 60 == 10) then
+    if target == nil or (GameGetFrameNum() % 4 == 0) then
         log("Trying to choose target")
         local ch_x, ch_y = EntityGetTransform(state.entity)
         local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
