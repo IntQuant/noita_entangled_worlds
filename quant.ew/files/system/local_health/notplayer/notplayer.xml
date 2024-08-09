@@ -1,6 +1,6 @@
 <Entity 
   name="notplayer"
-  tags="mortal,human,hittable,peasant,prey,teleportable,polymorphable_NOT,player_unit,notplayer" >
+  tags="mortal,human,hittable,peasant,prey,teleportable,polymorphable_NOT,player_unit,ew_notplayer" >
 
   <HotspotComponent
       _tags="hand"

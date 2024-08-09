@@ -70,8 +70,7 @@ local target = nil
 local last_length = nil
 
 local function is_suitable_target(entity)
-    local tags = EntityGetTags(entity)
-    return tags ~= nil and not string.match(tags,"notplayer")
+    return not EntityHasTag(entity,"ew_notplayer")
 end
 
 local function choose_wand_actions()

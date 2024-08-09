@@ -29,6 +29,7 @@ local function allow_notplayer_perk(perk_id)
         GAMBLE = true,
         PERKS_LOTTERY = true,
         MEGA_BEAM_STONE = true,
+        FOOD_CLOCK = true, -- TODO, should carry over satiation buff
     }
     return not ignored_perks[perk_id]
 end
