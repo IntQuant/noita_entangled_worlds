@@ -78,7 +78,8 @@ function net_handling.mod.perks(peer_id, perk_data)
         return
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
-    if not player_data.currently_polymorphed then
+    local comp = EntityGetFirstComponent(player_data.entity, "VariableStorageComponent", "ew_current_perks")
+    if comp ~= nil and comp ~= 0 then
         perk_fns.update_perks(perk_data, player_data)
     end
 end

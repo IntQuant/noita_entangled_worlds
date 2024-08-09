@@ -14,7 +14,7 @@ end
 local function aim_at(world_x, world_y)
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local dx, dy = world_x - ch_x, world_y - ch_y
-    ComponentSetValue2(state.control, "mAimingVector", dx, dy)
+    ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
     
     -- No idea what coordinate system that field uses.
     -- Writing a big positive/negative value to turn to the right side seems to work.
@@ -24,23 +24,23 @@ local function aim_at(world_x, world_y)
     else
         mouse_x = -100000
     end
-    ComponentSetValue2(state.control, "mMousePosition", mouse_x, 0)
+    ComponentSetValue2(state.control_component, "mMousePosition", mouse_x, 0)
     
     local dist = math.sqrt(dx * dx + dy * dy)
     if dist > 0 then
-        -- ComponentSetValue2(state.control, "mAimingVectorNonZeroLatest", dx, dy)
-        ComponentSetValue2(state.control, "mAimingVectorNormalized", dx/dist, dy/dist)
+        -- ComponentSetValue2(state.control_component, "mAimingVectorNonZeroLatest", dx, dy)
+        ComponentSetValue2(state.control_component, "mAimingVectorNormalized", dx/dist, dy/dist)
     end
 end
 
 local function fire_wand(enable)
-    ComponentSetValue2(state.control, "mButtonDownFire", enable)
-    ComponentSetValue2(state.control, "mButtonDownFire2", enable)
+    ComponentSetValue2(state.control_component, "mButtonDownFire", enable)
+    ComponentSetValue2(state.control_component, "mButtonDownFire2", enable)
     if enable then
         if not state.was_firing_wand then
-            ComponentSetValue2(state.control, "mButtonFrameFire", GameGetFrameNum()+1)
+            ComponentSetValue2(state.control_component, "mButtonFrameFire", GameGetFrameNum()+1)
         end
-        ComponentSetValue2(state.control, "mButtonLastFrameFire", GameGetFrameNum())
+        ComponentSetValue2(state.control_component, "mButtonLastFrameFire", GameGetFrameNum())
     end
     state.was_firing_wand = enable
 end
@@ -49,12 +49,19 @@ end
 local function init_state()
     state = {
         entity = ctx.my_player.entity,
-        control = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
+        control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         
         attack_wand = wandfinder.find_attack_wand(),
 
         was_firing_wand = false,
+        was_a = false,
+        was_w = false,
+        was_d = false,
         init_timer = 0,
+
+        control_a = false,
+        control_w = false,
+        control_d = false,
     }
 end
 
@@ -80,12 +87,28 @@ local function choose_wand_actions()
 end
 
 local function choose_movement()
-
+    state.control_w = (GameGetFrameNum() % 60) > 45
+    if target == nil then
+        state.control_a = false
+        state.control_d = false
+        return
+    end
+    local my_x, _ = EntityGetTransform(ctx.my_player.entity)
+    local t_x, t_y = EntityGetTransform(target)
+    local dist = my_x - t_x
+    local LIM = 100
+    if dist > 0 then
+        state.control_a = dist > LIM
+        state.control_d = not state.control_a
+    else
+        state.control_a = dist > -LIM
+        state.control_d = not state.control_a
+    end
 end
 
 local function update()
     -- No taking control back, even after pressing esc.
-    ComponentSetValue2(state.control, "enabled", false)
+    ComponentSetValue2(state.control_component, "enabled", false)
 
     state.init_timer = state.init_timer + 1
 
@@ -108,6 +131,28 @@ local function update()
 
     choose_wand_actions()
     choose_movement()
+
+    ComponentSetValue2(state.control_component, "mButtonDownLeft", state.control_a)
+    if state.control_a and not state.was_a then
+        ComponentSetValue2(state.control_component, "mButtonFrameLeft", GameGetFrameNum()+1)
+    end
+    state.was_a = state.control_a
+
+    ComponentSetValue2(state.control_component, "mButtonDownRight", state.control_d)
+    if state.control_d and not state.was_d then
+        ComponentSetValue2(state.control_component, "mButtonFrameRight", GameGetFrameNum()+1)
+    end
+    state.was_d = state.control_d
+
+    ComponentSetValue2(state.control_component, "mButtonDownUp", state.control_w)
+    ComponentSetValue2(state.control_component, "mButtonDownFly", state.control_w)
+    if state.control_w and not state.was_w then
+        ComponentSetValue2(state.control_component, "mButtonFrameUp", GameGetFrameNum()+1)
+        ComponentSetValue2(state.control_component, "mButtonFrameFly", GameGetFrameNum()+1)
+    end
+    state.was_w = state.control_w
+    local _, y = EntityGetTransform(ctx.my_player.entity)
+    ComponentSetValue2(state.control_component, "mFlyingTargetY", y - 10)
 end
 
 function module.on_world_update()

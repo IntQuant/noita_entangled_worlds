@@ -114,7 +114,8 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
         ::continue::
     end
 
-    util.set_ent_variable(entity, "ew_current_perks", perk_data)
+    -- This is NOT done here
+    -- util.set_ent_variable(entity, "ew_current_perks", perk_data)
 end
 
 return perk_fns
