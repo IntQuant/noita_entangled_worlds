@@ -1256,7 +1256,7 @@ function wand:PutInPlayersInventory()
       end
     end
   end
-  local players = EntityGetWithTag("ew_current_player")
+  local players = EntityGetWithTag("player_unit")
   if count < 4 and #players > 0 then
     local item_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "ItemComponent")
     if item_component then
@@ -1337,7 +1337,7 @@ function wand:Serialize(include_mana, include_offsets)
 end
 
 local function get_held_wand()
-	local player = EntityGetWithTag("ew_current_player")[1]
+	local player = EntityGetWithTag("player_unit")[1]
   if player then
     local inventory2_comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
     local active_item = ComponentGetValue2(inventory2_comp, "mActiveItem")
@@ -1354,7 +1354,7 @@ end
 
 local function get_all_wands()
     local wands = {}
-      local player = EntityGetWithTag("ew_current_player")
+      local player = EntityGetWithTag("player_unit")
     if player and player[1] then
       local items = GameGetAllInventoryItems(player[1]) or {}
       for i, item in ipairs(items) do

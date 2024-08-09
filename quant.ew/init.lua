@@ -126,7 +126,7 @@ end
 
 function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_wand_pickup = is_wand_pickup
-	local players = EntityGetWithTag("ew_current_player") or {}
+	local players = EntityGetWithTag("player_unit") or {}
 
 	if (players[1]) then
 		np.RegisterPlayerEntityId(players[1])
@@ -173,7 +173,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.ready = true
     ctx.my_player = my_player
 
-    EntityAddTag(player_entity, "ew_current_player") -- TODO maybe remove and replace uses with player_unit tag
     EntityAddTag(player_entity, "ew_peer")
 
     EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
