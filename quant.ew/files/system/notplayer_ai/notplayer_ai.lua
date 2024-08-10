@@ -70,11 +70,11 @@ local target = nil
 local last_length = nil
 
 local function is_suitable_target(entity)
-    return not EntityHasTag(entity,"ew_notplayer")
+    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
 end
 
 local function choose_wand_actions()
-    if state.attack_wand ~= nil and target ~= nil then
+    if state.attack_wand ~= nil and target ~= nil and EntityGetIsAlive(target) then
         np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         local x, y = EntityGetTransform(ctx.my_player.entity)
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
