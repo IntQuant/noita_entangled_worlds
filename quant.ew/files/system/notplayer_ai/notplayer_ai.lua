@@ -87,7 +87,9 @@ local function choose_wand_actions()
         local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
 
         fire_wand(not did_hit)
+        return {}
     end
+    fire_wand(false)
 end
 
 local function choose_movement()
