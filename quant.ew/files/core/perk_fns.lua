@@ -10,6 +10,8 @@ local perks_to_ignore = {
     PERKS_LOTTERY = true,
     REMOVE_FOG_OF_WAR = true,
     MEGA_BEAM_STONE = true,
+    TELEPORTITIS = true, -- TODO: teleports to 0,0
+    TELEPORTITIS_DODGE = true,
     -- TODO: Needs extra work to work correctly
     -- NO_MORE_SHUFFLE = true,
     -- UNLIMITED_SPELLS = true,
