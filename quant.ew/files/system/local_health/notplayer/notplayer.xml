@@ -319,9 +319,11 @@
     radius="1"
   ></LiquidDisplacerComponent>
 
+    <!--only_pick_this_entity is needed to prevent item pickups-->
   <ItemPickUpperComponent
     drop_items_on_death="0"
     is_immune_to_kicks="1"
+    only_pick_this_entity="52395832806"
   ></ItemPickUpperComponent>
 
 	<Base file="data/entities/base_jetpack_nosound.xml">
