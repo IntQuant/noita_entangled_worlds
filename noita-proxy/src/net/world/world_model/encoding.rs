@@ -88,7 +88,7 @@ impl<Pixel: Eq + Copy> PixelRunner<Pixel> {
 
 impl PixelRunner<RawPixel> {
     /// Note: w/h are actualy width/height -1
-    pub fn to_noita(self, x: i32, y: i32, w: u8, h: u8) -> NoitaWorldUpdate {
+    pub fn into_noita_update(self, x: i32, y: i32, w: u8, h: u8) -> NoitaWorldUpdate {
         let runs = self.build();
         NoitaWorldUpdate {
             header: Header {

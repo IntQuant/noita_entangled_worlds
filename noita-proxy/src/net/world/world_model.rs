@@ -104,7 +104,7 @@ impl WorldModel {
                 runner.put_pixel(self.get_pixel(x + i, y + j).to_raw())
             }
         }
-        runner.to_noita(x, y, (w - 1) as u8, (h - 1) as u8)
+        runner.into_noita_update(x, y, (w - 1) as u8, (h - 1) as u8)
     }
 
     pub fn get_all_noita_updates(&self) -> Vec<Vec<u8>> {
