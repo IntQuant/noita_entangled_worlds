@@ -308,6 +308,7 @@
   ></AudioLoopComponent>
 
   <AudioListenerComponent
+    _tags="ew_remove_on_send"
     z="-60"
   ></AudioListenerComponent>
   
