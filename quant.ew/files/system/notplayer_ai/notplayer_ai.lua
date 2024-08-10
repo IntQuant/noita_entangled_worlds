@@ -69,6 +69,8 @@ local target = nil
 
 local last_length = nil
 
+local last_did_hit = false
+
 local function is_suitable_target(entity)
     return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
 end
@@ -117,6 +119,7 @@ local function update()
     if target ~= nil and not is_suitable_target(target) then
         target = nil
         last_length = nil
+        last_did_hit = false
     end
 
     log("Trying to choose target")
@@ -134,8 +137,9 @@ local function update()
             local dy = y - t_y
             local length = dx * dx + dy * dy
             local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-            if last_length == nil or (not did_hit and last_length > length) then
+            if last_length == nil or (not did_hit and (last_length > length or not last_did_hit)) then
                 last_length = length
+                last_did_hit = did_hit
                 target = potential_target
             end
         end
