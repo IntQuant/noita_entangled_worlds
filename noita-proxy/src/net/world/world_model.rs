@@ -1,9 +1,8 @@
-use std::{mem::size_of, sync::Arc};
+use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
 use chunk::{Chunk, CompactPixel, Pixel, PixelFlags};
 use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
-use image::{Rgb, RgbImage};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::info;
 
@@ -13,64 +12,28 @@ pub mod encoding;
 const CHUNK_SIZE: usize = 128;
 
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct ChunkCoord(pub i32, pub i32);
+pub(crate) struct ChunkCoord(pub i32, pub i32);
 
 #[derive(Default)]
-pub struct WorldModel {
+pub(crate) struct WorldModel {
     chunks: FxHashMap<ChunkCoord, Chunk>,
-    pub mats: FxHashSet<u16>,
-    palette: MatPalette,
     /// Tracks chunks which we written to.
     /// This includes any write, not just those that actually changed at least one pixel.
     updated_chunks: FxHashSet<ChunkCoord>,
 }
 
-struct MatPalette {
-    colors: Vec<Rgb<u8>>,
-}
-
-/// Basically the same as ChunkDelta, but doesn't assume we know anything about the chunk.
-/// Also doesn't need crc field.
+/// Contains full info abount a chunk, RLE encoded.
+/// Kinda close to ChunkDelta, but doesn't assume we know anything about the chunk.
 #[derive(Debug, Encode, Decode, Clone)]
-pub struct ChunkData {
+pub(crate) struct ChunkData {
     runs: Vec<PixelRun<CompactPixel>>,
 }
 
+/// Contains a diff, only pixels that were updated, for a given chunk.
 #[derive(Debug, Encode, Decode, Clone)]
-pub struct ChunkDelta {
-    runs: Arc<Vec<PixelRun<Option<CompactPixel>>>>,
+pub(crate) struct ChunkDelta {
     pub chunk_coord: ChunkCoord,
-    crc: Option<u64>,
-}
-
-impl ChunkDelta {
-    pub fn estimate_size(&self) -> usize {
-        8 + self.runs.len() * size_of::<PixelRun<Option<CompactPixel>>>()
-    }
-}
-
-impl Default for MatPalette {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl MatPalette {
-    fn new() -> Self {
-        let raw_data = include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/mat_colors.txt"
-        ));
-
-        let mut colors = Vec::new();
-
-        for line in raw_data.split_ascii_whitespace() {
-            let num: u32 = line.parse().unwrap();
-            let color = Rgb::from([(num >> 16) as u8, (num >> 8) as u8, num as u8]);
-            colors.push(color);
-        }
-        Self { colors }
-    }
+    runs: Arc<Vec<PixelRun<Option<CompactPixel>>>>,
 }
 
 impl WorldModel {
@@ -84,7 +47,6 @@ impl WorldModel {
     }
 
     fn set_pixel(&mut self, x: i32, y: i32, pixel: Pixel) {
-        self.mats.insert(pixel.material);
         let (chunk_coord, offset) = Self::to_chunk_coords(x, y);
         let chunk = self.chunks.entry(chunk_coord).or_default();
         let current = chunk.pixel(offset);
@@ -100,10 +62,6 @@ impl WorldModel {
             .get(&chunk_coord)
             .map(|chunk| chunk.pixel(offset))
             .unwrap_or_default()
-    }
-
-    pub fn new() -> Self {
-        Self::default()
     }
 
     pub fn apply_noita_update(&mut self, update: &NoitaWorldUpdate) {
@@ -188,35 +146,7 @@ impl WorldModel {
             runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.compact_pixel(i)))
         }
         let runs = runner.build().into();
-        Some(ChunkDelta {
-            chunk_coord,
-            runs,
-            crc: None,
-        })
-    }
-
-    pub fn apply_all_deltas(&mut self, deltas: &[ChunkDelta]) {
-        for delta in deltas {
-            self.apply_chunk_delta(delta);
-            if let Some(chunk) = self.chunks.get(&delta.chunk_coord) {
-                if let Some(delta_crc) = delta.crc {
-                    let crc = chunk.crc();
-                    if crc != delta_crc {
-                        info!(
-                            "Crc mismatch: {:?} ({} vs {})",
-                            delta.chunk_coord, crc, delta_crc
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn get_all_deltas(&self) -> Vec<ChunkDelta> {
-        self.updated_chunks
-            .iter()
-            .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, false))
-            .collect()
+        Some(ChunkDelta { chunk_coord, runs })
     }
 
     pub fn updated_chunks(&self) -> &FxHashSet<ChunkCoord> {
@@ -230,36 +160,6 @@ impl WorldModel {
             }
         }
         self.updated_chunks.clear();
-    }
-
-    pub fn get_start(&self) -> (i32, i32) {
-        let cx = self.chunks.keys().map(|v| v.0).min().unwrap_or_default();
-        let cy = self.chunks.keys().map(|v| v.1).min().unwrap_or_default();
-        (cx * CHUNK_SIZE as i32, cy * CHUNK_SIZE as i32)
-    }
-
-    pub fn gen_image(&self, x: i32, y: i32, w: u32, h: u32) -> RgbImage {
-        RgbImage::from_fn(w, h, |lx, ly| {
-            let pixel = self.get_pixel(x + lx as i32, y + ly as i32);
-            let mat_color = self
-                .palette
-                .colors
-                .get(usize::from(pixel.material))
-                .copied()
-                .unwrap_or(Rgb([0, 0, 0]));
-            if pixel.flags != PixelFlags::Unknown {
-                mat_color
-            } else {
-                Rgb([25, 0, 0])
-            }
-        })
-    }
-
-    pub fn get_world_as_deltas(&self) -> Vec<ChunkDelta> {
-        self.chunks
-            .keys()
-            .filter_map(|&chunk_coord| self.get_chunk_delta(chunk_coord, true))
-            .collect()
     }
 
     pub fn reset(&mut self) {

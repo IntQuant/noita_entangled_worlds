@@ -106,8 +106,6 @@ impl Default for Chunk {
     }
 }
 
-const CRC: crc::Crc<u64> = crc::Crc::<u64>::new(&crc::CRC_64_XZ);
-
 /// Chunk of pixels. Stores pixels and tracks if they were changed.
 impl Chunk {
     pub fn pixel(&self, offset: usize) -> Pixel {
@@ -140,19 +138,5 @@ impl Chunk {
     pub fn clear_changed(&mut self) {
         self.changed = [false; CHUNK_SIZE * CHUNK_SIZE];
         self.any_changed = false;
-    }
-
-    fn crc_uncached(&self) -> u64 {
-        CRC.checksum(bytemuck::bytes_of(&self.pixels))
-    }
-
-    pub fn crc(&self) -> u64 {
-        if let Some(crc) = self.crc.load() {
-            crc
-        } else {
-            let crc = self.crc_uncached();
-            self.crc.store(Some(crc));
-            crc
-        }
     }
 }
