@@ -12,7 +12,6 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-use tracing::debug;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -164,9 +163,18 @@ impl NetManager {
 
         let local_server: TcpListener = socket.into();
 
-        while self.peer.my_id().is_none() {
-            info!("Waiting on my_id...");
-            thread::sleep(Duration::from_millis(100));
+        for _ in 1..3
+        {
+            if self.peer.my_id().is_none() {
+                info!("Waiting on my_id...");
+                thread::sleep(Duration::from_millis(100));
+            } else {
+                break
+            }
+        }
+        if self.peer.my_id().is_none()
+        {
+            std::process::exit(1)
         }
 
         let is_host = self.is_host();
@@ -369,7 +377,7 @@ impl NetManager {
             }
             // Broadcast
             2 => {
-                let msg_to_send = if false {
+                let msg_to_send =/* if false {
                     let compressed = lz4_flex::compress_prepend_size(&msg[1..]);
 
                     debug!(
@@ -379,7 +387,7 @@ impl NetManager {
                     );
 
                     NetMsg::ModCompressed { data: compressed }
-                } else {
+                } else*/ {
                     NetMsg::ModRaw {
                         data: msg[1..].to_owned(),
                     }
