@@ -1,5 +1,6 @@
 # List of available hooks:
 
+ - `ctx.hook.on_world_initialized()`
  - `ctx.hook.on_world_update()`
  - `ctx.hook.on_world_update_client()`
  - `ctx.hook.on_world_update_host()`

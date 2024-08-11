@@ -34,7 +34,7 @@ impl Pixel {
             },
         }
     }
-    fn to_compact(self) -> CompactPixel {
+    pub fn to_compact(self) -> CompactPixel {
         let flag_bit = if self.flags == PixelFlags::Normal {
             0
         } else {

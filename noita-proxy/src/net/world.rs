@@ -1,4 +1,4 @@
-use std::mem;
+use std::{env, mem};
 
 use bitcode::{Decode, Encode};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -120,7 +120,6 @@ impl WorldManager {
             inbound_model: Default::default(),
             outbound_model: Default::default(),
             authority_map: Default::default(),
-            // TODO this needs to be persisted between proxy restarts.
             chunk_storage,
             chunk_state: Default::default(),
             emitted_messages: Default::default(),
@@ -237,6 +236,12 @@ impl WorldManager {
     }
 
     pub(crate) fn get_noita_updates(&mut self) -> Vec<Vec<u8>> {
+        // Sends random data to noita to check if it crashes.
+        if env::var_os("NP_WORLD_SYNC_TEST").is_some() && self.current_update % 10 == 0 {
+            let chunk_data = ChunkData::make_random();
+            self.inbound_model
+                .apply_chunk_data(ChunkCoord(0, 0), chunk_data)
+        }
         let updates = self.inbound_model.get_all_noita_updates();
         self.inbound_model.reset_change_tracking();
         updates

@@ -36,6 +36,23 @@ pub(crate) struct ChunkDelta {
     runs: Arc<Vec<PixelRun<Option<CompactPixel>>>>,
 }
 
+impl ChunkData {
+    pub(crate) fn make_random() -> Self {
+        let mut runner = PixelRunner::new();
+        for i in 0..CHUNK_SIZE * CHUNK_SIZE {
+            runner.put_pixel(
+                Pixel {
+                    flags: PixelFlags::Normal,
+                    material: (i as u16) % 512,
+                }
+                .to_compact(),
+            )
+        }
+        let runs = runner.build();
+        ChunkData { runs }
+    }
+}
+
 impl WorldModel {
     fn to_chunk_coords(x: i32, y: i32) -> (ChunkCoord, usize) {
         let chunk_x = x.div_euclid(CHUNK_SIZE as i32);

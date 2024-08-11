@@ -37,6 +37,8 @@ struct __attribute__ ((__packed__)) EncodedArea {
 
 ]])
 
+world.last_material_id = 0
+
 world.EncodedAreaHeader = ffi.typeof("struct EncodedAreaHeader")
 world.PixelRun = ffi.typeof("struct PixelRun")
 world.EncodedArea = ffi.typeof("struct EncodedArea")
@@ -211,9 +213,11 @@ function world.decode(grid_world, header, pixel_runs)
                 end
 
                 if current_material ~= new_material and new_material ~= 0 then
+                    if new_material > world.last_material_id then
+                        goto next_pixel
+                    end
                     local mat_ptr = world_ffi.get_material_ptr(new_material)
                     if mat_ptr == nil then
-                        GamePrint("NULL mat_ptr encountered")
                         goto next_pixel
                     end
                     local pixel = world_ffi.construct_cell(grid_world, x, y, mat_ptr, nil)

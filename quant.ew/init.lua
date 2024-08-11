@@ -153,6 +153,7 @@ function OnWorldInitialized() -- This is called once the game world is initializ
     else
         GameRemoveFlagRun("ew_flag_this_is_host")
     end
+    ctx.hook.on_world_initialized()
 end
 
 

@@ -21,6 +21,20 @@ local CHUNK_SIZE = 128
 
 local iter = 0
 
+function world_sync.on_world_initialized()
+    local c = 0
+    while true do
+        local name = CellFactory_GetName(c)
+        if name == "unknown" then
+            break
+        end
+        c = c + 1
+    end
+    c = c - 1
+    print("Last material id: "..c)
+    world.last_material_id = c
+end
+
 function world_sync.on_world_update()
 
     local grid_world = world_ffi.get_grid_world()
