@@ -4,7 +4,7 @@
     
     <GameEffectComponent 
         effect="PROTECTION_ALL"
-        frames="180"
+        frames="30"
         disable_movement="0"
     >
     </GameEffectComponent >
