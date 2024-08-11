@@ -1,7 +1,7 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfinder.lua")
 
-local MAX_RADIUS = 128*3
+local MAX_RADIUS = 128*4
 
 local state = nil
 
@@ -78,31 +78,49 @@ end
 local function choose_wand_actions()
     if state.attack_wand ~= nil and target ~= nil and EntityGetIsAlive(target) then
         np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
-        local x, y = EntityGetTransform(ctx.my_player.entity)
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(target)
         end
         aim_at(t_x, t_y)
-        local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
 
-        fire_wand(not did_hit)
-        return {}
+        fire_wand(not last_did_hit)
+        return
     end
     fire_wand(false)
 end
 
+local last_my_y = 0
+
+local stop_y = false
+
+local get_close = false
+
+local swap_side = false
+
+local on_right = false
+
 local function choose_movement()
-    state.control_w = (GameGetFrameNum() % 60) > 45
     if target == nil then
         state.control_a = false
         state.control_d = false
+        state.control_w = false
+        stop_y = false
+        get_close = false
+        swap_side = false
+        on_right = false
         return
     end
-    local my_x, _ = EntityGetTransform(ctx.my_player.entity)
+    local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
     local t_x, t_y = EntityGetTransform(target)
     local dist = my_x - t_x
     local LIM = 100
+    if get_close and t_y < my_y + 40 then
+        LIM = 0
+    end
+    if swap_side then
+        dist = -dist
+    end
     if dist > 0 then
         state.control_a = dist > LIM
         state.control_d = not state.control_a
@@ -110,6 +128,49 @@ local function choose_movement()
         state.control_a = dist > -LIM
         state.control_d = not state.control_a
     end
+    if (not stop_y) and ((last_did_hit and t_y < my_y + 80) or t_y < my_y) and (GameGetFrameNum() % 300) < 200 then
+        state.control_w = last_my_y ~= my_y
+        if last_my_y == my_y then
+            stop_y = true
+        end
+    else
+        if stop_y and (GameGetFrameNum() % 300) > 200 then
+            stop_y = false
+        end
+        state.control_w = (GameGetFrameNum() % 60) > 45
+    end
+
+    if last_did_hit and t_y < my_y + 40 then
+        local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, t_x, my_y)
+        local did_hit_2, _, _ = RaytracePlatforms(t_x, my_y, t_x, t_y)
+        if did_hit_1 and did_hit_2 then
+            get_close = true
+        end
+    end
+
+    if t_y < my_y - 10 then
+        get_close = false
+    end
+
+    if (not last_did_hit) and get_close then
+        get_close = false
+        swap_side = true
+        on_right = my_x > t_x
+    end
+
+    if swap_side and on_right ~= (my_x > t_x) then
+        swap_side = false
+    end
+
+    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x+5, my_y)
+    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x-5, my_y)
+    if (did_hit_1 and my_x > t_x) or (did_hit_2 and my_x < t_x) then
+        get_close = false
+        swap_side = true
+        on_right = my_x > t_x
+    end
+
+    last_my_y = my_y
 end
 
 local function update()
@@ -118,16 +179,25 @@ local function update()
 
     state.init_timer = state.init_timer + 1
 
+    local ch_x, ch_y = EntityGetTransform(state.entity)
+    local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+
     if target ~= nil and not is_suitable_target(target) then
         target = nil
         last_length = nil
         last_did_hit = false
     end
+    if target ~= nil then
+        local t_x, t_y = EntityGetFirstHitboxCenter(target)
+        if t_x == nil then
+            t_x, t_y = EntityGetTransform(target)
+        end
+        local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+        last_did_hit = did_hit
+    end
 
     log("Trying to choose target")
-    local ch_x, ch_y = EntityGetTransform(state.entity)
-    local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
-    local x, y = EntityGetTransform(ctx.my_player.entity)
     for _, potential_target in ipairs(potential_targets) do
         log("Trying "..potential_target)
         if is_suitable_target(potential_target) then
@@ -153,8 +223,7 @@ local function update()
         fire_wand(false)
         ComponentSetValue2(state.control_component, "mButtonDownKick", true)
         ComponentSetValue2(state.control_component, "mButtonFrameKick", GameGetFrameNum()+1)
-    end
-    if not do_kick then
+    else
         ComponentSetValue2(state.control_component, "mButtonDownKick", false)
         choose_wand_actions()
     end
