@@ -166,7 +166,7 @@ local function end_poly_effect(ent)
         local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
         if game_effect_comp then
             local effect = ComponentGetValue2(game_effect_comp, "effect")
-            if effect == "POLYMORPH" then
+            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" then
                 ComponentSetValue2(game_effect_comp, "frames", 1)
             end
         end
