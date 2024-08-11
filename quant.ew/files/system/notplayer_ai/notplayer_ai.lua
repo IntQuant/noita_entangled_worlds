@@ -125,7 +125,7 @@ local function choose_movement()
     end
     if (not stop_y) and ((last_did_hit and t_y < my_y + 80) or t_y < my_y) and (GameGetFrameNum() % 300) < 200 then
         state.control_w = true
-        local did_hit, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y+5)
+        local did_hit, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 5)
         if did_hit then
             state.control_w = false
             stop_y = true
