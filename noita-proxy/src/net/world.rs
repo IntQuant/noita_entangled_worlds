@@ -190,13 +190,13 @@ impl WorldManager {
                         WorldNetMessage::RequestAuthority { chunk },
                     ));
                     *state = ChunkState::WaitingForAuthority;
-                    info!("Requested authority for {chunk:?}")
+                    debug!("Requested authority for {chunk:?}")
                 }
                 // This state doesn't have much to do.
                 ChunkState::WaitingForAuthority => {}
                 ChunkState::Listening { authority } => {
                     if self.current_update - chunk_last_update > unload_limit {
-                        info!("Unloading [listening] chunk {chunk:?}");
+                        debug!("Unloading [listening] chunk {chunk:?}");
                         emit_queue.push((
                             Destination::Peer(*authority),
                             WorldNetMessage::ListenStopRequest { chunk },
@@ -206,7 +206,7 @@ impl WorldManager {
                 }
                 ChunkState::Authority { listeners: _ } => {
                     if self.current_update - chunk_last_update > unload_limit {
-                        info!("Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})", self.current_update);
+                        debug!("Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})", self.current_update);
                         emit_queue.push((
                             Destination::Host,
                             WorldNetMessage::RelinquishAuthority {
@@ -298,7 +298,7 @@ impl WorldManager {
                             info!("{source} already has authority of {chunk:?}");
                             self.emit_got_authority(chunk, source);
                         } else {
-                            info!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
+                            debug!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
                             self.emit_msg(
                                 Destination::Peer(source),
                                 WorldNetMessage::AuthorityAlreadyTaken { chunk, authority },
@@ -306,7 +306,7 @@ impl WorldManager {
                         }
                     }
                     None => {
-                        info!("Granting {source} authority of {chunk:?}");
+                        debug!("Granting {source} authority of {chunk:?}");
                         self.emit_got_authority(chunk, source);
                     }
                 }
