@@ -143,7 +143,7 @@ local function choose_movement()
     if last_did_hit and t_y < my_y + 40 then
         local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, t_x, my_y)
         local did_hit_2, _, _ = RaytracePlatforms(t_x, my_y, t_x, t_y)
-        if did_hit_1 and did_hit_2 then
+        if did_hit_1 and (not did_hit_2) then
             get_close = true
         end
     end

@@ -41,6 +41,10 @@ In the Proxy window, click on "Create Lobby". Then, "Save lobby ID to clipboard"
 
 After that, just start a new Noita game on everyone's PCs, and you should be in multiplayer mode :)
 
+## Mods support
+
+[The mods listed here](https://docs.google.com/spreadsheets/d/1nMdqzrLCav_diXbNPB9RgxPcCQzDPgXdEv-klKWJyS0) have been tested by the community, it is publically editable so please add any untested mod with your findings
+
 ## Thanks
 
 Special thanks to:
