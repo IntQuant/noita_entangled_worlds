@@ -155,6 +155,82 @@ local function choose_movement()
 
 end
 
+local function position_to_area_number(y)
+    if y < 1104 then
+        return 1
+    elseif y < 2640 then
+        return 2
+    elseif y < 4688 then
+        return 3
+    elseif y < 6224 then
+        return 4
+    elseif y < 8272 then
+        return 5
+    elseif y < 10320 then
+        return 6
+    elseif y < 12880 then
+        return 7
+    else
+        return 8
+    end
+end
+
+local function teleport_to_area(area)
+    if area == 1 then
+        EntitySetTransform(ctx.my_player.entity, 191, 1514)
+    elseif area == 2 then
+        EntitySetTransform(ctx.my_player.entity, 191, 3066)
+    elseif area == 3 then
+        EntitySetTransform(ctx.my_player.entity, 191, 5114)
+    elseif area == 4 then
+        EntitySetTransform(ctx.my_player.entity, 191, 6634)
+    elseif area == 5 then
+        EntitySetTransform(ctx.my_player.entity, 191, 8696)
+    elseif area == 6 then
+        EntitySetTransform(ctx.my_player.entity, 191, 10730)
+    elseif area == 7 then
+        EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+    end
+end
+
+local function teleport_to_next_hm()
+    --BiomeMapGetName()
+    --BIOME_MAP
+    --MagicNumbersGetValue
+
+    -- main x area -5646 < x < 5120
+    -- main y area -1400 < y < 14336
+
+    -- 1st area, y < 1104, exit  191,  1514
+    -- 2nd area, y < 2640, exit  191,  3066
+    -- 3rd area, y < 4688, exit  191,  5114
+    -- 4th area, y < 6224, exit  191,  6634
+    -- 5th area, y < 8272, exit  191,  8696
+    -- 6th area, y < 10320, exit 191,  10730
+    -- 7th area, y < 12880, exit 3244, 13084
+
+    local my_area_num = -1
+    local others_area_num = 9
+    for peer_id, player_data in pairs(ctx.players) do
+        local player = player_data.entity
+        x, y = EntityGetTransform(player)
+        if not (-5646 < x and x < 5120 and -1400 < x and x < 14336) then
+            return
+        end
+        if peer_id == ctx.my_id then
+            my_area_num = position_to_area_number(y)
+        else
+            local area_num = position_to_area_number(y)
+            if area_num < others_area_num then
+                others_area_num = area_num
+            end
+        end
+    end
+    if my_area_num < others_area_num then
+        teleport_to_area(my_area_num)
+    end
+end
+
 local function update()
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
@@ -233,6 +309,11 @@ local function update()
     state.was_w = state.control_w
     local _, y = EntityGetTransform(ctx.my_player.entity)
     ComponentSetValue2(state.control_component, "mFlyingTargetY", y - 10)
+
+    if (GameGetFrameNum() % 300) == 299 then
+        teleport_to_next_hm()
+    end
+
 end
 
 function module.on_world_update()
