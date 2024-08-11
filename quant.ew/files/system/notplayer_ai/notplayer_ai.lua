@@ -90,11 +90,7 @@ local function choose_wand_actions()
     fire_wand(false)
 end
 
-local last_my_y = 0
-
 local stop_y = false
-
-local get_close = false
 
 local swap_side = false
 
@@ -106,7 +102,6 @@ local function choose_movement()
         state.control_d = false
         state.control_w = false
         stop_y = false
-        get_close = false
         swap_side = false
         on_right = false
         return
@@ -115,22 +110,24 @@ local function choose_movement()
     local t_x, t_y = EntityGetTransform(target)
     local dist = my_x - t_x
     local LIM = 100
-    if get_close and t_y < my_y + 40 then
-        LIM = 0
+    if swap_side and on_right ~= (my_x > t_x) then
+        swap_side = false
     end
     if swap_side then
-        dist = -dist
+        LIM = 0
     end
     if dist > 0 then
         state.control_a = dist > LIM
         state.control_d = not state.control_a
     else
-        state.control_a = dist > -LIM
-        state.control_d = not state.control_a
+        state.control_d = -dist > LIM
+        state.control_a = not state.control_d
     end
     if (not stop_y) and ((last_did_hit and t_y < my_y + 80) or t_y < my_y) and (GameGetFrameNum() % 300) < 200 then
-        state.control_w = last_my_y ~= my_y
-        if last_my_y == my_y then
+        state.control_w = true
+        local did_hit, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y+5)
+        if did_hit then
+            state.control_w = false
             stop_y = true
         end
     else
@@ -144,33 +141,18 @@ local function choose_movement()
         local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, t_x, my_y)
         local did_hit_2, _, _ = RaytracePlatforms(t_x, my_y, t_x, t_y)
         if did_hit_1 and (not did_hit_2) then
-            get_close = true
+            swap_side = true
+            on_right = my_x > t_x
         end
-    end
-
-    if t_y < my_y - 10 then
-        get_close = false
-    end
-
-    if (not last_did_hit) and get_close then
-        get_close = false
-        swap_side = true
-        on_right = my_x > t_x
-    end
-
-    if swap_side and on_right ~= (my_x > t_x) then
-        swap_side = false
     end
 
     local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x+5, my_y)
     local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x-5, my_y)
     if (did_hit_1 and my_x > t_x) or (did_hit_2 and my_x < t_x) then
-        get_close = false
         swap_side = true
         on_right = my_x > t_x
     end
 
-    last_my_y = my_y
 end
 
 local function update()
@@ -241,6 +223,7 @@ local function update()
     end
     state.was_d = state.control_d
 
+    ComponentSetValue2(state.control_component, "mButtonDownDown", false)
     ComponentSetValue2(state.control_component, "mButtonDownUp", state.control_w)
     ComponentSetValue2(state.control_component, "mButtonDownFly", state.control_w)
     if state.control_w and not state.was_w then
