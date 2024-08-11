@@ -11,7 +11,6 @@ local perks_to_ignore = {
     REMOVE_FOG_OF_WAR = true,
     MEGA_BEAM_STONE = true,
     ALWAYS_CAST = true,
-    EXTRA_SHOP_ITEM = true,
     EXTRA_SLOTS = true,
     EXTRA_PERK = true,
     FASTER_WANDS = true,

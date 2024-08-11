@@ -33,7 +33,6 @@ local function allow_notplayer_perk(perk_id)
         TELEPORTITIS = true, -- TODO: teleports to 0,0
         TELEPORTITIS_DODGE = true,
         ALWAYS_CAST = true,
-        EXTRA_SHOP_ITEM = true,
         EXTRA_SLOTS = true,
         EXTRA_PERK = true,
         FASTER_WANDS = true,

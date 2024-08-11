@@ -13,6 +13,9 @@ ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system
 if ctx.proxy_opt.game_mode == "shared_health" then
     print("Loading extra perk patches for shared health mode")
     ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_shared.lua")
+else
+    print("Loading extra perk patches for local health mode")
+    ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_local.lua")
 end
 
 rpc.opts_reliable()
