@@ -12,6 +12,12 @@ local perks_to_ignore = {
     MEGA_BEAM_STONE = true,
     TELEPORTITIS = true, -- TODO: teleports to 0,0
     TELEPORTITIS_DODGE = true,
+    ALWAYS_CAST = true,
+    EXTRA_SHOP_ITEM = true,
+    EXTRA_SLOTS = true,
+    EXTRA_PERK = true,
+    FASTER_WANDS = true,
+    EXTRA_MANA = true,
     -- TODO: Needs extra work to work correctly
     -- NO_MORE_SHUFFLE = true,
     -- UNLIMITED_SPELLS = true,
