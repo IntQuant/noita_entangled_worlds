@@ -75,7 +75,7 @@ impl Recorder {
             // The rest isn't useful to save.
             _ => {}
         }
-        if self.last_dump.elapsed() > Duration::from_secs(5) {
+        if self.last_dump.elapsed() > Duration::from_secs(60) {
             self.dump_recording();
         }
     }
