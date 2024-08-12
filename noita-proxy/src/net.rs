@@ -339,7 +339,7 @@ impl NetManager {
             .clone()
             .parent()
             .unwrap()
-            .join(format!("{}.png", self.peer.my_id().unwrap()));
+            .join(format!("tmp/{}.png", self.peer.my_id().unwrap()));
         img.save(path).unwrap();
 
         let mut img = image::open(
@@ -361,7 +361,7 @@ impl NetManager {
             .clone()
             .parent()
             .unwrap()
-            .join(format!("{}_arm.png", self.peer.my_id().unwrap()));
+            .join(format!("tmp/{}_arm.png", self.peer.my_id().unwrap()));
         img.save(path).unwrap();
 
         let file = File::open(
@@ -394,7 +394,7 @@ impl NetManager {
             .clone()
             .parent()
             .unwrap()
-            .join(format!("{}_cape.xml", self.peer.my_id().unwrap()));
+            .join(format!("tmp/{}_cape.xml", self.peer.my_id().unwrap()));
         let mut file = File::create(path).unwrap();
         for line in lines {
             writeln!(file, "{}", line).unwrap();

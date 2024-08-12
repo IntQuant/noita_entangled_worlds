@@ -27,6 +27,7 @@ use std::{
     thread::JoinHandle,
     time::Duration,
 };
+use std::fs::{create_dir, remove_dir_all};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -290,8 +291,15 @@ impl App {
         netman.accept_local.store(true, Ordering::SeqCst);
     }
     fn player_path(&self) -> PathBuf {
-        ModmanagerSettings::mod_path(&self.modmanager_settings)
-            .join("files/system/player/unmodified.png")
+        let path = ModmanagerSettings::mod_path(&self.modmanager_settings)
+            .join("files/system/player/unmodified.png");
+        let tmp = path.parent().unwrap().join("tmp");
+        if tmp.exists()
+        {
+            remove_dir_all(tmp.clone()).unwrap();
+        }
+        create_dir(tmp).unwrap();
+        path
     }
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
