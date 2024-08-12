@@ -9,7 +9,7 @@ use std::{
 use bitcode::{Decode, Encode};
 use socket2::{Domain, Socket, Type};
 use steamworks::AppId;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use tungstenite::accept;
 
 use crate::{
@@ -132,9 +132,12 @@ fn replay_loop(recording_dir: PathBuf) {
         .unwrap_or_else(|| "127.0.0.1:21251".parse().unwrap());
 
     info!("Listening for noita connection on {}", address);
-
     let address = address.into();
-    socket.bind(&address).unwrap();
+    if let Err(err) = socket.bind(&address) {
+        error!("Could not bind to address: {err}");
+        panic!();
+    };
+    info!("Bound to address");
     socket.listen(1).unwrap();
     socket.set_nonblocking(false).unwrap();
 
