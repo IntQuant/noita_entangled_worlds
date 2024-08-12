@@ -356,11 +356,8 @@
   </HotspotComponent>
 
   <Entity name="cape">  
-    <!--
-      Not sure how to recolor the cape properly.
-      <Base file="data/entities/verlet_chains/cape/cape.xml">
+      <Base file="mods/quant.ew/files/system/local_health/notplayer/notplayer_cape.xml">
       </Base>  
-    -->
   </Entity>
   
   <!-- belt -->
