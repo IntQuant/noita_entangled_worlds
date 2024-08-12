@@ -28,6 +28,7 @@ mod bookkeeping;
 pub use bookkeeping::{mod_manager, releases, self_update};
 
 mod net;
+pub mod recorder;
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub(crate) enum GameMode {
@@ -108,6 +109,10 @@ struct AppSavedState {
     #[serde(default)]
     game_settings: GameSettings,
     start_game_automatically: bool,
+    #[serde(default)]
+    show_extra_debug_stuff: bool,
+    #[serde(default)]
+    record_all: bool,
 }
 
 impl Default for AppSavedState {
@@ -119,6 +124,8 @@ impl Default for AppSavedState {
             lang_id: None,
             game_settings: GameSettings::default(),
             start_game_automatically: false,
+            show_extra_debug_stuff: false,
+            record_all: false,
         }
     }
 }
@@ -665,29 +672,39 @@ impl eframe::App for App {
                     }
                     ui.add_space(15.0);
 
-                    if ui.button(tr("netman_show_settings")).clicked() {
-                        self.show_settings = true;
+                    if netman.peer.is_host() {
+                        if ui.button(tr("netman_show_settings")).clicked() {
+                            self.show_settings = true;
+                        }
                     }
                     
-                    if self.show_map_plot {
-                        let build_fn = |plot: &mut PlotUi| {
-                            netman.world_info.with_player_infos(|peer, info| {
-                                let username = if netman.peer.is_steam() {
-                                    let steam = self.steam_state.as_mut().expect(
-                                        "steam should be available, as we are using steam networking",
-                                    );
-                                    steam.get_user_name(peer.into())
-                                } else {
-                                    peer.as_hex()
-                                };
-                                plot.text(Text::new(PlotPoint::new(info.x, -info.y), username).highlight(true))
-                            });
-                        };
-                        Plot::new("map").data_aspect(1.0).show(ui, build_fn);
-                    } else if ui.button("Show debug plot").clicked() {
-                        self.show_map_plot = true;
+                    ui.add_space(15.0);
+
+                    ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, "Show debug stuff");
+
+                    if self.app_saved_state.show_extra_debug_stuff {
+                        if self.show_map_plot {
+                            let build_fn = |plot: &mut PlotUi| {
+                                netman.world_info.with_player_infos(|peer, info| {
+                                    let username = if netman.peer.is_steam() {
+                                        let steam = self.steam_state.as_mut().expect(
+                                            "steam should be available, as we are using steam networking",
+                                        );
+                                        steam.get_user_name(peer.into())
+                                    } else {
+                                        peer.as_hex()
+                                    };
+                                    plot.text(Text::new(PlotPoint::new(info.x, -info.y), username).highlight(true))
+                                });
+                            };
+                            Plot::new("map").data_aspect(1.0).show(ui, build_fn);
+                        } else if ui.button("Show debug plot").clicked() {
+                            self.show_map_plot = true;
+                        }
+                        ui.checkbox(&mut self.app_saved_state.record_all, "Record EVERYTHING sent to noita.");
                     }
                 });
+                netman.enable_recorder.store(self.app_saved_state.record_all, Ordering::Relaxed);
                 if netman.peer.is_host() {
                     let mut show = self.show_settings;
                     let netman = netman.clone();

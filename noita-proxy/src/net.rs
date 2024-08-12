@@ -8,7 +8,10 @@ use std::{
     fmt::Display,
     io::{self, Write},
     net::{SocketAddr, TcpListener, TcpStream},
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{
+        atomic::{self, AtomicBool},
+        Arc, Mutex,
+    },
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
@@ -20,6 +23,7 @@ use tungstenite::{accept, WebSocket};
 
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
+    recorder::Recorder,
     GameSettings,
 };
 
@@ -63,14 +67,19 @@ impl SaveStateEntry for RunInfo {
 pub(crate) struct NetInnerState {
     pub(crate) ws: Option<WebSocket<TcpStream>>,
     world: WorldManager,
+    recorder: Option<Recorder>,
 }
 
 impl NetInnerState {
     pub(crate) fn try_ws_write(&mut self, data: tungstenite::Message) {
         if let Some(ws) = &mut self.ws {
+            if let Some(recorder) = &mut self.recorder {
+                recorder.record_msg(&data);
+            }
             if let Err(err) = ws.write(data) {
                 error!("Error occured while sending to websocket: {}", err);
                 self.ws = None;
+                self.recorder = None;
             };
         }
     }
@@ -101,6 +110,7 @@ pub struct NetManager {
     pub error: Mutex<Option<io::Error>>,
     pub init_settings: NetManagerInit,
     pub world_info: WorldInfo,
+    pub enable_recorder: AtomicBool,
 }
 
 impl NetManager {
@@ -116,6 +126,7 @@ impl NetManager {
             error: Default::default(),
             init_settings: init,
             world_info: Default::default(),
+            enable_recorder: AtomicBool::new(false),
         }
         .into()
     }
@@ -163,17 +174,15 @@ impl NetManager {
 
         let local_server: TcpListener = socket.into();
 
-        for _ in 1..3
-        {
+        for _ in 1..3 {
             if self.peer.my_id().is_none() {
                 info!("Waiting on my_id...");
                 thread::sleep(Duration::from_millis(100));
             } else {
-                break
+                break;
             }
         }
-        if self.peer.my_id().is_none()
-        {
+        if self.peer.my_id().is_none() {
             std::process::exit(1)
         }
 
@@ -181,6 +190,7 @@ impl NetManager {
         info!("Is host: {is_host}");
         let mut state = NetInnerState {
             ws: None,
+            recorder: None,
             world: WorldManager::new(
                 is_host,
                 self.peer.my_id().unwrap(),
@@ -190,13 +200,10 @@ impl NetManager {
 
         let mut last_iter = Instant::now();
 
-        while self
-            .continue_running
-            .load(std::sync::atomic::Ordering::Relaxed)
-        {
+        while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
-                .store(state.ws.is_some(), std::sync::atomic::Ordering::Relaxed);
-            if state.ws.is_none() && self.accept_local.load(std::sync::atomic::Ordering::SeqCst) {
+                .store(state.ws.is_some(), atomic::Ordering::Relaxed);
+            if state.ws.is_none() && self.accept_local.load(atomic::Ordering::SeqCst) {
                 thread::sleep(Duration::from_millis(10));
                 if let Ok((stream, addr)) = local_server.accept() {
                     info!("New stream incoming from {}", addr);
@@ -207,6 +214,9 @@ impl NetManager {
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
                         .ok();
                     if state.ws.is_some() {
+                        if self.enable_recorder.load(atomic::Ordering::Relaxed) {
+                            state.recorder = Some(Recorder::default());
+                        }
                         self.on_ws_connection(&mut state);
                     }
                 }
@@ -249,8 +259,7 @@ impl NetManager {
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
                                 info!("Settings updated");
-                                self.accept_local
-                                    .store(true, std::sync::atomic::Ordering::SeqCst);
+                                self.accept_local.store(true, atomic::Ordering::SeqCst);
                                 state.world.reset();
                             }
                             NetMsg::ModRaw { data } => {
@@ -418,8 +427,7 @@ impl NetManager {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);
             }
-            self.stopped
-                .store(true, std::sync::atomic::Ordering::Relaxed);
+            self.stopped.store(true, atomic::Ordering::Relaxed);
         })
     }
 

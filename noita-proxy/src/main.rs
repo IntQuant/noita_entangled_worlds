@@ -2,7 +2,7 @@ use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
 };
-use noita_proxy::{args::Args, App};
+use noita_proxy::{args::Args, recorder::replay_file, App};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -19,6 +19,11 @@ fn main() -> Result<(), eframe::Error> {
     let args: Args = argh::from_env();
 
     info!("{:?}", args.launch_cmd);
+
+    if let Some(replay) = args.replay_folder {
+        replay_file(replay);
+        return Ok(());
+    }
 
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
         .unwrap()
