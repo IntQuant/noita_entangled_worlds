@@ -160,9 +160,7 @@ fn proxy_bin_name() -> &'static str {
 }
 
 fn proxy_downloader_for(download_path: PathBuf) -> Result<Downloader, ReleasesError> {
-    let client = reqwest::blocking::Client::builder()
-        .timeout(None)
-        .build()?;
+    let client = reqwest::blocking::Client::builder().timeout(None).build()?;
     get_latest_release(&client)
         .and_then(|release| release.get_release_assets(&client))
         .and_then(|asset_list| asset_list.find_by_name(proxy_asset_name()).cloned())

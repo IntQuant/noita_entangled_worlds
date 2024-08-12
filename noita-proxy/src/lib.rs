@@ -1,20 +1,32 @@
-use std::{
-    fmt::Display, net::SocketAddr, ops::Deref, sync::{atomic::Ordering, Arc}, thread::JoinHandle, time::Duration
-};
-use std::path::PathBuf;
 use bitcode::{Decode, Encode};
-use bookkeeping::{noita_launcher::{LaunchTokenResult, NoitaLauncher}, save_state::SaveState};
+use bookkeeping::{
+    noita_launcher::{LaunchTokenResult, NoitaLauncher},
+    save_state::SaveState,
+};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureHandle, TextureOptions, Ui, Vec2};
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
+use eframe::egui::{
+    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
+    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureHandle, TextureOptions, Ui,
+    Vec2,
+};
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
-use image::{DynamicImage, Rgb, RgbImage};
 use image::imageops::Nearest;
+use image::{DynamicImage, Rgb, RgbImage};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::{
+    fmt::Display,
+    net::SocketAddr,
+    ops::Deref,
+    sync::{atomic::Ordering, Arc},
+    thread::JoinHandle,
+    time::Duration,
+};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -202,10 +214,9 @@ impl App {
         cc.egui_ctx
             .set_zoom_factor(args.ui_zoom_factor.unwrap_or(1.0));
         info!("Creating the app...");
-        let run_save_state = if let Ok(path) = std::env::current_exe()
-        {
+        let run_save_state = if let Ok(path) = std::env::current_exe() {
             SaveState::new(path.parent().unwrap().join("save_state"))
-        }else{
+        } else {
             SaveState::new("./save_state/".into())
         };
         Self {
@@ -220,7 +231,7 @@ impl App {
             lobby_id_field: "".to_string(),
             args,
             can_start_automatically: false,
-            run_save_state
+            run_save_state,
         }
     }
 
@@ -235,7 +246,7 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_main_color: self.app_saved_state.player_main_color,
-            player_alt_color: self.app_saved_state.player_alt_color
+            player_alt_color: self.app_saved_state.player_alt_color,
         }
     }
 
@@ -246,7 +257,7 @@ impl App {
             noita_launcher: NoitaLauncher::new(
                 &self.modmanager_settings.game_exe_path,
                 self.args.launch_cmd.as_deref(),
-                self.steam_state.as_mut().ok()
+                self.steam_state.as_mut().ok(),
             ),
         };
         self.can_start_automatically = true;
@@ -279,7 +290,8 @@ impl App {
         netman.accept_local.store(true, Ordering::SeqCst);
     }
     fn player_path(&self) -> PathBuf {
-        ModmanagerSettings::mod_path(&self.modmanager_settings).join("files/system/player/unmodified.png")
+        ModmanagerSettings::mod_path(&self.modmanager_settings)
+            .join("files/system/player/unmodified.png")
     }
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
@@ -444,18 +456,26 @@ impl App {
         heading_with_underline(ui, tr("connect_settings"));
         let game_settings = &mut self.app_saved_state.game_settings;
         ui.label("Game mode");
-        ui.radio_value(&mut game_settings.game_mode, GameMode::SharedHealth, "Shared health");
-        ui.radio_value(&mut game_settings.game_mode, GameMode::LocalHealth, "Local health");
+        ui.radio_value(
+            &mut game_settings.game_mode,
+            GameMode::SharedHealth,
+            "Shared health",
+        );
+        ui.radio_value(
+            &mut game_settings.game_mode,
+            GameMode::LocalHealth,
+            "Local health",
+        );
         match game_settings.game_mode {
             GameMode::SharedHealth => {
                 ui.label("Health is shared, but scales with player count.");
                 ui.label("Percentage-based damage and full heals are adjusted.");
                 ui.label("The original mode.");
-            },
+            }
             GameMode::LocalHealth => {
                 ui.label("Every player has their own health, run ends when all player are dead.");
                 ui.label("There is a respawn mechanic.");
-            },
+            }
         }
         ui.add_space(20.0);
         ui.label(tr("connect_settings_debug"));
@@ -489,9 +509,16 @@ impl App {
                 .text(tr("connect_settings_player_tether_length")),
         );
         ui.add_space(20.0);
-        ui.checkbox(&mut game_settings.item_dedup, tr("connect_settings_item_dedup"));
+        ui.checkbox(
+            &mut game_settings.item_dedup,
+            tr("connect_settings_item_dedup"),
+        );
         ui.add_space(20.0);
-        ui.add(Slider::new(&mut game_settings.enemy_hp_mult, 1.0..=1000.0).logarithmic(true).text(tr("connect_settings_enemy_hp_scale")));
+        ui.add(
+            Slider::new(&mut game_settings.enemy_hp_mult, 1.0..=1000.0)
+                .logarithmic(true)
+                .text(tr("connect_settings_enemy_hp_scale")),
+        );
         heading_with_underline(ui, tr("connect_settings_local"));
         ui.checkbox(
             &mut self.app_saved_state.start_game_automatically,
@@ -508,9 +535,19 @@ impl App {
             Self::color_picker(ui, &mut self.app_saved_state.player_alt_color);
         });
         let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgb8();
-        replace_color(&mut img, Rgb::from(self.app_saved_state.player_main_color), Rgb::from(self.app_saved_state.player_alt_color));
-        let cropped = DynamicImage::ImageRgb8(img.clone()).resize_exact(56, 136, Nearest).into_rgb8();
-        let texture: TextureHandle = ui.ctx().load_texture("player", egui::ColorImage::from_rgb([56, 136], &cropped.into_raw()), TextureOptions::default());
+        replace_color(
+            &mut img,
+            Rgb::from(self.app_saved_state.player_main_color),
+            Rgb::from(self.app_saved_state.player_alt_color),
+        );
+        let cropped = DynamicImage::ImageRgb8(img.clone())
+            .resize_exact(56, 136, Nearest)
+            .into_rgb8();
+        let texture: TextureHandle = ui.ctx().load_texture(
+            "player",
+            egui::ColorImage::from_rgb([56, 136], &cropped.into_raw()),
+            TextureOptions::default(),
+        );
         ui.add(egui::Image::new(&texture));
     }
     fn color_picker(ui: &mut Ui, color: &mut [u8; 3]) {
@@ -726,16 +763,21 @@ impl eframe::App for App {
                         ui.checkbox(&mut self.app_saved_state.record_all, "Record EVERYTHING sent to noita.");
                     }
                 });
-                netman.enable_recorder.store(self.app_saved_state.record_all, Ordering::Relaxed);
+                netman
+                    .enable_recorder
+                    .store(self.app_saved_state.record_all, Ordering::Relaxed);
                 if netman.peer.is_host() {
                     let mut show = self.show_settings;
                     let netman = netman.clone();
-                    egui::Window::new(tr("connect_settings")).open(&mut show).show(ctx, |ui| {
-                        self.show_game_settings(ui);
-                        if ui.button(tr("netman_apply_settings")).clicked() {
-                            *netman.pending_settings.lock().unwrap() = self.app_saved_state.game_settings.clone();
-                        }
-                    });
+                    egui::Window::new(tr("connect_settings"))
+                        .open(&mut show)
+                        .show(ctx, |ui| {
+                            self.show_game_settings(ui);
+                            if ui.button(tr("netman_apply_settings")).clicked() {
+                                *netman.pending_settings.lock().unwrap() =
+                                    self.app_saved_state.game_settings.clone();
+                            }
+                        });
                     self.show_settings = show;
                 }
             }
@@ -812,9 +854,8 @@ impl eframe::App for App {
                                 self.run_save_state.reset();
                             }
                         });
-                    }
-                );
-            },
+                    });
+            }
         };
     }
 
@@ -834,14 +875,14 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
     }
 }
 
-    pub fn replace_color(image: &mut RgbImage, main: Rgb<u8>, alt: Rgb<u8>) {
-        let target_main = Rgb::from([155, 111, 154]);
-        let target_alt = Rgb::from([127, 84, 118]);
-        for pixel in image.pixels_mut() {
-            if *pixel == target_main {
-                *pixel = main;
-            } else if *pixel == target_alt {
-                *pixel = alt
-            }
+pub fn replace_color(image: &mut RgbImage, main: Rgb<u8>, alt: Rgb<u8>) {
+    let target_main = Rgb::from([155, 111, 154]);
+    let target_alt = Rgb::from([127, 84, 118]);
+    for pixel in image.pixels_mut() {
+        if *pixel == target_main {
+            *pixel = main;
+        } else if *pixel == target_alt {
+            *pixel = alt
         }
     }
+}

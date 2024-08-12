@@ -1,8 +1,12 @@
 use bitcode::{Decode, Encode};
+use image::Rgb;
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::{
     env,
     fmt::Display,
@@ -15,17 +19,17 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
-use image::Rgb;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, replace_color, GameSettings};
+use crate::{
+    bookkeeping::save_state::{SaveState, SaveStateEntry},
+    recorder::Recorder,
+    replace_color, GameSettings,
+};
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -323,23 +327,74 @@ impl NetManager {
     }
 
     fn create_player_png(&self, player_path: PathBuf) {
-        let mut img = image::open(player_path.clone().into_os_string()).unwrap().into_rgb8();
-        replace_color(&mut img, Rgb::from(self.init_settings.player_main_color), Rgb::from(self.init_settings.player_alt_color));
-        let path = player_path.clone().parent().unwrap().join(format!("{}.png", self.peer.my_id().unwrap()));
+        let mut img = image::open(player_path.clone().into_os_string())
+            .unwrap()
+            .into_rgb8();
+        replace_color(
+            &mut img,
+            Rgb::from(self.init_settings.player_main_color),
+            Rgb::from(self.init_settings.player_alt_color),
+        );
+        let path = player_path
+            .clone()
+            .parent()
+            .unwrap()
+            .join(format!("{}.png", self.peer.my_id().unwrap()));
         img.save(path).unwrap();
 
-        let mut img = image::open(player_path.clone().parent().unwrap().join("unmodified_arm.png").into_os_string()).unwrap().into_rgb8();
-        replace_color(&mut img, Rgb::from(self.init_settings.player_main_color), Rgb::from(self.init_settings.player_alt_color));
-        let path = player_path.clone().parent().unwrap().join(format!("{}_arm.png", self.peer.my_id().unwrap()));
+        let mut img = image::open(
+            player_path
+                .clone()
+                .parent()
+                .unwrap()
+                .join("unmodified_arm.png")
+                .into_os_string(),
+        )
+        .unwrap()
+        .into_rgb8();
+        replace_color(
+            &mut img,
+            Rgb::from(self.init_settings.player_main_color),
+            Rgb::from(self.init_settings.player_alt_color),
+        );
+        let path = player_path
+            .clone()
+            .parent()
+            .unwrap()
+            .join(format!("{}_arm.png", self.peer.my_id().unwrap()));
         img.save(path).unwrap();
 
-        let file = File::open(player_path.clone().parent().unwrap().join("unmodified_cape.xml").into_os_string()).unwrap();
+        let file = File::open(
+            player_path
+                .clone()
+                .parent()
+                .unwrap()
+                .join("unmodified_cape.xml")
+                .into_os_string(),
+        )
+        .unwrap();
         let reader = BufReader::new(file);
         let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
-        lines.insert(5, format!("cloth_color=\"0x{}FF\"", Self::rgb_to_hex(self.init_settings.player_alt_color)));
-        lines.insert(5, format!("cloth_color_edge=\"0x{}FF\"", Self::rgb_to_hex(self.init_settings.player_main_color)));
+        lines.insert(
+            5,
+            format!(
+                "cloth_color=\"0x{}FF\"",
+                Self::rgb_to_hex(self.init_settings.player_alt_color)
+            ),
+        );
+        lines.insert(
+            5,
+            format!(
+                "cloth_color_edge=\"0x{}FF\"",
+                Self::rgb_to_hex(self.init_settings.player_main_color)
+            ),
+        );
 
-        let path = player_path.clone().parent().unwrap().join(format!("{}_cape.xml", self.peer.my_id().unwrap()));
+        let path = player_path
+            .clone()
+            .parent()
+            .unwrap()
+            .join(format!("{}_cape.xml", self.peer.my_id().unwrap()));
         let mut file = File::create(path).unwrap();
         for line in lines {
             writeln!(file, "{}", line).unwrap();

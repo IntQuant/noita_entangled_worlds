@@ -297,9 +297,7 @@ fn mod_downloader_for(
     tag: crate::releases::Tag,
     download_path: PathBuf,
 ) -> Result<Downloader, ReleasesError> {
-    let client = reqwest::blocking::Client::builder()
-        .timeout(None)
-        .build()?;
+    let client = reqwest::blocking::Client::builder().timeout(None).build()?;
     get_release_by_tag(&client, tag)
         .and_then(|release| release.get_release_assets(&client))
         .and_then(|asset_list| asset_list.find_by_name("quant.ew.zip").cloned())
