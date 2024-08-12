@@ -245,9 +245,17 @@ impl NetManager {
                                 },
                                 tangled::Reliability::Reliable,
                             );
+                            self.create_player_png(player_path.clone(),
+                                                   (self.peer.my_id().unwrap().to_string(),
+                                                self.init_settings.player_main_color,
+                                                self.init_settings.player_alt_color));
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
-                        self.create_player_png(player_path.clone());
+                        self.send(id,
+                                  &NetMsg::Rgb((self.peer.my_id().unwrap().to_string(),
+                                                self.init_settings.player_main_color,
+                                                self.init_settings.player_alt_color)),
+                                  Reliability::Reliable);
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
@@ -278,6 +286,9 @@ impl NetManager {
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
+                            NetMsg::Rgb(rgb) => {
+                                self.create_player_png(player_path.clone(), rgb);
+                            }
                         }
                     }
                 }
@@ -326,27 +337,25 @@ impl NetManager {
         Ok(())
     }
 
-    fn create_player_png(&self, player_path: PathBuf) {
+    fn create_player_png(&self, player_path: PathBuf, rgb: (String, [u8; 3], [u8; 3])) {
+        let tmp_path = player_path
+            .parent()
+            .unwrap();
+
         let mut img = image::open(player_path.clone().into_os_string())
             .unwrap()
             .into_rgb8();
         replace_color(
             &mut img,
-            Rgb::from(self.init_settings.player_main_color),
-            Rgb::from(self.init_settings.player_alt_color),
+            Rgb::from(rgb.1),
+            Rgb::from(rgb.2),
         );
-        let path = player_path
-            .clone()
-            .parent()
-            .unwrap()
-            .join(format!("tmp/{}.png", self.peer.my_id().unwrap()));
+        let path = tmp_path
+            .join(format!("tmp/{}.png", rgb.0));
         img.save(path).unwrap();
 
         let mut img = image::open(
-            player_path
-                .clone()
-                .parent()
-                .unwrap()
+            tmp_path
                 .join("unmodified_arm.png")
                 .into_os_string(),
         )
@@ -354,21 +363,15 @@ impl NetManager {
         .into_rgb8();
         replace_color(
             &mut img,
-            Rgb::from(self.init_settings.player_main_color),
-            Rgb::from(self.init_settings.player_alt_color),
+            Rgb::from(rgb.1),
+            Rgb::from(rgb.2),
         );
-        let path = player_path
-            .clone()
-            .parent()
-            .unwrap()
-            .join(format!("tmp/{}_arm.png", self.peer.my_id().unwrap()));
+        let path = tmp_path
+            .join(format!("tmp/{}_arm.png", rgb.0));
         img.save(path).unwrap();
 
         let file = File::open(
-            player_path
-                .clone()
-                .parent()
-                .unwrap()
+            tmp_path
                 .join("unmodified_cape.xml")
                 .into_os_string(),
         )
@@ -379,29 +382,26 @@ impl NetManager {
             5,
             format!(
                 "cloth_color=\"0x{}FF\"",
-                Self::rgb_to_hex(self.init_settings.player_alt_color)
+                Self::rgb_to_hex(rgb.2)
             ),
         );
         lines.insert(
             5,
             format!(
                 "cloth_color_edge=\"0x{}FF\"",
-                Self::rgb_to_hex(self.init_settings.player_main_color)
+                Self::rgb_to_hex(rgb.1)
             ),
         );
 
-        let path = player_path
-            .clone()
-            .parent()
-            .unwrap()
-            .join(format!("tmp/{}_cape.xml", self.peer.my_id().unwrap()));
+        let path = tmp_path
+            .join(format!("tmp/{}_cape.xml", rgb.0));
         let mut file = File::create(path).unwrap();
         for line in lines {
             writeln!(file, "{}", line).unwrap();
         }
     }
     fn rgb_to_hex(rgb: [u8; 3]) -> String {
-        format!("{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
+        format!("{:02X}{:02X}{:02X}", rgb[2], rgb[1], rgb[0])
     }
 
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
