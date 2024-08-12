@@ -1,15 +1,15 @@
 use std::{
     fmt::Display, net::SocketAddr, ops::Deref, sync::{atomic::Ordering, Arc}, thread::JoinHandle, time::Duration
 };
-
+use std::path::PathBuf;
 use bitcode::{Decode, Encode};
 use bookkeeping::{noita_launcher::{LaunchTokenResult, NoitaLauncher}, save_state::SaveState};
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{
-    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
-    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2,
-};
+use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureHandle, TextureOptions, Ui, Vec2};
+use eframe::egui::color_picker::{color_picker_color32, Alpha};
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
+use image::{DynamicImage, Rgb, RgbImage};
+use image::imageops::Nearest;
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
@@ -83,7 +83,7 @@ impl Drop for NetManStopOnDrop {
         self.0.continue_running.store(false, Ordering::Relaxed);
         self.1.take().unwrap().join().unwrap();
     }
-} 
+}
 
 enum AppState {
     Connect,
@@ -113,6 +113,8 @@ struct AppSavedState {
     show_extra_debug_stuff: bool,
     #[serde(default)]
     record_all: bool,
+    player_main_color: [u8; 3],
+    player_alt_color: [u8; 3],
 }
 
 impl Default for AppSavedState {
@@ -126,6 +128,8 @@ impl Default for AppSavedState {
             start_game_automatically: false,
             show_extra_debug_stuff: false,
             record_all: false,
+            player_main_color: [155, 111, 154],
+            player_alt_color: [127, 84, 118],
         }
     }
 }
@@ -227,11 +231,16 @@ impl App {
             None
         };
         let my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
-        NetManagerInit { my_nickname, save_state: self.run_save_state.clone() }
+        NetManagerInit {
+            my_nickname,
+            save_state: self.run_save_state.clone(),
+            player_main_color: self.app_saved_state.player_main_color,
+            player_alt_color: self.app_saved_state.player_alt_color
+        }
     }
 
-    fn change_state_to_netman(&mut self, netman: Arc<net::NetManager>) {
-        let handle = netman.clone().start();
+    fn change_state_to_netman(&mut self, netman: Arc<net::NetManager>, player_path: PathBuf) {
+        let handle = netman.clone().start(player_path);
         self.state = AppState::Netman {
             netman: NetManStopOnDrop(netman, Some(handle)),
             noita_launcher: NoitaLauncher::new(
@@ -248,7 +257,7 @@ impl App {
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(netman);
+        self.change_state_to_netman(netman, self.player_path());
     }
 
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
@@ -269,10 +278,13 @@ impl App {
         *netman.pending_settings.lock().unwrap() = settings.clone();
         netman.accept_local.store(true, Ordering::SeqCst);
     }
+    fn player_path(&self) -> PathBuf {
+        ModmanagerSettings::mod_path(&self.modmanager_settings).join("files/system/player/unmodified.png")
+    }
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
-        self.change_state_to_netman(netman);
+        self.change_state_to_netman(netman, self.player_path());
     }
 
     fn start_steam_host(&mut self) {
@@ -282,7 +294,7 @@ impl App {
         );
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(netman);
+        self.change_state_to_netman(netman, self.player_path());
     }
 
     fn notify_error(&mut self, error: impl Display) {
@@ -298,7 +310,7 @@ impl App {
         );
 
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
-        self.change_state_to_netman(netman);
+        self.change_state_to_netman(netman, self.player_path());
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
@@ -431,11 +443,9 @@ impl App {
     fn show_game_settings(&mut self, ui: &mut Ui) {
         heading_with_underline(ui, tr("connect_settings"));
         let game_settings = &mut self.app_saved_state.game_settings;
-
         ui.label("Game mode");
         ui.radio_value(&mut game_settings.game_mode, GameMode::SharedHealth, "Shared health");
         ui.radio_value(&mut game_settings.game_mode, GameMode::LocalHealth, "Local health");
-
         match game_settings.game_mode {
             GameMode::SharedHealth => {
                 ui.label("Health is shared, but scales with player count.");
@@ -447,9 +457,7 @@ impl App {
                 ui.label("There is a respawn mechanic.");
             },
         }
-
         ui.add_space(20.0);
-
         ui.label(tr("connect_settings_debug"));
         ui.checkbox(
             &mut game_settings.debug_mode,
@@ -459,12 +467,10 @@ impl App {
             &mut game_settings.use_constant_seed,
             tr("connect_settings_debug_fixed_seed"),
         );
-
         ui.horizontal(|ui| {
             ui.label(tr("connect_settings_seed"));
             ui.add(DragValue::new(&mut game_settings.seed));
         });
-
         if game_settings.world_sync_version == 2 {
             ui.add_space(10.0);
             ui.label(tr("World-will-be-synced-every-this-many-frames"));
@@ -472,10 +478,7 @@ impl App {
             ui.add(Slider::new(&mut game_settings.world_sync_interval, 1..=10));
         }
         ui.label(tr("world-sync-is-pixel-sync-note"));
-        
-
         ui.add_space(20.0);
-
         ui.label(tr("connect_settings_player_tether_desc"));
         ui.checkbox(
             &mut game_settings.player_tether,
@@ -489,12 +492,31 @@ impl App {
         ui.checkbox(&mut game_settings.item_dedup, tr("connect_settings_item_dedup"));
         ui.add_space(20.0);
         ui.add(Slider::new(&mut game_settings.enemy_hp_mult, 1.0..=1000.0).logarithmic(true).text(tr("connect_settings_enemy_hp_scale")));
-
         heading_with_underline(ui, tr("connect_settings_local"));
         ui.checkbox(
             &mut self.app_saved_state.start_game_automatically,
             tr("connect_settings_autostart"),
         );
+        let path = self.player_path();
+        ui.add_space(20.0);
+        if ui.button("Default color").clicked() {
+            self.app_saved_state.player_main_color = [155, 111, 154];
+            self.app_saved_state.player_alt_color = [127, 84, 118];
+        }
+        ui.horizontal(|ui| {
+            Self::color_picker(ui, &mut self.app_saved_state.player_main_color);
+            Self::color_picker(ui, &mut self.app_saved_state.player_alt_color);
+        });
+        let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgb8();
+        replace_color(&mut img, Rgb::from(self.app_saved_state.player_main_color), Rgb::from(self.app_saved_state.player_alt_color));
+        let cropped = DynamicImage::ImageRgb8(img.clone()).resize_exact(56, 136, Nearest).into_rgb8();
+        let texture: TextureHandle = ui.ctx().load_texture("player", egui::ColorImage::from_rgb([56, 136], &cropped.into_raw()), TextureOptions::default());
+        ui.add(egui::Image::new(&texture));
+    }
+    fn color_picker(ui: &mut Ui, color: &mut [u8; 3]) {
+        let mut rgb = Color32::from_rgb(color[0], color[1], color[2]);
+        color_picker_color32(ui, &mut rgb, Alpha::Opaque);
+        *color = [rgb.r(), rgb.g(), rgb.b()]
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -541,7 +563,7 @@ impl App {
 
         ctx.set_fonts(font_definitions);
     }
-    
+
     fn switch_to_connect(&mut self) {
         self.state = if self.run_save_state.has_savestate() {
             AppState::AskSavestateReset
@@ -677,7 +699,7 @@ impl eframe::App for App {
                             self.show_settings = true;
                         }
                     }
-                    
+
                     ui.add_space(15.0);
 
                     ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, "Show debug stuff");
@@ -811,3 +833,15 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
         tr("player_player")
     }
 }
+
+    pub fn replace_color(image: &mut RgbImage, main: Rgb<u8>, alt: Rgb<u8>) {
+        let target_main = Rgb::from([155, 111, 154]);
+        let target_alt = Rgb::from([127, 84, 118]);
+        for pixel in image.pixels_mut() {
+            if *pixel == target_main {
+                *pixel = main;
+            } else if *pixel == target_alt {
+                *pixel = alt
+            }
+        }
+    }

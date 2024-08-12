@@ -116,7 +116,7 @@ impl ModmanagerSettings {
         }
     }
 
-    fn mod_path(&self) -> PathBuf {
+    pub fn mod_path(&self) -> PathBuf {
         let mut path = self.game_exe_path.clone();
         path.pop();
         path.push("mods");

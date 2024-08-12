@@ -1,0 +1,22 @@
+<Entity >
+   
+    <VerletPhysicsComponent
+    	num_points="150"
+        width="10"
+        type="CLOTH"
+    	stiffness="1.5"
+    	velocity_dampening="0.55"
+        resting_distance="1.0"
+        simulate_wind="1"
+    	constrain_stretching="1"
+    	collide_with_cells="1"
+    	mass_min="0.1"
+    	mass_max="0.2"
+        cloth_sprite_z_index="0.7" >
+    </VerletPhysicsComponent>
+
+    <InheritTransformComponent
+        parent_hotspot_tag="cape_root" >
+    </InheritTransformComponent>  
+  
+</Entity>

@@ -15,18 +15,17 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
+use image::Rgb;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::{
-    bookkeeping::save_state::{SaveState, SaveStateEntry},
-    recorder::Recorder,
-    GameSettings,
-};
-
+use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, replace_color, GameSettings};
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -97,6 +96,8 @@ pub mod omni;
 pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
+    pub player_main_color: [u8; 3],
+    pub player_alt_color: [u8; 3],
 }
 
 pub struct NetManager {
@@ -144,7 +145,7 @@ impl NetManager {
         }
     }
 
-    pub(crate) fn start_inner(self: Arc<NetManager>) -> io::Result<()> {
+    pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
 
         // This allows several proxies to listen on the same address.
@@ -242,6 +243,7 @@ impl NetManager {
                             );
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
+                        self.create_player_png(player_path.clone());
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
@@ -320,6 +322,33 @@ impl NetManager {
         Ok(())
     }
 
+    fn create_player_png(&self, player_path: PathBuf) {
+        let mut img = image::open(player_path.clone().into_os_string()).unwrap().into_rgb8();
+        replace_color(&mut img, Rgb::from(self.init_settings.player_main_color), Rgb::from(self.init_settings.player_alt_color));
+        let path = player_path.clone().parent().unwrap().join(format!("{}.png", self.peer.my_id().unwrap()));
+        img.save(path).unwrap();
+
+        let mut img = image::open(player_path.clone().parent().unwrap().join("unmodified_arm.png").into_os_string()).unwrap().into_rgb8();
+        replace_color(&mut img, Rgb::from(self.init_settings.player_main_color), Rgb::from(self.init_settings.player_alt_color));
+        let path = player_path.clone().parent().unwrap().join(format!("{}_arm.png", self.peer.my_id().unwrap()));
+        img.save(path).unwrap();
+
+        let file = File::open(player_path.clone().parent().unwrap().join("unmodified_cape.xml").into_os_string()).unwrap();
+        let reader = BufReader::new(file);
+        let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
+        lines.insert(5, format!("cloth_color=\"0x{}FF\"", Self::rgb_to_hex(self.init_settings.player_alt_color)));
+        lines.insert(5, format!("cloth_color_edge=\"0x{}FF\"", Self::rgb_to_hex(self.init_settings.player_main_color)));
+
+        let path = player_path.clone().parent().unwrap().join(format!("{}_cape.xml", self.peer.my_id().unwrap()));
+        let mut file = File::create(path).unwrap();
+        for line in lines {
+            writeln!(file, "{}", line).unwrap();
+        }
+    }
+    fn rgb_to_hex(rgb: [u8; 3]) -> String {
+        format!("{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
+    }
+
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
         let request: MessageRequest<NetMsg> = request.into();
         match request.dst {
@@ -374,7 +403,6 @@ impl NetManager {
         for id in self.peer.iter_peer_ids() {
             state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
         }
-
         info!("Settings sent")
     }
 
@@ -419,10 +447,10 @@ impl NetManager {
         }
     }
 
-    pub fn start(self: Arc<NetManager>) -> JoinHandle<()> {
+    pub fn start(self: Arc<NetManager>, player_path: PathBuf) -> JoinHandle<()> {
         info!("Starting netmanager");
         thread::spawn(move || {
-            let result = self.clone().start_inner();
+            let result = self.clone().start_inner(player_path);
             if let Err(err) = result {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);
