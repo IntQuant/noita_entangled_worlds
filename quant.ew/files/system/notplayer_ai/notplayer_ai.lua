@@ -219,7 +219,7 @@ local function teleport_to_next_hm()
         end
         if peer_id == ctx.my_id then
             my_area_num = position_to_area_number(y)
-        else
+        elseif is_suitable_target(player) then
             local area_num = position_to_area_number(y)
             if area_num < others_area_num then
                 others_area_num = area_num
