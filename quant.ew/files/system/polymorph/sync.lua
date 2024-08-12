@@ -28,9 +28,7 @@ function module.on_local_player_spawn()
 end
 
 function module.on_should_send_updates()
-    if ctx.my_player.currently_polymorphed then
-        entity_changed()
-    end
+    entity_changed()
 end
 
 local function get_ent_effects(entity)
@@ -131,9 +129,13 @@ function rpc.change_entity(seri_ent)
         player_fns.replace_player_entity(ent, ctx.rpc_player_data)
         ctx.rpc_player_data.currently_polymorphed = true
     else
-        EntityKill(ctx.rpc_player_data.entity)
-        player_fns.replace_player_entity(nil, ctx.rpc_player_data)
-        ctx.rpc_player_data.currently_polymorphed = false
+        if ctx.rpc_player_data.currently_polymorphed then
+            EntityKill(ctx.rpc_player_data.entity)
+            player_fns.replace_player_entity(nil, ctx.rpc_player_data)
+            ctx.rpc_player_data.currently_polymorphed = false
+        else
+            print("Player is already not polymorphed, not doing anything")
+        end
     end
 end
 
