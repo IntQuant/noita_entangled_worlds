@@ -28,6 +28,7 @@ use std::{
     time::Duration,
 };
 use std::fs::{create_dir, remove_dir_all};
+use eframe::epaint::Hsva;
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -129,6 +130,7 @@ struct AppSavedState {
     player_main_color: [u8; 4],
     player_alt_color: [u8; 4],
     player_arm_color: [u8; 4],
+    hue: f32
 }
 
 impl Default for AppSavedState {
@@ -145,6 +147,7 @@ impl Default for AppSavedState {
             player_main_color: [155, 111, 154, 255],
             player_alt_color: [127, 84, 118, 255],
             player_arm_color: [89, 67, 84, 255],
+            hue: 0.0
         }
     }
 }
@@ -541,7 +544,22 @@ impl App {
             self.app_saved_state.player_main_color = [155, 111, 154, 255];
             self.app_saved_state.player_alt_color = [127, 84, 118, 255];
             self.app_saved_state.player_arm_color = [89, 67, 84, 255];
+            self.app_saved_state.hue = 0.0
         }
+
+        let old_hue = self.app_saved_state.hue;
+        ui.add(
+            Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0)
+                .text("Shift hue"),
+        );
+        if old_hue != self.app_saved_state.hue
+        {
+            let diff = self.app_saved_state.hue - old_hue;
+            Self::shift_hue(diff, &mut self.app_saved_state.player_main_color);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_alt_color);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_arm_color);
+        }
+
         ui.horizontal(|ui| {
             Self::color_picker(ui, &mut self.app_saved_state.player_main_color);
             Self::color_picker(ui, &mut self.app_saved_state.player_alt_color);
@@ -564,6 +582,16 @@ impl App {
         );
         ui.add(egui::Image::new(&texture));
     }
+    fn shift_hue(diff:f32, color: &mut [u8; 4])
+    {
+            let rgb = Color32::from_rgb(color[0], color[1], color[2]);
+            let mut hsv = Hsva::from(rgb);
+            hsv.h += diff / 360.0;
+            hsv.h = hsv.h.fract();
+            let rgb = hsv.to_srgb();
+            *color = [rgb[0], rgb[1], rgb[2], 255];
+    }
+
     fn color_picker(ui: &mut Ui, color: &mut [u8; 4]) {
         let mut rgb = Color32::from_rgb(color[0], color[1], color[2]);
         color_picker_color32(ui, &mut rgb, Alpha::Opaque);
