@@ -561,38 +561,38 @@ impl App {
             &mut game_settings.friendly_fire,
             "Friendly fire",
         );
-        heading_with_underline(ui, tr("connect_settings_local"));
-        ui.checkbox(
-            &mut self.app_saved_state.start_game_automatically,
-            tr("connect_settings_autostart"),
-        );
-        let path = self.player_path();
-        ui.add_space(20.0);
-
-        let old_hue = self.app_saved_state.hue;
-        ui.add(Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0).text("Shift hue"));
-        if old_hue != self.app_saved_state.hue {
-            let diff = self.app_saved_state.hue - old_hue;
-            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_main);
-            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_alt);
-            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_arm);
-            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_forearm);
-            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_cape);
-            Self::shift_hue(
-                diff,
-                &mut self.app_saved_state.player_color.player_cape_edge,
+        if !self.show_settings
+        {
+            heading_with_underline(ui, tr("connect_settings_local"));
+            ui.checkbox(
+                &mut self.app_saved_state.start_game_automatically,
+                tr("connect_settings_autostart"),
             );
-        }
-
-        ui.horizontal(|ui| {
-            self.display_player_skin(path, ui);
-
-            self.player_select_current_color_slot(ui);
-            self.player_skin_display_color_picker(ui);
-        });
-        if ui.button("Reset colors to default").clicked() {
-            self.app_saved_state.player_color = PlayerColor::default();
-            self.app_saved_state.hue = 0.0
+            let path = self.player_path();
+            ui.add_space(20.0);
+            let old_hue = self.app_saved_state.hue;
+            ui.add(Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0).text("Shift hue"));
+            if old_hue != self.app_saved_state.hue {
+                let diff = self.app_saved_state.hue - old_hue;
+                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_main);
+                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_alt);
+                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_arm);
+                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_forearm);
+                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_cape);
+                Self::shift_hue(
+                    diff,
+                    &mut self.app_saved_state.player_color.player_cape_edge,
+                );
+            }
+            ui.horizontal(|ui| {
+                self.display_player_skin(path, ui);
+                self.player_select_current_color_slot(ui);
+                self.player_skin_display_color_picker(ui);
+            });
+            if ui.button("Reset colors to default").clicked() {
+                self.app_saved_state.player_color = PlayerColor::default();
+                self.app_saved_state.hue = 0.0
+            }
         }
     }
 
