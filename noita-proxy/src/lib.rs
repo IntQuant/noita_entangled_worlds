@@ -12,8 +12,7 @@ use eframe::egui::{
 };
 use eframe::epaint::Hsva;
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
-use image::imageops::Nearest;
-use image::{DynamicImage, Rgba, RgbaImage};
+use image::{Rgba, RgbaImage};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
