@@ -356,8 +356,8 @@ function player_fns.serialize_position(player_data)
         frames_in_air = ComponentGetValue2(character_platforming_comp, "mFramesInAirCounter"),
         x = x,
         y = y,
-        vx = vel_x,
-        vy = vel_y,
+        vel_x = vel_x,
+        vel_y = vel_y,
         is_on_ground = ComponentGetValue2(character_data, "is_on_ground"),
         is_on_slippery_ground = ComponentGetValue2(character_data, "is_on_slippery_ground"),
     }
