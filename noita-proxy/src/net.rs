@@ -1,5 +1,5 @@
 use bitcode::{Decode, Encode};
-use image::Rgb;
+use image::{Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
@@ -100,8 +100,9 @@ pub mod omni;
 pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
-    pub player_main_color: [u8; 3],
-    pub player_alt_color: [u8; 3],
+    pub player_main_color: [u8; 4],
+    pub player_alt_color: [u8; 4],
+    pub player_arm_color: [u8; 4],
 }
 
 pub struct NetManager {
@@ -151,7 +152,6 @@ impl NetManager {
 
     pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
-
         // This allows several proxies to listen on the same address.
         // While this works, I couldn't get Noita to reliably connect to correct proxy instances on my os (linux).
         if env::var_os("NP_ALLOW_REUSE_ADDR").is_some() {
@@ -164,21 +164,16 @@ impl NetManager {
                 error!("Could not allow to reuse port: {}", err)
             }
         }
-
         let address: SocketAddr = env::var("NP_NOITA_ADDR")
             .ok()
             .and_then(|x| x.parse().ok())
             .unwrap_or_else(|| "127.0.0.1:21251".parse().unwrap());
-
         info!("Listening for noita connection on {}", address);
-
         let address = address.into();
         socket.bind(&address)?;
         socket.listen(1)?;
         socket.set_nonblocking(true)?;
-
         let local_server: TcpListener = socket.into();
-
         for _ in 1..3 {
             if self.peer.my_id().is_none() {
                 info!("Waiting on my_id...");
@@ -190,7 +185,6 @@ impl NetManager {
         if self.peer.my_id().is_none() {
             std::process::exit(1)
         }
-
         let is_host = self.is_host();
         info!("Is host: {is_host}");
         let mut state = NetInnerState {
@@ -202,9 +196,12 @@ impl NetManager {
                 self.init_settings.save_state.clone(),
             ),
         };
-
         let mut last_iter = Instant::now();
-
+        self.create_player_png(player_path.clone(),
+                               (self.peer.my_id().unwrap().to_string(),
+                                self.init_settings.player_main_color,
+                                self.init_settings.player_alt_color,
+                                self.init_settings.player_arm_color));
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
                 .store(state.ws.is_some(), atomic::Ordering::Relaxed);
@@ -214,7 +211,6 @@ impl NetManager {
                     info!("New stream incoming from {}", addr);
                     stream.set_nodelay(true).ok();
                     stream.set_nonblocking(false).ok();
-
                     state.ws = accept(stream)
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
                         .ok();
@@ -245,16 +241,13 @@ impl NetManager {
                                 },
                                 tangled::Reliability::Reliable,
                             );
-                            self.create_player_png(player_path.clone(),
-                                                   (self.peer.my_id().unwrap().to_string(),
-                                                self.init_settings.player_main_color,
-                                                self.init_settings.player_alt_color));
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(id,
                                   &NetMsg::Rgb((self.peer.my_id().unwrap().to_string(),
                                                 self.init_settings.player_main_color,
-                                                self.init_settings.player_alt_color)),
+                                                self.init_settings.player_alt_color,
+                                                self.init_settings.player_arm_color)),
                                   Reliability::Reliable);
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
@@ -293,12 +286,9 @@ impl NetManager {
                     }
                 }
             }
-
             // Handle all available messages from Noita.
-
             while let Some(ws) = &mut state.ws {
                 let msg = ws.read();
-
                 match msg {
                     Ok(msg) => {
                         if let tungstenite::Message::Binary(msg) = msg {
@@ -306,18 +296,17 @@ impl NetManager {
                         }
                     }
                     Err(tungstenite::Error::Io(io_err))
-                        if io_err.kind() == io::ErrorKind::WouldBlock
-                            || io_err.kind() == io::ErrorKind::TimedOut =>
-                    {
-                        break
-                    }
+                    if io_err.kind() == io::ErrorKind::WouldBlock
+                        || io_err.kind() == io::ErrorKind::TimedOut =>
+                        {
+                            break
+                        }
                     Err(err) => {
                         error!("Error occured while reading from websocket: {}", err);
                         state.ws = None;
                     }
                 }
             }
-
             for msg in state.world.get_emitted_msgs() {
                 self.do_message_request(msg)
             }
@@ -336,36 +325,25 @@ impl NetManager {
         }
         Ok(())
     }
-
-    fn create_player_png(&self, player_path: PathBuf, rgb: (String, [u8; 3], [u8; 3])) {
+    fn create_player_png(&self, player_path: PathBuf, rgb: (String, [u8; 4], [u8; 4], [u8; 4])) {
         let tmp_path = player_path
             .parent()
             .unwrap();
 
         let mut img = image::open(player_path.clone().into_os_string())
             .unwrap()
-            .into_rgb8();
+            .into_rgba8();
         replace_color(
             &mut img,
-            Rgb::from(rgb.1),
-            Rgb::from(rgb.2),
+            Rgba::from(rgb.1),
+            Rgba::from(rgb.2),
+            Rgba::from(rgb.3),
         );
         let path = tmp_path
             .join(format!("tmp/{}.png", rgb.0));
         img.save(path).unwrap();
 
-        let mut img = image::open(
-            tmp_path
-                .join("unmodified_arm.png")
-                .into_os_string(),
-        )
-        .unwrap()
-        .into_rgb8();
-        replace_color(
-            &mut img,
-            Rgb::from(rgb.1),
-            Rgb::from(rgb.2),
-        );
+        let img = create_arm(Rgba::from(rgb.3));
         let path = tmp_path
             .join(format!("tmp/{}_arm.png", rgb.0));
         img.save(path).unwrap();
@@ -400,7 +378,7 @@ impl NetManager {
             writeln!(file, "{}", line).unwrap();
         }
     }
-    fn rgb_to_hex(rgb: [u8; 3]) -> String {
+    fn rgb_to_hex(rgb: [u8; 4]) -> String {
         format!("{:02X}{:02X}{:02X}", rgb[2], rgb[1], rgb[0])
     }
 
@@ -590,4 +568,20 @@ impl Drop for NetManager {
             info!("Skip saving run info: not a host");
         }
     }
+}
+
+fn create_arm(arm: Rgba<u8>)->RgbaImage
+{
+    let hand = Rgba::from([219, 192, 103, 255]);
+    let mut img = RgbaImage::new(5,15);
+    for (i, pixel) in img.pixels_mut().enumerate()
+    {
+        match i
+        {
+            10 | 11 | 17 | 18 | 35 | 40 | 41 | 55 | 56 | 57 | 58=> *pixel = arm,
+            19 | 42 | 59  => *pixel = hand,
+            _=>{}
+        }
+    }
+    img
 }

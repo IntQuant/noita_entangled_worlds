@@ -12,7 +12,7 @@ use eframe::egui::{
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::imageops::Nearest;
-use image::{DynamicImage, Rgb, RgbImage};
+use image::{DynamicImage, Rgba, RgbaImage};
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
@@ -126,8 +126,9 @@ struct AppSavedState {
     show_extra_debug_stuff: bool,
     #[serde(default)]
     record_all: bool,
-    player_main_color: [u8; 3],
-    player_alt_color: [u8; 3],
+    player_main_color: [u8; 4],
+    player_alt_color: [u8; 4],
+    player_arm_color: [u8; 4],
 }
 
 impl Default for AppSavedState {
@@ -141,8 +142,9 @@ impl Default for AppSavedState {
             start_game_automatically: false,
             show_extra_debug_stuff: false,
             record_all: false,
-            player_main_color: [155, 111, 154],
-            player_alt_color: [127, 84, 118],
+            player_main_color: [155, 111, 154, 255],
+            player_alt_color: [127, 84, 118, 255],
+            player_arm_color: [89, 67, 84, 255],
         }
     }
 }
@@ -248,6 +250,7 @@ impl App {
             save_state: self.run_save_state.clone(),
             player_main_color: self.app_saved_state.player_main_color,
             player_alt_color: self.app_saved_state.player_alt_color,
+            player_arm_color: self.app_saved_state.player_arm_color,
         }
     }
 
@@ -535,20 +538,23 @@ impl App {
         let path = self.player_path();
         ui.add_space(20.0);
         if ui.button("Default color").clicked() {
-            self.app_saved_state.player_main_color = [155, 111, 154];
-            self.app_saved_state.player_alt_color = [127, 84, 118];
+            self.app_saved_state.player_main_color = [155, 111, 154, 255];
+            self.app_saved_state.player_alt_color = [127, 84, 118, 255];
+            self.app_saved_state.player_arm_color = [89, 67, 84, 255];
         }
         ui.horizontal(|ui| {
             Self::color_picker(ui, &mut self.app_saved_state.player_main_color);
             Self::color_picker(ui, &mut self.app_saved_state.player_alt_color);
+            Self::color_picker(ui, &mut self.app_saved_state.player_arm_color);
         });
-        let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgb8();
+        let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgba8();
         replace_color(
             &mut img,
-            Rgb::from(self.app_saved_state.player_main_color),
-            Rgb::from(self.app_saved_state.player_alt_color),
+            Rgba::from(self.app_saved_state.player_main_color),
+            Rgba::from(self.app_saved_state.player_alt_color),
+            Rgba::from(self.app_saved_state.player_arm_color),
         );
-        let cropped = DynamicImage::ImageRgb8(img.clone())
+        let cropped = DynamicImage::ImageRgba8(img.clone())
             .resize_exact(56, 136, Nearest)
             .into_rgb8();
         let texture: TextureHandle = ui.ctx().load_texture(
@@ -558,10 +564,10 @@ impl App {
         );
         ui.add(egui::Image::new(&texture));
     }
-    fn color_picker(ui: &mut Ui, color: &mut [u8; 3]) {
+    fn color_picker(ui: &mut Ui, color: &mut [u8; 4]) {
         let mut rgb = Color32::from_rgb(color[0], color[1], color[2]);
         color_picker_color32(ui, &mut rgb, Alpha::Opaque);
-        *color = [rgb.r(), rgb.g(), rgb.b()]
+        *color = [rgb.r(), rgb.g(), rgb.b(), 255]
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -883,14 +889,17 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
     }
 }
 
-pub fn replace_color(image: &mut RgbImage, main: Rgb<u8>, alt: Rgb<u8>) {
-    let target_main = Rgb::from([155, 111, 154]);
-    let target_alt = Rgb::from([127, 84, 118]);
+pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
+    let target_main = Rgba::from([155, 111, 154, 255]);
+    let target_alt = Rgba::from([127, 84, 118, 255]);
+    let target_arm = Rgba::from([89, 67, 84, 255]);
     for pixel in image.pixels_mut() {
         if *pixel == target_main {
             *pixel = main;
         } else if *pixel == target_alt {
             *pixel = alt
+        } else if *pixel == target_arm {
+            *pixel = arm
         }
     }
 }
