@@ -644,12 +644,11 @@ impl App {
             PlayerPicker::None => {}
         }
         let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgba8();
-        replace_color(
+        make_image(
             &mut img,
-            Rgba::from(self.app_saved_state.player_color.player_main),
-            Rgba::from(self.app_saved_state.player_color.player_alt),
-            Rgba::from(self.app_saved_state.player_color.player_arm),
+            self.app_saved_state.player_color
         );
+        img.save("/home/png.png").unwrap();
         let cropped = DynamicImage::ImageRgba8(img.clone())
             .resize_exact(56, 136, Nearest)
             .into_rgb8();
@@ -1006,6 +1005,35 @@ pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: 
             *pixel = alt
         } else if *pixel == target_arm {
             *pixel = arm
+        }
+    }
+}
+pub fn make_image(image: &mut RgbaImage, colors: PlayerColor) {
+    let target_main = Rgba::from([155, 111, 154, 255]);
+    let target_alt = Rgba::from([127, 84, 118, 255]);
+    let target_arm = Rgba::from([89, 67, 84, 255]);
+    let main = Rgba::from(colors.player_main);
+    let alt = Rgba::from(colors.player_alt);
+    let arm = Rgba::from(colors.player_arm);
+    let cape = Rgba::from(colors.player_cape);
+    let cape_edge = Rgba::from(colors.player_cape_edge);
+    let forearm = Rgba::from(colors.player_forearm);
+    for (i, pixel) in image.pixels_mut().enumerate() {
+        if *pixel == target_main {
+            *pixel = main;
+        } else if *pixel == target_alt {
+            *pixel = alt
+        } else if *pixel == target_arm {
+            *pixel = arm
+        }else{
+            match i
+            {
+                49 | 41 | 33 => *pixel = forearm,
+                25 => *pixel = Rgba::from([219,192,103,255]),
+                82 | 90 | 98 | 106 | 89 | 97 | 105 | 113 | 121 | 96 | 104 | 112 | 120 | 128 => *pixel = cape,
+                74 | 73 | 81 | 80 | 88 => *pixel = cape_edge,
+                _=> {}
+            }
         }
     }
 }
