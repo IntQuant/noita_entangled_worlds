@@ -1,5 +1,5 @@
 <Entity >
-   
+
     <VerletPhysicsComponent
     	num_points="150"
         width="10"
@@ -12,11 +12,13 @@
     	collide_with_cells="1"
     	mass_min="0.1"
     	mass_max="0.2"
-        cloth_sprite_z_index="0.7" >
+        cloth_sprite_z_index="0.7"
+
+        >
     </VerletPhysicsComponent>
 
     <InheritTransformComponent
         parent_hotspot_tag="cape_root" >
-    </InheritTransformComponent>  
-  
+    </InheritTransformComponent>
+
 </Entity>

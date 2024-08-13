@@ -360,13 +360,13 @@ impl NetManager {
                                 .join("unmodified_cape.xml").into(),
                             tmp_path
                                 .join(format!("tmp/{}_cape.xml", id))
-                                .into_os_string(), vec![5, 5], vec![
+                                .into_os_string(), vec![16, 16], vec![
                 format!(
-                    "cloth_color=\"0x{}FF\"",
+                    "cloth_color=\"0xFF{}\"",
                     Self::rgb_to_hex(rgb.2)
                 ),
                 format!(
-                    "cloth_color_edge=\"0x{}FF\"",
+                    "cloth_color_edge=\"0xFF{}\"",
                     Self::rgb_to_hex(rgb.1)
                 ),
             ]);
@@ -425,7 +425,7 @@ impl NetManager {
     }
 
     fn rgb_to_hex(rgb: [u8; 4]) -> String {
-        format!("{:02X}{:02X}{:02X}", rgb[2], rgb[1], rgb[0])
+        format!("{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
     }
 
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
