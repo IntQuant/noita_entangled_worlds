@@ -68,9 +68,9 @@ function module.entity_is_synced(ent_path)
 
     print("Checking if this is an enemy: "..ent_path)
 
-    local ent = EntityLoad(ent_path) -- TODO: Just read xml maybe
-    local res = EntityHasTag(ent, "enemy") or constants.phys_sync_allowed[ent_path]
-    EntityKill(ent)
+    local tags = util.load_ents_tags(ent_path)
+
+    local res = constants.phys_sync_allowed[ent_path] or table.contains(tags, "enemy")
 
     entity_is_enemy_cache[ent_path] = res
     return res

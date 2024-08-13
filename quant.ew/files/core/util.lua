@@ -163,9 +163,12 @@ function util.cached_fn(fn)
 end
 
 util.load_ents_tags = util.cached_fn(function(path)
-    local entity = EntityLoad(path)
-    local tags = util.string_split(EntityGetTags(entity), ",")
-    EntityKill(entity)
+    local text = ModTextFileGetContent(path)
+    local tags_string = string.match(text, [[tags="(.-)">]])
+    print("Tag string ", tags_string)
+
+    local tags = util.string_split(tags_string, ",")
+    
     return tags
 end)
 
