@@ -19,6 +19,7 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
+use std::ffi::OsString;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -348,36 +349,78 @@ impl NetManager {
             .join(format!("tmp/{}_arm.png", rgb.0));
         img.save(path).unwrap();
 
-        let file = File::open(
-            tmp_path
-                .join("unmodified_cape.xml")
-                .into_os_string(),
-        )
-        .unwrap();
-        let reader = BufReader::new(file);
-        let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
-        lines.insert(
-            5,
-            format!(
+        Self::edit_nth_line(tmp_path
+                .join("unmodified_cape.xml").into(),
+                 tmp_path
+                .join(format!("tmp/{}_cape.xml", rgb.0))
+                .into_os_string(), vec![5,5], vec![
+                            format!(
                 "cloth_color=\"0x{}FF\"",
                 Self::rgb_to_hex(rgb.2)
             ),
-        );
-        lines.insert(
-            5,
             format!(
                 "cloth_color_edge=\"0x{}FF\"",
                 Self::rgb_to_hex(rgb.1)
             ),
-        );
+            ]);
 
-        let path = tmp_path
-            .join(format!("tmp/{}_cape.xml", rgb.0));
-        let mut file = File::create(path).unwrap();
+
+        Self::edit_nth_line(tmp_path
+                .join("unmodified.xml").into(),
+                 tmp_path
+                .join(format!("tmp/{}.xml", rgb.0))
+                .into_os_string(), vec![1], vec![format!(
+                "filename=\"mods/quant.ew/files/system/player/tmp/{}.png\"",
+                rgb.0
+            )]);
+
+        Self::edit_nth_line(tmp_path
+                .join("unmodified_base.xml").into(),
+                 tmp_path
+                .join(format!("tmp/{}_base.xml", rgb.0))
+                .into_os_string(), vec![274, 249, 231], vec![
+                format!(
+                "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
+                rgb.0
+                ),
+                format!(
+                "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
+                rgb.0
+                ),
+                format!(
+                "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
+                rgb.0
+                )
+            ]);
+
+        Self::edit_nth_line(tmp_path
+                .join("unmodified_arm.xml").into(),
+                 tmp_path
+                .join(format!("tmp/{}_arm.xml", rgb.0))
+                .into_os_string(), vec![1], vec![format!(
+                "filename=\"mods/quant.ew/files/system/player/tmp/{}_arm.png\"",
+                rgb.0
+            )]);
+    }
+
+    fn edit_nth_line(path: OsString, exit: OsString, v: Vec<usize>, newline: Vec<String>)
+    {
+        let file = File::open(path).unwrap();
+        let reader = BufReader::new(file);
+        let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
+        for (i,line) in v.iter().zip(newline)
+        {
+            lines.insert(
+                *i,
+                line,
+            );
+        }
+        let mut file = File::create(exit).unwrap();
         for line in lines {
             writeln!(file, "{}", line).unwrap();
         }
     }
+
     fn rgb_to_hex(rgb: [u8; 4]) -> String {
         format!("{:02X}{:02X}{:02X}", rgb[2], rgb[1], rgb[0])
     }
