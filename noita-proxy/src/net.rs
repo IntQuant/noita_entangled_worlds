@@ -335,7 +335,7 @@ impl NetManager {
         let id = if rgb.0.len() < 5 {
             format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
         } else {
-            format!("{}", rgb.0)
+            format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
         };
         let tmp_path = player_path
             .parent()
