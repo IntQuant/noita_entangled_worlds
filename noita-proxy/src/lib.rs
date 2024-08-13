@@ -648,7 +648,6 @@ impl App {
             &mut img,
             self.app_saved_state.player_color
         );
-        img.save("/home/png.png").unwrap();
         let cropped = DynamicImage::ImageRgba8(img.clone())
             .resize_exact(56, 136, Nearest)
             .into_rgb8();
