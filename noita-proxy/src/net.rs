@@ -332,10 +332,14 @@ impl NetManager {
         Ok(())
     }
     fn create_player_png(&self, player_path: PathBuf, rgb: (String, [u8; 4], [u8; 4], [u8; 4])) {
+        let id = if rgb.0.len() < 5 {
+            format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
+        } else {
+            format!("{}", rgb.0)
+        };
         let tmp_path = player_path
             .parent()
             .unwrap();
-
         let mut img = image::open(player_path.clone().into_os_string())
             .unwrap()
             .into_rgba8();
@@ -346,91 +350,59 @@ impl NetManager {
             Rgba::from(rgb.3),
         );
         let path = tmp_path
-            .join(format!("tmp/{}.png", rgb.0));
+            .join(format!("tmp/{}.png", id));
         img.save(path).unwrap();
-
         let img = create_arm(Rgba::from(rgb.3));
         let path = tmp_path
-            .join(format!("tmp/{}_arm.png", rgb.0));
+            .join(format!("tmp/{}_arm.png", id));
         img.save(path).unwrap();
-
         Self::edit_nth_line(tmp_path
-                .join("unmodified_cape.xml").into(),
-                 tmp_path
-                .join(format!("tmp/{}_cape.xml", rgb.0))
-                .into_os_string(), vec![5,5], vec![
-                            format!(
-                "cloth_color=\"0x{}FF\"",
-                Self::rgb_to_hex(rgb.2)
-            ),
-            format!(
-                "cloth_color_edge=\"0x{}FF\"",
-                Self::rgb_to_hex(rgb.1)
-            ),
+                                .join("unmodified_cape.xml").into(),
+                            tmp_path
+                                .join(format!("tmp/{}_cape.xml", id))
+                                .into_os_string(), vec![5, 5], vec![
+                format!(
+                    "cloth_color=\"0x{}FF\"",
+                    Self::rgb_to_hex(rgb.2)
+                ),
+                format!(
+                    "cloth_color_edge=\"0x{}FF\"",
+                    Self::rgb_to_hex(rgb.1)
+                ),
             ]);
-
-
         Self::edit_nth_line(tmp_path
-                .join("unmodified.xml").into(),
-                 tmp_path
-                .join(format!("tmp/{}.xml", rgb.0))
-                .into_os_string(), vec![1], vec![format!(
+                                .join("unmodified.xml").into(),
+                            tmp_path
+                                .join(format!("tmp/{}.xml", id))
+                                .into_os_string(), vec![1], vec![format!(
                 "filename=\"mods/quant.ew/files/system/player/tmp/{}.png\"",
-                rgb.0
+                id
             )]);
-        let base = if rgb.0.len() < 5 {
-            format!("tmp/{:01$}_base", rgb.0.parse::<usize>().unwrap(), 16)
-        }else{
-            format!("tmp/{}_base", rgb.0)
-        };
-        if self.peer.my_id().unwrap().to_string() == rgb.0
-        {
-            Self::edit_nth_line(tmp_path
-                                    .join("unmodified_base_client.xml").into(),
-                                tmp_path
-                                    .join(base+"_client.xml")
-                                    .into_os_string(), vec![374, 234, 203], vec![
-                    format!(
-                        "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
-                        rgb.0
-                    ),
-                    format!(
-                        "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
-                        rgb.0
-                    ),
-                    format!(
-                        "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
-                        rgb.0
-                    )
-                ]);
-        }else
-        {
-            Self::edit_nth_line(tmp_path
-                                    .join("unmodified_base.xml").into(),
-                                tmp_path
-                                    .join(base+".xml")
-                                    .into_os_string(), vec![274, 249, 231], vec![
-                    format!(
-                        "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
-                        rgb.0
-                    ),
-                    format!(
-                        "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
-                        rgb.0
-                    ),
-                    format!(
-                        "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
-                        rgb.0
-                    )
-                ]);
-        }
         Self::edit_nth_line(tmp_path
-                .join("unmodified_arm.xml").into(),
-                 tmp_path
-                .join(format!("tmp/{}_arm.xml", rgb.0))
-                .into_os_string(), vec![1], vec![format!(
+                                .join("unmodified_base.xml").into(),
+                            tmp_path
+                                .join("tmp/".to_owned() + &id.clone() + "_base.xml")
+                                .into_os_string(), vec![274, 249, 231], vec![
+                format!(
+                    "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
+                    id
+                ),
+                format!(
+                    "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
+                    id
+                ),
+                format!(
+                    "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
+                    id
+                )
+            ]);
+        Self::edit_nth_line(tmp_path
+                                .join("unmodified_arm.xml").into(),
+                            tmp_path
+                                .join(format!("tmp/{}_arm.xml", id))
+                                .into_os_string(), vec![1], vec![format!(
                 "filename=\"mods/quant.ew/files/system/player/tmp/{}_arm.png\"",
-                rgb.0
+                id
             )]);
     }
 
