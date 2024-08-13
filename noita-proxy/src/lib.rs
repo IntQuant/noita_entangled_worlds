@@ -129,6 +129,7 @@ struct AppSavedState {
     player_color: PlayerColor,
     player_picker: PlayerPicker,
     hue: f32,
+    friendly_fire: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
@@ -178,6 +179,7 @@ impl Default for AppSavedState {
             player_color: PlayerColor::default(),
             player_picker: PlayerPicker::None,
             hue: 0.0,
+            friendly_fire: false
         }
     }
 }
@@ -282,6 +284,7 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.app_saved_state.player_color,
+            friendly_fire: self.app_saved_state.friendly_fire,
         }
     }
 
@@ -561,6 +564,10 @@ impl App {
                 .text(tr("connect_settings_enemy_hp_scale")),
         );
         heading_with_underline(ui, tr("connect_settings_local"));
+        ui.checkbox(
+            &mut self.app_saved_state.friendly_fire,
+            "Friendly fire",
+        );
         ui.checkbox(
             &mut self.app_saved_state.start_game_automatically,
             tr("connect_settings_autostart"),

@@ -44,6 +44,8 @@ content = add_new_genome(content, "notplayer", 100, 100, 100, {
     player = 0,
 })
 
+content = add_new_genome(content, "player_pvp", 0, 0, 0, {})
+
 ModTextFileSetContent("data/genome_relations.csv", content)
 
 return {}
