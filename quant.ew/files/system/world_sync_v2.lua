@@ -57,7 +57,7 @@ function world_sync.on_world_update()
                 local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
                 if area ~= nil then
                     if ctx.proxy_opt.debug then
-                        GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
+                        -- GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
                     end
                     local str = ffi.string(area, world.encoded_size(area))
                     net.proxy_bin_send(KEY_WORLD_FRAME, str)

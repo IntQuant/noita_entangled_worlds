@@ -165,7 +165,6 @@ end
 util.load_ents_tags = util.cached_fn(function(path)
     local text = ModTextFileGetContent(path)
     local tags_string = string.match(text, [[tags="(.-)">]])
-    print("Tag string ", tags_string)
 
     local tags = util.string_split(tags_string, ",")
     
@@ -175,6 +174,7 @@ end)
 -- Load an entity that doesn't get saved.
 function util.load_ephemerial(path, x, y)
     local entity = EntityCreateNew()
+    EntitySetTransform(entity, x, y)
     local ent_2 = EntityLoad(path, x, y)
     EntityAddChild(entity, ent_2)
     return ent_2

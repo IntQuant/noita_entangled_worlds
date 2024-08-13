@@ -234,6 +234,18 @@ function rpc.handle_enemy_data(enemy_data)
                 end
             end
             ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
+            local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
+            if phys_component ~= nil and phys_component ~= 0 then
+                ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
+            end
+            -- Make sure stuff doesn't decide to explode on clients by itself.
+            local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
+            if expl_component ~= nil and expl_component ~= 0 then
+                ComponentSetValue2(expl_component, "explode_on_damage_percent", 0)
+                ComponentSetValue2(expl_component, "physics_body_modified_death_probability", 0)
+                ComponentSetValue2(expl_component, "explode_on_death_percent", 1)
+            end
+
         end
 
         local enemy_data = ctx.entity_by_remote_id[remote_enemy_id]

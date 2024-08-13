@@ -156,7 +156,6 @@ function OnWorldInitialized() -- This is called once the game world is initializ
         GameRemoveFlagRun("ew_flag_this_is_host")
     end
     ctx.hook.on_world_initialized()
-    util.load_ents_tags("mods/quant.ew/files/resource/entities/client.xml")
 end
 
 
