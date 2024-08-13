@@ -4,7 +4,7 @@ use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
-use std::fs::File;
+use std::fs::{create_dir, remove_dir_all, File};
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::{
@@ -145,7 +145,17 @@ impl NetManager {
         }
     }
 
+    fn clean_dir(path: PathBuf)
+    {
+        let tmp = path.parent().unwrap().join("tmp");
+        if tmp.exists() {
+            remove_dir_all(tmp.clone()).unwrap();
+        }
+        create_dir(tmp).unwrap();
+    }
+
     pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
+        Self::clean_dir(player_path.clone());
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
         // This allows several proxies to listen on the same address.
         // While this works, I couldn't get Noita to reliably connect to correct proxy instances on my os (linux).
@@ -240,7 +250,7 @@ impl NetManager {
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(id,
-                                  &NetMsg::Rgb((self.peer.my_id().unwrap().to_string(),
+                                  &NetMsg::PlayerColor((self.peer.my_id().unwrap().to_string(),
                                                 self.init_settings.player_color)),
                                   Reliability::Reliable);
                     }
@@ -273,7 +283,7 @@ impl NetManager {
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
-                            NetMsg::Rgb(rgb) => {
+                            NetMsg::PlayerColor(rgb) => {
                                 self.create_player_png(player_path.clone(), rgb);
                             }
                         }

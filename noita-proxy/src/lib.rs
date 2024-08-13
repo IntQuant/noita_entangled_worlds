@@ -18,7 +18,6 @@ use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
-use std::fs::{create_dir, remove_dir_all};
 use std::path::PathBuf;
 use std::{
     fmt::Display,
@@ -329,11 +328,6 @@ impl App {
     fn player_path(&self) -> PathBuf {
         let path = ModmanagerSettings::mod_path(&self.modmanager_settings)
             .join("files/system/player/unmodified.png");
-        let tmp = path.parent().unwrap().join("tmp");
-        if tmp.exists() {
-            remove_dir_all(tmp.clone()).unwrap();
-        }
-        create_dir(tmp).unwrap();
         path
     }
     fn start_connect(&mut self, addr: SocketAddr) {

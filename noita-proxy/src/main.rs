@@ -5,7 +5,6 @@ use eframe::{
 use noita_proxy::{args::Args, recorder::replay_file, App};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
-
 fn main() -> Result<(), eframe::Error> {
     let my_subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
@@ -33,6 +32,7 @@ fn main() -> Result<(), eframe::Error> {
         height: icon.height(),
         rgba: icon.into_vec(),
     };
+
     eframe::run_native(
         "Noita Proxy",
         NativeOptions {
