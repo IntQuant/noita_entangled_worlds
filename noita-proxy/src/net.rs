@@ -26,11 +26,7 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::{
-    bookkeeping::save_state::{SaveState, SaveStateEntry},
-    recorder::Recorder,
-    replace_color, GameSettings,
-};
+use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, replace_color, GameSettings, PlayerColor};
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -101,9 +97,7 @@ pub mod omni;
 pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
-    pub player_main_color: [u8; 4],
-    pub player_alt_color: [u8; 4],
-    pub player_arm_color: [u8; 4],
+    pub player_color: PlayerColor,
 }
 
 pub struct NetManager {
@@ -200,9 +194,7 @@ impl NetManager {
         let mut last_iter = Instant::now();
         self.create_player_png(player_path.clone(),
                                (self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.player_main_color,
-                                self.init_settings.player_alt_color,
-                                self.init_settings.player_arm_color));
+                                self.init_settings.player_color));
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
                 .store(state.ws.is_some(), atomic::Ordering::Relaxed);
@@ -244,16 +236,12 @@ impl NetManager {
                             );
                             self.create_player_png(player_path.clone(),
                                (self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.player_main_color,
-                                self.init_settings.player_alt_color,
-                                self.init_settings.player_arm_color));
+                                self.init_settings.player_color));
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(id,
                                   &NetMsg::Rgb((self.peer.my_id().unwrap().to_string(),
-                                                self.init_settings.player_main_color,
-                                                self.init_settings.player_alt_color,
-                                                self.init_settings.player_arm_color)),
+                                                self.init_settings.player_color)),
                                   Reliability::Reliable);
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
@@ -331,12 +319,13 @@ impl NetManager {
         }
         Ok(())
     }
-    fn create_player_png(&self, player_path: PathBuf, rgb: (String, [u8; 4], [u8; 4], [u8; 4])) {
+    fn create_player_png(&self, player_path: PathBuf, rgb: (String, PlayerColor)) {
         let id = if rgb.0.len() < 5 {
             format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
         } else {
             format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
         };
+        let rgb = rgb.1;
         let tmp_path = player_path
             .parent()
             .unwrap();
@@ -345,14 +334,14 @@ impl NetManager {
             .into_rgba8();
         replace_color(
             &mut img,
-            Rgba::from(rgb.1),
-            Rgba::from(rgb.2),
-            Rgba::from(rgb.3),
+            Rgba::from(rgb.player_main),
+            Rgba::from(rgb.player_alt),
+            Rgba::from(rgb.player_arm),
         );
         let path = tmp_path
             .join(format!("tmp/{}.png", id));
         img.save(path).unwrap();
-        let img = create_arm(Rgba::from(rgb.3));
+        let img = create_arm(Rgba::from(rgb.player_forearm));
         let path = tmp_path
             .join(format!("tmp/{}_arm.png", id));
         img.save(path).unwrap();
@@ -363,11 +352,11 @@ impl NetManager {
                                 .into_os_string(), vec![16, 16], vec![
                 format!(
                     "cloth_color=\"0xFF{}\"",
-                    Self::rgb_to_hex(rgb.2)
+                    Self::rgb_to_hex(rgb.player_cape)
                 ),
                 format!(
                     "cloth_color_edge=\"0xFF{}\"",
-                    Self::rgb_to_hex(rgb.1)
+                    Self::rgb_to_hex(rgb.player_cape_edge)
                 ),
             ]);
         Self::edit_nth_line(tmp_path

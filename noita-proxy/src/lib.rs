@@ -127,10 +127,42 @@ struct AppSavedState {
     show_extra_debug_stuff: bool,
     #[serde(default)]
     record_all: bool,
-    player_main_color: [u8; 4],
-    player_alt_color: [u8; 4],
-    player_arm_color: [u8; 4],
+    player_color: PlayerColor,
+    player_picker: PlayerPicker,
     hue: f32
+}
+
+#[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
+pub struct PlayerColor {
+    player_main: [u8; 4],
+    player_alt: [u8; 4],
+    player_arm: [u8; 4],
+    player_cape: [u8; 4],
+    player_cape_edge: [u8; 4],
+    player_forearm: [u8; 4],
+}
+
+impl Default for PlayerColor {
+    fn default() -> Self {
+        Self {
+            player_main: [155, 111, 154, 255],
+            player_alt: [127, 84, 118, 255],
+            player_arm: [89, 67, 84, 255],
+            player_cape: [118, 84, 127, 255],
+            player_cape_edge: [154, 111, 155, 255],
+            player_forearm: [158, 115, 154, 255],
+        }
+    }
+}
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+enum PlayerPicker {
+    None,
+    PlayerMain,
+    PlayerAlt,
+    PlayerArm,
+    PlayerCape,
+    PlayerCapeEdge,
+    PlayerForearm,
 }
 
 impl Default for AppSavedState {
@@ -144,9 +176,8 @@ impl Default for AppSavedState {
             start_game_automatically: false,
             show_extra_debug_stuff: false,
             record_all: false,
-            player_main_color: [155, 111, 154, 255],
-            player_alt_color: [127, 84, 118, 255],
-            player_arm_color: [89, 67, 84, 255],
+            player_color: PlayerColor::default(),
+            player_picker: PlayerPicker::None,
             hue: 0.0
         }
     }
@@ -251,9 +282,7 @@ impl App {
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
-            player_main_color: self.app_saved_state.player_main_color,
-            player_alt_color: self.app_saved_state.player_alt_color,
-            player_arm_color: self.app_saved_state.player_arm_color,
+            player_color: self.app_saved_state.player_color
         }
     }
 
@@ -541,9 +570,7 @@ impl App {
         let path = self.player_path();
         ui.add_space(20.0);
         if ui.button("Default color").clicked() {
-            self.app_saved_state.player_main_color = [155, 111, 154, 255];
-            self.app_saved_state.player_alt_color = [127, 84, 118, 255];
-            self.app_saved_state.player_arm_color = [89, 67, 84, 255];
+            self.app_saved_state.player_color = PlayerColor::default();
             self.app_saved_state.hue = 0.0
         }
 
@@ -555,22 +582,73 @@ impl App {
         if old_hue != self.app_saved_state.hue
         {
             let diff = self.app_saved_state.hue - old_hue;
-            Self::shift_hue(diff, &mut self.app_saved_state.player_main_color);
-            Self::shift_hue(diff, &mut self.app_saved_state.player_alt_color);
-            Self::shift_hue(diff, &mut self.app_saved_state.player_arm_color);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_main);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_alt);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_arm);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_forearm);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_cape);
+            Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_cape_edge);
         }
-
+        let mut clicked = false;
+        let last = self.app_saved_state.player_picker.clone();
         ui.horizontal(|ui| {
-            Self::color_picker(ui, &mut self.app_saved_state.player_main_color);
-            Self::color_picker(ui, &mut self.app_saved_state.player_alt_color);
-            Self::color_picker(ui, &mut self.app_saved_state.player_arm_color);
+            if ui.button("Main color").clicked() {
+                clicked = true;
+                self.app_saved_state.player_picker = PlayerPicker::PlayerMain
+            }
+            if ui.button("Alt color").clicked() {
+                clicked = true;
+                self.app_saved_state.player_picker = PlayerPicker::PlayerAlt
+            }
+            if ui.button("Arm color").clicked() {
+                clicked = true;
+                self.app_saved_state.player_picker = PlayerPicker::PlayerArm
+            }
+            if ui.button("Forearm color").clicked() {
+                clicked = true;
+                self.app_saved_state.player_picker = PlayerPicker::PlayerForearm
+            }
+            if ui.button("Cape color").clicked() {
+                clicked = true;
+                self.app_saved_state.player_picker = PlayerPicker::PlayerCape
+            }
+            if ui.button("Cape edge color").clicked() {
+                clicked = true;
+                self.app_saved_state.player_picker = PlayerPicker::PlayerCapeEdge
+            }
         });
+        if clicked && last == self.app_saved_state.player_picker
+        {
+            self.app_saved_state.player_picker = PlayerPicker::None
+        }
+        match self.app_saved_state.player_picker
+        {
+            PlayerPicker::PlayerMain => {
+                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_main);
+            }
+            PlayerPicker::PlayerAlt => {
+                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_alt);
+            }
+            PlayerPicker::PlayerArm => {
+                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_arm);
+            }
+            PlayerPicker::PlayerForearm => {
+                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_forearm);
+            }
+            PlayerPicker::PlayerCape => {
+                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_cape);
+            }
+            PlayerPicker::PlayerCapeEdge => {
+                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_cape_edge);
+            }
+            PlayerPicker::None => {}
+        }
         let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgba8();
         replace_color(
             &mut img,
-            Rgba::from(self.app_saved_state.player_main_color),
-            Rgba::from(self.app_saved_state.player_alt_color),
-            Rgba::from(self.app_saved_state.player_arm_color),
+            Rgba::from(self.app_saved_state.player_color.player_main),
+            Rgba::from(self.app_saved_state.player_color.player_alt),
+            Rgba::from(self.app_saved_state.player_color.player_arm),
         );
         let cropped = DynamicImage::ImageRgba8(img.clone())
             .resize_exact(56, 136, Nearest)
