@@ -24,7 +24,7 @@ pub enum NetMsg {
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
     WorldMessage(WorldNetMessage),
-    Rgb((String, bool, PlayerColor)),
+    Rgb((String, PlayerColor)),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

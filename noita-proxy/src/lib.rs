@@ -62,6 +62,7 @@ pub struct GameSettings {
     enemy_hp_mult: f32,
     world_sync_interval: u32,
     game_mode: GameMode,
+    friendly_fire: bool,
 }
 
 impl Default for GameSettings {
@@ -77,6 +78,7 @@ impl Default for GameSettings {
             enemy_hp_mult: 1.0,
             world_sync_interval: 2,
             game_mode: GameMode::SharedHealth,
+            friendly_fire: false
         }
     }
 }
@@ -129,7 +131,6 @@ struct AppSavedState {
     player_color: PlayerColor,
     player_picker: PlayerPicker,
     hue: f32,
-    friendly_fire: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
@@ -179,7 +180,6 @@ impl Default for AppSavedState {
             player_color: PlayerColor::default(),
             player_picker: PlayerPicker::None,
             hue: 0.0,
-            friendly_fire: false
         }
     }
 }
@@ -284,7 +284,6 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.app_saved_state.player_color,
-            friendly_fire: self.app_saved_state.friendly_fire,
         }
     }
 
@@ -563,11 +562,12 @@ impl App {
                 .logarithmic(true)
                 .text(tr("connect_settings_enemy_hp_scale")),
         );
-        heading_with_underline(ui, tr("connect_settings_local"));
+        ui.add_space(20.0);
         ui.checkbox(
-            &mut self.app_saved_state.friendly_fire,
+            &mut game_settings.friendly_fire,
             "Friendly fire",
         );
+        heading_with_underline(ui, tr("connect_settings_local"));
         ui.checkbox(
             &mut self.app_saved_state.start_game_automatically,
             tr("connect_settings_autostart"),

@@ -98,7 +98,6 @@ pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
     pub player_color: PlayerColor,
-    pub friendly_fire: bool,
 }
 
 pub struct NetManager {
@@ -195,7 +194,6 @@ impl NetManager {
         let mut last_iter = Instant::now();
         self.create_player_png(player_path.clone(),
                                (self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.friendly_fire,
                                 self.init_settings.player_color));
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
@@ -238,13 +236,11 @@ impl NetManager {
                             );
                             self.create_player_png(player_path.clone(),
                                (self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.friendly_fire,
                                 self.init_settings.player_color));
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(id,
                                   &NetMsg::Rgb((self.peer.my_id().unwrap().to_string(),
-                                                self.init_settings.friendly_fire,
                                                 self.init_settings.player_color)),
                                   Reliability::Reliable);
                     }
@@ -323,14 +319,13 @@ impl NetManager {
         }
         Ok(())
     }
-    fn create_player_png(&self, player_path: PathBuf, rgb: (String, bool, PlayerColor)) {
+    fn create_player_png(&self, player_path: PathBuf, rgb: (String, PlayerColor)) {
         let id = if rgb.0.len() < 5 {
             format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
         } else {
             format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
         };
-        let ff = rgb.1;
-        let rgb = rgb.2;
+        let rgb = rgb.1;
         let tmp_path = player_path
             .parent()
             .unwrap();
@@ -389,10 +384,11 @@ impl NetManager {
                     "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
                     id
                 ),
-                format!(
+                /*format!(
                     "herd_id=\"player{}\"",
                     if ff {"_pvp"}else{""}
-                ),
+                )*/
+                "herd_id=\"player\"".to_string(),
             ]);
         Self::edit_nth_line(tmp_path
                                 .join("unmodified_arm.xml").into(),
@@ -474,6 +470,7 @@ impl NetManager {
         state.try_ws_write_option("enemy_hp_scale", settings.enemy_hp_mult);
         state.try_ws_write_option("world_sync_interval", settings.world_sync_interval);
         state.try_ws_write_option("game_mode", settings.game_mode);
+        state.try_ws_write_option("friendly_fire", settings.friendly_fire);
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod

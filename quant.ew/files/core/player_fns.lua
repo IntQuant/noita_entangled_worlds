@@ -72,7 +72,7 @@ local player_fns = {
     deserialize_inputs = function(message, player_data)
         if (player_data ~= nil and player_data.entity ~= nil and EntityGetIsAlive(player_data.entity)) then
             --print(json.stringify(message))
-            
+
             local controls_data = player_data.controls
             local controlsComp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "ControlsComponent")
 
@@ -269,7 +269,7 @@ local player_fns = {
         end
         local controls = EntityGetFirstComponentIncludingDisabled(player, "ControlsComponent")
 
-        
+
         if (controls ~= nil) then
             local kick = ComponentGetValue2(controls, "mButtonDownKick") -- boolean
             local fire = ComponentGetValue2(controls, "mButtonDownFire")  -- boolean
@@ -407,10 +407,12 @@ end
 function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     if ctx.run_ended or peer_id == ctx.my_id then
         util.print_traceback()
-        -- TODO swap player model
     end
     GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
+    if ctx.proxy_opt.friendly_fire then
+        GenomeSetHerdId(new, "player_pvp")
+    end
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
     new_playerdata.entity = new
     -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)
@@ -511,7 +513,7 @@ function player_fns.get_current_slot(player_data)
 
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
         local ability_comp = EntityGetFirstComponentIncludingDisabled(held_item, "AbilityComponent")
-        
+
         local is_wand = false
         if(ability_comp and ComponentGetValue2(ability_comp, "use_gun_script"))then
             is_wand = true
@@ -530,19 +532,19 @@ function player_fns.set_current_slot(slot_data, player_data)
             local itemComp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
             if itemComp ~= nil then
                 local item_slot_x, item_slot_y = ComponentGetValue2(itemComp, "inventory_slot")
-    
+
                 local ability_comp = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
-                
+
                 local item_is_wand = false
                 if(ability_comp and ComponentGetValue2(ability_comp, "use_gun_script"))then
                     item_is_wand = true
                 end
-    
+
                 if (item_slot_x == slot_x and item_slot_y == slot_y and item_is_wand == is_wand) then
                     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(
                         player_data.entity, "Inventory2Component")
                     local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
-    
+
                     if (mActiveItem ~= item) then
                         np.SetActiveHeldEntity(player_data.entity, item, false, false)
                     end
