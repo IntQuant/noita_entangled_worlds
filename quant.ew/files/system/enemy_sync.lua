@@ -9,7 +9,10 @@ local rpc = net.new_rpc_namespace()
 local enemy_sync = {}
 
 local dead_entities = {}
+-- TODO this basically never happens, doesn't seem that useful anymore. Perhaps should be removed to conserve memory.
 local confirmed_kills = {}
+
+local spawned_by_us = {}
 
 np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
     local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
@@ -81,9 +84,12 @@ function enemy_sync.host_upload_entities()
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
 
         local phys_info = nil
+        -- Some things (like physics object) don't react well to making their entities ephemerial.
+        local not_ephemerial = false
 
         local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
         if phys_component ~= nil and phys_component ~= 0 then
+            not_ephemerial = true
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
                 phys_info = {np.PhysBodyGetTransform(phys_component)}
@@ -103,7 +109,7 @@ function enemy_sync.host_upload_entities()
         --     -- local x, y, r = 
         -- end
 
-        table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp, phys_info})
+        table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp, phys_info, not_ephemerial})
         ::continue::
     end
 
@@ -120,6 +126,10 @@ function enemy_sync.client_cleanup()
         if not EntityHasTag(enemy_id, "ew_replicated") then
             local filename = EntityGetFilename(enemy_id)
             print("Despawning unreplicated "..enemy_id.." "..filename)
+            EntityKill(enemy_id)
+        elseif not spawned_by_us[enemy_id] then
+            local filename = EntityGetFilename(enemy_id)
+            print("Despawning persisted "..enemy_id.." "..filename)
             EntityKill(enemy_id)
         end
     end
@@ -203,6 +213,7 @@ function rpc.handle_enemy_data(enemy_data)
         local hp = enemy_info_raw[7]
         local max_hp = enemy_info_raw[8]
         local phys_info = enemy_info_raw[9]
+        local not_ephemerial = enemy_info_raw[10]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
@@ -219,7 +230,13 @@ function rpc.handle_enemy_data(enemy_data)
             if filename == nil then
                 goto continue
             end
-            local enemy_id = util.load_ephemerial(filename, x, y)
+            local enemy_id
+            if not_ephemerial then
+                enemy_id = EntityLoad(filename, x, y)
+            else
+                enemy_id = util.load_ephemerial(filename, x, y)
+            end
+            spawned_by_us[enemy_id] = true
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
             EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
