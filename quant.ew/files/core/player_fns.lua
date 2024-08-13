@@ -407,9 +407,10 @@ end
 function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     if ctx.run_ended or peer_id == ctx.my_id then
         util.print_traceback()
+        -- TODO swap player model
     end
     GamePrint("Spawning player for "..peer_id)
-    local new = EntityLoad("mods/quant.ew/files/resource/entities/client.xml", x, y)
+    local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
     new_playerdata.entity = new
     -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)

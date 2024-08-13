@@ -1,8 +1,12 @@
 use bitcode::{Decode, Encode};
+use image::{Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::{
     env,
     fmt::Display,
@@ -15,6 +19,7 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
+use std::ffi::OsString;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -24,9 +29,8 @@ use tungstenite::{accept, WebSocket};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
     recorder::Recorder,
-    GameSettings,
+    replace_color, GameSettings,
 };
-
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -97,6 +101,9 @@ pub mod omni;
 pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
+    pub player_main_color: [u8; 4],
+    pub player_alt_color: [u8; 4],
+    pub player_arm_color: [u8; 4],
 }
 
 pub struct NetManager {
@@ -144,9 +151,8 @@ impl NetManager {
         }
     }
 
-    pub(crate) fn start_inner(self: Arc<NetManager>) -> io::Result<()> {
+    pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
-
         // This allows several proxies to listen on the same address.
         // While this works, I couldn't get Noita to reliably connect to correct proxy instances on my os (linux).
         if env::var_os("NP_ALLOW_REUSE_ADDR").is_some() {
@@ -159,21 +165,16 @@ impl NetManager {
                 error!("Could not allow to reuse port: {}", err)
             }
         }
-
         let address: SocketAddr = env::var("NP_NOITA_ADDR")
             .ok()
             .and_then(|x| x.parse().ok())
             .unwrap_or_else(|| "127.0.0.1:21251".parse().unwrap());
-
         info!("Listening for noita connection on {}", address);
-
         let address = address.into();
         socket.bind(&address)?;
         socket.listen(1)?;
         socket.set_nonblocking(true)?;
-
         let local_server: TcpListener = socket.into();
-
         for _ in 1..3 {
             if self.peer.my_id().is_none() {
                 info!("Waiting on my_id...");
@@ -185,7 +186,6 @@ impl NetManager {
         if self.peer.my_id().is_none() {
             std::process::exit(1)
         }
-
         let is_host = self.is_host();
         info!("Is host: {is_host}");
         let mut state = NetInnerState {
@@ -197,9 +197,12 @@ impl NetManager {
                 self.init_settings.save_state.clone(),
             ),
         };
-
         let mut last_iter = Instant::now();
-
+        self.create_player_png(player_path.clone(),
+                               (self.peer.my_id().unwrap().to_string(),
+                                self.init_settings.player_main_color,
+                                self.init_settings.player_alt_color,
+                                self.init_settings.player_arm_color));
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
                 .store(state.ws.is_some(), atomic::Ordering::Relaxed);
@@ -209,7 +212,6 @@ impl NetManager {
                     info!("New stream incoming from {}", addr);
                     stream.set_nodelay(true).ok();
                     stream.set_nonblocking(false).ok();
-
                     state.ws = accept(stream)
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
                         .ok();
@@ -240,8 +242,19 @@ impl NetManager {
                                 },
                                 tangled::Reliability::Reliable,
                             );
+                            self.create_player_png(player_path.clone(),
+                               (self.peer.my_id().unwrap().to_string(),
+                                self.init_settings.player_main_color,
+                                self.init_settings.player_alt_color,
+                                self.init_settings.player_arm_color));
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
+                        self.send(id,
+                                  &NetMsg::Rgb((self.peer.my_id().unwrap().to_string(),
+                                                self.init_settings.player_main_color,
+                                                self.init_settings.player_alt_color,
+                                                self.init_settings.player_arm_color)),
+                                  Reliability::Reliable);
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
@@ -272,16 +285,16 @@ impl NetManager {
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
+                            NetMsg::Rgb(rgb) => {
+                                self.create_player_png(player_path.clone(), rgb);
+                            }
                         }
                     }
                 }
             }
-
             // Handle all available messages from Noita.
-
             while let Some(ws) = &mut state.ws {
                 let msg = ws.read();
-
                 match msg {
                     Ok(msg) => {
                         if let tungstenite::Message::Binary(msg) = msg {
@@ -289,18 +302,17 @@ impl NetManager {
                         }
                     }
                     Err(tungstenite::Error::Io(io_err))
-                        if io_err.kind() == io::ErrorKind::WouldBlock
-                            || io_err.kind() == io::ErrorKind::TimedOut =>
-                    {
-                        break
-                    }
+                    if io_err.kind() == io::ErrorKind::WouldBlock
+                        || io_err.kind() == io::ErrorKind::TimedOut =>
+                        {
+                            break
+                        }
                     Err(err) => {
                         error!("Error occured while reading from websocket: {}", err);
                         state.ws = None;
                     }
                 }
             }
-
             for msg in state.world.get_emitted_msgs() {
                 self.do_message_request(msg)
             }
@@ -318,6 +330,102 @@ impl NetManager {
             last_iter = Instant::now();
         }
         Ok(())
+    }
+    fn create_player_png(&self, player_path: PathBuf, rgb: (String, [u8; 4], [u8; 4], [u8; 4])) {
+        let id = if rgb.0.len() < 5 {
+            format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
+        } else {
+            format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
+        };
+        let tmp_path = player_path
+            .parent()
+            .unwrap();
+        let mut img = image::open(player_path.clone().into_os_string())
+            .unwrap()
+            .into_rgba8();
+        replace_color(
+            &mut img,
+            Rgba::from(rgb.1),
+            Rgba::from(rgb.2),
+            Rgba::from(rgb.3),
+        );
+        let path = tmp_path
+            .join(format!("tmp/{}.png", id));
+        img.save(path).unwrap();
+        let img = create_arm(Rgba::from(rgb.3));
+        let path = tmp_path
+            .join(format!("tmp/{}_arm.png", id));
+        img.save(path).unwrap();
+        Self::edit_nth_line(tmp_path
+                                .join("unmodified_cape.xml").into(),
+                            tmp_path
+                                .join(format!("tmp/{}_cape.xml", id))
+                                .into_os_string(), vec![5, 5], vec![
+                format!(
+                    "cloth_color=\"0x{}FF\"",
+                    Self::rgb_to_hex(rgb.2)
+                ),
+                format!(
+                    "cloth_color_edge=\"0x{}FF\"",
+                    Self::rgb_to_hex(rgb.1)
+                ),
+            ]);
+        Self::edit_nth_line(tmp_path
+                                .join("unmodified.xml").into(),
+                            tmp_path
+                                .join(format!("tmp/{}.xml", id))
+                                .into_os_string(), vec![1], vec![format!(
+                "filename=\"mods/quant.ew/files/system/player/tmp/{}.png\"",
+                id
+            )]);
+        Self::edit_nth_line(tmp_path
+                                .join("unmodified_base.xml").into(),
+                            tmp_path
+                                .join("tmp/".to_owned() + &id.clone() + "_base.xml")
+                                .into_os_string(), vec![274, 249, 231], vec![
+                format!(
+                    "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
+                    id
+                ),
+                format!(
+                    "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
+                    id
+                ),
+                format!(
+                    "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
+                    id
+                )
+            ]);
+        Self::edit_nth_line(tmp_path
+                                .join("unmodified_arm.xml").into(),
+                            tmp_path
+                                .join(format!("tmp/{}_arm.xml", id))
+                                .into_os_string(), vec![1], vec![format!(
+                "filename=\"mods/quant.ew/files/system/player/tmp/{}_arm.png\"",
+                id
+            )]);
+    }
+
+    fn edit_nth_line(path: OsString, exit: OsString, v: Vec<usize>, newline: Vec<String>)
+    {
+        let file = File::open(path).unwrap();
+        let reader = BufReader::new(file);
+        let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
+        for (i,line) in v.iter().zip(newline)
+        {
+            lines.insert(
+                *i,
+                line,
+            );
+        }
+        let mut file = File::create(exit).unwrap();
+        for line in lines {
+            writeln!(file, "{}", line).unwrap();
+        }
+    }
+
+    fn rgb_to_hex(rgb: [u8; 4]) -> String {
+        format!("{:02X}{:02X}{:02X}", rgb[2], rgb[1], rgb[0])
     }
 
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
@@ -374,7 +482,6 @@ impl NetManager {
         for id in self.peer.iter_peer_ids() {
             state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
         }
-
         info!("Settings sent")
     }
 
@@ -419,10 +526,10 @@ impl NetManager {
         }
     }
 
-    pub fn start(self: Arc<NetManager>) -> JoinHandle<()> {
+    pub fn start(self: Arc<NetManager>, player_path: PathBuf) -> JoinHandle<()> {
         info!("Starting netmanager");
         thread::spawn(move || {
-            let result = self.clone().start_inner();
+            let result = self.clone().start_inner(player_path);
             if let Err(err) = result {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);
@@ -507,4 +614,20 @@ impl Drop for NetManager {
             info!("Skip saving run info: not a host");
         }
     }
+}
+
+fn create_arm(arm: Rgba<u8>)->RgbaImage
+{
+    let hand = Rgba::from([219, 192, 103, 255]);
+    let mut img = RgbaImage::new(5,15);
+    for (i, pixel) in img.pixels_mut().enumerate()
+    {
+        match i
+        {
+            10 | 11 | 17 | 18 | 35 | 40 | 41 | 55 | 56 | 57 | 58=> *pixel = arm,
+            19 | 42 | 59  => *pixel = hand,
+            _=>{}
+        }
+    }
+    img
 }

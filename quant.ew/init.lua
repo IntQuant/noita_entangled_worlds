@@ -31,7 +31,7 @@ ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
-    
+
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
 
@@ -53,7 +53,7 @@ local function load_modules()
     if ctx.proxy_opt.debug then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/system/debug.lua")
     end
-    
+
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/fungal_shift/sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/weather_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/polymorph/sync.lua")
@@ -162,7 +162,7 @@ end
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
     print("Initial player entity: "..player_entity)
-    
+
     if GlobalsGetValue("ew_player_count", "") == "" then
         GlobalsSetValue("ew_player_count", "1")
     end
@@ -194,8 +194,37 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     GamePrint("Noita Entangled Worlds version "..version)
 
     OnPausedChanged(false, false)
-    
+
     print("Game state entity: "..GameGetWorldStateEntity())
+
+    local cape = nil
+    local player_arm = nil
+
+    local player_child_entities = EntityGetAllChildren( player_entity )
+    if ( player_child_entities ~= nil ) then
+        for _, child_entity in ipairs( player_child_entities ) do
+            local child_entity_name = EntityGetName( child_entity )
+            if ( child_entity_name == "cape" ) then
+                cape = child_entity
+            end
+            if ( child_entity_name == "arm_r" ) then
+                player_arm = child_entity
+            end
+        end
+    end
+
+    local player_sprite_component = EntityGetFirstComponent( player_entity, "SpriteComponent" )
+    local player_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. ".xml"
+    ComponentSetValue( player_sprite_component, "image_file", player_sprite_file )
+
+    local player_arm_sprite_component = EntityGetFirstComponent( player_arm, "SpriteComponent" )
+    local player_arm_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_arm.xml"
+    ComponentSetValue( player_arm_sprite_component, "image_file", player_arm_sprite_file )
+
+    EntityKill(cape)
+    local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
+    local cape2 = EntityLoad(player_cape_sprite_file, 0, 0)
+    EntityAddChild( player_entity, cape2 )
 end
 
 local function on_world_pre_update_inner()
@@ -268,7 +297,7 @@ local function on_world_post_update_inner()
         local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
         local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
         local switched_now = last_switch == GameGetFrameNum()
-        
+
         local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
         local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
         if fire_data ~= nil then
@@ -325,7 +354,7 @@ function OnModPreInit()
     net.init()
 
     load_modules()
-    
+
     print("Entangled worlds init ok")
 end
 
