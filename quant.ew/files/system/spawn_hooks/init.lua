@@ -48,7 +48,7 @@ np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
         if is_sync_item(ent_path) then
             return false
         else
-            return not module.entity_is_enemy(ent_path)
+            return not module.entity_is_synced(ent_path)
         end
     end
 end)
@@ -61,7 +61,7 @@ end)
 
 local entity_is_enemy_cache = {}
 
-function module.entity_is_enemy(ent_path)
+function module.entity_is_synced(ent_path)
     if entity_is_enemy_cache[ent_path] ~= nil then
         return entity_is_enemy_cache[ent_path]
     end
@@ -69,7 +69,7 @@ function module.entity_is_enemy(ent_path)
     print("Checking if this is an enemy: "..ent_path)
 
     local ent = EntityLoad(ent_path) -- TODO: Just read xml maybe
-    local res = EntityHasTag(ent, "enemy")
+    local res = EntityHasTag(ent, "enemy") or constants.phys_sync_allowed[ent_path]
     EntityKill(ent)
 
     entity_is_enemy_cache[ent_path] = res

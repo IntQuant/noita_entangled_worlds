@@ -50,6 +50,10 @@ local function get_sync_entities()
         return not (EntityHasTag(ent, "ew_no_enemy_sync"))
     end)
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
+    table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
+        return constants.phys_sync_allowed[EntityGetFilename(ent)]
+    end)
+
     -- table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
     --     return not (EntityHasTag(ent, "ew_no_enemy_sync") or EntityHasTag(ent, "projectile_player"))
     -- end)
@@ -76,6 +80,16 @@ function enemy_sync.host_upload_entities()
         end
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
 
+        local phys_info = nil
+
+        local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
+        if phys_component ~= nil and phys_component ~= 0 then
+            local initialized = ComponentGetValue2(phys_component, "mInitialized")
+            if initialized then
+                phys_info = {np.PhysBodyGetTransform(phys_component)}
+            end
+        end
+
         if has_hp then
             util.ensure_component_present(enemy_id, "LuaComponent", "ew_death_notify", {
                 script_death = "mods/quant.ew/files/resource/cbs/death_notify.lua"
@@ -89,7 +103,7 @@ function enemy_sync.host_upload_entities()
         --     -- local x, y, r = 
         -- end
 
-        table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp})
+        table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp, phys_info})
         ::continue::
     end
 
@@ -188,6 +202,7 @@ function rpc.handle_enemy_data(enemy_data)
         local vy = enemy_info_raw[6]
         local hp = enemy_info_raw[7]
         local max_hp = enemy_info_raw[8]
+        local phys_info = enemy_info_raw[9]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
@@ -224,6 +239,15 @@ function rpc.handle_enemy_data(enemy_data)
         local enemy_data = ctx.entity_by_remote_id[remote_enemy_id]
         enemy_data.frame = frame
         local enemy_id = enemy_data.id
+
+        local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+            -- A physics body doesn't exist otherwise, causing a crash
+            local initialized = ComponentGetValue2(phys_component, "mInitialized")
+            if initialized then
+                np.PhysBodySetTransform(phys_component, unpack(phys_info))
+            end
+        end
 
         if not has_died then
             local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")

@@ -14,6 +14,7 @@ player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 net = dofile_once("mods/quant.ew/files/core/net.lua")
 util = dofile_once("mods/quant.ew/files/core/util.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
+constants = dofile_once("mods/quant.ew/files/core/constants.lua")
 
 local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
