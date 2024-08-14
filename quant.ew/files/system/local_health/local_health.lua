@@ -61,7 +61,7 @@ local function player_died()
         inventory_helper.set_item_data(item_data, ctx.my_player)
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
-        player_cosmetics(ctx.my_player.entity)
+        send_player_cosmetics(ctx.my_id)
     end)
 end
 
