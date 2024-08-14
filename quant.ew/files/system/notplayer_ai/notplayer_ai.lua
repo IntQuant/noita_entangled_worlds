@@ -237,6 +237,11 @@ local function update()
 
     state.init_timer = state.init_timer + 1
 
+    -- The notplayer should sit around for several gameticks before moving and firing
+    if state.init_timer < 60 then
+        return
+    end
+
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
     local x, y = EntityGetTransform(ctx.my_player.entity)
