@@ -225,6 +225,19 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
     local cape2 = EntityLoad(player_cape_sprite_file, 0, 0)
     EntityAddChild( player_entity, cape2 )
+
+    local player_components = EntityGetAllComponents(player_entity)
+    if player_components ~= nil then
+        for _, comp in ipairs(player_components) do
+            if ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet.xml" and ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_amulet") then
+                EntitySetComponentIsEnabled(player_entity, comp, false)
+            elseif ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet_gem.xml" and ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_amulet_gem") then
+                EntitySetComponentIsEnabled(player_entity, comp, false)
+            elseif ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_hat2.xml" and ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_crown") then
+                EntitySetComponentIsEnabled(player_entity, comp, false)
+            end
+        end
+    end
 end
 
 local function on_world_pre_update_inner()

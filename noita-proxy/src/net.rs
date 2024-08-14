@@ -98,6 +98,7 @@ pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
     pub player_color: PlayerColor,
+    pub cosmetics: (bool, bool, bool)
 }
 
 pub struct NetManager {
@@ -156,6 +157,18 @@ impl NetManager {
 
     pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
+        if !self.init_settings.cosmetics.0
+        {
+            File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
+        }
+        if !self.init_settings.cosmetics.1
+        {
+            File::create(player_path.parent().unwrap().join("tmp/no_amulet"))?;
+        }
+        if !self.init_settings.cosmetics.2
+        {
+            File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
+        }
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
         // This allows several proxies to listen on the same address.
         // While this works, I couldn't get Noita to reliably connect to correct proxy instances on my os (linux).
@@ -204,6 +217,7 @@ impl NetManager {
         let mut last_iter = Instant::now();
         self.create_player_png(player_path.clone(),
                                (self.peer.my_id().unwrap().to_string(),
+                                self.init_settings.cosmetics,
                                 self.init_settings.player_color));
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
@@ -246,11 +260,13 @@ impl NetManager {
                             );
                             self.create_player_png(player_path.clone(),
                                (self.peer.my_id().unwrap().to_string(),
+                                self.init_settings.cosmetics,
                                 self.init_settings.player_color));
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(id,
                                   &NetMsg::PlayerColor((self.peer.my_id().unwrap().to_string(),
+                                                self.init_settings.cosmetics,
                                                 self.init_settings.player_color)),
                                   Reliability::Reliable);
                     }
@@ -329,13 +345,14 @@ impl NetManager {
         }
         Ok(())
     }
-    fn create_player_png(&self, player_path: PathBuf, rgb: (String, PlayerColor)) {
+    fn create_player_png(&self, player_path: PathBuf, rgb: (String, (bool, bool, bool), PlayerColor)) {
         let id = if rgb.0.len() < 5 {
             format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
         } else {
             format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
         };
-        let rgb = rgb.1;
+        let cosmetics = rgb.1;
+        let rgb = rgb.2;
         let tmp_path = player_path
             .parent()
             .unwrap();
@@ -381,7 +398,19 @@ impl NetManager {
                                 .join("unmodified_base.xml").into(),
                             tmp_path
                                 .join("tmp/".to_owned() + &id.clone() + "_base.xml")
-                                .into_os_string(), vec![274, 249, 231, 170], vec![
+                                .into_os_string(), vec![417, 393, 381, 274, 249, 231, 170], vec![
+                if cosmetics.0
+                {
+                    "image_file=\"data/enemies_gfx/player_hat2.xml\""
+                }else{""}.to_string(),
+                if cosmetics.2
+                {
+                    "image_file=\"data/enemies_gfx/player_amulet_gem.xml\""
+                }else{""}.to_string(),
+                if cosmetics.1
+                {
+                    "image_file=\"data/enemies_gfx/player_amulet.xml\""
+                }else{""}.to_string(),
                 format!(
                     "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
                     id

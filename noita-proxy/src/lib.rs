@@ -130,6 +130,26 @@ struct AppSavedState {
     player_color: PlayerColor,
     player_picker: PlayerPicker,
     hue: f32,
+    cosmetics: (bool, bool, bool),
+}
+
+impl Default for AppSavedState {
+    fn default() -> Self {
+        Self {
+            addr: "127.0.0.1:5123".to_string(),
+            nickname: None,
+            times_started: 0,
+            lang_id: None,
+            game_settings: GameSettings::default(),
+            start_game_automatically: false,
+            show_extra_debug_stuff: false,
+            record_all: false,
+            player_color: PlayerColor::default(),
+            player_picker: PlayerPicker::None,
+            hue: 0.0,
+            cosmetics: (true, true, true),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
@@ -163,24 +183,6 @@ enum PlayerPicker {
     PlayerCape,
     PlayerCapeEdge,
     PlayerForearm,
-}
-
-impl Default for AppSavedState {
-    fn default() -> Self {
-        Self {
-            addr: "127.0.0.1:5123".to_string(),
-            nickname: None,
-            times_started: 0,
-            lang_id: None,
-            game_settings: GameSettings::default(),
-            start_game_automatically: false,
-            show_extra_debug_stuff: false,
-            record_all: false,
-            player_color: PlayerColor::default(),
-            player_picker: PlayerPicker::None,
-            hue: 0.0,
-        }
-    }
 }
 
 pub struct App {
@@ -257,8 +259,7 @@ impl App {
         } else {
             SaveState::new("./save_state/".into())
         };
-        let mut player_image = image::open(player_path(modmanager_settings.mod_path())).unwrap().crop(1, 1, 8, 18).into_rgba8();
-        add_cosmetics(&mut player_image, modmanager_settings.clone().game_save_path);
+        let player_image = image::open(player_path(modmanager_settings.mod_path())).unwrap().crop(1, 1, 8, 18).into_rgba8();
         Self {
             state,
             modmanager: Modmanager::default(),
@@ -287,6 +288,7 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.app_saved_state.player_color,
+            cosmetics: self.app_saved_state.cosmetics
         }
     }
 
@@ -648,6 +650,30 @@ impl App {
                     clicked = true;
                     self.app_saved_state.player_picker = PlayerPicker::PlayerCapeEdge
                 }
+                if let Some(path) = &self.modmanager_settings.game_save_path
+                {
+                    let flags = path.join("save00/persistent/flags");
+                    let hat = flags.join("secret_hat").exists();
+                    let amulet = flags.join("secret_amulet").exists();
+                    let gem = flags.join("secret_amulet_gem").exists();
+                    if hat {
+                        ui.checkbox(
+                            &mut self.app_saved_state.cosmetics.0,
+                            "Crown",
+                        );
+                    }
+                    if amulet {
+                        ui.checkbox(
+                            &mut self.app_saved_state.cosmetics.1,
+                            "Amulet",
+                        );
+                    }
+                    if gem {
+                        ui.checkbox(
+                            &mut self.app_saved_state.cosmetics.2,
+                            "Gem",
+                        );}
+                }
             });
         });
         if clicked && last == self.app_saved_state.player_picker {
@@ -657,6 +683,7 @@ impl App {
 
     fn display_player_skin(&mut self, ui: &mut Ui) {
         let mut img = self.player_image.clone();
+        add_cosmetics(&mut img, self.modmanager_settings.game_save_path.clone(), self.app_saved_state.cosmetics);
         make_player_image(&mut img, self.app_saved_state.player_color);
         //img.save("/home/player.png").unwrap();
         // let cropped = DynamicImage::ImageRgba8(img.clone())
@@ -667,7 +694,7 @@ impl App {
             egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),
             TextureOptions::NEAREST,
         );
-        ui.add(egui::Image::new(&texture).fit_to_original_size(10.0));
+        ui.add(egui::Image::new(&texture).fit_to_original_size(11.0));
     }
 
     fn shift_hue(diff: f32, color: &mut [u8; 4]) {
@@ -1054,7 +1081,7 @@ fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
     }
 }
 
-fn add_cosmetics(image: &mut RgbaImage, saves_paths: Option<PathBuf>)
+fn add_cosmetics(image: &mut RgbaImage, saves_paths: Option<PathBuf>, cosmetics: (bool, bool, bool))
 {
     if let Some(path) = saves_paths
     {
@@ -1066,18 +1093,18 @@ fn add_cosmetics(image: &mut RgbaImage, saves_paths: Option<PathBuf>)
         {
             match i
             {
-                2 | 4 | 6 if hat => *pixel = Rgba::from([255, 244, 140, 255]),
-                10 | 14 if hat => *pixel = Rgba::from([191, 141, 65, 255]),
-                11 | 12 | 13 if hat => *pixel = Rgba::from([255, 206, 98, 255]),
-                61 if gem => *pixel = Rgba::from([255, 242, 162, 255]),
-                68 if gem => *pixel = Rgba::from([255, 227, 133, 255]),
-                69 if gem => *pixel = Rgba::from([255, 94, 38, 255]),
-                70 | 77 if gem => *pixel = Rgba::from([247, 188, 86, 255]),
-                51 | 60 if amulet => *pixel = Rgba::from([247, 188, 86, 255]),
-                61 if amulet => *pixel = Rgba::from([255, 227, 133, 255]),
-                69 if amulet => *pixel = Rgba::from([255, 242, 162, 255]),
-                54 if amulet => *pixel = Rgba::from([198, 111, 57, 255]),
-                62 if amulet => *pixel = Rgba::from([177, 97, 48, 149]),
+                2 | 4 | 6 if hat && cosmetics.0 => *pixel = Rgba::from([255, 244, 140, 255]),
+                10 | 14 if hat && cosmetics.0 => *pixel = Rgba::from([191, 141, 65, 255]),
+                11 | 12 | 13 if hat && cosmetics.0 => *pixel = Rgba::from([255, 206, 98, 255]),
+                61 if gem && cosmetics.2 => *pixel = Rgba::from([255, 242, 162, 255]),
+                68 if gem && cosmetics.2 => *pixel = Rgba::from([255, 227, 133, 255]),
+                69 if gem && cosmetics.2 => *pixel = Rgba::from([255, 94, 38, 255]),
+                70 | 77 if gem && cosmetics.2 => *pixel = Rgba::from([247, 188, 86, 255]),
+                51 | 60 if amulet && cosmetics.1 => *pixel = Rgba::from([247, 188, 86, 255]),
+                61 if amulet && cosmetics.1 => *pixel = Rgba::from([255, 227, 133, 255]),
+                69 if amulet && cosmetics.1 => *pixel = Rgba::from([255, 242, 162, 255]),
+                54 if amulet && cosmetics.1 => *pixel = Rgba::from([198, 111, 57, 255]),
+                62 if amulet && cosmetics.1 => *pixel = Rgba::from([177, 97, 48, 149]),
                 _ => {}
             }
         }

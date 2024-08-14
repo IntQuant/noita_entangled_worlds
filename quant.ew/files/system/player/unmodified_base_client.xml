@@ -91,7 +91,7 @@
   ></CharacterDataComponent>
 
   <GenomeDataComponent
-    herd_id="player"
+    <!--herd_id="player"-->
     food_chain_rank="20"
     is_predator="1"
     berserk_dont_attack_friends="1"
@@ -435,7 +435,7 @@
 	<SpriteComponent
 		_tags="character,player_amulet"
 		alpha="1"
-		image_file="data/enemies_gfx/player_amulet.xml"
+		<!--image_file="data/enemies_gfx/player_amulet.xml"-->
 		next_rect_animation=""
 		offset_x="6"
 		offset_y="14"
@@ -447,7 +447,7 @@
 	<SpriteComponent
 		_tags="character,player_amulet_gem"
 		alpha="1"
-		image_file="data/enemies_gfx/player_amulet_gem.xml"
+		<!--image_file="data/enemies_gfx/player_amulet_gem.xml"-->
 		next_rect_animation=""
 		offset_x="6"
 		offset_y="14"
@@ -471,7 +471,7 @@
 	<SpriteComponent
 		_tags="character,player_hat2"
 		alpha="1"
-		image_file="data/enemies_gfx/player_hat2.xml"
+		<!--image_file="data/enemies_gfx/player_hat2.xml"-->
 		next_rect_animation=""
 		offset_x="6"
 		offset_y="14"
