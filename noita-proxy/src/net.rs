@@ -26,7 +26,8 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, replace_color, GameSettings, PlayerColor};
+use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, GameSettings, PlayerColor};
+use crate::player_cosmetics::replace_color;
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;

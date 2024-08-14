@@ -4,15 +4,13 @@ use bookkeeping::{
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::color_picker::{color_picker_color32, Alpha};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
-    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureHandle, TextureOptions, Ui,
+    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui,
     Vec2,
 };
-use eframe::epaint::Hsva;
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
-use image::{Rgba, RgbaImage};
+use image::RgbaImage;
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
@@ -38,10 +36,10 @@ pub use util::{args, lang, steam_helper};
 
 mod bookkeeping;
 pub use bookkeeping::{mod_manager, releases, self_update};
-
+use crate::player_cosmetics::{display_player_skin, player_path, player_select_current_color_slot, player_skin_display_color_picker, shift_hue};
 mod net;
 pub mod recorder;
-
+mod player_cosmetics;
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub(crate) enum GameMode {
     SharedHealth,
@@ -574,142 +572,26 @@ impl App {
             ui.add(Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0).text("Shift hue"));
             if old_hue != self.app_saved_state.hue {
                 let diff = self.app_saved_state.hue - old_hue;
-                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_main);
-                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_alt);
-                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_arm);
-                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_forearm);
-                Self::shift_hue(diff, &mut self.app_saved_state.player_color.player_cape);
-                Self::shift_hue(
+                shift_hue(diff, &mut self.app_saved_state.player_color.player_main);
+                shift_hue(diff, &mut self.app_saved_state.player_color.player_alt);
+                shift_hue(diff, &mut self.app_saved_state.player_color.player_arm);
+                shift_hue(diff, &mut self.app_saved_state.player_color.player_forearm);
+                shift_hue(diff, &mut self.app_saved_state.player_color.player_cape);
+                shift_hue(
                     diff,
                     &mut self.app_saved_state.player_color.player_cape_edge,
                 );
             }
             ui.horizontal(|ui| {
-                self.display_player_skin(ui);
-                self.player_select_current_color_slot(ui);
-                self.player_skin_display_color_picker(ui);
+                display_player_skin(ui, self);
+                player_select_current_color_slot(ui, self);
+                player_skin_display_color_picker(ui, &mut self.app_saved_state.player_color, &self.app_saved_state.player_picker);
             });
             if ui.button("Reset colors to default").clicked() {
                 self.app_saved_state.player_color = PlayerColor::default();
                 self.app_saved_state.hue = 0.0
             }
         }
-    }
-
-    fn player_skin_display_color_picker(&mut self, ui: &mut Ui) {
-        match self.app_saved_state.player_picker {
-            PlayerPicker::PlayerMain => {
-                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_main);
-            }
-            PlayerPicker::PlayerAlt => {
-                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_alt);
-            }
-            PlayerPicker::PlayerArm => {
-                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_arm);
-            }
-            PlayerPicker::PlayerForearm => {
-                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_forearm);
-            }
-            PlayerPicker::PlayerCape => {
-                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_cape);
-            }
-            PlayerPicker::PlayerCapeEdge => {
-                Self::color_picker(ui, &mut self.app_saved_state.player_color.player_cape_edge);
-            }
-            PlayerPicker::None => {}
-        }
-    }
-
-    fn player_select_current_color_slot(&mut self, ui: &mut Ui) {
-        let mut clicked = false;
-        let last = self.app_saved_state.player_picker.clone();
-        ui.scope(|ui| {
-            ui.set_max_width(100.0);
-            ui.vertical_centered_justified(|ui| {
-                if ui.button("Main color").clicked() {
-                    clicked = true;
-                    self.app_saved_state.player_picker = PlayerPicker::PlayerMain
-                }
-                if ui.button("Alt color").clicked() {
-                    clicked = true;
-                    self.app_saved_state.player_picker = PlayerPicker::PlayerAlt
-                }
-                if ui.button("Arm color").clicked() {
-                    clicked = true;
-                    self.app_saved_state.player_picker = PlayerPicker::PlayerArm
-                }
-                if ui.button("Forearm color").clicked() {
-                    clicked = true;
-                    self.app_saved_state.player_picker = PlayerPicker::PlayerForearm
-                }
-                if ui.button("Cape color").clicked() {
-                    clicked = true;
-                    self.app_saved_state.player_picker = PlayerPicker::PlayerCape
-                }
-                if ui.button("Cape edge color").clicked() {
-                    clicked = true;
-                    self.app_saved_state.player_picker = PlayerPicker::PlayerCapeEdge
-                }
-                if let Some(path) = &self.modmanager_settings.game_save_path
-                {
-                    let flags = path.join("save00/persistent/flags");
-                    let hat = flags.join("secret_hat").exists();
-                    let amulet = flags.join("secret_amulet").exists();
-                    let gem = flags.join("secret_amulet_gem").exists();
-                    if hat {
-                        ui.checkbox(
-                            &mut self.app_saved_state.cosmetics.0,
-                            "Crown",
-                        );
-                    }
-                    if amulet {
-                        ui.checkbox(
-                            &mut self.app_saved_state.cosmetics.1,
-                            "Amulet",
-                        );
-                    }
-                    if gem {
-                        ui.checkbox(
-                            &mut self.app_saved_state.cosmetics.2,
-                            "Gem",
-                        );}
-                }
-            });
-        });
-        if clicked && last == self.app_saved_state.player_picker {
-            self.app_saved_state.player_picker = PlayerPicker::None
-        }
-    }
-
-    fn display_player_skin(&mut self, ui: &mut Ui) {
-        let mut img = self.player_image.clone();
-        add_cosmetics(&mut img, self.modmanager_settings.game_save_path.clone(), self.app_saved_state.cosmetics);
-        make_player_image(&mut img, self.app_saved_state.player_color);
-        //img.save("/home/player.png").unwrap();
-        // let cropped = DynamicImage::ImageRgba8(img.clone())
-        //     .resize_exact(56, 136, Nearest)
-        //     .into_rgb8();
-        let texture: TextureHandle = ui.ctx().load_texture(
-            "player",
-            egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),
-            TextureOptions::NEAREST,
-        );
-        ui.add(egui::Image::new(&texture).fit_to_original_size(11.0));
-    }
-
-    fn shift_hue(diff: f32, color: &mut [u8; 4]) {
-        let rgb = Color32::from_rgb(color[0], color[1], color[2]);
-        let mut hsv = Hsva::from(rgb);
-        hsv.h += diff / 360.0;
-        hsv.h = hsv.h.fract();
-        let rgb = hsv.to_srgb();
-        *color = [rgb[0], rgb[1], rgb[2], 255];
-    }
-
-    fn color_picker(ui: &mut Ui, color: &mut [u8; 4]) {
-        let mut rgb = Color32::from_rgb(color[0], color[1], color[2]);
-        color_picker_color32(ui, &mut rgb, Alpha::Opaque);
-        *color = [rgb.r(), rgb.g(), rgb.b(), 255]
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -1028,85 +910,5 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
         tr("player_me")
     } else {
         tr("player_player")
-    }
-}
-fn player_path(path: PathBuf) -> PathBuf {
-    let path = path
-        .join("files/system/player/unmodified.png");
-    path
-}
-
-pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
-    let target_main = Rgba::from([155, 111, 154, 255]);
-    let target_alt = Rgba::from([127, 84, 118, 255]);
-    let target_arm = Rgba::from([89, 67, 84, 255]);
-    for pixel in image.pixels_mut() {
-        if *pixel == target_main {
-            *pixel = main;
-        } else if *pixel == target_alt {
-            *pixel = alt
-        } else if *pixel == target_arm {
-            *pixel = arm
-        }
-    }
-}
-fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
-    let target_main = Rgba::from([155, 111, 154, 255]);
-    let target_alt = Rgba::from([127, 84, 118, 255]);
-    let target_arm = Rgba::from([89, 67, 84, 255]);
-    let main = Rgba::from(colors.player_main);
-    let alt = Rgba::from(colors.player_alt);
-    let arm = Rgba::from(colors.player_arm);
-    let cape = Rgba::from(colors.player_cape);
-    let cape_edge = Rgba::from(colors.player_cape_edge);
-    let forearm = Rgba::from(colors.player_forearm);
-    for (i, pixel) in image.pixels_mut().enumerate() {
-        if *pixel == target_main {
-            *pixel = main;
-        } else if *pixel == target_alt {
-            *pixel = alt
-        } else if *pixel == target_arm {
-            *pixel = arm
-        } else {
-            match i {
-                49 | 41 | 33 => *pixel = forearm,
-                25 => *pixel = Rgba::from([219, 192, 103, 255]),
-                82 | 90 | 98 | 106 | 89 | 97 | 105 | 113 | 121 | 96 | 104 | 112 | 120 | 128 => {
-                    *pixel = cape
-                }
-                74 | 73 | 81 | 80 | 88 => *pixel = cape_edge,
-                _ => {}
-            }
-        }
-    }
-}
-
-fn add_cosmetics(image: &mut RgbaImage, saves_paths: Option<PathBuf>, cosmetics: (bool, bool, bool))
-{
-    if let Some(path) = saves_paths
-    {
-        let flags = path.join("save00/persistent/flags");
-        let hat = flags.join("secret_hat").exists();
-        let amulet = flags.join("secret_amulet").exists();
-        let gem = flags.join("secret_amulet_gem").exists();
-        for (i, pixel) in image.pixels_mut().enumerate()
-        {
-            match i
-            {
-                2 | 4 | 6 if hat && cosmetics.0 => *pixel = Rgba::from([255, 244, 140, 255]),
-                10 | 14 if hat && cosmetics.0 => *pixel = Rgba::from([191, 141, 65, 255]),
-                11 | 12 | 13 if hat && cosmetics.0 => *pixel = Rgba::from([255, 206, 98, 255]),
-                61 if gem && cosmetics.2 => *pixel = Rgba::from([255, 242, 162, 255]),
-                68 if gem && cosmetics.2 => *pixel = Rgba::from([255, 227, 133, 255]),
-                69 if gem && cosmetics.2 => *pixel = Rgba::from([255, 94, 38, 255]),
-                70 | 77 if gem && cosmetics.2 => *pixel = Rgba::from([247, 188, 86, 255]),
-                51 | 60 if amulet && cosmetics.1 => *pixel = Rgba::from([247, 188, 86, 255]),
-                61 if amulet && cosmetics.1 => *pixel = Rgba::from([255, 227, 133, 255]),
-                69 if amulet && cosmetics.1 => *pixel = Rgba::from([255, 242, 162, 255]),
-                54 if amulet && cosmetics.1 => *pixel = Rgba::from([198, 111, 57, 255]),
-                62 if amulet && cosmetics.1 => *pixel = Rgba::from([177, 97, 48, 149]),
-                _ => {}
-            }
-        }
     }
 }
