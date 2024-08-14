@@ -1,4 +1,4 @@
-function player_cosmetics(player_entity)
+function player_color(player_entity)
     local cape = nil
     local player_arm = nil
 
@@ -27,7 +27,8 @@ function player_cosmetics(player_entity)
     local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
     local cape2 = EntityLoad(player_cape_sprite_file, 0, 0)
     EntityAddChild( player_entity, cape2 )
-
+end
+function player_cosmetics(player_entity)
     local player_components = EntityGetAllComponents(player_entity)
     if player_components ~= nil then
         for _, comp in ipairs(player_components) do

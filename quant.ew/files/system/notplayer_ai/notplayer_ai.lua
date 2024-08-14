@@ -15,7 +15,7 @@ local function aim_at(world_x, world_y)
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local dx, dy = world_x - ch_x, world_y - ch_y
     ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
-    
+
     -- No idea what coordinate system that field uses.
     -- Writing a big positive/negative value to turn to the right side seems to work.
     local mouse_x
@@ -25,7 +25,7 @@ local function aim_at(world_x, world_y)
         mouse_x = -100000
     end
     ComponentSetValue2(state.control_component, "mMousePosition", mouse_x, 0)
-    
+
     local dist = math.sqrt(dx * dx + dy * dy)
     if dist > 0 then
         -- ComponentSetValue2(state.control_component, "mAimingVectorNonZeroLatest", dx, dy)
@@ -50,7 +50,7 @@ local function init_state()
     state = {
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
-        
+
         attack_wand = wandfinder.find_attack_wand(),
 
         was_firing_wand = false,
@@ -227,7 +227,7 @@ local function teleport_to_next_hm()
         end
     end
     if my_area_num < others_area_num then
-        teleport_to_area(my_area_num)
+        teleport_to_area(others_area_num - 1)
     end
 end
 

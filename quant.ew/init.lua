@@ -3,6 +3,8 @@ np = require("noitapatcher")
 
 dofile_once( "data/scripts/lib/utilities.lua" )
 
+dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
+
 np.InstallShootProjectileFiredCallbacks()
 np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
@@ -34,7 +36,6 @@ local function load_modules()
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player/player_cosmetics.lua")
 
 
     if ctx.proxy_opt.game_mode == "shared_health" then
@@ -199,6 +200,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     print("Game state entity: "..GameGetWorldStateEntity())
 
     player_cosmetics(player_entity)
+    player_color(player_entity)
 end
 
 local function on_world_pre_update_inner()

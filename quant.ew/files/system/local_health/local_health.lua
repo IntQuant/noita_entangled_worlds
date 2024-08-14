@@ -1,3 +1,4 @@
+dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
@@ -60,6 +61,7 @@ local function player_died()
         inventory_helper.set_item_data(item_data, ctx.my_player)
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
+        player_cosmetics(ctx.my_player.entity)
     end)
 end
 
@@ -91,7 +93,7 @@ function module.on_world_update()
         }
         rpc.send_status(status)
     end
-    
+
     local hp, max_hp, has_hp = util.get_ent_health(ctx.my_player.entity)
     if not ctx.my_player.currently_polymorphed and has_hp then
         if hp <= 0 then
@@ -107,7 +109,7 @@ function module.on_world_update()
 end
 
 function module.on_world_update_client()
-    
+
 end
 
 -- Do not lose the game if there aren't any players alive from the start. (If alive players haven't connected yet)
