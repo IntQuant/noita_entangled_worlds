@@ -198,6 +198,7 @@ pub struct App {
     args: Args,
     /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
+    player_image: RgbaImage
 }
 
 const MODMANAGER: &str = "modman";
@@ -232,7 +233,7 @@ impl App {
             .storage
             .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
             .unwrap_or_default();
-        let modmanager_settings = cc
+        let modmanager_settings: ModmanagerSettings = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, MODMANAGER))
             .unwrap_or_default();
@@ -256,6 +257,8 @@ impl App {
         } else {
             SaveState::new("./save_state/".into())
         };
+        let mut player_image = image::open(player_path(modmanager_settings.mod_path())).unwrap().crop(1, 1, 8, 18).into_rgba8();
+        add_cosmetics(&mut player_image, modmanager_settings.clone().game_save_path);
         Self {
             state,
             modmanager: Modmanager::default(),
@@ -269,6 +272,7 @@ impl App {
             args,
             can_start_automatically: false,
             run_save_state,
+            player_image
         }
     }
 
@@ -304,7 +308,7 @@ impl App {
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(netman, self.player_path());
+        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
     fn set_netman_settings(&mut self, netman: &Arc<net::NetManager>) {
@@ -325,15 +329,10 @@ impl App {
         *netman.pending_settings.lock().unwrap() = settings.clone();
         netman.accept_local.store(true, Ordering::SeqCst);
     }
-    fn player_path(&self) -> PathBuf {
-        let path = ModmanagerSettings::mod_path(&self.modmanager_settings)
-            .join("files/system/player/unmodified.png");
-        path
-    }
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
-        self.change_state_to_netman(netman, self.player_path());
+        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
     fn start_steam_host(&mut self) {
@@ -343,7 +342,7 @@ impl App {
         );
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(netman, self.player_path());
+        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
     fn notify_error(&mut self, error: impl Display) {
@@ -359,7 +358,7 @@ impl App {
         );
 
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
-        self.change_state_to_netman(netman, self.player_path());
+        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
     fn connect_screen(&mut self, ctx: &egui::Context) {
@@ -568,7 +567,6 @@ impl App {
                 &mut self.app_saved_state.start_game_automatically,
                 tr("connect_settings_autostart"),
             );
-            let path = self.player_path();
             ui.add_space(20.0);
             let old_hue = self.app_saved_state.hue;
             ui.add(Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0).text("Shift hue"));
@@ -585,7 +583,7 @@ impl App {
                 );
             }
             ui.horizontal(|ui| {
-                self.display_player_skin(path, ui);
+                self.display_player_skin(ui);
                 self.player_select_current_color_slot(ui);
                 self.player_skin_display_color_picker(ui);
             });
@@ -657,10 +655,10 @@ impl App {
         }
     }
 
-    fn display_player_skin(&mut self, path: PathBuf, ui: &mut Ui) {
-        // TODO it's not that good to load an image ~60 times per second.
-        let mut img = image::open(path).unwrap().crop(1, 1, 8, 18).into_rgba8();
+    fn display_player_skin(&mut self, ui: &mut Ui) {
+        let mut img = self.player_image.clone();
         make_player_image(&mut img, self.app_saved_state.player_color);
+        //img.save("/home/player.png").unwrap();
         // let cropped = DynamicImage::ImageRgba8(img.clone())
         //     .resize_exact(56, 136, Nearest)
         //     .into_rgb8();
@@ -1005,6 +1003,11 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
         tr("player_player")
     }
 }
+fn player_path(path: PathBuf) -> PathBuf {
+    let path = path
+        .join("files/system/player/unmodified.png");
+    path
+}
 
 pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
     let target_main = Rgba::from([155, 111, 154, 255]);
@@ -1020,7 +1023,7 @@ pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: 
         }
     }
 }
-pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
+fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
     let target_main = Rgba::from([155, 111, 154, 255]);
     let target_alt = Rgba::from([127, 84, 118, 255]);
     let target_arm = Rgba::from([89, 67, 84, 255]);
@@ -1045,6 +1048,36 @@ pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
                     *pixel = cape
                 }
                 74 | 73 | 81 | 80 | 88 => *pixel = cape_edge,
+                _ => {}
+            }
+        }
+    }
+}
+
+fn add_cosmetics(image: &mut RgbaImage, saves_paths: Option<PathBuf>)
+{
+    if let Some(path) = saves_paths
+    {
+        let flags = path.join("save00/persistent/flags");
+        let hat = flags.join("secret_hat").exists();
+        let amulet = flags.join("secret_amulet").exists();
+        let gem = flags.join("secret_amulet_gem").exists();
+        for (i, pixel) in image.pixels_mut().enumerate()
+        {
+            match i
+            {
+                2 | 4 | 6 if hat => *pixel = Rgba::from([255, 244, 140, 255]),
+                10 | 14 if hat => *pixel = Rgba::from([191, 141, 65, 255]),
+                11 | 12 | 13 if hat => *pixel = Rgba::from([255, 206, 98, 255]),
+                61 if gem => *pixel = Rgba::from([255, 242, 162, 255]),
+                68 if gem => *pixel = Rgba::from([255, 227, 133, 255]),
+                69 if gem => *pixel = Rgba::from([255, 94, 38, 255]),
+                70 | 77 if gem => *pixel = Rgba::from([247, 188, 86, 255]),
+                51 | 60 if amulet => *pixel = Rgba::from([247, 188, 86, 255]),
+                61 if amulet => *pixel = Rgba::from([255, 227, 133, 255]),
+                69 if amulet => *pixel = Rgba::from([255, 242, 162, 255]),
+                54 if amulet => *pixel = Rgba::from([198, 111, 57, 255]),
+                62 if amulet => *pixel = Rgba::from([177, 97, 48, 149]),
                 _ => {}
             }
         }
