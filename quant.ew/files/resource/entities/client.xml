@@ -309,10 +309,6 @@
     eating_cells_per_frame="2"
   ></PlatformShooterPlayerComponent>
 
-
-  <StatusEffectDataComponent>
-  </StatusEffectDataComponent>
-
   <MaterialInventoryComponent 
       _tags="ingestion"
       drop_as_item="0"

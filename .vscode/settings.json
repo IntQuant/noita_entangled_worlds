@@ -1,3 +1,13 @@
 {
-    "Lua.runtime.version": "LuaJIT"
+    "Lua.runtime.version": "LuaJIT",
+    "Lua.diagnostics.disable": [
+        "cast-local-type",
+        "param-type-mismatch",
+        "undefined-global",
+        "need-check-nil"
+    ],
+    "Lua.diagnostics.globals": [
+        "wait",
+        "async"
+    ]
 }
