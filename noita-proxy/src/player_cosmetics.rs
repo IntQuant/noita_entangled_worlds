@@ -1,3 +1,6 @@
+use std::ffi::OsString;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use eframe::egui;
 use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
@@ -5,6 +8,7 @@ use eframe::egui::color_picker::{color_picker_color32, Alpha};
 use eframe::epaint::Hsva;
 use image::{Rgba, RgbaImage};
 use crate::{App, PlayerColor, PlayerPicker};
+use std::io::Write;
 
 pub fn player_path(path: PathBuf) -> PathBuf {
     let path = path
@@ -199,4 +203,134 @@ pub fn display_player_skin(ui: &mut Ui, app: &App) {
          TextureOptions::NEAREST,
      );
      ui.add(egui::Image::new(&texture).fit_to_original_size(11.0));
+}
+
+pub fn create_arm(arm: Rgba<u8>)->RgbaImage
+{
+    let hand = Rgba::from([219, 192, 103, 255]);
+    let mut img = RgbaImage::new(5,15);
+    for (i, pixel) in img.pixels_mut().enumerate()
+    {
+        match i
+        {
+            10 | 11 | 17 | 18 | 35 | 40 | 41 | 55 | 56 | 57 | 58=> *pixel = arm,
+            19 | 42 | 59  => *pixel = hand,
+            _=>{}
+        }
+    }
+    img
+}
+
+pub    fn create_player_png(player_path: PathBuf, rgb: (String, (bool, bool, bool), PlayerColor)) {
+    let id = if rgb.0.len() < 5 {
+        format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
+    } else {
+        format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
+    };
+    let cosmetics = rgb.1;
+    let rgb = rgb.2;
+    let tmp_path = player_path
+        .parent()
+        .unwrap();
+    let mut img = image::open(player_path.clone().into_os_string())
+        .unwrap()
+        .into_rgba8();
+    replace_color(
+        &mut img,
+        Rgba::from(rgb.player_main),
+        Rgba::from(rgb.player_alt),
+        Rgba::from(rgb.player_arm),
+    );
+    let path = tmp_path
+        .join(format!("tmp/{}.png", id));
+    img.save(path).unwrap();
+    let img = create_arm(Rgba::from(rgb.player_forearm));
+    let path = tmp_path
+        .join(format!("tmp/{}_arm.png", id));
+    img.save(path).unwrap();
+    edit_nth_line(tmp_path
+                            .join("unmodified_cape.xml").into(),
+                        tmp_path
+                            .join(format!("tmp/{}_cape.xml", id))
+                            .into_os_string(), vec![16, 16], vec![
+            format!(
+                "cloth_color=\"0xFF{}\"",
+                rgb_to_hex(rgb.player_cape)
+            ),
+            format!(
+                "cloth_color_edge=\"0xFF{}\"",
+                rgb_to_hex(rgb.player_cape_edge)
+            ),
+        ]);
+    edit_nth_line(tmp_path
+                            .join("unmodified.xml").into(),
+                        tmp_path
+                            .join(format!("tmp/{}.xml", id))
+                            .into_os_string(), vec![1], vec![format!(
+            "filename=\"mods/quant.ew/files/system/player/tmp/{}.png\"",
+            id
+        )]);
+    edit_nth_line(tmp_path
+                            .join("unmodified_base.xml").into(),
+                        tmp_path
+                            .join("tmp/".to_owned() + &id.clone() + "_base.xml")
+                            .into_os_string(), vec![417, 393, 381, 274, 249, 231, 170], vec![
+            if cosmetics.0
+            {
+                "image_file=\"data/enemies_gfx/player_hat2.xml\""
+            } else { "" }.to_string(),
+            if cosmetics.2
+            {
+                "image_file=\"data/enemies_gfx/player_amulet_gem.xml\""
+            } else { "" }.to_string(),
+            if cosmetics.1
+            {
+                "image_file=\"data/enemies_gfx/player_amulet.xml\""
+            } else { "" }.to_string(),
+            format!(
+                "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
+                id
+            ),
+            format!(
+                "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
+                id
+            ),
+            format!(
+                "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
+                id
+            ),
+            /*format!(
+                "herd_id=\"player{}\"",
+                if ff {"_pvp"}else{""}
+            )*/
+            "herd_id=\"player\"".to_string(),
+        ]);
+    edit_nth_line(tmp_path
+                            .join("unmodified_arm.xml").into(),
+                        tmp_path
+                            .join(format!("tmp/{}_arm.xml", id))
+                            .into_os_string(), vec![1], vec![format!(
+            "filename=\"mods/quant.ew/files/system/player/tmp/{}_arm.png\"",
+            id
+        )]);
+}
+fn edit_nth_line(path: OsString, exit: OsString, v: Vec<usize>, newline: Vec<String>)
+{
+    let file = File::open(path).unwrap();
+    let reader = BufReader::new(file);
+    let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
+    for (i, line) in v.iter().zip(newline)
+    {
+        lines.insert(
+            *i,
+            line,
+        );
+    }
+    let mut file = File::create(exit).unwrap();
+    for line in lines {
+        writeln!(file, "{}", line).unwrap();
+    }
+}
+fn rgb_to_hex(rgb: [u8; 4]) -> String {
+    format!("{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
 }
