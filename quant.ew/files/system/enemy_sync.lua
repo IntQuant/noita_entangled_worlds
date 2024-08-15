@@ -244,8 +244,8 @@ function rpc.handle_enemy_data(enemy_data)
             end
             times_spawned_last_minute[remote_enemy_id] = (times_spawned_last_minute[remote_enemy_id] or 0) + 1
             if times_spawned_last_minute[remote_enemy_id] > 5 then
-                if times_spawned_last_minute[remote_enemy_id] == 5 then
-                    GamePrint("Entity has been spawned again more than 4 times in last minute, skipping")
+                if times_spawned_last_minute[remote_enemy_id] == 6 then
+                    GamePrint("Entity has been spawned again more than 5 times in last minute, skipping")
                 end
                 goto continue
             end
