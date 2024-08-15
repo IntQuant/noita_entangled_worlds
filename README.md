@@ -23,7 +23,7 @@ Go to [releases](https://github.com/IntQuant/noita_entangled_worlds/releases) an
 
 Unpack it, and launch the proxy. Proxy is able to download and install the mod automatically.
 
-![image](https://github.com/IntQuant/noita_entangled_worlds/assets/10220080/33fe542b-ca6b-446f-b988-6d1bcb54f521)
+![image](https://github.com/user-attachments/assets/817cd204-1815-4834-803b-58761b21dc51)
 
 Then, start Noita, and enable the mod.
 1. In the "Mods" menu, enable unsafe mods.
