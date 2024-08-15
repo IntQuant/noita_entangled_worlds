@@ -98,7 +98,7 @@ function module.on_world_update()
     if not ctx.my_player.currently_polymorphed and has_hp then
         if hp_new <= 0 then
             -- Restore the player back to small amount of hp.
-            util.set_ent_health(ctx.my_player.entity, {5/25, max_hp_new})
+            util.set_ent_health(ctx.my_player.entity, {max_hp_new / 10, max_hp_new})
             player_died()
         end
     end
