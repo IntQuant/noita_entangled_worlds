@@ -9,6 +9,7 @@ use eframe::egui::{
     Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
+use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
@@ -24,7 +25,6 @@ use std::{
     thread::JoinHandle,
     time::Duration,
 };
-use image::DynamicImage::ImageRgba8;
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -266,8 +266,7 @@ impl App {
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
                 .crop(1, 1, 8, 18)
                 .into_rgba8()
-        }
-        else {
+        } else {
             RgbaImage::new(1, 1)
         };
         Self {
@@ -301,16 +300,13 @@ impl App {
             let hat = flags.join("secret_hat").exists();
             let amulet = flags.join("secret_amulet").exists();
             let gem = flags.join("secret_amulet_gem").exists();
-            if !hat
-            {
+            if !hat {
                 cosmetics.0 = false
             }
-            if !amulet
-            {
+            if !amulet {
                 cosmetics.1 = false
             }
-            if !gem
-            {
+            if !gem {
                 cosmetics.2 = false
             }
         }
@@ -457,7 +453,9 @@ impl App {
             ui.allocate_ui_at_rect(settings_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    self.show_game_settings(ui);
+                    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                        self.show_game_settings(ui);
+                    });
                 });
             });
             ui.allocate_ui_at_rect(steam_connect_rect.shrink(group_shrink), |ui| {
@@ -598,8 +596,7 @@ impl App {
                 tr("connect_settings_autostart"),
             );
             ui.add_space(20.0);
-            if self.player_image.width() == 1
-            {
+            if self.player_image.width() == 1 {
                 self.player_image = image::open(player_path(self.modmanager_settings.mod_path()))
                     .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
                     .crop(1, 1, 8, 18)
