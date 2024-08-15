@@ -794,12 +794,13 @@ impl eframe::App for App {
                     } else {
                         ui.label(tr("launcher_only_when_awaiting"));
                     }
-                    ui.add_space(15.0);
 
-                    if netman.peer.is_host() && ui.button(tr("netman_show_settings")).clicked() {
-                        self.show_settings = true;
+                    if netman.peer.is_host() {
+                        ui.add_space(15.0);
+                        if ui.button(tr("netman_show_settings")).clicked() {
+                            self.show_settings = true;
+                        }
                     }
-
                     ui.add_space(15.0);
 
                     ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, "Show debug stuff");
