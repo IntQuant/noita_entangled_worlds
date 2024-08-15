@@ -44,6 +44,7 @@ function module.on_world_update()
         local px, py = EntityGetTransform(player_data.entity)
         local player_dir_x = px - ccx
         local player_dir_y = py - ccy
+        local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y
         -- local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y
         -- player_dir_x = player_dir_x / dist
         -- player_dir_y = player_dir_y / dist
@@ -93,7 +94,8 @@ function module.on_world_update()
                     img_path = "mods/quant.ew/files/system/player_arrows/arrow.png"
                 end
             end
-            GuiImage(gui, gui_id, x, y, img_path, 1, 0.5, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
+            local scale = math.max(1 / 6, 0.7 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi)
+            GuiImage(gui, gui_id, x, y, img_path, 1, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
             gui_id = gui_id + 1
         end
 
