@@ -260,10 +260,16 @@ impl App {
         } else {
             SaveState::new("./save_state/".into())
         };
-        let player_image = image::open(player_path(modmanager_settings.mod_path()))
-            .unwrap_or(ImageRgba8(RgbaImage::new(100,100)))
-            .crop(1, 1, 8, 18)
-            .into_rgba8();
+        let path = player_path(modmanager_settings.mod_path());
+        let player_image = if path.exists() {
+            image::open(path)
+                .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
+                .crop(1, 1, 8, 18)
+                .into_rgba8()
+        }
+        else {
+            RgbaImage::new(1, 1)
+        };
         Self {
             state,
             modmanager: Modmanager::default(),
@@ -592,6 +598,13 @@ impl App {
                 tr("connect_settings_autostart"),
             );
             ui.add_space(20.0);
+            if self.player_image.width() == 1
+            {
+                self.player_image = image::open(player_path(self.modmanager_settings.mod_path()))
+                    .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
+                    .crop(1, 1, 8, 18)
+                    .into_rgba8();
+            }
             let old_hue = self.app_saved_state.hue;
             ui.add(Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0).text("Shift hue"));
             if old_hue != self.app_saved_state.hue {
