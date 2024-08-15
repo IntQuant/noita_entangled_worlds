@@ -14,6 +14,9 @@ local confirmed_kills = {}
 
 local spawned_by_us = {}
 
+-- HACK
+local times_spawned_last_minute = {}
+
 for filename, _ in pairs(constants.phys_sync_allowed) do
     util.add_tag_to(filename, "prop_physics")
     -- Idk it just causes the minecart to not appear at all.
@@ -159,6 +162,9 @@ function enemy_sync.on_world_update_client()
     if GameGetFrameNum() % 20 == 1 then
         enemy_sync.client_cleanup()
     end
+    if GameGetFrameNum() % (60*60) == 1 then
+        times_spawned_last_minute = {}
+    end
 end
 
 rpc.opts_reliable()
@@ -234,6 +240,13 @@ function rpc.handle_enemy_data(enemy_data)
 
         if ctx.entity_by_remote_id[remote_enemy_id] == nil then
             if filename == nil then
+                goto continue
+            end
+            times_spawned_last_minute[remote_enemy_id] = (times_spawned_last_minute[remote_enemy_id] or 0) + 1
+            if times_spawned_last_minute[remote_enemy_id] > 5 then
+                if times_spawned_last_minute[remote_enemy_id] == 5 then
+                    GamePrint("Entity has been spawned again more than 4 times in last minute, skipping")
+                end
                 goto continue
             end
             local enemy_id
