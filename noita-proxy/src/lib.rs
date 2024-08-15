@@ -453,7 +453,7 @@ impl App {
             ui.allocate_ui_at_rect(settings_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
-                    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                    ScrollArea::both().auto_shrink(false).show(ui, |ui| {
                         self.show_game_settings(ui);
                     });
                 });
