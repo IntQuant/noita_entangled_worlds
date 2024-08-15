@@ -288,11 +288,30 @@ impl App {
         };
         let my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
         let mod_path = self.modmanager_settings.mod_path();
+        let mut cosmetics = self.app_saved_state.cosmetics;
+        if let Some(path) = &self.modmanager_settings.game_save_path {
+            let flags = path.join("save00/persistent/flags");
+            let hat = flags.join("secret_hat").exists();
+            let amulet = flags.join("secret_amulet").exists();
+            let gem = flags.join("secret_amulet_gem").exists();
+            if !hat
+            {
+                cosmetics.0 = false
+            }
+            if !amulet
+            {
+                cosmetics.1 = false
+            }
+            if !gem
+            {
+                cosmetics.2 = false
+            }
+        }
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.app_saved_state.player_color,
-            cosmetics: self.app_saved_state.cosmetics,
+            cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
         }
