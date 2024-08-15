@@ -1,6 +1,6 @@
 <Entity
   name="client"
-  tags="mortal,human,hittable,peasant,prey,teleportable,ew_client,ew_peer,polymorphable_NOT" >
+  tags="mortal,human,hittable,peasant,prey,ew_client,ew_peer,polymorphable_NOT" >
 
   <HotspotComponent
       _tags="hand"
