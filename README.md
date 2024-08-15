@@ -37,7 +37,7 @@ Now you're ready to start a server and have fun!
 
 In the Proxy window, click on "Create Lobby". Then, "Save lobby ID to clipboard". Send that ID to your friends, who can then *copy* it and press "Connect to lobby in clipboard".
 
-![image](https://github.com/IntQuant/noita_entangled_worlds/assets/10220080/fc3c1ee7-6853-4783-8134-8bcaccc57d8e)
+![image](https://github.com/user-attachments/assets/45cf2be6-090c-4d83-aa6b-516d94748cc5)
 
 After that, just start a new Noita game on everyone's PCs, and you should be in multiplayer mode :)
 
