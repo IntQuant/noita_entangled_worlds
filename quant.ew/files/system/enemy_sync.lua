@@ -14,6 +14,12 @@ local confirmed_kills = {}
 
 local spawned_by_us = {}
 
+for filename, _ in pairs(constants.phys_sync_allowed) do
+    util.add_tag_to(filename, "prop_physics")
+    -- Idk it just causes the minecart to not appear at all.
+    -- util.replace_text_in(filename, 'kill_entity_after_initialized="1"', 'kill_entity_after_initialized="0"')
+end
+
 np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
     local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
     local responsible
@@ -327,6 +333,5 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
     np.DeserializeEntity(ent, seri_ent)
     GameShootProjectile(source_ent, position_x, position_y, target_x, target_y, ent)
 end
-
 
 return enemy_sync

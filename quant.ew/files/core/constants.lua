@@ -4,6 +4,7 @@ module.phys_sync_allowed = {
     -- Starting prop
     ["data/entities/props/physics_skateboard.xml"] = true,
     ["data/entities/props/physics_minecart.xml"] = true,
+    ["data/entities/props/physics/minecart.xml"] = true,
     ["data/entities/props/physics_cart.xml"] = true,
 
 
@@ -40,22 +41,22 @@ module.phys_sync_allowed = {
     ["data/entities/props/temple_statue_02.xml"] = true,
 
     -- Traps
-    ["entities/props/physics_trap_circle_acid.xml"] = true,
-    ["entities/props/physics_trap_electricity_enabled.xml"] = true,
-    ["entities/props/physics_trap_electricity.xml"] = true,
-    ["entities/props/physics_trap_ignite_enabled.xml"] = true,
-    ["entities/props/physics_trap_ignite.xml"] = true,
-    ["entities/props/physics/trap_circle_acid.xml"] = true,
-    ["entities/props/physics/trap_electricity_enabled.xml"] = true,
-    ["entities/props/physics/trap_electricity_suspended.xml"] = true,
-    ["entities/props/physics/trap_electricity.xml"] = true,
-    ["entities/props/physics/trap_ignite_enabled.xml"] = true,
-    ["entities/props/physics/trap_ignite.xml"] = true,
-    ["entities/props/physics/trap_laser_enabled_left.xml"] = true,
-    ["entities/props/physics/trap_laser_enabled.xml"] = true,
-    ["entities/props/physics/trap_laser_toggling_left.xml"] = true,
-    ["entities/props/physics/trap_laser_toggling.xml"] = true,
-    ["entities/props/physics/trap_laser.xml"] = true,
+    ["data/entities/props/physics_trap_circle_acid.xml"] = true,
+    ["data/entities/props/physics_trap_electricity_enabled.xml"] = true,
+    ["data/entities/props/physics_trap_electricity.xml"] = true,
+    ["data/entities/props/physics_trap_ignite_enabled.xml"] = true,
+    ["data/entities/props/physics_trap_ignite.xml"] = true,
+    ["data/entities/props/physics/trap_circle_acid.xml"] = true,
+    ["data/entities/props/physics/trap_electricity_enabled.xml"] = true,
+    ["data/entities/props/physics/trap_electricity_suspended.xml"] = true,
+    ["data/entities/props/physics/trap_electricity.xml"] = true,
+    ["data/entities/props/physics/trap_ignite_enabled.xml"] = true,
+    ["data/entities/props/physics/trap_ignite.xml"] = true,
+    ["data/entities/props/physics/trap_laser_enabled_left.xml"] = true,
+    ["data/entities/props/physics/trap_laser_enabled.xml"] = true,
+    ["data/entities/props/physics/trap_laser_toggling_left.xml"] = true,
+    ["data/entities/props/physics/trap_laser_toggling.xml"] = true,
+    ["data/entities/props/physics/trap_laser.xml"] = true,
 }
 
 return module

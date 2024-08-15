@@ -166,7 +166,7 @@ util.load_ents_tags = util.cached_fn(function(path)
     local text = ModTextFileGetContent(path)
     local tags_string = string.match(text, [[tags="(.-)"]])
 
-    print("Path", path, "Tags string: ", tostring(tags_string))
+    -- print("Path", path, "Tags string: ", tostring(tags_string))
     if tags_string == nil then
         return {}
     end
@@ -188,8 +188,10 @@ end
 function util.replace_text_in(filename, pattern, to)
     local initial_text = ModTextFileGetContent(filename)
     local res_text = string.gsub(initial_text, pattern, to)
-    ModTextFileSetContent(filename, res_text)
-    print("Replaced text in "..filename)
+    if initial_text ~= res_text then
+        ModTextFileSetContent(filename, res_text)
+        print(" Replaced text in "..filename)
+    end
 end
 
 -- Gets (or creates, if it doesn't exist) this component
@@ -201,6 +203,36 @@ function util.get_or_create_component(entity, component_name, tag)
         })
     end
     return component
+end
+
+-- Add a tag to a entity xml if it isn't present yet.
+function util.add_tag_to(filename, tag)
+    local current_tags = util.load_ents_tags(filename)
+    if table.contains(current_tags, tag) then
+        return
+    end
+    -- Tag list is cached, update it.
+    table.insert(current_tags, tag)
+
+    
+    print(" Adding tag "..tag.." to "..filename)
+    local content = ModTextFileGetContent(filename)
+    content = string.gsub(content, "Entity(.-)>", function(inner)
+        local changed_tags = false
+        inner = string.gsub(inner, [[tags="(.-)"]], function(tags)
+            changed_tags = true
+            return 'tags="'..tags..","..tag..'"'
+        end)
+        if not changed_tags then
+            inner = inner..' tags="'..tag..'"'
+        end
+        return "Entity "..inner..">"
+    end, 1)
+    ModTextFileSetContent(filename, content)
+end
+
+function util.copy_file_content(from, to)
+    ModTextFileSetContent(to, ModTextFileGetContent(from))
 end
 
 return util
