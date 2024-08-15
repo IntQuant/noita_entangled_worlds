@@ -84,7 +84,7 @@ local function choose_wand_actions()
         end
         aim_at(t_x, t_y)
 
-        fire_wand(not last_did_hit and state.init_timer > 60)
+        fire_wand(not last_did_hit and state.init_timer > 90)
         return
     end
     fire_wand(false)
