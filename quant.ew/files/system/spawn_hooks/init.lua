@@ -1,7 +1,5 @@
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local np = require("noitapatcher")
 
 local module = {}
@@ -56,7 +54,7 @@ end)
 -- Called after entity was loaded.
 -- Might be useless in some cases, as entity was already despawned/serialized due to CameraBoundComponent.
 np.CrossCallAdd("ew_spawn_hook_post", function(ent_path, ent)
-    
+
 end)
 
 local entity_is_enemy_cache = {}

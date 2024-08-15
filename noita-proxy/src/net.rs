@@ -49,7 +49,7 @@ pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
     tungstenite::Message::Binary(buf)
 }
 
-pub(crate) fn ws_encode_mod(peer: omni::OmniPeerId, data: &[u8]) -> tungstenite::Message {
+pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Message {
     let mut buf = Vec::new();
     buf.push(1u8);
     buf.extend_from_slice(&peer.0.to_le_bytes());
@@ -137,7 +137,7 @@ impl NetManager {
         .into()
     }
 
-    pub(crate) fn send(&self, peer: omni::OmniPeerId, msg: &NetMsg, reliability: Reliability) {
+    pub(crate) fn send(&self, peer: OmniPeerId, msg: &NetMsg, reliability: Reliability) {
         let encoded = lz4_flex::compress_prepend_size(&bitcode::encode(msg));
         self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
     }
@@ -261,7 +261,7 @@ impl NetManager {
                                 &NetMsg::StartGame {
                                     settings: self.settings.lock().unwrap().clone(),
                                 },
-                                tangled::Reliability::Reliable,
+                                Reliability::Reliable,
                             );
                             create_player_png(
                                 &self.init_settings.mod_path,

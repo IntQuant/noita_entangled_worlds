@@ -3,7 +3,7 @@ local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfind
 
 local MAX_RADIUS = 128*4
 
-local state = nil
+local state
 
 local module = {}
 
@@ -65,9 +65,9 @@ local function init_state()
     }
 end
 
-local target = nil
+local target
 
-local last_length = nil
+local last_length
 
 local last_did_hit = false
 
@@ -307,8 +307,8 @@ local function update()
         ComponentSetValue2(state.control_component, "mButtonFrameFly", GameGetFrameNum()+1)
     end
     state.was_w = state.control_w
-    local _, y = EntityGetTransform(ctx.my_player.entity)
-    ComponentSetValue2(state.control_component, "mFlyingTargetY", y - 10)
+    local _, y_n = EntityGetTransform(ctx.my_player.entity)
+    ComponentSetValue2(state.control_component, "mFlyingTargetY", y_n - 10)
 
     if (GameGetFrameNum() % 300) == 299 then
         teleport_to_next_hm()

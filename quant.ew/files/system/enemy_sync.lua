@@ -16,7 +16,7 @@ local spawned_by_us = {}
 
 np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
     local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
-    local responsible = nil
+    local responsible
     if player_data ~= nil then
         responsible = player_data.peer_id
     else
@@ -83,7 +83,7 @@ function enemy_sync.host_upload_entities()
         end
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
 
-        local phys_info = nil
+        local phys_info
         -- Some things (like physics object) don't react well to making their entities ephemerial.
         local not_ephemerial = false
 
@@ -106,7 +106,7 @@ function enemy_sync.host_upload_entities()
         -- local laser_sight_data = nil
         -- local laser_sight = EntityGetFirstComponentIncludingDisabled(enemy_id, "SpriteComponent", "laser_sight")
         -- if laser_sight ~= nil and laser_sight ~= 0 then
-        --     -- local x, y, r = 
+        --     -- local x, y, r =
         -- end
 
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp, phys_info, not_ephemerial})
@@ -217,7 +217,7 @@ function rpc.handle_enemy_data(enemy_data)
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
-        
+
         if confirmed_kills[remote_enemy_id] then
             goto continue
         end
@@ -225,7 +225,7 @@ function rpc.handle_enemy_data(enemy_data)
         if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
             ctx.entity_by_remote_id[remote_enemy_id] = nil
         end
-            
+
         if ctx.entity_by_remote_id[remote_enemy_id] == nil then
             if filename == nil then
                 goto continue
@@ -265,9 +265,9 @@ function rpc.handle_enemy_data(enemy_data)
 
         end
 
-        local enemy_data = ctx.entity_by_remote_id[remote_enemy_id]
-        enemy_data.frame = frame
-        local enemy_id = enemy_data.id
+        local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
+        enemy_data_new.frame = frame
+        local enemy_id = enemy_data_new.id
 
         local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
         if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then

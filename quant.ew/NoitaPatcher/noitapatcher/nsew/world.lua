@@ -163,7 +163,7 @@ function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_ar
     return encoded_area
 end
 
-local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
+--local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 --- Load an encoded area back into the world.
 -- @param grid_world
@@ -228,7 +228,7 @@ function world.decode(grid_world, header, pixel_runs)
                         -- we skip positions like this.
                         goto next_pixel
                     end
-                    
+
                     local cell_type = pixel.vtable.get_cell_type(pixel)
 
                     if cell_type == C.CELL_TYPE_LIQUID then

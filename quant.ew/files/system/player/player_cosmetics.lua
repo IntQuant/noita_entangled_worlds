@@ -3,8 +3,8 @@ local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local rpc = net.new_rpc_namespace()
 
 function player_color(player_entity)
-    local cape = nil
-    local player_arm = nil
+    local cape
+    local player_arm
 
     local player_child_entities = EntityGetAllChildren( player_entity )
     if ( player_child_entities ~= nil ) then

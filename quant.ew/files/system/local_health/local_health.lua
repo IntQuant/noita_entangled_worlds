@@ -94,18 +94,18 @@ function module.on_world_update()
         rpc.send_status(status)
     end
 
-    local hp, max_hp, has_hp = util.get_ent_health(ctx.my_player.entity)
+    local hp_new, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)
     if not ctx.my_player.currently_polymorphed and has_hp then
-        if hp <= 0 then
+        if hp_new <= 0 then
             -- Restore the player back to small amount of hp.
-            util.set_ent_health(ctx.my_player.entity, {5/25, max_hp})
+            util.set_ent_health(ctx.my_player.entity, {5/25, max_hp_new})
             player_died()
         end
     end
 
-    if notplayer_active then
-        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-    end
+    --if notplayer_active then
+    --    local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+    --end
 end
 
 function module.on_world_update_client()

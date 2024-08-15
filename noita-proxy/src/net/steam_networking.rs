@@ -18,7 +18,7 @@ use crate::{
     releases::Version,
 };
 
-use super::omni::{self, OmniNetworkEvent};
+use super::omni::OmniNetworkEvent;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConnectError {
@@ -444,7 +444,7 @@ impl SteamPeer {
                 }
                 SteamEvent::PeerDisconnectedFromLobby(id) => {
                     self.connections.disconnect(id);
-                    returned_events.push(omni::OmniNetworkEvent::PeerDisconnected(id.into()))
+                    returned_events.push(OmniNetworkEvent::PeerDisconnected(id.into()))
                 }
                 SteamEvent::PeerStateChanged => self.update_lobby_list(),
             }
@@ -456,14 +456,14 @@ impl SteamPeer {
                 .identity_peer()
                 .steam_id()
                 .expect("only steam ids are supported");
-            returned_events.push(omni::OmniNetworkEvent::Message {
+            returned_events.push(OmniNetworkEvent::Message {
                 src: steam_id.into(),
                 data: message.data().to_vec(), // TODO eliminate clone here.
             })
         }
         let mut fully_connected = self.connections.connected.lock().unwrap();
         for steam_id in fully_connected.iter() {
-            returned_events.push(omni::OmniNetworkEvent::PeerConnected((*steam_id).into()))
+            returned_events.push(OmniNetworkEvent::PeerConnected((*steam_id).into()))
         }
         fully_connected.clear();
 

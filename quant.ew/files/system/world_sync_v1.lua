@@ -49,7 +49,7 @@ function world_sync.on_world_update_host()
     local thread_impl = grid_world.mThreadImpl
 
     local begin = thread_impl.updated_grid_worlds.begin
-    local end_ = begin + thread_impl.chunk_update_count
+    --local end_ = begin + thread_impl.chunk_update_count
 
     local count = thread_impl.chunk_update_count
     -- GamePrint("w update "..count)
@@ -66,7 +66,7 @@ function world_sync.on_world_update_host()
         end_x = end_x + 1
         end_y = end_y + 2
 
-        -- if i < 9 then            
+        -- if i < 9 then
         --     GamePrint(start_x.." "..start_y.." "..end_x.." "..end_y)
         -- end
         local rectangle = rect.Rectangle(start_x, start_y, end_x, end_y)
@@ -84,9 +84,9 @@ function world_sync.on_world_update_host()
     end
     if #pending_send_wd == 0 then
         rect_optimiser:scan()
-        
+
         for crect in rect.parts(rect_optimiser:iterate(), 256) do
-            local area = nil
+            local area
             -- Make sure we don't send chunks that aren't loaded yet, like holy mountains before host got there.
             if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
                 area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
@@ -111,7 +111,7 @@ local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 function world_sync.handle_world_data(world_data)
     local grid_world = world_ffi.get_grid_world()
-    for i, datum in ipairs(world_data) do
+    for _, datum in ipairs(world_data) do
         -- GamePrint("Decoding world data "..i)
         local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast('char const*', datum))
         local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))

@@ -1,9 +1,4 @@
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-
-local rpc = net.new_rpc_namespace()
 
 local gui = GuiCreate()
 
@@ -14,10 +9,10 @@ local module = {}
 local function world2gui( x, y )
     in_camera_ref = in_camera_ref or false
 
-    local gui = GuiCreate()
-    GuiStartFrame(gui)
-    local w, h = GuiGetScreenDimensions( gui )
-    GuiDestroy(gui)
+    local gui_n = GuiCreate()
+    GuiStartFrame(gui_n)
+    local w, h = GuiGetScreenDimensions(gui_n)
+    GuiDestroy(gui_n)
 
     local vres_scaling_factor = w/( MagicNumbersGetValue( "VIRTUAL_RESOLUTION_X" ) + MagicNumbersGetValue( "VIRTUAL_RESOLUTION_OFFSET_X" ))
     local cam_x, cam_y = GameGetCameraPos()
@@ -52,7 +47,7 @@ function module.on_world_update()
         -- local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y
         -- player_dir_x = player_dir_x / dist
         -- player_dir_y = player_dir_y / dist
-        
+
         local okay_to_display = false
 
         -- Contain the arrow in screen rect.

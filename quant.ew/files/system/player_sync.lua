@@ -1,8 +1,6 @@
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
 
@@ -10,7 +8,7 @@ local module = {}
 
 function rpc.player_update(input_data, pos_data, current_slot)
     local peer_id = ctx.rpc_peer_id
-    
+
     if not player_fns.peer_has_player(peer_id) then
         player_fns.spawn_player_for(peer_id, pos_data.x, pos_data.y)
     end

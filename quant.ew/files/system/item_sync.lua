@@ -2,7 +2,6 @@
 local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
 
 dofile_once("data/scripts/lib/coroutines.lua")
 
@@ -92,7 +91,7 @@ function item_sync.host_localize_item(gid, peer_id)
         return
     end
     ctx.item_prevent_localize[gid] = true
-    
+
     if table.contains(pending_remove, gid) then
         GamePrint("Item localize prevented, already taken")
         return
@@ -130,10 +129,10 @@ function item_sync.make_item_global(item, instant)
                 value_string = gid,
             })
         end
-        local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
-        if vel then
-            local vx, vy = ComponentGetValue2(vel, "mVelocity")
-        end
+        --local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+        --if vel then
+        --    local vx, vy = ComponentGetValue2(vel, "mVelocity")
+        --end
         local item_data = inventory_helper.serialize_single_item(item)
         item_data.gid = gid
         ctx.item_prevent_localize[gid] = false
@@ -186,7 +185,7 @@ function item_sync.on_world_update_client()
     if thrown_item ~= nil and not EntityHasTag(thrown_item, "ew_client_item") then
         item_sync.make_item_global(thrown_item)
     end
-    
+
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
@@ -252,8 +251,8 @@ function rpc.initial_items(item_list)
     for _, item_data in ipairs(item_list) do
         local item = item_sync.find_by_gid(item_data.gid)
         if item == nil then
-            local item = inventory_helper.deserialize_single_item(item_data)
-            add_stuff_to_globalized_item(item, item_data.gid)
+            local item_new = inventory_helper.deserialize_single_item(item_data)
+            add_stuff_to_globalized_item(item_new, item_data.gid)
         end
     end
 end

@@ -5,11 +5,10 @@ local ffi = require("ffi")
 
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
 -- local rpc = net.new_rpc_namespace()
 
-local rect_optimiser = rect.Optimiser_new()
+--local rect_optimiser = rect.Optimiser_new()
 local encoded_area = world.EncodedArea()
 
 local world_sync = {}
@@ -39,7 +38,7 @@ function world_sync.on_world_update()
 
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
-    local thread_impl = grid_world.mThreadImpl
+    --local thread_impl = grid_world.mThreadImpl
 
     if GameGetFrameNum() % ctx.proxy_opt.world_sync_interval == 0 then
         local player_data = ctx.my_player

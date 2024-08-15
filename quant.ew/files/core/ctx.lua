@@ -7,7 +7,7 @@ local ctx = {
 }
 
 setmetatable(ctx.hook, {
-    __index = function (_, k)
+    __index = function (_, _)
         return function() end
     end
 })

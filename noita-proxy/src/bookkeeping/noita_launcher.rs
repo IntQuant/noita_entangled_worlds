@@ -80,7 +80,7 @@ impl NoitaLauncher {
         }
     }
 
-    fn is_noita_running(&mut self) -> bool {
+    fn check_if_noita_running(&mut self) -> bool {
         match self.noita_process.as_mut().map(|child| child.try_wait()) {
             Some(Ok(Some(_))) => false, // Already exited
             Some(Ok(None)) => true,     // Not yet exited
@@ -90,7 +90,7 @@ impl NoitaLauncher {
     }
 
     pub fn launch_token(&mut self) -> LaunchTokenResult {
-        if self.is_noita_running() {
+        if self.check_if_noita_running() {
             return LaunchTokenResult::AlreadyStarted;
         }
 

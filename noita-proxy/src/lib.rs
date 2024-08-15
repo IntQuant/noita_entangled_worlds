@@ -369,7 +369,7 @@ impl App {
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
-    fn connect_screen(&mut self, ctx: &egui::Context) {
+    fn connect_screen(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.app_saved_state.times_started % 20 == 0 {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
@@ -670,7 +670,7 @@ fn draw_bg(ui: &mut Ui) {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_millis(500));
         match &mut self.state {
             AppState::Connect => {
@@ -777,10 +777,8 @@ impl eframe::App for App {
                     }
                     ui.add_space(15.0);
 
-                    if netman.peer.is_host() {
-                        if ui.button(tr("netman_show_settings")).clicked() {
-                            self.show_settings = true;
-                        }
+                    if netman.peer.is_host() && ui.button(tr("netman_show_settings")).clicked() {
+                        self.show_settings = true;
                     }
 
                     ui.add_space(15.0);

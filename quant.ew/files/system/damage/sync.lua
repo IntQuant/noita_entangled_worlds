@@ -23,7 +23,7 @@ local function damage_received(damage, message, entity_id, add_healing_effect)
     if not was_my_player then
         return
     end
-    
+
     module.recent_damage = module.recent_damage + damage
     if message ~= nil then
         module.recent_message = message
@@ -62,7 +62,7 @@ function module.on_local_player_spawn(my_player)
         })
     end
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
-    
+
 end
 
 function module.on_world_update_client()
@@ -75,7 +75,7 @@ function module.on_world_update_client()
     end
 end
 
-local last_health = nil
+local last_health
 
 local function do_health_diff(hp, max_hp)
     local current_hp = util.get_ent_health(ctx.my_player.entity)
@@ -155,21 +155,21 @@ ctx.cap.health = {
 
 rpc.opts_reliable()
 function rpc.deal_damage(damage, message)
-    local message = GameTextGetTranslatedOrNot(message) .. " ("..ctx.rpc_player_data.name..")"
-    module.last_damage_message = message
+    local message_n = GameTextGetTranslatedOrNot(message) .. " ("..ctx.rpc_player_data.name..")"
+    module.last_damage_message = message_n
     if ctx.is_host then
         local host_entity_id = ctx.my_player.entity
         local protection_component_id = GameGetGameEffect(host_entity_id, "PROTECTION_ALL")
         if protection_component_id ~= 0 then
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, false)
         end
-        
+
         module.inflict_damage(damage)
         if protection_component_id ~= 0 then
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, true)
         end
     end
-    GamePrint(string.format("Got %.2f damage: %s", damage*25, message))
+    GamePrint(string.format("Got %.2f damage: %s", damage*25, message_n))
 end
 
 function rpc.update_shared_health(hp, max_hp)

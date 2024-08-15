@@ -81,7 +81,7 @@ impl ModmanagerSettings {
         if cfg!(target_os = "windows") {
             // Noita uses AppData folder instead of %AppData%
             let appdata_path = PathBuf::from(
-                std::env::var_os("USERPROFILE").expect("homepath to be defined on windows"),
+                env::var_os("USERPROFILE").expect("homepath to be defined on windows"),
             )
             .join("AppData");
             info!("Appdata path: {}", appdata_path.display());

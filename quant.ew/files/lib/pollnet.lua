@@ -64,11 +64,11 @@ do
   local maj_req, min_req, pat_req = split_version(API_VERSION)
   local maj_dll, min_dll, pat_dll = split_version(POLLNET_VERSION)
   if maj_dll ~= maj_req then
-    error("Incompatible Pollnet binary: expected " .. API_VERSION 
+    error("Incompatible Pollnet binary: expected " .. API_VERSION
           .. " got " .. POLLNET_VERSION)
   end
   if (min_dll < min_req) or (min_dll == min_req and pat_dll < pat_req) then
-    error("Incompatible Pollnet binary: expected " .. API_VERSION 
+    error("Incompatible Pollnet binary: expected " .. API_VERSION
       .. " got " .. POLLNET_VERSION)
   end
 end
@@ -83,7 +83,7 @@ local POLLNET_RESULT_CODES = {
   [6] = "newclient"
 }
 
-local _ctx = nil
+local _ctx
 
 local function init_ctx()
   if _ctx then return end
@@ -131,8 +131,8 @@ local function format_headers(headers)
     error("HTTP headers must be table|string, got: " .. tostring(headers))
   end
   local keys = {}
-  for name, _ in pairs(headers) do 
-    table.insert(keys, name) 
+  for name, _ in pairs(headers) do
+    table.insert(keys, name)
   end
   table.sort(keys)
   local frags = {}
@@ -176,7 +176,7 @@ function socket_mt:http_get(url, headers, ret_body_only)
   headers = format_headers(headers or "")
   ret_body_only = not not ret_body_only
   return self:_open(
-    pollnet.pollnet_simple_http_get, 
+    pollnet.pollnet_simple_http_get,
     url,
     headers,
     ret_body_only
@@ -190,10 +190,10 @@ function socket_mt:http_post(url, headers, body, ret_body_only)
   })
   ret_body_only = not not ret_body_only
   return self:_open(
-    pollnet.pollnet_simple_http_post, 
+    pollnet.pollnet_simple_http_post,
     url,
     headers,
-    body, 
+    body,
     #body,
     ret_body_only
   )
@@ -253,11 +253,11 @@ end
 function socket_mt:_get_message()
   local msg_size = pollnet.pollnet_get_data_size(_ctx, self._socket)
   if msg_size > 0 then
-    -- Note: unsafe_get_data_ptr requires careful consideration to use safely! 
+    -- Note: unsafe_get_data_ptr requires careful consideration to use safely!
     -- Here we are OK because ffi.string copies the data to a new Lua string,
     -- so we only hang on to the pointer long enough for the copy.
     local raw_pointer = pollnet.pollnet_unsafe_get_data_ptr(_ctx, self._socket)
-    if raw_pointer == nil then 
+    if raw_pointer == nil then
       error("Impossible situation: msg_size > 0 but null data pointer")
     end
     return ffi.string(raw_pointer, msg_size)
@@ -268,7 +268,7 @@ end
 
 function socket_mt:poll()
   self._last_message = nil
-  if not self._socket then 
+  if not self._socket then
     self._status = "invalid"
     return false, "invalid"
   end
@@ -317,7 +317,7 @@ function socket_mt:await()
       return false, "timeout"
     end
     local happy, msg = self:poll()
-    if not happy then 
+    if not happy then
       self:close()
       return false, "error: " .. tostring(msg)
     end
@@ -429,11 +429,11 @@ end
 
 local function invoke_handler(handler, req, expose_errors)
   local happy, res = pcall(handler, req)
-  if happy then 
-    return res 
+  if happy then
+    return res
   else
     return {
-      status = "500", 
+      status = "500",
       body = (expose_errors and tostring(res)) or "Internal Error"
     }
   end
@@ -467,7 +467,7 @@ local exports = {
   VERSION = POLLNET_VERSION,
   init = init_ctx,
   init_hack_static = init_ctx_hack_static,
-  shutdown = shutdown_ctx, 
+  shutdown = shutdown_ctx,
   Socket = Socket,
   Reactor = Reactor,
   pollnet = pollnet,

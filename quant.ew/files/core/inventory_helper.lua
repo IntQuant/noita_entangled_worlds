@@ -1,6 +1,5 @@
 local np = require("noitapatcher")
 local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
-local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 
 local inventory_helper = {}
@@ -28,7 +27,7 @@ function inventory_helper.get_inventory_items(player_data, inventory_name)
     if(not player)then
         return {}
     end
-    local inventory = nil
+    local inventory
 
     local player_child_entities = EntityGetAllChildren( player )
     if ( player_child_entities ~= nil ) then
@@ -96,7 +95,7 @@ function inventory_helper.serialize_single_item(item)
 end
 
 function inventory_helper.deserialize_single_item(item_data)
-    local item = nil
+    local item
     local x, y = item_data[3], item_data[4]
     if item_data[1] then
         item = EZWand(item_data[2], x, y, false).entity_id
@@ -150,7 +149,7 @@ function inventory_helper.deserialize_single_item(item_data)
                 ComponentSetValue2(item_cost_component, "stealable", true)
             end)
         end
-        
+
 
         util.ensure_component_present(item, "SpriteComponent", "shop_cost", {
             image_file = "data/fonts/font_pixel_white.xml",
@@ -175,7 +174,7 @@ function inventory_helper.get_item_data(player_data, fresh)
     if (not inventory2Comp) or inventory2Comp == 0 then
         return {}, {}
     end
-    
+
     local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
     local wandData = {}
     local spellData = {}
@@ -185,7 +184,7 @@ function inventory_helper.get_item_data(player_data, fresh)
         local item_x, item_y = EntityGetTransform(item)
 
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
-        
+
         if(entity_is_wand(item))then
             table.insert(wandData,
                 {
@@ -252,16 +251,16 @@ local function pickup_item(entity, item)
         EntityAddChild( child, item)
       end
     end
-  
+
     EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
     EntitySetComponentsWithTagEnabled( item, "enabled_in_hand", false )
     EntitySetComponentsWithTagEnabled( item, "enabled_in_inventory", true )
-  
+
     local wand_children = EntityGetAllChildren(item) or {}
-  
+
     for k, v in ipairs(wand_children)do
       EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
-    end  
+    end
 end
 
 function inventory_helper.set_item_data(item_data, player_data)
@@ -279,12 +278,12 @@ function inventory_helper.set_item_data(item_data, player_data)
 
 
     if (item_data ~= nil) then
-        local active_item_entity = nil
+        local active_item_entity
 
         for k, itemInfo in ipairs(item_data) do
-            local x, y = EntityGetTransform(player)
-            local item_entity = nil
-            local item = nil
+            --local x, y = EntityGetTransform(player)
+            local item_entity
+            local item
             if(itemInfo.is_wand)then
                 item = inventory_helper.deserialize_single_item(itemInfo.data)
                 item = EZWand(item)
@@ -351,7 +350,7 @@ end
 
 function inventory_helper.has_inventory_changed(player_data)
     local prev_inventory = player_data.prev_inventory_hash
-    
+
     local inventory_hash = 0
     for _, item in ipairs(GameGetAllInventoryItems(player_data.entity) or {}) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")

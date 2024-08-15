@@ -121,7 +121,7 @@ function util.set_ent_firing_blocked(entity, do_block)
     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
     if(inventory2Comp ~= nil)then
         local items = GameGetAllInventoryItems(entity)
-        for i, item in ipairs(items or {}) do
+        for _, item in ipairs(items or {}) do
             local ability = EntityGetFirstComponentIncludingDisabled( item, "AbilityComponent" );
             if ability then
                 if(do_block)then
@@ -167,7 +167,7 @@ util.load_ents_tags = util.cached_fn(function(path)
     local tags_string = string.match(text, [[tags="(.-)">]])
 
     local tags = util.string_split(tags_string, ",")
-    
+
     return tags
 end)
 

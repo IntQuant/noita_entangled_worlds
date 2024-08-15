@@ -28,8 +28,8 @@ function mod_setting_change_callback( mod_id, gui, in_main_menu, setting, old_va
 end
 
 local mod_id = "quant.ew" -- This should match the name of your mod's folder.
-mod_settings_version = 1 -- This is a magic global that can be used to migrate settings to new mod versions. call mod_settings_get_version() before mod_settings_update() to get the old value. 
-mod_settings = 
+mod_settings_version = 1 -- This is a magic global that can be used to migrate settings to new mod versions. call mod_settings_get_version() before mod_settings_update() to get the old value.
+mod_settings =
 {
 }
 
@@ -40,7 +40,7 @@ mod_settings =
 --		- when entering the game after a restart (init_scope will be MOD_SETTING_SCOPE_RESTART)
 --		- at the end of an update when mod settings have been changed via ModSettingsSetNextValue() and the game is unpaused (init_scope will be MOD_SETTINGS_SCOPE_RUNTIME)
 function ModSettingsUpdate( init_scope )
-	local old_version = mod_settings_get_version( mod_id ) -- This can be used to migrate some settings between mod versions.
+	--local old_version = mod_settings_get_version( mod_id ) -- This can be used to migrate some settings between mod versions.
 	mod_settings_update( mod_id, mod_settings, init_scope )
 	if ModIsEnabled(mod_id) then
 		print("Running early init fn")

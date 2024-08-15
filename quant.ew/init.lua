@@ -18,7 +18,6 @@ util = dofile_once("mods/quant.ew/files/core/util.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 constants = dofile_once("mods/quant.ew/files/core/constants.lua")
 
-local pretty = dofile_once("mods/quant.ew/files/lib/pretty_print.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
 local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
@@ -136,7 +135,7 @@ function OnPausedChanged(paused, is_wand_pickup)
 
 	if (players[1]) then
 		np.RegisterPlayerEntityId(players[1])
-		local inventory_gui = EntityGetFirstComponentIncludingDisabled(players[1], "InventoryGuiComponent")
+		--local inventory_gui = EntityGetFirstComponentIncludingDisabled(players[1], "InventoryGuiComponent")
 		local controls_component = EntityGetFirstComponentIncludingDisabled(players[1], "ControlsComponent")
 		if (paused) then
 			--EntitySetComponentIsEnabled(players[1], inventory_gui, false)

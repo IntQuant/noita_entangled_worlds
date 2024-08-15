@@ -54,7 +54,7 @@ impl ChunkData {
 }
 
 impl WorldModel {
-    fn to_chunk_coords(x: i32, y: i32) -> (ChunkCoord, usize) {
+    fn get_chunk_coords(x: i32, y: i32) -> (ChunkCoord, usize) {
         let chunk_x = x.div_euclid(CHUNK_SIZE as i32);
         let chunk_y = y.div_euclid(CHUNK_SIZE as i32);
         let x = x.rem_euclid(CHUNK_SIZE as i32) as usize;
@@ -64,7 +64,7 @@ impl WorldModel {
     }
 
     fn set_pixel(&mut self, x: i32, y: i32, pixel: Pixel) {
-        let (chunk_coord, offset) = Self::to_chunk_coords(x, y);
+        let (chunk_coord, offset) = Self::get_chunk_coords(x, y);
         let chunk = self.chunks.entry(chunk_coord).or_default();
         let current = chunk.pixel(offset);
         if current != pixel {
@@ -74,7 +74,7 @@ impl WorldModel {
     }
 
     fn get_pixel(&self, x: i32, y: i32) -> Pixel {
-        let (chunk_coord, offset) = Self::to_chunk_coords(x, y);
+        let (chunk_coord, offset) = Self::get_chunk_coords(x, y);
         self.chunks
             .get(&chunk_coord)
             .map(|chunk| chunk.pixel(offset))
@@ -94,7 +94,7 @@ impl WorldModel {
             } else {
                 PixelFlags::Normal
             };
-            for _ in 0..(run.length) {
+            for _ in 0..run.length {
                 self.set_pixel(
                     header.x + x,
                     header.y + y,
@@ -143,7 +143,7 @@ impl WorldModel {
         let chunk = self.chunks.entry(delta.chunk_coord).or_default();
         let mut offset = 0;
         for run in delta.runs.iter() {
-            for _ in 0..(run.length) {
+            for _ in 0..run.length {
                 if let Some(pixel) = run.data {
                     chunk.set_compact_pixel(offset, pixel)
                 }
@@ -190,7 +190,7 @@ impl WorldModel {
         let chunk = self.chunks.entry(chunk).or_default();
         let mut offset = 0;
         for run in &chunk_data.runs {
-            for _ in 0..(run.length) {
+            for _ in 0..run.length {
                 let pixel = run.data;
                 chunk.set_compact_pixel(offset, pixel);
                 offset += 1;

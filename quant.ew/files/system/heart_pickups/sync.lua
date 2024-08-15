@@ -1,7 +1,6 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
 ModLuaFileAppend("data/scripts/items/heart.lua", "mods/quant.ew/files/system/heart_pickups/append/heart.lua")
 ModLuaFileAppend("data/scripts/items/heart_better.lua", "mods/quant.ew/files/system/heart_pickups/append/heart_better.lua")
@@ -28,9 +27,9 @@ local function heart_pickup(heart)
     local max_hp_increase = max_hp_increase_table[heart]
 
     local hp, max_hp = ctx.cap.health.health(), ctx.cap.health.max_health()
-    local cap = util.get_ent_health_cap(ctx.my_player.entity)
+    --local cap = util.get_ent_health_cap(ctx.my_player.entity)
     local player_count = tonumber(GlobalsGetValue("ew_player_count", "1"))
-    
+
     local max_hp_old = max_hp
 
     if max_hp_increase ~= nil then

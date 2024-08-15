@@ -34,15 +34,14 @@ pub(crate) struct Recorder {
 impl Default for Recorder {
     // This is a debug feature, so error handling can be lazier than usual.
     fn default() -> Self {
-        let exe_path = std::env::current_exe().expect("path to exist");
+        let exe_path = env::current_exe().expect("path to exist");
         let exe_dir_path = exe_path.parent().unwrap();
         let recordings_base = exe_dir_path.join("crashcatcher_recordings");
 
         // Find the earliest free path to put recordings in.
         let recording_dir = (1u64..)
             .map(|num| recordings_base.join(format!("recording_{num:02}")))
-            .skip_while(|path| path.try_exists().unwrap_or(true))
-            .next()
+            .find(|path| !path.try_exists().unwrap_or(true))
             .expect("at least one name should be free");
 
         fs::create_dir_all(&recording_dir).expect("can create directory");

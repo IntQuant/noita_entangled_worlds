@@ -1,13 +1,12 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
 local rpc = net.new_rpc_namespace()
 
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 
 local nickname = {}
-  
+
 function nickname.parse( font_filename )
     local id_width = {}
 
@@ -18,7 +17,7 @@ function nickname.parse( font_filename )
 
     local id = 0
     local width = 0
-  
+
     for k, split in ipairs(util.string_split(file, "%s")) do
       --print(string.sub(line, 2, 9))
 
@@ -49,13 +48,13 @@ function nickname.parse( font_filename )
 
       if (split == "<QuadChar") then
         quad_open = true
-      end	
-      
+      end
+
       if (split == "<WordSpace>") then
         space_open = true
       end
     end
-  
+
     return id_width
 end
 
@@ -67,7 +66,7 @@ function nickname.calculate_textwidth(text, font)
         local l = string.sub( text, i, i)
         if (l == " ") then
             textwidth = textwidth + font["space"]
-        else				
+        else
             local c_id = string.byte(l)
             --GamePrint("Char: ".. l .. ". Id: "..tostring(c_id))
             textwidth = textwidth + (font[c_id] or 1)

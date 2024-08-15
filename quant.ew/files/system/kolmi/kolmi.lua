@@ -1,7 +1,6 @@
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local np = require("noitapatcher")
 
 dofile_once("data/scripts/lib/coroutines.lua")
@@ -67,7 +66,7 @@ function rpc.kolmi_shield(is_on, orbcount)
     if kolmi == nil or kolmi == 0 then
         return
     end
-    
+
     if switch_shield(kolmi, is_on) then
         return
     end

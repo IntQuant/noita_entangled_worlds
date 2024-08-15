@@ -11,8 +11,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 pub fn player_path(path: PathBuf) -> PathBuf {
-    let path = path.join("files/system/player/unmodified.png");
-    path
+    path.join("files/system/player/unmodified.png")
 }
 
 pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
@@ -75,7 +74,7 @@ pub fn add_cosmetics(
             match i {
                 2 | 4 | 6 if hat && cosmetics.0 => *pixel = Rgba::from([255, 244, 140, 255]),
                 10 | 14 if hat && cosmetics.0 => *pixel = Rgba::from([191, 141, 65, 255]),
-                11 | 12 | 13 if hat && cosmetics.0 => *pixel = Rgba::from([255, 206, 98, 255]),
+                11..=13 if hat && cosmetics.0 => *pixel = Rgba::from([255, 206, 98, 255]),
                 61 if gem && cosmetics.2 => *pixel = Rgba::from([255, 242, 162, 255]),
                 68 if gem && cosmetics.2 => *pixel = Rgba::from([255, 227, 133, 255]),
                 69 if gem && cosmetics.2 => *pixel = Rgba::from([255, 94, 38, 255]),
@@ -228,7 +227,7 @@ pub fn create_player_png(
     let cosmetics = rgb.1;
     let rgb = rgb.2;
     let tmp_path = player_path.parent().unwrap();
-    let mut img = image::open(&player_path).unwrap().into_rgba8();
+    let mut img = image::open(player_path).unwrap().into_rgba8();
     replace_color(
         &mut img,
         Rgba::from(rgb.player_main),
@@ -269,15 +268,15 @@ pub fn create_player_png(
         &[
             (
                 "MARKER_HAT2_ENABLED",
-                (if cosmetics.0 { "1" } else { "0" }).into(),
+                (if cosmetics.0 { "image_file=\"data/enemies_gfx/player_hat2.xml\"" } else { "0" }).into(),
             ),
             (
                 "MARKER_AMULET_ENABLED",
-                (if cosmetics.1 { "1" } else { "0" }).into(),
+                (if cosmetics.1 { "image_file=\"data/enemies_gfx/player_amulet.xml\"" } else { "0" }).into(),
             ),
             (
                 "MARKER_AMULET_GEM_ENABLED",
-                (if cosmetics.2 { "1" } else { "0" }).into(),
+                (if cosmetics.2 { "image_file=\"data/enemies_gfx/player_amulet_gem.xml\"" } else { "0" }).into(),
             ),
             (
                 "MARKER_MAIN_SPRITE",

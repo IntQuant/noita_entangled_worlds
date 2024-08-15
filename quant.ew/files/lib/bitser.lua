@@ -26,10 +26,10 @@ local setmetatable = setmetatable
 local ffi = require("ffi")
 local buf_pos = 0
 local buf_size = -1
-local buf = nil
+local buf
 local buf_is_writable = true
-local writable_buf = nil
-local writable_buf_size = nil
+local writable_buf
+local writable_buf_size
 local includeMetatables = true -- togglable with bitser.includeMetatables(false)
 local SEEN_LEN = {}
 

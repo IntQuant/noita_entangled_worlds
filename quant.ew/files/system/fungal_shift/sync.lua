@@ -59,7 +59,7 @@ function rpc.fungal_shift(conversions, iter, from_material_name)
     local add_icon = true
     local children = EntityGetAllChildren(entity)
     if children ~= nil then
-        for i,it in ipairs(children) do
+        for _,it in ipairs(children) do
             if ( EntityGetName(it) == "fungal_shift_ui_icon" ) then
                 add_icon = false
                 break

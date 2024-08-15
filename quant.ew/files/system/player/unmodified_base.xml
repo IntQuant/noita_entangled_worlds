@@ -1,7 +1,7 @@
-<Entity 
+<Entity
   name="client"
   tags="mortal,human,hittable,peasant,prey,teleportable,ew_client,ew_peer,polymorphable_NOT" >
-  
+
   <HotspotComponent
       _tags="hand"
       sprite_hotspot_name="hand"
@@ -18,14 +18,14 @@
     offset.x="0"
     offset.y="2"
   ></HotspotComponent>
-  
+
   <HotspotComponent
     _tags="crouch_sensor"
     offset.x="0"
     offset.y="-14"
   ></HotspotComponent>
 
-  <PhysicsPickUpComponent 
+  <PhysicsPickUpComponent
     original_left_joint_pos.x="-8"
     original_left_joint_pos.y="-2"
     original_right_joint_pos.x="-2"
@@ -44,41 +44,41 @@
     eating_area_max.y="6"
     eating_cells_per_frame="2"
   ></PlatformShooterPlayerComponent>
-  
+
   <PathFindingGridMarkerComponent
     player_marker_radius="100.0"
     marker_offset_y="-3"
     marker_work_flag="8"
   ></PathFindingGridMarkerComponent>
 
-  <PlayerCollisionComponent 
+  <PlayerCollisionComponent
     getting_crushed_threshold="6"
     moving_up_before_getting_crushed_threshold="6"
   ></PlayerCollisionComponent >
 
-  <CharacterDataComponent 
+  <CharacterDataComponent
     platforming_type="2"
-    check_collision_max_size_x="4" 
-    check_collision_max_size_y="4" 
-    climb_over_y="4" 
-    collision_aabb_min_x="-2.0" 
-    collision_aabb_max_x="2.0" 
-    collision_aabb_min_y="-4.5" 
+    check_collision_max_size_x="4"
+    check_collision_max_size_y="4"
+    climb_over_y="4"
+    collision_aabb_min_x="-2.0"
+    collision_aabb_max_x="2.0"
+    collision_aabb_min_y="-4.5"
     collision_aabb_max_y="2.1"
-    eff_hg_offset_y="1.28572" 
-    eff_hg_position_x="0" 
-    eff_hg_position_y="5" 
-    eff_hg_size_x="6.42857" 
-    eff_hg_size_y="5.14286" 
-    eff_hg_velocity_max_x="19.5787896514" 
-    eff_hg_velocity_max_y="-11.5714" 
-    eff_hg_velocity_min_x="-19.5714" 
-    eff_hg_velocity_min_y="-40" 
+    eff_hg_offset_y="1.28572"
+    eff_hg_position_x="0"
+    eff_hg_position_y="5"
+    eff_hg_size_x="6.42857"
+    eff_hg_size_y="5.14286"
+    eff_hg_velocity_max_x="19.5787896514"
+    eff_hg_velocity_max_y="-11.5714"
+    eff_hg_velocity_min_x="-19.5714"
+    eff_hg_velocity_min_y="-40"
     eff_hg_damage_min="10"
     eff_hg_damage_max="95"
     eff_hg_update_box2d="0"
     eff_hg_b2force_multiplier="0.0015"
-    effect_hit_ground="1" 
+    effect_hit_ground="1"
     fly_time_max="3.0"
     fly_recharge_spd="0.4"
     fly_recharge_spd_ground="6"
@@ -90,17 +90,17 @@
     send_transform_update_message="1"
   ></CharacterDataComponent>
 
-  <GenomeDataComponent 
+  <GenomeDataComponent
     herd_id="player"
     food_chain_rank="20"
     is_predator="1"
     berserk_dont_attack_friends="1"
   ></GenomeDataComponent>
 
-  <CharacterPlatformingComponent 
-    animation_to_play="" 
-    jump_keydown_buffer="2" 
-    jump_velocity_y="-95" 
+  <CharacterPlatformingComponent
+    animation_to_play=""
+    jump_keydown_buffer="2"
+    jump_velocity_y="-95"
     jump_velocity_x="56"
     fly_model_player="0"
     fly_smooth_y="0"
@@ -108,53 +108,53 @@
     fly_speed_max_down="85"
     fly_speed_mult="20"
     fly_speed_change_spd="0.25"
-    mouse_look="1" 
+    mouse_look="1"
     keyboard_look="1"
-    mouse_look_buffer="1" 
-    pixel_gravity="350" 
+    mouse_look_buffer="1"
+    pixel_gravity="350"
     run_velocity="154"
-    fly_velocity_x="52" 
-    accel_x="0.15" 
-    turning_buffer="0.5" 
-    velocity_min_x="-57" 
-    velocity_max_x="57" 
+    fly_velocity_x="52"
+    accel_x="0.15"
+    turning_buffer="0.5"
+    velocity_min_x="-57"
+    velocity_max_x="57"
     velocity_min_y="-200"
     velocity_max_y="350"
   ></CharacterPlatformingComponent>
 
-  <ControlsComponent 
-    enabled="0" 
+  <ControlsComponent
+    enabled="0"
     gamepad_fire_on_thumbstick_extend="0"
     gamepad_fire_on_thumbstick_extend_threshold="0.9"
     gamepad_indirect_aiming_enabled="0"
   ></ControlsComponent>
-  
-  <DamageModelComponent 
-    air_in_lungs="7" 
-    air_in_lungs_max="7" 
-    air_lack_of_damage="0.6" 
-    air_needed="1" 
-    falling_damage_damage_max="1.2" 
-    falling_damage_damage_min="0.1" 
-    falling_damage_height_max="250" 
-    falling_damage_height_min="70" 
-    falling_damages="0" 
-    fire_damage_amount="0.2" 
-    fire_probability_of_ignition="1" 
+
+  <DamageModelComponent
+    air_in_lungs="7"
+    air_in_lungs_max="7"
+    air_lack_of_damage="0.6"
+    air_needed="1"
+    falling_damage_damage_max="1.2"
+    falling_damage_damage_min="0.1"
+    falling_damage_height_max="250"
+    falling_damage_height_min="70"
+    falling_damages="0"
+    fire_damage_amount="0.2"
+    fire_probability_of_ignition="1"
     invincibility_frames="60"
-    hp="-1" 
-    is_on_fire="0" 
-    materials_damage="1" 
-    materials_that_damage="acid,lava,blood_cold_vapour,blood_cold,poison,radioactive_gas,radioactive_gas_static,rock_static_radioactive,rock_static_poison,ice_radioactive_static,ice_radioactive_glass,ice_acid_static,ice_acid_glass,rock_static_cursed,magic_gas_hp_regeneration,gold_radioactive,gold_static_radioactive,rock_static_cursed_green,cursed_liquid,poo_gas"  
-    materials_how_much_damage="0.005,0.003,0.0006,0.0009,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.005,-0.005,0.0002,0.0002,0.004,0.0005,0.00001" 
-    ragdoll_filenames_file="data/ragdolls/player/filenames.txt" 
+    hp="-1"
+    is_on_fire="0"
+    materials_damage="1"
+    materials_that_damage="acid,lava,blood_cold_vapour,blood_cold,poison,radioactive_gas,radioactive_gas_static,rock_static_radioactive,rock_static_poison,ice_radioactive_static,ice_radioactive_glass,ice_acid_static,ice_acid_glass,rock_static_cursed,magic_gas_hp_regeneration,gold_radioactive,gold_static_radioactive,rock_static_cursed_green,cursed_liquid,poo_gas"
+    materials_how_much_damage="0.005,0.003,0.0006,0.0009,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.005,-0.005,0.0002,0.0002,0.004,0.0005,0.00001"
+    ragdoll_filenames_file="data/ragdolls/player/filenames.txt"
     ragdoll_offset_y="-5"
     ragdollify_child_entity_sprites="1"
     blood_spray_material="blood"
     physics_objects_damage="0"
     critical_damage_resistance="1"
     ><damage_multipliers
-      explosion="0.35" 
+      explosion="0.35"
 	  holy="1.5"
 	  >
     </damage_multipliers>
@@ -165,59 +165,59 @@
     suck_health="1"
   ></MaterialSuckerComponent>
 
-  <HitboxComponent 
-    aabb_max_x="3" 
-    aabb_max_y="4" 
-    aabb_min_x="-3" 
-    aabb_min_y="-12" 
-    is_enemy="0" 
-    is_item="0" 
+  <HitboxComponent
+    aabb_max_x="3"
+    aabb_max_y="4"
+    aabb_min_x="-3"
+    aabb_min_y="-12"
+    is_enemy="0"
+    is_item="0"
     is_player="1"
   ></HitboxComponent>
-  
-  <HitboxComponent 
+
+  <HitboxComponent
     _tags="crouched"
-    _enabled="0" 
-    aabb_max_x="3" 
-    aabb_max_y="4" 
-    aabb_min_x="-3" 
-    aabb_min_y="-8.5" 
-    is_enemy="0" 
-    is_item="0" 
+    _enabled="0"
+    aabb_max_x="3"
+    aabb_max_y="4"
+    aabb_min_x="-3"
+    aabb_min_y="-8.5"
+    is_enemy="0"
+    is_item="0"
     is_player="1"
   ></HitboxComponent>
 
   <Inventory2Component
-    _enabled="1" 
-    full_inventory_slots_x="0" 
-    full_inventory_slots_y="0" 
-    mSavedActiveItemIndex="0" 
-    quick_inventory_slots="4" 
+    _enabled="1"
+    full_inventory_slots_x="0"
+    full_inventory_slots_y="0"
+    mSavedActiveItemIndex="0"
+    quick_inventory_slots="4"
   ></Inventory2Component>
 
   <SpriteAnimatorComponent>
   </SpriteAnimatorComponent>
 
-  <SpriteComponent 
-    _tags="character,lukki_disable" 
-    alpha="1" 
-    image_file="MARKER_MAIN_SPRITE" 
-    next_rect_animation="" 
-    offset_x="6" 
-    offset_y="14" 
-    rect_animation="walk" 
+  <SpriteComponent
+    _tags="character,lukki_disable"
+    alpha="1"
+    image_file="MARKER_MAIN_SPRITE"
+    next_rect_animation=""
+    offset_x="6"
+    offset_y="14"
+    rect_animation="walk"
     z_index="0.6"
   ></SpriteComponent>
-  
-  <SpriteComponent 
+
+  <SpriteComponent
     _tags="character,lukki_enable"
 	_enabled="0"
-    alpha="1" 
-    image_file="data/enemies_gfx/player_lukky.xml" 
-    next_rect_animation="" 
-    offset_x="6" 
-    offset_y="14" 
-    rect_animation="walk" 
+    alpha="1"
+    image_file="data/enemies_gfx/player_lukky.xml"
+    next_rect_animation=""
+    offset_x="6"
+    offset_y="14"
+    rect_animation="walk"
     z_index="0.6"
   ></SpriteComponent>
 
@@ -229,19 +229,19 @@
 
   <Entity name="arm_r" tags="player_arm_r">
 
-    <SpriteComponent 
-      _tags="with_item" 
-      alpha="1" 
-      image_file="MARKER_ARM_SPRITE" 
-      next_rect_animation="" 
-      rect_animation="default" 
+    <SpriteComponent
+      _tags="with_item"
+      alpha="1"
+      image_file="MARKER_ARM_SPRITE"
+      next_rect_animation=""
+      rect_animation="default"
       z_index="0.59"
     ></SpriteComponent>
 
     <InheritTransformComponent
       parent_hotspot_tag="right_arm_root"
       only_position="1"
-    ></InheritTransformComponent>  
+    ></InheritTransformComponent>
 
     <HotspotComponent
       _tags="hand"
@@ -305,7 +305,7 @@
     event_name="player/pick_gold_sand"
     volume_autofade_speed="0.05"
   ></AudioLoopComponent>
-  
+
   <GunComponent>
   </GunComponent>
 
@@ -324,12 +324,12 @@
     <ParticleEmitterComponent
         offset.x="-2"
         offset.y="5"
-        lifetime_min="0.0" 
+        lifetime_min="0.0"
     ></ParticleEmitterComponent>
-  
+
   </Base>
 
-  <LightComponent 
+  <LightComponent
     r="255"
     g="255"
     b="255"
@@ -340,7 +340,7 @@
   <VelocityComponent
     updates_velocity="0"
   ></VelocityComponent>
-  
+
   <!-- cape -->
 
   <HotspotComponent
@@ -348,125 +348,126 @@
       sprite_hotspot_name="cape" >
   </HotspotComponent>
 
-  <Entity name="cape">  
+  <Entity name="cape">
       <Base file="MARKER_CAPE">
-      </Base>  
+      </Base>
   </Entity>
-  
+
   <!-- belt -->
-  
+
   <HotspotComponent
     _tags="belt_root"
     sprite_hotspot_name="belt"
   ></HotspotComponent>
-  
+
   <!-- ingestion -->
 
-  <MaterialInventoryComponent 
+  <MaterialInventoryComponent
       _tags="ingestion"
       drop_as_item="0"
       on_death_spill="0"
       kill_when_empty="0"
   ></MaterialInventoryComponent>
-  
-  <IngestionComponent 
+
+  <IngestionComponent
     ingestion_capacity="7500"
     overingestion_damage="0.002"
     blood_healing_speed="0.0024"
   ></IngestionComponent>
 
-  <!-- --> 
+  <!-- -->
 
   <WalletComponent>
   </WalletComponent>
 
   <StreamingKeepAliveComponent>
   </StreamingKeepAliveComponent>
-  
+
   <KickComponent>
   </KickComponent>
-  
+
 	<VariableStorageComponent
 		name="ocarina_song"
 		value_string=""
 	></VariableStorageComponent>
-	
+
 	<VariableStorageComponent
 		name="kantele_song"
 		value_string=""
 	></VariableStorageComponent>
-	
+
 	<VariableStorageComponent
 		name="ocarina_song_pos"
 		value_int="0"
 	></VariableStorageComponent>
-	
+
 	<VariableStorageComponent
 		name="kantele_song_pos"
 		value_int="0"
 	></VariableStorageComponent>
-	
-	<SpriteComponent 
-		_tags="character,player_amulet" 
-		alpha="1" 
-		image_file="data/enemies_gfx/player_amulet.xml" 
-		next_rect_animation="" 
-		offset_x="6" 
-		offset_y="14" 
-		rect_animation="walk" 
+
+	<SpriteComponent
+		_tags="character,player_amulet"
+		alpha="1"
+		MARKER_AMULET_ENABLED
+		next_rect_animation=""
+		offset_x="6"
+		offset_y="14"
+		rect_animation="walk"
 		z_index="0.59"
-		_enabled="MARKER_AMULET_ENABLED"
+  _enable="0"
 	></SpriteComponent>
-	
-	<SpriteComponent 
-		_tags="character,player_amulet_gem" 
-		alpha="1" 
-		image_file="data/enemies_gfx/player_amulet_gem.xml" 
-		next_rect_animation="" 
-		offset_x="6" 
-		offset_y="14" 
-		rect_animation="walk" 
+
+	<SpriteComponent
+		_tags="character,player_amulet_gem"
+		alpha="1"
+  MARKER_AMULET_GEM_ENABLED
+		next_rect_animation=""
+		offset_x="6"
+		offset_y="14"
+		rect_animation="walk"
 		z_index="0.58"
-		_enabled="MARKER_AMULET_GEM_ENABLED"
+  _enable="0"
 	></SpriteComponent>
-	
-	<SpriteComponent 
+
+	<SpriteComponent
 		_tags="character,player_hat"
-		alpha="1" 
-		image_file="data/enemies_gfx/player_hat.xml" 
-		next_rect_animation="" 
-		offset_x="6" 
-		offset_y="14" 
-		rect_animation="walk" 
+		alpha="1"
+		image_file="data/enemies_gfx/player_hat.xml"
+		next_rect_animation=""
+		offset_x="6"
+		offset_y="14"
+		rect_animation="walk"
 		z_index="0.59"
 		_enabled="0"
 	></SpriteComponent>
-	
-	<SpriteComponent 
+
+	<SpriteComponent
 		_tags="character,player_hat2"
-		alpha="1" 
-		image_file="data/enemies_gfx/player_hat2.xml" 
-		next_rect_animation="" 
-		offset_x="6" 
-		offset_y="14" 
-		rect_animation="walk" 
+		alpha="1"
+		image_file="data/enemies_gfx/player_hat2.xml"
+  MARKER_HAT2_ENABLED
+		next_rect_animation=""
+		offset_x="6"
+		offset_y="14"
+		rect_animation="walk"
 		z_index="0.58"
-		_enabled="MARKER_HAT2_ENABLED"
+  _enable="0"
 	></SpriteComponent>
-	
-	<SpriteComponent 
+
+	<SpriteComponent
 		_tags="character,player_hat2_shadow"
-		alpha="1" 
-		image_file="data/enemies_gfx/player_hat2_shadow.xml" 
-		next_rect_animation="" 
-		offset_x="6" 
-		offset_y="14" 
-		rect_animation="walk" 
+		alpha="1"
+		image_file="data/enemies_gfx/player_hat2_shadow.xml"
+		next_rect_animation=""
+		offset_x="6"
+		offset_y="14"
+		rect_animation="walk"
 		z_index="0.58"
 		_enabled="MARKER_HAT2_ENABLED"
 	></SpriteComponent>
 
-  <ParticleEmitterComponent 
+  <ParticleEmitterComponent
     _tags="fast_movement_particles"
     emitted_material_name="spark_white"
     offset.x="0"
@@ -501,7 +502,7 @@
     >
   </ParticleEmitterComponent>
 
-  <ParticleEmitterComponent 
+  <ParticleEmitterComponent
     _tags="fast_movement_particles"
     emitted_material_name="spark_white"
     offset.x="-2"
@@ -536,7 +537,7 @@
     >
   </ParticleEmitterComponent>
 
-  <ParticleEmitterComponent 
+  <ParticleEmitterComponent
     _tags="fast_movement_particles"
     emitted_material_name="spark_white"
     offset.x="0"
@@ -576,21 +577,21 @@
     value_string=""
   />
 
-  <Entity name="chunk_loader">  
+  <Entity name="chunk_loader">
       <Base file="mods/quant.ew/files/resource/entities/chunk_loader.xml">
-      </Base>  
+      </Base>
   </Entity>
 
   <Entity name="cursor">
-    <SpriteComponent 
-        alpha="1" 
-        image_file="mods/quant.ew/files/resource/sprites/cursor.png" 
-        next_rect_animation="" 
-        offset_x="6.5" 
-        offset_y="6.5" 
+    <SpriteComponent
+        alpha="1"
+        image_file="mods/quant.ew/files/resource/sprites/cursor.png"
+        next_rect_animation=""
+        offset_x="6.5"
+        offset_y="6.5"
         emissive="1"
         additive="1"
-        rect_animation="" 
+        rect_animation=""
         z_index="1"
         update_transform="1"
         update_transform_rotation="0"

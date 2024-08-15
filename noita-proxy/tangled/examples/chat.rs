@@ -17,9 +17,9 @@ fn main() {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let mut args = args().skip(1);
-    let peer = match args.next().as_ref().map(|s| s.as_str()) {
+    let peer = match args.next().as_deref() {
         Some("host") => {
-            let bind_addr = match args.next().map_or(None, |arg| arg.parse().ok()) {
+            let bind_addr = match args.next().and_then(|arg| arg.parse().ok()) {
                 Some(addr) => addr,
                 None => {
                     println!("Expected an address:port to host on as a second argument");
@@ -29,7 +29,7 @@ fn main() {
             Peer::host(bind_addr, None)
         }
         Some("connect") => {
-            let connect_addr = match args.next().map_or(None, |arg| arg.parse().ok()) {
+            let connect_addr = match args.next().and_then(|arg| arg.parse().ok()) {
                 Some(addr) => addr,
                 None => {
                     println!("Expected an address:port to connect to as a second argument");

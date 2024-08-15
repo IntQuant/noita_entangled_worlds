@@ -80,8 +80,8 @@ function net.init()
     reactor:run(function()
         local sock = net.sock
         while true do
-          local msg_decoded = nil
-          local msg = sock:await()
+          local msg_decoded
+            local msg = sock:await()
           if string.byte(msg, 1, 1) == 2 then
             local msg_l = string.sub(msg, 2)
             local res = string_split(msg_l, " ")
@@ -102,7 +102,7 @@ function net.init()
             -- for _, b in ipairs(peer_id_b) do
             --   peer_id = peer_id + b * mult
             --   mult = mult * 256
-            -- end            
+            -- end
             local peer_id = ""
             for _, b in ipairs(peer_id_b) do
               peer_id = hex_table[b+1] .. peer_id
@@ -143,7 +143,7 @@ function net.init()
         pollnet.sleep_ms(100)
         --print("Waiting for connection...")
     end
-        
+
 end
 
 local DEST_PROXY = 1

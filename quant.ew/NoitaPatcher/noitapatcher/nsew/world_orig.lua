@@ -185,7 +185,7 @@ function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_ar
     return encoded_area
 end
 
-local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
+--local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 ---Load an encoded area back into the world.
 ---@param grid_world unknown
