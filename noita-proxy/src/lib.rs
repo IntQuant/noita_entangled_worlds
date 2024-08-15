@@ -24,6 +24,7 @@ use std::{
     thread::JoinHandle,
     time::Duration,
 };
+use image::DynamicImage::ImageRgba8;
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -260,7 +261,7 @@ impl App {
             SaveState::new("./save_state/".into())
         };
         let player_image = image::open(player_path(modmanager_settings.mod_path()))
-            .unwrap()
+            .unwrap_or(ImageRgba8(RgbaImage::new(100,100)))
             .crop(1, 1, 8, 18)
             .into_rgba8();
         Self {
