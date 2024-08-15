@@ -164,7 +164,12 @@ end
 
 util.load_ents_tags = util.cached_fn(function(path)
     local text = ModTextFileGetContent(path)
-    local tags_string = string.match(text, [[tags="(.-)">]])
+    local tags_string = string.match(text, [[tags="(.-)"]])
+
+    print("Path", path, "Tags string: ", tostring(tags_string))
+    if tags_string == nil then
+        return {}
+    end
 
     local tags = util.string_split(tags_string, ",")
 
