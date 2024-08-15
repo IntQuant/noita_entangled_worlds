@@ -23,8 +23,12 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, GameSettings, PlayerColor};
 use crate::player_cosmetics::create_player_png;
+use crate::{
+    bookkeeping::save_state::{SaveState, SaveStateEntry},
+    recorder::Recorder,
+    GameSettings, PlayerColor,
+};
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -96,7 +100,9 @@ pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
     pub player_color: PlayerColor,
-    pub cosmetics: (bool, bool, bool)
+    pub cosmetics: (bool, bool, bool),
+    pub mod_path: PathBuf,
+    pub player_path: PathBuf,
 }
 
 pub struct NetManager {
@@ -144,8 +150,7 @@ impl NetManager {
         }
     }
 
-    fn clean_dir(path: PathBuf)
-    {
+    fn clean_dir(path: PathBuf) {
         let tmp = path.parent().unwrap().join("tmp");
         if tmp.exists() {
             remove_dir_all(tmp.clone()).unwrap();
@@ -155,16 +160,13 @@ impl NetManager {
 
     pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
-        if !self.init_settings.cosmetics.0
-        {
+        if !self.init_settings.cosmetics.0 {
             File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
         }
-        if !self.init_settings.cosmetics.1
-        {
+        if !self.init_settings.cosmetics.1 {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet"))?;
         }
-        if !self.init_settings.cosmetics.2
-        {
+        if !self.init_settings.cosmetics.2 {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
         }
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
@@ -213,10 +215,15 @@ impl NetManager {
             ),
         };
         let mut last_iter = Instant::now();
-        create_player_png(player_path.clone(),
-                               (self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.cosmetics,
-                                self.init_settings.player_color));
+        create_player_png(
+            &self.init_settings.mod_path,
+            &self.init_settings.player_path,
+            (
+                self.peer.my_id().unwrap().to_string(),
+                self.init_settings.cosmetics,
+                self.init_settings.player_color,
+            ),
+        );
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             self.local_connected
                 .store(state.ws.is_some(), atomic::Ordering::Relaxed);
@@ -256,17 +263,26 @@ impl NetManager {
                                 },
                                 tangled::Reliability::Reliable,
                             );
-                            create_player_png(player_path.clone(),
-                               (self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.cosmetics,
-                                self.init_settings.player_color));
+                            create_player_png(
+                                &self.init_settings.mod_path,
+                                &self.init_settings.player_path,
+                                (
+                                    self.peer.my_id().unwrap().to_string(),
+                                    self.init_settings.cosmetics,
+                                    self.init_settings.player_color,
+                                ),
+                            );
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
-                        self.send(id,
-                                  &NetMsg::PlayerColor((self.peer.my_id().unwrap().to_string(),
-                                                self.init_settings.cosmetics,
-                                                self.init_settings.player_color)),
-                                  Reliability::Reliable);
+                        self.send(
+                            id,
+                            &NetMsg::PlayerColor((
+                                self.peer.my_id().unwrap().to_string(),
+                                self.init_settings.cosmetics,
+                                self.init_settings.player_color,
+                            )),
+                            Reliability::Reliable,
+                        );
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
@@ -298,7 +314,11 @@ impl NetManager {
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
                             NetMsg::PlayerColor(rgb) => {
-                                create_player_png(player_path.clone(), rgb);
+                                create_player_png(
+                                    &self.init_settings.mod_path,
+                                    &self.init_settings.player_path,
+                                    rgb,
+                                );
                             }
                         }
                     }
@@ -314,11 +334,11 @@ impl NetManager {
                         }
                     }
                     Err(tungstenite::Error::Io(io_err))
-                    if io_err.kind() == io::ErrorKind::WouldBlock
-                        || io_err.kind() == io::ErrorKind::TimedOut =>
-                        {
-                            break
-                        }
+                        if io_err.kind() == io::ErrorKind::WouldBlock
+                            || io_err.kind() == io::ErrorKind::TimedOut =>
+                    {
+                        break
+                    }
                     Err(err) => {
                         error!("Error occured while reading from websocket: {}", err);
                         state.ws = None;

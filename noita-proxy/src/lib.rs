@@ -6,8 +6,7 @@ use bookkeeping::{
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
-    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui,
-    Vec2,
+    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::RgbaImage;
@@ -35,11 +34,14 @@ use util::args::Args;
 pub use util::{args, lang, steam_helper};
 
 mod bookkeeping;
+use crate::player_cosmetics::{
+    display_player_skin, player_path, player_select_current_color_slot,
+    player_skin_display_color_picker, shift_hue,
+};
 pub use bookkeeping::{mod_manager, releases, self_update};
-use crate::player_cosmetics::{display_player_skin, player_path, player_select_current_color_slot, player_skin_display_color_picker, shift_hue};
 mod net;
-pub mod recorder;
 mod player_cosmetics;
+pub mod recorder;
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub(crate) enum GameMode {
     SharedHealth,
@@ -75,7 +77,7 @@ impl Default for GameSettings {
             enemy_hp_mult: 1.0,
             world_sync_interval: 2,
             game_mode: GameMode::SharedHealth,
-            friendly_fire: false
+            friendly_fire: false,
         }
     }
 }
@@ -198,7 +200,7 @@ pub struct App {
     args: Args,
     /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
-    player_image: RgbaImage
+    player_image: RgbaImage,
 }
 
 const MODMANAGER: &str = "modman";
@@ -257,7 +259,10 @@ impl App {
         } else {
             SaveState::new("./save_state/".into())
         };
-        let player_image = image::open(player_path(modmanager_settings.mod_path())).unwrap().crop(1, 1, 8, 18).into_rgba8();
+        let player_image = image::open(player_path(modmanager_settings.mod_path()))
+            .unwrap()
+            .crop(1, 1, 8, 18)
+            .into_rgba8();
         Self {
             state,
             modmanager: Modmanager::default(),
@@ -271,7 +276,7 @@ impl App {
             args,
             can_start_automatically: false,
             run_save_state,
-            player_image
+            player_image,
         }
     }
 
@@ -282,11 +287,14 @@ impl App {
             None
         };
         let my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
+        let mod_path = self.modmanager_settings.mod_path();
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.app_saved_state.player_color,
-            cosmetics: self.app_saved_state.cosmetics
+            cosmetics: self.app_saved_state.cosmetics,
+            mod_path,
+            player_path: player_path(self.modmanager_settings.mod_path()),
         }
     }
 
@@ -556,12 +564,8 @@ impl App {
                 .text(tr("connect_settings_enemy_hp_scale")),
         );
         ui.add_space(20.0);
-        ui.checkbox(
-            &mut game_settings.friendly_fire,
-            "Friendly fire",
-        );
-        if !self.show_settings
-        {
+        ui.checkbox(&mut game_settings.friendly_fire, "Friendly fire");
+        if !self.show_settings {
             heading_with_underline(ui, tr("connect_settings_local"));
             ui.checkbox(
                 &mut self.app_saved_state.start_game_automatically,
@@ -585,7 +589,11 @@ impl App {
             ui.horizontal(|ui| {
                 display_player_skin(ui, self);
                 player_select_current_color_slot(ui, self);
-                player_skin_display_color_picker(ui, &mut self.app_saved_state.player_color, &self.app_saved_state.player_picker);
+                player_skin_display_color_picker(
+                    ui,
+                    &mut self.app_saved_state.player_color,
+                    &self.app_saved_state.player_picker,
+                );
             });
             if ui.button("Reset colors to default").clicked() {
                 self.app_saved_state.player_color = PlayerColor::default();

@@ -1,18 +1,17 @@
-use std::ffi::OsString;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use crate::{App, PlayerColor, PlayerPicker};
 use eframe::egui;
-use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
+use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
 use eframe::epaint::Hsva;
 use image::{Rgba, RgbaImage};
-use crate::{App, PlayerColor, PlayerPicker};
+use std::ffi::OsString;
+use std::fs::{self, File};
 use std::io::Write;
+use std::io::{BufRead, BufReader};
+use std::path::{Path, PathBuf};
 
 pub fn player_path(path: PathBuf) -> PathBuf {
-    let path = path
-        .join("files/system/player/unmodified.png");
+    let path = path.join("files/system/player/unmodified.png");
     path
 }
 
@@ -62,18 +61,18 @@ pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
     }
 }
 
-pub fn add_cosmetics(image: &mut RgbaImage, saves_paths: Option<PathBuf>, cosmetics: (bool, bool, bool))
-{
-    if let Some(path) = saves_paths
-    {
+pub fn add_cosmetics(
+    image: &mut RgbaImage,
+    saves_paths: Option<PathBuf>,
+    cosmetics: (bool, bool, bool),
+) {
+    if let Some(path) = saves_paths {
         let flags = path.join("save00/persistent/flags");
         let hat = flags.join("secret_hat").exists();
         let amulet = flags.join("secret_amulet").exists();
         let gem = flags.join("secret_amulet_gem").exists();
-        for (i, pixel) in image.pixels_mut().enumerate()
-        {
-            match i
-            {
+        for (i, pixel) in image.pixels_mut().enumerate() {
+            match i {
                 2 | 4 | 6 if hat && cosmetics.0 => *pixel = Rgba::from([255, 244, 140, 255]),
                 10 | 14 if hat && cosmetics.0 => *pixel = Rgba::from([191, 141, 65, 255]),
                 11 | 12 | 13 if hat && cosmetics.0 => *pixel = Rgba::from([255, 206, 98, 255]),
@@ -101,7 +100,11 @@ pub fn shift_hue(diff: f32, color: &mut [u8; 4]) {
     *color = [rgb[0], rgb[1], rgb[2], 255];
 }
 
-pub fn player_skin_display_color_picker(ui: &mut Ui, player_color: &mut PlayerColor, player_picker: &PlayerPicker) {
+pub fn player_skin_display_color_picker(
+    ui: &mut Ui,
+    player_color: &mut PlayerColor,
+    player_picker: &PlayerPicker,
+) {
     match player_picker {
         PlayerPicker::PlayerMain => {
             color_picker(ui, &mut player_color.player_main);
@@ -161,29 +164,19 @@ pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
                 clicked = true;
                 app.app_saved_state.player_picker = PlayerPicker::PlayerCapeEdge
             }
-            if let Some(path) = &app.modmanager_settings.game_save_path
-            {
+            if let Some(path) = &app.modmanager_settings.game_save_path {
                 let flags = path.join("save00/persistent/flags");
                 let hat = flags.join("secret_hat").exists();
                 let amulet = flags.join("secret_amulet").exists();
                 let gem = flags.join("secret_amulet_gem").exists();
                 if hat {
-                    ui.checkbox(
-                        &mut app.app_saved_state.cosmetics.0,
-                        "Crown",
-                    );
+                    ui.checkbox(&mut app.app_saved_state.cosmetics.0, "Crown");
                 }
                 if amulet {
-                    ui.checkbox(
-                        &mut app.app_saved_state.cosmetics.1,
-                        "Amulet",
-                    );
+                    ui.checkbox(&mut app.app_saved_state.cosmetics.1, "Amulet");
                 }
                 if gem {
-                    ui.checkbox(
-                        &mut app.app_saved_state.cosmetics.2,
-                        "Gem",
-                    );
+                    ui.checkbox(&mut app.app_saved_state.cosmetics.2, "Gem");
                 }
             }
         });
@@ -195,33 +188,38 @@ pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
 
 pub fn display_player_skin(ui: &mut Ui, app: &App) {
     let mut img = app.player_image.clone();
-    add_cosmetics(&mut img, app.modmanager_settings.game_save_path.clone(), app.app_saved_state.cosmetics);
+    add_cosmetics(
+        &mut img,
+        app.modmanager_settings.game_save_path.clone(),
+        app.app_saved_state.cosmetics,
+    );
     make_player_image(&mut img, app.app_saved_state.player_color);
-     let texture: TextureHandle = ui.ctx().load_texture(
-         "player",
-         egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),
-         TextureOptions::NEAREST,
-     );
-     ui.add(egui::Image::new(&texture).fit_to_original_size(11.0));
+    let texture: TextureHandle = ui.ctx().load_texture(
+        "player",
+        egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),
+        TextureOptions::NEAREST,
+    );
+    ui.add(egui::Image::new(&texture).fit_to_original_size(11.0));
 }
 
-pub fn create_arm(arm: Rgba<u8>)->RgbaImage
-{
+pub fn create_arm(arm: Rgba<u8>) -> RgbaImage {
     let hand = Rgba::from([219, 192, 103, 255]);
-    let mut img = RgbaImage::new(5,15);
-    for (i, pixel) in img.pixels_mut().enumerate()
-    {
-        match i
-        {
-            10 | 11 | 17 | 18 | 35 | 40 | 41 | 55 | 56 | 57 | 58=> *pixel = arm,
-            19 | 42 | 59  => *pixel = hand,
-            _=>{}
+    let mut img = RgbaImage::new(5, 15);
+    for (i, pixel) in img.pixels_mut().enumerate() {
+        match i {
+            10 | 11 | 17 | 18 | 35 | 40 | 41 | 55 | 56 | 57 | 58 => *pixel = arm,
+            19 | 42 | 59 => *pixel = hand,
+            _ => {}
         }
     }
     img
 }
 
-pub    fn create_player_png(player_path: PathBuf, rgb: (String, (bool, bool, bool), PlayerColor)) {
+pub fn create_player_png(
+    mod_path: &Path,
+    player_path: &Path,
+    rgb: (String, (bool, bool, bool), PlayerColor),
+) {
     let id = if rgb.0.len() < 5 {
         format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
     } else {
@@ -229,108 +227,119 @@ pub    fn create_player_png(player_path: PathBuf, rgb: (String, (bool, bool, boo
     };
     let cosmetics = rgb.1;
     let rgb = rgb.2;
-    let tmp_path = player_path
-        .parent()
-        .unwrap();
-    let mut img = image::open(player_path.clone().into_os_string())
-        .unwrap()
-        .into_rgba8();
+    let tmp_path = player_path.parent().unwrap();
+    let mut img = image::open(&player_path).unwrap().into_rgba8();
     replace_color(
         &mut img,
         Rgba::from(rgb.player_main),
         Rgba::from(rgb.player_alt),
         Rgba::from(rgb.player_arm),
     );
-    let path = tmp_path
-        .join(format!("tmp/{}.png", id));
+    let path = tmp_path.join(format!("tmp/{}.png", id));
     img.save(path).unwrap();
     let img = create_arm(Rgba::from(rgb.player_forearm));
-    let path = tmp_path
-        .join(format!("tmp/{}_arm.png", id));
+    let path = tmp_path.join(format!("tmp/{}_arm.png", id));
     img.save(path).unwrap();
-    edit_nth_line(tmp_path
-                            .join("unmodified_cape.xml").into(),
-                        tmp_path
-                            .join(format!("tmp/{}_cape.xml", id))
-                            .into_os_string(), vec![16, 16], vec![
-            format!(
-                "cloth_color=\"0xFF{}\"",
-                rgb_to_hex(rgb.player_cape)
-            ),
+    edit_nth_line(
+        tmp_path.join("unmodified_cape.xml").into(),
+        tmp_path
+            .join(format!("tmp/{}_cape.xml", id))
+            .into_os_string(),
+        vec![16, 16],
+        vec![
+            format!("cloth_color=\"0xFF{}\"", rgb_to_hex(rgb.player_cape)),
             format!(
                 "cloth_color_edge=\"0xFF{}\"",
                 rgb_to_hex(rgb.player_cape_edge)
             ),
-        ]);
-    edit_nth_line(tmp_path
-                            .join("unmodified.xml").into(),
-                        tmp_path
-                            .join(format!("tmp/{}.xml", id))
-                            .into_os_string(), vec![1], vec![format!(
+        ],
+    );
+    edit_nth_line(
+        tmp_path.join("unmodified.xml").into(),
+        tmp_path.join(format!("tmp/{}.xml", id)).into_os_string(),
+        vec![1],
+        vec![format!(
             "filename=\"mods/quant.ew/files/system/player/tmp/{}.png\"",
             id
-        )]);
-    edit_nth_line(tmp_path
-                            .join("unmodified_base.xml").into(),
-                        tmp_path
-                            .join("tmp/".to_owned() + &id.clone() + "_base.xml")
-                            .into_os_string(), vec![417, 393, 381, 274, 249, 231, 170], vec![
-            if cosmetics.0
-            {
-                "image_file=\"data/enemies_gfx/player_hat2.xml\""
-            } else { "" }.to_string(),
-            if cosmetics.2
-            {
-                "image_file=\"data/enemies_gfx/player_amulet_gem.xml\""
-            } else { "" }.to_string(),
-            if cosmetics.1
-            {
-                "image_file=\"data/enemies_gfx/player_amulet.xml\""
-            } else { "" }.to_string(),
-            format!(
-                "<Base file=\"mods/quant.ew/files/system/player/tmp/{}_cape.xml\">",
-                id
+        )],
+    );
+    edit_by_replacing(
+        tmp_path.join("unmodified_base.xml"),
+        tmp_path.join("tmp/".to_owned() + &id.clone() + "_base.xml"),
+        &[
+            (
+                "MARKER_HAT2_ENABLED",
+                (if cosmetics.0 { "1" } else { "0" }).into(),
             ),
-            format!(
-                "image_file=\"mods/quant.ew/files/system/player/tmp/{}_arm.xml\"",
-                id
+            (
+                "MARKER_AMULET_ENABLED",
+                (if cosmetics.1 { "1" } else { "0" }).into(),
             ),
-            format!(
-                "image_file=\"mods/quant.ew/files/system/player/tmp/{}.xml\"",
-                id
+            (
+                "MARKER_AMULET_GEM_ENABLED",
+                (if cosmetics.2 { "1" } else { "0" }).into(),
             ),
-            /*format!(
-                "herd_id=\"player{}\"",
-                if ff {"_pvp"}else{""}
-            )*/
-            "herd_id=\"player\"".to_string(),
-        ]);
-    edit_nth_line(tmp_path
-                            .join("unmodified_arm.xml").into(),
-                        tmp_path
-                            .join(format!("tmp/{}_arm.xml", id))
-                            .into_os_string(), vec![1], vec![format!(
+            (
+                "MARKER_MAIN_SPRITE",
+                format!("mods/quant.ew/files/system/player/tmp/{}.xml", id),
+            ),
+            (
+                "MARKER_ARM_SPRITE",
+                format!("mods/quant.ew/files/system/player/tmp/{}_arm.xml", id),
+            ),
+            (
+                "MARKER_CAPE",
+                format!("mods/quant.ew/files/system/player/tmp/{}_cape.xml", id),
+            ),
+        ],
+    );
+    edit_nth_line(
+        tmp_path.join("unmodified_arm.xml").into(),
+        tmp_path
+            .join(format!("tmp/{}_arm.xml", id))
+            .into_os_string(),
+        vec![1],
+        vec![format!(
             "filename=\"mods/quant.ew/files/system/player/tmp/{}_arm.png\"",
             id
-        )]);
+        )],
+    );
+    // mods.quant.ew.files.system.player.tmp.0000000000000001.png
+    fs::copy(
+        tmp_path.join("player_uv.png"),
+        mod_path
+            .join("data/generated/sprite_uv_maps/")
+            .join(format!("mods.quant.ew.files.system.player.tmp.{id}.png")),
+    )
+    .unwrap();
 }
-fn edit_nth_line(path: OsString, exit: OsString, v: Vec<usize>, newline: Vec<String>)
-{
+
+fn edit_nth_line(path: OsString, exit: OsString, v: Vec<usize>, newline: Vec<String>) {
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
     let mut lines = reader.lines().map(|l| l.unwrap()).collect::<Vec<String>>();
-    for (i, line) in v.iter().zip(newline)
-    {
-        lines.insert(
-            *i,
-            line,
-        );
+    for (i, line) in v.iter().zip(newline) {
+        lines.insert(*i, line);
     }
     let mut file = File::create(exit).unwrap();
     for line in lines {
         writeln!(file, "{}", line).unwrap();
     }
 }
+
+fn edit_by_replacing(
+    path: impl AsRef<Path>,
+    out_path: impl AsRef<Path>,
+    replace_pair: &[(&'static str, String)],
+) {
+    // Probably not a very good idea to unwrap here. Mod files should exist by this point, but...
+    let mut contents = fs::read_to_string(path).unwrap();
+    for pair in replace_pair {
+        contents = contents.replace(pair.0, &pair.1);
+    }
+    fs::write(out_path, contents).unwrap();
+}
+
 fn rgb_to_hex(rgb: [u8; 4]) -> String {
     format!("{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
 }
