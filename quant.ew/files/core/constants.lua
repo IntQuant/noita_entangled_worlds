@@ -1,16 +1,28 @@
 local module = {}
 
 module.phys_sync_allowed = {
+    -- Starting prop
+    ["data/entities/props/physics_skateboard.xml"] = true,
+    ["data/entities/props/physics_minecart.xml"] = true,
+    ["data/entities/props/physics_cart.xml"] = true,
+
+
+    ["data/entities/buildings/statue_hand_1.xml"] = true,
+    ["data/entities/buildings/statue_hand_2.xml"] = true,
+    ["data/entities/buildings/statue_hand_3.xml"] = true,
+
+
+    ["data/entities/props/physics_brewing_stand.xml"] = true,
     ["data/entities/props/physics_propane_tank.xml"] = true,
     ["data/entities/props/physics_box_explosive.xml"] = true,
-    ["data/entities/props/physics_crate.xml.xml"] = true,
-    
+    ["data/entities/props/physics_crate.xml"] = true,
+
     ["data/entities/props/physics_barrel_oil.xml"] = true,
     ["data/entities/props/physics_barrel_radioactive.xml"] = true,
     ["data/entities/props/physics_seamine.xml"] = true,
     ["data/entities/props/suspended_tank_radioactive.xml"] = true,
     ["data/entities/props/suspended_tank_acid.xml"] = true,
-    
+
     ["data/entities/props/physics_box_harmless.xml"] = true,
     ["data/entities/props/physics_tubelamp.xml"] = true,
 
@@ -18,9 +30,11 @@ module.phys_sync_allowed = {
     ["data/entities/props/vault_apparatus_01.xml"] = true,
     ["data/entities/props/vault_apparatus_02.xml"] = true,
     ["data/entities/props/physics_pressure_tank.xml"] = true,
-    
+
     ["data/entities/props/crystal_red.xml"] = true,
-    
+    ["data/entities/props/crystal_pink.xml"] = true,
+    ["data/entities/props/crystal_green.xml"] = true,
+
     -- HM statues
     ["data/entities/props/temple_statue_01.xml"] = true,
     ["data/entities/props/temple_statue_02.xml"] = true,
