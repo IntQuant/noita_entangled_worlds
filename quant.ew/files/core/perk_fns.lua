@@ -49,7 +49,6 @@ local function give_one_perk(entity_who_picked, perk_info, count)
     end
 
     if perk_info.func ~= nil then
-        GamePrint(count)
         perk_info.func( 0, entity_who_picked, "", count )
     end
 

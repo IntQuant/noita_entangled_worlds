@@ -80,6 +80,8 @@ function enemy_sync.host_upload_entities()
             goto continue
         end
         local filename = EntityGetFilename(enemy_id)
+        filename = constants.interned_filename_to_index[filename] or filename
+
         local x, y = EntityGetTransform(enemy_id)
         local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
         local vx, vy = 0, 0
@@ -121,6 +123,9 @@ function enemy_sync.host_upload_entities()
         table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp, phys_info, not_ephemerial})
         ::continue::
     end
+
+    local estimate = net.estimate_rpc_size(enemy_data_list)
+    GamePrint(#enemy_data_list.." "..net.estimate_rpc_size(enemy_data_list).." "..(estimate*30))
 
     rpc.handle_enemy_data(enemy_data_list)
     if #dead_entities > 0 then
@@ -221,10 +226,12 @@ function rpc.handle_death_data(death_data)
 end
 
 function rpc.handle_enemy_data(enemy_data)
-    -- GamePrint("Got enemy data")
+    -- GamePrint("Got enemy data: "..#enemy_data)
     for _, enemy_info_raw in ipairs(enemy_data) do
         local remote_enemy_id = enemy_info_raw[1]
         local filename = enemy_info_raw[2]
+        filename = constants.interned_index_to_filename[filename] or filename
+
         local x = enemy_info_raw[3]
         local y = enemy_info_raw[4]
         local vx = enemy_info_raw[5]
@@ -252,7 +259,7 @@ function rpc.handle_enemy_data(enemy_data)
             times_spawned_last_minute[remote_enemy_id] = (times_spawned_last_minute[remote_enemy_id] or 0) + 1
             if times_spawned_last_minute[remote_enemy_id] > 5 then
                 if times_spawned_last_minute[remote_enemy_id] == 6 then
-                    GamePrint("Entity has been spawned again more than 5 times in last minute, skipping")
+                    print("Entity has been spawned again more than 5 times in last minute, skipping "..filename)
                 end
                 goto continue
             end

@@ -59,4 +59,13 @@ module.phys_sync_allowed = {
     ["data/entities/props/physics/trap_laser.xml"] = true,
 }
 
+module.interned_index_to_filename = {}
+module.interned_filename_to_index = {}
+
+for line in string.gmatch(ModTextFileGetContent("mods/quant.ew/files/resource/interned_filenames.txt"), "(.-)\n") do
+    -- print("Interned", line)
+    table.insert(module.interned_index_to_filename, line)
+    module.interned_filename_to_index[line] = #module.interned_index_to_filename
+end
+
 return module

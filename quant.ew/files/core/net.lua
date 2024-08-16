@@ -167,6 +167,14 @@ function net.send(key, value, reliable)
   net.send_internal(encoded_msg, DEST_BROADCAST, reliable)
 end
 
+function net.estimate_rpc_size(message)
+  local encoded_msg = bitser.dumps({
+    key = 42,
+    value = message,
+  })
+  return string.len(encoded_msg)
+end
+
 function net.send_to_host(key, value, reliable)
   net.send(key, value, reliable) -- TODO actually only send to host
 end
