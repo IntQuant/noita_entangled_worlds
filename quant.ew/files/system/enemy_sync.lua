@@ -9,13 +9,18 @@ local rpc = net.new_rpc_namespace()
 
 local EnemyData = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y", "vx", "vy", "hp", "max_hp"},
+    f32 = {"x", "y", "vx", "vy"},
 })
 
 -- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
 local EnemyDataNoMotion = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y", "hp", "max_hp"}
+    f32 = {"x", "y"}
+})
+
+local HpData = util.make_type({
+    u32 = {"enemy_id"},
+    f32 = {"hp", "max_hp"}
 })
 
 local FULL_TURN = math.pi * 2
@@ -102,6 +107,7 @@ end
 function enemy_sync.host_upload_entities()
     local entities = get_sync_entities()
     local enemy_data_list = {}
+    local enemy_health_list = {}
     for i, enemy_id in ipairs(entities) do
         if not world_exists_for(enemy_id) then
             goto continue
@@ -169,8 +175,6 @@ function enemy_sync.host_upload_entities()
                 enemy_id = enemy_id,
                 x = x,
                 y = y,
-                hp = hp,
-                max_hp = max_hp,
             }
         else
             en_data= EnemyData {
@@ -179,23 +183,32 @@ function enemy_sync.host_upload_entities()
                 y = y,
                 vx = vx,
                 vy = vy,
+            }
+        end
+
+        if GameGetFrameNum() % 10 == 1 then
+            table.insert(enemy_health_list, HpData {
+                enemy_id = enemy_id,
                 hp = hp,
                 max_hp = max_hp,
-            }
+            })
         end
 
         table.insert(enemy_data_list, {filename, en_data, phys_info, not_ephemerial})
         ::continue::
     end
 
-    local estimate = net.estimate_rpc_size(enemy_data_list)
-    GamePrint(#enemy_data_list.." "..net.estimate_rpc_size(enemy_data_list).." "..(estimate*30))
+    -- local estimate = net.estimate_rpc_size(enemy_data_list)
+    -- GamePrint(#enemy_data_list.." "..net.estimate_rpc_size(enemy_data_list).." "..(estimate*30))
 
     rpc.handle_enemy_data(enemy_data_list)
     if #dead_entities > 0 then
         rpc.handle_death_data(dead_entities)
     end
     dead_entities = {}
+    if #enemy_health_list > 0 then
+        rpc.handle_enemy_health(enemy_health_list)
+    end
 end
 
 function enemy_sync.client_cleanup()
@@ -306,8 +319,6 @@ function rpc.handle_enemy_data(enemy_data)
             vx = en_data.vx
             vy = en_data.vy
         end
-        local hp = en_data.hp
-        local max_hp = en_data.max_hp
         local phys_info = enemy_info_raw[3]
             local not_ephemerial = enemy_info_raw[4]
         local has_died = filename == nil
@@ -397,6 +408,24 @@ function rpc.handle_enemy_data(enemy_data)
             end
             EntitySetTransform(enemy_id, x, y)
         end
+        ::continue::
+    end
+end
+
+
+function rpc.handle_enemy_health(enemy_health_data)
+    -- GamePrint("Got enemy data: "..#enemy_data)
+    for _, en_data in ipairs(enemy_health_data) do
+        local remote_enemy_id = en_data.enemy_id
+        local hp = en_data.hp
+        local max_hp = en_data.max_hp
+
+        if ctx.entity_by_remote_id[remote_enemy_id] == nil or not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
+            goto continue
+        end
+        local enemy_data = ctx.entity_by_remote_id[remote_enemy_id]
+        local enemy_id = enemy_data.id
+
         local current_hp = util.get_ent_health(enemy_id)
         local dmg = current_hp-hp
         if dmg > 0 then
