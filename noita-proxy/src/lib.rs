@@ -206,6 +206,7 @@ pub struct App {
     /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
     player_image: RgbaImage,
+    end_run_confirmation: bool,
 }
 
 const MODMANAGER: &str = "modman";
@@ -287,6 +288,7 @@ impl App {
             can_start_automatically: false,
             run_save_state,
             player_image,
+            end_run_confirmation: false
         }
     }
 
@@ -458,7 +460,7 @@ impl App {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     ScrollArea::both().auto_shrink(false).show(ui, |ui| {
-                        self.show_game_settings(ui);
+                        self.show_game_settings(ui, true);
                     });
                 });
             });
@@ -524,7 +526,7 @@ impl App {
         });
     }
 
-    fn show_game_settings(&mut self, ui: &mut Ui) {
+    fn show_game_settings(&mut self, ui: &mut Ui, show_local: bool) {
         heading_with_underline(ui, tr("connect_settings"));
         let game_settings = &mut self.app_saved_state.game_settings;
         ui.label("Game mode");
@@ -593,7 +595,7 @@ impl App {
         );
         ui.add_space(20.0);
         ui.checkbox(&mut game_settings.friendly_fire, "Friendly fire");
-        if !self.show_settings {
+        if show_local {
             heading_with_underline(ui, tr("connect_settings_local"));
             ui.checkbox(
                 &mut self.app_saved_state.start_game_automatically,
@@ -812,6 +814,16 @@ impl eframe::App for App {
 
                     if netman.peer.is_host() {
                         ui.add_space(15.0);
+                        if !self.end_run_confirmation && ui.button("End run").clicked()
+                        {
+                            self.end_run_confirmation = true
+                        }
+                        else if self.end_run_confirmation && ui.button("Confirm").clicked()
+                        {
+                            self.end_run_confirmation = false;
+                            netman.end_run.store(true, Ordering::Relaxed)
+                        }
+                        ui.add_space(15.0);
                         if ui.button(tr("netman_show_settings")).clicked() {
                             self.show_settings = true;
                         }
@@ -862,10 +874,10 @@ impl eframe::App for App {
                 if netman.peer.is_host() {
                     let mut show = self.show_settings;
                     let netman = netman.clone();
-                    egui::Window::new(tr("connect_settings"))
+                    Window::new(tr("connect_settings"))
                         .open(&mut show)
                         .show(ctx, |ui| {
-                            self.show_game_settings(ui);
+                            self.show_game_settings(ui, false);
                             if ui.button(tr("netman_apply_settings")).clicked() {
                                 *netman.pending_settings.lock().unwrap() =
                                     self.app_saved_state.game_settings.clone();
@@ -886,7 +898,7 @@ impl eframe::App for App {
             }
             AppState::ModManager => {
                 egui::CentralPanel::default().show(ctx, draw_bg);
-                egui::Window::new(tr("modman"))
+                Window::new(tr("modman"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
@@ -904,7 +916,7 @@ impl eframe::App for App {
             }
             AppState::SelfUpdate => {
                 egui::CentralPanel::default().show(ctx, draw_bg);
-                egui::Window::new(tr("selfupdate"))
+                Window::new(tr("selfupdate"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
@@ -914,7 +926,7 @@ impl eframe::App for App {
             }
             AppState::LangPick => {
                 egui::CentralPanel::default().show(ctx, draw_bg);
-                egui::Window::new(tr("lang_picker"))
+                Window::new(tr("lang_picker"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {
@@ -933,7 +945,7 @@ impl eframe::App for App {
                     });
             }
             AppState::AskSavestateReset => {
-                egui::Window::new(tr("An-in-progress-run-has-been-detected"))
+                Window::new(tr("An-in-progress-run-has-been-detected"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                     .show(ctx, |ui| {

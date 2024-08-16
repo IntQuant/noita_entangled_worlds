@@ -117,6 +117,7 @@ pub struct NetManager {
     pub init_settings: NetManagerInit,
     pub world_info: WorldInfo,
     pub enable_recorder: AtomicBool,
+    pub end_run: AtomicBool,
 }
 
 impl NetManager {
@@ -133,6 +134,7 @@ impl NetManager {
             init_settings: init,
             world_info: Default::default(),
             enable_recorder: AtomicBool::new(false),
+            end_run: AtomicBool::new(false),
         }
         .into()
     }
@@ -225,6 +227,11 @@ impl NetManager {
             ),
         );
         while self.continue_running.load(atomic::Ordering::Relaxed) {
+            if self.end_run.load(atomic::Ordering::Relaxed)
+            {
+                self.end_run(&mut state);
+                self.end_run.store(false, atomic::Ordering::Relaxed);
+            }
             self.local_connected
                 .store(state.ws.is_some(), atomic::Ordering::Relaxed);
             if state.ws.is_none() && self.accept_local.load(atomic::Ordering::SeqCst) {
@@ -492,17 +499,7 @@ impl NetManager {
             Some("game_over") => {
                 if self.is_host() {
                     info!("Game over, resending game settings");
-                    self.init_settings.save_state.reset();
-                    {
-                        let mut settings = self.pending_settings.lock().unwrap().clone();
-                        if !settings.use_constant_seed {
-                            settings.seed = rand::random();
-                        }
-                        info!("New seed: {}", settings.seed);
-                        *self.settings.lock().unwrap() = settings;
-                        state.world.reset()
-                    }
-                    self.resend_game_settings();
+                    self.end_run(state)
                 }
             }
             Some("peer_pos") => {
@@ -536,6 +533,21 @@ impl NetManager {
                 error!("Unknown bin msg from mod: {:?}", key)
             }
         }
+    }
+    
+    fn end_run(&self, state: &mut NetInnerState)
+    {
+        self.init_settings.save_state.reset();
+        {
+            let mut settings = self.pending_settings.lock().unwrap().clone();
+            if !settings.use_constant_seed {
+                settings.seed = rand::random();
+            }
+            info!("New seed: {}", settings.seed);
+            *self.settings.lock().unwrap() = settings;
+            state.world.reset()
+        }
+        self.resend_game_settings();
     }
 }
 
