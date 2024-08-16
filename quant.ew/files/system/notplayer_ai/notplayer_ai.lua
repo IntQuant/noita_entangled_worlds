@@ -176,21 +176,37 @@ local function position_to_area_number(y)
 end
 
 local function teleport_to_area(area)
-    if area == 1 then
-        EntitySetTransform(ctx.my_player.entity, 191, 1514)
-    elseif area == 2 then
-        EntitySetTransform(ctx.my_player.entity, 191, 3066)
-    elseif area == 3 then
-        EntitySetTransform(ctx.my_player.entity, 191, 5114)
-    elseif area == 4 then
-        EntitySetTransform(ctx.my_player.entity, 191, 6634)
-    elseif area == 5 then
-        EntitySetTransform(ctx.my_player.entity, 191, 8696)
-    elseif area == 6 then
-        EntitySetTransform(ctx.my_player.entity, 191, 10730)
-    elseif area == 7 then
-        EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-    end
+    async(function()
+        if area == 1 then
+            EntitySetTransform(ctx.my_player.entity, 191, 1514)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 191, 1514)
+        elseif area == 2 then
+            EntitySetTransform(ctx.my_player.entity, 191, 3066)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 191, 3066)
+        elseif area == 3 then
+            EntitySetTransform(ctx.my_player.entity, 191, 5114)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 191, 5114)
+        elseif area == 4 then
+            EntitySetTransform(ctx.my_player.entity, 191, 6634)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 191, 6634)
+        elseif area == 5 then
+            EntitySetTransform(ctx.my_player.entity, 191, 8696)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 191, 8696)
+        elseif area == 6 then
+            EntitySetTransform(ctx.my_player.entity, 191, 10730)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 191, 10730)
+        elseif area == 7 then
+            EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+        end
+    end)
 end
 
 local function teleport_to_next_hm()
