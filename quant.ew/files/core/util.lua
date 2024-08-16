@@ -253,6 +253,10 @@ function util.make_type(typedata)
         inner = inner .. "unsigned char "..var..";\n"
     end
 
+    for _, var in ipairs(typedata.u32 or {}) do
+        inner = inner .. "unsigned int "..var..";\n"
+    end
+
     ffi.cdef([[
     #pragma pack(push, 1)
     typedef struct ]] .. name .. [[{

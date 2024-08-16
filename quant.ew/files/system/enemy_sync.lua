@@ -8,11 +8,13 @@ local ffi = require("ffi")
 local rpc = net.new_rpc_namespace()
 
 local EnemyData = util.make_type({
-    f32 = {"x", "y", "vx", "vy", "hp", "max_hp"}
+    u32 = {"enemy_id"},
+    f32 = {"x", "y", "vx", "vy", "hp", "max_hp"},
 })
 
 -- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
 local EnemyDataNoMotion = util.make_type({
+    u32 = {"enemy_id"},
     f32 = {"x", "y", "hp", "max_hp"}
 })
 
@@ -160,9 +162,11 @@ function enemy_sync.host_upload_entities()
         -- if laser_sight ~= nil and laser_sight ~= 0 then
         --     -- local x, y, r =
         -- end
+
         local en_data
         if math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
             en_data= EnemyDataNoMotion {
+                enemy_id = enemy_id,
                 x = x,
                 y = y,
                 hp = hp,
@@ -170,6 +174,7 @@ function enemy_sync.host_upload_entities()
             }
         else
             en_data= EnemyData {
+                enemy_id = enemy_id,
                 x = x,
                 y = y,
                 vx = vx,
@@ -179,7 +184,7 @@ function enemy_sync.host_upload_entities()
             }
         end
 
-        table.insert(enemy_data_list, {enemy_id, filename, en_data, phys_info, not_ephemerial})
+        table.insert(enemy_data_list, {filename, en_data, phys_info, not_ephemerial})
         ::continue::
     end
 
@@ -287,11 +292,11 @@ end
 function rpc.handle_enemy_data(enemy_data)
     -- GamePrint("Got enemy data: "..#enemy_data)
     for _, enemy_info_raw in ipairs(enemy_data) do
-        local remote_enemy_id = enemy_info_raw[1]
-        local filename = enemy_info_raw[2]
+        local filename = enemy_info_raw[1]
         filename = constants.interned_index_to_filename[filename] or filename
-
-        local en_data = enemy_info_raw[3]
+        
+        local en_data = enemy_info_raw[2]
+        local remote_enemy_id = en_data.enemy_id
 
         local x = en_data.x
         local y = en_data.y
@@ -303,8 +308,8 @@ function rpc.handle_enemy_data(enemy_data)
         end
         local hp = en_data.hp
         local max_hp = en_data.max_hp
-        local phys_info = enemy_info_raw[4]
-        local not_ephemerial = enemy_info_raw[5]
+        local phys_info = enemy_info_raw[3]
+            local not_ephemerial = enemy_info_raw[4]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
