@@ -245,8 +245,12 @@ function util.make_type(typedata)
 
     local inner = ""
 
-    for _, var in ipairs(typedata.floats or {}) do
+    for _, var in ipairs(typedata.f32 or {}) do
         inner = inner .. "float "..var..";\n"
+    end
+
+    for _, var in ipairs(typedata.u8 or {}) do
+        inner = inner .. "unsigned char "..var..";\n"
     end
 
     ffi.cdef([[

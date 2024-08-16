@@ -7,10 +7,15 @@ local np = require("noitapatcher")
 local rpc = net.new_rpc_namespace()
 
 local EnemyData = util.make_type({
-    floats = {"x", "y", "vx", "vy", "hp", "max_hp"}
+    f32 = {"x", "y", "vx", "vy", "hp", "max_hp"}
 })
+
+local FULL_TURN = math.pi * 2
+
 local PhysData = util.make_type({
-    floats = {"x", "y", "vx", "vy", "r", "vr"}
+    f32 = {"x", "y", "vx", "vy", "vr"},
+    -- We should be able to cram rotation into 1 byte.
+    u8 = {"r"}
 })
 
 local enemy_sync = {}
@@ -114,7 +119,7 @@ function enemy_sync.host_upload_entities()
                 phys_info = PhysData {
                     x = px,
                     y = py,
-                    r = pr,
+                    r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
                     vx = pvx,
                     vy = pvy,
                     vr = pvr,
@@ -333,7 +338,7 @@ function rpc.handle_enemy_data(enemy_data)
             -- A physics body doesn't exist otherwise, causing a crash
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
-                np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r, phys_info.vx, phys_info.vy, phys_info.vr)
+                np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
             end
         end
 
