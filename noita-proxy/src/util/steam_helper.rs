@@ -66,8 +66,12 @@ impl SteamState {
         if self.avatar_cache.contains_key(&id) {
             self.avatar_cache.get(&id)
         } else {
-            friends
-                .get_friend(id)
+            // Check that we already have the avatar, as otherwise small_avatar will return a placeholder image.
+            if friends.request_user_information(id, false) {
+                return None;
+            };
+            let friend = friends.get_friend(id);
+            friend
                 .small_avatar()
                 .map(|data| {
                     ctx.load_texture(
