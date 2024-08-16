@@ -6,8 +6,11 @@ local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
 
+local EnemyData = util.make_type({
+    floats = {"x", "y", "vx", "vy", "hp", "max_hp"}
+})
 local PhysData = util.make_type({
-    floats={"x", "y", "vx", "vy", "r", "vr"}
+    floats = {"x", "y", "vx", "vy", "r", "vr"}
 })
 
 local enemy_sync = {}
@@ -131,8 +134,16 @@ function enemy_sync.host_upload_entities()
         -- if laser_sight ~= nil and laser_sight ~= 0 then
         --     -- local x, y, r =
         -- end
+        local en_data = EnemyData {
+            x = x,
+            y = y,
+            vx = vx,
+            vy = vy,
+            hp = hp,
+            max_hp = max_hp,
+        }
 
-        table.insert(enemy_data_list, {enemy_id, filename, x, y, vx, vy, hp, max_hp, phys_info, not_ephemerial})
+        table.insert(enemy_data_list, {enemy_id, filename, en_data, phys_info, not_ephemerial})
         ::continue::
     end
 
@@ -244,14 +255,16 @@ function rpc.handle_enemy_data(enemy_data)
         local filename = enemy_info_raw[2]
         filename = constants.interned_index_to_filename[filename] or filename
 
-        local x = enemy_info_raw[3]
-        local y = enemy_info_raw[4]
-        local vx = enemy_info_raw[5]
-        local vy = enemy_info_raw[6]
-        local hp = enemy_info_raw[7]
-        local max_hp = enemy_info_raw[8]
-        local phys_info = enemy_info_raw[9]
-        local not_ephemerial = enemy_info_raw[10]
+        local en_data = enemy_info_raw[3]
+
+        local x = en_data.x
+        local y = en_data.y
+        local vx = en_data.vx
+        local vy = en_data.vy
+        local hp = en_data.hp
+        local max_hp = en_data.max_hp
+        local phys_info = enemy_info_raw[4]
+        local not_ephemerial = enemy_info_raw[5]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()

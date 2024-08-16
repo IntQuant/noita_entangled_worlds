@@ -238,6 +238,7 @@ end
 
 local type_counter = 0
 
+-- Generates struct types that are generally much more efficient to send.
 function util.make_type(typedata)
     local name = "U"..type_counter
     type_counter = type_counter + 1
