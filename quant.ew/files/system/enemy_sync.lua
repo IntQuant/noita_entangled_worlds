@@ -200,12 +200,19 @@ function rpc.handle_death_data(death_data)
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
             end
+            
+            -- Enable explosion back
+            local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
+            if expl_component ~= nil and expl_component ~= 0 then
+                ComponentSetValue2(expl_component, "explode_on_death_percent", 1)
+            end
 
             local current_hp = util.get_ent_health(enemy_id)
             local dmg = current_hp
             if dmg > 0 then
                 EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity)
             end
+
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
             EntityKill(enemy_id)
         end
@@ -273,13 +280,14 @@ function rpc.handle_enemy_data(enemy_data)
             local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
             if phys_component ~= nil and phys_component ~= 0 then
                 ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
+                -- ComponentSetValue2(phys_component, "kill_entity_if_body_destroyed", false)
             end
             -- Make sure stuff doesn't decide to explode on clients by itself.
             local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
             if expl_component ~= nil and expl_component ~= 0 then
                 ComponentSetValue2(expl_component, "explode_on_damage_percent", 0)
                 ComponentSetValue2(expl_component, "physics_body_modified_death_probability", 0)
-                ComponentSetValue2(expl_component, "explode_on_death_percent", 1)
+                ComponentSetValue2(expl_component, "explode_on_death_percent", 0)
             end
 
         end
