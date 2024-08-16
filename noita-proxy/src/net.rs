@@ -234,6 +234,7 @@ impl NetManager {
                     self.send(id, &NetMsg::EndRun, Reliability::Reliable);
                 }
                 state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().unwrap().to_string()));
+                self.end_run(&mut state);
                 self.end_run.store(false, atomic::Ordering::Relaxed);
             }
             self.local_connected
