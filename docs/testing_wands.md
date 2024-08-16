@@ -30,3 +30,9 @@
 | speed        = 1.00
 | spell1       = Spark bolt
 }}
+
+
+local x, y = cursor.pos()
+for i = 1, 150 do
+  EntityLoad("data/entities/props/physics_box_explosive.xml", x, y)
+end

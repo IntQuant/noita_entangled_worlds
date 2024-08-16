@@ -11,6 +11,11 @@ local EnemyData = util.make_type({
     f32 = {"x", "y", "vx", "vy", "hp", "max_hp"}
 })
 
+-- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
+local EnemyDataNoMotion = util.make_type({
+    f32 = {"x", "y", "hp", "max_hp"}
+})
+
 local FULL_TURN = math.pi * 2
 
 local PhysData = util.make_type({
@@ -155,14 +160,24 @@ function enemy_sync.host_upload_entities()
         -- if laser_sight ~= nil and laser_sight ~= 0 then
         --     -- local x, y, r =
         -- end
-        local en_data = EnemyData {
-            x = x,
-            y = y,
-            vx = vx,
-            vy = vy,
-            hp = hp,
-            max_hp = max_hp,
-        }
+        local en_data
+        if math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
+            en_data= EnemyDataNoMotion {
+                x = x,
+                y = y,
+                hp = hp,
+                max_hp = max_hp,
+            }
+        else
+            en_data= EnemyData {
+                x = x,
+                y = y,
+                vx = vx,
+                vy = vy,
+                hp = hp,
+                max_hp = max_hp,
+            }
+        end
 
         table.insert(enemy_data_list, {enemy_id, filename, en_data, phys_info, not_ephemerial})
         ::continue::
@@ -280,8 +295,12 @@ function rpc.handle_enemy_data(enemy_data)
 
         local x = en_data.x
         local y = en_data.y
-        local vx = en_data.vx
-        local vy = en_data.vy
+        local vx = 0
+        local vy = 0
+        if ffi.typeof(en_data) == EnemyData then
+            vx = en_data.vx
+            vy = en_data.vy
+        end
         local hp = en_data.hp
         local max_hp = en_data.max_hp
         local phys_info = enemy_info_raw[4]
