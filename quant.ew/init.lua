@@ -221,7 +221,6 @@ local function on_world_pre_update_inner()
 
     if GameGetFrameNum() % 120 == 0 then
         player_fns.respawn_if_necessary()
-        player_fns.spread_max_health()
     end
 
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)) then

@@ -576,6 +576,36 @@
     value_string=""
   />
 
+	<SpriteComponent
+			_tags = "health_bar_back,ui,no_hitbox"
+			has_special_scale = "1"
+			image_file = "mods/quant.ew/files/resource/health_slider_back.png"
+			offset_x = "5"
+			offset_y = "-11"
+			special_scale_y = "0.45"
+			alpha = "0.4"
+			z_index = "-9000"
+			never_ragdollify_on_death = "1"
+		>
+	</SpriteComponent>
+
+	<SpriteComponent
+			_tags= "health_bar,ui,no_hitbox"
+			has_special_scale= "1"
+			image_file = "mods/quant.ew/files/resource/health_slider_front.png"
+			offset_x = "5"
+			offset_y = "-11"
+			special_scale_y = "0.45"
+			z_index = "-9001"
+			never_ragdollify_on_death = "1"
+		>
+	</SpriteComponent>
+
+	<BossHealthBarComponent
+		gui="0"
+		in_world="1">
+	</BossHealthBarComponent>
+
   <Entity name="chunk_loader">
       <Base file="mods/quant.ew/files/resource/entities/chunk_loader.xml">
       </Base>

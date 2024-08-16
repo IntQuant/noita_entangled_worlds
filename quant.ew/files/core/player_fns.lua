@@ -410,9 +410,22 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     end
     GamePrint("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
+
+    if ctx.proxy_opt.game_mode == "shared_health" then
+        local player_components = EntityGetAllComponents(new)
+        if player_components ~= nil then
+            for _, comp in ipairs(player_components) do
+                if ComponentHasTag(comp, "health_bar") or ComponentHasTag(comp, "health_bar_back") then
+                    EntitySetComponentIsEnabled(new, comp, false)
+                end
+            end
+        end
+    end
+
     if ctx.proxy_opt.friendly_fire then
         GenomeSetHerdId(new, "player_pvp")
     end
+
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
     new_playerdata.entity = new
     -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)
@@ -468,17 +481,6 @@ function player_fns.respawn_if_necessary()
             if latest_inventory ~= nil then
                 GamePrint("Recovering inventory")
                 player_fns.deserialize_items(latest_inventory, player_data)
-            end
-        end
-    end
-end
-
-function player_fns.spread_max_health()
-    if ctx.is_host then
-        local _, max_hp = util.get_ent_health(ctx.my_player.entity)
-        for peer_id, player_data in pairs(ctx.players) do
-            if peer_id ~= ctx.my_id then
-                util.set_ent_health(player_data.entity, {-1, max_hp})
             end
         end
     end

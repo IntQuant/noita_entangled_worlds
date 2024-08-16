@@ -464,7 +464,7 @@
 		_enabled="0"
 	></SpriteComponent>
 
-	<SpriteComponent
+<!--	<SpriteComponent
 		_tags="character,player_hat2_shadow"
 		alpha="1"
 		image_file="data/enemies_gfx/player_hat2_shadow.xml"
@@ -475,7 +475,7 @@
 		z_index="0.58"
 		_enabled="0"
 	></SpriteComponent>
-
+-->
 	<LuaComponent
 		script_source_file="data/scripts/magic/amulet.lua"
 		execute_on_added="1"
