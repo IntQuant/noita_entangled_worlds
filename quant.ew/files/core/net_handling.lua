@@ -107,9 +107,9 @@ function net_handling.mod.fire(peer_id, fire_data)
     if switched_now then
         reset_cast_state_if_has_any_other_item(player_data)
     end
-    
+
     GlobalsSetValue("ew_shooter_rng_" .. tostring(peer_id), tostring(message.special_seed))
-                
+
     GlobalsSetValue("ew_action_rng_"..tostring(peer_id), tostring(message.player_action_rng))
 
     player_data.projectile_rng_init = rng
@@ -159,6 +159,13 @@ function net_handling.mod.welcome(peer_id, _)
     ctx.events.new_player_just_connected = true
     if not ctx.run_ended then
         ctx.hook.on_should_send_updates()
+    end
+end
+
+function net_handling.proxy.end_run(_, _)
+    local entity = ctx.my_player.entity
+    if entity ~= nil then
+        EntityInflictDamage(entity, 1000000, "DAMAGE_CURSE", "Run Ended", "NONE", 0, 0, GameGetWorldStateEntity())
     end
 end
 

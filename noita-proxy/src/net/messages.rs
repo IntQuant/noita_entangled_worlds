@@ -20,6 +20,7 @@ pub(crate) struct MessageRequest<T> {
 #[derive(Debug, Decode, Encode)]
 pub enum NetMsg {
     Welcome,
+    EndRun,
     StartGame { settings: GameSettings },
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },

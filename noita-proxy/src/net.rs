@@ -229,7 +229,11 @@ impl NetManager {
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             if self.end_run.load(atomic::Ordering::Relaxed)
             {
-                self.end_run(&mut state);
+                for id in self.peer.iter_peer_ids()
+                {
+                    self.send(id, &NetMsg::EndRun, Reliability::Reliable);
+                }
+                state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().unwrap().to_string()));
                 self.end_run.store(false, atomic::Ordering::Relaxed);
             }
             self.local_connected
@@ -304,6 +308,9 @@ impl NetManager {
                         };
                         match net_msg {
                             NetMsg::Welcome => {}
+                            NetMsg::EndRun => {
+                                state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().unwrap().to_string()))
+                            }
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
                                 info!("Settings updated");
@@ -534,7 +541,7 @@ impl NetManager {
             }
         }
     }
-    
+
     fn end_run(&self, state: &mut NetInnerState)
     {
         self.init_settings.save_state.reset();
