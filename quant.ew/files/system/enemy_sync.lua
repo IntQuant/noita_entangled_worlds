@@ -4,6 +4,7 @@ local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local np = require("noitapatcher")
 
+local ffi = require("ffi")
 local rpc = net.new_rpc_namespace()
 
 local EnemyData = util.make_type({
@@ -14,6 +15,13 @@ local FULL_TURN = math.pi * 2
 
 local PhysData = util.make_type({
     f32 = {"x", "y", "vx", "vy", "vr"},
+    -- We should be able to cram rotation into 1 byte.
+    u8 = {"r"}
+})
+
+-- Variant of PhysData for when we don't have any motion.
+local PhysDataNoMotion = util.make_type({
+    f32 = {"x", "y"},
     -- We should be able to cram rotation into 1 byte.
     u8 = {"r"}
 })
@@ -116,14 +124,22 @@ function enemy_sync.host_upload_entities()
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
                 local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
-                phys_info = PhysData {
-                    x = px,
-                    y = py,
-                    r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
-                    vx = pvx,
-                    vy = pvy,
-                    vr = pvr,
-                }
+                if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
+                    phys_info = PhysDataNoMotion {
+                        x = px,
+                        y = py,
+                        r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
+                    }
+                else
+                    phys_info = PhysData {
+                        x = px,
+                        y = py,
+                        r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
+                        vx = pvx,
+                        vy = pvy,
+                        vr = pvr,
+                    }
+                end
             end
         end
 
@@ -338,7 +354,11 @@ function rpc.handle_enemy_data(enemy_data)
             -- A physics body doesn't exist otherwise, causing a crash
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
-                np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+                if ffi.typeof(phys_info) == PhysDataNoMotion then
+                    np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
+                else
+                    np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+                end
             end
         end
 
