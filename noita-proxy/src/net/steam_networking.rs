@@ -6,7 +6,8 @@ use fluent_bundle::FluentValue;
 use steamworks::{
     networking_sockets::{ListenSocket, NetPollGroup},
     networking_types::{
-        ListenSocketEvent, NetworkingConnectionState, NetworkingIdentity, SendFlags,
+        ListenSocketEvent, NetConnectionRealTimeInfo, NetworkingConnectionState,
+        NetworkingIdentity, SendFlags,
     },
     CallbackHandle, ClientManager, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
 };
@@ -18,7 +19,7 @@ use crate::{
     releases::Version,
 };
 
-use super::omni::OmniNetworkEvent;
+use super::omni::{OmniNetworkEvent, OmniPeerId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConnectError {
@@ -94,6 +95,24 @@ impl ConnectionState {
             None
         }
     }
+}
+
+pub enum PerPeerStatus {
+    Connected {
+        realtimeinfo: NetConnectionRealTimeInfo,
+    },
+    AwaitingIncoming,
+    ConnectionPending,
+    NoFurtherInfo,
+}
+
+pub struct PerPeerStatusEntry {
+    pub peer: OmniPeerId,
+    pub status: PerPeerStatus,
+}
+
+pub struct ConnectionStatusReport {
+    pub per_peer_statuses: Vec<PerPeerStatusEntry>,
 }
 
 struct Connections {
@@ -535,6 +554,34 @@ impl SteamPeer {
 
     pub fn is_host(&self) -> bool {
         self.is_host
+    }
+
+    pub fn generate_report(&self) -> ConnectionStatusReport {
+        let sockets = self.client.networking_sockets();
+        let per_peer_statuses = self
+            .connections
+            .peers
+            .iter()
+            .map(|item| {
+                let peer = (*item.key()).into();
+                let status = match item.value() {
+                    ConnectionState::AwaitingIncoming => PerPeerStatus::AwaitingIncoming,
+                    ConnectionState::NetConnectionPending(_) => PerPeerStatus::ConnectionPending,
+                    ConnectionState::NetConnection(connection) => {
+                        match sockets.get_realtime_connection_status(connection, 0) {
+                            Ok((realtimeinfo, _laneinfo)) => {
+                                PerPeerStatus::Connected { realtimeinfo }
+                            }
+                            Err(_) => PerPeerStatus::NoFurtherInfo,
+                        }
+                    }
+                };
+
+                PerPeerStatusEntry { peer, status }
+            })
+            .collect();
+
+        ConnectionStatusReport { per_peer_statuses }
     }
 }
 

@@ -6,14 +6,18 @@ use bookkeeping::{
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
-    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2,
+    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2, Window,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{set_current_locale, tr, LANGS};
 use mod_manager::{Modmanager, ModmanagerSettings};
-use net::{omni::PeerVariant, steam_networking::ExtraPeerState, NetManagerInit, RunInfo};
+use net::{
+    omni::PeerVariant,
+    steam_networking::{ExtraPeerState, PerPeerStatusEntry},
+    NetManagerInit, RunInfo,
+};
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -817,6 +821,20 @@ impl eframe::App for App {
                     ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, "Show debug stuff");
 
                     if self.app_saved_state.show_extra_debug_stuff {
+                        Window::new("Connection status").show(ctx, |ui| {
+                            match &netman.peer {
+                                PeerVariant::Tangled(_) => {ui.label("No connection info available in tangled mode");}
+                                PeerVariant::Steam(peer) => {
+                                    let steam = self.steam_state.as_ref().unwrap();
+                                    let report = peer.generate_report();
+                                    egui::Grid::new("Conn status grid").striped(true).show(ui, |ui| {
+                                        add_per_status_ui(&report, steam, ui);
+                                    });
+                                },
+                            }
+                        });
+
+
                         if self.show_map_plot {
                             let build_fn = |plot: &mut PlotUi| {
                                 netman.world_info.with_player_infos(|peer, info| {
@@ -937,6 +955,68 @@ impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, &self.app_saved_state);
         eframe::set_value(storage, MODMANAGER, &self.modmanager_settings);
+    }
+}
+
+fn add_per_status_ui(
+    report: &net::steam_networking::ConnectionStatusReport,
+    steam: &steam_helper::SteamState,
+    ui: &mut Ui,
+) {
+    ui.label("Name");
+    ui.label("Status");
+    ui.label("Ping");
+    ui.label("LocQ❓")
+        .on_hover_text("Local Connection Quality (percentage of packets we delivered).");
+    ui.label("RemQ❓")
+        .on_hover_text("Remote Connection Quality (percentage of packets delivered to us).");
+    ui.label("In");
+    ui.label("Out");
+    ui.label("MaxSendRate");
+    ui.label("PenUnr❓")
+        .on_hover_text("Pending unreliable messages");
+    ui.label("PenRel❓")
+        .on_hover_text("Pending reliable messages");
+    ui.label("UnAck❓").on_hover_text(
+        "Amount of reliable packages that were sent but weren't confirmed as received yet.",
+    );
+    ui.end_row();
+
+    for PerPeerStatusEntry { peer, status } in &report.per_peer_statuses {
+        let name = steam.get_user_name((*peer).into());
+        ui.label(&name);
+        match status {
+            net::steam_networking::PerPeerStatus::Connected { realtimeinfo } => {
+                ui.label("Ok❓").on_hover_text("Connected");
+                ui.label(format!("{}ms", realtimeinfo.ping()));
+                ui.label(format!(
+                    "{:.2}%",
+                    realtimeinfo.connection_quality_local() * 100.0
+                ));
+                ui.label(format!(
+                    "{:.2}%",
+                    realtimeinfo.connection_quality_remote() * 100.0
+                ));
+                ui.label(format!("{}by/s", realtimeinfo.in_bytes_per_sec()));
+                ui.label(format!("{}by/s", realtimeinfo.out_bytes_per_sec()));
+                ui.label(format!("{}by/s", realtimeinfo.send_rate_bytes_per_sec()));
+                ui.label(format!("{}", realtimeinfo.pending_unreliable()));
+                ui.label(format!("{}", realtimeinfo.pending_reliable()));
+                ui.label(format!("{}", realtimeinfo.sent_unacked_reliable()));
+            }
+            net::steam_networking::PerPeerStatus::AwaitingIncoming => {
+                ui.label("Awa❓")
+                    .on_hover_text("Awaiting incoming connection from this peer.");
+            }
+            net::steam_networking::PerPeerStatus::ConnectionPending => {
+                ui.label("Pen❓").on_hover_text("Connection pending.");
+            }
+            net::steam_networking::PerPeerStatus::NoFurtherInfo => {
+                ui.label("NoI❓")
+                    .on_hover_text("Connected, but no further info available.");
+            }
+        }
+        ui.end_row();
     }
 }
 

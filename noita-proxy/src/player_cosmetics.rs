@@ -268,15 +268,30 @@ pub fn create_player_png(
         &[
             (
                 "MARKER_HAT2_ENABLED",
-                (if cosmetics.0 { "image_file=\"data/enemies_gfx/player_hat2.xml\"" } else { "" }).into(),
+                (if cosmetics.0 {
+                    "image_file=\"data/enemies_gfx/player_hat2.xml\""
+                } else {
+                    ""
+                })
+                .into(),
             ),
             (
                 "MARKER_AMULET_ENABLED",
-                (if cosmetics.1 { "image_file=\"data/enemies_gfx/player_amulet.xml\"" } else { "" }).into(),
+                (if cosmetics.1 {
+                    "image_file=\"data/enemies_gfx/player_amulet.xml\""
+                } else {
+                    ""
+                })
+                .into(),
             ),
             (
                 "MARKER_AMULET_GEM_ENABLED",
-                (if cosmetics.2 { "image_file=\"data/enemies_gfx/player_amulet_gem.xml\"" } else { "" }).into(),
+                (if cosmetics.2 {
+                    "image_file=\"data/enemies_gfx/player_amulet_gem.xml\""
+                } else {
+                    ""
+                })
+                .into(),
             ),
             (
                 "MARKER_MAIN_SPRITE",
