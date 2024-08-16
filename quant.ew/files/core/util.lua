@@ -1,4 +1,5 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
+local ffi = require("ffi")
 
 local util = {}
 
@@ -233,6 +234,29 @@ end
 
 function util.copy_file_content(from, to)
     ModTextFileSetContent(to, ModTextFileGetContent(from))
+end
+
+local type_counter = 0
+
+function util.make_type(typedata)
+    local name = "U"..type_counter
+    type_counter = type_counter + 1
+
+    local inner = ""
+
+    for _, var in ipairs(typedata.floats or {}) do
+        inner = inner .. "float "..var..";\n"
+    end
+
+    ffi.cdef([[
+    #pragma pack(push, 1)
+    typedef struct ]] .. name .. [[{
+        ]] .. inner .. [[
+    } ]] .. name .. [[;
+    #pragma pack(pop)
+    ]])
+    local typ = ffi.typeof(name);
+    return typ
 end
 
 return util

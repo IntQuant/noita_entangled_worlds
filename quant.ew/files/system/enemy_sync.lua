@@ -6,6 +6,10 @@ local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
 
+local PhysData = util.make_type({
+    floats={"x", "y", "vx", "vy", "r", "vr"}
+})
+
 local enemy_sync = {}
 
 local dead_entities = {}
@@ -103,7 +107,15 @@ function enemy_sync.host_upload_entities()
             not_ephemerial = true
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
-                phys_info = {np.PhysBodyGetTransform(phys_component)}
+                local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
+                phys_info = PhysData {
+                    x = px,
+                    y = py,
+                    r = pr,
+                    vx = pvx,
+                    vy = pvy,
+                    vr = pvr,
+                }
             end
         end
 
@@ -308,7 +320,7 @@ function rpc.handle_enemy_data(enemy_data)
             -- A physics body doesn't exist otherwise, causing a crash
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
-                np.PhysBodySetTransform(phys_component, unpack(phys_info))
+                np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r, phys_info.vx, phys_info.vy, phys_info.vr)
             end
         end
 
