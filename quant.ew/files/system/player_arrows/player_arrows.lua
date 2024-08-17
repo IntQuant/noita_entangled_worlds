@@ -55,22 +55,22 @@ function module.on_world_update()
         local okay_to_display = false
 
         -- Contain the arrow in screen rect.
-        if player_dir_x > half_cw then
+        if player_dir_x - 6 > half_cw then
             player_dir_y = player_dir_y / (player_dir_x / half_cw)
             player_dir_x = half_cw
             okay_to_display = true
         end
-        if player_dir_x < -half_cw then
+        if player_dir_x + 6 < -half_cw then
             player_dir_y = player_dir_y / (player_dir_x / -half_cw)
             player_dir_x = -half_cw
             okay_to_display = true
         end
-        if player_dir_y > half_ch then
+        if player_dir_y - 18 > half_ch then
             player_dir_x = player_dir_x / (player_dir_y / half_ch)
             player_dir_y = half_ch
             okay_to_display = true
         end
-        if player_dir_y < -half_ch then
+        if player_dir_y + 6 < -half_ch then
             player_dir_x = player_dir_x / (player_dir_y / -half_ch)
             player_dir_y = -half_ch
             okay_to_display = true
@@ -81,6 +81,9 @@ function module.on_world_update()
             local is_notplayer = false
             if player_data.status and not player_data.status.is_alive then
                 is_notplayer = true
+            end
+            if not is_notplayer and EntityHasTag(player_data.entity,"polymorphed_player") then
+                goto continue
             end
             local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
             local img_path
