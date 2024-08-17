@@ -131,24 +131,24 @@ end
 
 function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_wand_pickup = is_wand_pickup
-	local players = EntityGetWithTag("player_unit") or {}
+    local players = EntityGetWithTag("player_unit") or {}
 
-	if (players[1]) then
-		np.RegisterPlayerEntityId(players[1])
-		--local inventory_gui = EntityGetFirstComponentIncludingDisabled(players[1], "InventoryGuiComponent")
-		local controls_component = EntityGetFirstComponentIncludingDisabled(players[1], "ControlsComponent")
-		if (paused) then
-			--EntitySetComponentIsEnabled(players[1], inventory_gui, false)
-			np.EnableInventoryGuiUpdate(false)
-			np.EnablePlayerItemPickUpper(false)
-			ComponentSetValue2(controls_component, "enabled", false)
-		else
-			--EntitySetComponentIsEnabled(players[1], inventory_gui, true)
-			np.EnableInventoryGuiUpdate(true)
-			np.EnablePlayerItemPickUpper(true)
-			ComponentSetValue2(controls_component, "enabled", true)
-		end
-	end
+    if (players[1]) then
+        np.RegisterPlayerEntityId(players[1])
+        --local inventory_gui = EntityGetFirstComponentIncludingDisabled(players[1], "InventoryGuiComponent")
+        local controls_component = EntityGetFirstComponentIncludingDisabled(players[1], "ControlsComponent")
+        if (paused) then
+            --EntitySetComponentIsEnabled(players[1], inventory_gui, false)
+            np.EnableInventoryGuiUpdate(false)
+            np.EnablePlayerItemPickUpper(false)
+            ComponentSetValue2(controls_component, "enabled", false)
+        else
+            --EntitySetComponentIsEnabled(players[1], inventory_gui, true)
+            np.EnableInventoryGuiUpdate(true)
+            np.EnablePlayerItemPickUpper(true)
+            ComponentSetValue2(controls_component, "enabled", true)
+        end
+    end
 end
 
 function OnWorldInitialized() -- This is called once the game world is initialized. Doesn't ensure any world chunks actually exist. Use OnPlayerSpawned to ensure the chunks around player have been loaded or created.
@@ -204,7 +204,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 end
 
 local function on_world_pre_update_inner()
-    if ctx.my_player == nil then return end
+    if ctx.my_player == nil or ctx.my_player.entity == nil then return end
 
     GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
 
@@ -260,7 +260,7 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
 end
 
 local function on_world_post_update_inner()
-    if ctx.my_player == nil then return end
+    if ctx.my_player == nil or ctx.my_player.entity == nil then return end
 
     if not ctx.run_ended then
         ctx.hook.on_world_update_post()
@@ -285,7 +285,7 @@ local function on_world_post_update_inner()
 end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
-	util.tpcall(on_world_post_update_inner)
+    util.tpcall(on_world_post_update_inner)
     ctx.events = {}
 end
 

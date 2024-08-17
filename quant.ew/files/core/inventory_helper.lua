@@ -350,8 +350,10 @@ end
 
 function inventory_helper.has_inventory_changed(player_data)
     local prev_inventory = player_data.prev_inventory_hash
-
     local inventory_hash = 0
+    if player_data.entity == nil then
+        return false
+    end
     for _, item in ipairs(GameGetAllInventoryItems(player_data.entity) or {}) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")

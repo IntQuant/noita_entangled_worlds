@@ -42,6 +42,9 @@ function module.on_world_update()
         end
 
         local px, py = EntityGetTransform(player_data.entity)
+        if px == nil then
+            return
+        end
         local player_dir_x = px - ccx
         local player_dir_y = py - ccy
         local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y

@@ -63,6 +63,9 @@ function rpc.set_cosmetics_all(id, amulet, gem, crown)
             local player_components = EntityGetAllComponents(player_entity)
             if player_components ~= nil then
                 for _, comp in ipairs(player_components) do
+                    if comp == nil then
+                        goto continue
+                    end
                     if ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet.xml" and amulet then
                         EntitySetComponentIsEnabled(player_entity, comp, false)
                     elseif ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet_gem.xml" and gem then
@@ -70,6 +73,7 @@ function rpc.set_cosmetics_all(id, amulet, gem, crown)
                     elseif ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_hat2.xml" and crown then
                         EntitySetComponentIsEnabled(player_entity, comp, false)
                     end
+                    ::continue::
                 end
             end
         end
