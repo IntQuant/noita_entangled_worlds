@@ -192,8 +192,7 @@ impl Connections {
                         .expect("handle to be valid");
                     match info.state().expect("assuming state is always valid") {
                         // Wait.
-                        NetworkingConnectionState::None
-                        | NetworkingConnectionState::Connecting
+                        NetworkingConnectionState::Connecting
                         | NetworkingConnectionState::FindingRoute => {
                             all_connected = false;
                         }
@@ -208,10 +207,11 @@ impl Connections {
                             all_connected = false;
                         }
 
-                        NetworkingConnectionState::ClosedByPeer
+                        NetworkingConnectionState::None
+                        | NetworkingConnectionState::ClosedByPeer
                         | NetworkingConnectionState::ProblemDetectedLocally => {
                             info!(
-                                "Some problem happened for peer {:?}. Will try to connect again.",
+                                "Some problem happened for peer {:?} while making connection. Will try to connect again.",
                                 *state.key()
                             );
                             self.connect(*state.key());
@@ -219,7 +219,35 @@ impl Connections {
                         }
                     }
                 }
-                ConnectionState::NetConnection(_) => {}
+                ConnectionState::NetConnection(connection) => {
+                    let info = networking_sockets
+                        .get_connection_info(connection)
+                        .expect("handle to be valid");
+                    match info.state().expect("assuming state is always valid") {
+                        NetworkingConnectionState::Connecting
+                        | NetworkingConnectionState::FindingRoute => {
+                            // Not supposed to happen, as we're in NetConnectionPending state while connecting.
+                            warn!("Not supposed to be in connecting state here.");
+                            // Still recreate connection.
+                            self.connect(*state.key());
+                            all_connected = false;
+                        }
+                        NetworkingConnectionState::Connected => {
+                            // All is ok, no need to do anything.
+                        }
+                        NetworkingConnectionState::None
+                        | NetworkingConnectionState::ClosedByPeer
+                        | NetworkingConnectionState::ProblemDetectedLocally => {
+                            // Something broke, we need to recreate the connection.
+                            info!(
+                                "Some problem happened for peer {:?} while connection was established. Will try to connect again.",
+                                *state.key()
+                            );
+                            self.connect(*state.key());
+                            all_connected = false;
+                        }
+                    }
+                }
             }
         }
         all_connected
