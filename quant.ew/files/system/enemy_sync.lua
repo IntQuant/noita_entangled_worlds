@@ -107,7 +107,6 @@ end
 function enemy_sync.host_upload_entities()
     local entities = get_sync_entities()
     local enemy_data_list = {}
-    local enemy_health_list = {}
     for i, enemy_id in ipairs(entities) do
         if not world_exists_for(enemy_id) then
             goto continue
@@ -186,14 +185,6 @@ function enemy_sync.host_upload_entities()
             }
         end
 
-        if GameGetFrameNum() % 10 == 1 then
-            table.insert(enemy_health_list, HpData {
-                enemy_id = enemy_id,
-                hp = hp,
-                max_hp = max_hp,
-            })
-        end
-
         table.insert(enemy_data_list, {filename, en_data, phys_info, not_ephemerial})
         ::continue::
     end
@@ -206,6 +197,30 @@ function enemy_sync.host_upload_entities()
         rpc.handle_death_data(dead_entities)
     end
     dead_entities = {}
+end
+
+local function host_upload_health()
+    local entities = get_sync_entities()
+
+    local enemy_health_list = {}
+    for i, enemy_id in ipairs(entities) do
+        if not world_exists_for(enemy_id) then
+            goto continue
+        end
+
+        local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
+
+        if has_hp then
+            table.insert(enemy_health_list, HpData {
+                enemy_id = enemy_id,
+                hp = hp,
+                max_hp = max_hp,
+            })
+        end
+
+        ::continue::
+    end
+
     if #enemy_health_list > 0 then
         rpc.handle_enemy_health(enemy_health_list)
     end
@@ -237,6 +252,9 @@ end
 function enemy_sync.on_world_update_host()
     if GameGetFrameNum() % 2 == 1 then
         enemy_sync.host_upload_entities()
+    end
+    if GameGetFrameNum() % 10 == 5 then
+        host_upload_health()
     end
 end
 
