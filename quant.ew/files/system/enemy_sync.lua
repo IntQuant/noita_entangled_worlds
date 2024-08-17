@@ -49,6 +49,8 @@ local spawned_by_us = {}
 -- HACK
 local times_spawned_last_minute = {}
 
+local DISTANCE_LIMIT = 128*5
+
 for filename, _ in pairs(constants.phys_sync_allowed) do
     util.add_tag_to(filename, "prop_physics")
     -- Idk it just causes the minecart to not appear at all.
@@ -88,8 +90,8 @@ local function table_extend_filtered(to, from, filter)
     end
 end
 
-local function get_sync_entities()
-    local entities = {} -- TODO maybe only sync those close to players?
+local function get_sync_entities(return_all)
+    local entities = {}
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
         return not (EntityHasTag(ent, "ew_no_enemy_sync"))
     end)
@@ -98,10 +100,23 @@ local function get_sync_entities()
         return constants.phys_sync_allowed[EntityGetFilename(ent)]
     end)
 
-    -- table_extend_filtered(entities, EntityGetWithTag("projectile"), function (ent)
-    --     return not (EntityHasTag(ent, "ew_no_enemy_sync") or EntityHasTag(ent, "projectile_player"))
-    -- end)
-    return entities
+    local skipped_counter = 0
+    local entities2 = {}
+    if return_all then
+        entities2 = entities
+    else
+        table_extend_filtered(entities2, entities, function(ent)
+            local x, y = EntityGetTransform(ent)
+            local has_anyone = #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") > 0
+            if not has_anyone then
+                skipped_counter = skipped_counter + 1
+            end
+            return has_anyone
+        end)
+    end
+    -- GamePrint("skipped "..skipped_counter.." out of "..#entities)
+
+    return entities2
 end
 
 function enemy_sync.host_upload_entities()
@@ -227,7 +242,7 @@ local function host_upload_health()
 end
 
 function enemy_sync.client_cleanup()
-    local entities = get_sync_entities()
+    local entities = get_sync_entities(true)
     for i, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
             local filename = EntityGetFilename(enemy_id)
