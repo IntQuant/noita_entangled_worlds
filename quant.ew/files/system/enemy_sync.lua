@@ -250,7 +250,7 @@ function enemy_sync.client_cleanup()
 end
 
 function enemy_sync.on_world_update_host()
-    if GameGetFrameNum() % 2 == 1 then
+    if GameGetFrameNum() % ctx.proxy_opt.enemy_sync_interval == 1 then
         enemy_sync.host_upload_entities()
     end
     if GameGetFrameNum() % 10 == 5 then

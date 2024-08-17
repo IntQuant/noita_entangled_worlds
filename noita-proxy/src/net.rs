@@ -227,13 +227,14 @@ impl NetManager {
             ),
         );
         while self.continue_running.load(atomic::Ordering::Relaxed) {
-            if self.end_run.load(atomic::Ordering::Relaxed)
-            {
-                for id in self.peer.iter_peer_ids()
-                {
+            if self.end_run.load(atomic::Ordering::Relaxed) {
+                for id in self.peer.iter_peer_ids() {
                     self.send(id, &NetMsg::EndRun, Reliability::Reliable);
                 }
-                state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().unwrap().to_string()));
+                state.try_ws_write(ws_encode_proxy(
+                    "end_run",
+                    self.peer.my_id().unwrap().to_string(),
+                ));
                 self.end_run(&mut state);
                 self.end_run.store(false, atomic::Ordering::Relaxed);
             }
@@ -309,9 +310,10 @@ impl NetManager {
                         };
                         match net_msg {
                             NetMsg::Welcome => {}
-                            NetMsg::EndRun => {
-                                state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().unwrap().to_string()))
-                            }
+                            NetMsg::EndRun => state.try_ws_write(ws_encode_proxy(
+                                "end_run",
+                                self.peer.my_id().unwrap().to_string(),
+                            )),
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
                                 info!("Settings updated");
@@ -428,6 +430,7 @@ impl NetManager {
         state.try_ws_write_option("world_sync_interval", settings.world_sync_interval);
         state.try_ws_write_option("game_mode", settings.game_mode);
         state.try_ws_write_option("friendly_fire", settings.friendly_fire);
+        state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval);
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod
@@ -543,8 +546,7 @@ impl NetManager {
         }
     }
 
-    fn end_run(&self, state: &mut NetInnerState)
-    {
+    fn end_run(&self, state: &mut NetInnerState) {
         self.init_settings.save_state.reset();
         {
             let mut settings = self.pending_settings.lock().unwrap().clone();

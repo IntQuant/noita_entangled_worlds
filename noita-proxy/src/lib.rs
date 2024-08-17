@@ -67,6 +67,7 @@ pub struct GameSettings {
     world_sync_interval: u32,
     game_mode: GameMode,
     friendly_fire: bool,
+    enemy_sync_interval: u32,
 }
 
 impl Default for GameSettings {
@@ -83,6 +84,7 @@ impl Default for GameSettings {
             world_sync_interval: 2,
             game_mode: GameMode::SharedHealth,
             friendly_fire: false,
+            enemy_sync_interval: 2,
         }
     }
 }
@@ -288,7 +290,7 @@ impl App {
             can_start_automatically: false,
             run_save_state,
             player_image,
-            end_run_confirmation: false
+            end_run_confirmation: false,
         }
     }
 
@@ -572,6 +574,11 @@ impl App {
             ui.add(Slider::new(&mut game_settings.world_sync_interval, 1..=10));
         }
         ui.label(tr("world-sync-is-pixel-sync-note"));
+        ui.add_space(20.0);
+
+        ui.label("Enemy sync interval");
+        ui.add(Slider::new(&mut game_settings.enemy_sync_interval, 2..=8));
+
         ui.add_space(20.0);
         ui.label(tr("connect_settings_player_tether_desc"));
         ui.checkbox(
