@@ -43,6 +43,8 @@ local function init_state()
     state = {
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
+        data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
+
 
         attack_wand = wandfinder.find_attack_wand(),
 
@@ -95,7 +97,11 @@ local stop_y = false
 
 local swap_side = false
 
+local give_space = 100
+
 local on_right = false
+
+local rest = false
 
 local function choose_movement()
     if target == nil then
@@ -110,12 +116,13 @@ local function choose_movement()
     local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
     local t_x, t_y = EntityGetTransform(target)
     local dist = my_x - t_x
-    local LIM = 100
-    if swap_side and on_right ~= (my_x > t_x) then
+    local LIM = give_space
+    if swap_side and (on_right ~= (my_x > t_x) or GameGetFrameNum() % 300 == 299) then
         swap_side = false
     end
     if swap_side then
         LIM = 0
+        give_space = 100
     end
     if dist > 0 then
         state.control_a = dist > LIM
@@ -147,13 +154,28 @@ local function choose_movement()
         end
     end
 
-    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x+5, my_y)
-    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x-5, my_y)
+    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x + 3, my_y)
+    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x - 3, my_y)
+    if (dist > 0 and dist > give_space and did_hit_2) or (dist < 0 and -dist > give_space and did_hit_1) then
+        give_space = give_space + 10
+        swap_side = false
+    end
     if (did_hit_1 and my_x > t_x) or (did_hit_2 and my_x < t_x) then
         swap_side = true
         on_right = my_x > t_x
     end
 
+    if ComponentGetValue2(state.data_component, "mFlyingTimeLeft") == 0 and GameGetFrameNum() % 300 > 250 then
+        rest = true
+        give_space = give_space + 10
+        swap_side = false
+    end
+    if rest and GameGetFrameNum() % 300 == 250 then
+        rest = false
+    end
+    if rest then
+        state.control_w = false
+    end
 end
 
 local function position_to_area_number(x, y)
@@ -248,7 +270,7 @@ local function teleport_to_next_hm()
     end
 end
 
-local camera_player = 1
+local camera_player = -1
 
 local camera_target = nil
 
@@ -258,11 +280,12 @@ local function set_camera_pos()
     end
     local i = 0
     local cam_target = nil
-    for _, potential_target in pairs(ctx.players) do
+    for peer_id, potential_target in pairs(ctx.players) do
         local entity = potential_target.entity
         i = i + 1
-        if i == camera_player then
+        if i == camera_player or (i == -1 and peer_id == ctx.my_id) then
             cam_target = entity
+            camera_player = i
         end
     end
     if camera_player == 1000 then
@@ -417,11 +440,17 @@ local function update()
 
     if InputIsMouseButtonJustDown(1) then
         if not left_held then
+            if camera_player == -1 then
+                camera_player = 1001
+            end
             camera_player = camera_player - 1
             left_held = true
         end
     elseif InputIsMouseButtonJustDown(2) then
         if not right_held then
+            if camera_player == -1 then
+                camera_player = 0
+            end
             camera_player = camera_player + 1
             right_held = true
         end
