@@ -16,9 +16,13 @@ function module.on_client_spawned(peer_id, new_playerdata)
     end
 end
 
+local function is_suitable_target(entity)
+    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
+end
+
 function module.on_world_update_client()
     local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-    if host_playerdata == nil then
+    if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
         return
     end
     if GameGetFrameNum() % 10 == 7 then
