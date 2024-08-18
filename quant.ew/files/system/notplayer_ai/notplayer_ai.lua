@@ -257,7 +257,7 @@ local function set_camera_pos()
     local cam_target = nil
     for _, potential_target in pairs(ctx.players) do
         local entity = potential_target.entity
-        if is_suitable_target(entity) then
+        if is_suitable_target(entity) or potential_target.peer_id == ctx.my_id then
             i = i + 1
             if i == camera_player then
                 cam_target = entity
