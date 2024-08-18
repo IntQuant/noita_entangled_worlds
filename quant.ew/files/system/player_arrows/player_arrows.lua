@@ -51,6 +51,18 @@ function module.on_world_update()
         end
         local player_dir_x = px - ccx
         local player_dir_y = py - ccy
+        if player_dir_x > 0 then
+            player_dir_x = player_dir_x - 6
+        else
+            player_dir_x = player_dir_x + 6
+        end
+
+        if player_dir_y > 0 then
+            player_dir_y = player_dir_y - 6
+        else
+            player_dir_y = player_dir_y + 6
+        end
+
         local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y
         -- local dist_sq = player_dir_x * player_dir_x + player_dir_y * player_dir_y
         -- player_dir_x = player_dir_x / dist
@@ -59,22 +71,22 @@ function module.on_world_update()
         local okay_to_display = false
 
         -- Contain the arrow in screen rect.
-        if player_dir_x - 6 > half_cw then
+        if player_dir_x > half_cw then
             player_dir_y = player_dir_y / (player_dir_x / half_cw)
             player_dir_x = half_cw
             okay_to_display = true
         end
-        if player_dir_x + 6 < -half_cw then
+        if player_dir_x < -half_cw then
             player_dir_y = player_dir_y / (player_dir_x / -half_cw)
             player_dir_x = -half_cw
             okay_to_display = true
         end
-        if player_dir_y - 18 > half_ch then
+        if player_dir_y > half_ch then
             player_dir_x = player_dir_x / (player_dir_y / half_ch)
             player_dir_y = half_ch
             okay_to_display = true
         end
-        if player_dir_y + 6 < -half_ch then
+        if player_dir_y < -half_ch then
             player_dir_x = player_dir_x / (player_dir_y / -half_ch)
             player_dir_y = -half_ch
             okay_to_display = true

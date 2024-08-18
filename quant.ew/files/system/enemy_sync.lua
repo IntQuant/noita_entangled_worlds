@@ -315,7 +315,7 @@ function rpc.handle_death_data(death_data)
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
             end
-            
+
             -- Enable explosion back
             local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
             if expl_component ~= nil and expl_component ~= 0 then
@@ -329,6 +329,10 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
+            local parent = EntityGetParent(enemy_id)
+            if parent ~= nil then
+                EntityKill(parent)
+            end
             EntityKill(enemy_id)
         end
         ::continue::
@@ -340,7 +344,7 @@ function rpc.handle_enemy_data(enemy_data)
     for _, enemy_info_raw in ipairs(enemy_data) do
         local filename = enemy_info_raw[1]
         filename = constants.interned_index_to_filename[filename] or filename
-        
+
         local en_data = enemy_info_raw[2]
         local remote_enemy_id = en_data.enemy_id
 
