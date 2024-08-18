@@ -12,7 +12,8 @@ local function log(...)
 end
 
 local function aim_at(world_x, world_y)
-    local ch_x, ch_y = EntityGetTransform(state.entity)
+    local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
+    local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
     local dx, dy = world_x - ch_x, world_y - ch_y
     ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
 
@@ -45,6 +46,9 @@ local function init_state()
 
         attack_wand = wandfinder.find_attack_wand(),
 
+        aim_up = false,
+        aim_down = false,
+
         was_firing_wand = false,
         was_a = false,
         was_w = false,
@@ -73,6 +77,11 @@ local function choose_wand_actions()
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(target)
+        end
+        if state.aim_up then
+            t_y = t_y - 5
+        elseif state.aim_down then
+            t_y = t_y + 5
         end
         aim_at(t_x, t_y)
 
@@ -282,6 +291,10 @@ local function set_camera_pos()
     end
 end
 
+local function better_player(length, did_hit, potential_target)
+    return (last_length == nil or (not did_hit and (last_length > length or not last_did_hit))) and not IsInvisible(potential_target)
+end
+
 local left_held = false
 
 local right_held = false
@@ -294,7 +307,8 @@ local function update()
 
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
-    local x, y = EntityGetTransform(ctx.my_player.entity)
+    local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
+    local x, y = EntityGetHotspot(arm, "hand", true)
 
     if target ~= nil and not is_suitable_target(target) then
         target = nil
@@ -306,7 +320,20 @@ local function update()
         if t_x == nil then
             t_x, t_y = EntityGetTransform(target)
         end
+        state.aim_up = false
+        state.aim_down = false
         local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+        if did_hit then
+            did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y - 5)
+            if not did_hit then
+                state.aim_up = true
+            else
+                did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y + 5)
+                if not did_hit then
+                    state.aim_down = true
+                end
+            end
+        end
         last_did_hit = did_hit
     end
 
@@ -322,10 +349,30 @@ local function update()
             local dy = y - t_y
             local length = dx * dx + dy * dy
             local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-            if last_length == nil or (not did_hit and (last_length > length or not last_did_hit)) then
+            if better_player(length, did_hit, potential_target) then
                 last_length = length
                 last_did_hit = did_hit
                 target = potential_target
+                state.aim_up = false
+                state.aim_down = false
+            elseif did_hit then
+                local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 5)
+                if better_player(length, did_hit_up, potential_target) then
+                    last_length = length
+                    last_did_hit = did_hit
+                    target = potential_target
+                    state.aim_up = true
+                    state.aim_down = false
+                elseif did_hit_up then
+                    local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 5)
+                    if better_player(length, did_hit_down, potential_target) then
+                        last_length = length
+                        last_did_hit = did_hit
+                        target = potential_target
+                        state.aim_up = false
+                        state.aim_down = true
+                    end
+                end
             end
         end
     end
