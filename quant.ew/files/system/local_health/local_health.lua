@@ -63,8 +63,12 @@ local function player_died()
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
         send_player_cosmetics(ctx.my_id)
-        if ctx.host_id == ctx.my_id and ctx.proxy_opt.player_tether then
-            rpc.spawn_tether()
+        if ctx.proxy_opt.player_tether then
+            if ctx.host_id == ctx.my_id then
+                rpc.spawn_tether()
+            else
+                rpc.spawn_tether_client(ctx.my_id)
+            end
         end
     end)
 end
@@ -72,7 +76,6 @@ end
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.spawn_tether()
-    GamePrint("test1")
     for id, data in pairs(ctx.players) do
         if id == ctx.host_id then
             local entity = data.entity
@@ -81,6 +84,22 @@ function rpc.spawn_tether()
             EntityAddChild(entity, zone_ent)
             local particle_component = EntityGetFirstComponentIncludingDisabled(zone_ent, "ParticleEmitterComponent")
             ComponentSetValue2(particle_component, "area_circle_radius", tether_length, tether_length + 2)
+        end
+    end
+end
+
+rpc.opts_reliable()
+function rpc.spawn_tether_client(target_id)
+    if ctx.host_id == ctx.my_id then
+        for id, data in pairs(ctx.players) do
+            if id == target_id then
+                local entity = data.entity
+                local tether_length = ctx.proxy_opt.tether_length
+                local zone_ent = EntityLoad("mods/quant.ew/files/system/player_tether/zone_entity.xml")
+                EntityAddChild(entity, zone_ent)
+                local particle_component = EntityGetFirstComponentIncludingDisabled(zone_ent, "ParticleEmitterComponent")
+                ComponentSetValue2(particle_component, "area_circle_radius", tether_length, tether_length + 2)
+            end
         end
     end
 end

@@ -21,6 +21,10 @@ local function world2gui( x, y )
     return x, y, vres_scaling_factor
 end
 
+local function is_suitable_target(entity)
+    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
+end
+
 function module.on_world_update()
     GuiStartFrame(gui)
 
@@ -37,7 +41,7 @@ function module.on_world_update()
     local gui_id = 2
 
     for _, player_data in pairs(ctx.players) do
-        if player_data.peer_id == ctx.my_id then
+        if player_data.peer_id == ctx.my_id and is_suitable_target(player_data.entity) then
             goto continue
         end
 

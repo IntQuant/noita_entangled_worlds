@@ -371,10 +371,18 @@ function player_fns.deserialize_position(message, player_data)
     end
     local character_data = EntityGetFirstComponentIncludingDisabled(entity, "CharacterDataComponent")
     local velocity_comp = EntityGetFirstComponentIncludingDisabled(entity, "VelocityComponent")
+    local platforming_comp = EntityGetFirstComponentIncludingDisabled(entity, "CharacterPlatformingComponent")
+
+    ComponentSetValue2(platforming_comp, "run_velocity", 0)
+    ComponentSetValue2(platforming_comp, "fly_velocity_x", 0)
+    ComponentSetValue2(platforming_comp, "fly_speed_max_up", 0)
+    ComponentSetValue2(platforming_comp, "fly_speed_max_down", 0)
+    ComponentSetValue2(platforming_comp, "jump_velocity_x", 0)
+    ComponentSetValue2(platforming_comp, "jump_velocity_y", 0)
+    ComponentSetValue2(platforming_comp, "fly_speed_mult", 0)
+    ComponentSetValue2(platforming_comp, "fly_speed_change_spd", 0)
 
     ComponentSetValue2(velocity_comp, "gravity_y", 0)
-
-    ComponentSetValue2(character_data, "fly_time_max", 0)
 
     ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
 

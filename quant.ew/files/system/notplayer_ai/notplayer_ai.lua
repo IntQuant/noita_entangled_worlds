@@ -251,24 +251,26 @@ local camera_player = 1
 
 local function set_camera_pos()
     if camera_player < 1 then
-        camera_player = 1
+        camera_player = 1000
     end
     local i = 0
     local cam_target = nil
     for _, potential_target in pairs(ctx.players) do
         local entity = potential_target.entity
-        if is_suitable_target(entity) or potential_target.peer_id == ctx.my_id then
+--        if is_suitable_target(entity) or potential_target.peer_id == ctx.my_id then
             i = i + 1
             if i == camera_player then
                 cam_target = entity
             end
-        end
+--        end
     end
-    if i ~= 0 and i < camera_player then
+    if camera_player == 1000 then
         camera_player = i
         set_camera_pos()
-    end
-    if cam_target ~= nil then
+    elseif i ~= 0 and i < camera_player then
+        camera_player = 1
+        set_camera_pos()
+    elseif cam_target ~= nil then
         local t_x, t_y = EntityGetFirstHitboxCenter(cam_target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(cam_target)
