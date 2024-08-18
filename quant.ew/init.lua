@@ -1,6 +1,11 @@
 dofile_once("mods/quant.ew/NoitaPatcher/load.lua")
 np = require("noitapatcher")
 
+package.cpath = package.cpath .. ";./mods/quant.ew/?.dll"
+package.path = package.path .. ";./mods/quant.ew/?.lua"
+print(package.cpath)
+require("ewext")
+
 dofile_once( "data/scripts/lib/utilities.lua" )
 
 dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")

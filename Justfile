@@ -13,26 +13,35 @@ build:
     cd noita-proxy && cargo build
     cd noita-proxy && cargo build --release
 
-run-rel: add_dylib_release
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run --release
+## ewext stuff
+build_luajit:
+    mkdir target/ -p
+    cd target && git clone https://luajit.org/git/luajit.git || true
+    cd target/luajit && git checkout v2.0.4 && make HOST_CC="gcc -m32" CROSS=i686-w64-mingw32- TARGET_SYS=Windows
+    cp target/luajit/src/
+    bindgen ../target/luajit/src/lua.h -o src/lua_bindings.rs --dynamic-loading Lua51 --no-layout-tests
 
-run-rel-alt: add_dylib_release
+# `rustup target add i686-pc-windows-gnu` first
+build_ext:
+    cd ewext && cargo build --release --target=i686-pc-windows-gnu
+    cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
+
+##
+
+run-rel: add_dylib_release
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
 
 flamegraph: add_dylib_debug
     cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo flamegraph
 
-run: add_dylib_debug
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo run
+run: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run
 
-run2: add_dylib_debug
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
+run2: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run -- --launch-cmd "wine noita.exe -gamemode 0" 
 
-run2-alt: add_dylib_debug
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21252 cargo run
+run3: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 
-run3: add_dylib_debug
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
-
-release: build add_dylib_release
+release: build_ext
     python scripts/prepare_release.py
