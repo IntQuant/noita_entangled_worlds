@@ -4,7 +4,9 @@ np = require("noitapatcher")
 package.cpath = package.cpath .. ";./mods/quant.ew/?.dll"
 package.path = package.path .. ";./mods/quant.ew/?.lua"
 print(package.cpath)
-require("ewext")
+
+ewext = require("ewext")
+print(ewext)
 
 dofile_once( "data/scripts/lib/utilities.lua" )
 

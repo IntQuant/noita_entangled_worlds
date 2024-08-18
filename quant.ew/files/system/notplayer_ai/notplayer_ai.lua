@@ -16,15 +16,7 @@ local function aim_at(world_x, world_y)
     local dx, dy = world_x - ch_x, world_y - ch_y
     ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
 
-    -- No idea what coordinate system that field uses.
-    -- Writing a big positive/negative value to turn to the right side seems to work.
-    local mouse_x
-    if dx > 0 then
-        mouse_x = 100000
-    else
-        mouse_x = -100000
-    end
-    ComponentSetValue2(state.control_component, "mMousePosition", mouse_x, 0)
+    ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
 
     local dist = math.sqrt(dx * dx + dy * dy)
     if dist > 0 then
