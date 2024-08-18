@@ -241,6 +241,8 @@ end
 
 local camera_player = 1
 
+local camera_target = nil
+
 local function set_camera_pos()
     if camera_player < 1 then
         camera_player = 1000
@@ -249,12 +251,10 @@ local function set_camera_pos()
     local cam_target = nil
     for _, potential_target in pairs(ctx.players) do
         local entity = potential_target.entity
---        if is_suitable_target(entity) or potential_target.peer_id == ctx.my_id then
-            i = i + 1
-            if i == camera_player then
-                cam_target = entity
-            end
---        end
+        i = i + 1
+        if i == camera_player then
+            cam_target = entity
+        end
     end
     if camera_player == 1000 then
         camera_player = i
@@ -268,6 +268,17 @@ local function set_camera_pos()
             t_x, t_y = EntityGetTransform(cam_target)
         end
         GameSetCameraPos(t_x, t_y)
+        if camera_target ~= cam_target then
+            if ctx.my_player.entity ~= camera_target then
+                local inventory_gui = EntityGetFirstComponent(camera_target, "InventoryGuiComponent")
+                EntityRemoveComponent(camera_target, inventory_gui)
+            end
+
+            if ctx.my_player.entity ~= cam_target then
+                EntityAddComponent2(cam_target, "InventoryGuiComponent")
+            end
+        end
+        camera_target = cam_target
     end
 end
 
