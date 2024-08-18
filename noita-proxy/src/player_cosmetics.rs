@@ -135,33 +135,33 @@ pub fn color_picker(ui: &mut Ui, color: &mut [u8; 4]) {
 
 pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
     let mut clicked = false;
-    let last = app.app_saved_state.player_picker.clone();
+    let last = app.appearance.player_picker.clone();
     ui.scope(|ui| {
         ui.set_max_width(100.0);
         ui.vertical_centered_justified(|ui| {
             if ui.button("Main color").clicked() {
                 clicked = true;
-                app.app_saved_state.player_picker = PlayerPicker::PlayerMain
+                app.appearance.player_picker = PlayerPicker::PlayerMain
             }
             if ui.button("Alt color").clicked() {
                 clicked = true;
-                app.app_saved_state.player_picker = PlayerPicker::PlayerAlt
+                app.appearance.player_picker = PlayerPicker::PlayerAlt
             }
             if ui.button("Arm color").clicked() {
                 clicked = true;
-                app.app_saved_state.player_picker = PlayerPicker::PlayerArm
+                app.appearance.player_picker = PlayerPicker::PlayerArm
             }
             if ui.button("Forearm color").clicked() {
                 clicked = true;
-                app.app_saved_state.player_picker = PlayerPicker::PlayerForearm
+                app.appearance.player_picker = PlayerPicker::PlayerForearm
             }
             if ui.button("Cape color").clicked() {
                 clicked = true;
-                app.app_saved_state.player_picker = PlayerPicker::PlayerCape
+                app.appearance.player_picker = PlayerPicker::PlayerCape
             }
             if ui.button("Cape edge color").clicked() {
                 clicked = true;
-                app.app_saved_state.player_picker = PlayerPicker::PlayerCapeEdge
+                app.appearance.player_picker = PlayerPicker::PlayerCapeEdge
             }
             if let Some(path) = &app.modmanager_settings.game_save_path {
                 let flags = path.join("save00/persistent/flags");
@@ -169,19 +169,19 @@ pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
                 let amulet = flags.join("secret_amulet").exists();
                 let gem = flags.join("secret_amulet_gem").exists();
                 if hat {
-                    ui.checkbox(&mut app.app_saved_state.cosmetics.0, "Crown");
+                    ui.checkbox(&mut app.appearance.cosmetics.0, "Crown");
                 }
                 if amulet {
-                    ui.checkbox(&mut app.app_saved_state.cosmetics.1, "Amulet");
+                    ui.checkbox(&mut app.appearance.cosmetics.1, "Amulet");
                 }
                 if gem {
-                    ui.checkbox(&mut app.app_saved_state.cosmetics.2, "Gem");
+                    ui.checkbox(&mut app.appearance.cosmetics.2, "Gem");
                 }
             }
         });
     });
-    if clicked && last == app.app_saved_state.player_picker {
-        app.app_saved_state.player_picker = PlayerPicker::None
+    if clicked && last == app.appearance.player_picker {
+        app.appearance.player_picker = PlayerPicker::None
     }
 }
 
@@ -190,9 +190,9 @@ pub fn display_player_skin(ui: &mut Ui, app: &App) {
     add_cosmetics(
         &mut img,
         app.modmanager_settings.game_save_path.clone(),
-        app.app_saved_state.cosmetics,
+        app.appearance.cosmetics,
     );
-    make_player_image(&mut img, app.app_saved_state.player_color);
+    make_player_image(&mut img, app.appearance.player_color);
     let texture: TextureHandle = ui.ctx().load_texture(
         "player",
         egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),

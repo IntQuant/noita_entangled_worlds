@@ -122,6 +122,25 @@ enum AppState {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct PlayerAppearance {
+    player_color: PlayerColor,
+    player_picker: PlayerPicker,
+    hue: f32,
+    cosmetics: (bool, bool, bool),
+}
+
+impl Default for PlayerAppearance {
+    fn default() -> Self {
+        Self {
+            player_color: PlayerColor::default(),
+            player_picker: PlayerPicker::None,
+            hue: 0.0,
+            cosmetics: (true, true, true),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct AppSavedState {
     addr: String,
     nickname: Option<String>,
@@ -134,10 +153,6 @@ struct AppSavedState {
     show_extra_debug_stuff: bool,
     #[serde(default)]
     record_all: bool,
-    player_color: PlayerColor,
-    player_picker: PlayerPicker,
-    hue: f32,
-    cosmetics: (bool, bool, bool),
 }
 
 impl Default for AppSavedState {
@@ -151,10 +166,6 @@ impl Default for AppSavedState {
             start_game_automatically: false,
             show_extra_debug_stuff: false,
             record_all: false,
-            player_color: PlayerColor::default(),
-            player_picker: PlayerPicker::None,
-            hue: 0.0,
-            cosmetics: (true, true, true),
         }
     }
 }
@@ -209,9 +220,11 @@ pub struct App {
     can_start_automatically: bool,
     player_image: RgbaImage,
     end_run_confirmation: bool,
+    appearance: PlayerAppearance,
 }
 
 const MODMANAGER: &str = "modman";
+const APPEARANCE: &str = "appearance";
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
     let style = ui.style();
@@ -247,6 +260,20 @@ impl App {
             .storage
             .and_then(|storage| eframe::get_value(storage, MODMANAGER))
             .unwrap_or_default();
+        let appearance: PlayerAppearance = cc
+            .storage
+            .and_then(|storage| {
+                eframe::get_value(storage, APPEARANCE).inspect(|x| info!("Loaded appearance {x:?}"))
+            })
+            .unwrap_or_else(|| {
+                // Fallback to loading from the old location
+                cc.storage
+                    .and_then(|storage| {
+                        eframe::get_value(storage, eframe::APP_KEY)
+                            .inspect(|x| info!("Loaded appearance from fallback: {x:?}"))
+                    })
+                    .unwrap_or_default()
+            });
         saved_state.times_started += 1;
 
         Self::set_fonts(&cc.egui_ctx);
@@ -291,6 +318,7 @@ impl App {
             run_save_state,
             player_image,
             end_run_confirmation: false,
+            appearance,
         }
     }
 
@@ -302,7 +330,7 @@ impl App {
         };
         let my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
         let mod_path = self.modmanager_settings.mod_path();
-        let mut cosmetics = self.app_saved_state.cosmetics;
+        let mut cosmetics = self.appearance.cosmetics;
         if let Some(path) = &self.modmanager_settings.game_save_path {
             let flags = path.join("save00/persistent/flags");
             let hat = flags.join("secret_hat").exists();
@@ -321,7 +349,7 @@ impl App {
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
-            player_color: self.app_saved_state.player_color,
+            player_color: self.appearance.player_color,
             cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
@@ -615,32 +643,29 @@ impl App {
                     .crop(1, 1, 8, 18)
                     .into_rgba8();
             }
-            let old_hue = self.app_saved_state.hue;
-            ui.add(Slider::new(&mut self.app_saved_state.hue, 0.0..=360.0).text("Shift hue"));
-            if old_hue != self.app_saved_state.hue {
-                let diff = self.app_saved_state.hue - old_hue;
-                shift_hue(diff, &mut self.app_saved_state.player_color.player_main);
-                shift_hue(diff, &mut self.app_saved_state.player_color.player_alt);
-                shift_hue(diff, &mut self.app_saved_state.player_color.player_arm);
-                shift_hue(diff, &mut self.app_saved_state.player_color.player_forearm);
-                shift_hue(diff, &mut self.app_saved_state.player_color.player_cape);
-                shift_hue(
-                    diff,
-                    &mut self.app_saved_state.player_color.player_cape_edge,
-                );
+            let old_hue = self.appearance.hue;
+            ui.add(Slider::new(&mut self.appearance.hue, 0.0..=360.0).text("Shift hue"));
+            if old_hue != self.appearance.hue {
+                let diff = self.appearance.hue - old_hue;
+                shift_hue(diff, &mut self.appearance.player_color.player_main);
+                shift_hue(diff, &mut self.appearance.player_color.player_alt);
+                shift_hue(diff, &mut self.appearance.player_color.player_arm);
+                shift_hue(diff, &mut self.appearance.player_color.player_forearm);
+                shift_hue(diff, &mut self.appearance.player_color.player_cape);
+                shift_hue(diff, &mut self.appearance.player_color.player_cape_edge);
             }
             ui.horizontal(|ui| {
                 display_player_skin(ui, self);
                 player_select_current_color_slot(ui, self);
                 player_skin_display_color_picker(
                     ui,
-                    &mut self.app_saved_state.player_color,
-                    &self.app_saved_state.player_picker,
+                    &mut self.appearance.player_color,
+                    &self.appearance.player_picker,
                 );
             });
             if ui.button("Reset colors to default").clicked() {
-                self.app_saved_state.player_color = PlayerColor::default();
-                self.app_saved_state.hue = 0.0
+                self.appearance.player_color = PlayerColor::default();
+                self.appearance.hue = 0.0
             }
         }
     }
@@ -974,6 +999,7 @@ impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, &self.app_saved_state);
         eframe::set_value(storage, MODMANAGER, &self.modmanager_settings);
+        eframe::set_value(storage, APPEARANCE, &self.appearance);
     }
 }
 

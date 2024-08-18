@@ -244,6 +244,8 @@ impl Connections {
                                 *state.key()
                             );
                             self.connect(*state.key());
+                            // TODO: signal that reconnect happened. 
+                            // Several things should be reset on it, as we certainly lost several messages during it.
                             all_connected = false;
                         }
                     }
