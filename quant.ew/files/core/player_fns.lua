@@ -282,7 +282,7 @@ local player_fns = {
             local up = ComponentGetValue2(controls, "mButtonDownUp") -- boolean
             local down = ComponentGetValue2(controls, "mButtonDownDown") -- boolean
             local jump = ComponentGetValue2(controls, "mButtonDownJump") -- boolean
-            local fly = false -- boolean
+            local fly = ComponentGetValue2(controls, "mButtonDownFly") -- boolean
             local leftClick = ComponentGetValue2(controls, "mButtonDownLeftClick") -- boolean
             local rightClick = ComponentGetValue2(controls, "mButtonDownRightClick") -- boolean
             local aim_x, aim_y = ComponentGetValue2(controls, "mAimingVector") -- float, float
@@ -372,8 +372,11 @@ function player_fns.deserialize_position(message, player_data)
     local character_data = EntityGetFirstComponentIncludingDisabled(entity, "CharacterDataComponent")
     local velocity_comp = EntityGetFirstComponentIncludingDisabled(entity, "VelocityComponent")
 
+    ComponentSetValue2(velocity_comp, "gravity_y", 0)
+
+    ComponentSetValue2(character_data, "fly_time_max", 0)
+
     ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
-    ComponentSetValue2(velocity_comp, "mVelocity", message.vel_x, message.vel_y)
 
     EntityApplyTransform(entity, message.x, message.y)
 end
