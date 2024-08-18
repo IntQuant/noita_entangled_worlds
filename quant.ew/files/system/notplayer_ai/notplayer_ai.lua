@@ -365,12 +365,12 @@ local function update()
         teleport_to_next_hm()
     end
 
-    if ComponentGetValue2(state.control_component, "mButtonDownLeftClick") then
+    if InputIsMouseButtonJustDown(1) then
         if not left_held then
             camera_player = camera_player - 1
             left_held = true
         end
-    elseif ComponentGetValue2(state.control_component, "mButtonDownRightClick") then
+    elseif InputIsMouseButtonJustDown(2) then
         if not right_held then
             camera_player = camera_player + 1
             right_held = true
