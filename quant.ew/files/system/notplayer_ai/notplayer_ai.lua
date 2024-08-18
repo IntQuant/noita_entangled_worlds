@@ -155,20 +155,20 @@ local function choose_movement()
 
 end
 
-local function position_to_area_number(y)
-    if y < 1104 then
+local function position_to_area_number(x, y)
+    if y < 1199 then
         return 1
-    elseif y < 2640 then
+    elseif y < 2735 then
         return 2
-    elseif y < 4688 then
+    elseif y < 4783 then
         return 3
-    elseif y < 6224 then
+    elseif y < 6319 then
         return 4
-    elseif y < 8272 then
+    elseif y < 8367 then
         return 5
-    elseif y < 10320 then
+    elseif y < 10415 then
         return 6
-    elseif y < 12880 then
+    elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
         return 7
     else
         return 8
@@ -234,9 +234,9 @@ local function teleport_to_next_hm()
             return
         end
         if peer_id == ctx.my_id then
-            my_area_num = position_to_area_number(y)
+            my_area_num = position_to_area_number(x, y)
         elseif is_suitable_target(player) then
-            local area_num = position_to_area_number(y)
+            local area_num = position_to_area_number(x, y)
             if area_num < others_area_num then
                 others_area_num = area_num
             end
@@ -246,6 +246,40 @@ local function teleport_to_next_hm()
         teleport_to_area(others_area_num - 1)
     end
 end
+
+local camera_player = 1
+
+local function set_camera_pos()
+    if camera_player < 1 then
+        camera_player = 1
+    end
+    local i = 0
+    local cam_target = nil
+    for _, potential_target in pairs(ctx.players) do
+        local entity = potential_target.entity
+        if is_suitable_target(entity) then
+            i = i + 1
+            if i == camera_player then
+                cam_target = entity
+            end
+        end
+    end
+    if i ~= 0 and i < camera_player then
+        camera_player = i
+        set_camera_pos()
+    end
+    if cam_target ~= nil then
+        local t_x, t_y = EntityGetFirstHitboxCenter(cam_target)
+        if t_x == nil then
+            t_x, t_y = EntityGetTransform(cam_target)
+        end
+        GameSetCameraPos(t_x, t_y)
+    end
+end
+
+local left_held = false
+
+local right_held = false
 
 local function update()
     -- No taking control back, even after pressing esc.
@@ -290,7 +324,6 @@ local function update()
             end
         end
     end
-
     local do_kick = last_length ~= nil and last_length < 100
 
     if do_kick then
@@ -330,6 +363,21 @@ local function update()
         teleport_to_next_hm()
     end
 
+    if ComponentGetValue2(state.control_component, "mButtonDownLeftClick") then
+        if not left_held then
+            camera_player = camera_player - 1
+            left_held = true
+        end
+    elseif ComponentGetValue2(state.control_component, "mButtonDownRightClick") then
+        if not right_held then
+            camera_player = camera_player + 1
+            right_held = true
+        end
+    else
+        left_held = false
+        right_held = false
+    end
+    set_camera_pos()
 end
 
 function module.on_world_update()
@@ -343,6 +391,5 @@ function module.on_world_update()
         state = nil
     end
 end
-
 
 return module

@@ -55,6 +55,7 @@ local function player_died()
     -- We kinda need to wait a frame for things to update.
     async(function ()
         wait(1)
+        GameSetCameraFree(true)
         GameAddFlagRun("ew_flag_notplayer_active")
         EntitySetName(ctx.my_player.entity, ctx.my_player.name.."?")
         do_switch_effect()
@@ -191,6 +192,7 @@ ctx.cap.health = {
             async(function ()
                 wait(1)
                 do_switch_effect()
+                GameSetCameraFree(false)
             end)
         else
             end_poly_effect(ctx.my_player.entity)

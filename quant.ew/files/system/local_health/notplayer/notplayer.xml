@@ -616,7 +616,7 @@
 
   <InventoryGuiComponent/>
 
-  <BossHealthBarComponent gui_max_distance_visible="1500" gui="1"/>
+  <BossHealthBarComponent gui_max_distance_visible="512" gui="1"/>
 
   <LuaComponent _tags="ew_remove_on_send" script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"/>
 </Entity>
