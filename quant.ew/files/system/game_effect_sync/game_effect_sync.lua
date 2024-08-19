@@ -1,10 +1,5 @@
 -- This module syncs effects (like being on fire) from clients to everyone else.
 
-local ctx = dofile_once("mods/quant.ew/files/src/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/src/net.lua")
-local player_fns = dofile_once("mods/quant.ew/files/src/player_fns.lua")
-local np = require("noitapatcher")
-
 local rpc = net.new_rpc_namespace()
 
 local effect_sync = {}
