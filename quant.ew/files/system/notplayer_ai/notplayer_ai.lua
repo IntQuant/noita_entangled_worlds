@@ -278,7 +278,7 @@ end
 
 local camera_player = -1
 
-local camera_target = ctx.my_player.entity
+local camera_target = nil
 
 local inventory_target = nil
 
@@ -308,6 +308,9 @@ local function set_camera_pos()
             t_x, t_y = EntityGetTransform(cam_target)
         end
         GameSetCameraPos(t_x, t_y)
+        if camera_target == nil then
+            camera_target = ctx.my_player.entity
+        end
         if camera_target ~= cam_target then
             if ctx.my_player.entity ~= camera_target then
                 EntityRemoveComponent(camera_target, inventory_target)
