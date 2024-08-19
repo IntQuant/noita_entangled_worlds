@@ -44,6 +44,7 @@ local function init_state()
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
+        gui_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
 
 
         attack_wand = wandfinder.find_attack_wand(),
@@ -154,11 +155,17 @@ local function choose_movement()
         end
     end
 
-    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x + 3, my_y)
-    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x - 3, my_y)
+    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x + 10, my_y)
+    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x - 10, my_y)
     if (dist > 0 and dist > give_space and did_hit_2) or (dist < 0 and -dist > give_space and did_hit_1) then
         give_space = give_space + 10
         swap_side = false
+    elseif give_space > 200 then
+        local did_hit_3, _, _ = RaytracePlatforms(my_x, my_y, my_x + 100, my_y)
+        local did_hit_4, _, _ = RaytracePlatforms(my_x, my_y, my_x - 100, my_y)
+        if (dist > 0 and not did_hit_3) or (dist < 0 and not did_hit_4) then
+            swap_side = true
+        end
     end
     if (did_hit_1 and my_x > t_x) or (did_hit_2 and my_x < t_x) then
         swap_side = true
@@ -328,6 +335,8 @@ local function update()
 
     state.init_timer = state.init_timer + 1
 
+    ComponentSetValue2(state.gui_component, "mActive", false)
+
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
     local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
@@ -424,7 +433,7 @@ local function update()
     state.was_d = state.control_d
 
     ComponentSetValue2(state.control_component, "mButtonDownDown", false)
-    ComponentSetValue2(state.control_component, "mButtonDownUp", state.control_w)
+    ComponentSetValue2(state.control_component, "mButtonDownUp", true)
     ComponentSetValue2(state.control_component, "mButtonDownFly", state.control_w)
     if state.control_w and not state.was_w then
         ComponentSetValue2(state.control_component, "mButtonFrameUp", GameGetFrameNum()+1)
