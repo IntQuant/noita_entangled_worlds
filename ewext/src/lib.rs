@@ -11,7 +11,7 @@ static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
 
 // const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
 
-extern "C" fn test_fn(lua: *mut lua_State) -> c_int {
+extern "C" fn test_fn(_lua: *mut lua_State) -> c_int {
     println!("test fn called");
     0
 }
