@@ -258,8 +258,8 @@ local function teleport_to_next_hm()
     local others_area_num = 9
     for peer_id, player_data in pairs(ctx.players) do
         local player = player_data.entity
-        x, y = EntityGetTransform(player)
-        if not (-5646 < x and x < 5120 and -1400 < x and x < 14336) then
+        local x, y = EntityGetTransform(player)
+        if not (-5646 < x and x < 5120 and -1400 < y and y < 14336) then
             return
         end
         if peer_id == ctx.my_id then
@@ -279,6 +279,8 @@ end
 local camera_player = -1
 
 local camera_target = nil
+
+local inventory_target = nil
 
 local function set_camera_pos()
     if camera_player < 1 then
@@ -308,12 +310,11 @@ local function set_camera_pos()
         GameSetCameraPos(t_x, t_y)
         if camera_target ~= cam_target then
             if ctx.my_player.entity ~= camera_target then
-                local inventory_gui = EntityGetFirstComponent(camera_target, "InventoryGuiComponent")
-                EntityRemoveComponent(camera_target, inventory_gui)
+                EntityRemoveComponent(camera_target, inventory_target)
             end
 
             if ctx.my_player.entity ~= cam_target then
-                EntityAddComponent2(cam_target, "InventoryGuiComponent")
+                inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
             end
         end
         camera_target = cam_target
@@ -336,6 +337,9 @@ local function update()
     state.init_timer = state.init_timer + 1
 
     ComponentSetValue2(state.gui_component, "mActive", false)
+    if inventory_target ~= nil then
+        ComponentSetValue2(inventory_target, "mActive", false)
+    end
 
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
