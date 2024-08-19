@@ -319,7 +319,7 @@ local function set_camera_pos()
             if ctx.my_player.entity ~= cam_target then
                 inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
             end
-            EntityRemoveComponent(camera_target, "AudioListenerComponent")
+            EntityRemoveComponent(camera_target, EntityGetFirstComponent(camera_target, "AudioListenerComponent"))
             EntityAddComponent2(cam_target, "AudioListenerComponent")
         end
         camera_target = cam_target
