@@ -278,7 +278,7 @@ end
 
 local camera_player = -1
 
-local camera_target = nil
+local camera_target = ctx.my_player.entity
 
 local inventory_target = nil
 
@@ -316,6 +316,8 @@ local function set_camera_pos()
             if ctx.my_player.entity ~= cam_target then
                 inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
             end
+            EntityRemoveComponent(camera_target, "AudioListenerComponent")
+            EntityAddComponent2(cam_target, "AudioListenerComponent")
         end
         camera_target = cam_target
     end
