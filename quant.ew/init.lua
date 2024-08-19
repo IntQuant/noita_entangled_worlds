@@ -88,6 +88,7 @@ local function load_modules()
     ctx.load_system("patch_dragon_boss")
 
     ctx.load_system("player_arrows")
+    ctx.load_system("player_ping")
     ctx.load_system("extra_genomes")
     ctx.load_system("amulet_sync")
     -- ctx.load_system("effect_data_sync")
