@@ -193,7 +193,7 @@ ctx.cap.health = {
                 wait(1)
                 do_switch_effect()
                 GameSetCameraFree(false)
-                for id, player_data in ctx.players do
+                for id, player_data in pairs(ctx.players) do
                     if id ~= ctx.my_id then
                         local inventory_gui = EntityGetFirstComponent(player_data.entity, "InventoryGuiComponent")
                         if inventory_gui ~= nil then
