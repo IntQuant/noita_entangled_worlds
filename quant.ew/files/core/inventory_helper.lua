@@ -1,13 +1,14 @@
 local np = require("noitapatcher")
 local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
+local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 
 local inventory_helper = {}
 
 local function entity_is_wand(entity_id)
-	local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
+    local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
     if ability_component == nil then return false end
-	return ComponentGetValue2(ability_component, "use_gun_script") == true
+    return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
 function inventory_helper.get_all_inventory_items(player_data)
@@ -178,7 +179,7 @@ function inventory_helper.get_item_data(player_data, fresh)
     local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
     local wandData = {}
     local spellData = {}
-    for k, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_quick") or {}) do
+    for _, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_quick") or {}) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
         local item_x, item_y = EntityGetTransform(item)
@@ -192,7 +193,8 @@ function inventory_helper.get_item_data(player_data, fresh)
                     slot_x = slot_x,
                     slot_y = slot_y,
                     active = (mActiveItem == item),
-                    is_wand = true
+                    is_wand = true,
+                    old_id = item
                 })
         else
             table.insert(wandData,
@@ -205,7 +207,7 @@ function inventory_helper.get_item_data(player_data, fresh)
         end
     end
 
-    for k, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_full") or {}) do
+    for _, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_full") or {}) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
         local item_x, item_y = EntityGetTransform(item)
@@ -246,7 +248,7 @@ local function pickup_item(entity, item)
       ComponentSetValue2(item_component, "has_been_picked_by_player", true)
     end
     local entity_children = EntityGetAllChildren(entity) or {}
-    for key, child in pairs( entity_children ) do
+    for _, child in pairs( entity_children ) do
       if EntityGetName( child ) == "inventory_quick" then
         EntityAddChild( child, item)
       end
@@ -258,7 +260,7 @@ local function pickup_item(entity, item)
 
     local wand_children = EntityGetAllChildren(item) or {}
 
-    for k, v in ipairs(wand_children)do
+    for _, _ in ipairs(wand_children)do
       EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
     end
 end
@@ -271,7 +273,7 @@ function inventory_helper.set_item_data(item_data, player_data)
     end
 
     local items = GameGetAllInventoryItems(player) or {}
-    for i, item_id in ipairs(items) do
+    for _, item_id in ipairs(items) do
         GameKillInventoryItem(player, item_id)
         EntityKill(item_id)
     end
@@ -280,7 +282,7 @@ function inventory_helper.set_item_data(item_data, player_data)
     if (item_data ~= nil) then
         local active_item_entity
 
-        for k, itemInfo in ipairs(item_data) do
+        for _, itemInfo in ipairs(item_data) do
             --local x, y = EntityGetTransform(player)
             local item_entity
             local item
@@ -317,6 +319,11 @@ function inventory_helper.set_item_data(item_data, player_data)
                 if (itemInfo.active) then
                     active_item_entity = item
                 end
+            end
+
+            if ctx.my_player.wand_fire_count[itemInfo.old_id] ~= nil then
+                ctx.my_player.wand_fire_count[item.entity_id] = ctx.my_player.wand_fire_count[itemInfo.old_id]
+                table.remove(ctx.my_player.wand_fire_count,itemInfo.old_id)
             end
 
             --print("Deserialized wand #"..tostring(k).." - Active? "..tostring(wandInfo.active))

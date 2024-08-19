@@ -1,9 +1,9 @@
 local wandfinder = {}
 
 local function entity_is_wand(entity_id)
-	local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
+    local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
     if ability_component == nil then return false end
-	return ComponentGetValue2(ability_component, "use_gun_script") == true
+    return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
 local function get_all_wands()
@@ -17,23 +17,29 @@ local function get_all_wands()
     return wands
 end
 
--- Just return the first wand for now.
 function wandfinder.find_attack_wand()
     local wands = get_all_wands()
     if #wands == 0 then
         return nil
     end
-    local best_wand = wands[1]
-    local best_slot = 1000
-    for _, wand in ipairs(wands) do
-        local item_c = EntityGetFirstComponentIncludingDisabled(wand, "ItemComponent")
-        local slot_x = ComponentGetValue2(item_c, "inventory_slot")
-        if slot_x < best_slot then
-            best_wand = wand
-            best_slot = slot_x
+    local largest = {-1, -1}
+    for entity, fire_count in pairs(ctx.my_player.wand_fire_count) do
+        for _, wand in ipairs(wands) do
+            if wand == entity then
+                goto here
+            end
         end
+        goto continue
+        ::here::
+        if largest[2] < fire_count then
+            largest = {entity, fire_count}
+        end
+        ::continue::
     end
-    return best_wand
+    if largest == {-1, -1} then
+        return nil
+    end
+    return largest[1]
 end
 
 return wandfinder

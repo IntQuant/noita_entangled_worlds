@@ -93,6 +93,10 @@ local function load_modules()
     -- ctx.load_system("effect_data_sync")
 end
 
+local function is_suitable_target(entity)
+    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
+end
+
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
     ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
@@ -108,6 +112,16 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     -- Was shot locally
     if shooter_id == ctx.my_player.entity then
         -- If it was an initial shot by host
+        if is_suitable_target(ctx.my_player.entity) then
+            local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
+            local wand = ComponentGetValue2(inventory, "mActiveItem")
+            local wands = ctx.my_player.wand_fire_count
+            if wands[wand] == nil then
+                wands[wand] = 0
+            end
+            wands[wand] = wands[wand] + 1
+        end
+
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
             rng = initial_rng
             table.insert(shooter_player_data.projectile_rng_init, rng)

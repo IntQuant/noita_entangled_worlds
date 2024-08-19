@@ -76,7 +76,6 @@ end
 
 local function choose_wand_actions()
     if state.attack_wand ~= nil and target ~= nil and EntityGetIsAlive(target) then
-        np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(target)
@@ -331,6 +330,7 @@ local right_held = false
 
 local function update()
     -- No taking control back, even after pressing esc.
+    np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
     ComponentSetValue2(state.control_component, "enabled", false)
 
     state.init_timer = state.init_timer + 1
