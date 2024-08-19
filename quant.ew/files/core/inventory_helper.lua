@@ -321,7 +321,7 @@ function inventory_helper.set_item_data(item_data, player_data)
                 end
             end
 
-            if ctx.my_player.wand_fire_count[itemInfo.old_id] ~= nil then
+            if ctx.my_id == player_data.peer_id and ctx.my_player.wand_fire_count[itemInfo.old_id] ~= nil then
                 ctx.my_player.wand_fire_count[item.entity_id] = ctx.my_player.wand_fire_count[itemInfo.old_id]
                 table.remove(ctx.my_player.wand_fire_count,itemInfo.old_id)
             end

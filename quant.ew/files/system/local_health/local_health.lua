@@ -63,6 +63,11 @@ local function player_died()
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
         send_player_cosmetics(ctx.my_id)
+
+        local iron = EntityCreateNew()
+        EntityAddTag(iron, "kill_on_revive")
+        EntityAddComponent2(iron, "GameEffectComponent", {effect="IRON_STOMACH",frames=9999999})
+        EntityAddChild(ctx.my_player.entity, iron)
     end)
 end
 
@@ -169,7 +174,7 @@ local function end_poly_effect(ent)
         local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
         if game_effect_comp then
             local effect = ComponentGetValue2(game_effect_comp, "effect")
-            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" then
+            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" or EntityHasTag(effect, "kill_on_revive") then
                 ComponentSetValue2(game_effect_comp, "frames", 1)
             end
         end
