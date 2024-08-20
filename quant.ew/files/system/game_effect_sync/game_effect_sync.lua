@@ -14,7 +14,8 @@ local IGNORE_EFFECTS = {
 function effect_sync.get_ent_effects(entity)
     local list = {}
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
-        local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+        -- Do not include disabled components here
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
         if com ~= nil then
             local name = ComponentGetValue2(com, "effect")
             if not IGNORE_EFFECTS[name] then
@@ -30,16 +31,14 @@ function effect_sync.on_world_update()
     if GameGetFrameNum() % 30 ~= 9 then
         return
     end
-    local all_sync_data = {}
 
     local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
     local sync_data = {}
     for _, effect in ipairs(effects) do
-        table.insert(sync_data, np.SerializeEntity(effect))
+        table.insert(sync_data, {effect, np.SerializeEntity(effect)})
     end
-    all_sync_data[ctx.my_id] = sync_data
 
-    rpc.send_effects(all_sync_data)
+    rpc.send_effects(sync_data)
 end
 
 function effect_sync.remove_all_effects(entity)
@@ -49,14 +48,32 @@ function effect_sync.remove_all_effects(entity)
     end
 end
 
-function rpc.send_effects(effects_of_players)
-    for peer_id, effects in pairs(effects_of_players) do
-        local entity = player_fns.peer_get_player_data(peer_id).entity
-        effect_sync.remove_all_effects(entity)
-        for _, effect in ipairs(effects) do
+local local_by_remote_id = {}
+
+function rpc.send_effects(effects)
+    local entity = ctx.rpc_player_data.entity
+    local confirmed_effects = {}
+    for _, effect in ipairs(effects) do
+        local effect_remote_id = effect[1]
+        if local_by_remote_id[effect_remote_id] == nil or not EntityGetIsAlive(local_by_remote_id[effect_remote_id]) then
             local ent = EntityCreateNew()
-            np.DeserializeEntity(ent, effect)
+            np.DeserializeEntity(ent, effect[2])
             EntityAddChild(entity, ent)
+            -- GamePrint("Replicating "..effect_remote_id.." as "..ent)
+            local_by_remote_id[effect_remote_id] = ent
+            local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+            if com ~= nil then
+                ComponentSetValue2(com, "frames", -1)
+            end
+        end
+        confirmed_effects[local_by_remote_id[effect_remote_id]] = true
+    end
+
+    local local_effects = effect_sync.get_ent_effects(entity)
+    for _, effect in ipairs(local_effects) do
+        if not confirmed_effects[effect] then
+            -- GamePrint("Removing "..effect)
+            EntityKill(effect)
         end
     end
 end
