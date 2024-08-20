@@ -45,8 +45,7 @@ local function get_bad_potions()
                     total = total + amt
                 end
             end
-            GamePrint(total)
-            if total > 100 then
+            if total >= 500 then
                 table.insert(potions, item)
             end
         end
@@ -397,8 +396,7 @@ local left_held = false
 local right_held = false
 
 local function update()
-    GamePrint(#state.potions)
-    has_potion = #state.potions ~= 0 and GameGetFrameNum() % 300 > 220 and not last_did_hit
+    has_potion = #state.potions ~= 0 and GameGetFrameNum() % 300 > 290 and not last_did_hit
     if has_potion then
         np.SetActiveHeldEntity(state.entity, state.potions[1], false, false)
     else
