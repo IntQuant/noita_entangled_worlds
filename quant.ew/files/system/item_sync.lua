@@ -120,14 +120,16 @@ function item_sync.make_item_global(item, instant)
             return
         end
         item_sync.ensure_notify_component(item)
-        local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
-        local gid = ComponentGetValue2(gid_component, "value_string")
+        local gid_component = EntityGetFirstComponent(item, "VariableStorageComponent", "ew_global_item_id")
+        local gid
         if gid_component == nil then
             gid = allocate_global_id()
             EntityAddComponent2(item, "VariableStorageComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
                 value_string = gid,
             })
+        else
+            gid = ComponentGetValue2(gid_component, "value_string")
         end
         --local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
         --if vel then
