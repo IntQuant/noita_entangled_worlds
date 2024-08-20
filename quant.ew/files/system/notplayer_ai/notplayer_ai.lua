@@ -11,6 +11,49 @@ local function log(...)
     -- GamePrint(...)
 end
 
+local bad_mats = {"magic_liquid_random_polymorph",
+                  "magic_liquid_polymorph",
+                  "magic_liquid_unstable_polymorph",
+                  "acid",
+                  "creepy_liquid",
+                  "cursed_liquid",
+                  "poison", "just_death",
+                  "lava",
+                  "mimic_liquid",
+                  "void_liquid",
+                  "magic_liquid_weakness",
+                  "magic_liquid_teleportation",
+                  "magic_liquid_unstable_teleportation"}
+
+local function get_bad_potions()
+    local potions = {}
+    local items = GameGetAllInventoryItems(ctx.my_player.entity) or {}
+    for _, item in ipairs(items) do
+        if EntityHasTag(item, "potion") then
+            local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
+            local materials = ComponentGetValue2(mat, "count_per_material_type")
+            local total = 0
+            for id, amt in pairs(materials) do
+                local name = CellFactory_GetName(id)
+                local use = false
+                for _, n in ipairs(bad_mats) do
+                    if name == n then
+                        use = true
+                    end
+                end
+                if use then
+                    total = total + amt
+                end
+            end
+            GamePrint(total)
+            if total > 100 then
+                table.insert(potions, item)
+            end
+        end
+    end
+    return potions
+end
+
 local function aim_at(world_x, world_y)
     local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
     local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
@@ -26,18 +69,36 @@ local function aim_at(world_x, world_y)
     end
 end
 
-local function fire_wand(enable)
-    ComponentSetValue2(state.control_component, "mButtonDownFire", enable)
-    ComponentSetValue2(state.control_component, "mButtonDownFire2", enable)
-    if enable then
-        if not state.was_firing_wand then
-            ComponentSetValue2(state.control_component, "mButtonFrameFire", GameGetFrameNum()+1)
-        end
-        ComponentSetValue2(state.control_component, "mButtonLastFrameFire", GameGetFrameNum())
-    end
-    state.was_firing_wand = enable
-end
+local throw = false
 
+local has_potion = false
+
+local function fire_wand(enable)
+    if has_potion then
+        ComponentSetValue2(state.control_component, "mButtonDownFire", false)
+        ComponentSetValue2(state.control_component, "mButtonDownFire2", false)
+        ComponentSetValue2(state.control_component, "mButtonDownRightClick", true)
+        ComponentSetValue2(state.control_component, "mButtonDownThrow", true)
+        if not throw then
+            ComponentSetValue2(state.control_component, "mButtonFrameRightClick", GameGetFrameNum() + 1)
+            ComponentSetValue2(state.control_component, "mButtonFrameThrow", GameGetFrameNum() + 1)
+        end
+        throw = true
+    else
+        ComponentSetValue2(state.control_component, "mButtonDownRightClick", false)
+        ComponentSetValue2(state.control_component, "mButtonDownThrow", false)
+        ComponentSetValue2(state.control_component, "mButtonDownFire", enable)
+        ComponentSetValue2(state.control_component, "mButtonDownFire2", enable)
+        if enable then
+            if not state.was_firing_wand then
+                ComponentSetValue2(state.control_component, "mButtonFrameFire", GameGetFrameNum()+1)
+            end
+            ComponentSetValue2(state.control_component, "mButtonLastFrameFire", GameGetFrameNum())
+        end
+        throw = false
+        state.was_firing_wand = enable
+    end
+end
 
 local function init_state()
     state = {
@@ -46,6 +107,7 @@ local function init_state()
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
         gui_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
 
+        potions = get_bad_potions(),
 
         attack_wand = wandfinder.find_attack_wand(),
 
@@ -68,7 +130,7 @@ local target
 
 local last_length
 
-local last_did_hit = false
+local last_did_hit = true
 
 local function is_suitable_target(entity)
     return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
@@ -335,8 +397,18 @@ local left_held = false
 local right_held = false
 
 local function update()
+    GamePrint(#state.potions)
+    has_potion = #state.potions ~= 0 and GameGetFrameNum() % 300 > 220 and not last_did_hit
+    if has_potion then
+        np.SetActiveHeldEntity(state.entity, state.potions[1], false, false)
+    else
+        np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
+    end
+    if has_potion and GameGetFrameNum() % 300 == 299 then
+        table.remove(state.potions, 1)
+    end
+
     -- No taking control back, even after pressing esc.
-    np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
     ComponentSetValue2(state.control_component, "enabled", false)
 
     state.init_timer = state.init_timer + 1
@@ -354,7 +426,7 @@ local function update()
     if target ~= nil and not is_suitable_target(target) then
         target = nil
         last_length = nil
-        last_did_hit = false
+        last_did_hit = true
     end
     if target ~= nil then
         local t_x, t_y = EntityGetFirstHitboxCenter(target)

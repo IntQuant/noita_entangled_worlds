@@ -37,7 +37,7 @@ function wandfinder.find_attack_wand()
         ::continue::
     end
     if largest == {-1, -1} then
-        return nil
+        return wands[1]
     end
     return largest[1]
 end

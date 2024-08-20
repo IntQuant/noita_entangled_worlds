@@ -25,6 +25,20 @@ local function do_switch_effect()
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect.xml")
 end
 
+local function remove_inventory_tags()
+    local items = GameGetAllInventoryItems(ctx.my_player.entity)
+    for _, item in ipairs(items) do
+        EntityRemoveTag(item, "ew_client_item")
+    end
+end
+
+local function remove_inventory()
+    local items = GameGetAllInventoryItems(ctx.my_player.entity)
+    for _, item in ipairs(items) do
+        EntityKill(item)
+    end
+end
+
 local function allow_notplayer_perk(perk_id)
     local ignored_perks = {
         GAMBLE = true,
@@ -63,7 +77,7 @@ local function player_died()
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
         send_player_cosmetics(ctx.my_id)
-
+        remove_inventory_tags()
         local iron = EntityCreateNew()
         EntityAddTag(iron, "kill_on_revive")
         EntityAddComponent2(iron, "GameEffectComponent", {effect="IRON_STOMACH",frames=9999999})
@@ -192,11 +206,15 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
+            local item_data = inventory_helper.get_item_data(ctx.my_player)
+            remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
             end_poly_effect(ctx.my_player.entity)
             async(function ()
                 wait(1)
+                inventory_helper.set_item_data(item_data, ctx.my_player)
                 do_switch_effect()
+                remove_inventory_tags()
                 GameSetCameraFree(false)
                 for id, player_data in pairs(ctx.players) do
                     if id ~= ctx.my_id then
