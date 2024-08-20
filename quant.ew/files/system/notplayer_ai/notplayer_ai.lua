@@ -400,7 +400,7 @@ local function set_camera_pos()
 end
 
 local function better_player(length, did_hit, potential_target)
-    return (last_length == nil or (not did_hit and (last_length > length or not last_did_hit))) and not IsInvisible(potential_target)
+    return (last_length == nil or (not did_hit and (last_length > length or not last_did_hit))) and (not IsInvisible(potential_target) or length < 50*50)
 end
 
 local left_held = false
@@ -435,10 +435,16 @@ local function update()
     local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
     local x, y = EntityGetHotspot(arm, "hand", true)
 
-    if target ~= nil and not is_suitable_target(target) then
-        target = nil
-        last_length = nil
-        last_did_hit = true
+    if target ~= nil then
+        local x1, y1 = EntityGetTransform(target)
+        local dx = ch_x - x1
+        local dy = ch_y - y1
+        local dist = dx*dx + dy*dy
+        if not is_suitable_target(target) or (dist > 600 * 600) or (IsInvisible(target) and dist > 50*50) then
+            target = nil
+            last_length = nil
+            last_did_hit = true
+        end
     end
     if target ~= nil then
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
