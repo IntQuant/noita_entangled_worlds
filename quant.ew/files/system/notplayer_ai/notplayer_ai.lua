@@ -412,7 +412,9 @@ local function update()
     if has_potion then
         np.SetActiveHeldEntity(state.entity, state.potions[1], false, false)
     else
-        np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
+        if state.attack_wand ~= nil then
+            np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
+        end
     end
     if has_potion and GameGetFrameNum() % 300 == 299 then
         table.remove(state.potions, 1)
