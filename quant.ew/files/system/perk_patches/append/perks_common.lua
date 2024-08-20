@@ -5,7 +5,6 @@ end
 
 hide_perk("ABILITY_ACTIONS_MATERIALIZED")
 hide_perk("TELEKINESIS")
-hide_perk("INVISIBILITY")
 hide_perk("CORDYCEPS")
 hide_perk("HOMUNCULUS")
 hide_perk("ATTACK_FOOT")
