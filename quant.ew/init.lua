@@ -222,8 +222,10 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
 
     print("Game state entity: "..GameGetWorldStateEntity())
 
-    player_cosmetics(player_entity)
-    player_color(player_entity)
+    if not GameHasFlagRun("ew_flag_notplayer_active") then
+        player_cosmetics(player_entity)
+        player_color(player_entity)
+    end
 end
 
 local function on_world_pre_update_inner()
