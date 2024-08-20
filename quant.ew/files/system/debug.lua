@@ -1,33 +1,18 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 
+if load_imgui == nil then
+    return {}
+end
+
+imgui = load_imgui({version="1.20.0", mod="Entangled Worlds Debug Mode"})
+
 local module = {}
 
 function module.on_local_player_spawn(my_player)
     
     local player_entity = my_player.entity
-    -- ~Portal to lab
-    -- EntitySetTransform(player_entity, 0, 12600)
-    -- The vault
-    -- EntitySetTransform(player_entity, 0, 8600-20)
-
-    -- EntitySetTransform(player_entity, -1990, 2171)
-
-    -- EntitySetTransform(player_entity, 512*3+10, 512*3+10)
-
-    -- Kolmi room
-    -- EntitySetTransform(player_entity, 3400, 13040)
-    
-    -- The work
-    -- EntitySetTransform(player_entity, 6300, 15155)
-
     -- EntitySetTransform(player_entity, 1333, 770)
-
-    -- Kivi
-    -- EntitySetTransform(player_entity, 7427, -4960)
-
-    -- Meat biome
-    -- EntitySetTransform(player_entity, 7328, 9263)
 
     -- util.load_ephemerial("mods/quant.ew/files/resource/entities/client.xml", 512*3+20, 512*3+10)
     -- EntityLoad("mods/quant.ew/files/resource/entities/client.xml", 512*3+20, 512*3+10)
@@ -55,5 +40,52 @@ function module.on_world_update_host()
     end
 end
 
+local function fw_button(label)
+    return imgui.Button(label, imgui.GetWindowWidth() - 15, 20)
+end
+
+local function tp_button(label, x, y)
+    if fw_button(label) then
+        async(function()
+            local player_entity = ctx.my_player.entity
+            EntitySetTransform(player_entity, x, y)
+            wait(5)
+            EntitySetTransform(player_entity, x, y)
+        end)
+    end
+end
+
+function module.on_world_update_post()
+    if imgui.Begin("EW Debug stuff") then
+        if imgui.CollapsingHeader("General") then
+            if fw_button("Set time to day") then
+                local gamestate = GameGetWorldStateEntity()
+                local gcom = EntityGetFirstComponentIncludingDisabled(gamestate, "WorldStateComponent")
+                ComponentSetValue2(gcom, "time", 0)
+            end
+        end
+        if imgui.CollapsingHeader("Player") then
+            local dcom = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+            if dcom ~= nil and dcom ~= 0 then
+                local enabled = ComponentGetIsEnabled(dcom)
+                local ret = imgui.Checkbox("Vulnerable", enabled)
+                if ret then
+                    EntitySetComponentIsEnabled(ctx.my_player.entity, dcom, not enabled)
+                end
+            end
+        end
+        if imgui.CollapsingHeader("Teleports") then
+            tp_button("Starting area", 0, -100)
+            tp_button("Vault", 0, 8600-20)
+            tp_button("Portal to lab", 350.332, 12852.998)
+            tp_button("Kolmi room", 3400, 13040)
+            tp_button("The Work", 6300, 15155)
+            tp_button("Meat realm", 7328, 9263)
+            tp_button("Kivi", 7427, -4960)
+        end
+        -- imgui.Text("lalala")
+        imgui.End()
+    end
+end
 
 return module
