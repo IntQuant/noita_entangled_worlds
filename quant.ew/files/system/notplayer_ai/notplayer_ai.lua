@@ -327,7 +327,11 @@ local function choose_movement()
     local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x + 10, my_y)
     local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x - 10, my_y)
     if (dist > 0 and dist > give_space and did_hit_2) or (dist < 0 and -dist > give_space and did_hit_1) then
-        give_space = give_space + 10
+        if give_space == 100 then
+            give_space = math.abs(dist)
+        else
+            give_space = give_space + 10
+        end
         swap_side = false
     elseif give_space > 200 then
         local did_hit_3, _, _ = RaytracePlatforms(my_x, my_y, my_x + 100, my_y)
@@ -341,12 +345,12 @@ local function choose_movement()
         on_right = my_x > t_x
     end
 
-    if ComponentGetValue2(state.data_component, "mFlyingTimeLeft") == 0 and GameGetFrameNum() % 300 > 250 then
+    if ComponentGetValue2(state.data_component, "mFlyingTimeLeft") < 0.2 and GameGetFrameNum() % 300 > 250 then
         rest = true
         give_space = give_space + 10
         swap_side = false
     end
-    if rest and GameGetFrameNum() % 300 == 250 then
+    if rest and GameGetFrameNum() % 300 == 60 then
         rest = false
     end
     if rest or good_potion ~= nil then --or has_water_potion then
