@@ -101,6 +101,9 @@ local bad_potion
 local good_potion
 --local has_water_potion = false
 
+local dont_throw = true
+local stop_potion = false
+
 local function aim_at(world_x, world_y)
     if good_potion ~= nil then
         ComponentSetValue2(state.control_component, "mAimingVector", 0, 312)
@@ -112,21 +115,61 @@ local function aim_at(world_x, world_y)
     local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
     local dx, dy = world_x - ch_x, world_y - ch_y
 
-    if has_bad_potion then
-        local dist_b = math.sqrt(dx * dx + dy * dy)
-        dx = 312 * dx / dist_b
-        dy = 312 * dy / dist_b
-    end
+    if bad_potion ~= nil then
+        ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
+        local v = 180
+        local g = 156
+        dy = -dy
+        local lhs = v*v/(g*dx)
+        local interior = v*v*v*v - g*g*dx*dx - 2*g*dy*v*v
+        if interior < 0 then
+            dont_throw = true
+            bad_potion = nil
+            stop_potion = true
+            return
+        end
+        local rhs = math.sqrt(interior)/(g*dx)
+        local theta1 = lhs+rhs
+        local theta2 = lhs-rhs
+        local theta
+        if dy < 0 then
+            if theta1 > theta2 then
+                theta = theta2
+            else
+                theta = theta1
+            end
+        else
+            if theta1 > theta2 then
+                theta = theta1
+            else
+                theta = theta2
+            end
+        end
+        if dx < 0 then
+            if theta == theta1 then
+                theta = theta2
+            else
+                theta = theta1
+            end
+        end
+        local cos = 1 / math.sqrt(theta*theta+1)
+        if dx < 0 then
+            cos = -cos
+        end
+        local sin = theta * cos
+        ComponentSetValue2(state.control_component, "mAimingVector", cos * 312, -sin * 312)
+        ComponentSetValue2(state.control_component, "mAimingVectorNormalized", cos, -sin)
+    else
+        local dist = math.sqrt(dx * dx + dy * dy)
 
-    local dist = math.sqrt(dx * dx + dy * dy)
+        ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
 
-    ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
+        ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
 
-    ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
-
-    if dist > 0 then
-        -- ComponentSetValue2(state.control_component, "mAimingVectorNonZeroLatest", dx, dy)
-        ComponentSetValue2(state.control_component, "mAimingVectorNormalized", dx/dist, dy/dist)
+        if dist > 0 then
+            -- ComponentSetValue2(state.control_component, "mAimingVectorNonZeroLatest", dx, dy)
+            ComponentSetValue2(state.control_component, "mAimingVectorNormalized", dx/dist, dy/dist)
+        end
     end
 end
 
@@ -136,6 +179,9 @@ local function fire_wand(enable)
     if bad_potion ~= nil or good_potion ~= nil then
         ComponentSetValue2(state.control_component, "mButtonDownFire", false)
         ComponentSetValue2(state.control_component, "mButtonDownFire2", false)
+        if dont_throw then
+            return
+        end
         ComponentSetValue2(state.control_component, "mButtonDownRightClick", true)
         ComponentSetValue2(state.control_component, "mButtonDownThrow", true)
         if not throw then
@@ -208,6 +254,7 @@ local function choose_wand_actions()
         elseif state.aim_down then
             t_y = t_y + 5
         end
+        dont_throw = false
         aim_at(t_x, t_y)
 
         fire_wand(not last_did_hit and state.init_timer > 90)-- or has_water_potion)
@@ -457,7 +504,6 @@ local left_held = false
 
 local right_held = false
 
-local stop_potion = false
 
 local function update()
     -- No taking control back, even after pressing esc.
