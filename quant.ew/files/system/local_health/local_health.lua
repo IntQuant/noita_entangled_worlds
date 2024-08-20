@@ -59,6 +59,7 @@ end
 local function player_died()
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
+    remove_inventory()
     local perk_data = perk_fns.get_my_perks()
     local _, max_hp = util.get_ent_health(ctx.my_player.entity)
 

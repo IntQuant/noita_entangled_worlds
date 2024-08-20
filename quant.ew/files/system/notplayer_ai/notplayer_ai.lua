@@ -17,8 +17,12 @@ local bad_mats = {"magic_liquid_random_polymorph",
                   "acid",
                   "creepy_liquid",
                   "cursed_liquid",
-                  "poison", "just_death",
+                  "poison",
+                  "just_death",
                   "lava",
+                  "pus",
+                  "material_confusion",
+                  "material_darkness",
                   "mimic_liquid",
                   "void_liquid",
                   "magic_liquid_weakness",
@@ -27,7 +31,7 @@ local bad_mats = {"magic_liquid_random_polymorph",
 
 local function get_bad_potions()
     local potions = {}
-    local items = GameGetAllInventoryItems(ctx.my_player.entity) or {}
+    local items = GameGetAllInventoryItems(ctx.my_player.entity)
     for _, item in ipairs(items) do
         if EntityHasTag(item, "potion") then
             local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
@@ -53,15 +57,25 @@ local function get_bad_potions()
     return potions
 end
 
+local has_potion = false
+
 local function aim_at(world_x, world_y)
     local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
     local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
     local dx, dy = world_x - ch_x, world_y - ch_y
+
+    if has_potion then
+        local dist_b = math.sqrt(dx * dx + dy * dy)
+        dx = 312 * dx / dist_b
+        dy = 312 * dy / dist_b
+    end
+
+    local dist = math.sqrt(dx * dx + dy * dy)
+
     ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
 
     ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
 
-    local dist = math.sqrt(dx * dx + dy * dy)
     if dist > 0 then
         -- ComponentSetValue2(state.control_component, "mAimingVectorNonZeroLatest", dx, dy)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", dx/dist, dy/dist)
@@ -69,8 +83,6 @@ local function aim_at(world_x, world_y)
 end
 
 local throw = false
-
-local has_potion = false
 
 local function fire_wand(enable)
     if has_potion then
@@ -396,7 +408,7 @@ local left_held = false
 local right_held = false
 
 local function update()
-    has_potion = #state.potions ~= 0 and GameGetFrameNum() % 300 > 290 and not last_did_hit
+    has_potion = #state.potions ~= 0 and GameGetFrameNum() % 300 > 295 and not last_did_hit
     if has_potion then
         np.SetActiveHeldEntity(state.entity, state.potions[1], false, false)
     else
