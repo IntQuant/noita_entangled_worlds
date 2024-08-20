@@ -27,18 +27,25 @@ function effect_sync.get_ent_effects(entity)
     return list
 end
 
+local local_by_remote_id = {}
+
 function effect_sync.on_world_update()
-    if GameGetFrameNum() % 30 ~= 9 then
-        return
+    if GameGetFrameNum() % 30 == 9 then
+        local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
+        local sync_data = {}
+        for _, effect in ipairs(effects) do
+            table.insert(sync_data, {effect, np.SerializeEntity(effect)})
+        end
+        rpc.send_effects(sync_data)
     end
-
-    local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
-    local sync_data = {}
-    for _, effect in ipairs(effects) do
-        table.insert(sync_data, {effect, np.SerializeEntity(effect)})
+    -- Cleanup
+    if GameGetFrameNum() % 120 == 9 then
+        for rem_id, loc_id in pairs(local_by_remote_id) do
+            if not EntityGetIsAlive(loc_id) then
+                local_by_remote_id[rem_id] = nil
+            end
+        end
     end
-
-    rpc.send_effects(sync_data)
 end
 
 function effect_sync.remove_all_effects(entity)
@@ -47,8 +54,6 @@ function effect_sync.remove_all_effects(entity)
         EntityKill(effect)
     end
 end
-
-local local_by_remote_id = {}
 
 function rpc.send_effects(effects)
     local entity = ctx.rpc_player_data.entity
