@@ -17,6 +17,8 @@ local bad_mats = {"magic_liquid_random_polymorph",
                   "acid",
                   "creepy_liquid",
                   "cursed_liquid",
+                  "liquid_fire",
+                  "liquid_fire_weak",
                   "poison",
                   "just_death",
                   "lava",
@@ -27,9 +29,28 @@ local bad_mats = {"magic_liquid_random_polymorph",
                   "void_liquid",
                   "magic_liquid_weakness",
                   "magic_liquid_teleportation",
-                  "magic_liquid_unstable_teleportation"}
+                  "magic_liquid_unstable_teleportation",
+                  "beer",
+                  "alcohol",
+                  "sima",
+                  "juhannussima",
+                  "slime",
+                  "slime_yellow",
+                  "slime_green"}
 
-local function get_bad_potions()
+local good_mats = {"magic_liquid_movement_faster",
+                   "magic_liquid_protection_all",
+                   "magic_liquid_berserk",
+                   "magic_liquid_mana_regeneration",
+                   "magic_liquid_faster_levitation_and_movement",
+                   "magic_liquid_hp_regeneration",
+                   "magic_liquid_invisibility",
+                   "magic_liquid_faster_levitation",
+                   "magic_liquid_hp_regeneration_unstable"}
+
+--local water_mats = {"water", "water_swamp", "water_salt"}
+
+local function get_potions_of_type(type)
     local potions = {}
     local items = GameGetAllInventoryItems(ctx.my_player.entity)
     for _, item in ipairs(items) do
@@ -40,7 +61,7 @@ local function get_bad_potions()
             for id, amt in pairs(materials) do
                 local name = CellFactory_GetName(id)
                 local use = false
-                for _, n in ipairs(bad_mats) do
+                for _, n in ipairs(type) do
                     if name == n then
                         use = true
                     end
@@ -52,19 +73,46 @@ local function get_bad_potions()
             if total >= 500 then
                 table.insert(potions, item)
             end
+        elseif type == bad_mats then
+            local name = EntityGetFilename(item)
+            if EntityHasTag(item, "evil_eye") or name == "data/entities/items/pickup/physics_die.xml" or name == "data/entities/items/pickup/physics_greed_die.xml" then
+                table.insert(potions, item)
+            end
         end
     end
+    print(#potions)
     return potions
 end
 
-local has_potion = false
+--[[local function needs_douse(entity)
+    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+        if com ~= nil then
+            local name = ComponentGetValue2(com, "effect")
+            if name == "ON_FIRE" or name == "RADIOACTIVE" then
+                return true
+            end
+        end
+    end
+    return false
+end]]
+
+local bad_potion
+local good_potion
+--local has_water_potion = false
 
 local function aim_at(world_x, world_y)
+    if good_potion ~= nil then
+        ComponentSetValue2(state.control_component, "mAimingVector", 0, 312)
+        ComponentSetValue2(state.control_component, "mAimingVectorNormalized", 0, 1)
+        ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
+        return
+    end
     local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
     local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
     local dx, dy = world_x - ch_x, world_y - ch_y
 
-    if has_potion then
+    if has_bad_potion then
         local dist_b = math.sqrt(dx * dx + dy * dy)
         dx = 312 * dx / dist_b
         dy = 312 * dy / dist_b
@@ -85,7 +133,7 @@ end
 local throw = false
 
 local function fire_wand(enable)
-    if has_potion then
+    if bad_potion ~= nil or good_potion ~= nil then
         ComponentSetValue2(state.control_component, "mButtonDownFire", false)
         ComponentSetValue2(state.control_component, "mButtonDownFire2", false)
         ComponentSetValue2(state.control_component, "mButtonDownRightClick", true)
@@ -118,7 +166,9 @@ local function init_state()
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
         gui_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
 
-        potions = get_bad_potions(),
+        bad_potions = get_potions_of_type(bad_mats),
+        good_potions = get_potions_of_type(good_mats),
+        --water_potions = get_potions_of_type(water_mats),
 
         attack_wand = wandfinder.find_attack_wand(),
 
@@ -148,7 +198,7 @@ local function is_suitable_target(entity)
 end
 
 local function choose_wand_actions()
-    if state.attack_wand ~= nil and target ~= nil and EntityGetIsAlive(target) then
+    if (state.attack_wand ~= nil or has_bad_potion) and target ~= nil and EntityGetIsAlive(target) then
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(target)
@@ -160,7 +210,7 @@ local function choose_wand_actions()
         end
         aim_at(t_x, t_y)
 
-        fire_wand(not last_did_hit and state.init_timer > 90)
+        fire_wand(not last_did_hit and state.init_timer > 90)-- or has_water_potion)
         return
     end
     fire_wand(false)
@@ -252,7 +302,7 @@ local function choose_movement()
     if rest and GameGetFrameNum() % 300 == 250 then
         rest = false
     end
-    if rest then
+    if rest or good_potion ~= nil then --or has_water_potion then
         state.control_w = false
     end
 end
@@ -351,16 +401,16 @@ end
 
 local camera_player = -1
 
-local camera_target = nil
+local camera_target
 
-local inventory_target = nil
+local inventory_target
 
 local function set_camera_pos()
     if camera_player < 1 then
         camera_player = 1000
     end
     local i = 0
-    local cam_target = nil
+    local cam_target
     for peer_id, potential_target in pairs(ctx.players) do
         local entity = potential_target.entity
         i = i + 1
@@ -407,19 +457,9 @@ local left_held = false
 
 local right_held = false
 
-local function update()
-    has_potion = #state.potions ~= 0 and GameGetFrameNum() % 300 > 295 and not last_did_hit
-    if has_potion then
-        np.SetActiveHeldEntity(state.entity, state.potions[1], false, false)
-    else
-        if state.attack_wand ~= nil then
-            np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
-        end
-    end
-    if has_potion and GameGetFrameNum() % 300 == 299 then
-        table.remove(state.potions, 1)
-    end
+local stop_potion = false
 
+local function update()
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
 
@@ -437,13 +477,19 @@ local function update()
 
     if target ~= nil then
         local x1, y1 = EntityGetTransform(target)
-        local dx = ch_x - x1
-        local dy = ch_y - y1
-        local dist = dx*dx + dy*dy
-        if not is_suitable_target(target) or (dist > 600 * 600) or (IsInvisible(target) and dist > 50*50) then
+        if x1 == nil then
             target = nil
             last_length = nil
             last_did_hit = true
+        else
+            local dx = ch_x - x1
+            local dy = ch_y - y1
+            local dist = dx*dx + dy*dy
+            if not is_suitable_target(target) or (dist > 600 * 600) or (IsInvisible(target) and dist > 50*50) then
+                target = nil
+                last_length = nil
+                last_did_hit = true
+            end
         end
     end
     if target ~= nil then
@@ -508,6 +554,44 @@ local function update()
         end
     end
     local do_kick = last_length ~= nil and last_length < 100
+
+    local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
+    local holding = ComponentGetValue2(inventory, "mActualActiveItem")
+    if bad_potion ~= nil and (holding == nil or holding ~= bad_potion) then
+        table.remove(state.bad_potions, 1)
+        bad_potion = nil
+        stop_potion = true
+    end
+    if good_potion ~= nil and (holding == nil or holding ~= good_potion) then
+        table.remove(state.good_potions, 1)
+        good_potion = nil
+        stop_potion = true
+    end
+
+    if GameGetFrameNum() % 120 == 60 then
+        stop_potion = false
+    end
+    local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
+    --has_water_potion = #state.water_potions ~= 0 and ground_below and needs_douse(ctx.my_player.entity)
+    local has_bad_potion =  #state.bad_potions ~= 0  and GameGetFrameNum() % 120 > 100 and not last_did_hit and state.init_timer > 120 and not stop_potion
+    local has_good_potion = #state.good_potions ~= 0 and GameGetFrameNum() % 120 < 20   and not last_did_hit and state.init_timer > 120 and not stop_potion and ground_below
+    --if has_water_potion then
+    --   np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
+    if has_bad_potion or bad_potion ~= nil then
+        np.SetActiveHeldEntity(state.entity, state.bad_potions[1], false, false)
+        if bad_potion == nil then
+            bad_potion = state.bad_potions[1]
+        end
+    elseif has_good_potion or good_potion ~= nil then
+        np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
+        if good_potion == nil then
+            good_potion = state.good_potions[1]
+        end
+    else
+        if state.attack_wand ~= nil then
+            np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
+        end
+    end
 
     if do_kick then
         fire_wand(false)

@@ -14,11 +14,20 @@ end
 function inventory_helper.get_all_inventory_items(player_data)
     local items = GameGetAllInventoryItems(player_data.entity) or {}
     local result = {}
+    local kill = {}
     for _, item in pairs(items) do
+        if EntityGetFilename(item) == "data/entities/base_item.xml" then
+            table.insert(kill, item)
+            goto continue
+        end
         table.insert(result, item)
         for _, sub_item in pairs(EntityGetAllChildren(item) or {}) do
             table.insert(result, sub_item)
         end
+        ::continue::
+    end
+    for _, item in ipairs(kill) do
+        EntityKill(item)
     end
     return result
 end

@@ -10,6 +10,8 @@ local perks_to_ignore = {
     PERKS_LOTTERY = true,
     REMOVE_FOG_OF_WAR = true,
     MEGA_BEAM_STONE = true,
+    TELEPORTITIS = true,
+    TELEPORTITIS_DODGE = true,
     ALWAYS_CAST = true,
     EXTRA_SLOTS = true,
     EXTRA_PERK = true,
@@ -57,11 +59,11 @@ local function give_one_perk(entity_who_picked, perk_info, count)
     -- particle effect only applied once
     if perk_info.particle_effect ~= nil and ( count <= 1 ) then
         local particle_id = EntityLoad( "data/entities/particles/perks/" .. perk_info.particle_effect .. ".xml" )
-        
+
         if ( no_remove == false ) then
             EntityAddTag( particle_id, "perk_entity" )
         end
-        
+
         EntityAddChild( entity_who_picked, particle_id )
     end
 end
@@ -86,7 +88,7 @@ function perk_fns.update_perks(perk_data, player_data)
                         give_one_perk(entity, perk_info, i)
                     end
                 end
-            end 
+            end
         end
         ::continue::
     end
