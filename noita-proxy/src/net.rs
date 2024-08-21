@@ -523,6 +523,7 @@ impl NetManager {
                     self.world_info.update_player_pos(peer_id, x, y);
                 }
             }
+            Some("reset_world") => state.world.reset(),
             key => {
                 error!("Unknown msg from mod: {:?}", key)
             }

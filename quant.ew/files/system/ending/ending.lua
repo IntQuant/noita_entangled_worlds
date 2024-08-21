@@ -17,6 +17,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     local entity = EntityCreateNew("totally_sampo")
     EntitySetTransform(entity, sx, sy)
 
+    -- Emulate the following script being called from LuaComponent
     local old_updated = GetUpdatedEntityID
     function GetUpdatedEntityID()
         return entity
@@ -25,6 +26,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     dofile("data/entities/animals/boss_centipede/ending/sampo_start_ending_sequence.lua")
 
     GetUpdatedEntityID = old_updated
+    net.proxy_send("reset_world", "")
 end
 
 np.CrossCallAdd("ew_ending_sequence", function(sx, sy, sampo_ent)
