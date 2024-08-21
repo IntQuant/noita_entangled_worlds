@@ -55,6 +55,17 @@ local function tp_button(label, x, y)
     end
 end
 
+local function show_game_effects()
+    local entity = ctx.my_player.entity
+    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+        if com ~= nil then
+            local name = ComponentGetValue2(com, "effect")
+            imgui.Text(name)
+        end
+    end
+end
+
 function module.on_world_update_post()
     if imgui.Begin("EW Debug stuff") then
         if imgui.CollapsingHeader("General") then
@@ -82,6 +93,9 @@ function module.on_world_update_post()
             tp_button("The Work", 6300, 15155)
             tp_button("Meat realm", 7328, 9263)
             tp_button("Kivi", 7427, -4960)
+        end
+        if imgui.CollapsingHeader("Game effects") then
+            show_game_effects()
         end
         -- imgui.Text("lalala")
         imgui.End()
