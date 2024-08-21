@@ -75,7 +75,7 @@ local function get_potions_of_type(type)
             end
         elseif type == bad_mats then
             local name = EntityGetFilename(item)
-            if EntityHasTag(item, "evil_eye") or name == "data/entities/items/pickup/physics_die.xml" or name == "data/entities/items/pickup/physics_greed_die.xml" then
+            if EntityHasTag(item, "evil_eye") or EntityHasTag(item, "thunderstone") or EntityHasTag(item, "normal_tablet") or name == "data/entities/items/pickup/physics_die.xml" or name == "data/entities/items/pickup/physics_greed_die.xml" then
                 table.insert(potions, item)
             end
         end
@@ -626,8 +626,29 @@ local function update()
 
     local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
     local holding = ComponentGetValue2(inventory, "mActualActiveItem")
+    local i = 1
+    local tablet = false
+    if target ~= nil and EntityHasTag(target, "polymorphed") then
+        for j, item in ipairs(state.bad_potions) do
+            if EntityHasTag(item, "normal_tablet") then
+                i = j
+                tablet = true
+                break
+            end
+        end
+    end
+    local can_not_tablet=false
+    if not tablet then
+        for j, item in ipairs(state.bad_potions) do
+            if not EntityHasTag(item, "normal_tablet") then
+                i = j
+                can_not_tablet = true
+                break
+            end
+        end
+    end
     if bad_potion ~= nil and (holding == nil or holding ~= bad_potion) then
-        table.remove(state.bad_potions, 1)
+        table.remove(state.bad_potions, i)
         bad_potion = nil
         stop_potion = true
     end
@@ -651,8 +672,8 @@ local function update()
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
     local has_water_potion = #state.water_potions ~= 0 and needs_douse(ctx.my_player.entity) and state.init_timer < 90
-    local has_bad_potion = not has_water_potion and #state.bad_potions ~= 0  and GameGetFrameNum() % 120 > 100 and not last_did_hit and state.init_timer > 120 and not stop_potion
-    local has_good_potion = not has_water_potion and #state.good_potions ~= 0 and GameGetFrameNum() % 120 < 20   and not last_did_hit and state.init_timer > 120 and not stop_potion and ground_below
+    local has_bad_potion = not has_water_potion and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
+    local has_good_potion = not has_water_potion and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
   --[[if has_water_potion then
         np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
         if water_potion == nil then
@@ -660,10 +681,10 @@ local function update()
         end
         bathe = true
     else]]
-    if has_bad_potion or bad_potion ~= nil then
-        np.SetActiveHeldEntity(state.entity, state.bad_potions[1], false, false)
+    if (has_bad_potion or bad_potion ~= nil) and  (can_not_tablet or tablet) then
+        np.SetActiveHeldEntity(state.entity, state.bad_potions[i], false, false)
         if bad_potion == nil then
-            bad_potion = state.bad_potions[1]
+            bad_potion = state.bad_potions[i]
         end
     elseif has_good_potion or good_potion ~= nil then
         np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
