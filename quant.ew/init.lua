@@ -130,7 +130,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             rng = initial_rng
             table.insert(shooter_player_data.projectile_rng_init, rng)
         else
-            rng = shooter_player_data.projectile_seed_chain[entity_that_shot] + 25
+            rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     else
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then

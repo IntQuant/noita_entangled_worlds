@@ -481,9 +481,11 @@ function enemy_sync.on_projectile_fired(shooter_id, projectile_id, initial_rng, 
     local not_a_player = not EntityHasTag(shooter_id, "ew_no_enemy_sync") and not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client")
     if not_a_player and ctx.is_host then
         local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
-        local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
-        if entity_that_shot == 0 then
-            rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y, shooter_id, initial_rng)
+        if projectileComponent ~= nil then
+            local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+            if entity_that_shot == 0 then
+                rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y, shooter_id, initial_rng)
+            end
         end
     end
 end

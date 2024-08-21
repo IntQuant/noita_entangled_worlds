@@ -33,6 +33,7 @@ local bad_mats = {"magic_liquid_random_polymorph",
                   "beer",
                   "alcohol",
                   "sima",
+                  "blood_cold",
                   "juhannussima",
                   "slime",
                   "slime_yellow",
@@ -529,7 +530,7 @@ local function set_camera_pos()
             camera_target = ctx.my_player.entity
         end
         if camera_target ~= cam_target then
-            if ctx.my_player.entity ~= camera_target then
+            if ctx.my_player.entity ~= camera_target and inventory_target ~= nil then
                 EntityRemoveComponent(camera_target, inventory_target)
             end
 
