@@ -34,7 +34,7 @@ function effect_sync.on_world_update()
         local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
         local sync_data = {}
         for _, effect in ipairs(effects) do
-            table.insert(sync_data, {effect, np.SerializeEntity(effect)})
+            table.insert(sync_data, {effect, EntityGetFilename(effect)})
         end
         rpc.send_effects(sync_data)
     end
@@ -61,8 +61,7 @@ function rpc.send_effects(effects)
     for _, effect in ipairs(effects) do
         local effect_remote_id = effect[1]
         if local_by_remote_id[effect_remote_id] == nil or not EntityGetIsAlive(local_by_remote_id[effect_remote_id]) then
-            local ent = EntityCreateNew()
-            np.DeserializeEntity(ent, effect[2])
+            local ent = EntityLoad(effect[2])
             EntityAddChild(entity, ent)
             -- GamePrint("Replicating "..effect_remote_id.." as "..ent)
             local_by_remote_id[effect_remote_id] = ent
