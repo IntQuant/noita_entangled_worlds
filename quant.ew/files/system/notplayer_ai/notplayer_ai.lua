@@ -48,7 +48,7 @@ local good_mats = {"magic_liquid_movement_faster",
                    "magic_liquid_faster_levitation",
                    "magic_liquid_hp_regeneration_unstable"}
 
-local water_mats = {"water", "water_swamp", "water_salt"}
+local water_mats = {"water", "water_swamp", "water_salt", "blood"}
 
 local function get_potions_of_type(type)
     local potions = {}
@@ -122,6 +122,10 @@ local function aim_at(world_x, world_y)
         local v = 180
         local g = 156
         dy = -dy
+        local is_behind = dx<0
+        if is_behind then
+            dx = -dx
+        end
         local lhs = v*v/(g*dx)
         local interior = v*v*v*v - g*g*dx*dx - 2*g*dy*v*v
         if interior < 0 then
@@ -147,18 +151,30 @@ local function aim_at(world_x, world_y)
                 theta = theta2
             end
         end
-        if dx < 0 then
-            if theta == theta1 then
-                theta = theta2
-            else
-                theta = theta1
+        local cos = 1 / math.sqrt(theta*theta+1)
+        local sin = theta * cos
+        if theta > theta1 or theta > theta2 then
+            local t = v * sin / g
+            local x = v*t*cos
+            local y = v*t*sin-g*t*t/2
+            if is_behind then
+                x = -x
+            end
+            local did_hit_1, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x + x, ch_y + y)
+            local did_hit_2, _, _ = RaytracePlatforms(ch_x + x, ch_y + y, world_x, world_y)
+            if did_hit_1 or did_hit_2 then
+                if theta == theta1 then
+                    theta = theta2
+                else
+                    theta = theta1
+                end
+                cos = 1 / math.sqrt(theta*theta+1)
+                sin = theta * cos
             end
         end
-        local cos = 1 / math.sqrt(theta*theta+1)
-        if dx < 0 then
+        if is_behind then
             cos = -cos
         end
-        local sin = theta * cos
         ComponentSetValue2(state.control_component, "mAimingVector", cos * 312, -sin * 312)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", cos, -sin)
     else
