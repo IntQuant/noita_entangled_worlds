@@ -68,7 +68,7 @@ function rpc.send_effects(effects)
             local_by_remote_id[effect_remote_id] = ent
             local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
             if com ~= nil then
-                ComponentSetValue2(com, "frames", -1)
+                ComponentSetValue2(com, "frames", 999999999)
             end
         end
         confirmed_effects[local_by_remote_id[effect_remote_id]] = true

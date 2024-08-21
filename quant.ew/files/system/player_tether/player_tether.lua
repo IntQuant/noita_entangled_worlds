@@ -6,6 +6,27 @@ local tether_length_2 = tether_length + 200
 
 local module = {}
 
+local function is_in_box(x1, x2, y1, y2, x, y)
+    return x1 < x and x < x2 and y1 < y and y < y2
+end
+
+local function in_normal_hm(list, x, y)
+    local x1 = -1024
+    local x2 = 512
+    local dy = 338
+    for _, y1 in ipairs(list) do
+        if is_in_box(x1, x2, y1, y1 + dy, x, y) then
+            return true
+        end
+    end
+    return false
+end
+
+local function not_in_hm(x, y)
+    local list = {1198, 2734, 4782, 6318, 8366, 10414}
+    return not (in_normal_hm(list, x, y) or is_in_box(1536, 2726, 12798, 13312, x, y))
+end
+
 function module.on_client_spawned(peer_id, new_playerdata)
     local is_host = peer_id == ctx.host_id
     if is_host then
@@ -31,7 +52,7 @@ function module.on_world_update_client()
         local dx = x1-x2
         local dy = y1-y2
         local dist_sq = dx*dx + dy*dy
-        if dist_sq > tether_length_2 * tether_length_2 then
+        if dist_sq > tether_length_2 * tether_length_2 and not_in_hm(x1, y1) and not_in_hm(x2, y2) then
             EntitySetTransform(ctx.my_player.entity, x1, y1)
         end
     end
