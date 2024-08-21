@@ -310,6 +310,7 @@ local function choose_movement()
     local LIM = give_space
     if swap_side and (on_right ~= (my_x > t_x) or GameGetFrameNum() % 300 == 299) then
         swap_side = false
+        give_space = 100
     end
     if swap_side then
         LIM = 0
@@ -390,6 +391,9 @@ local function choose_movement()
         state.control_w = false
         state.control_a = false
         state.control_d = false
+    end
+    if give_space > 50 and GameGetFrameNum() % 30 == 0 and not last_did_hit then
+        give_space = give_space - 10
     end
 end
 
