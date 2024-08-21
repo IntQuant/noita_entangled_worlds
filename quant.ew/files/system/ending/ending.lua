@@ -27,9 +27,10 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     GetUpdatedEntityID = old_updated
 end
 
-np.CrossCallAdd("ew_ending_sequence", function(sx, sy)
+np.CrossCallAdd("ew_ending_sequence", function(sx, sy, sampo_ent)
     local x, y = EntityGetTransform(ctx.my_player.entity)
     rpc.gather_and_do_ending(x, y, sx, sy)
+    EntityKill(sampo_ent)
 end)
 
 return module
