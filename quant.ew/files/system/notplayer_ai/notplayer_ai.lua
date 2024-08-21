@@ -48,7 +48,7 @@ local good_mats = {"magic_liquid_movement_faster",
                    "magic_liquid_faster_levitation",
                    "magic_liquid_hp_regeneration_unstable"}
 
---local water_mats = {"water", "water_swamp", "water_salt"}
+local water_mats = {"water", "water_swamp", "water_salt"}
 
 local function get_potions_of_type(type)
     local potions = {}
@@ -84,7 +84,7 @@ local function get_potions_of_type(type)
     return potions
 end
 
---[[local function needs_douse(entity)
+local function needs_douse(entity)
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         local com = EntityGetFirstComponent(ent, "GameEffectComponent")
         if com ~= nil then
@@ -95,17 +95,19 @@ end
         end
     end
     return false
-end]]
+end
 
 local bad_potion
 local good_potion
---local has_water_potion = false
+local water_potion
 
 local dont_throw = true
 local stop_potion = false
 
+local bathe = false
+
 local function aim_at(world_x, world_y)
-    if good_potion ~= nil then
+    if good_potion ~= nil or water_potion ~= nil then
         ComponentSetValue2(state.control_component, "mAimingVector", 0, 312)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", 0, 1)
         ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
@@ -190,6 +192,9 @@ local function fire_wand(enable)
         end
         throw = true
     else
+        if water_potion ~= nil then
+            enable = true
+        end
         ComponentSetValue2(state.control_component, "mButtonDownRightClick", false)
         ComponentSetValue2(state.control_component, "mButtonDownThrow", false)
         ComponentSetValue2(state.control_component, "mButtonDownFire", enable)
@@ -214,7 +219,7 @@ local function init_state()
 
         bad_potions = get_potions_of_type(bad_mats),
         good_potions = get_potions_of_type(good_mats),
-        --water_potions = get_potions_of_type(water_mats),
+        water_potions = get_potions_of_type(water_mats),
 
         attack_wand = wandfinder.find_attack_wand(),
 
@@ -307,6 +312,15 @@ local function choose_movement()
         if did_hit then
             state.control_w = false
             stop_y = true
+            local did_hit_down, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 5)
+            if did_hit_down then
+                if give_space == 100 then
+                    give_space = math.abs(dist)
+                else
+                    give_space = give_space + 10
+                end
+                swap_side = false
+            end
         end
     else
         if stop_y and (GameGetFrameNum() % 300) > 200 then
@@ -353,8 +367,13 @@ local function choose_movement()
     if rest and GameGetFrameNum() % 300 == 60 then
         rest = false
     end
-    if rest or good_potion ~= nil then --or has_water_potion then
+    if rest or stop_y then
         state.control_w = false
+    end
+    if bathe then
+        state.control_w = false
+        state.control_a = false
+        state.control_d = false
     end
 end
 
@@ -616,17 +635,31 @@ local function update()
         table.remove(state.good_potions, 1)
         good_potion = nil
         stop_potion = true
+        bathe = true
+    end
+    if water_potion ~= nil and state.init_timer >= 90 then
+        water_potion = nil
+        bathe = false
+    end
+
+    if GameGetFrameNum() % 120 == 40 then
+        bathe = false
     end
 
     if GameGetFrameNum() % 120 == 60 then
         stop_potion = false
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
-    --has_water_potion = #state.water_potions ~= 0 and ground_below and needs_douse(ctx.my_player.entity)
-    local has_bad_potion =  #state.bad_potions ~= 0  and GameGetFrameNum() % 120 > 100 and not last_did_hit and state.init_timer > 120 and not stop_potion
-    local has_good_potion = #state.good_potions ~= 0 and GameGetFrameNum() % 120 < 20   and not last_did_hit and state.init_timer > 120 and not stop_potion and ground_below
-    --if has_water_potion then
-    --   np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
+    local has_water_potion = #state.water_potions ~= 0 and needs_douse(ctx.my_player.entity) and state.init_timer < 90
+    local has_bad_potion = not has_water_potion and #state.bad_potions ~= 0  and GameGetFrameNum() % 120 > 100 and not last_did_hit and state.init_timer > 120 and not stop_potion
+    local has_good_potion = not has_water_potion and #state.good_potions ~= 0 and GameGetFrameNum() % 120 < 20   and not last_did_hit and state.init_timer > 120 and not stop_potion and ground_below
+  --[[if has_water_potion then
+        np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
+        if water_potion == nil then
+            water_potion = state.water_potions[1]
+        end
+        bathe = true
+    else]]
     if has_bad_potion or bad_potion ~= nil then
         np.SetActiveHeldEntity(state.entity, state.bad_potions[1], false, false)
         if bad_potion == nil then
