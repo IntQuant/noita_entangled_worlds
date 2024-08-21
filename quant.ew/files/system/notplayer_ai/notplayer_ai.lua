@@ -392,8 +392,12 @@ local function choose_movement()
         state.control_a = false
         state.control_d = false
     end
-    if give_space > 50 and GameGetFrameNum() % 30 == 0 and not last_did_hit then
-        give_space = give_space - 10
+    if GameGetFrameNum() % 20 == 0 and not last_did_hit then
+        if give_space > 50 then
+            give_space = give_space - 10
+        else
+            give_space = 100
+        end
     end
 end
 
@@ -671,16 +675,19 @@ local function update()
         table.remove(state.bad_potions, i)
         bad_potion = nil
         stop_potion = true
+        do_kick = true
     end
     if good_potion ~= nil and (holding == nil or holding ~= good_potion) then
         table.remove(state.good_potions, 1)
         good_potion = nil
         stop_potion = true
         bathe = true
+        do_kick = true
     end
     if water_potion ~= nil and state.init_timer >= 90 then
         water_potion = nil
         bathe = false
+        do_kick = true
     end
 
     if GameGetFrameNum() % 120 == 40 then
@@ -716,7 +723,6 @@ local function update()
             np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         end
     end
-
     if do_kick then
         fire_wand(false)
         ComponentSetValue2(state.control_component, "mButtonDownKick", true)
