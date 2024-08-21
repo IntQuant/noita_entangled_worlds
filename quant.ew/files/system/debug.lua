@@ -93,6 +93,7 @@ function module.on_world_update_post()
             tp_button("The Work", 6300, 15155)
             tp_button("Meat realm", 7328, 9263)
             tp_button("Kivi", 7427, -4960)
+            tp_button("Null altar", 14000, 7500)
         end
         if imgui.CollapsingHeader("Game effects") then
             show_game_effects()

@@ -1,4 +1,4 @@
-<Entity >
+<Entity name="cape">
 
     <VerletPhysicsComponent
     	num_points="150"
