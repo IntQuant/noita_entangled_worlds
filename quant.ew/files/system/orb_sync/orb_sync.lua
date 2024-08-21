@@ -1,5 +1,7 @@
 local rpc = net.new_rpc_namespace()
 
+local last_orb_count = 0
+
 local module = {}
 
 local function orbs_found_this_run()
@@ -25,16 +27,15 @@ function rpc.update_orbs(found_orbs)
         EntitySetTransform(orb_ent, x, y)
         ::continue::
     end
+    -- Prevent excess rpcs.
+    last_orb_count = GameGetOrbCountThisRun()
 end
 
 local function send_orbs()
-    GamePrint("sending orbs")
     rpc.update_orbs(orbs_found_this_run())
 end
 
-local last_orb_count = 0
-
-function module.on_world_update_host()
+function module.on_world_update()
     if last_orb_count ~= GameGetOrbCountThisRun() then
         last_orb_count = GameGetOrbCountThisRun()
         send_orbs()
