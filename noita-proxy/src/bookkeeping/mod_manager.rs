@@ -123,6 +123,22 @@ impl ModmanagerSettings {
         path.push("quant.ew");
         path
     }
+
+    pub fn get_progress(&self) -> Option<Vec<String>> {
+        let flags_path = self
+            .game_save_path
+            .as_ref()?
+            .join("save00/persistent/flags/");
+        Some(
+            fs::read_dir(&flags_path)
+                .inspect_err(|e| warn!("Could not read progress: read_dir failed: {e}"))
+                .ok()?
+                .filter_map(|entry| entry.ok())
+                .filter_map(|entry| entry.file_name().into_string().ok())
+                .collect(),
+        )
+        .inspect(|progress: &Vec<String>| info!("Found {} progress entries", progress.len()))
+    }
 }
 
 impl Modmanager {

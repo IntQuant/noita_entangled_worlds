@@ -68,6 +68,7 @@ pub struct GameSettings {
     game_mode: GameMode,
     friendly_fire: bool,
     enemy_sync_interval: u32,
+    progress: Vec<String>,
 }
 
 impl Default for GameSettings {
@@ -85,6 +86,7 @@ impl Default for GameSettings {
             game_mode: GameMode::SharedHealth,
             friendly_fire: false,
             enemy_sync_interval: 2,
+            progress: Vec::new(),
         }
     }
 }
@@ -392,6 +394,7 @@ impl App {
         } else {
             info!("Using constant seed: {}", settings.seed);
         }
+        settings.progress = self.modmanager_settings.get_progress().unwrap_or_default();
         *netman.pending_settings.lock().unwrap() = settings.clone();
         netman.accept_local.store(true, Ordering::SeqCst);
     }

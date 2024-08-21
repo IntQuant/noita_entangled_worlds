@@ -2,10 +2,10 @@ local function early_init()
 	if #ModLuaFileGetAppends("mods/quant.ew/files/core/early_init.lua") == 0 then
 		-- Use appends to store data
 		ModLuaFileAppend("mods/quant.ew/files/core/early_init.lua", "data/scripts/empty.lua")
-
+		
 		-- Early init stuff, called before main "mod" is loaded. Meaning we can append to data/scripts/init.lua
+		dofile("mods/quant.ew/files/core/early_init.lua")
 	end
-	ModLuaFileAppend("data/scripts/init.lua", "mods/quant.ew/files/resource/append/no_default_death_handling.lua")
 end
 
 

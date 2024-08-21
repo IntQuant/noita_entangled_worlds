@@ -93,6 +93,7 @@ local function load_modules()
     ctx.load_system("amulet_sync")
     ctx.load_system("game_effect_sync")
     ctx.load_system("orb_sync")
+    ctx.load_system("flag_sync")
     -- ctx.load_system("effect_data_sync")
 end
 

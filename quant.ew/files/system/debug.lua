@@ -96,6 +96,7 @@ function module.on_world_update_post()
             tp_button("Null altar", 14000, 7500)
             tp_button("Orb 0", 765.510, -1075.003)
             tp_button("Orb 7", 4262.749, 887.997)
+            tp_button("Tree", -1901.962, -1405.003)
         end
         if imgui.CollapsingHeader("Game effects") then
             show_game_effects()

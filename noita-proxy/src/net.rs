@@ -431,6 +431,8 @@ impl NetManager {
         state.try_ws_write_option("game_mode", settings.game_mode);
         state.try_ws_write_option("friendly_fire", settings.friendly_fire);
         state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval);
+        let progress = settings.progress.join(",");
+        state.try_ws_write_option("progress", progress.as_str());
 
         state.try_ws_write(ws_encode_proxy("ready", ""));
         // TODO? those are currently ignored by mod
