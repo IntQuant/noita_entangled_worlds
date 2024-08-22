@@ -45,8 +45,8 @@ local function load_modules()
 
 
     if ctx.proxy_opt.game_mode == "shared_health" then
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/damage/sync.lua")
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/heart_pickups/sync.lua")
+        ctx.load_system("damage")
+        ctx.load_system("heart_pickups")
         ctx.load_system("patch_meat_biome")
         ctx.load_system("kivi_patch")
     end
@@ -62,9 +62,9 @@ local function load_modules()
         ctx.dofile_and_add_hooks("mods/quant.ew/files/system/debug.lua")
     end
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/fungal_shift/sync.lua")
+    ctx.load_system("fungal_shift")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/weather_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/polymorph/sync.lua")
+    ctx.load_system("polymorph")
 
     if ctx.proxy_opt.world_sync_version == 1 then
         ctx.dofile_and_add_hooks("mods/quant.ew/files/system/world_sync_v1.lua")
@@ -72,16 +72,16 @@ local function load_modules()
         ctx.dofile_and_add_hooks("mods/quant.ew/files/system/world_sync_v2.lua")
     end
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/spawn_hooks/init.lua")
+    ctx.load_system("spawn_hooks")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/perk_patches/init.lua")
+    ctx.load_system("perk_patches")
 
     if ctx.proxy_opt.player_tether then
-        ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_tether/player_tether.lua")
+        ctx.load_system("player_tether")
     end
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/kolmi/kolmi.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/ending/ending.lua")
+    ctx.load_system("kolmi")
+    ctx.load_system("ending")
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")
 
