@@ -27,7 +27,8 @@ ctx.init = function()
 end
 
 local function is_measure_perf_enabled()
-    return ctx.proxy_opt.debug
+    -- return ctx.proxy_opt.debug
+    return false
 end
 
 function ctx.dofile_and_add_hooks(path, system_name)

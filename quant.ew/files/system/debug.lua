@@ -97,6 +97,8 @@ function module.on_world_update_post()
             tp_button("Orb 0", 765.510, -1075.003)
             tp_button("Orb 7", 4262.749, 887.997)
             tp_button("Tree", -1901.962, -1405.003)
+            tp_button("Essence - Laser", 16000, -1800.003)
+            tp_button("Essence - Eater", 12620.563, -141.003)
         end
         if imgui.CollapsingHeader("Game effects") then
             show_game_effects()
