@@ -328,10 +328,24 @@ fn mod_downloader_for(
         .timeout(None)
         .build()
         .wrap_err("Failed to build client")?;
-    get_release_by_tag(&client, tag)
-        .and_then(|release| release.get_release_assets(&client).wrap_err(""))
-        .and_then(|asset_list| asset_list.find_by_name("quant.ew.zip").cloned())
-        .and_then(|asset| asset.download(&client, &download_path))
+    get_release_by_tag(&client, tag.clone())
+        .wrap_err_with(|| format!("while getting release for tag {:?}", tag))
+        .and_then(|release| {
+            release
+                .get_release_assets(&client)
+                .wrap_err("while getting release assets")
+        })
+        .and_then(|asset_list| {
+            asset_list
+                .find_by_name("quant.ew.zip")
+                .cloned()
+                .wrap_err("while finding asset by name")
+        })
+        .and_then(|asset| {
+            asset
+                .download(&client, &download_path)
+                .wrap_err("while creating a downloader")
+        })
         .wrap_err("Failed to download mod")
 }
 
