@@ -281,10 +281,16 @@ function inventory_helper.set_item_data(item_data, player_data)
         return
     end
 
-    local items = GameGetAllInventoryItems(player) or {}
-    for _, item_id in ipairs(items) do
-        GameKillInventoryItem(player, item_id)
-        EntityKill(item_id)
+    local children = EntityGetAllChildren(player)
+    for _, child in pairs(children) do
+        if EntityGetName(child) == "inventory_quick" then
+            local inv = EntityGetAllChildren(child)
+            if inv ~= nil then
+                for _, item in pairs(inv) do
+                    EntityKill(item)
+                end
+            end
+        end
     end
 
 

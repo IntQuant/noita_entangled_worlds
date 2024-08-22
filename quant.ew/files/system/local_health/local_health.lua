@@ -33,9 +33,16 @@ local function remove_inventory_tags()
 end
 
 local function remove_inventory()
-    local items = GameGetAllInventoryItems(ctx.my_player.entity)
-    for _, item in ipairs(items) do
-        EntityKill(item)
+    local children = EntityGetAllChildren(ctx.my_player.entity)
+    for _, child in pairs(children) do
+        if EntityGetName(child) == "inventory_quick" then
+            local inv = EntityGetAllChildren(child)
+            if inv ~= nil then
+                for _, item in pairs(inv) do
+                    EntityKill(item)
+                end
+            end
+        end
     end
 end
 
