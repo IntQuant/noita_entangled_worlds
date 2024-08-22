@@ -5,7 +5,7 @@ use bookkeeping::{
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
-    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, InnerResponse,
+    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse,
     Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2, Window,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
@@ -254,7 +254,7 @@ fn square_button_text(ui: &mut Ui, text: &str, size: f32) -> egui::Response {
 
 fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
     let side = ui.available_width();
-    ui.add_sized([side, side], egui::widgets::ImageButton::new(icon)
+    ui.add_sized([side, side], ImageButton::new(icon)
         .rounding(ui.style().visuals.widgets.noninteractive.rounding) // Somewhy it doesnt inherit style correctly
     ) 
 }
