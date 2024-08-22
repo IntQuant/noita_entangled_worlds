@@ -16,6 +16,7 @@ button_select_again = 再選択
 button_back = 戻る
 
 button_set_lang = 言語を選択
+button_open_discord = Discordサーバー
 
 modman = MOD マネージャー
 modman_found_automatically = 見つかった場所:
