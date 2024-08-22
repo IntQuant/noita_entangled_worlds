@@ -32,7 +32,6 @@ enum State {
     CheckMod,
     Done,
     DownloadMod(Promise<Result<Downloader, ReleasesError>>),
-    Error(io::Error),
     EyreErrorReport(eyre::Report),
     UnpackMod(Promise<Result<(), ReleasesError>>),
     ConfirmInstall,

@@ -6,7 +6,6 @@ use std::{
 };
 
 use eframe::egui::{Align, Layout, Ui};
-use eyre::Context;
 use poll_promise::Promise;
 use reqwest::blocking::Client;
 use tracing::info;
