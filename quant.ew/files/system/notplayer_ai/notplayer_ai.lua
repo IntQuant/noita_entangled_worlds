@@ -76,13 +76,54 @@ local function get_potions_of_type(type)
             end
         elseif type == bad_mats then
             local name = EntityGetFilename(item)
-            if EntityHasTag(item, "evil_eye") or EntityHasTag(item, "thunderstone") or EntityHasTag(item, "normal_tablet") or name == "data/entities/items/pickup/physics_die.xml" or name == "data/entities/items/pickup/physics_greed_die.xml" then
+            if EntityHasTag(item, "evil_eye")
+                    or EntityHasTag(item, "thunderstone")
+                    or EntityHasTag(item, "normal_tablet")
+                    or name == "data/entities/items/pickup/physics_die.xml"
+                    or name == "data/entities/items/pickup/physics_greed_die.xml" then
                 table.insert(potions, item)
             end
         end
     end
     print(#potions)
     return potions
+end
+
+local do_kick
+
+local function find_new_wand()
+    local children = EntityGetAllChildren(state.attack_wand)
+    if children == nil then
+        table.insert(state.empty_wands, state.attack_wand)
+        state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
+        do_kick = true
+    else
+        local is_any_not_empty = false
+        for _, child in pairs(children) do
+            local is_proj = false
+            local sprites = EntityGetComponentIncludingDisabled(child, "SpriteComponent")
+            for _, sprite in pairs(sprites) do
+                local image = ComponentGetValue2(sprite, "image_file")
+                if image == "data/ui_gfx/inventory/item_bg_projectile.png"
+                        or image == "data/ui_gfx/inventory/item_bg_material.png"
+                        or image == "data/ui_gfx/inventory/item_bg_static_projectile.png"
+                        or image == "data/ui_gfx/inventory/item_bg_other.png" then
+                    is_proj = true
+                    break
+                end
+            end
+            local item = EntityGetFirstComponentIncludingDisabled(child, "ItemComponent")
+            if ComponentGetValue2(item, "uses_remaining") ~= 0 and is_proj then
+                is_any_not_empty = true
+                break
+            end
+        end
+        if not is_any_not_empty then
+            table.insert(state.empty_wands, state.attack_wand)
+            state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
+            do_kick = true
+        end
+    end
 end
 
 local function needs_douse(entity)
@@ -238,7 +279,9 @@ local function init_state()
         good_potions = get_potions_of_type(good_mats),
         water_potions = get_potions_of_type(water_mats),
 
-        attack_wand = wandfinder.find_attack_wand(),
+        attack_wand = wandfinder.find_attack_wand({}),
+        empty_wands = {},
+
 
         aim_up = false,
         aim_down = false,
@@ -645,8 +688,11 @@ local function update()
             end
         end
     end
-    local do_kick = last_length ~= nil and last_length < 100
+    do_kick = last_length ~= nil and last_length < 100
 
+    if GameGetFrameNum() % 20 == 0 then
+        find_new_wand()
+    end
     local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
     local holding = ComponentGetValue2(inventory, "mActualActiveItem")
     local i = 1
