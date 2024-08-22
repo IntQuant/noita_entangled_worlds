@@ -534,11 +534,15 @@ local function set_camera_pos()
                 EntityRemoveComponent(camera_target, inventory_target)
             end
 
+            inventory_target = nil
             if ctx.my_player.entity ~= cam_target then
                 inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
             end
-            EntityRemoveComponent(camera_target, EntityGetFirstComponent(camera_target, "AudioListenerComponent"))
-            EntityAddComponent2(cam_target, "AudioListenerComponent")
+            local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
+            if audio ~= nil then
+                EntityRemoveComponent(camera_target, audio)
+                EntityAddComponent2(cam_target, "AudioListenerComponent")
+            end
         end
         camera_target = cam_target
     end
@@ -552,17 +556,11 @@ local left_held = false
 
 local right_held = false
 
-
 local function update()
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
 
     state.init_timer = state.init_timer + 1
-
-    ComponentSetValue2(state.gui_component, "mActive", false)
-    if inventory_target ~= nil then
-        ComponentSetValue2(inventory_target, "mActive", false)
-    end
 
     local ch_x, ch_y = EntityGetTransform(state.entity)
     local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
@@ -782,6 +780,10 @@ local function update()
         right_held = false
     end
     set_camera_pos()
+    ComponentSetValue2(state.gui_component, "mActive", false)
+    if inventory_target ~= nil then
+        ComponentSetValue2(inventory_target, "mActive", false)
+    end
 end
 
 function module.on_world_update()
