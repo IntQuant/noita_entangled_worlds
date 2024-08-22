@@ -252,6 +252,13 @@ fn square_button_text(ui: &mut Ui, text: &str, size: f32) -> egui::Response {
     ui.add_sized([side, side], Button::new(RichText::new(text).size(size)))
 }
 
+fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
+    let side = ui.available_width();
+    ui.add_sized([side, side], egui::widgets::ImageButton::new(icon)
+        .rounding(ui.style().visuals.widgets.noninteractive.rounding) // Somewhy it doesnt inherit style correctly
+    ) 
+}
+
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
         let mut saved_state: AppSavedState = cc
@@ -477,7 +484,10 @@ impl App {
                     {
                         self.state = AppState::LangPick;
                     }
-                    if square_button_text(ui, "Discord server", 10.0).clicked() {
+                    if square_button_icon(ui, egui::Image::new(egui::include_image!("../assets/discord-mark-white.png")))
+                        .on_hover_text(tr("button_open_discord"))
+                        .clicked()
+                    {
                         ctx.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
                     }
                     let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
