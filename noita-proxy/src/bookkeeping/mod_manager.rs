@@ -9,6 +9,7 @@ use std::{
 
 use eframe::egui::{Align2, Context, Ui};
 use egui_file_dialog::{DialogState, FileDialog};
+use eyre::Context as _;
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
 use steamworks::AppId;
@@ -32,7 +33,7 @@ enum State {
     Done,
     DownloadMod(Promise<Result<Downloader, ReleasesError>>),
     Error(io::Error),
-    ReleasesError(ReleasesError),
+    EyreErrorReport(eyre::Report),
     UnpackMod(Promise<Result<(), ReleasesError>>),
     ConfirmInstall,
 }
@@ -212,12 +213,12 @@ impl Modmanager {
                 let mod_path = settings.mod_path();
                 info!("Mod path: {}", mod_path.display());
 
-                self.state = match is_mod_ok(&mod_path) {
+                self.state = match is_mod_ok(&mod_path).wrap_err("Failed to check if mod is ok") {
                     Ok(true) => State::Done,
                     Ok(false) => State::ConfirmInstall,
                     Err(err) => {
                         error!("Could not check if mod is ok: {}", err);
-                        State::Error(err)
+                        State::EyreErrorReport(err)
                     }
                 }
             }
@@ -270,7 +271,7 @@ impl Modmanager {
                                 });
                             self.state = State::UnpackMod(promise);
                         }
-                        Err(err) => self.state = State::ReleasesError(err),
+                        Err(err) => self.state = State::EyreErrorReport(err),
                     }
                 }
             }
@@ -295,7 +296,7 @@ impl Modmanager {
                     match promise.block_and_take() {
                         Ok(_) => {}
                         Err(err) => {
-                            self.state = State::ReleasesError(err);
+                            self.state = State::EyreErrorReport(err);
                         }
                     }
                 }
@@ -306,7 +307,7 @@ impl Modmanager {
                     self.state = State::JustStarted;
                 }
             }
-            State::ReleasesError(err) => {
+            State::EyreErrorReport(err) => {
                 ui.label(format!("Encountered an error: \n {:?}", err));
                 if ui.button(tr("button_retry")).clicked() {
                     self.state = State::JustStarted;
@@ -330,28 +331,37 @@ fn mod_downloader_for(
     tag: crate::releases::Tag,
     download_path: PathBuf,
 ) -> Result<Downloader, ReleasesError> {
-    let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+    let client = reqwest::blocking::Client::builder()
+        .timeout(None)
+        .build()
+        .wrap_err("Failed to build client")?;
     get_release_by_tag(&client, tag)
-        .and_then(|release| release.get_release_assets(&client))
+        .and_then(|release| release.get_release_assets(&client).wrap_err(""))
         .and_then(|asset_list| asset_list.find_by_name("quant.ew.zip").cloned())
         .and_then(|asset| asset.download(&client, &download_path))
+        .wrap_err("Failed to download mod")
 }
 
 fn extract_and_remove_zip(zip_file: PathBuf, extract_to: PathBuf) -> Result<(), ReleasesError> {
-    let reader = File::open(&zip_file)?;
-    let mut zip = zip::ZipArchive::new(reader)?;
+    let reader = File::open(&zip_file)
+        .wrap_err_with(|| format!("Failed to open zip file: {}", zip_file.display()))?;
+    let mut zip = zip::ZipArchive::new(reader).wrap_err("Failed to create Zip Archive reader")?;
     info!("Extracting zip file");
-    zip.extract(extract_to)?;
+    zip.extract(&extract_to)
+        .wrap_err_with(|| format!("Failed to extract zip to: {}", extract_to.display()))?;
     info!("Zip file extracted");
     fs::remove_file(&zip_file).ok();
     Ok(())
 }
 
-fn is_mod_ok(mod_path: &Path) -> io::Result<bool> {
+fn is_mod_ok(mod_path: &Path) -> eyre::Result<bool> {
     if env::var_os("NP_SKIP_MOD_CHECK").is_some() {
         return Ok(true);
     }
-    if !mod_path.try_exists()? {
+    if !mod_path
+        .try_exists()
+        .wrap_err_with(|| format!("Couldn't check if a file exists: {}", mod_path.display()))?
+    {
         return Ok(false);
     }
     let version_path = mod_path.join("files/version.lua");
