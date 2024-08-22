@@ -120,7 +120,7 @@ function item_sync.make_item_global(item, instant)
             return
         end
         item_sync.ensure_notify_component(item)
-        local gid_component = EntityGetFirstComponent(item, "VariableStorageComponent", "ew_global_item_id")
+        local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
         local gid
         if gid_component == nil then
             gid = allocate_global_id()
@@ -225,6 +225,25 @@ function item_sync.on_should_send_updates()
         end
     end
     rpc.initial_items(item_list)
+end
+
+function item_sync.on_draw_debug_window(imgui)
+    local mx, my = DEBUG_GetMouseWorld()
+    local ent = EntityGetClosestWithTag(mx, my, "ew_global_item")
+    if ent ~= nil and ent ~= 0 then
+        if imgui.CollapsingHeader("Item gid") then
+            local x, y = EntityGetTransform(ent)
+            GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/marker.png", x, y, true, 0, 0, 1, true)
+            local gid = item_sync.get_global_item_id(ent)
+            imgui.Text("GID: "..tostring(gid))
+            local prevented = ctx.item_prevent_localize[gid]
+            if prevented then
+                imgui.Text("Localize prevented")
+            else
+                imgui.Text("Localize allowed")
+            end
+        end
+    end
 end
 
 local function add_stuff_to_globalized_item(item, gid)

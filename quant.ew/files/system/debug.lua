@@ -104,6 +104,7 @@ function module.on_world_update_post()
             show_game_effects()
         end
         -- imgui.Text("lalala")
+        ctx.hook.on_draw_debug_window(imgui)
         imgui.End()
     end
 end
