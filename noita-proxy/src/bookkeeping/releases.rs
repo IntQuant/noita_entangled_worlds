@@ -1,48 +1,19 @@
 use std::{
     fmt::Display,
     fs::File,
-    io::{self, Read, Write},
+    io::{Read, Write},
     path::{Path, PathBuf},
     sync::{atomic::AtomicU64, Arc},
     time::Duration,
 };
 
 use eframe::egui::{self, Ui};
+use eyre::{eyre, Context};
 use poll_promise::Promise;
 use reqwest::blocking::Client;
 use serde::Deserialize;
-use thiserror::Error;
-use zip::result::ZipError;
 
-#[derive(Debug, Error, Clone)]
-pub enum ReleasesError {
-    #[error("Could not complete request: {0}")]
-    Request(Arc<reqwest::Error>),
-    #[error("Asset not found")]
-    AssetNotFound,
-    #[error("Io error: {0}")]
-    Io(Arc<io::Error>),
-    #[error("Zip error: {0}")]
-    Zip(Arc<ZipError>),
-}
-
-impl From<reqwest::Error> for ReleasesError {
-    fn from(value: reqwest::Error) -> Self {
-        Self::Request(value.into())
-    }
-}
-
-impl From<io::Error> for ReleasesError {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value.into())
-    }
-}
-
-impl From<ZipError> for ReleasesError {
-    fn from(value: ZipError) -> Self {
-        Self::Zip(value.into())
-    }
-}
+pub type ReleasesError = eyre::Report;
 
 #[derive(Debug, Deserialize)]
 pub struct Release {
@@ -92,18 +63,25 @@ fn download_thread(
         .header("Accept", "application/octet-stream")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
-        .send()?;
+        .send()
+        .wrap_err_with(|| format!("Failed to download from {}", url))?;
     let mut buf = [0; 4096];
 
     loop {
-        let len = response.read(&mut buf)?;
+        let len = response.read(&mut buf).wrap_err_with(|| {
+            format!(
+                "Failed to download from {}: couldn't read from response",
+                url
+            )
+        })?;
         shared
             .progress
             .fetch_add(len as u64, std::sync::atomic::Ordering::Relaxed);
         if len == 0 {
             break;
         }
-        file.write_all(&buf[..len])?;
+        file.write_all(&buf[..len])
+            .wrap_err_with(|| format!("Failed to download from {}: couldn't write to file", url))?;
     }
 
     Ok(())
@@ -153,7 +131,7 @@ impl AssetList {
         self.0
             .iter()
             .find(|asset| asset.name == name)
-            .ok_or(ReleasesError::AssetNotFound)
+            .ok_or_else(|| eyre!("Asset not found: {}", name))
     }
 }
 
@@ -213,9 +191,15 @@ impl Release {
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .header("User-agent", "noita proxy")
-            .send()?;
+            .send()
+            .wrap_err_with(|| format!("Failed to request asset list from {}", self.assets_url))?;
 
-        Ok(response.json()?)
+        Ok(response.json().wrap_err_with(|| {
+            format!(
+                "Failed to request asset list from {}: couldn't parse json",
+                self.assets_url
+            )
+        })?)
     }
 }
 
@@ -225,21 +209,24 @@ pub fn get_latest_release(client: &Client) -> Result<Release, ReleasesError> {
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
-        .send()?;
+        .send()
+        .wrap_err("Failed to request latest release")?;
 
     Ok(response.json()?)
 }
 
 pub fn get_release_by_tag(client: &Client, tag: Tag) -> Result<Release, ReleasesError> {
+    let url = format!(
+        "https://api.github.com/repos/IntQuant/noita_entangled_worlds/releases/tags/{}",
+        tag.0
+    );
     let response = client
-        .get(format!(
-            "https://api.github.com/repos/IntQuant/noita_entangled_worlds/releases/tags/{}",
-            tag.0
-        ))
+        .get(&url)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
-        .send()?;
+        .send()
+        .wrap_err_with(|| format!("Failed to get release by tag from {}", url))?;
 
     Ok(response.json()?)
 }

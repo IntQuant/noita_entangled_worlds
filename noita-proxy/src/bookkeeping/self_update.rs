@@ -1,11 +1,12 @@
 use std::{
     cmp::Ordering,
     fs::{self, File},
-    io,
+    io, mem,
     path::{Path, PathBuf},
 };
 
 use eframe::egui::{Align, Layout, Ui};
+use eyre::Context;
 use poll_promise::Promise;
 use reqwest::blocking::Client;
 use tracing::info;
@@ -20,10 +21,13 @@ struct VersionCheckResult {
     ord: Ordering,
 }
 
+#[derive(Default)]
 enum State {
+    #[default]
     Initial,
     Download(Promise<Result<Downloader, ReleasesError>>),
     ReleasesError(ReleasesError),
+    ReleasesError2(String),
     Unpack(Promise<Result<(), ReleasesError>>),
 }
 
@@ -113,11 +117,17 @@ impl SelfUpdateManager {
                                 });
                             self.state = State::Unpack(promise);
                         }
-                        Some(Err(err)) => self.state = State::ReleasesError(err.clone()),
+                        Some(Err(_)) => {
+                            let State::Download(promise) = mem::take(&mut self.state) else {
+                                unreachable!();
+                            };
+                            self.state =
+                                State::ReleasesError(promise.block_and_take().err().unwrap())
+                        }
                         None => {}
                     }
                 }
-                Some(Err(err)) => self.state = State::ReleasesError(err.clone()),
+                Some(Err(err)) => self.state = State::ReleasesError2(format!("{:?}", err)),
                 None => {
                     ui.label(tr("selfupdate_receiving_rel_info"));
                     ui.spinner();
@@ -137,7 +147,10 @@ impl SelfUpdateManager {
                 }
             },
             State::ReleasesError(err) => {
-                ui.label(format!("Encountered an error: {}", err));
+                ui.label(format!("Encountered an error: {:?}", err));
+            }
+            State::ReleasesError2(err) => {
+                ui.label(format!("Encountered an error:\n{}", err));
             }
         }
     }

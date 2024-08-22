@@ -3,6 +3,7 @@ use std::{
     error::Error,
     fs::{self, File},
     io::{self, BufReader},
+    mem,
     path::{Path, PathBuf},
 };
 
@@ -248,41 +249,57 @@ impl Modmanager {
                 match promise.ready() {
                     Some(Ok(downloader)) => {
                         downloader.show_progress(ui);
-                        match downloader.ready() {
-                            Some(Ok(_)) => {
-                                let path = downloader.path().to_path_buf();
-                                let directory = settings.mod_path();
-                                let promise: Promise<Result<(), ReleasesError>> =
-                                    Promise::spawn_thread("unpack", move || {
-                                        extract_and_remove_zip(path, directory)
-                                    });
-                                self.state = State::UnpackMod(promise);
-                            }
-                            Some(Err(err)) => self.state = State::ReleasesError(err.clone()),
-                            None => {}
-                        }
                     }
-                    Some(Err(err)) => self.state = State::ReleasesError(err.clone()),
+                    Some(Err(_)) => {}
                     None => {
                         ui.label(tr("modman_receiving_rel_info"));
                         ui.spinner();
                     }
                 }
-            }
-            State::UnpackMod(promise) => match promise.ready() {
-                Some(Ok(_)) => {
-                    ui.label(tr("modman_installed"));
-                    if ui.button(tr("button_continue")).clicked() {
-                        self.state = State::Done;
+                if promise.ready().is_some() {
+                    let State::DownloadMod(promise) = mem::take(&mut self.state) else {
+                        unreachable!();
                     };
+                    match promise.block_and_take() {
+                        Ok(downloader) => {
+                            let path = downloader.path().to_path_buf();
+                            let directory = settings.mod_path();
+                            let promise: Promise<Result<(), ReleasesError>> =
+                                Promise::spawn_thread("unpack", move || {
+                                    extract_and_remove_zip(path, directory)
+                                });
+                            self.state = State::UnpackMod(promise);
+                        }
+                        Err(err) => self.state = State::ReleasesError(err),
+                    }
                 }
-                Some(Err(err)) => {
-                    self.state = State::ReleasesError(err.clone());
+            }
+            State::UnpackMod(promise) => {
+                match promise.ready() {
+                    Some(Ok(_)) => {
+                        ui.label(tr("modman_installed"));
+                        if ui.button(tr("button_continue")).clicked() {
+                            self.state = State::Done;
+                            return;
+                        };
+                    }
+                    Some(Err(_)) => {}
+                    None => {
+                        ui.label(tr("modman_unpacking"));
+                    }
                 }
-                None => {
-                    ui.label(tr("modman_unpacking"));
+                if promise.ready().is_some() {
+                    let State::UnpackMod(promise) = mem::take(&mut self.state) else {
+                        unreachable!();
+                    };
+                    match promise.block_and_take() {
+                        Ok(_) => {}
+                        Err(err) => {
+                            self.state = State::ReleasesError(err);
+                        }
+                    }
                 }
-            },
+            }
             State::Error(err) => {
                 ui.label(format!("Encountered an error: {}", err));
                 if ui.button(tr("button_retry")).clicked() {
@@ -290,7 +307,7 @@ impl Modmanager {
                 }
             }
             State::ReleasesError(err) => {
-                ui.label(format!("Encountered an error: {}", err));
+                ui.label(format!("Encountered an error: \n {:?}", err));
                 if ui.button(tr("button_retry")).clicked() {
                     self.state = State::JustStarted;
                 }
