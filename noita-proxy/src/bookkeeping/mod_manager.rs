@@ -2,7 +2,7 @@ use std::{
     env,
     error::Error,
     fs::{self, File},
-    io::{self, BufReader},
+    io::BufReader,
     mem,
     path::{Path, PathBuf},
 };
@@ -298,12 +298,6 @@ impl Modmanager {
                             self.state = State::EyreErrorReport(err);
                         }
                     }
-                }
-            }
-            State::Error(err) => {
-                ui.label(format!("Encountered an error: {}", err));
-                if ui.button(tr("button_retry")).clicked() {
-                    self.state = State::JustStarted;
                 }
             }
             State::EyreErrorReport(err) => {
