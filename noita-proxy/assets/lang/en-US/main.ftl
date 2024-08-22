@@ -16,6 +16,7 @@ button_select_again = Select again
 button_back = Back
 
 button_set_lang = Select language
+button_open_discord = Discord server
 
 modman = Mod manager
 modman_found_automatically = Found a path automatically:

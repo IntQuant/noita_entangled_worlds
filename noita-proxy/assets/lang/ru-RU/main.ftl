@@ -22,6 +22,7 @@ button_select_again = Выбрать ещё раз
 button_back = Назад
 
 button_set_lang = Выбрать язык
+button_open_discord = Discord сервер
 
 modman = Автоустановка мода
 modman_found_automatically = Автоматически найденный путь:
