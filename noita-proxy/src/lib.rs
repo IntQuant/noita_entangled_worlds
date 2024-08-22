@@ -5,8 +5,9 @@ use bookkeeping::{
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
-    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse,
-    Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, Vec2, Window,
+    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
+    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui,
+    Vec2, Window,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
@@ -254,9 +255,10 @@ fn square_button_text(ui: &mut Ui, text: &str, size: f32) -> egui::Response {
 
 fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
     let side = ui.available_width();
-    ui.add_sized([side, side], ImageButton::new(icon)
-        .rounding(ui.style().visuals.widgets.noninteractive.rounding) // Somewhy it doesnt inherit style correctly
-    ) 
+    ui.add_sized(
+        [side, side],
+        ImageButton::new(icon).rounding(ui.style().visuals.widgets.noninteractive.rounding), // Somewhy it doesnt inherit style correctly
+    )
 }
 
 impl App {
@@ -484,9 +486,12 @@ impl App {
                     {
                         self.state = AppState::LangPick;
                     }
-                    if square_button_icon(ui, egui::Image::new(egui::include_image!("../assets/discord-mark-white.png")))
-                        .on_hover_text(tr("button_open_discord"))
-                        .clicked()
+                    if square_button_icon(
+                        ui,
+                        egui::Image::new(egui::include_image!("../assets/discord-mark-white.png")),
+                    )
+                    .on_hover_text(tr("button_open_discord"))
+                    .clicked()
                     {
                         ctx.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
                     }
