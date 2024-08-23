@@ -118,6 +118,10 @@ impl Downloader {
         self.handle.ready()
     }
 
+    pub fn into_ready(self) -> Result<(), ReleasesError> {
+        self.handle.block_and_take()
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -227,7 +231,12 @@ pub fn get_release_by_tag(client: &Client, tag: Tag) -> Result<Release, Releases
         .header("User-agent", "noita proxy")
         .send()
         .wrap_err_with(|| format!("Failed to get release by tag from {}", url))?;
-
+    let response = response.error_for_status().wrap_err_with(|| {
+        format!(
+            "Failed to get release by tag from {}: response returned an error",
+            url
+        )
+    })?;
     Ok(response.json()?)
 }
 

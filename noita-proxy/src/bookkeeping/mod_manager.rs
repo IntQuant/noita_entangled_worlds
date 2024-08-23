@@ -35,6 +35,7 @@ enum State {
     EyreErrorReport(eyre::Report),
     UnpackMod(Promise<Result<(), ReleasesError>>),
     ConfirmInstall,
+    UnpackDone,
 }
 
 pub struct Modmanager {
@@ -236,7 +237,7 @@ impl Modmanager {
                         assert!(mod_path.ends_with("quant.ew"));
                         fs::remove_dir_all(mod_path).ok();
                         info!("Current mod deleted");
-
+                        info!("Switching to DownloadMod state");
                         self.state = State::DownloadMod(promise)
                     }
                     if ui.button(tr("modman_another_path")).clicked() {
@@ -262,28 +263,37 @@ impl Modmanager {
                     };
                     match promise.block_and_take() {
                         Ok(downloader) => {
-                            let path = downloader.path().to_path_buf();
-                            let directory = settings.mod_path();
-                            let promise: Promise<Result<(), ReleasesError>> =
-                                Promise::spawn_thread("unpack", move || {
-                                    extract_and_remove_zip(path, directory)
-                                });
-                            self.state = State::UnpackMod(promise);
+                            if downloader.ready().is_some() {
+                                let path = downloader.path().to_path_buf();
+                                let directory = settings.mod_path();
+                                match downloader.into_ready() {
+                                    Ok(_) => {
+                                        let promise: Promise<Result<(), ReleasesError>> =
+                                            Promise::spawn_thread("unpack", move || {
+                                                extract_and_remove_zip(path, directory)
+                                            });
+                                        info!("Switching to UnpackMod state");
+                                        self.state = State::UnpackMod(promise);
+                                    }
+                                    Err(err) => {
+                                        info!("Switching to EyreErrorReport state");
+                                        self.state = State::EyreErrorReport(err)
+                                    }
+                                }
+                            } else {
+                                self.state = State::DownloadMod(Promise::from_ready(Ok(downloader)))
+                            }
                         }
-                        Err(err) => self.state = State::EyreErrorReport(err),
+                        Err(err) => {
+                            info!("Switching to EyreErrorReport state (2)");
+                            self.state = State::EyreErrorReport(err)
+                        }
                     }
                 }
             }
             State::UnpackMod(promise) => {
                 match promise.ready() {
-                    Some(Ok(_)) => {
-                        ui.label(tr("modman_installed"));
-                        if ui.button(tr("button_continue")).clicked() {
-                            self.state = State::Done;
-                            return;
-                        };
-                    }
-                    Some(Err(_)) => {}
+                    Some(_) => {}
                     None => {
                         ui.label(tr("modman_unpacking"));
                     }
@@ -293,7 +303,10 @@ impl Modmanager {
                         unreachable!();
                     };
                     match promise.block_and_take() {
-                        Ok(_) => {}
+                        Ok(_) => {
+                            info!("Switching to UnpackDone state");
+                            self.state = State::UnpackDone;
+                        }
                         Err(err) => {
                             self.state = State::EyreErrorReport(err);
                         }
@@ -307,6 +320,14 @@ impl Modmanager {
                 }
             }
             State::Done => {}
+            State::UnpackDone => {
+                ui.label(tr("modman_installed"));
+                if ui.button(tr("button_continue")).clicked() {
+                    info!("Switching to Done state");
+                    self.state = State::Done;
+                    return;
+                };
+            }
         }
     }
 
@@ -350,14 +371,25 @@ fn mod_downloader_for(
 }
 
 fn extract_and_remove_zip(zip_file: PathBuf, extract_to: PathBuf) -> Result<(), ReleasesError> {
+    extract_zip(&zip_file, extract_to)?;
+    fs::remove_file(&zip_file).ok();
+    Ok(())
+}
+
+fn extract_zip(zip_file: &PathBuf, extract_to: PathBuf) -> Result<(), eyre::Error> {
+    let zip_file = zip_file.canonicalize().unwrap_or(zip_file.to_path_buf());
     let reader = File::open(&zip_file)
         .wrap_err_with(|| format!("Failed to open zip file: {}", zip_file.display()))?;
-    let mut zip = zip::ZipArchive::new(reader).wrap_err("Failed to create Zip Archive reader")?;
+    let mut zip = zip::ZipArchive::new(reader).wrap_err_with(|| {
+        format!(
+            "Failed to create Zip Archive reader: {}",
+            zip_file.display()
+        )
+    })?;
     info!("Extracting zip file");
     zip.extract(&extract_to)
         .wrap_err_with(|| format!("Failed to extract zip to: {}", extract_to.display()))?;
     info!("Zip file extracted");
-    fs::remove_file(&zip_file).ok();
     Ok(())
 }
 
