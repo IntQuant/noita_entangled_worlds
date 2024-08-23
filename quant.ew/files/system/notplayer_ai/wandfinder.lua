@@ -42,7 +42,7 @@ function wandfinder.find_attack_wand(dont_do)
         end
         ::continue::
     end
-    if largest == {-1, -1} then
+    if largest[1] == -1 then
         return wands[1]
     end
     return largest[1]

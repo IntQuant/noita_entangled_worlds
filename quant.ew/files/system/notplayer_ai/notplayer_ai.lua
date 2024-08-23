@@ -28,10 +28,10 @@ local bad_mats = {"magic_liquid_random_polymorph",
                   "mimic_liquid",
                   "void_liquid",
                   "magic_liquid_weakness",
-                  "magic_liquid_teleportation",
-                  "magic_liquid_unstable_teleportation",
+--                  "magic_liquid_teleportation",
+--                  "magic_liquid_unstable_teleportation",
                   "beer",
-                  "alcohol",
+--                  "alcohol",
                   "sima",
                   "blood_cold",
                   "juhannussima",
@@ -45,7 +45,7 @@ local good_mats = {"magic_liquid_movement_faster",
                    "magic_liquid_mana_regeneration",
                    "magic_liquid_faster_levitation_and_movement",
                    "magic_liquid_hp_regeneration",
-                   "magic_liquid_invisibility",
+--                   "magic_liquid_invisibility",
                    "magic_liquid_faster_levitation",
                    "magic_liquid_hp_regeneration_unstable"}
 
@@ -53,22 +53,30 @@ local water_mats = {"water", "water_swamp", "water_salt", "blood"}
 
 local function get_potions_of_type(type)
     local potions = {}
-    local items = GameGetAllInventoryItems(ctx.my_player.entity)
-    for _, item in ipairs(items) do
+    local children = EntityGetAllChildren(ctx.my_player.entity)
+    local items
+    for _, child in pairs(children) do
+        if EntityGetName(child) == "inventory_quick" then
+            items = child
+        end
+    end
+    for _, item in ipairs(EntityGetAllChildren(items)) do
         if EntityHasTag(item, "potion") then
             local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
             local materials = ComponentGetValue2(mat, "count_per_material_type")
             local total = 0
             for id, amt in pairs(materials) do
-                local name = CellFactory_GetName(id)
-                local use = false
-                for _, n in ipairs(type) do
-                    if name == n then
-                        use = true
+                if amt ~= 0 then
+                    local name = CellFactory_GetName(id - 1)
+                    local use = false
+                    for _, n in ipairs(type) do
+                        if name == n then
+                            use = true
+                        end
                     end
-                end
-                if use then
-                    total = total + amt
+                    if use then
+                        total = total + amt
+                    end
                 end
             end
             if total >= 500 then
@@ -85,7 +93,6 @@ local function get_potions_of_type(type)
             end
         end
     end
-    print(#potions)
     return potions
 end
 
@@ -269,15 +276,25 @@ local function fire_wand(enable)
 end
 
 local function init_state()
+    local children = EntityGetAllChildren(ctx.my_player.entity)
+    local items
+    for _, child in pairs(children) do
+        if EntityGetName(child) == "inventory_quick" then
+            items = child
+        end
+    end
     state = {
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
         gui_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
+        items = items,
 
         bad_potions = get_potions_of_type(bad_mats),
         good_potions = get_potions_of_type(good_mats),
         water_potions = get_potions_of_type(water_mats),
+
+        had_potion = false,
 
         attack_wand = wandfinder.find_attack_wand({}),
         empty_wands = {},
@@ -315,9 +332,9 @@ local function choose_wand_actions()
             t_x, t_y = EntityGetTransform(target)
         end
         if state.aim_up then
-            t_y = t_y - 5
+            t_y = t_y - 7
         elseif state.aim_down then
-            t_y = t_y + 5
+            t_y = t_y + 7
         end
         dont_throw = false
         aim_at(t_x, t_y)
@@ -369,11 +386,11 @@ local function choose_movement()
     end
     if (not stop_y) and ((last_did_hit and t_y < my_y + 80) or t_y < my_y) and (GameGetFrameNum() % 300) < 200 then
         state.control_w = true
-        local did_hit, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 5)
+        local did_hit, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 12)
         if did_hit then
             state.control_w = false
             stop_y = true
-            local did_hit_down, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 5)
+            local did_hit_down, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 12)
             if did_hit_down then
                 if give_space == 100 then
                     give_space = math.abs(dist)
@@ -399,8 +416,8 @@ local function choose_movement()
         end
     end
 
-    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x + 10, my_y)
-    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x - 10, my_y)
+    local did_hit_1, _, _ = RaytracePlatforms(my_x, my_y, my_x + 16, my_y)
+    local did_hit_2, _, _ = RaytracePlatforms(my_x, my_y, my_x - 16, my_y)
     if (dist > 0 and dist > give_space and did_hit_2) or (dist < 0 and -dist > give_space and did_hit_1) then
         if give_space == 100 then
             give_space = math.abs(dist)
@@ -592,7 +609,8 @@ local function set_camera_pos()
 end
 
 local function better_player(length, did_hit, potential_target)
-    return (last_length == nil or (not did_hit and (last_length > length or not last_did_hit))) and (not IsInvisible(potential_target) or length < 50*50)
+    return ((last_length == nil or (not did_hit and ((last_length > length or not last_did_hit) or EntityHasTag(target, "polymorphed"))))
+                    and (not IsInvisible(potential_target) or length < 50*50))
 end
 
 local left_held = false
@@ -636,11 +654,11 @@ local function update()
         state.aim_down = false
         local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
         if did_hit then
-            did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y - 5)
+            did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
             if not did_hit then
                 state.aim_up = true
             else
-                did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y + 5)
+                did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
                 if not did_hit then
                     state.aim_down = true
                 end
@@ -668,7 +686,7 @@ local function update()
                 state.aim_up = false
                 state.aim_down = false
             elseif did_hit then
-                local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 5)
+                local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
                 if better_player(length, did_hit_up, potential_target) then
                     last_length = length
                     last_did_hit = did_hit
@@ -676,7 +694,7 @@ local function update()
                     state.aim_up = true
                     state.aim_down = false
                 elseif did_hit_up then
-                    local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 5)
+                    local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
                     if better_player(length, did_hit_down, potential_target) then
                         last_length = length
                         last_did_hit = did_hit
@@ -729,11 +747,11 @@ local function update()
         bathe = true
         do_kick = true
     end
-    if water_potion ~= nil and state.init_timer >= 90 then
+    --[[if water_potion ~= nil and state.init_timer >= 90 then
         water_potion = nil
         bathe = false
         do_kick = true
-    end
+    end]]
 
     if GameGetFrameNum() % 120 == 40 then
         bathe = false
@@ -753,12 +771,34 @@ local function update()
         end
         bathe = true
     else]]
+    if GameGetFrameNum() % 10 == 0 and state.had_potion and #state.bad_potions == 0 and #state.good_potions == 0 then
+        local has_a_potion = false
+        for _, item in pairs(EntityGetAllChildren(state.items)) do
+            if EntityHasTag(item, "potion") then
+                has_a_potion = true
+            end
+        end
+        state.had_potion = false
+        if not has_a_potion then
+            local pity_potion = EntityLoad("data/entities/items/pickup/potion_empty.xml", 0, 0)
+            EntityAddChild(state.items, pity_potion)
+            EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_world", false)
+            EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_hand", false)
+            EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_inventory", true)
+        end
+    end
     if (has_bad_potion or bad_potion ~= nil) and  (can_not_tablet or tablet) then
+        if EntityHasTag(state.bad_potions[i], "potion") then
+            state.had_potion = true
+        end
         np.SetActiveHeldEntity(state.entity, state.bad_potions[i], false, false)
         if bad_potion == nil then
             bad_potion = state.bad_potions[i]
         end
     elseif has_good_potion or good_potion ~= nil then
+        if EntityHasTag(state.bad_potions[i], "potion") then
+            state.had_potion = true
+        end
         np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
         if good_potion == nil then
             good_potion = state.good_potions[1]
