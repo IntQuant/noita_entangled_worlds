@@ -297,8 +297,16 @@ impl App {
 
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
+        let steam_state = steam_helper::SteamState::new();
+
+        let running_on_steamdeck = steam_state
+            .as_ref()
+            .map(|steam| steam.client.utils().is_steam_running_on_steam_deck())
+            .unwrap_or(false);
+        let default_zoom_factor = if running_on_steamdeck { 0.3 } else { 1.0 };
+
         cc.egui_ctx
-            .set_zoom_factor(args.ui_zoom_factor.unwrap_or(1.0));
+            .set_zoom_factor(args.ui_zoom_factor.unwrap_or(default_zoom_factor));
         info!("Creating the app...");
         let run_save_state = if let Ok(path) = std::env::current_exe() {
             SaveState::new(path.parent().unwrap().join("save_state"))
@@ -317,7 +325,7 @@ impl App {
         Self {
             state,
             modmanager: Modmanager::default(),
-            steam_state: steam_helper::SteamState::new(),
+            steam_state,
             app_saved_state: saved_state,
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
