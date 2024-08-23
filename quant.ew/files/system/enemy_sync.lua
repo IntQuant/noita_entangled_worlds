@@ -90,6 +90,34 @@ local function table_extend_filtered(to, from, filter)
     end
 end
 
+local function serialize_phys_component(phys_component)
+    local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
+    if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
+        return PhysDataNoMotion {
+            x = px,
+            y = py,
+            r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
+        }
+    else
+        return PhysData {
+            x = px,
+            y = py,
+            r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
+            vx = pvx,
+            vy = pvy,
+            vr = pvr,
+        }
+    end
+end
+
+local function deserialize_phys_component(phys_component, phys_info)
+    if ffi.typeof(phys_info) == PhysDataNoMotion then
+        np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
+    else
+        np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+    end
+end
+
 local function get_sync_entities(return_all)
     local entities = {}
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
@@ -141,31 +169,26 @@ function enemy_sync.host_upload_entities()
         end
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
 
-        local phys_info
+        local phys_info = {}
+        local phys_info_2 = {}
         -- Some things (like physics object) don't react well to making their entities ephemerial.
         local not_ephemerial = false
 
-        local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
-        if phys_component ~= nil and phys_component ~= 0 then
-            not_ephemerial = true
-            local initialized = ComponentGetValue2(phys_component, "mInitialized")
-            if initialized then
-                local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
-                if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
-                    phys_info = PhysDataNoMotion {
-                        x = px,
-                        y = py,
-                        r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
-                    }
+        for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
+            if phys_component ~= nil and phys_component ~= 0 then
+                not_ephemerial = true
+                table.insert(phys_info, serialize_phys_component(phys_component))
+            end
+        end
+
+        for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
+            if phys_component ~= nil and phys_component ~= 0 then
+                not_ephemerial = true
+                local initialized = ComponentGetValue2(phys_component, "mInitialized")
+                if initialized then
+                    table.insert(phys_info_2, serialize_phys_component(phys_component))
                 else
-                    phys_info = PhysData {
-                        x = px,
-                        y = py,
-                        r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
-                        vx = pvx,
-                        vy = pvy,
-                        vr = pvr,
-                    }
+                    table.insert(phys_info_2, nil)
                 end
             end
         end
@@ -200,7 +223,7 @@ function enemy_sync.host_upload_entities()
             }
         end
 
-        table.insert(enemy_data_list, {filename, en_data, phys_info, not_ephemerial})
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2})
         ::continue::
     end
 
@@ -356,8 +379,9 @@ function rpc.handle_enemy_data(enemy_data)
             vx = en_data.vx
             vy = en_data.vy
         end
-        local phys_info = enemy_info_raw[3]
-            local not_ephemerial = enemy_info_raw[4]
+        local not_ephemerial = enemy_info_raw[3]
+        local phys_infos = enemy_info_raw[4]
+        local phys_infos_2 = enemy_info_raw[5]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
@@ -395,17 +419,18 @@ function rpc.handle_enemy_data(enemy_data)
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
             end
-            for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "PhysicsBodyComponent", "CameraBoundComponent"}) do
+            for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "CameraBoundComponent"}) do
                 local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
                 if ai_component ~= 0 then
                     EntityRemoveComponent(enemy_id, ai_component)
                 end
             end
             ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
-            local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
-            if phys_component ~= nil and phys_component ~= 0 then
-                ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
-                -- ComponentSetValue2(phys_component, "kill_entity_if_body_destroyed", false)
+
+            for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
+                if phys_component ~= nil and phys_component ~= 0 then
+                    ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
+                end
             end
             -- Make sure stuff doesn't decide to explode on clients by itself.
             local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
@@ -421,15 +446,19 @@ function rpc.handle_enemy_data(enemy_data)
         enemy_data_new.frame = frame
         local enemy_id = enemy_data_new.id
 
-        local phys_component = EntityGetFirstComponent(enemy_id, "PhysicsBody2Component")
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            -- A physics body doesn't exist otherwise, causing a crash
-            local initialized = ComponentGetValue2(phys_component, "mInitialized")
-            if initialized then
-                if ffi.typeof(phys_info) == PhysDataNoMotion then
-                    np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
-                else
-                    np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+        for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
+            local phys_info = phys_infos[i]
+            if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+                deserialize_phys_component(phys_component, phys_info)
+            end
+        end
+        for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
+            local phys_info = phys_infos_2[i]
+            if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+                -- A physics body doesn't exist otherwise, causing a crash
+                local initialized = ComponentGetValue2(phys_component, "mInitialized")
+                if initialized then
+                    deserialize_phys_component(phys_component, phys_info)
                 end
             end
         end
