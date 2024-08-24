@@ -65,7 +65,11 @@ local function get_potions_of_type(type)
     end
     local is_bad = type == bad_mats
     local is_water = type == water_mats
-    for _, item in ipairs(EntityGetAllChildren(items)) do
+    local children_items = EntityGetAllChildren(items)
+    if children_items == nil then
+        return potions
+    end
+    for _, item in ipairs(children_items) do
         if EntityHasTag(item, "potion") then
             local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
             local materials = ComponentGetValue2(mat, "count_per_material_type")

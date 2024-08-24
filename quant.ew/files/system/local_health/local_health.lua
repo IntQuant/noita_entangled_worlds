@@ -26,6 +26,9 @@ local function do_switch_effect()
 end
 
 local function remove_inventory_tags()
+    if not EntityGetIsAlive(ctx.my_player.entity) then
+        return
+    end
     local items = GameGetAllInventoryItems(ctx.my_player.entity)
     for _, item in ipairs(items) do
         EntityRemoveTag(item, "ew_client_item")

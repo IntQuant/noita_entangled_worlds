@@ -5,6 +5,9 @@ local util = {}
 
 function util.string_split( s, splitter )
     local words = {};
+    if s == nil or splitter == nil then
+        return {}
+    end
     for word in string.gmatch( s, '([^'..splitter..']+)') do
         table.insert( words, word );
     end
@@ -215,7 +218,7 @@ function util.add_tag_to(filename, tag)
     -- Tag list is cached, update it.
     table.insert(current_tags, tag)
 
-    
+
     print(" Adding tag "..tag.." to "..filename)
     local content = ModTextFileGetContent(filename)
     content = string.gsub(content, "Entity(.-)>", function(inner)
