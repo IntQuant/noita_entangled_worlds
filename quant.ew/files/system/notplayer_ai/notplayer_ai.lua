@@ -54,6 +54,9 @@ local water_mats = {"water", "water_swamp", "water_salt", "blood"}
 local function get_potions_of_type(type)
     local potions = {}
     local children = EntityGetAllChildren(ctx.my_player.entity)
+    if children == nil then
+        return potions
+    end
     local items
     for _, child in pairs(children) do
         if EntityGetName(child) == "inventory_quick" then

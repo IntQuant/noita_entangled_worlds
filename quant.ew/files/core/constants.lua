@@ -36,9 +36,26 @@ module.phys_sync_allowed = {
     ["data/entities/props/crystal_pink.xml"] = true,
     ["data/entities/props/crystal_green.xml"] = true,
 
+    ["data/entities/props/physics_vase.xml"] = true,
+    ["data/entities/props/physics_vase_longleg.xml"] = true,
+
+
+    ["data/entities/props/physics_sun_rock.xml"] = true,
+    ["data/entities/props/physics_darksun_rock.xml"] = true,
+
+    ["data/entities/props/music_machines/music_machine_00.xml"] = true,
+    ["data/entities/props/music_machines/music_machine_01.xml"] = true,
+    ["data/entities/props/music_machines/music_machine_02.xml"] = true,
+    ["data/entities/props/music_machines/music_machine_03.xml"] = true,
     -- HM statues
     ["data/entities/props/temple_statue_01.xml"] = true,
+    ["data/entities/props/temple_statue_01_green.xml"] = true,
     ["data/entities/props/temple_statue_02.xml"] = true,
+    ["data/entities/props/physics/temple_lantern.xml"] = true,
+--  ["data/entities/buildings/physics_worm_deflector_base.xml"] = true,
+--  ["data/entities/buildings/physics_worm_deflector_crystal.xml"] = true,
+--  ["data/entities/misc/greed_curse/greed_crystal.xml"] = true,
+--  ["data/entities/props/physics/lantern_small.xml"] = true,
 
     -- Traps
     ["data/entities/props/physics_trap_circle_acid.xml"] = true,

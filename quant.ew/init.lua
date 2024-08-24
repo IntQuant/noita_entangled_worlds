@@ -223,6 +223,9 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     if not GameHasFlagRun("ew_flag_notplayer_active") then
         player_cosmetics(player_entity)
         player_color(player_entity)
+    else
+        EntityInflictDamage(player_entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
+        GameAddFlagRun("ew_kill_player")
     end
 end
 

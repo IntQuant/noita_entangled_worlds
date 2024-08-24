@@ -221,7 +221,6 @@ ctx.cap.health = {
             async(function ()
                 wait(1)
                 inventory_helper.set_item_data(item_data, ctx.my_player)
-                do_switch_effect()
                 remove_inventory_tags()
                 GameSetCameraFree(false)
                 for id, player_data in pairs(ctx.players) do
@@ -231,6 +230,13 @@ ctx.cap.health = {
                             EntityRemoveComponent(player_data.entity, inventory_gui)
                         end
                     end
+                end
+                if GameHasFlagRun("ew_kill_player") then
+                    GameRemoveFlagRun("ew_kill_player")
+                    wait(100)
+                    EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
+                else
+                    do_switch_effect()
                 end
             end)
         else
