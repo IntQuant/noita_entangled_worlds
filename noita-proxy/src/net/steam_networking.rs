@@ -181,6 +181,8 @@ impl Connections {
     fn poll_status(&self) -> bool {
         let networking_sockets = self.client.networking_sockets();
         let mut all_connected = true;
+        // Postpone reconnect so we don't get deadlocked.
+        let mut pending_reconnect = Vec::new();
         for mut state in self.peers.iter_mut() {
             match state.value() {
                 ConnectionState::AwaitingIncoming => {
@@ -214,7 +216,7 @@ impl Connections {
                                 "Some problem happened for peer {:?} while making connection. Will try to connect again.",
                                 *state.key()
                             );
-                            self.connect(*state.key());
+                            pending_reconnect.push(*state.key());
                             all_connected = false;
                         }
                     }
@@ -229,7 +231,7 @@ impl Connections {
                             // Not supposed to happen, as we're in NetConnectionPending state while connecting.
                             warn!("Not supposed to be in connecting state here.");
                             // Still recreate connection.
-                            self.connect(*state.key());
+                            pending_reconnect.push(*state.key());
                             all_connected = false;
                         }
                         NetworkingConnectionState::Connected => {
@@ -243,8 +245,8 @@ impl Connections {
                                 "Some problem happened for peer {:?} while connection was established. Will try to connect again.",
                                 *state.key()
                             );
-                            self.connect(*state.key());
-                            // TODO: signal that reconnect happened. 
+                            pending_reconnect.push(*state.key());
+                            // TODO: signal that reconnect happened.
                             // Several things should be reset on it, as we certainly lost several messages during it.
                             all_connected = false;
                         }
@@ -252,6 +254,10 @@ impl Connections {
                 }
             }
         }
+        for peer_id in pending_reconnect {
+            self.connect(peer_id);
+        }
+
         all_connected
     }
 
