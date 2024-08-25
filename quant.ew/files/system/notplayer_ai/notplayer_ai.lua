@@ -592,73 +592,10 @@ local function teleport_to_next_hm()
     end
 end
 
-local camera_player = -1
-
-local camera_target
-
-local inventory_target
-
-local function set_camera_pos()
-    if camera_player < 1 then
-        camera_player = 1000
-    end
-    local i = 0
-    local cam_target
-    for peer_id, potential_target in pairs(ctx.players) do
-        local entity = potential_target.entity
-        i = i + 1
-        if i == camera_player or (i == -1 and peer_id == ctx.my_id) then
-            cam_target = entity
-            camera_player = i
-        end
-    end
-    if camera_player == 1000 then
-        camera_player = i
-        set_camera_pos()
-    elseif i ~= 0 and i < camera_player then
-        camera_player = 1
-        set_camera_pos()
-    elseif cam_target ~= nil then
-        local t_x, t_y = EntityGetFirstHitboxCenter(cam_target)
-        if t_x == nil then
-            t_x, t_y = EntityGetTransform(cam_target)
-        end
-        GameSetCameraPos(t_x, t_y)
-        if camera_target == nil then
-            camera_target = ctx.my_player.entity
-        end
-        if camera_target ~= cam_target then
-            if ctx.my_player.entity ~= camera_target and inventory_target ~= nil then
-                EntityRemoveComponent(camera_target, inventory_target)
-            end
-
-            inventory_target = nil
-            if ctx.my_player.entity ~= cam_target then
-                inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
-            end
-            local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
-            local keep_alive = EntityGetFirstComponent(camera_target, "StreamingKeepAliveComponent")
-            if audio ~= nil then
-                EntityRemoveComponent(camera_target, audio)
-                if camera_target ~= ctx.my_player.ent then
-                    EntityRemoveComponent(camera_target, keep_alive)
-                end
-                EntityAddComponent2(cam_target, "AudioListenerComponent")
-                EntityAddComponent2(cam_target, "StreamingKeepAliveComponent")
-            end
-        end
-        camera_target = cam_target
-    end
-end
-
 local function better_player(length, did_hit, potential_target)
     return ((last_length == nil or (not did_hit and ((last_length > length or not last_did_hit) or EntityHasTag(target, "polymorphed"))))
                     and (not IsInvisible(potential_target) or length < 50*50))
 end
-
-local left_held = false
-
-local right_held = false
 
 local function update()
     -- No taking control back, even after pressing esc.
@@ -892,32 +829,6 @@ local function update()
 
     if (GameGetFrameNum() % 300) == 299 then
         teleport_to_next_hm()
-    end
-
-    if InputIsMouseButtonJustDown(1) then
-        if not left_held then
-            if camera_player == -1 then
-                camera_player = 1001
-            end
-            camera_player = camera_player - 1
-            left_held = true
-        end
-    elseif InputIsMouseButtonJustDown(2) then
-        if not right_held then
-            if camera_player == -1 then
-                camera_player = 0
-            end
-            camera_player = camera_player + 1
-            right_held = true
-        end
-    else
-        left_held = false
-        right_held = false
-    end
-    set_camera_pos()
-    ComponentSetValue2(state.gui_component, "mActive", false)
-    if inventory_target ~= nil then
-        ComponentSetValue2(inventory_target, "mActive", false)
     end
 end
 

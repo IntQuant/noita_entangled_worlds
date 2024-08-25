@@ -346,7 +346,7 @@ impl WorldManager {
             WorldNetMessage::ListenRequest { chunk } => {
                 let Some(ChunkState::Authority { listeners }) = self.chunk_state.get_mut(&chunk)
                 else {
-                    warn!("Can't listen for {chunk:?} - not an authority");
+                    //warn!("Can't listen for {chunk:?} - not an authority");
                     return;
                 };
                 listeners.insert(source);
@@ -359,7 +359,7 @@ impl WorldManager {
             WorldNetMessage::ListenStopRequest { chunk } => {
                 let Some(ChunkState::Authority { listeners }) = self.chunk_state.get_mut(&chunk)
                 else {
-                    warn!("Can't stop listen for {chunk:?} - not an authority");
+                    //warn!("Can't stop listen for {chunk:?} - not an authority");
                     return;
                 };
                 listeners.remove(&source);
@@ -377,10 +377,10 @@ impl WorldManager {
                 let Some(ChunkState::Listening { authority: _ }) =
                     self.chunk_state.get_mut(&delta.chunk_coord)
                 else {
-                    warn!(
+                    /*warn!(
                         "Can't handle ListenUpdate for {:?} - not a listener",
                         delta.chunk_coord
-                    );
+                    );*/
                     return;
                 };
                 self.inbound_model.apply_chunk_delta(&delta);
