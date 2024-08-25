@@ -637,9 +637,14 @@ local function set_camera_pos()
                 inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
             end
             local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
+            local keep_alive = EntityGetFirstComponent(camera_target, "StreamingKeepAliveComponent")
             if audio ~= nil then
                 EntityRemoveComponent(camera_target, audio)
+                if camera_target ~= ctx.my_player.ent then
+                    EntityRemoveComponent(camera_target, keep_alive)
+                end
                 EntityAddComponent2(cam_target, "AudioListenerComponent")
+                EntityAddComponent2(cam_target, "StreamingKeepAliveComponent")
             end
         end
         camera_target = cam_target

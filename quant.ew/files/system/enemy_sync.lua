@@ -135,7 +135,7 @@ local function get_sync_entities(return_all)
     else
         table_extend_filtered(entities2, entities, function(ent)
             local x, y = EntityGetTransform(ent)
-            local has_anyone = #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") > 0
+            local has_anyone = #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_client") > 0
             if not has_anyone then
                 skipped_counter = skipped_counter + 1
             end

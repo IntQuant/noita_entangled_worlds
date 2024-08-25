@@ -390,9 +390,6 @@
   <WalletComponent>
   </WalletComponent>
 
-  <StreamingKeepAliveComponent>
-  </StreamingKeepAliveComponent>
-
   <KickComponent>
   </KickComponent>
 
