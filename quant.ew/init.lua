@@ -227,6 +227,9 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         EntityInflictDamage(player_entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
         GameAddFlagRun("ew_kill_player")
     end
+    if ctx.host_id == ctx.my_id then
+        np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", ctx.proxy_opt.chunk_target)
+    end
 end
 
 local function on_world_pre_update_inner()

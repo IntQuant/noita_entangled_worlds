@@ -68,6 +68,7 @@ pub struct GameSettings {
     world_sync_interval: u32,
     game_mode: GameMode,
     friendly_fire: bool,
+    chunk_target: u32,
     enemy_sync_interval: u32,
     progress: Vec<String>,
 }
@@ -86,6 +87,7 @@ impl Default for GameSettings {
             world_sync_interval: 2,
             game_mode: GameMode::SharedHealth,
             friendly_fire: false,
+            chunk_target: 32,
             enemy_sync_interval: 2,
             progress: Vec::new(),
         }
@@ -621,6 +623,9 @@ impl App {
             ui.label(tr("connect_settings_seed"));
             ui.add(DragValue::new(&mut game_settings.seed));
         });
+        ui.add_space(10.0);
+        ui.label("Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients");
+        ui.add(Slider::new(&mut game_settings.chunk_target, 1..=64));
         if game_settings.world_sync_version == 2 {
             ui.add_space(10.0);
             ui.label(tr("World-will-be-synced-every-this-many-frames"));

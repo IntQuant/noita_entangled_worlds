@@ -430,6 +430,7 @@ impl NetManager {
         state.try_ws_write_option("world_sync_interval", settings.world_sync_interval);
         state.try_ws_write_option("game_mode", settings.game_mode);
         state.try_ws_write_option("friendly_fire", settings.friendly_fire);
+        state.try_ws_write_option("chunk_target", settings.chunk_target);
         state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval);
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
