@@ -5,6 +5,7 @@ local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local np = require("noitapatcher")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
+local nickname = dofile_once("mods/quant.ew/files/system/nickname.lua")
 
 local rpc = net.new_rpc_namespace()
 
@@ -48,6 +49,26 @@ local function remove_inventory()
         end
     end
 end
+
+function rpc.add_nickname(id)
+    for _, data in pairs(ctx.players) do
+        if data.peer_id == id then
+            nickname.add_label(data.entity, data.name, "data/fonts/font_pixel_white.xml", 0.75)
+        end
+    end
+end
+
+function remove_healthbar_locally()
+    local player_components = EntityGetAllComponents(ctx.my_player.entity)
+    if player_components ~= nil then
+        for _, comp in ipairs(player_components) do
+            if ComponentHasTag(comp, "health_bar") or ComponentHasTag(comp, "health_bar_back") then
+                EntitySetComponentIsEnabled(ctx.my_player.entity, comp, false)
+            end
+        end
+    end
+end
+
 
 local function allow_notplayer_perk(perk_id)
     local ignored_perks = {
@@ -93,6 +114,8 @@ local function player_died()
         EntityAddTag(iron, "kill_on_revive")
         EntityAddComponent2(iron, "GameEffectComponent", {effect="IRON_STOMACH",frames=9999999})
         EntityAddChild(ctx.my_player.entity, iron)
+        rpc.add_nickname(ctx.my_id)
+        remove_healthbar_locally()
     end)
 end
 

@@ -1,10 +1,12 @@
 local module = {}
 
+--TODO fix chained entities spawning repeatably on clients
+--TODO fix minecart entity disapearing on spawn
 module.phys_sync_allowed = {
     -- Starting prop
     ["data/entities/props/physics_skateboard.xml"] = true,
-    ["data/entities/props/physics_minecart.xml"] = true,
-    ["data/entities/props/physics/minecart.xml"] = true,
+--  ["data/entities/props/physics_minecart.xml"] = true,
+--  ["data/entities/props/physics/minecart.xml"] = true,
     ["data/entities/props/physics_cart.xml"] = true,
 
 
@@ -21,8 +23,8 @@ module.phys_sync_allowed = {
     ["data/entities/props/physics_barrel_oil.xml"] = true,
     ["data/entities/props/physics_barrel_radioactive.xml"] = true,
     ["data/entities/props/physics_seamine.xml"] = true,
-    ["data/entities/props/suspended_tank_radioactive.xml"] = true,
-    ["data/entities/props/suspended_tank_acid.xml"] = true,
+--  ["data/entities/props/suspended_tank_radioactive.xml"] = true,
+--  ["data/entities/props/suspended_tank_acid.xml"] = true,
 
     ["data/entities/props/physics_box_harmless.xml"] = true,
     ["data/entities/props/physics_tubelamp.xml"] = true,
@@ -51,7 +53,7 @@ module.phys_sync_allowed = {
     ["data/entities/props/temple_statue_01.xml"] = true,
     ["data/entities/props/temple_statue_01_green.xml"] = true,
     ["data/entities/props/temple_statue_02.xml"] = true,
-    ["data/entities/props/physics/temple_lantern.xml"] = true,
+--  ["data/entities/props/physics/temple_lantern.xml"] = true,
 --  ["data/entities/buildings/physics_worm_deflector_base.xml"] = true,
 --  ["data/entities/buildings/physics_worm_deflector_crystal.xml"] = true,
 --  ["data/entities/misc/greed_curse/greed_crystal.xml"] = true,

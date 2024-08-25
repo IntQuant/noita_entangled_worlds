@@ -616,7 +616,35 @@
 
   <InventoryGuiComponent/>
 
-  <BossHealthBarComponent gui_max_distance_visible="512" gui="1"/>
+	<SpriteComponent
+			_tags = "health_bar_back,ui,no_hitbox"
+			has_special_scale = "1"
+			image_file = "mods/quant.ew/files/resource/health_slider_back.png"
+			offset_x = "5"
+			offset_y = "-11"
+			special_scale_y = "0.45"
+			alpha = "0.4"
+			z_index = "-9000"
+			never_ragdollify_on_death = "1"
+		>
+	</SpriteComponent>
+
+	<SpriteComponent
+			_tags= "health_bar,ui,no_hitbox"
+			has_special_scale= "1"
+			image_file = "mods/quant.ew/files/resource/health_slider_front.png"
+			offset_x = "5"
+			offset_y = "-11"
+			special_scale_y = "0.45"
+			z_index = "-9001"
+			never_ragdollify_on_death = "1"
+		>
+	</SpriteComponent>
+
+	<BossHealthBarComponent
+		gui="0"
+		in_world="1">
+	</BossHealthBarComponent>
 
   <LuaComponent _tags="ew_remove_on_send" script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"/>
 
