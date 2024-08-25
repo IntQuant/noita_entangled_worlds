@@ -66,7 +66,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/weather_sync.lua")
     ctx.load_system("polymorph")
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/world_sync_v2.lua")
+    ctx.load_system("world_sync")
 
     ctx.load_system("spawn_hooks")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")

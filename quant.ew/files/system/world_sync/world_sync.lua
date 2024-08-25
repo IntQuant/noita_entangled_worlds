@@ -1,5 +1,5 @@
 local world_ffi = require("noitapatcher.nsew.world_ffi")
-local world = require("noitapatcher.nsew.world")
+local world = dofile_once("mods/quant.ew/files/system/world_sync/world.lua")
 local rect = require("noitapatcher.nsew.rect")
 local ffi = require("ffi")
 
