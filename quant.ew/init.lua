@@ -231,6 +231,8 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     if ctx.host_id == ctx.my_id then
         np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", ctx.proxy_opt.chunk_target)
     end
+    local controls_component = EntityGetFirstComponentIncludingDisabled(player_entity, "ControlsComponent")
+    ComponentSetValue2(controls_component, "enabled", true)
 end
 
 local function on_world_pre_update_inner()
