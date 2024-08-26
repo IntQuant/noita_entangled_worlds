@@ -115,12 +115,13 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
         -- If it was an initial shot by host
         if is_suitable_target(ctx.my_player.entity) then
             local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
-            local wand = ComponentGetValue2(inventory, "mActiveItem")
+            local wand = ComponentGetValue2(inventory, "mActualActiveItem")
+            local item = EntityGetFirstComponentIncludingDisabled(wand, "ItemComponent")
             local wands = ctx.my_player.wand_fire_count
             if wands[wand] == nil then
-                wands[wand] = 0
+                wands[wand] = {0, {-1, -1}}
             end
-            wands[wand] = wands[wand] + 1
+            wands[wand] = {wands[wand][1] + 1, ComponentGetValue2(item, "inventory_slot")}
         end
 
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then

@@ -58,7 +58,7 @@ function rpc.add_nickname(id)
     end
 end
 
-function remove_healthbar_locally()
+local function remove_healthbar_locally()
     local player_components = EntityGetAllComponents(ctx.my_player.entity)
     if player_components ~= nil then
         for _, comp in ipairs(player_components) do
