@@ -51,6 +51,11 @@ local good_mats = {"magic_liquid_movement_faster",
 
 local water_mats = {"water", "swamp", "water_swamp", "water_salt", "blood"}
 
+local ignore_spell = {"ANTIHEAL", "BLACK_HOLE", "BLACK_HOLE_DEATH_TRIGGER", "POWERDIGGER", "DIGGER", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER", "GRENADE_LARGE", "CRUMBLING_EARTH", "HEAL_BULLET", "FISH",
+                      "TELEPORT_PROJECTILE_CLOSER", "TELEPORT_PROJECTILE_STATIC", "SWAPPER_PROJECTILE", "TELEPORT_PROJECTILE", "TELEPORT_PROJECTILE_SHORT", "WHITE_HOLE", "CESSATION", "ADD_TRIGGER",
+                      "ADD_TIMER", "ADD_DEATH_TRIGGER", "DIVIDE_2", "DIVIDE_3", "DIVIDE_4", "DIVIDE_10", "GAMMA", "MU", "ALPHA", "OMEGA", "PHI", "SIGMA", "TAU", "SUMMON_PORTAL", "DUPLICATE",
+                      "IF_PROJECTILE", "IF_HP", "IF_ENEMY", "IF_HALF", "IF_ELSE", "IF_END", "ALL_SPELLS"}
+
 local function get_potions_of_type(type)
     local potions = {}
     local children = EntityGetAllChildren(ctx.my_player.entity)
@@ -145,15 +150,24 @@ local function find_new_wand()
             for _, sprite in pairs(sprites) do
                 local image = ComponentGetValue2(sprite, "image_file")
                 if image == "data/ui_gfx/inventory/item_bg_projectile.png"
-                        or image == "data/ui_gfx/inventory/item_bg_material.png"
-                        or image == "data/ui_gfx/inventory/item_bg_static_projectile.png"
+                        --or image == "data/ui_gfx/inventory/item_bg_material.png"
+                        --or image == "data/ui_gfx/inventory/item_bg_static_projectile.png"
                         or image == "data/ui_gfx/inventory/item_bg_other.png" then
                     is_proj = true
                     break
                 end
             end
+            local spell = EntityGetFirstComponentIncludingDisabled(child, "ItemActionComponent")
+            local spell_name = ComponentGetValue2(spell, "action_id")
+            local dont_use = false
+            for _, name in ipairs(ignore_spell) do
+                if name == spell_name then
+                    dont_use = true
+                    break
+                end
+            end
             local item = EntityGetFirstComponentIncludingDisabled(child, "ItemComponent")
-            if ComponentGetValue2(item, "uses_remaining") ~= 0 and is_proj then
+            if ComponentGetValue2(item, "uses_remaining") ~= 0 and is_proj and not dont_use then
                 is_any_not_empty = true
                 break
             end

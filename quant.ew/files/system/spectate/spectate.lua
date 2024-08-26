@@ -81,7 +81,7 @@ local function set_camera_pos()
         local i = 0
         for peer_id, potential_target in pairs(ctx.players) do
             i = i + 1
-            if i == camera_player or (camera_player == -1 and peer_id == ctx.my_id) then
+            if i == camera_player then
                 cam_target = potential_target.entity
                 camera_player = i
                 re_cam = false
@@ -104,9 +104,6 @@ end
 
 local function update_i()
     local i = 0
-    if camera_player_id == -1 then
-        camera_player_id = ctx.my_id
-    end
     for peer_id, _ in pairs(ctx.players) do
         i = i + 1
         if peer_id == camera_player_id then
@@ -115,7 +112,8 @@ local function update_i()
             return
         end
     end
-    camera_player = -1
+    camera_player = get_me()
+    camera_player_id = ctx.my_id
 end
 
 local function number_of_players()
