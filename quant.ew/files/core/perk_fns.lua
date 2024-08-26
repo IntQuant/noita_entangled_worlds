@@ -1,5 +1,8 @@
-dofile_once("data/scripts/perks/perk_list.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
+
+local function lazyload()
+    dofile_once("data/scripts/perks/perk_list.lua")
+end
 
 local perk_fns = {}
 
@@ -23,6 +26,7 @@ local perks_to_ignore = {
 }
 
 function perk_fns.get_my_perks()
+    lazyload()
     local perks = {}
     for i=1, #perk_list do
         local perk_flag_name = get_perk_picked_flag_name(perk_list[i].id)
@@ -35,6 +39,7 @@ function perk_fns.get_my_perks()
 end
 
 local function give_one_perk(entity_who_picked, perk_info, count)
+    lazyload()
     -- add game effect
     if perk_info.game_effect ~= nil then
         local game_effect_comp = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
@@ -69,6 +74,7 @@ local function give_one_perk(entity_who_picked, perk_info, count)
 end
 
 function perk_fns.update_perks(perk_data, player_data)
+    lazyload()
     local entity = player_data.entity
     local current_counts = util.get_ent_variable(entity, "ew_current_perks") or {}
     for perk_id, count in pairs(perk_data) do
@@ -98,6 +104,7 @@ end
 
 
 function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
+    lazyload()
     local current_counts = util.get_ent_variable(entity, "ew_current_perks") or {}
     for perk_id, count in pairs(perk_data) do
         local current = (current_counts[perk_id] or 0)
