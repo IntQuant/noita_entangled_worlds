@@ -13,20 +13,20 @@ local function set_camera_pos()
     local i = 0
     local cam_target
     for peer_id, potential_target in pairs(ctx.players) do
-        local entity = potential_target.entity
         i = i + 1
-        if i == camera_player or (i == -1 and peer_id == ctx.my_id) then
-            cam_target = entity
+        if i == camera_player or (camera_player == -1 and peer_id == ctx.my_id) then
+            cam_target = potential_target.entity
             camera_player = i
+            break
         end
     end
     if camera_player == 1000 then
         camera_player = i
         set_camera_pos()
-    elseif i ~= 0 and i < camera_player then
+    elseif cam_target == nil then
         camera_player = 1
         set_camera_pos()
-    elseif cam_target ~= nil then
+    else
         if cam_target == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             GameSetCameraFree(false)
             if camera_target == nil then
