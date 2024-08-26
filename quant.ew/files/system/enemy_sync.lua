@@ -177,7 +177,13 @@ function enemy_sync.host_upload_entities()
         for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
             if phys_component ~= nil and phys_component ~= 0 then
                 not_ephemerial = true
-                table.insert(phys_info, serialize_phys_component(phys_component))
+                local ret, info = pcall(serialize_phys_component, phys_component)
+                if not ret then
+                    GamePrint("Physics component has no body, deleting entity")
+                    EntityKill(enemy_id)
+                    goto continue
+                end
+                table.insert(phys_info, info)
             end
         end
 
@@ -186,7 +192,13 @@ function enemy_sync.host_upload_entities()
                 not_ephemerial = true
                 local initialized = ComponentGetValue2(phys_component, "mInitialized")
                 if initialized then
-                    table.insert(phys_info_2, serialize_phys_component(phys_component))
+                    local ret, info = pcall(serialize_phys_component, phys_component)
+                    if not ret then
+                        GamePrint("Physics component has no body, deleting entity")
+                        EntityKill(enemy_id)
+                        goto continue
+                    end
+                    table.insert(phys_info_2, info)
                 else
                     table.insert(phys_info_2, nil)
                 end
