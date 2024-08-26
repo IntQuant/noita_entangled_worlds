@@ -1,8 +1,10 @@
 local spectate = {}
 
-local camera_player = -1
+local camera_player
 
-local camera_player_id = -1
+local re_cam = false
+
+local camera_player_id
 
 local camera_target
 
@@ -13,6 +15,16 @@ local inventory_target
 local left_held = false
 
 local right_held = false
+
+local function get_me()
+    local i = 0
+    for peer_id, _ in pairs(ctx.players) do
+        i = i + 1
+        if peer_id == ctx.my_id then
+            return i
+        end
+    end
+end
 
 local function target()
     if cam_target == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
@@ -65,25 +77,22 @@ local function target()
 end
 
 local function set_camera_pos()
-    if camera_player < 1 and camera_player ~= -1 then
-        camera_player = 1000
-    end
-    local i = 0
-    if left_held or right_held or cam_target == nil then
+    if cam_target == nil or re_cam then
+        local i = 0
         for peer_id, potential_target in pairs(ctx.players) do
             i = i + 1
             if i == camera_player or (camera_player == -1 and peer_id == ctx.my_id) then
                 cam_target = potential_target.entity
                 camera_player = i
+                re_cam = false
                 camera_player_id = peer_id
                 break
             end
         end
-        if camera_player == 1000 then
-            camera_player = i
-            set_camera_pos()
-        elseif cam_target == nil then
-            camera_player = -1
+        if cam_target == nil then
+            camera_player = get_me()
+            camera_player_id = ctx.my_id
+            re_cam = true
             set_camera_pos()
         else
             target()
@@ -94,7 +103,7 @@ local function set_camera_pos()
 end
 
 local function update_i()
-    local i =0
+    local i = 0
     if camera_player_id == -1 then
         camera_player_id = ctx.my_id
     end
@@ -102,36 +111,53 @@ local function update_i()
         i = i + 1
         if peer_id == camera_player_id then
             camera_player = i
-            break
+            re_cam = true
+            return
         end
     end
+    camera_player = -1
+end
+
+local function number_of_players()
+    local i = 0
+    for _, _ in pairs(ctx.players) do
+        i = i + 1
+    end
+    return i
 end
 
 local last_len
 
 function spectate.on_world_update()
-    if last_len == nil then
-        last_len = #ctx.players
+    if camera_player == nil then
+        camera_player = get_me()
+        camera_player_id = ctx.my_id
     end
-    if last_len ~= #ctx.players then
+    if last_len == nil then
+        last_len = number_of_players()
+    end
+    if last_len ~= number_of_players() or (cam_target ~= nil and not EntityGetIsAlive(cam_target)) then
         update_i()
+        last_len = number_of_players()
     end
 
     if InputIsKeyDown(54) then
         if not left_held then
-            if camera_player == -1 then
-                camera_player = 1001
-            end
             camera_player = camera_player - 1
+            if camera_player < 1 then
+                camera_player = last_len
+            end
             left_held = true
+            re_cam = true
         end
     elseif InputIsKeyDown(55) then
         if not right_held then
-            if camera_player == -1 then
-                camera_player = 0
-            end
             camera_player = camera_player + 1
+            if camera_player > last_len then
+                camera_player = 1
+            end
             right_held = true
+            re_cam = true
         end
     else
         left_held = false

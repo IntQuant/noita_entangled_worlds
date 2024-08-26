@@ -59,14 +59,8 @@ function rpc.add_nickname(id)
 end
 
 local function remove_healthbar_locally()
-    local player_components = EntityGetAllComponents(ctx.my_player.entity)
-    if player_components ~= nil then
-        for _, comp in ipairs(player_components) do
-            if ComponentHasTag(comp, "health_bar") or ComponentHasTag(comp, "health_bar_back") then
-                EntitySetComponentIsEnabled(ctx.my_player.entity, comp, false)
-            end
-        end
-    end
+    EntitySetComponentsWithTagEnabled(ctx.my_player.entity, "health_bar", false)
+    EntitySetComponentsWithTagEnabled(ctx.my_player.entity, "health_bar_back", false)
 end
 
 
@@ -84,6 +78,9 @@ local function allow_notplayer_perk(perk_id)
         RESPAWN = true,
         GENOME_MORE_HATRED = true,
         GENOME_MORE_LOVE = true,
+        ESSENCE_LASER = true,
+        ESSENCE_FIRE = true,
+        ESSENCE_WATER = true,
         FOOD_CLOCK = true, -- TODO, should carry over satiation buff
         TELEPORTITIS = true, -- TODO: teleports to 0,0
         TELEPORTITIS_DODGE = true,
