@@ -13,7 +13,11 @@ rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.gather_and_do_ending(x, y, sx, sy)
     net.proxy_send("reset_world", "")
-    
+
+    if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "revive", "NONE", 0, 0, GameGetWorldStateEntity())
+    end
+
     EntitySetTransform(ctx.my_player.entity, x, y)
 
     local entity = EntityCreateNew("totally_sampo")
