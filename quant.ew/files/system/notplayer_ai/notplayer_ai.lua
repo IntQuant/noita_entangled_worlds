@@ -49,7 +49,7 @@ local good_mats = {"magic_liquid_movement_faster",
                    "magic_liquid_faster_levitation",
                    "magic_liquid_hp_regeneration_unstable"}
 
-local water_mats = {"water", "swamp", "water_swamp", "water_salt", "blood"}
+local water_mats = {"water", "swamp", "water_swamp", "water_salt", "blood", "mud"}
 
 local ignore_spell = {"ANTIHEAL", "BLACK_HOLE", "BLACK_HOLE_DEATH_TRIGGER", "POWERDIGGER", "DIGGER", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER", "GRENADE_LARGE", "CRUMBLING_EARTH", "HEAL_BULLET", "FISH",
                       "TELEPORT_PROJECTILE_CLOSER", "TELEPORT_PROJECTILE_STATIC", "SWAPPER_PROJECTILE", "TELEPORT_PROJECTILE", "TELEPORT_PROJECTILE_SHORT", "WHITE_HOLE", "CESSATION", "ADD_TRIGGER",
@@ -202,6 +202,73 @@ local stop_potion = false
 
 local bathe = false
 
+local function arc_potion(world_x, world_y)
+    local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
+    local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
+    local dx, dy = world_x - ch_x, world_y - ch_y
+
+    ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
+    local v = 180
+    local g = 156
+    dy = -dy
+    local is_behind = dx<0
+    if is_behind then
+        dx = -dx
+    end
+    local lhs = v*v/(g*dx)
+    local interior = v*v*v*v - g*g*dx*dx - 2*g*dy*v*v
+    if interior < 0 then
+        dont_throw = true
+        bad_potion = nil
+        stop_potion = true
+        return
+    end
+    local rhs = math.sqrt(interior)/(g*dx)
+    local theta1 = lhs+rhs
+    local theta2 = lhs-rhs
+    local theta
+    if dy < 0 then
+        if theta1 > theta2 then
+            theta = theta2
+        else
+            theta = theta1
+        end
+    else
+        if theta1 > theta2 then
+            theta = theta1
+        else
+            theta = theta2
+        end
+    end
+    local cos = 1 / math.sqrt(theta*theta+1)
+    local sin = theta * cos
+    if theta > theta1 or theta > theta2 then
+        local t = v * sin / g
+        local x = v*t*cos
+        local y = v*t*sin-g*t*t/2
+        if is_behind then
+            x = -x
+        end
+        local did_hit_1, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x + x, ch_y + y)
+        local did_hit_2, _, _ = RaytracePlatforms(ch_x + x, ch_y + y, world_x, world_y)
+        if did_hit_1 or did_hit_2 then
+            if theta == theta1 then
+                theta = theta2
+            else
+                theta = theta1
+            end
+            cos = 1 / math.sqrt(theta*theta+1)
+            sin = theta * cos
+        end
+    end
+    if is_behind then
+        cos = -cos
+    end
+    ComponentSetValue2(state.control_component, "mAimingVector", cos * 312, -sin * 312)
+    ComponentSetValue2(state.control_component, "mAimingVectorNormalized", cos, -sin)
+end
+
+
 local function aim_at(world_x, world_y)
     if good_potion ~= nil then
         ComponentSetValue2(state.control_component, "mAimingVector", 0, 312)
@@ -214,71 +281,14 @@ local function aim_at(world_x, world_y)
         ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
         return
     end
-    local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
-    local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
-    local dx, dy = world_x - ch_x, world_y - ch_y
 
     if bad_potion ~= nil then
-        ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
-        local v = 180
-        local g = 156
-        dy = -dy
-        local is_behind = dx<0
-        if is_behind then
-            dx = -dx
-        end
-        local lhs = v*v/(g*dx)
-        local interior = v*v*v*v - g*g*dx*dx - 2*g*dy*v*v
-        if interior < 0 then
-            dont_throw = true
-            bad_potion = nil
-            stop_potion = true
-            return
-        end
-        local rhs = math.sqrt(interior)/(g*dx)
-        local theta1 = lhs+rhs
-        local theta2 = lhs-rhs
-        local theta
-        if dy < 0 then
-            if theta1 > theta2 then
-                theta = theta2
-            else
-                theta = theta1
-            end
-        else
-            if theta1 > theta2 then
-                theta = theta1
-            else
-                theta = theta2
-            end
-        end
-        local cos = 1 / math.sqrt(theta*theta+1)
-        local sin = theta * cos
-        if theta > theta1 or theta > theta2 then
-            local t = v * sin / g
-            local x = v*t*cos
-            local y = v*t*sin-g*t*t/2
-            if is_behind then
-                x = -x
-            end
-            local did_hit_1, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x + x, ch_y + y)
-            local did_hit_2, _, _ = RaytracePlatforms(ch_x + x, ch_y + y, world_x, world_y)
-            if did_hit_1 or did_hit_2 then
-                if theta == theta1 then
-                    theta = theta2
-                else
-                    theta = theta1
-                end
-                cos = 1 / math.sqrt(theta*theta+1)
-                sin = theta * cos
-            end
-        end
-        if is_behind then
-            cos = -cos
-        end
-        ComponentSetValue2(state.control_component, "mAimingVector", cos * 312, -sin * 312)
-        ComponentSetValue2(state.control_component, "mAimingVectorNormalized", cos, -sin)
+        arc_potion(world_x, world_y)
     else
+        local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
+        local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
+        local dx, dy = world_x - ch_x, world_y - ch_y
+
         local dist = math.sqrt(dx * dx + dy * dy)
 
         ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
@@ -619,102 +629,8 @@ local function teleport_outside_cursed()
     end
 end
 
-local function better_player(length, did_hit, potential_target)
-    return ((last_length == nil or (not did_hit and ((last_length > length or not last_did_hit) or EntityHasTag(target, "polymorphed"))))
-                    and (not IsInvisible(potential_target) or length < 50*50))
-end
-
-local function update()
-    -- No taking control back, even after pressing esc.
-    ComponentSetValue2(state.control_component, "enabled", false)
-
-    state.init_timer = state.init_timer + 1
-
+local function hold_something()
     local ch_x, ch_y = EntityGetTransform(state.entity)
-    local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
-    local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
-    local x, y = EntityGetHotspot(arm, "hand", true)
-
-    if target ~= nil then
-        local x1, y1 = EntityGetTransform(target)
-        if x1 == nil then
-            target = nil
-            last_length = nil
-            last_did_hit = true
-        else
-            local dx = ch_x - x1
-            local dy = ch_y - y1
-            local dist = dx*dx + dy*dy
-            if not is_suitable_target(target) or (dist > 600 * 600) or (IsInvisible(target) and dist > 50*50) then
-                target = nil
-                last_length = nil
-                last_did_hit = true
-            end
-        end
-    end
-    if target ~= nil then
-        local t_x, t_y = EntityGetFirstHitboxCenter(target)
-        if t_x == nil then
-            t_x, t_y = EntityGetTransform(target)
-        end
-        state.aim_up = false
-        state.aim_down = false
-        local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-        if did_hit then
-            did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
-            if not did_hit then
-                state.aim_up = true
-            else
-                did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
-                if not did_hit then
-                    state.aim_down = true
-                end
-            end
-        end
-        last_did_hit = did_hit
-    end
-
-    log("Trying to choose target")
-    for _, potential_target in ipairs(potential_targets) do
-        log("Trying "..potential_target)
-        if is_suitable_target(potential_target) then
-            local t_x, t_y = EntityGetFirstHitboxCenter(potential_target)
-            if t_x == nil then
-                t_x, t_y = EntityGetTransform(potential_target)
-            end
-            local dx = x - t_x
-            local dy = y - t_y
-            local length = dx * dx + dy * dy
-            local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-            if better_player(length, did_hit, potential_target) then
-                last_length = length
-                last_did_hit = did_hit
-                target = potential_target
-                state.aim_up = false
-                state.aim_down = false
-            elseif did_hit then
-                local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
-                if better_player(length, did_hit_up, potential_target) then
-                    last_length = length
-                    last_did_hit = did_hit
-                    target = potential_target
-                    state.aim_up = true
-                    state.aim_down = false
-                elseif did_hit_up then
-                    local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
-                    if better_player(length, did_hit_down, potential_target) then
-                        last_length = length
-                        last_did_hit = did_hit
-                        target = potential_target
-                        state.aim_up = false
-                        state.aim_down = true
-                    end
-                end
-            end
-        end
-    end
-    do_kick = last_length ~= nil and last_length < 100
-
     if GameGetFrameNum() % 20 == 0 then
         find_new_wand()
     end
@@ -821,6 +737,112 @@ local function update()
             np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         end
     end
+end
+
+local function better_player(length, did_hit, potential_target)
+    return ((last_length == nil or (not did_hit and ((last_length > length or not last_did_hit) or EntityHasTag(target, "polymorphed"))))
+                    and (not IsInvisible(potential_target) or length < 50*50))
+end
+
+local function find_target()
+    local ch_x, ch_y = EntityGetTransform(state.entity)
+    local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
+    local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
+    local x, y = EntityGetHotspot(arm, "hand", true)
+
+    if target ~= nil then
+        local x1, y1 = EntityGetTransform(target)
+        if x1 == nil then
+            target = nil
+            last_length = nil
+            last_did_hit = true
+        else
+            local dx = ch_x - x1
+            local dy = ch_y - y1
+            local dist = dx*dx + dy*dy
+            if not is_suitable_target(target) or (dist > 600 * 600) or (IsInvisible(target) and dist > 50*50) then
+                target = nil
+                last_length = nil
+                last_did_hit = true
+            end
+        end
+    end
+    if target ~= nil then
+        local t_x, t_y = EntityGetFirstHitboxCenter(target)
+        if t_x == nil then
+            t_x, t_y = EntityGetTransform(target)
+        end
+        state.aim_up = false
+        state.aim_down = false
+        local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+        if did_hit then
+            did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
+            if not did_hit then
+                state.aim_up = true
+            else
+                did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
+                if not did_hit then
+                    state.aim_down = true
+                end
+            end
+        end
+        last_did_hit = did_hit
+    end
+
+    log("Trying to choose target")
+    for _, potential_target in ipairs(potential_targets) do
+        log("Trying "..potential_target)
+        if is_suitable_target(potential_target) then
+            local t_x, t_y = EntityGetFirstHitboxCenter(potential_target)
+            if t_x == nil then
+                t_x, t_y = EntityGetTransform(potential_target)
+            end
+            local dx = x - t_x
+            local dy = y - t_y
+            local length = dx * dx + dy * dy
+            local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+            if better_player(length, did_hit, potential_target) then
+                last_length = length
+                last_did_hit = did_hit
+                target = potential_target
+                state.aim_up = false
+                state.aim_down = false
+            elseif did_hit then
+                local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
+                if better_player(length, did_hit_up, potential_target) then
+                    last_length = length
+                    last_did_hit = did_hit
+                    target = potential_target
+                    state.aim_up = true
+                    state.aim_down = false
+                elseif did_hit_up then
+                    local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
+                    if better_player(length, did_hit_down, potential_target) then
+                        last_length = length
+                        last_did_hit = did_hit
+                        target = potential_target
+                        state.aim_up = false
+                        state.aim_down = true
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+local function update()
+    -- No taking control back, even after pressing esc.
+    ComponentSetValue2(state.control_component, "enabled", false)
+
+    state.init_timer = state.init_timer + 1
+
+    find_target()
+
+    do_kick = last_length ~= nil and last_length < 100
+
+    hold_something()
+
     if do_kick then
         fire_wand(false)
         ComponentSetValue2(state.control_component, "mButtonDownKick", true)
