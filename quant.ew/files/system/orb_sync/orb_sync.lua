@@ -4,12 +4,14 @@ local last_orb_count = 0
 
 local module = {}
 
+local wait_for_these
+
 local function orbs_found_this_run()
     local wsc = EntityGetFirstComponent(GameGetWorldStateEntity(), "WorldStateComponent")
     return ComponentGetValue2(wsc, "orbs_found_thisrun")
 end
 
-function rpc.update_orbs(found_orbs)
+local function actual_orbs_update(found_orbs)
     local found_local = orbs_found_this_run()
     for _, orb in ipairs(found_orbs) do
         if table.contains(found_local, orb) then
@@ -31,12 +33,23 @@ function rpc.update_orbs(found_orbs)
     last_orb_count = GameGetOrbCountThisRun()
 end
 
+function rpc.update_orbs(found_orbs)
+    if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        wait_for_these = found_orbs
+        return
+    end
+    actual_orbs_update(found_orbs)
+end
+
 local function send_orbs()
     rpc.update_orbs(orbs_found_this_run())
 end
 
 function module.on_world_update()
-    if last_orb_count ~= GameGetOrbCountThisRun() then
+    if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        actual_orbs_update(wait_for_these)
+        wait_for_these = nil
+    elseif last_orb_count ~= GameGetOrbCountThisRun() then
         last_orb_count = GameGetOrbCountThisRun()
         send_orbs()
     end

@@ -57,6 +57,9 @@ end
 
 function rpc.send_effects(effects)
     local entity = ctx.rpc_player_data.entity
+    if not EntityGetIsAlive(entity) then
+        return
+    end
     local confirmed_effects = {}
     for _, effect in ipairs(effects) do
         local effect_remote_id = effect[1]

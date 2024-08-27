@@ -107,7 +107,12 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     end
     EntityAddTag(projectile_id, "ew_no_enemy_sync")
     local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
-    local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+    local entity_that_shot
+    if projectileComponent == nil then
+        entity_that_shot = GameGetWorldStateEntity()
+    else
+        entity_that_shot = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+    end
 
     local shooter_player_data = player_fns.get_player_data_by_local_entity_id(shooter_id)
     local rng = 0

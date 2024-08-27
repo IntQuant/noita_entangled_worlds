@@ -19,7 +19,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     end
     async(function()
         if died then
-            wait(1)
+            wait(40)
         end
         net.proxy_send("reset_world", "")
         EntitySetTransform(ctx.my_player.entity, x, y)
