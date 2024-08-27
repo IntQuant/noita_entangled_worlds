@@ -12,8 +12,6 @@ local net = {}
 
 net.net_handling = net_handling
 
-ctx.lib.net = net
-
 function net.update()
     reactor:update()
 end
@@ -37,6 +35,31 @@ end
 -- Also call rpc on client who initiated it.
 function rpc_base.opts_everywhere()
   rpc_inner.opts.everywhere = true
+end
+
+function rpc_base:create_var(name, cb_fn)
+  local var = {}
+  local rpc_name = "_set_var_"..name
+  var.values = {}
+  self.opts_reliable()
+  self.opts_everywhere()
+  self[rpc_name] = function(new_value)
+      if cb_fn ~= nil then
+        cb_fn(new_value)
+      end
+      var.values[ctx.rpc_peer_id] = new_value
+  end
+  local set_rpc = self[rpc_name]
+  function var.set(new_value)
+    if new_value ~= var.values[ctx.my_id] then
+      set_rpc(new_value)
+      var.values[ctx.my_id] = new_value
+    end
+  end
+  ctx.add_hook("on_should_send_updates", "net_vars", function()
+    set_rpc(var.values[ctx.my_id])
+  end)
+  return var
 end
 
 local rpc_meta = {

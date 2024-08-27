@@ -162,6 +162,7 @@ function spectate.on_world_update()
         right_held = false
     end
     set_camera_pos()
+    ctx.spectating_over_peer_id = camera_player_id
 end
 
 return spectate
