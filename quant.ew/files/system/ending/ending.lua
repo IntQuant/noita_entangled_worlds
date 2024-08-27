@@ -12,26 +12,35 @@ util.replace_text_in("data/entities/animals/boss_centipede/sampo.xml", "data/ent
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.gather_and_do_ending(x, y, sx, sy)
-    net.proxy_send("reset_world", "")
-
+    local died = false
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        died = true
         EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "revive", "NONE", 0, 0, GameGetWorldStateEntity())
     end
+    async(function()
+        if died then
+            wait(1)
+        end
+        net.proxy_send("reset_world", "")
+        EntitySetTransform(ctx.my_player.entity, x, y)
 
-    EntitySetTransform(ctx.my_player.entity, x, y)
+        local entity = EntityCreateNew("totally_sampo")
+        EntitySetTransform(entity, sx, sy)
 
-    local entity = EntityCreateNew("totally_sampo")
-    EntitySetTransform(entity, sx, sy)
+        wait(30)
 
-    -- Emulate the following script being called from LuaComponent
-    local old_updated = GetUpdatedEntityID
-    function GetUpdatedEntityID()
-        return entity
-    end
+        EntitySetTransform(ctx.my_player.entity, x, y)
 
-    dofile("data/entities/animals/boss_centipede/ending/sampo_start_ending_sequence.lua")
+        -- Emulate the following script being called from LuaComponent
+        local old_updated = GetUpdatedEntityID
+        function GetUpdatedEntityID()
+            return entity
+        end
 
-    GetUpdatedEntityID = old_updated
+        dofile("data/entities/animals/boss_centipede/ending/sampo_start_ending_sequence.lua")
+
+        GetUpdatedEntityID = old_updated
+    end)
 end
 
 np.CrossCallAdd("ew_ending_sequence", function(sx, sy, sampo_ent)

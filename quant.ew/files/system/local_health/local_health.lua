@@ -117,7 +117,6 @@ local function player_died()
         EntityAddChild(ctx.my_player.entity, iron)
         rpc.add_nickname(ctx.my_id)
         remove_healthbar_locally()
-        EntityAddComponent2(ctx.my_player.entity, "StreamingKeepAliveComponent")
     end)
 end
 
