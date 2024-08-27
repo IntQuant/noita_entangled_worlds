@@ -525,55 +525,131 @@ local function choose_movement()
 end
 
 local function position_to_area_number(x, y)
-    if y < 1199 then
-        return 1
-    elseif y < 2735 then
-        return 2
-    elseif y < 4783 then
-        return 3
-    elseif y < 6319 then
-        return 4
-    elseif y < 8367 then
-        return 5
-    elseif y < 10415 then
-        return 6
-    elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
-        return 7
+    if np.GetGameModeNr() == 2 then
+        if y < 1199 then
+            return 1
+        elseif y < 3759 then
+            return 2
+        elseif y < 6319 then
+            return 3
+        elseif y < 10415 then
+            return 4
+        elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
+            return 5
+        else
+            return 8
+        end
+    elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
+        if y < 1199 then
+            return 1
+        elseif y < 2735 then
+            return 2
+        elseif y < 6319 then
+            return 3
+        elseif y < 10415 then
+            return 4
+        elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
+            return 5
+        else
+            return 8
+        end
     else
-        return 8
+        if y < 1199 then
+            return 1
+        elseif y < 2735 then
+            return 2
+        elseif y < 4783 then
+            return 3
+        elseif y < 6319 then
+            return 4
+        elseif y < 8367 then
+            return 5
+        elseif y < 10415 then
+            return 6
+        elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
+            return 7
+        else
+            return 8
+        end
     end
 end
 
 local function teleport_to_area(area)
     async(function()
-        if area == 1 then
-            EntitySetTransform(ctx.my_player.entity, 191, 1514)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 191, 1514)
-        elseif area == 2 then
-            EntitySetTransform(ctx.my_player.entity, 191, 3066)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 191, 3066)
-        elseif area == 3 then
-            EntitySetTransform(ctx.my_player.entity, 191, 5114)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 191, 5114)
-        elseif area == 4 then
-            EntitySetTransform(ctx.my_player.entity, 191, 6634)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 191, 6634)
-        elseif area == 5 then
-            EntitySetTransform(ctx.my_player.entity, 191, 8696)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 191, 8696)
-        elseif area == 6 then
-            EntitySetTransform(ctx.my_player.entity, 191, 10730)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 191, 10730)
-        elseif area == 7 then
-            EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-            wait(30)
-            EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+        if np.GetGameModeNr() == 2 then
+            if area == 1 then
+                EntitySetTransform(ctx.my_player.entity, 191, 1514)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 1514)
+            elseif area == 2 then
+                EntitySetTransform(ctx.my_player.entity, 191, 4066)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 4066)
+            elseif area == 3 then
+                EntitySetTransform(ctx.my_player.entity, 191, 6626)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 6626)
+            elseif area == 4 then
+                EntitySetTransform(ctx.my_player.entity, 191, 10722)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 10722)
+            elseif area == 5 then
+                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            end
+        elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
+            if area == 1 then
+                EntitySetTransform(ctx.my_player.entity, 191, 1514)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 1514)
+            elseif area == 2 then
+                EntitySetTransform(ctx.my_player.entity, 191, 3040)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 3040)
+            elseif area == 3 then
+                EntitySetTransform(ctx.my_player.entity, 191, 6626)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 6626)
+            elseif area == 4 then
+                EntitySetTransform(ctx.my_player.entity, 191, 10722)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 10722)
+            elseif area == 5 then
+                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            end
+        else
+            if area == 1 then
+                EntitySetTransform(ctx.my_player.entity, 191, 1514)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 1514)
+            elseif area == 2 then
+                EntitySetTransform(ctx.my_player.entity, 191, 3066)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 3066)
+            elseif area == 3 then
+                EntitySetTransform(ctx.my_player.entity, 191, 5114)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 5114)
+            elseif area == 4 then
+                EntitySetTransform(ctx.my_player.entity, 191, 6634)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 6634)
+            elseif area == 5 then
+                EntitySetTransform(ctx.my_player.entity, 191, 8696)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 8696)
+            elseif area == 6 then
+                EntitySetTransform(ctx.my_player.entity, 191, 10730)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 191, 10730)
+            elseif area == 7 then
+                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            end
         end
     end)
 end
@@ -582,6 +658,8 @@ local function teleport_to_next_hm()
     --BiomeMapGetName()
     --BIOME_MAP
     --MagicNumbersGetValue
+    --ModIsEnabled("nightmare"), np.GetGameModeNr() == 3
+    --tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0
 
     -- main x area -5646 < x < 5120
     -- main y area -1400 < y < 14336
@@ -622,6 +700,9 @@ local function teleport_outside_cursed()
     --14074, -820
     --35840
     --1100
+    if np.GetGameModeNr() == 3 then
+        return
+    end
     local x, _ = EntityGetTransform(ctx.my_player.entity)
     local how_far_right = (x - (17370+550)) % 35840
     if how_far_right <= 550 or how_far_right >= (35840 - 550) then
