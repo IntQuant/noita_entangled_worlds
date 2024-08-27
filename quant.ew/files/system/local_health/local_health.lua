@@ -296,6 +296,10 @@ np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
 rpc.opts_everywhere()
 function rpc.send_status(status)
     ctx.rpc_player_data.status = status
+    local hp, _, has_hp = util.get_ent_health(ctx.rpc_player_data.entity)
+    if hp > status.hp then
+        EntityInflictDamage(ctx.rpc_player_data.entity, hp - status.hp, "DAMAGE_CURSE", "hp update", "NONE", 0, 0, GameGetWorldStateEntity())
+    end
     util.set_ent_health(ctx.rpc_player_data.entity, {status.hp, status.max_hp})
 end
 
