@@ -606,6 +606,19 @@ local function teleport_to_next_hm()
     end
 end
 
+local function teleport_outside_cursed()
+    --17370 < x < 18470
+    --53210 < x
+    --14074, -820
+    --35840
+    --1100
+    local x, _ = EntityGetTransform(ctx.my_player.entity)
+    local how_far_right = (x - (17370+550)) % 35840
+    if how_far_right <= 550 or how_far_right >= (35840 - 550) then
+        EntitySetTransform(ctx.my_player.entity, 14074, -820)
+    end
+end
+
 local function better_player(length, did_hit, potential_target)
     return ((last_length == nil or (not did_hit and ((last_length > length or not last_did_hit) or EntityHasTag(target, "polymorphed"))))
                     and (not IsInvisible(potential_target) or length < 50*50))
@@ -843,6 +856,7 @@ local function update()
 
     if (GameGetFrameNum() % 300) == 299 then
         teleport_to_next_hm()
+        teleport_outside_cursed()
     end
 end
 
