@@ -190,6 +190,12 @@ function spectate.on_world_update()
         local tw, th = GuiGetTextDimensions(gui, text)
         GuiText(gui, w-2-tw, h-1-th, text)
     end
+    if cam_target.entity ~= ctx.my_player.entity then
+        local inv_spec = EntityGetFirstComponent(cam_target.entity, "InventoryGuiComponent")
+        local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
+        ComponentSetValue2(inv_spec, "mActive", false)
+        ComponentSetValue2(inv_me, "mActive", false)
+    end
 end
 
 return spectate

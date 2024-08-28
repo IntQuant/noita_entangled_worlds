@@ -28,10 +28,10 @@ local bad_mats = {"magic_liquid_random_polymorph",
                   "mimic_liquid",
                   "void_liquid",
                   "magic_liquid_weakness",
---                  "magic_liquid_teleportation",
---                  "magic_liquid_unstable_teleportation",
+--                "magic_liquid_teleportation",
+--                "magic_liquid_unstable_teleportation",
                   "beer",
---                  "alcohol",
+--                "alcohol",
                   "sima",
                   "blood_cold",
                   "juhannussima",
@@ -45,11 +45,11 @@ local good_mats = {"magic_liquid_movement_faster",
                    "magic_liquid_mana_regeneration",
                    "magic_liquid_faster_levitation_and_movement",
                    "magic_liquid_hp_regeneration",
---                   "magic_liquid_invisibility",
+--                 "magic_liquid_invisibility",
                    "magic_liquid_faster_levitation",
                    "magic_liquid_hp_regeneration_unstable"}
 
-local water_mats = {"water", "swamp", "water_swamp", "water_salt", "blood", "mud"}
+local water_mats = {"water", "swamp", "water_swamp", "water_salt", "blood", "mud", "snow"}
 
 local ignore_spell = {"ANTIHEAL", "BLACK_HOLE", "BLACK_HOLE_DEATH_TRIGGER", "POWERDIGGER", "DIGGER", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER", "GRENADE_LARGE", "CRUMBLING_EARTH", "HEAL_BULLET", "FISH",
                       "TELEPORT_PROJECTILE_CLOSER", "TELEPORT_PROJECTILE_STATIC", "SWAPPER_PROJECTILE", "TELEPORT_PROJECTILE", "TELEPORT_PROJECTILE_SHORT", "WHITE_HOLE", "CESSATION", "ADD_TRIGGER",
@@ -349,7 +349,6 @@ local function init_state()
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
-        gui_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
         items = items,
 
         bad_potions = get_potions_of_type(bad_mats),
