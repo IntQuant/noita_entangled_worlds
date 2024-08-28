@@ -1,5 +1,7 @@
 local spectate = {}
 
+local gui = GuiCreate()
+
 local camera_player
 
 local re_cam = false
@@ -163,6 +165,15 @@ function spectate.on_world_update()
     end
     set_camera_pos()
     ctx.spectating_over_peer_id = camera_player_id
+
+    GuiStartFrame(gui)
+    GuiZSet(gui, 11)
+    if GameHasFlagRun("ew_flag_notplayer_active") then
+        local w, h = GuiGetScreenDimensions(gui)
+        local text = "Use ',' and '.' keys to spectate over other players."
+        local tw, th = GuiGetTextDimensions(gui, text)
+        GuiText(gui, w-2-tw, h-1-th, text)
+    end
 end
 
 return spectate
