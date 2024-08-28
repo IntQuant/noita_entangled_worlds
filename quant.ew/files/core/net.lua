@@ -41,19 +41,20 @@ function rpc_base:create_var(name, cb_fn)
   local var = {}
   local rpc_name = "_set_var_"..name
   var.values = {}
+  var.prev_values = {}
   self.opts_reliable()
   self.opts_everywhere()
   self[rpc_name] = function(new_value)
+      var.prev_values[ctx.rpc_peer_id] = var.values[ctx.rpc_peer_id]
+      var.values[ctx.rpc_peer_id] = new_value
       if cb_fn ~= nil then
         cb_fn(new_value)
       end
-      var.values[ctx.rpc_peer_id] = new_value
   end
   local set_rpc = self[rpc_name]
   function var.set(new_value)
     if new_value ~= var.values[ctx.my_id] then
       set_rpc(new_value)
-      var.values[ctx.my_id] = new_value
     end
   end
   ctx.add_hook("on_should_send_updates", "net_vars", function()
