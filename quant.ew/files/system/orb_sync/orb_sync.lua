@@ -25,6 +25,9 @@ local function actual_orbs_update(found_orbs)
         EntityAddComponent2(orb_ent, "OrbComponent", {
             orb_id = orb,
         })
+        EntityAddComponent2(orb_ent, "LuaComponent", {
+            script_item_picked_up = "data/scripts/items/orb_pickup.lua",
+        })
         local x, y = EntityGetTransform(ctx.my_player.entity)
         EntitySetTransform(orb_ent, x, y)
         ::continue::
@@ -34,7 +37,7 @@ local function actual_orbs_update(found_orbs)
 end
 
 function rpc.update_orbs(found_orbs)
-    if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+    if EntityHasTag(ctx.my_player.entity, "polymorphed") then
         wait_for_these = found_orbs
         return
     end
@@ -46,7 +49,20 @@ local function send_orbs()
 end
 
 function module.on_world_update()
-    if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+    if GameGetFrameNum() % 10 == 0 then
+        local found_local = orbs_found_this_run()
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        for _, orb_ent in ipairs(EntityGetInRadiusWithTag(x, y, 300, "hittable") or {}) do
+            local comp = EntityGetFirstComponent(orb_ent, "OrbComponent")
+            if comp ~= nil then
+                local orb = ComponentGetValue2(comp, "orb_id")
+                if table.contains(found_local, orb) then
+                    EntityKill(orb_ent)
+                end
+            end
+        end
+    end
+    if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "polymorphed") then
         actual_orbs_update(wait_for_these)
         wait_for_these = nil
     elseif last_orb_count ~= GameGetOrbCountThisRun() then
