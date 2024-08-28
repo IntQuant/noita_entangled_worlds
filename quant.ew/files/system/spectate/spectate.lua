@@ -18,6 +18,8 @@ local left_held = false
 
 local right_held = false
 
+local was_notplayer = false
+
 local function get_me()
     local i = 0
     for peer_id, _ in pairs(ctx.players) do
@@ -34,8 +36,9 @@ local function target()
         if camera_target == nil then
             camera_target = ctx.my_player.entity
         elseif camera_target ~= ctx.my_player.entity then
-            EntityAddComponent2(cam_target, "AudioListenerComponent")
             local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
+            local audio_n = EntityAddComponent2(cam_target, "AudioListenerComponent")
+            ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             local keep_alive = EntityGetFirstComponent(camera_target, "StreamingKeepAliveComponent")
             EntityRemoveComponent(camera_target, audio)
             EntityRemoveComponent(camera_target, keep_alive)
@@ -65,11 +68,12 @@ local function target()
         local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
         local keep_alive = EntityGetFirstComponent(camera_target, "StreamingKeepAliveComponent")
         if audio ~= nil then
+            local audio_n = EntityAddComponent2(cam_target, "AudioListenerComponent")
+            ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             EntityRemoveComponent(camera_target, audio)
             if camera_target ~= ctx.my_player.entity then
                 EntityRemoveComponent(camera_target, keep_alive)
             end
-            EntityAddComponent2(cam_target, "AudioListenerComponent")
             if cam_target ~= ctx.my_player.entity then
                 EntityAddComponent2(cam_target, "StreamingKeepAliveComponent")
             end
@@ -129,9 +133,18 @@ end
 local last_len
 
 function spectate.on_world_update()
+    if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        was_notplayer = true
+    elseif was_notplayer then
+        was_notplayer = false
+        camera_player = get_me()
+        camera_player_id = ctx.my_id
+        re_cam = true
+    end
     if camera_player == nil then
         camera_player = get_me()
         camera_player_id = ctx.my_id
+        re_cam = true
     end
     if last_len == nil then
         last_len = number_of_players()
