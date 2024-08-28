@@ -286,20 +286,6 @@
   ></AudioLoopComponent>
 
   <AudioLoopComponent
-    _tags="sound_suffocating"
-    file="data/audio/Desktop/player.bank"
-    event_name="player/suffocating"
-    volume_autofade_speed="0.25"
-  ></AudioLoopComponent>
-
-  <AudioLoopComponent
-    _tags="sound_damage_curse"
-    file="data/audio/Desktop/player.bank"
-    event_name="player/suffocating"
-    volume_autofade_speed="0.1"
-  ></AudioLoopComponent>
-
-  <AudioLoopComponent
     _tags="sound_pick_gold_sand"
     file="data/audio/Desktop/player.bank"
     event_name="player/pick_gold_sand"
