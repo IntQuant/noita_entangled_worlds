@@ -60,9 +60,20 @@ function rpc.send_effects(effects)
         return
     end
     local confirmed_effects = {}
+    local old_local_effects = effect_sync.get_ent_effects(entity)
     for _, effect in ipairs(effects) do
         local effect_remote_id = effect[1]
         if local_by_remote_id[effect_remote_id] == nil or not EntityGetIsAlive(local_by_remote_id[effect_remote_id]) or not EntityGetIsAlive(entity) then
+            for _, old_effect in ipairs(old_local_effects) do
+                local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
+                if old_com ~= nil then
+                    if effect[2] == EntityGetFilename(old_effect) then
+                        ComponentSetValue2(old_com, "frames", 999999999)
+                        local_by_remote_id[effect_remote_id] = old_effect
+                        goto continue
+                    end
+                end
+            end
             local ent = EntityLoad(effect[2])
             EntityAddChild(entity, ent)
             local_by_remote_id[effect_remote_id] = ent
@@ -71,6 +82,7 @@ function rpc.send_effects(effects)
                 ComponentSetValue2(com, "frames", 999999999)
             end
         end
+        ::continue::
         confirmed_effects[local_by_remote_id[effect_remote_id]] = true
     end
 
