@@ -17,7 +17,7 @@ egui_extras = { version = "0.28.1", features = ["all_loaders"] }
 egui_plot = "0.28.1"
 image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 
-tungstenite = "0.23.0"
+tungstenite = "0.24.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
 tangled = { path = "tangled" }

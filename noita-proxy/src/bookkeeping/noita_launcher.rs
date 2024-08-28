@@ -150,6 +150,35 @@ fn linux_try_get_noita_start_cmd(
                     noita_install: Some(game_path.to_path_buf()),
                 })
             }
+            (_, Some(Some(Ok(_)))) => {
+                let app_install_dir = proton_path.parent()?.join("SteamLinuxRuntime_sniper");
+                if app_install_dir.exists()
+                {
+                    Some(NoitaStartCmd {
+                        executable: app_install_dir
+                            .join("_v2-entry-point")
+                            .into(),
+                        args: vec![
+                            "--verb=run".into(),
+                            proton_path.join("proton").into_os_string(),
+                            "run".into(),
+                            executable,
+                        ],
+                        steam_install: steam_intall_path(steamapps_path),
+                        noita_compat_data: Some(noita_compatdata_path),
+                        noita_install: Some(game_path.to_path_buf()),
+                    }
+                    )
+                } else {
+                    Some(NoitaStartCmd {
+                        executable: proton_path.join("proton").into_os_string(),
+                        args: vec!["run".into(), executable],
+                        steam_install: steam_intall_path(steamapps_path),
+                        noita_compat_data: Some(noita_compatdata_path),
+                        noita_install: Some(game_path.to_path_buf()),
+                    })
+                }                
+            }
             _ => Some(NoitaStartCmd {
                 executable: proton_path.join("proton").into_os_string(),
                 args: vec!["run".into(), executable],
