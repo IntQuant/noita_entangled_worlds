@@ -21,7 +21,6 @@ function effect_sync.get_ent_effects(entity)
             if not IGNORE_EFFECTS[name] then
                 table.insert(list, ent)
             end
-            -- GamePrint("eff "..name)
         end
     end
     return list
@@ -66,7 +65,6 @@ function rpc.send_effects(effects)
         if local_by_remote_id[effect_remote_id] == nil or not EntityGetIsAlive(local_by_remote_id[effect_remote_id]) or not EntityGetIsAlive(entity) then
             local ent = EntityLoad(effect[2])
             EntityAddChild(entity, ent)
-            -- GamePrint("Replicating "..effect_remote_id.." as "..ent)
             local_by_remote_id[effect_remote_id] = ent
             local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
             if com ~= nil then
@@ -79,7 +77,6 @@ function rpc.send_effects(effects)
     local local_effects = effect_sync.get_ent_effects(entity)
     for _, effect in ipairs(local_effects) do
         if not confirmed_effects[effect] then
-            -- GamePrint("Removing "..effect)
             EntityKill(effect)
         end
     end

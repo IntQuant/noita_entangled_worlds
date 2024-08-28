@@ -142,7 +142,6 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
                 rng = table.remove(shooter_player_data.projectile_rng_init, 1)
             else
                 -- Shouldn't happen
-                -- GamePrint("No values in projectile_rng_init")
                 rng = 0
             end
         else
@@ -150,7 +149,6 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
         end
     end
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
-    -- GamePrint("on fired "..projectile_id.." "..entity_that_shot.." "..shooter_id.." "..rng)
     np.SetProjectileSpreadRNG(rng)
 end
 
@@ -202,7 +200,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.initial_player_pos = {x=x, y=y}
 
     local my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
-    GamePrint("My peer_id: "..ctx.my_id)
     ctx.players[ctx.my_id] = my_player
     ctx.player_data_by_local_entity[player_entity] = my_player
     ctx.ready = true
@@ -268,7 +265,6 @@ local function on_world_pre_update_inner()
             wait(1)
             local inventory_state = player_fns.serialize_items(ctx.my_player)
             if inventory_state ~= nil then
-                -- GamePrint("Sending updated inventory")
                 net.send_player_inventory(inventory_state)
             end
         end)

@@ -76,7 +76,6 @@ local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 function world_sync.handle_world_data(datum)
     local grid_world = world_ffi.get_grid_world()
-        -- GamePrint("Decoding world data "..i)
     local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast('char const*', datum))
     local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
     world.decode(grid_world, header, runs)

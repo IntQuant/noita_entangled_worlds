@@ -157,7 +157,6 @@ function net.init()
             if ctx.ready or msg_decoded.kind ~= "mod" then
                 util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value, msg_decoded.value2)
             end
-            -- GamePrint("NetHnd: "..msg_decoded.kind.." "..msg_decoded.key)
           end
         end
     end)

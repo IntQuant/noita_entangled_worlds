@@ -11,7 +11,6 @@ function nickname.parse( font_filename )
     local id_width = {}
 
     local file = ModTextFileGetContent(font_filename)
-    --GamePrint(file:find("QuadChar"))
     local quad_open = false
     local space_open = false
 
@@ -30,12 +29,10 @@ function nickname.parse( font_filename )
       end
 
       if (space_open == true) then
-        --GamePrint(split)
         id_width["space"] = tonumber(split)
       end
 
       if (quad_open == true) then
-        --GamePrint(split)
         if (string.sub(split, 1, 3) == "id=") then
             id = tonumber(string.sub(split, 5, -2))
             --id = string.sub(v, 5, -2)
@@ -68,7 +65,6 @@ function nickname.calculate_textwidth(text, font)
             textwidth = textwidth + font["space"]
         else
             local c_id = string.byte(l)
-            --GamePrint("Char: ".. l .. ". Id: "..tostring(c_id))
             textwidth = textwidth + (font[c_id] or 1)
         end
     end

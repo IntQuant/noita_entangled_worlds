@@ -14,8 +14,6 @@ function effect_sync.get_ent_effects(entity)
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
         if com ~= nil then
-            -- local name = ComponentGetValue2(com, "effect")
-            -- GamePrint("eff "..name)
             table.insert(list, ent)
         end
     end

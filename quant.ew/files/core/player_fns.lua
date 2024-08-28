@@ -328,7 +328,6 @@ local player_fns = {
         end
     end,
     make_playerdata_for = function(entity_id, peer_id)
-        GamePrint("Made playerdata for "..entity_id)
         return {
             entity = entity_id,
             peer_id = peer_id,
@@ -345,7 +344,7 @@ local player_fns = {
 function player_fns.serialize_position(player_data)
     local entity = player_data.entity
     if not EntityGetIsAlive(entity) then
-        GamePrint("notalive")
+        print("notalive")
         return
     end
     local x, y = EntityGetTransform(entity)
@@ -420,7 +419,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     if ctx.run_ended or peer_id == ctx.my_id then
         util.print_traceback()
     end
-    GamePrint("Spawning player for "..peer_id)
+    print("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
 
     if ctx.proxy_opt.game_mode == "shared_health" then
@@ -481,17 +480,16 @@ function player_fns.respawn_if_necessary()
     for _, entity in ipairs(EntityGetWithTag("ew_client")) do
         if ctx.player_data_by_local_entity[entity] == nil then
             EntityKill(entity)
-            GamePrint("Removed phantom player entity")
+            print("Removed phantom player entity")
         end
     end
     for peer_id, player_data in pairs(ctx.players) do
         if peer_id ~= ctx.my_player.peer_id and not EntityGetIsAlive(player_data.entity) then
-            GamePrint("Respawning player entity")
             print("Respawning player entity")
             player_fns.spawn_player_for(peer_id, 0, 0, player_data)
             local latest_inventory = player_data.latest_inventory
             if latest_inventory ~= nil then
-                GamePrint("Recovering inventory")
+                print("Recovering inventory")
                 player_fns.deserialize_items(latest_inventory, player_data)
             end
         end
@@ -538,7 +536,6 @@ end
 
 function player_fns.set_current_slot(slot_data, player_data)
     local is_wand, slot_x, slot_y = slot_data[1], slot_data[2], slot_data[3]
-    -- GamePrint("Switching item to slot: " .. tostring(slot_x) .. ", " .. tostring(slot_y))
     if (player_data.entity and EntityGetIsAlive(player_data.entity)) then
         local items = GameGetAllInventoryItems(player_data.entity) or {}
         for i, item in ipairs(items) do

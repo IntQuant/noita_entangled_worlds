@@ -142,7 +142,6 @@ local function get_sync_entities(return_all)
             return has_anyone
         end)
     end
-    -- GamePrint("skipped "..skipped_counter.." out of "..#entities)
 
     return entities2
 end
@@ -238,9 +237,6 @@ function enemy_sync.host_upload_entities()
         table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2})
         ::continue::
     end
-
-    -- local estimate = net.estimate_rpc_size(enemy_data_list)
-    -- GamePrint(#enemy_data_list.." "..net.estimate_rpc_size(enemy_data_list).." "..(estimate*30))
 
     rpc.handle_enemy_data(enemy_data_list)
     if #dead_entities > 0 then
@@ -375,7 +371,6 @@ function rpc.handle_death_data(death_data)
 end
 
 function rpc.handle_enemy_data(enemy_data)
-    -- GamePrint("Got enemy data: "..#enemy_data)
     for _, enemy_info_raw in ipairs(enemy_data) do
         local filename = enemy_info_raw[1]
         filename = constants.interned_index_to_filename[filename] or filename
@@ -492,7 +487,6 @@ end
 
 
 function rpc.handle_enemy_health(enemy_health_data)
-    -- GamePrint("Got enemy data: "..#enemy_data)
     for _, en_data in ipairs(enemy_health_data) do
         local remote_enemy_id = en_data.enemy_id
         local hp = en_data.hp

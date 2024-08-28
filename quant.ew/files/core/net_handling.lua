@@ -70,7 +70,6 @@ function net_handling.mod.inventory(peer_id, inventory_state)
     local player_data = player_fns.peer_get_player_data(peer_id)
     player_data.latest_inventory = inventory_state
     player_fns.deserialize_items(inventory_state, player_data)
-    -- GamePrint("synced inventory")
 end
 
 function net_handling.mod.perks(peer_id, perk_data)
@@ -150,8 +149,8 @@ function net_handling.mod.fire(peer_id, fire_data)
             ComponentSetValue2(controlsComp, "mButtonDownFire", firing)
         end
     end
-    if #player_data.projectile_rng_init > 0 then
-        -- GamePrint("unused projectile_rng_init values left "..#player_data.projectile_rng_init)
+    if #player_data.projectile_rng_init > 0 then 
+        -- Shouldn't happen
     end
 end
 
