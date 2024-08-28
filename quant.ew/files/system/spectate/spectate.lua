@@ -31,54 +31,54 @@ local function get_me()
 end
 
 local function target()
-    if cam_target == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+    if cam_target.entity == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         GameSetCameraFree(false)
         if camera_target == nil then
-            camera_target = ctx.my_player.entity
-        elseif camera_target ~= ctx.my_player.entity then
-            local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
-            local audio_n = EntityAddComponent2(cam_target, "AudioListenerComponent")
+            camera_target = ctx.my_player
+        elseif camera_target.entity ~= ctx.my_player.entity then
+            local audio = EntityGetFirstComponent(camera_target.entity, "AudioListenerComponent")
+            local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
             ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
-            local keep_alive = EntityGetFirstComponent(camera_target, "StreamingKeepAliveComponent")
-            EntityRemoveComponent(camera_target, audio)
-            EntityRemoveComponent(camera_target, keep_alive)
-            EntityRemoveComponent(camera_target, inventory_target)
+            local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
+            EntityRemoveComponent(camera_target.entity, audio)
+            EntityRemoveComponent(camera_target.entity, keep_alive)
+            EntityRemoveComponent(camera_target.entity, inventory_target)
             camera_target = cam_target
         end
         return
     end
     GameSetCameraFree(true)
-    if not EntityGetIsAlive(cam_target) then
+    if not EntityGetIsAlive(cam_target.entity) then
         return
     end
-    local t_x, t_y = EntityGetFirstHitboxCenter(cam_target)
+    local t_x, t_y = EntityGetFirstHitboxCenter(cam_target.entity)
     if t_x == nil then
-        t_x, t_y = EntityGetTransform(cam_target)
+        t_x, t_y = EntityGetTransform(cam_target.entity)
     end
     GameSetCameraPos(t_x, t_y)
     if camera_target == nil then
-        camera_target = ctx.my_player.entity
+        camera_target = ctx.my_player
     end
-    if camera_target ~= cam_target then
-        if ctx.my_player.entity ~= camera_target and inventory_target ~= nil then
-            EntityRemoveComponent(camera_target, inventory_target)
+    if camera_target.entity ~= cam_target.entity then
+        if ctx.my_player.entity ~= camera_target.entity and inventory_target ~= nil then
+            EntityRemoveComponent(camera_target.entity, inventory_target)
         end
 
         inventory_target = nil
-        if ctx.my_player.entity ~= cam_target then
-            inventory_target = EntityAddComponent2(cam_target, "InventoryGuiComponent")
+        if ctx.my_player.entity ~= cam_target.entity then
+            inventory_target = EntityAddComponent2(cam_target.entity, "InventoryGuiComponent")
         end
-        local audio = EntityGetFirstComponent(camera_target, "AudioListenerComponent")
-        local keep_alive = EntityGetFirstComponent(camera_target, "StreamingKeepAliveComponent")
+        local audio = EntityGetFirstComponent(camera_target.entity, "AudioListenerComponent")
+        local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
         if audio ~= nil then
-            local audio_n = EntityAddComponent2(cam_target, "AudioListenerComponent")
+            local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
             ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
-            EntityRemoveComponent(camera_target, audio)
-            if camera_target ~= ctx.my_player.entity then
-                EntityRemoveComponent(camera_target, keep_alive)
+            EntityRemoveComponent(camera_target.entity, audio)
+            if camera_target.entity ~= ctx.my_player.entity then
+                EntityRemoveComponent(camera_target.entity, keep_alive)
             end
-            if cam_target ~= ctx.my_player.entity then
-                EntityAddComponent2(cam_target, "StreamingKeepAliveComponent")
+            if cam_target.entity ~= ctx.my_player.entity then
+                EntityAddComponent2(cam_target.entity, "StreamingKeepAliveComponent")
             end
         end
     end
@@ -91,7 +91,7 @@ local function set_camera_pos()
         for peer_id, potential_target in pairs(ctx.players) do
             i = i + 1
             if i == camera_player then
-                cam_target = potential_target.entity
+                cam_target = potential_target
                 camera_player = i
                 re_cam = false
                 camera_player_id = peer_id
@@ -152,7 +152,7 @@ function spectate.on_world_update()
     if last_len == nil then
         last_len = number_of_players()
     end
-    if last_len ~= number_of_players() or (cam_target ~= nil and not EntityGetIsAlive(cam_target)) then
+    if last_len ~= number_of_players() or (cam_target ~= nil and not EntityGetIsAlive(cam_target.entity)) then
         update_i()
         last_len = number_of_players()
     end
