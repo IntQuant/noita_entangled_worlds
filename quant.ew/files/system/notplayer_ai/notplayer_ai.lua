@@ -677,7 +677,7 @@ local function teleport_to_next_hm()
     for peer_id, player_data in pairs(ctx.players) do
         local player = player_data.entity
         local x, y = EntityGetTransform(player)
-        if not (-5646 < x and x < 5120 and -1400 < y and y < 14336) then
+        if x == nil or not (-5646 < x and x < 5120 and -1400 < y and y < 14336) then
             return
         end
         if peer_id == ctx.my_id then

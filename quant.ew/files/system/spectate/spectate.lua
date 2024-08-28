@@ -48,6 +48,9 @@ local function target()
         return
     end
     GameSetCameraFree(true)
+    if not EntityGetIsAlive(cam_target) then
+        return
+    end
     local t_x, t_y = EntityGetFirstHitboxCenter(cam_target)
     if t_x == nil then
         t_x, t_y = EntityGetTransform(cam_target)
