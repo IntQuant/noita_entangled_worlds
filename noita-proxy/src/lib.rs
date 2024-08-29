@@ -79,13 +79,13 @@ impl Default for GameSettings {
             seed: 0,
             debug_mode: false,
             world_sync_version: 2,
-            player_tether: false,
-            tether_length: 750,
+            player_tether: true,
+            tether_length: 2048,
             use_constant_seed: false,
             item_dedup: true,
             enemy_hp_mult: 1.0,
             world_sync_interval: 2,
-            game_mode: GameMode::SharedHealth,
+            game_mode: GameMode::LocalHealth,
             friendly_fire: false,
             chunk_target: 32,
             enemy_sync_interval: 2,
@@ -636,7 +636,7 @@ impl App {
         ui.add_space(20.0);
 
         ui.label("Enemy sync interval");
-        ui.add(Slider::new(&mut game_settings.enemy_sync_interval, 2..=8));
+        ui.add(Slider::new(&mut game_settings.enemy_sync_interval, 1..=8));
 
         ui.add_space(20.0);
         ui.label(tr("connect_settings_player_tether_desc"));

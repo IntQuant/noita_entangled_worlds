@@ -132,17 +132,15 @@ local function get_sync_entities(return_all)
         return constants.phys_sync_allowed[EntityGetFilename(ent)]
     end)
 
-    local skipped_counter = 0
     local entities2 = {}
     if return_all then
         entities2 = entities
     else
         table_extend_filtered(entities2, entities, function(ent)
             local x, y = EntityGetTransform(ent)
-            local has_anyone = #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") > 0
-            if not has_anyone then
-                skipped_counter = skipped_counter + 1
-            end
+            local has_anyone = EntityHasTag(ent, "worm")
+                    or EntityGetFirstComponent(ent, "BossHealthBarComponent") ~= nil
+                    or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") > 0
             return has_anyone
         end)
     end
@@ -323,7 +321,11 @@ function enemy_sync.client_cleanup()
 end
 
 function enemy_sync.on_world_update_host()
-    if GameGetFrameNum() % ctx.proxy_opt.enemy_sync_interval == 1 then
+    local num = 1
+    if ctx.proxy_opt.enemy_sync_interval == 1 then
+        num = 0
+    end
+    if GameGetFrameNum() % ctx.proxy_opt.enemy_sync_interval == num then
         enemy_sync.host_upload_entities()
     end
     if GameGetFrameNum() % 10 == 5 then

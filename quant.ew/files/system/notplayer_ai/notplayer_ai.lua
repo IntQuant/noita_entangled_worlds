@@ -181,11 +181,28 @@ local function find_new_wand()
 end
 
 local function needs_douse(entity)
+    local prot_fire = false
+    local prot_toxic = false
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         local com = EntityGetFirstComponent(ent, "GameEffectComponent")
         if com ~= nil then
             local name = ComponentGetValue2(com, "effect")
-            if name == "ON_FIRE" or name == "RADIOACTIVE" then
+            if name == "PROTECTION_FIRE" then
+                prot_fire = true
+            elseif name == "PROTECTION_RADIOACTIVITY" then
+                prot_toxic = true
+            end
+            if prot_toxic and prot_fire then
+                break
+            end
+        end
+    end
+    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+        if com ~= nil then
+            local name = ComponentGetValue2(com, "effect")
+            if (name == "ON_FIRE" and not prot_fire)
+                    or (name == "RADIOACTIVE" and not prot_toxic) then
                 return true
             end
         end

@@ -19,11 +19,15 @@ function module.on_player_died(player_entity)
     -- Also inventory items seem to be borked.
 end
 
-local function do_switch_effect()
+local function do_switch_effect(short)
     -- Make an effect
     local x, y = EntityGetTransform(ctx.my_player.entity)
     rpc.switch_effect(x, y)
-    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect.xml")
+    if short then
+        LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
+    else
+        LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect.xml")
+    end
 end
 
 local function remove_inventory_tags()
@@ -105,7 +109,7 @@ local function player_died()
         GameSetCameraFree(true)
         GameAddFlagRun("ew_flag_notplayer_active")
         EntitySetName(ctx.my_player.entity, ctx.my_player.name.."?")
-        do_switch_effect()
+        do_switch_effect(false)
         inventory_helper.set_item_data(item_data, ctx.my_player)
         perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
         util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
@@ -265,7 +269,7 @@ ctx.cap.health = {
                     wait(100)
                     EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
                 else
-                    do_switch_effect()
+                    do_switch_effect(true)
                 end
             end)
         else
