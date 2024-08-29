@@ -41,24 +41,16 @@ function effect_sync.on_world_update()
     if GameGetFrameNum() % 30 == 9 then
         local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
         local sync_data = {}
-        local by_filenames = false
         for _, effect in ipairs(effects) do
-            local num = name_to_num(EntityGetFilename(effect))
+            local name = EntityGetFilename(effect)
+            local num = name_to_num(name)
             if num ~= -1 then
                 table.insert(sync_data, {effect, num})
             else
-                by_filenames = true
-                break
-            end
+                table.insert(sync_data, {effect, name})
+           end
         end
-        if by_filenames then
-            for _, effect in ipairs(effects) do
-                table.insert(sync_data, {effect, EntityGetFilename(effect)})
-            end
-            rpc.send_effects(sync_data, true)
-        else
-            rpc.send_effects(sync_data, false)
-        end
+        rpc.send_effects(sync_data)
     end
     -- Cleanup
     if GameGetFrameNum() % 120 == 9 then
@@ -77,7 +69,7 @@ function effect_sync.remove_all_effects(entity)
     end
 end
 
-function rpc.send_effects(effects, by_filenames)
+function rpc.send_effects(effects)
     local entity = ctx.rpc_player_data.entity
     if not EntityGetIsAlive(entity) then
         return
@@ -85,6 +77,7 @@ function rpc.send_effects(effects, by_filenames)
     local confirmed_effects = {}
     local old_local_effects = effect_sync.get_ent_effects(entity)
     for _, effect in ipairs(effects) do
+        local by_filenames = type(effect[2]) ~= "number"
         local effect_remote_id = effect[1]
         if local_by_remote_id[effect_remote_id] == nil or not EntityGetIsAlive(local_by_remote_id[effect_remote_id]) or not EntityGetIsAlive(entity) then
             for _, old_effect in ipairs(old_local_effects) do
