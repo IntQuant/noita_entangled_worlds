@@ -589,10 +589,10 @@
 		in_world="1">
 	</BossHealthBarComponent>
 
-  <Entity name="chunk_loader">
+<!--  <Entity name="chunk_loader">
       <Base file="mods/quant.ew/files/resource/entities/chunk_loader.xml">
       </Base>
-  </Entity>
+  </Entity>-->
 
   <Entity name="cursor">
     <SpriteComponent

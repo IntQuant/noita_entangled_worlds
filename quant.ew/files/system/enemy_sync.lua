@@ -39,6 +39,8 @@ local PhysDataNoMotion = util.make_type({
     u8 = {"r"}
 })
 
+local wands = {}
+
 local enemy_sync = {}
 
 local dead_entities = {}
@@ -235,16 +237,22 @@ function enemy_sync.host_upload_entities()
             }
         end
 
-        local wand
+        local has_wand = false
         local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
         if inv ~= nil then
             local item = ComponentGetValue2(inv, "mActualActiveItem")
             if item ~= nil and EntityGetIsAlive(item) then
-                wand = inventory_helper.serialize_single_item(item)
+                if wands[enemy_id] == nil then
+                    wands[enemy_id] = inventory_helper.serialize_single_item(item)
+                end
+                has_wand = true
             end
         end
+        if not has_wand and wands[enemy_id] ~= nil then
+            table.remove(wands, enemy_id)
+        end
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, wand})
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand})
         ::continue::
     end
 
@@ -376,7 +384,22 @@ function rpc.handle_death_data(death_data)
             end
             EntityKill(enemy_id)
         end
+        if wands[remote_id] ~= nil then
+            table.remove(wands, remote_id)
+        end
         ::continue::
+    end
+end
+
+function rpc.send_wand(peer_id, remote_enemy_id, wand)
+    if ctx.my_id == peer_id and wand ~= nil then
+        wands[remote_enemy_id] = wand
+    end
+end
+
+function rpc.request_wand(peer_id, remote_enemy_id)
+    if ctx.my_id == ctx.host_id then
+        rpc.send_wand(peer_id, remote_enemy_id, wands[remote_enemy_id])
     end
 end
 
@@ -399,7 +422,7 @@ function rpc.handle_enemy_data(enemy_data)
         local not_ephemerial = enemy_info_raw[3]
         local phys_infos = enemy_info_raw[4]
         local phys_infos_2 = enemy_info_raw[5]
-        local wand_data = enemy_info_raw[6]
+        local has_wand = enemy_info_raw[6]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
@@ -501,33 +524,39 @@ function rpc.handle_enemy_data(enemy_data)
         if inv ~= nil then
             item = ComponentGetValue2(inv, "mActualActiveItem")
         end
-        if wand_data ~= nil and item == nil then
-            local wand = inventory_helper.deserialize_single_item(wand_data)
-            EntityAddTag(wand, "ew_client_item")
-            local found = false
-            for _, child in pairs(EntityGetAllChildren(enemy_id)) do
-                if EntityGetName(child) == "inventory_quick" then
-                    EntityAddChild(child, wand)
-                    found = true
-                    break
+        if has_wand and item == nil then
+            if wands[remote_enemy_id] ~= nil then
+                local wand = inventory_helper.deserialize_single_item(wands[remote_enemy_id])
+                EntityAddTag(wand, "ew_client_item")
+                local found = false
+                for _, child in pairs(EntityGetAllChildren(enemy_id)) do
+                    if EntityGetName(child) == "inventory_quick" then
+                        EntityAddChild(child, wand)
+                        found = true
+                        break
+                    end
                 end
+                if not found then
+                    local inv_quick = EntityCreateNew("inventory_quick")
+                    EntityAddChild(enemy_id, inv_quick)
+                    EntityAddChild(inv_quick, wand)
+                    EntityAddComponent2(enemy_id, "Inventory2Component")
+                end
+                EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
+                EntitySetComponentsWithTagEnabled(wand, "enabled_in_hand", true)
+                EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
+                np.SetActiveHeldEntity(enemy_id, wand, false, false)
+            else
+                rpc.request_wand(ctx.my_id, remote_enemy_id)
             end
-            if not found then
-                local inv_quick = EntityCreateNew("inventory_quick")
-                EntityAddChild(enemy_id, inv_quick)
-                EntityAddChild(inv_quick, wand)
-                EntityAddComponent2(enemy_id, "Inventory2Component")
-            end
-            EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
-            EntitySetComponentsWithTagEnabled(wand, "enabled_in_hand", true)
-            EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
-            np.SetActiveHeldEntity(enemy_id, wand, false, false)
+        end
+        if not has_wand and wands[remote_enemy_id] ~= nil then
+            table.remove(wands, remote_enemy_id)
         end
 
         ::continue::
     end
 end
-
 
 function rpc.handle_enemy_health(enemy_health_data)
     for _, en_data in ipairs(enemy_health_data) do
