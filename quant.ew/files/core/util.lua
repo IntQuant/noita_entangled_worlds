@@ -200,7 +200,12 @@ end
 
 -- Gets (or creates, if it doesn't exist) this component
 function util.get_or_create_component(entity, component_name, tag)
-    local component = EntityGetFirstComponentIncludingDisabled(entity, component_name, tag)
+    local component
+    if tag == nil then
+        component = EntityGetFirstComponentIncludingDisabled(entity, component_name)
+    else
+        component = EntityGetFirstComponentIncludingDisabled(entity, component_name, tag)
+    end
     if component == nil or component == 0 then
         component = EntityAddComponent2(entity, component_name, {
             _tags = tag,
