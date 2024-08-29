@@ -12,13 +12,14 @@ local IGNORE_EFFECTS = {
 }
 
 function effect_sync.get_ent_effects(entity)
+    local filename = EntityGetFilename(entity)
     local list = {}
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         -- Do not include disabled components here
         local com = EntityGetFirstComponent(ent, "GameEffectComponent")
         if com ~= nil then
             local name = ComponentGetValue2(com, "effect")
-            if not IGNORE_EFFECTS[name] then
+            if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) then
                 table.insert(list, ent)
             end
         end
@@ -35,30 +36,25 @@ local function name_to_num(name)
     return -1
 end
 
-local local_by_remote_id = {}
+function effect_sync.get_sync_data(entity)
+    local effects = effect_sync.get_ent_effects(entity)
+    local sync_data = {}
+    for _, effect in ipairs(effects) do
+        local name = EntityGetFilename(effect)
+        local num = name_to_num(name)
+        if num ~= -1 then
+            table.insert(sync_data, num)
+        else
+            table.insert(sync_data, name)
+        end
+    end
+    return sync_data
+end
 
 function effect_sync.on_world_update()
     if GameGetFrameNum() % 30 == 9 then
-        local effects = effect_sync.get_ent_effects(ctx.my_player.entity)
-        local sync_data = {}
-        for _, effect in ipairs(effects) do
-            local name = EntityGetFilename(effect)
-            local num = name_to_num(name)
-            if num ~= -1 then
-                table.insert(sync_data, {effect, num})
-            else
-                table.insert(sync_data, {effect, name})
-           end
-        end
+        local sync_data = effect_sync.get_sync_data(ctx.my_player.entity)
         rpc.send_effects(sync_data)
-    end
-    -- Cleanup
-    if GameGetFrameNum() % 120 == 9 then
-        for rem_id, loc_id in pairs(local_by_remote_id) do
-            if not EntityGetIsAlive(loc_id) then
-                local_by_remote_id[rem_id] = nil
-            end
-        end
     end
 end
 
@@ -69,56 +65,64 @@ function effect_sync.remove_all_effects(entity)
     end
 end
 
-function rpc.send_effects(effects)
-    local entity = ctx.rpc_player_data.entity
+function effect_sync.apply_effects(effects, entity)
     if not EntityGetIsAlive(entity) then
         return
     end
-    local confirmed_effects = {}
     local old_local_effects = effect_sync.get_ent_effects(entity)
+    local effect_names = {}
     for _, effect in ipairs(effects) do
-        local by_filenames = type(effect[2]) ~= "number"
-        local effect_remote_id = effect[1]
-        if local_by_remote_id[effect_remote_id] == nil or not EntityGetIsAlive(local_by_remote_id[effect_remote_id]) or not EntityGetIsAlive(entity) then
-            for _, old_effect in ipairs(old_local_effects) do
-                local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
-                if old_com ~= nil then
-                    local is_same
-                    if by_filenames then
-                        is_same = effect[2] == EntityGetFilename(old_effect)
-                    else
-                        is_same = constants.game_effects[effect[2]] == EntityGetFilename(old_effect)
-                    end
-                    if is_same then
+        local name
+        local by_filenames = type(effect) ~= "number"
+        if by_filenames then
+            name = effect
+        else
+            name = constants.game_effects[effect]
+        end
+        table.insert(effect_names, name)
+        for _, old_effect in ipairs(old_local_effects) do
+            local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
+            if old_com ~= nil then
+                local old_name = EntityGetFilename(old_effect)
+                if old_name == name then
+                    local frames = ComponentGetValue2(old_com, "frames")
+                    if frames ~= -1 then
                         ComponentSetValue2(old_com, "frames", 999999999)
-                        local_by_remote_id[effect_remote_id] = old_effect
-                        goto continue
                     end
+                    goto continue
                 end
             end
-            local ent
-            if by_filenames then
-                ent = EntityLoad(effect[2])
-            else
-                ent = EntityLoad(constants.game_effects[effect[2]])
-            end
-            EntityAddChild(entity, ent)
-            local_by_remote_id[effect_remote_id] = ent
-            local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
-            if com ~= nil then
-                ComponentSetValue2(com, "frames", 999999999)
-            end
+        end
+        local ent = EntityLoad(name)
+        EntityAddChild(entity, ent)
+        local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+        if com ~= nil then
+            ComponentSetValue2(com, "frames", 999999999)
         end
         ::continue::
-        confirmed_effects[local_by_remote_id[effect_remote_id]] = true
     end
 
     local local_effects = effect_sync.get_ent_effects(entity)
-    for _, effect in ipairs(local_effects) do
-        if not confirmed_effects[effect] then
-            EntityKill(effect)
+    if #local_effects > #effects then
+        for _, effect in ipairs(local_effects) do
+            local local_name = EntityGetFilename(effect)
+            local is_any = false
+            for _, name in ipairs(effect_names) do
+                if name == local_name then
+                    is_any = true
+                    break
+                end
+            end
+            if not is_any then
+                EntityKill(effect)
+            end
         end
     end
+end
+
+function rpc.send_effects(effects)
+    local entity = ctx.rpc_player_data.entity
+    effect_sync.apply_effects(effects, entity)
 end
 
 return effect_sync

@@ -3,6 +3,7 @@ local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
+local effect_sync = dofile_once("mods/quant.ew/files/system/game_effect_sync/game_effect_sync.lua")
 local np = require("noitapatcher")
 
 local ffi = require("ffi")
@@ -44,8 +45,8 @@ local wands = {}
 local enemy_sync = {}
 
 local dead_entities = {}
--- TODO this basically never happens, doesn't seem that useful anymore. Perhaps should be removed to conserve memory.
-local confirmed_kills = {}
+--this basically never happens, doesn't seem that useful anymore. Perhaps should be removed to conserve memory.
+--local confirmed_kills = {}
 
 local spawned_by_us = {}
 
@@ -138,7 +139,7 @@ local function get_sync_entities(return_all)
     else
         table_extend_filtered(entities2, entities, function(ent)
             local x, y = EntityGetTransform(ent)
-            local has_anyone = #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_client") > 0
+            local has_anyone = #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") > 0
             if not has_anyone then
                 skipped_counter = skipped_counter + 1
             end
@@ -252,7 +253,9 @@ function enemy_sync.host_upload_entities()
             table.remove(wands, enemy_id)
         end
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand})
+        local effect_data = effect_sync.get_sync_data(enemy_id)
+
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data})
         ::continue::
     end
 
@@ -335,11 +338,11 @@ rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
         local remote_id = remote_data[1]
-        if confirmed_kills[remote_id] then
+        --[[if confirmed_kills[remote_id] then
             GamePrint("Remote id has been killed already..?")
             goto continue
         end
-        confirmed_kills[remote_id] = true
+        confirmed_kills[remote_id] = true]]
         local responsible_entity = 0
         local peer_data = player_fns.peer_get_player_data(remote_data[2], true)
         if peer_data ~= nil then
@@ -423,13 +426,14 @@ function rpc.handle_enemy_data(enemy_data)
         local phys_infos = enemy_info_raw[4]
         local phys_infos_2 = enemy_info_raw[5]
         local has_wand = enemy_info_raw[6]
+        local effects = enemy_info_raw[7]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
 
-        if confirmed_kills[remote_enemy_id] then
+        --[[if confirmed_kills[remote_enemy_id] then
             goto continue
-        end
+        end]]
 
         if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
             ctx.entity_by_remote_id[remote_enemy_id] = nil
@@ -553,6 +557,8 @@ function rpc.handle_enemy_data(enemy_data)
         if not has_wand and wands[remote_enemy_id] ~= nil then
             table.remove(wands, remote_enemy_id)
         end
+
+        effect_sync.apply_effects(effects, enemy_id)
 
         ::continue::
     end
