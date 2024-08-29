@@ -255,7 +255,13 @@ function enemy_sync.host_upload_entities()
 
         local effect_data = effect_sync.get_sync_data(enemy_id)
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data})
+        local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent")
+        local animation
+        if sprite ~= nil then
+            animation = ComponentGetValue2(sprite, "rect_animation")
+        end
+
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data, animation})
         ::continue::
     end
 
@@ -427,6 +433,7 @@ function rpc.handle_enemy_data(enemy_data)
         local phys_infos_2 = enemy_info_raw[5]
         local has_wand = enemy_info_raw[6]
         local effects = enemy_info_raw[7]
+        local animation = enemy_info_raw[8]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
@@ -487,6 +494,16 @@ function rpc.handle_enemy_data(enemy_data)
             local pick_up = EntityGetFirstComponentIncludingDisabled(enemy_id, "ItemPickUpperComponent")
             if pick_up ~= nil then
                 EntityRemoveComponent(enemy_id, pick_up)
+            end
+            local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent")
+            if sprite ~= nil and ComponentGetValue2(sprite, "visible") then
+                ComponentSetValue2(sprite, "visible", false)
+                local comp = EntityAddComponent2(enemy_id, "SpriteComponent", {
+                    image_file = ComponentGetValue2(sprite, "image_file"),
+                    emissive = ComponentGetValue2(sprite, "emissive"),
+                    additive = ComponentGetValue2(sprite, "additive"),
+                })
+                ComponentAddTag(comp, "ew_sprite")
             end
         end
 
@@ -559,6 +576,12 @@ function rpc.handle_enemy_data(enemy_data)
         end
 
         effect_sync.apply_effects(effects, enemy_id)
+
+        local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent", "ew_sprite")
+        if sprite ~= nil then
+            ComponentSetValue2(sprite, "rect_animation", animation)
+            ComponentSetValue2(sprite, "next_rect_animation", animation)
+        end
 
         ::continue::
     end
