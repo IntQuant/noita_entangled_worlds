@@ -495,15 +495,9 @@ function rpc.handle_enemy_data(enemy_data)
             if pick_up ~= nil then
                 EntityRemoveComponent(enemy_id, pick_up)
             end
-            local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent")
-            if sprite ~= nil and ComponentGetValue2(sprite, "visible") then
-                ComponentSetValue2(sprite, "visible", false)
-                local comp = EntityAddComponent2(enemy_id, "SpriteComponent", {
-                    image_file = ComponentGetValue2(sprite, "image_file"),
-                    emissive = ComponentGetValue2(sprite, "emissive"),
-                    additive = ComponentGetValue2(sprite, "additive"),
-                })
-                ComponentAddTag(comp, "ew_sprite")
+            for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "character") or {}) do
+                ComponentAddTag(sprite, "ew_sprite")
+                ComponentRemoveTag(sprite, "character")
             end
         end
 
@@ -577,8 +571,7 @@ function rpc.handle_enemy_data(enemy_data)
 
         effect_sync.apply_effects(effects, enemy_id)
 
-        local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent", "ew_sprite")
-        if sprite ~= nil then
+        for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
             ComponentSetValue2(sprite, "rect_animation", animation)
             ComponentSetValue2(sprite, "next_rect_animation", animation)
         end

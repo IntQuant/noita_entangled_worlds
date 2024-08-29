@@ -193,7 +193,9 @@ function spectate.on_world_update()
     if cam_target.entity ~= ctx.my_player.entity then
         local inv_spec = EntityGetFirstComponent(cam_target.entity, "InventoryGuiComponent")
         local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
-        ComponentSetValue2(inv_spec, "mActive", false)
+        if inv_spec ~= nil then
+            ComponentSetValue2(inv_spec, "mActive", false)
+        end
         ComponentSetValue2(inv_me, "mActive", false)
     end
 end
