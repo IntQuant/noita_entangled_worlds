@@ -2,6 +2,7 @@ local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
+local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 local np = require("noitapatcher")
 
 local ffi = require("ffi")
@@ -234,7 +235,16 @@ function enemy_sync.host_upload_entities()
             }
         end
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2})
+        local wand
+        local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
+        if inv ~= nil then
+            local item = ComponentGetValue2(inv, "mActualActiveItem")
+            if item ~= nil and EntityGetIsAlive(item) then
+                wand = inventory_helper.serialize_single_item(item)
+            end
+        end
+
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, wand})
         ::continue::
     end
 
@@ -389,6 +399,7 @@ function rpc.handle_enemy_data(enemy_data)
         local not_ephemerial = enemy_info_raw[3]
         local phys_infos = enemy_info_raw[4]
         local phys_infos_2 = enemy_info_raw[5]
+        local wand_data = enemy_info_raw[6]
         local has_died = filename == nil
 
         local frame = GameGetFrameNum()
@@ -446,7 +457,10 @@ function rpc.handle_enemy_data(enemy_data)
                 ComponentSetValue2(expl_component, "physics_body_modified_death_probability", 0)
                 ComponentSetValue2(expl_component, "explode_on_death_percent", 0)
             end
-
+            local pick_up = EntityGetFirstComponentIncludingDisabled(enemy_id, "ItemPickUpperComponent")
+            if pick_up ~= nil then
+                EntityRemoveComponent(enemy_id, pick_up)
+            end
         end
 
         local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
@@ -481,6 +495,35 @@ function rpc.handle_enemy_data(enemy_data)
             end
             EntitySetTransform(enemy_id, x, y)
         end
+
+        local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
+        local item
+        if inv ~= nil then
+            item = ComponentGetValue2(inv, "mActualActiveItem")
+        end
+        if wand_data ~= nil and item == nil then
+            local wand = inventory_helper.deserialize_single_item(wand_data)
+            EntityAddTag(wand, "ew_client_item")
+            local found = false
+            for _, child in pairs(EntityGetAllChildren(enemy_id)) do
+                if EntityGetName(child) == "inventory_quick" then
+                    EntityAddChild(child, wand)
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                local inv_quick = EntityCreateNew("inventory_quick")
+                EntityAddChild(enemy_id, inv_quick)
+                EntityAddChild(inv_quick, wand)
+                EntityAddComponent2(enemy_id, "Inventory2Component")
+            end
+            EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
+            EntitySetComponentsWithTagEnabled(wand, "enabled_in_hand", true)
+            EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
+            np.SetActiveHeldEntity(enemy_id, wand, false, false)
+        end
+
         ::continue::
     end
 end
