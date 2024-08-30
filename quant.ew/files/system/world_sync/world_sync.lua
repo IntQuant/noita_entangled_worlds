@@ -64,7 +64,7 @@ local function get_all_chunks(ocx, ocy, priority)
 
     if GameGetFrameNum() % ctx.proxy_opt.world_sync_interval == 0 then
         for cx = ocx - 1, ocx do
-            for cy = ocy + 1, ocy do
+            for cy = ocy - 1, ocy do
                 send_chunks(cx, cy, chunk_map)
             end
         end
