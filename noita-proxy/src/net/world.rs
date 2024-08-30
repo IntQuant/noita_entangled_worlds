@@ -198,7 +198,7 @@ impl WorldManager {
         let mut emit_queue = Vec::new();
 
         // How many updates till we relinquish authority/stop listening.
-        let unload_limit = 16;
+        let unload_limit = 36;
 
         for (&chunk, state) in self.chunk_state.iter_mut() {
             let chunk_last_update = self
@@ -544,10 +544,15 @@ impl WorldManager {
                     ChunkState::UnloadPending => "unl",
                     ChunkState::Transfer => "tran",
                 };
+                let mut priority = String::new();
+                if let Some(n) = self.authority_map.get(&chunk).copied()
+                {
+                    priority = n.1.to_string()
+                }
                 DebugMarker {
                     x: (chunk.0 * 128) as f64,
                     y: (chunk.1 * 128) as f64,
-                    message,
+                    message: message.to_owned() + &priority,
                 }
             })
             .collect()

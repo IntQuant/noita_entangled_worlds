@@ -60,7 +60,7 @@ pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Messa
 pub struct DebugMarker {
     pub x: f64,
     pub y: f64,
-    pub message: &'static str,
+    pub message: String,
 }
 
 #[derive(Encode, Decode)]

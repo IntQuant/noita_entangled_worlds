@@ -918,7 +918,7 @@ impl eframe::App for App {
                             let build_fn = |plot: &mut PlotUi| {
                                 let markers = netman.debug_markers.lock().unwrap();
                                 for marker in markers.iter() {
-                                    plot.text(Text::new(PlotPoint::new(marker.x, -marker.y), marker.message));
+                                    plot.text(Text::new(PlotPoint::new(marker.x, -marker.y), marker.message.clone()));
                                 }
                                 netman.world_info.with_player_infos(|peer, info| {
                                     let username = if netman.peer.is_steam() {
