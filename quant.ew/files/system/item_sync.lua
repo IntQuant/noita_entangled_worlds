@@ -265,6 +265,24 @@ local function add_stuff_to_globalized_item(item, gid)
     ctx.item_prevent_localize[gid] = false
 end
 
+local function maybe_disable_physics(item_new)
+    local x, y = EntityGetTransform(item_new)
+    -- Disable physics if world doesn't exist yet, so the item doesn't fall off.
+    if not DoesWorldExistAt(x - 5, y - 5, x + 5, y + 5) then
+        async(function()
+            wait(1)
+            local simple_physics_component = EntityGetFirstComponent(item_new, "SimplePhysicsComponent")
+            if simple_physics_component ~= nil and simple_physics_component ~= 0 then
+                EntitySetComponentIsEnabled(item_new, simple_physics_component, false)
+            end
+            local velocity = EntityGetFirstComponent(item_new, "VelocityComponent")
+            if velocity ~= nil and velocity ~= 0 then
+                EntitySetComponentIsEnabled(item_new, velocity, false)
+            end
+        end)
+    end
+end
+
 rpc.opts_reliable()
 function rpc.initial_items(item_list)
     -- Only run once ever, as it tends to duplicate items otherwise
@@ -277,6 +295,7 @@ function rpc.initial_items(item_list)
         if item == nil then
             local item_new = inventory_helper.deserialize_single_item(item_data)
             add_stuff_to_globalized_item(item_new, item_data.gid)
+            maybe_disable_physics(item_new)
         end
     end
 end
@@ -288,6 +307,7 @@ function rpc.item_globalize(item_data)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
+    maybe_disable_physics(item)
 end
 
 rpc.opts_reliable()

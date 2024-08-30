@@ -5,12 +5,11 @@ if load_imgui == nil then
     return {}
 end
 
-imgui = load_imgui({version="1.20.0", mod="Entangled Worlds Debug Mode"})
+imgui = load_imgui({ version = "1.20.0", mod = "Entangled Worlds Debug Mode" })
 
 local module = {}
 
 function module.on_local_player_spawn(my_player)
-    
     local player_entity = my_player.entity
     -- EntitySetTransform(player_entity, 1333, 770)
 
@@ -30,7 +29,6 @@ function module.on_local_player_spawn(my_player)
     -- perk_spawn(x-50, y, "GLASS_CANNON", true)
     -- perk_spawn(x-25, y, "EDIT_WANDS_EVERYWHERE", true)
     -- EntityLoad("data/entities/items/pickup/heart.xml", x-75, y-20)
-
 end
 
 function module.on_world_update_host()
@@ -87,7 +85,7 @@ function module.on_world_update_post()
         end
         if imgui.CollapsingHeader("Teleports") then
             tp_button("Starting area", 0, -100)
-            tp_button("Vault", 0, 8600-20)
+            tp_button("Vault", 0, 8600 - 20)
             tp_button("Portal to lab", 350.332, 12852.998)
             tp_button("Kolmi room", 3400, 13040)
             tp_button("The Work", 6300, 15155)
@@ -99,6 +97,7 @@ function module.on_world_update_post()
             tp_button("Tree", -1901.962, -1405.003)
             tp_button("Essence - Laser", 16000, -1800.003)
             tp_button("Essence - Eater", 12620.563, -141.003)
+            tp_button("Mines HM", -200, 1390)
         end
         if imgui.CollapsingHeader("Game effects") then
             show_game_effects()
