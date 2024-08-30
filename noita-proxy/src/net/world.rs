@@ -100,7 +100,8 @@ enum ChunkState {
     WaitingForAuthority,
     /// Listening for chunk updates from this peer.
     Listening { authority: OmniPeerId,
-        priority: u8 },
+        priority: u8,
+        my_priority: u8},
     /// Sending chunk updates to these listeners.
     Authority { listeners: FxHashSet<OmniPeerId>,
         priority: u8 },
@@ -189,7 +190,7 @@ impl WorldManager {
         self.chunk_last_update.insert(chunk, self.current_update);
         match entry
         {
-            ChunkState::Listening { priority: pri, .. } => {
+            ChunkState::Listening { priority: pri, my_priority, .. } => {
                 if *pri > priority
                 {
                     emit_queue.push((
@@ -199,6 +200,8 @@ impl WorldManager {
                             priority
                         },
                     ));
+                } else {
+                    *my_priority = priority
                 }
             }
             ChunkState::Authority { listeners, priority: pri } => {
@@ -235,9 +238,61 @@ impl WorldManager {
 
     pub(crate) fn update(&mut self) {
         let mut emit_queue = Vec::new();
-
-        // How many updates till we relinquish authority/stop listening.
-        let unload_limit = 28;
+        //TODO probably should just get these from world_sync.lua or something, then my_priority doesn't need to exist
+        let (mut my_x, mut my_y) = (i32::MIN + 3, i32::MIN + 3);
+        let (mut cam_x, mut cam_y) = (i32::MIN + 3, i32::MIN + 3);
+        let mut dont_kill = false;
+        let mut n = 0;
+        let mut nc = 0;
+        let mut no_cam = false;
+        
+        for (&chunk, state) in self.chunk_state.iter() {
+            match state {
+                ChunkState::Listening { my_priority: priority, .. } | ChunkState::Authority { priority, .. } => {
+                    if *priority == 0 || *priority == 32
+                    {
+                        if *priority == 0 {
+                            no_cam = true
+                        }
+                        n += 1;
+                        if my_x < chunk.0 || my_y < chunk.1 {
+                            (my_x, my_y) = (chunk.0, chunk.1)
+                        }
+                    } else if *priority == 16
+                    {
+                        nc += 1;
+                        if cam_x < chunk.0 || cam_y < chunk.1 {
+                            (cam_x, cam_y) = (chunk.0, chunk.1)
+                        }
+                    }
+                }
+                _ => {
+                    dont_kill = true;
+                    break
+                },
+            }
+        }
+        if no_cam {
+            (cam_x, cam_y) = (i32::MIN + 3, i32::MIN + 3);
+            nc = 0;
+        }
+        if n < 4 || (nc != 0 && nc < 4) {
+            dont_kill = true
+        }
+        fn should_kill(x: i32, y: i32, cx: i32, cy: i32, chx: i32, chy: i32) -> bool {
+            if x == i32::MIN + 3
+            {
+                false
+            } else if cx == i32::MIN + 3 {
+                !(chx <= x + 2 && chx >= x - 3
+                    && chy <= y + 2 && chy >= y - 3)
+            } else {
+                !(chx <= x + 1 && chx >= x - 2
+                    && chy <= y + 1 && chy >= y - 2)
+                    && !(chx <= cx + 1 && chx >= cx - 2
+                    && chy <= cy + 1 && chy >= cy - 2)
+            }
+        }
 
         for (&chunk, state) in self.chunk_state.iter_mut() {
             let chunk_last_update = self
@@ -259,7 +314,8 @@ impl WorldManager {
                 // This state doesn't have much to do.
                 ChunkState::WaitingForAuthority => {}
                 ChunkState::Listening { authority, .. } => {
-                    if self.current_update - chunk_last_update > unload_limit {
+                    if !dont_kill && should_kill(my_x, my_y, cam_x, cam_y, chunk.0, chunk.1)
+                    {
                         debug!("Unloading [listening] chunk {chunk:?}");
                         emit_queue.push((
                             Destination::Peer(*authority),
@@ -268,8 +324,9 @@ impl WorldManager {
                         *state = ChunkState::UnloadPending;
                     }
                 }
-                ChunkState::Authority { listeners: _, .. } => {
-                    if self.current_update - chunk_last_update > unload_limit {
+                ChunkState::Authority { .. } => {
+                    if !dont_kill && should_kill(my_x, my_y, cam_x, cam_y, chunk.0, chunk.1)
+                    {
                         debug!("Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})", self.current_update);
                         emit_queue.push((
                             Destination::Host,
@@ -475,7 +532,7 @@ impl WorldManager {
             }
             WorldNetMessage::ListenInitialResponse { chunk, chunk_data, priority } => {
                 self.chunk_state
-                    .insert(chunk, ChunkState::Listening { authority: source, priority });
+                    .insert(chunk, ChunkState::Listening { authority: source, priority, my_priority: 255 });
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, chunk_data);
                 } else {
@@ -483,7 +540,7 @@ impl WorldManager {
                 }
             }
             WorldNetMessage::ListenUpdate { delta, priority } => {
-                let Some(ChunkState::Listening { authority: _, priority: pri }) = self.chunk_state.get_mut(&delta.chunk_coord)
+                let Some(ChunkState::Listening { priority: pri, .. }) = self.chunk_state.get_mut(&delta.chunk_coord)
                 else {
                     /*warn!(
                         "Can't handle ListenUpdate for {:?} - not a listener",
@@ -600,8 +657,8 @@ impl WorldManager {
                 let message = match state {
                     ChunkState::RequestAuthority { priority: _ } => "req auth",
                     ChunkState::WaitingForAuthority => "wai auth",
-                    ChunkState::Listening { authority: _, .. } => "list",
-                    ChunkState::Authority { listeners: _, .. } => "auth",
+                    ChunkState::Listening { .. } => "list",
+                    ChunkState::Authority { .. } => "auth",
                     ChunkState::UnloadPending => "unl",
                     ChunkState::Transfer => "tran",
                 };

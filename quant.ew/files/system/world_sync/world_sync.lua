@@ -83,7 +83,7 @@ local function get_all_chunks(ocx, ocy, priority)
         end
         net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 1))
         iter_fast = not iter_fast
-    elseif GameGetFrameNum() % (int * 4) == 4 then
+    elseif priority == 0 and GameGetFrameNum() % (int * 4) == 4 then
         local nx = ocx
         if iter_slow == 1 or iter_slow == 2 then
             nx = nx - 3
@@ -122,10 +122,10 @@ function world_sync.on_world_update()
         if iter_cam then
             get_all_chunks(cx, cy, 16)
         else
-            get_all_chunks(ocx, ocy, 16)
+            get_all_chunks(ocx, ocy, 32)
         end
         local int = 3 -- ctx.proxy_opt.world_sync_interval
-        if GameGetFrameNum() % (int * 4) == 0 then
+        if GameGetFrameNum() % (int * 8) == 0 then
             iter_cam = not iter_cam
         end
     else
