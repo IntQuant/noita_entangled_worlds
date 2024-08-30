@@ -198,12 +198,12 @@ impl Release {
             .send()
             .wrap_err_with(|| format!("Failed to request asset list from {}", self.assets_url))?;
 
-        Ok(response.json().wrap_err_with(|| {
+        response.json().wrap_err_with(|| {
             format!(
                 "Failed to request asset list from {}: couldn't parse json",
                 self.assets_url
             )
-        })?)
+        })
     }
 }
 

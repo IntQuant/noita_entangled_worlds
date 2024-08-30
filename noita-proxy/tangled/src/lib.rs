@@ -101,6 +101,7 @@ impl Display for PeerState {
 type Channel<T> = (Sender<T>, Receiver<T>);
 
 /// Represents a network endpoint. Can be constructed in either `host` or `client` mode.
+///
 /// Client can only connect to hosts, but they are able to send messages to any other peer connected to the same host, including the host itself.
 #[derive(Clone)]
 pub struct Peer {

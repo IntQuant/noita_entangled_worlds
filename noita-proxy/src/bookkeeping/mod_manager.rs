@@ -325,7 +325,6 @@ impl Modmanager {
                 if ui.button(tr("button_continue")).clicked() {
                     info!("Switching to Done state");
                     self.state = State::Done;
-                    return;
                 };
             }
         }
@@ -376,7 +375,7 @@ fn extract_and_remove_zip(zip_file: PathBuf, extract_to: PathBuf) -> Result<(), 
     Ok(())
 }
 
-fn extract_zip(zip_file: &PathBuf, extract_to: PathBuf) -> Result<(), eyre::Error> {
+fn extract_zip(zip_file: &Path, extract_to: PathBuf) -> Result<(), eyre::Error> {
     let zip_file = zip_file.canonicalize().unwrap_or(zip_file.to_path_buf());
     let reader = File::open(&zip_file)
         .wrap_err_with(|| format!("Failed to open zip file: {}", zip_file.display()))?;

@@ -143,22 +143,34 @@ local function find_new_wand()
         state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
         do_kick = true
     else
+        local bad_mod = false
         local is_any_not_empty = false
         for _, child in pairs(children) do
             local is_proj = false
+            local is_bad_proj = false
             local sprites = EntityGetComponentIncludingDisabled(child, "SpriteComponent")
             for _, sprite in pairs(sprites) do
                 local image = ComponentGetValue2(sprite, "image_file")
                 if image == "data/ui_gfx/inventory/item_bg_projectile.png"
-                        --or image == "data/ui_gfx/inventory/item_bg_material.png"
-                        --or image == "data/ui_gfx/inventory/item_bg_static_projectile.png"
                         or image == "data/ui_gfx/inventory/item_bg_other.png" then
                     is_proj = true
                     break
+                elseif image == "data/ui_gfx/inventory/item_bg_material.png"
+                        or image == "data/ui_gfx/inventory/item_bg_static_projectile.png" then
+                    is_bad_proj = true
+                    break
                 end
+            end
+            if (is_proj or is_bad_proj) and bad_mod then
+                bad_mod = false
+                goto continue
             end
             local spell = EntityGetFirstComponentIncludingDisabled(child, "ItemActionComponent")
             local spell_name = ComponentGetValue2(spell, "action_id")
+            if spell_name == "NOLLA" or spell_name == "ZERO_DAMAGE" then
+                bad_mod = true
+                goto continue
+            end
             local dont_use = false
             for _, name in ipairs(ignore_spell) do
                 if name == spell_name then
@@ -171,6 +183,7 @@ local function find_new_wand()
                 is_any_not_empty = true
                 break
             end
+            ::continue::
         end
         if not is_any_not_empty then
             table.insert(state.empty_wands, state.attack_wand)
