@@ -110,7 +110,7 @@ end
 
 function world_sync.on_world_update()
     local cx, cy = GameGetCameraPos()
-    cx, cy = cx / CHUNK_SIZE, cy / CHUNK_SIZE
+    cx, cy = round(cx / CHUNK_SIZE), round(cy / CHUNK_SIZE)
     local player_data = ctx.my_player
     if not EntityGetIsAlive(player_data.entity) then
         return
