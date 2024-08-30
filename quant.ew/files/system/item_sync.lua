@@ -14,14 +14,14 @@ local pickup_handlers = {}
 
 function item_sync.ensure_notify_component(ent)
     local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
-        if notify == nil then
-            EntityAddComponent2(ent, "LuaComponent", {
-                _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component",
-                script_throw_item = "mods/quant.ew/files/resource/cbs/item_notify.lua",
-                script_item_picked_up = "mods/quant.ew/files/resource/cbs/item_notify.lua",
-                -- script_kick = "mods/quant.ew/files/resource/cbs/item_notify.lua",
-            })
-        end
+    if notify == nil then
+        EntityAddComponent2(ent, "LuaComponent", {
+            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component",
+            script_throw_item = "mods/quant.ew/files/resource/cbs/item_notify.lua",
+            script_item_picked_up = "mods/quant.ew/files/resource/cbs/item_notify.lua",
+            -- script_kick = "mods/quant.ew/files/resource/cbs/item_notify.lua",
+        })
+    end
 end
 
 local function mark_in_inventory(my_player)
@@ -33,13 +33,15 @@ end
 
 local function allocate_global_id()
     local current = tonumber(GlobalsGetValue("ew_global_item_id", "1"))
-    GlobalsSetValue("ew_global_item_id", tostring(current+1))
-    return ctx.my_player.peer_id..":"..current
+    GlobalsSetValue("ew_global_item_id", tostring(current + 1))
+    return ctx.my_player.peer_id .. ":" .. current
 end
 
 -- Try to guess if the item is in world.
 local function is_item_on_ground(item)
-    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent") ~= nil or EntityGetComponent(item, "SpriteParticleEmitterComponent") ~= nil
+    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or
+        EntityGetComponent(item, "PhysicsBodyComponent") ~= nil or
+        EntityGetComponent(item, "SpriteParticleEmitterComponent") ~= nil
 end
 
 function item_sync.get_global_item_id(item)
@@ -87,7 +89,7 @@ end
 
 function item_sync.host_localize_item(gid, peer_id)
     if ctx.item_prevent_localize[gid] then
-        GamePrint("Item localize for "..gid.." prevented")
+        GamePrint("Item localize for " .. gid .. " prevented")
         return
     end
     ctx.item_prevent_localize[gid] = true
@@ -120,7 +122,8 @@ function item_sync.make_item_global(item, instant)
             return
         end
         item_sync.ensure_notify_component(item)
-        local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+        local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent",
+            "ew_global_item_id")
         local gid
         if gid_component == nil then
             gid = allocate_global_id()
@@ -235,7 +238,7 @@ function item_sync.on_draw_debug_window(imgui)
             local x, y = EntityGetTransform(ent)
             GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/marker.png", x, y, true, 0, 0, 1, true)
             local gid = item_sync.get_global_item_id(ent)
-            imgui.Text("GID: "..tostring(gid))
+            imgui.Text("GID: " .. tostring(gid))
             local prevented = ctx.item_prevent_localize[gid]
             if prevented then
                 imgui.Text("Localize prevented")
@@ -274,6 +277,7 @@ function rpc.initial_items(item_list)
         if item == nil then
             local item_new = inventory_helper.deserialize_single_item(item_data)
             add_stuff_to_globalized_item(item_new, item_data.gid)
+            GamePrint("spawned initial item " .. item_new)
         end
     end
 end

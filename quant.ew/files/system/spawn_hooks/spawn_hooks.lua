@@ -4,7 +4,8 @@ local np = require("noitapatcher")
 
 local module = {}
 
-ModLuaFileAppend("data/scripts/director_helpers.lua", "mods/quant.ew/files/system/spawn_hooks/append/director_helpers.lua")
+ModLuaFileAppend("data/scripts/director_helpers.lua",
+    "mods/quant.ew/files/system/spawn_hooks/append/director_helpers.lua")
 ModLuaFileAppend("data/scripts/item_spawnlists.lua", "mods/quant.ew/files/system/spawn_hooks/append/item_spawnlist.lua")
 
 local exclude = {}
@@ -30,6 +31,9 @@ local function is_sync_item(ent_path)
     if string.sub(ent_path, 1, #start) == start then
         return true
     end
+    if ent_path == "data/entities/misc/custom_cards/action.xml" then
+        return true
+    end
     return false
 end
 
@@ -51,6 +55,14 @@ np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
     end
 end)
 
+np.CrossCallAdd("ew_action_spawn_hook_pre", function()
+    return (not ctx.proxy_opt.item_dedup) or ctx.is_host
+end)
+
+np.CrossCallAdd("ew_action_spawn_hook", function(eid)
+    ctx.cap.item_sync.globalize(eid, false)
+end)
+
 -- Called after entity was loaded.
 -- Might be useless in some cases, as entity was already despawned/serialized due to CameraBoundComponent.
 np.CrossCallAdd("ew_spawn_hook_post", function(ent_path, ent)
@@ -64,7 +76,7 @@ function module.entity_is_synced(ent_path)
         return entity_is_enemy_cache[ent_path]
     end
 
-    print("Checking if this is an enemy: "..ent_path)
+    print("Checking if this is an enemy: " .. ent_path)
 
     local tags = util.load_ents_tags(ent_path)
 

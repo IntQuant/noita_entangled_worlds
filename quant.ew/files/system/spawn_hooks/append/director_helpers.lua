@@ -11,3 +11,14 @@ function EntityLoadCameraBound(ent, x, y)
         return pre_result
     end
 end
+
+local old_CreateItemActionEntity = CreateItemActionEntity
+
+function CreateItemActionEntity(action_id, x, y)
+    if not CrossCall("ew_action_spawn_hook_pre") then
+        return 0
+    end
+    local eid = old_CreateItemActionEntity(action_id, x, y)
+    CrossCall("ew_action_spawn_hook", eid)
+    return eid
+end
