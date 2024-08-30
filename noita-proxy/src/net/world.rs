@@ -482,9 +482,8 @@ impl WorldManager {
                     warn!("Initial listen response has None chunk_data. It's generally supposed to have some.");
                 }
             }
-            WorldNetMessage::ListenUpdate { delta, .. } => {
-                let Some(ChunkState::Listening { authority: _, .. }) =
-                    self.chunk_state.get_mut(&delta.chunk_coord)
+            WorldNetMessage::ListenUpdate { delta, priority } => {
+                let Some(ChunkState::Listening { authority: _, priority: pri }) = self.chunk_state.get_mut(&delta.chunk_coord)
                 else {
                     /*warn!(
                         "Can't handle ListenUpdate for {:?} - not a listener",
@@ -492,6 +491,7 @@ impl WorldManager {
                     );*/
                     return;
                 };
+                *pri = priority;
                 self.inbound_model.apply_chunk_delta(&delta);
             }
             WorldNetMessage::ListenAuthorityRelinquished { chunk } => {
