@@ -29,6 +29,7 @@ pub(crate) enum WorldNetMessage {
     // Authority request
     RequestAuthority {
         chunk: ChunkCoord,
+        priority: u8
     },
     // When got authority
     GotAuthority {
@@ -69,7 +70,7 @@ pub struct WorldDelta(Vec<ChunkDelta>);
 #[derive(Debug, PartialEq, Eq)]
 enum ChunkState {
     /// Chunk isn't synced yet, but will request authority for it.
-    RequestAuthority,
+    RequestAuthority { priority: u8 },
     /// Transitioning into Listening or Authority state.
     WaitingForAuthority,
     /// Listening for chunk updates from this peer.
@@ -98,7 +99,7 @@ pub(crate) struct WorldManager {
     /// Stores chunks that aren't under any authority.
     chunk_storage: FxHashMap<ChunkCoord, ChunkData>,
     /// Who is the current chunk authority.
-    authority_map: FxHashMap<ChunkCoord, OmniPeerId>,
+    authority_map: FxHashMap<ChunkCoord, (OmniPeerId, u8)>,
     /// Chunk states, according to docs/distributed_world_sync.drawio
     chunk_state: FxHashMap<ChunkCoord, ChunkState>,
     emitted_messages: Vec<MessageRequest<WorldNetMessage>>,
@@ -132,7 +133,7 @@ impl WorldManager {
         self.outbound_model.apply_noita_update(&update);
     }
 
-    pub(crate) fn add_end(&mut self) {
+    pub(crate) fn add_end(&mut self, priority: u8) {
         let updated_chunks = self
             .outbound_model
             .updated_chunks()
@@ -141,15 +142,15 @@ impl WorldManager {
             .collect::<Vec<_>>();
         self.current_update += 1;
         for chunk in updated_chunks {
-            self.chunk_updated_locally(chunk);
+            self.chunk_updated_locally(chunk, priority);
         }
         self.outbound_model.reset_change_tracking();
     }
 
-    fn chunk_updated_locally(&mut self, chunk: ChunkCoord) {
+    fn chunk_updated_locally(&mut self, chunk: ChunkCoord, priority: u8) {
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
             debug!("Created entry for {chunk:?}");
-            ChunkState::RequestAuthority
+            ChunkState::RequestAuthority{priority}
         });
         let mut emit_queue = Vec::new();
         self.chunk_last_update.insert(chunk, self.current_update);
@@ -184,10 +185,11 @@ impl WorldManager {
                 .copied()
                 .unwrap_or_default();
             match state {
-                ChunkState::RequestAuthority => {
+                ChunkState::RequestAuthority{priority} => {
+                    let priority = *priority;
                     emit_queue.push((
                         Destination::Host,
-                        WorldNetMessage::RequestAuthority { chunk },
+                        WorldNetMessage::RequestAuthority { chunk, priority },
                     ));
                     *state = ChunkState::WaitingForAuthority;
                     debug!("Requested authority for {chunk:?}")
@@ -275,8 +277,8 @@ impl WorldManager {
         })
     }
 
-    fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId) {
-        self.authority_map.insert(chunk, source);
+    fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId, priority: u8) {
+        self.authority_map.insert(chunk, (source, priority));
         let chunk_data = self.chunk_storage.get(&chunk).cloned();
         self.emit_msg(
             Destination::Peer(source),
@@ -286,17 +288,20 @@ impl WorldManager {
 
     pub(crate) fn handle_msg(&mut self, source: OmniPeerId, msg: WorldNetMessage) {
         match msg {
-            WorldNetMessage::RequestAuthority { chunk } => {
+            WorldNetMessage::RequestAuthority { chunk, priority } => {
                 if !self.is_host {
                     warn!("{} sent RequestAuthority to not-host.", source);
                     return;
                 }
                 let current_authority = self.authority_map.get(&chunk).copied();
                 match current_authority {
-                    Some(authority) => {
+                    Some((authority, priority_state)) => {
                         if source == authority {
                             info!("{source} already has authority of {chunk:?}");
-                            self.emit_got_authority(chunk, source);
+                            self.emit_got_authority(chunk, source, priority);
+                        } else if priority_state > priority {
+                            info!("{source} is gaining priority over {chunk:?} from {authority}");
+                            self.emit_got_authority(chunk, source, priority);
                         } else {
                             debug!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
                             self.emit_msg(
@@ -307,7 +312,7 @@ impl WorldManager {
                     }
                     None => {
                         debug!("Granting {source} authority of {chunk:?}");
-                        self.emit_got_authority(chunk, source);
+                        self.emit_got_authority(chunk, source, priority);
                     }
                 }
             }
@@ -322,9 +327,11 @@ impl WorldManager {
                     warn!("{} sent RelinquishAuthority to not-host.", source);
                     return;
                 }
-                if self.authority_map.get(&chunk) != Some(&source) {
-                    warn!("{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority");
-                    return;
+                if let Some(state) = self.authority_map.get(&chunk) {
+                    if state.0 != source {
+                        warn!("{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority");
+                        return;
+                    }
                 }
                 self.authority_map.remove(&chunk);
                 if let Some(chunk_data) = chunk_data {
@@ -400,12 +407,12 @@ impl WorldManager {
         let mut pending_messages = Vec::new();
 
         for (&chunk, peer) in self.authority_map.iter() {
-            if *peer == source {
+            if peer.0 == source {
                 info!("Removing authority from disconnected peer: {chunk:?}");
                 pending_messages.push(WorldNetMessage::ListenAuthorityRelinquished { chunk });
             }
         }
-        self.authority_map.retain(|_, peer| *peer != source);
+        self.authority_map.retain(|_, peer| peer.0 != source);
 
         for message in pending_messages {
             self.emit_msg(Destination::Broadcast, message)

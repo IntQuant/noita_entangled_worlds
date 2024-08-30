@@ -542,7 +542,7 @@ impl NetManager {
             }
             // world end
             1 => {
-                state.world.add_end();
+                state.world.add_end(data[0]);
             }
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)

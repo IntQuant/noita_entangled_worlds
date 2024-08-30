@@ -18,7 +18,13 @@ local KEY_WORLD_END = 1
 
 local CHUNK_SIZE = 128
 
-local iter = 0
+local iter_fast = false
+
+local iter_slow = 0
+
+function round(x)
+    return x >= 0 and math.floor(x + 0.5) or math.ceil(x - 0.5)
+end
 
 function world_sync.on_world_initialized()
     local c = 0
@@ -34,41 +40,81 @@ function world_sync.on_world_initialized()
     world.last_material_id = c
 end
 
+local function send_chunks(cx, cy, chunk_map)
+    local chx, chy = cx * CHUNK_SIZE, cy * CHUNK_SIZE
+    local crect = rect.Rectangle(chx, chy, chx + CHUNK_SIZE, chy + CHUNK_SIZE)
+    if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
+        local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+        if area ~= nil then
+            --if ctx.proxy_opt.debug then
+            --     GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
+            --end
+            local str = ffi.string(area, world.encoded_size(area))
+            net.proxy_bin_send(KEY_WORLD_FRAME, str)
+        end
+    end
+end
+
 function world_sync.on_world_update()
 
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     --local thread_impl = grid_world.mThreadImpl
 
+    local player_data = ctx.my_player
+    if not EntityGetIsAlive(player_data.entity) then
+        return
+    end
+    local px, py = EntityGetTransform(player_data.entity)
+    -- Original Chunk x/y
+    local ocx, ocy = round(px / CHUNK_SIZE), round(py / CHUNK_SIZE)
+    local priority = 0
     if GameGetFrameNum() % ctx.proxy_opt.world_sync_interval == 0 then
-        local player_data = ctx.my_player
-        if not EntityGetIsAlive(player_data.entity) then
-            return
+        for cx = ocx - 1, ocx do
+            for cy = ocy + 1, ocy do
+                send_chunks(cx, cy, chunk_map)
+            end
         end
-        local px, py = EntityGetTransform(player_data.entity)
-        -- Original Chunk x/y
-        local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
-
-        local cx = ocx - 2 + iter
-        for cy = ocy-2,ocy+2 do
-            local crect = rect.Rectangle(cx * CHUNK_SIZE, cy * CHUNK_SIZE, (cx+1) * CHUNK_SIZE, (cy+1) * CHUNK_SIZE)
-            if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-                local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
-                if area ~= nil then
-                    if ctx.proxy_opt.debug then
-                        -- GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority))
+    elseif GameGetFrameNum() % (ctx.proxy_opt.world_sync_interval * 2) == 1 then
+        local nx = ocx
+        if iter_fast then
+            nx = nx - 2
+        end
+        for cx = nx, nx + 1 do
+            if cx < ocx - 1 or cx > ocx then
+                for cy = ocy - 1, ocy + 2 do
+                    if cy < ocy or cy > ocy + 1 then
+                        send_chunks(cx, cy, chunk_map)
                     end
-                    local str = ffi.string(area, world.encoded_size(area))
-                    net.proxy_bin_send(KEY_WORLD_FRAME, str)
                 end
             end
         end
-        iter = iter + 1
-        if iter > 5 then
-            iter = 0
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 1))
+        iter_fast = not iter_fast
+    elseif GameGetFrameNum() % (ctx.proxy_opt.world_sync_interval * 3) == 3 then
+        local nx = ocx
+        if iter_slow == 1 or iter_slow == 2 then
+            nx = nx - 3
         end
-
-        net.proxy_bin_send(KEY_WORLD_END, "")
+        for cx = nx, nx + 2 do
+            if cx < ocx - 2 or cx > ocx + 1 then
+                local ny = ocy
+                if iter_slow == 0 or iter_slow == 1 then
+                    ny = ny - 3
+                end
+                for cy = ny + 1, ny + 3  do
+                    if cy < ocy - 1 or cy > ocy + 2 then
+                        send_chunks(cx, cy, chunk_map)
+                    end
+                end
+            end
+        end
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 2))
+        iter_slow = iter_slow + 1
+        if iter_slow == 4 then
+            iter_slow = 0
+        end
     end
 end
 
