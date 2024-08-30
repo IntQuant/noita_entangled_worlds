@@ -83,9 +83,6 @@ pub(crate) enum WorldNetMessage {
     },
 }
 
-#[derive(Debug, Decode, Encode)]
-pub struct WorldDelta(Vec<ChunkDelta>);
-
 #[derive(Debug, PartialEq, Eq)]
 enum ChunkState {
     /// Chunk isn't synced yet, but will request authority for it.
