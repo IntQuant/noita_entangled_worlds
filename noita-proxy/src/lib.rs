@@ -84,11 +84,11 @@ impl Default for GameSettings {
             use_constant_seed: false,
             item_dedup: true,
             enemy_hp_mult: 1.0,
-            world_sync_interval: 2,
+            world_sync_interval: 3,
             game_mode: GameMode::LocalHealth,
             friendly_fire: false,
             chunk_target: 32,
-            enemy_sync_interval: 2,
+            enemy_sync_interval: 3,
             progress: Vec::new(),
         }
     }
@@ -626,7 +626,7 @@ impl App {
         ui.add_space(10.0);
         ui.label("Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients");
         ui.add(Slider::new(&mut game_settings.chunk_target, 1..=64));
-        if game_settings.world_sync_version == 2 {
+        /*if game_settings.world_sync_version == 2 {
             ui.add_space(10.0);
             ui.label(tr("World-will-be-synced-every-this-many-frames"));
             ui.label(tr("Higher-values-result-in-less-performance-impact"));
@@ -636,7 +636,7 @@ impl App {
         ui.add_space(20.0);
 
         ui.label("Enemy sync interval");
-        ui.add(Slider::new(&mut game_settings.enemy_sync_interval, 1..=8));
+        ui.add(Slider::new(&mut game_settings.enemy_sync_interval, 1..=8));*/
 
         ui.add_space(20.0);
         ui.label(tr("connect_settings_player_tether_desc"));

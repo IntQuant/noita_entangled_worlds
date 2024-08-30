@@ -321,11 +321,14 @@ function enemy_sync.client_cleanup()
 end
 
 function enemy_sync.on_world_update_host()
-    local num = 1
-    if ctx.proxy_opt.enemy_sync_interval == 1 then
+    local int = 3 --ctx.proxy_opt.enemy_sync_interval
+    local num = 2
+    if int == 1 then
         num = 0
+    elseif int == 2 then
+        num = 1
     end
-    if GameGetFrameNum() % ctx.proxy_opt.enemy_sync_interval == num then
+    if GameGetFrameNum() % int == num then
         enemy_sync.host_upload_entities()
     end
     if GameGetFrameNum() % 10 == 5 then
