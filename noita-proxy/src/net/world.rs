@@ -32,6 +32,11 @@ pub(crate) enum WorldNetMessage {
         chunk: ChunkCoord,
         priority: u8,
     },
+    // Change priority
+    ChangePriority {
+        chunk: ChunkCoord,
+        priority: u8,
+    },
     // When got authority
     GotAuthority {
         chunk: ChunkCoord,
@@ -56,9 +61,11 @@ pub(crate) enum WorldNetMessage {
     ListenInitialResponse {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
+        priority: u8,
     },
     ListenUpdate {
         delta: ChunkDelta,
+        priority: u8,
     },
     ListenAuthorityRelinquished {
         chunk: ChunkCoord,
@@ -75,6 +82,7 @@ pub(crate) enum WorldNetMessage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
         listeners: FxHashSet<OmniPeerId>,
+        priority: u8,
     },
     TransferFailed {
         chunk: ChunkCoord,
@@ -91,9 +99,11 @@ enum ChunkState {
     /// Transitioning into Listening or Authority state.
     WaitingForAuthority,
     /// Listening for chunk updates from this peer.
-    Listening { authority: OmniPeerId },
+    Listening { authority: OmniPeerId,
+        priority: u8 },
     /// Sending chunk updates to these listeners.
-    Authority { listeners: FxHashSet<OmniPeerId> },
+    Authority { listeners: FxHashSet<OmniPeerId>,
+        priority: u8 },
     /// Chunk is to be cleaned up.
     UnloadPending,
     /// We've requested to take authority from someone else, and waiting for transfer to complete.
@@ -103,6 +113,7 @@ impl ChunkState {
     fn authority() -> ChunkState {
         ChunkState::Authority {
             listeners: Default::default(),
+            priority: 255
         }
     }
 }
@@ -176,18 +187,46 @@ impl WorldManager {
         });
         let mut emit_queue = Vec::new();
         self.chunk_last_update.insert(chunk, self.current_update);
-        if let ChunkState::Authority { listeners } = entry {
-            let Some(delta) = self.outbound_model.get_chunk_delta(chunk, false) else {
-                return;
-            };
-            for &listener in listeners.iter() {
-                emit_queue.push((
-                    Destination::Peer(listener),
-                    WorldNetMessage::ListenUpdate {
-                        delta: delta.clone(),
-                    },
-                ));
+        match entry
+        {
+            ChunkState::Listening { priority: pri, .. } => {
+                if *pri > priority
+                {
+                    emit_queue.push((
+                        Destination::Host,
+                        WorldNetMessage::RequestAuthority {
+                            chunk,
+                            priority
+                        },
+                    ));
+                }
             }
+            ChunkState::Authority { listeners, priority: pri } => {
+                let Some(delta) = self.outbound_model.get_chunk_delta(chunk, false) else {
+                    return;
+                };
+                if *pri != priority
+                {
+                    *pri = priority;
+                    emit_queue.push((
+                        Destination::Host,
+                        WorldNetMessage::ChangePriority {
+                            chunk,
+                            priority
+                        },
+                    ));
+                }
+                for &listener in listeners.iter() {
+                    emit_queue.push((
+                        Destination::Peer(listener),
+                        WorldNetMessage::ListenUpdate {
+                            delta: delta.clone(),
+                            priority
+                        },
+                    ));
+                }
+            }
+            _ => {}
         }
         for (dst, msg) in emit_queue {
             self.emit_msg(dst, msg)
@@ -219,7 +258,7 @@ impl WorldManager {
                 }
                 // This state doesn't have much to do.
                 ChunkState::WaitingForAuthority => {}
-                ChunkState::Listening { authority } => {
+                ChunkState::Listening { authority, .. } => {
                     if self.current_update - chunk_last_update > unload_limit {
                         debug!("Unloading [listening] chunk {chunk:?}");
                         emit_queue.push((
@@ -229,7 +268,7 @@ impl WorldManager {
                         *state = ChunkState::UnloadPending;
                     }
                 }
-                ChunkState::Authority { listeners: _ } => {
+                ChunkState::Authority { listeners: _, .. } => {
                     if self.current_update - chunk_last_update > unload_limit {
                         debug!("Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})", self.current_update);
                         emit_queue.push((
@@ -357,6 +396,25 @@ impl WorldManager {
                     }
                 }
             }
+            WorldNetMessage::ChangePriority { chunk, priority } => {
+                if !self.is_host {
+                    warn!("{} sent RequestAuthority to not-host.", source);
+                    return;
+                }
+                let current_authority = self.authority_map.get(&chunk).copied();
+                match current_authority {
+                    Some((authority, _)) => {
+                        if source == authority {
+                            self.authority_map.insert(chunk, (source, priority));
+                        } else {
+                            debug!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
+                        }
+                    }
+                    None => {
+                        debug!("Granting {source} authority of {chunk:?}");
+                    }
+                }
+            }
             WorldNetMessage::GotAuthority { chunk, chunk_data } => {
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, chunk_data);
@@ -394,37 +452,38 @@ impl WorldManager {
                 self.last_request_priority.remove(&chunk);
             }
             WorldNetMessage::ListenRequest { chunk } => {
-                let Some(ChunkState::Authority { listeners }) = self.chunk_state.get_mut(&chunk)
+                let Some(ChunkState::Authority { listeners, priority }) = self.chunk_state.get_mut(&chunk)
                 else {
                     //warn!("Can't listen for {chunk:?} - not an authority");
                     return;
                 };
                 listeners.insert(source);
                 let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                let priority = *priority;
                 self.emit_msg(
                     Destination::Peer(source),
-                    WorldNetMessage::ListenInitialResponse { chunk, chunk_data },
+                    WorldNetMessage::ListenInitialResponse { chunk, chunk_data, priority },
                 );
             }
             WorldNetMessage::ListenStopRequest { chunk } => {
-                let Some(ChunkState::Authority { listeners }) = self.chunk_state.get_mut(&chunk)
+                let Some(ChunkState::Authority { listeners, .. }) = self.chunk_state.get_mut(&chunk)
                 else {
                     //warn!("Can't stop listen for {chunk:?} - not an authority");
                     return;
                 };
                 listeners.remove(&source);
             }
-            WorldNetMessage::ListenInitialResponse { chunk, chunk_data } => {
+            WorldNetMessage::ListenInitialResponse { chunk, chunk_data, priority } => {
                 self.chunk_state
-                    .insert(chunk, ChunkState::Listening { authority: source });
+                    .insert(chunk, ChunkState::Listening { authority: source, priority });
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, chunk_data);
                 } else {
                     warn!("Initial listen response has None chunk_data. It's generally supposed to have some.");
                 }
             }
-            WorldNetMessage::ListenUpdate { delta } => {
-                let Some(ChunkState::Listening { authority: _ }) =
+            WorldNetMessage::ListenUpdate { delta, .. } => {
+                let Some(ChunkState::Listening { authority: _, .. }) =
                     self.chunk_state.get_mut(&delta.chunk_coord)
                 else {
                     /*warn!(
@@ -452,7 +511,7 @@ impl WorldManager {
             WorldNetMessage::RequestAuthorityTransfer { chunk } => {
                 info!("Got a request for authority transfer");
                 let state = self.chunk_state.get(&chunk);
-                if let Some(ChunkState::Authority { listeners }) = state {
+                if let Some(ChunkState::Authority { listeners, priority }) = state {
                     let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Peer(source),
@@ -460,6 +519,7 @@ impl WorldManager {
                             chunk,
                             chunk_data,
                             listeners: listeners.clone(),
+                            priority: *priority,
                         },
                     );
                     self.chunk_state.insert(chunk, ChunkState::UnloadPending);
@@ -474,6 +534,7 @@ impl WorldManager {
                 chunk,
                 chunk_data,
                 listeners,
+                priority
             } => {
                 info!("Transfer ok");
                 if let Some(chunk_data) = chunk_data {
@@ -486,7 +547,7 @@ impl WorldManager {
                     );
                 }
                 self.chunk_state
-                    .insert(chunk, ChunkState::Authority { listeners });
+                    .insert(chunk, ChunkState::Authority { listeners, priority });
                 self.last_request_priority.remove(&chunk);
             }
             WorldNetMessage::TransferFailed { chunk } => {
@@ -502,7 +563,7 @@ impl WorldManager {
             WorldNetMessage::NotifyNewAuthority { chunk } => {
                 info!("Notified of new authority");
                 let state = self.chunk_state.get_mut(&chunk);
-                if let Some(ChunkState::Listening { authority }) = state {
+                if let Some(ChunkState::Listening { authority, .. }) = state {
                     *authority = source;
                 } else {
                     warn!("Got notified of new authority, but not a listener");
@@ -539,8 +600,8 @@ impl WorldManager {
                 let message = match state {
                     ChunkState::RequestAuthority { priority: _ } => "req auth",
                     ChunkState::WaitingForAuthority => "wai auth",
-                    ChunkState::Listening { authority: _ } => "list",
-                    ChunkState::Authority { listeners: _ } => "auth",
+                    ChunkState::Listening { authority: _, .. } => "list",
+                    ChunkState::Authority { listeners: _, .. } => "auth",
                     ChunkState::UnloadPending => "unl",
                     ChunkState::Transfer => "tran",
                 };
