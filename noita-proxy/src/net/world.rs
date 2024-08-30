@@ -545,8 +545,8 @@ impl WorldManager {
                     ChunkState::Transfer => "tran",
                 };
                 DebugMarker {
-                    x: (chunk.0 * 256) as f64,
-                    y: (chunk.1 * 256) as f64,
+                    x: (chunk.0 * 128) as f64,
+                    y: (chunk.1 * 128) as f64,
                     message,
                 }
             })
