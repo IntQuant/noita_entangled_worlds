@@ -200,7 +200,7 @@ impl WorldManager {
         let mut emit_queue = Vec::new();
 
         // How many updates till we relinquish authority/stop listening.
-        let unload_limit = 6;
+        let unload_limit = 16;
 
         for (&chunk, state) in self.chunk_state.iter_mut() {
             let chunk_last_update = self
@@ -444,6 +444,7 @@ impl WorldManager {
                 chunk,
                 current_authority,
             } => {
+                info!("Will request authority transfer");
                 self.chunk_state.insert(chunk, ChunkState::Transfer);
                 self.emit_msg(
                     Destination::Peer(current_authority),
@@ -451,6 +452,7 @@ impl WorldManager {
                 );
             }
             WorldNetMessage::RequestAuthorityTransfer { chunk } => {
+                info!("Got a request for authority transfer");
                 let state = self.chunk_state.get(&chunk);
                 if let Some(ChunkState::Authority { listeners }) = state {
                     let chunk_data = self.outbound_model.get_chunk_data(chunk);
@@ -475,6 +477,7 @@ impl WorldManager {
                 chunk_data,
                 listeners,
             } => {
+                info!("Transfer ok");
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, chunk_data);
                 }
@@ -499,6 +502,7 @@ impl WorldManager {
                     .insert(chunk, ChunkState::RequestAuthority { priority });
             }
             WorldNetMessage::NotifyNewAuthority { chunk } => {
+                info!("Notified of new authority");
                 let state = self.chunk_state.get_mut(&chunk);
                 if let Some(ChunkState::Listening { authority }) = state {
                     *authority = source;
