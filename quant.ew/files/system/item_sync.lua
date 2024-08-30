@@ -277,7 +277,6 @@ function rpc.initial_items(item_list)
         if item == nil then
             local item_new = inventory_helper.deserialize_single_item(item_data)
             add_stuff_to_globalized_item(item_new, item_data.gid)
-            GamePrint("spawned initial item " .. item_new)
         end
     end
 end
