@@ -911,7 +911,15 @@ impl eframe::App for App {
 
 
                         if self.show_map_plot {
+                            if ui.button("Close plot").clicked() {
+                                self.show_map_plot = false;
+                            }
+                            ctx.request_repaint_after(Duration::from_millis(16));
                             let build_fn = |plot: &mut PlotUi| {
+                                let markers = netman.debug_markers.lock().unwrap();
+                                for marker in markers.iter() {
+                                    plot.text(Text::new(PlotPoint::new(marker.x, -marker.y), marker.message));
+                                }
                                 netman.world_info.with_player_infos(|peer, info| {
                                     let username = if netman.peer.is_steam() {
                                         let steam = self.steam_state.as_mut().expect(
