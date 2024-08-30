@@ -18,6 +18,8 @@ local KEY_WORLD_END = 1
 
 local CHUNK_SIZE = 128
 
+local iter_cam = false
+
 local iter_fast = false
 
 local iter_slow = 0
@@ -55,20 +57,11 @@ local function send_chunks(cx, cy, chunk_map)
     end
 end
 
-function world_sync.on_world_update()
-
+local function get_all_chunks(ocx, ocy, priority)
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     --local thread_impl = grid_world.mThreadImpl
 
-    local player_data = ctx.my_player
-    if not EntityGetIsAlive(player_data.entity) then
-        return
-    end
-    local px, py = EntityGetTransform(player_data.entity)
-    -- Original Chunk x/y
-    local ocx, ocy = round(px / CHUNK_SIZE), round(py / CHUNK_SIZE)
-    local priority = 0
     if GameGetFrameNum() % ctx.proxy_opt.world_sync_interval == 0 then
         for cx = ocx - 1, ocx do
             for cy = ocy + 1, ocy do
@@ -111,6 +104,29 @@ function world_sync.on_world_update()
         if iter_slow == 4 then
             iter_slow = 0
         end
+    end
+end
+
+
+function world_sync.on_world_update()
+    local cx, cy = GameGetCameraPos()
+    cx, cy = cx / CHUNK_SIZE, cy / CHUNK_SIZE
+    local player_data = ctx.my_player
+    if not EntityGetIsAlive(player_data.entity) then
+        return
+    end
+    local px, py = EntityGetTransform(player_data.entity)
+    -- Original Chunk x/y
+    local ocx, ocy = round(px / CHUNK_SIZE), round(py / CHUNK_SIZE)
+    if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
+        if iter_cam then
+            get_all_chunks(cx, cy, 4)
+        else
+            get_all_chunks(ocx, ocy, 4)
+        end
+        iter_cam = not iter_cam
+    else
+        get_all_chunks(ocx, ocy, 0)
     end
 end
 
