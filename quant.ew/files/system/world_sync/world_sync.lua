@@ -82,11 +82,9 @@ function world_sync.on_world_update()
             nx = nx - 2
         end
         for cx = nx, nx + 1 do
-            if cx < ocx - 1 or cx > ocx then
-                for cy = ocy - 1, ocy + 2 do
-                    if cy < ocy or cy > ocy + 1 then
-                        send_chunks(cx, cy, chunk_map)
-                    end
+            for cy = ocy - 2, ocy + 1 do
+                if cx < ocx - 1 or cx > ocx or cy < ocy - 1 or cy > ocy then
+                    send_chunks(cx, cy, chunk_map)
                 end
             end
         end
@@ -98,15 +96,13 @@ function world_sync.on_world_update()
             nx = nx - 3
         end
         for cx = nx, nx + 2 do
-            if cx < ocx - 2 or cx > ocx + 1 then
-                local ny = ocy
-                if iter_slow == 0 or iter_slow == 1 then
-                    ny = ny - 3
-                end
-                for cy = ny + 1, ny + 3  do
-                    if cy < ocy - 1 or cy > ocy + 2 then
-                        send_chunks(cx, cy, chunk_map)
-                    end
+            local ny = ocy
+            if iter_slow == 0 or iter_slow == 1 then
+                ny = ny - 3
+            end
+            for cy = ny, ny + 2  do
+                if cx < ocx - 2 or cx > ocx + 1 or cy < ocy - 2 or cy > ocy + 1 then
+                    send_chunks(cx, cy, chunk_map)
                 end
             end
         end
