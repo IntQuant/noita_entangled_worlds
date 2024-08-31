@@ -553,7 +553,12 @@ impl NetManager {
             }
             // world end
             1 => {
-                state.world.add_end(data[0]);
+                let pos = if data.len() > 1 {
+                    Some(data[1..].split(|b| *b == b':').map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0)).collect::<Vec<i32>>())
+                } else {
+                    None
+                };
+                state.world.add_end(data[0], pos.as_deref());
             }
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)

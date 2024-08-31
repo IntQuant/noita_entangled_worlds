@@ -121,6 +121,8 @@ impl ChunkState {
 // TODO handle exits.
 pub(crate) struct WorldManager {
     is_host: bool,
+    my_pos: (i32, i32),
+    cam_pos: (i32, i32),
     my_peer_id: OmniPeerId,
     save_state: SaveState,
     /// We receive changes from other clients here, intending to send them to Noita.
@@ -149,6 +151,8 @@ impl WorldManager {
         let chunk_storage = save_state.load().unwrap_or_default();
         WorldManager {
             is_host,
+            my_pos: (i32::MIN + 3, i32::MIN + 3),
+            cam_pos: (i32::MIN + 3, i32::MIN + 3),
             my_peer_id,
             save_state,
             inbound_model: Default::default(),
@@ -167,7 +171,7 @@ impl WorldManager {
         self.outbound_model.apply_noita_update(&update);
     }
 
-    pub(crate) fn add_end(&mut self, priority: u8) {
+    pub(crate) fn add_end(&mut self, priority: u8, pos: Option<&[i32]>) {
         let updated_chunks = self
             .outbound_model
             .updated_chunks()
@@ -176,12 +180,16 @@ impl WorldManager {
             .collect::<Vec<_>>();
         self.current_update += 1;
         for chunk in updated_chunks {
-            self.chunk_updated_locally(chunk, priority);
+            self.chunk_updated_locally(chunk, priority, pos);
         }
         self.outbound_model.reset_change_tracking();
     }
 
-    fn chunk_updated_locally(&mut self, chunk: ChunkCoord, priority: u8) {
+    fn chunk_updated_locally(&mut self, chunk: ChunkCoord, priority: u8, pos: Option<&[i32]>) {
+        if let Some(data) = pos {
+            self.my_pos = (data[0], data[1]);
+            self.cam_pos = (data[2], data[3]);
+        }
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
             debug!("Created entry for {chunk:?}");
             ChunkState::RequestAuthority { priority }
@@ -237,53 +245,10 @@ impl WorldManager {
     }
 
     pub(crate) fn update(&mut self) {
-        let mut emit_queue = Vec::new();
-        //TODO probably should just get these from world_sync.lua or something, then my_priority doesn't need to exist
-        let (mut my_x, mut my_y) = (i32::MIN + 3, i32::MIN + 3);
-        let (mut cam_x, mut cam_y) = (i32::MIN + 3, i32::MIN + 3);
-        let mut dont_kill = false;
-        let mut n = 0;
-        let mut nc = 0;
-        let mut no_cam = false;
-        
-        for (&chunk, state) in self.chunk_state.iter() {
-            match state {
-                ChunkState::Listening { my_priority: priority, .. } | ChunkState::Authority { priority, .. } => {
-                    if *priority == 0 || *priority == 32
-                    {
-                        if *priority == 0 {
-                            no_cam = true
-                        }
-                        n += 1;
-                        if my_x < chunk.0 || my_y < chunk.1 {
-                            (my_x, my_y) = (chunk.0, chunk.1)
-                        }
-                    } else if *priority == 16
-                    {
-                        nc += 1;
-                        if cam_x < chunk.0 || cam_y < chunk.1 {
-                            (cam_x, cam_y) = (chunk.0, chunk.1)
-                        }
-                    }
-                }
-                _ => {
-                    dont_kill = true;
-                    break
-                },
-            }
-        }
-        if no_cam {
-            (cam_x, cam_y) = (i32::MIN + 3, i32::MIN + 3);
-            nc = 0;
-        }
-        if n < 4 || (nc != 0 && nc < 4) {
-            dont_kill = true
-        }
-        fn should_kill(x: i32, y: i32, cx: i32, cy: i32, chx: i32, chy: i32) -> bool {
-            if x == i32::MIN + 3
-            {
-                false
-            } else if cx == i32::MIN + 3 {
+        fn should_kill(my_pos: (i32, i32), cam_pos: (i32, i32), chx: i32, chy: i32) -> bool {
+            let (x, y) = my_pos;
+            let (cx, cy) = cam_pos;
+            if (x - cx).abs() <= 2 && (y - cy).abs() <= 2 {
                 !(chx <= x + 2 && chx >= x - 3
                     && chy <= y + 2 && chy >= y - 3)
             } else {
@@ -293,6 +258,7 @@ impl WorldManager {
                     && chy <= cy + 1 && chy >= cy - 2)
             }
         }
+        let mut emit_queue = Vec::new();
 
         for (&chunk, state) in self.chunk_state.iter_mut() {
             let chunk_last_update = self
@@ -314,7 +280,7 @@ impl WorldManager {
                 // This state doesn't have much to do.
                 ChunkState::WaitingForAuthority => {}
                 ChunkState::Listening { authority, .. } => {
-                    if !dont_kill && should_kill(my_x, my_y, cam_x, cam_y, chunk.0, chunk.1)
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1)
                     {
                         debug!("Unloading [listening] chunk {chunk:?}");
                         emit_queue.push((
@@ -325,7 +291,7 @@ impl WorldManager {
                     }
                 }
                 ChunkState::Authority { .. } => {
-                    if !dont_kill && should_kill(my_x, my_y, cam_x, cam_y, chunk.0, chunk.1)
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1)
                     {
                         debug!("Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})", self.current_update);
                         emit_queue.push((

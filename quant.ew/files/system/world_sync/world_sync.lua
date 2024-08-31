@@ -57,7 +57,7 @@ local function send_chunks(cx, cy, chunk_map)
     end
 end
 
-local function get_all_chunks(ocx, ocy, priority)
+local function get_all_chunks(ocx, ocy, pos_data, priority)
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     --local thread_impl = grid_world.mThreadImpl
@@ -68,7 +68,7 @@ local function get_all_chunks(ocx, ocy, priority)
                 send_chunks(cx, cy, chunk_map)
             end
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(priority))
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority) .. pos_data)
     elseif GameGetFrameNum() % (int * 2) == 1 then
         local nx = ocx
         if iter_fast then
@@ -118,18 +118,19 @@ function world_sync.on_world_update()
     local px, py = EntityGetTransform(player_data.entity)
     -- Original Chunk x/y
     local ocx, ocy = round(px / CHUNK_SIZE), round(py / CHUNK_SIZE)
+    local pos_data = ocx..":"..ocy..":"..cx..":"..cy
     if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
         if iter_cam then
-            get_all_chunks(cx, cy, 16)
+            get_all_chunks(cx, cy, pos_data, 16)
         else
-            get_all_chunks(ocx, ocy, 32)
+            get_all_chunks(ocx, ocy, pos_data, 32)
         end
         local int = 3 -- ctx.proxy_opt.world_sync_interval
-        if GameGetFrameNum() % (int * 8) == 0 then
+        if GameGetFrameNum() % (int * 4) == 0 then
             iter_cam = not iter_cam
         end
     else
-        get_all_chunks(ocx, ocy, 0)
+        get_all_chunks(ocx, ocy, pos_data, 0)
     end
 end
 
