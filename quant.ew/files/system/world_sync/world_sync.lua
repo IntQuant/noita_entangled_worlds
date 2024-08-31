@@ -130,14 +130,18 @@ function world_sync.on_world_update()
         if iter_cam then
             get_all_chunks(cx, cy, pos_data, 16)
         else
-            get_all_chunks(ocx, ocy, pos_data, 32)
+            get_all_chunks(ocx, ocy, pos_data, 16)
         end
         local int = 3 -- ctx.proxy_opt.world_sync_interval
         if GameGetFrameNum() % (int * 8) == 0 then
             iter_cam = not iter_cam
         end
     else
-        get_all_chunks(ocx, ocy, pos_data, 0)
+        local pri = 0
+        if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+            pri = 16
+        end
+        get_all_chunks(ocx, ocy, pos_data, pri)
     end
 end
 

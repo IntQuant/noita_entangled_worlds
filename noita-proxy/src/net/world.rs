@@ -100,8 +100,7 @@ enum ChunkState {
     WaitingForAuthority,
     /// Listening for chunk updates from this peer.
     Listening { authority: OmniPeerId,
-        priority: u8,
-        my_priority: u8},
+        priority: u8},
     /// Sending chunk updates to these listeners.
     Authority { listeners: FxHashSet<OmniPeerId>,
         priority: u8 },
@@ -198,7 +197,7 @@ impl WorldManager {
         self.chunk_last_update.insert(chunk, self.current_update);
         match entry
         {
-            ChunkState::Listening { priority: pri, my_priority, .. } => {
+            ChunkState::Listening { priority: pri, .. } => {
                 if *pri > priority
                 {
                     emit_queue.push((
@@ -208,8 +207,6 @@ impl WorldManager {
                             priority
                         },
                     ));
-                } else {
-                    *my_priority = priority
                 }
             }
             ChunkState::Authority { listeners, priority: pri } => {
@@ -498,7 +495,7 @@ impl WorldManager {
             }
             WorldNetMessage::ListenInitialResponse { chunk, chunk_data, priority } => {
                 self.chunk_state
-                    .insert(chunk, ChunkState::Listening { authority: source, priority, my_priority: 255 });
+                    .insert(chunk, ChunkState::Listening { authority: source, priority});
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, chunk_data);
                 } else {
