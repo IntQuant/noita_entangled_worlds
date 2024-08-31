@@ -85,7 +85,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority)
                 end
             end
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 1) .. pos_data)
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority --[[+ 1]]) .. pos_data)
         iter_fast = iter_fast + 1
         if iter_fast == 4 then
             iter_fast = 0
@@ -106,7 +106,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority)
                 end
             end
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 2))
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority --[[+ 2]]))
         iter_slow = iter_slow + 1
         if iter_slow == 4 then
             iter_slow = 0
