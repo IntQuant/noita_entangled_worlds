@@ -256,11 +256,13 @@ local function pickup_item(entity, item)
     if item_component then
       ComponentSetValue2(item_component, "has_been_picked_by_player", true)
     end
-    local entity_children = EntityGetAllChildren(entity) or {}
-    for _, child in pairs( entity_children ) do
-      if EntityGetName( child ) == "inventory_quick" then
-        EntityAddChild( child, item)
-      end
+    local entity_children = EntityGetAllChildren(entity)
+    if entity_children ~= nil then
+        for _, child in pairs( entity_children ) do
+            if EntityGetName( child ) == "inventory_quick" then
+                EntityAddChild( child, item)
+            end
+        end
     end
 
     EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
@@ -281,7 +283,7 @@ function inventory_helper.set_item_data(item_data, player_data)
         return
     end
 
-    local children = EntityGetAllChildren(player)
+    local children = EntityGetAllChildren(player) or {}
     for _, child in pairs(children) do
         if EntityGetName(child) == "inventory_quick" then
             local inv = EntityGetAllChildren(child)
