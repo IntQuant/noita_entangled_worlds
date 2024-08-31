@@ -20,7 +20,7 @@ local CHUNK_SIZE = 128
 
 local iter_cam = false
 
-local iter_fast = false
+local iter_fast = 0
 
 local iter_slow = 0
 
@@ -68,21 +68,28 @@ local function get_all_chunks(ocx, ocy, pos_data, priority)
                 send_chunks(cx, cy, chunk_map)
             end
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(priority) .. pos_data)
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority))
     elseif GameGetFrameNum() % (int * 2) == 1 then
         local nx = ocx
-        if iter_fast then
+        if iter_fast == 1 or iter_fast == 2 then
             nx = nx - 2
         end
         for cx = nx, nx + 1 do
-            for cy = ocy - 2, ocy + 1 do
+            local ny = ocy
+            if iter_fast == 2 or iter_fast == 3 then
+                ny = ny - 2
+            end
+            for cy = ny, ny + 1 do
                 if cx < ocx - 1 or cx > ocx or cy < ocy - 1 or cy > ocy then
                     send_chunks(cx, cy, chunk_map)
                 end
             end
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 1))
-        iter_fast = not iter_fast
+        net.proxy_bin_send(KEY_WORLD_END, string.char(priority + 1) .. pos_data)
+        iter_fast = iter_fast + 1
+        if iter_fast == 4 then
+            iter_fast = 0
+        end
     elseif priority == 0 and GameGetFrameNum() % (int * 4) == 4 then
         local nx = ocx
         if iter_slow == 1 or iter_slow == 2 then
@@ -90,7 +97,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority)
         end
         for cx = nx, nx + 2 do
             local ny = ocy
-            if iter_slow == 0 or iter_slow == 1 then
+            if iter_slow == 2 or iter_slow == 3 then
                 ny = ny - 3
             end
             for cy = ny, ny + 2  do
@@ -126,7 +133,7 @@ function world_sync.on_world_update()
             get_all_chunks(ocx, ocy, pos_data, 32)
         end
         local int = 3 -- ctx.proxy_opt.world_sync_interval
-        if GameGetFrameNum() % (int * 4) == 0 then
+        if GameGetFrameNum() % (int * 8) == 0 then
             iter_cam = not iter_cam
         end
     else

@@ -49,10 +49,9 @@ local function send_orbs()
 end
 
 function module.on_world_update()
-    if GameGetFrameNum() % 10 == 0 then
+    if GameGetFrameNum() % 3 == 0 then
         local found_local = orbs_found_this_run()
-        local x, y = EntityGetTransform(ctx.my_player.entity)
-        for _, orb_ent in ipairs(EntityGetInRadiusWithTag(x, y, 300, "hittable") or {}) do
+        for _, orb_ent in ipairs(EntityGetWithTag("hittable") or {}) do
             local comp = EntityGetFirstComponent(orb_ent, "OrbComponent")
             if comp ~= nil then
                 local orb = ComponentGetValue2(comp, "orb_id")
