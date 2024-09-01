@@ -430,7 +430,7 @@ local function is_suitable_target(entity)
 end
 
 local function choose_wand_actions()
-    if (state.attack_wand ~= nil or has_bad_potion) and target ~= nil and EntityGetIsAlive(target) then
+    if (state.attack_wand ~= nil or bad_potion ~= nil) and target ~= nil and EntityGetIsAlive(target) then
         local t_x, t_y = EntityGetFirstHitboxCenter(target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(target)
