@@ -151,14 +151,14 @@ end
 
 function world_sync.on_world_update()
     local cx, cy = GameGetCameraPos()
-    cx, cy = math.floor(cx / CHUNK_SIZE), math.floor(cy / CHUNK_SIZE) + 1
+    cx, cy = math.floor(cx / CHUNK_SIZE), math.floor(cy / CHUNK_SIZE)
     local player_data = ctx.my_player
     if not EntityGetIsAlive(player_data.entity) then
         return
     end
     local px, py = EntityGetTransform(player_data.entity)
     -- Original Chunk x/y
-    local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE) + 1
+    local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
     local pos_data = ocx..":"..ocy..":"..cx..":"..cy
     if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
         if GameGetFrameNum() % 3 ~= 2 then
