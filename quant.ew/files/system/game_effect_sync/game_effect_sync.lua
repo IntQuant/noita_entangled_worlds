@@ -41,11 +41,13 @@ function effect_sync.get_sync_data(entity)
     local sync_data = {}
     for _, effect in ipairs(effects) do
         local name = EntityGetFilename(effect)
-        local num = name_to_num(name)
-        if num ~= -1 then
-            table.insert(sync_data, num)
-        else
-            table.insert(sync_data, name)
+        if name ~= nil and name ~= "" then --TODO serialize effects with no file
+            local num = name_to_num(name)
+            if num ~= -1 then
+                table.insert(sync_data, num)
+            else
+                table.insert(sync_data, name)
+            end
         end
     end
     return sync_data
