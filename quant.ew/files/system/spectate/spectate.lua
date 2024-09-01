@@ -1,3 +1,5 @@
+local nickname = dofile_once("mods/quant.ew/files/system/nickname.lua")
+
 local spectate = {}
 
 local gui = GuiCreate()
@@ -28,6 +30,10 @@ end
 
 local function target()
     if cam_target.entity == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        local sprite = EntityGetFirstComponent(ctx.my_player.entity, "SpriteComponent", "ew_nickname")
+        if sprite ~= nil then
+            EntityRemoveComponent(ctx.my_player.entity, sprite)
+        end
         GameSetCameraFree(false)
         if camera_target == nil then
             camera_target = ctx.my_player
@@ -56,6 +62,9 @@ local function target()
         camera_target = ctx.my_player
     end
     if camera_target.entity ~= cam_target.entity then
+        if camera_target == ctx.my_player then
+            nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
+        end
         if ctx.my_player.entity ~= camera_target.entity and inventory_target ~= nil then
             EntityRemoveComponent(camera_target.entity, inventory_target)
         end
