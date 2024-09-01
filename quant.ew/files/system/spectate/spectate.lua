@@ -14,10 +14,6 @@ local cam_target
 
 local inventory_target
 
-local left_held = false
-
-local right_held = false
-
 local was_notplayer = false
 
 local function get_me()
@@ -157,27 +153,20 @@ function spectate.on_world_update()
         last_len = number_of_players()
     end
 
-    if InputIsKeyDown(54) then
-        if not left_held then
-            camera_player = camera_player - 1
-            if camera_player < 1 then
-                camera_player = last_len
-            end
-            left_held = true
-            re_cam = true
+    if InputIsKeyJustDown(54) then
+        camera_player = camera_player - 1
+        if camera_player < 1 then
+            camera_player = last_len
         end
-    elseif InputIsKeyDown(55) then
-        if not right_held then
-            camera_player = camera_player + 1
-            if camera_player > last_len then
-                camera_player = 1
-            end
-            right_held = true
-            re_cam = true
+
+        re_cam = true
+    elseif InputIsKeyJustDown(55) then
+        camera_player = camera_player + 1
+        if camera_player > last_len then
+            camera_player = 1
         end
-    else
-        left_held = false
-        right_held = false
+
+        re_cam = true
     end
     set_camera_pos()
     ctx.spectating_over_peer_id = camera_player_id
