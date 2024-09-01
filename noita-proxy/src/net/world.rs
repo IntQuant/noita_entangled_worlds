@@ -31,6 +31,7 @@ pub(crate) enum WorldNetMessage {
     RequestAuthority {
         chunk: ChunkCoord,
         priority: u8,
+        can_wait: bool
     },
     // Change priority
     ChangePriority {
@@ -95,7 +96,7 @@ pub(crate) enum WorldNetMessage {
 #[derive(Debug, PartialEq, Eq)]
 enum ChunkState {
     /// Chunk isn't synced yet, but will request authority for it.
-    RequestAuthority { priority: u8 },
+    RequestAuthority { priority: u8, can_wait: bool },
     /// Transitioning into Listening or Authority state.
     WaitingForAuthority,
     /// Listening for chunk updates from this peer.
@@ -193,7 +194,7 @@ impl WorldManager {
         }
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
             debug!("Created entry for {chunk:?}");
-            ChunkState::RequestAuthority { priority }
+            ChunkState::RequestAuthority { priority, can_wait: true }
         });
         let mut emit_queue = Vec::new();
         self.chunk_last_update.insert(chunk, self.current_update);
@@ -269,11 +270,11 @@ impl WorldManager {
                 .copied()
                 .unwrap_or_default();
             match state {
-                ChunkState::RequestAuthority { priority } => {
+                ChunkState::RequestAuthority { priority, can_wait } => {
                     let priority = *priority;
                     emit_queue.push((
                         Destination::Host,
-                        WorldNetMessage::RequestAuthority { chunk, priority },
+                        WorldNetMessage::RequestAuthority { chunk, priority, can_wait: *can_wait },
                     ));
                     *state = ChunkState::WaitingForAuthority;
                     self.last_request_priority.insert(chunk, priority);
@@ -400,7 +401,7 @@ impl WorldManager {
 
     pub(crate) fn handle_msg(&mut self, source: OmniPeerId, msg: WorldNetMessage) {
         match msg {
-            WorldNetMessage::RequestAuthority { chunk, priority } => {
+            WorldNetMessage::RequestAuthority { chunk, priority, can_wait } => {
                 if !self.is_host {
                     warn!("{} sent RequestAuthority to not-host.", source);
                     return;
@@ -411,7 +412,7 @@ impl WorldManager {
                         if source == authority {
                             info!("{source} already has authority of {chunk:?}");
                             self.emit_got_authority(chunk, source, priority);
-                        } else if priority_state > priority {
+                        } else if priority_state > priority && !can_wait {
                             info!("{source} is gaining priority over {chunk:?} from {authority}");
                             self.emit_transfer_authority(chunk, source, priority, authority);
                         } else {
@@ -527,7 +528,8 @@ impl WorldManager {
                             {
                                 let rq = WorldNetMessage::RequestAuthority {
                                     chunk: delta.chunk_coord,
-                                    priority: *my_priority
+                                    priority: *my_priority,
+                                    can_wait: false
                                 };
                                 self.emit_msg(
                                     Destination::Host,
@@ -607,7 +609,7 @@ impl WorldManager {
                     .copied()
                     .unwrap_or(255);
                 self.chunk_state
-                    .insert(chunk, ChunkState::RequestAuthority { priority });
+                    .insert(chunk, ChunkState::RequestAuthority { priority, can_wait: true });
             }
             WorldNetMessage::NotifyNewAuthority { chunk } => {
                 info!("Notified of new authority");
@@ -647,7 +649,7 @@ impl WorldManager {
             .iter()
             .map(|(&chunk, state)| {
                 let message = match state {
-                    ChunkState::RequestAuthority { priority: _ } => "req auth",
+                    ChunkState::RequestAuthority { .. } => "req auth",
                     ChunkState::WaitingForAuthority => "wai auth",
                     ChunkState::Listening { .. } => "list",
                     ChunkState::Authority { .. } => "auth",
