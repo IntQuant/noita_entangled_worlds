@@ -193,6 +193,19 @@ local function find_new_wand()
     end
 end
 
+local function has_ambrosia(entity)
+    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+        if com ~= nil then
+            local name = ComponentGetValue2(com, "effect")
+            if name == "PROTECTION_ALL" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function needs_douse(entity)
     local prot_fire = false
     local prot_toxic = false
@@ -447,7 +460,7 @@ local on_right = false
 local rest = false
 
 local function choose_movement()
-    if target == nil then
+    if target == nil or (has_ambrosia(ctx.my_player.entity) and state.init_timer > 94) then
         state.control_a = false
         state.control_d = false
         state.control_w = false
@@ -849,9 +862,17 @@ local function hold_something()
     end
 end
 
-local function better_player(length, did_hit, potential_target)
-    return ((last_length == nil or (not did_hit and ((last_length > length or not last_did_hit) or EntityHasTag(target, "polymorphed"))))
-                    and (not IsInvisible(potential_target) or length < 50*50))
+local target_has_ambrosia = false
+
+local target_is_polied = false
+
+local function better_player(length, did_hit, new_has_ambrosia, new_target_is_polied, potential_target)
+    return (last_length == nil or
+            (not did_hit and ((last_length > length or last_did_hit)
+                    or (new_target_is_polied and not target_is_polied)
+                    or (not new_has_ambrosia and target_has_ambrosia))
+            ))
+            and (not IsInvisible(potential_target) or length < 50*50)
 end
 
 local function find_target()
@@ -897,6 +918,8 @@ local function find_target()
             end
         end
         last_did_hit = did_hit
+        target_has_ambrosia = has_ambrosia(target)
+        target_is_polied = EntityHasTag(target, "polymorphed")
     end
 
     log("Trying to choose target")
@@ -911,30 +934,35 @@ local function find_target()
             local dy = y - t_y
             local length = dx * dx + dy * dy
             local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-            if better_player(length, did_hit, potential_target) then
-                last_length = length
-                last_did_hit = did_hit
-                target = potential_target
+            local new_has_ambrosia = has_ambrosia(potential_target)
+            local new_target_is_polied = EntityHasTag(target, "polymorphed")
+            local success = false
+            if better_player(length, did_hit, new_has_ambrosia, new_target_is_polied, potential_target) then
+                success = true
                 state.aim_up = false
                 state.aim_down = false
             elseif did_hit then
                 local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
-                if better_player(length, did_hit_up, potential_target) then
-                    last_length = length
-                    last_did_hit = did_hit
-                    target = potential_target
+                if better_player(length, did_hit_up, new_has_ambrosia, new_target_is_polied, potential_target) then
+                    success = true
                     state.aim_up = true
                     state.aim_down = false
                 elseif did_hit_up then
                     local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
-                    if better_player(length, did_hit_down, potential_target) then
-                        last_length = length
-                        last_did_hit = did_hit
+                    if better_player(length, did_hit_down, new_has_ambrosia, new_target_is_polied, potential_target) then
+                        success = true
                         target = potential_target
                         state.aim_up = false
                         state.aim_down = true
                     end
                 end
+            end
+            if success then
+                last_length = length
+                last_did_hit = did_hit
+                target_has_ambrosia = new_has_ambrosia
+                target_is_polied = new_target_is_polied
+                target = potential_target
             end
         end
     end
