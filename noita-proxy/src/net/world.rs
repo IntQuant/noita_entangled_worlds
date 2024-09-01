@@ -246,13 +246,13 @@ impl WorldManager {
             let (x, y) = my_pos;
             let (cx, cy) = cam_pos;
             if (x - cx).abs() <= 2 && (y - cy).abs() <= 2 {
-                !(chx <= x + 2 && chx >= x - 3
-                    && chy <= y + 2 && chy >= y - 3)
+                !(chx <= x + 3 && chx >= x - 3
+                    && chy <= y + 3 && chy >= y - 3)
             } else {
-                !(chx <= x + 1 && chx >= x - 2
-                    && chy <= y + 1 && chy >= y - 2)
-                    && !(chx <= cx + 1 && chx >= cx - 2
-                    && chy <= cy + 1 && chy >= cy - 2)
+                !(chx <= x + 2 && chx >= x - 2
+                    && chy <= y + 2 && chy >= y - 2)
+                    && !(chx <= cx + 2 && chx >= cx - 2
+                    && chy <= cy + 2 && chy >= cy - 2)
             }
         }
         let mut emit_queue = Vec::new();
@@ -503,15 +503,10 @@ impl WorldManager {
                 }
             }
             WorldNetMessage::ListenUpdate { delta, priority } => {
-                let Some(ChunkState::Listening { priority: pri, .. }) = self.chunk_state.get_mut(&delta.chunk_coord)
-                else {
-                    /*warn!(
-                        "Can't handle ListenUpdate for {:?} - not a listener",
-                        delta.chunk_coord
-                    );*/
-                    return;
-                };
-                *pri = priority;
+                if let Some(ChunkState::Listening { priority: pri, .. }) = self.chunk_state.get_mut(&delta.chunk_coord)
+                {
+                    *pri = priority;
+                }
                 self.inbound_model.apply_chunk_delta(&delta);
             }
             WorldNetMessage::ListenAuthorityRelinquished { chunk } => {

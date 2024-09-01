@@ -74,7 +74,7 @@ local function get_potions_of_type(type)
     if children_items == nil then
         return potions
     end
-    for _, item in ipairs(children_items) do
+    for _, item in ipairs(children_items or {}) do
         if EntityHasTag(item, "potion") then
             local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
             local materials = ComponentGetValue2(mat, "count_per_material_type")
@@ -115,7 +115,7 @@ local function is_potion_of_type(item, type)
     local materials = ComponentGetValue2(mat, "count_per_material_type")
     local other = 0
     local water = 0
-    for id, amt in pairs(materials) do
+    for id, amt in pairs(materials or {}) do
         if amt ~= 0 then
             local name = CellFactory_GetName(id - 1)
             local use = false
@@ -145,7 +145,7 @@ local function find_new_wand()
     else
         local bad_mod = false
         local is_any_not_empty = false
-        for _, child in pairs(children) do
+        for _, child in pairs(children or {}) do
             local is_proj = false
             local is_bad_proj = false
             local sprites = EntityGetComponentIncludingDisabled(child, "SpriteComponent")
