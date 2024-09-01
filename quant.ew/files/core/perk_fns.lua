@@ -42,16 +42,18 @@ local function give_one_perk(entity_who_picked, perk_info, count)
     lazyload()
     -- add game effect
     if perk_info.game_effect ~= nil then
-        local game_effect_comp = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
+        local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
         if game_effect_comp ~= nil then
             ComponentSetValue( game_effect_comp, "frames", "-1" )
+            EntityAddTag( ent, "perk_entity" )
         end
     end
 
     if perk_info.game_effect2 ~= nil then
-        local game_effect_comp = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect2, true )
+        local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect2, true )
         if game_effect_comp ~= nil then
             ComponentSetValue( game_effect_comp, "frames", "-1" )
+            EntityAddTag( ent, "perk_entity" )
         end
     end
 

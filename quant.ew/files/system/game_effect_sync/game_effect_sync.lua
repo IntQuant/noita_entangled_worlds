@@ -19,7 +19,7 @@ function effect_sync.get_ent_effects(entity)
         local com = EntityGetFirstComponent(ent, "GameEffectComponent")
         if com ~= nil then
             local name = ComponentGetValue2(com, "effect")
-            if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) then
+            if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) and not EntityHasTag(ent, "perk_entity") then
                 table.insert(list, ent)
             end
         end
