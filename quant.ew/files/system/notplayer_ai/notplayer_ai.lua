@@ -193,6 +193,19 @@ local function find_new_wand()
     end
 end
 
+local function has_pheremoned(entity)
+    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+        if com ~= nil then
+            local name = ComponentGetValue2(com, "effect")
+            if name == "CHARM" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function has_ambrosia(entity)
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         local com = EntityGetFirstComponent(ent, "GameEffectComponent")
@@ -348,6 +361,18 @@ end
 local throw = false
 
 local function fire_wand(enable)
+    if state.is_pheremoned ~= -120 then
+        local damage = EntityGetFirstComponent(ctx.my_player.entity, "DamageModelComponent")
+        if state.is_pheremoned >= ComponentGetValue2(damage, "mLastDamageFrame") then
+            if has_pheremoned(ctx.my_player.entity) then
+                return
+            else
+                state.is_pheremoned = -120
+            end
+        else
+            state.is_pheremoned = 0
+        end
+    end
     if bad_potion ~= nil or good_potion ~= nil then
         ComponentSetValue2(state.control_component, "mButtonDownFire", false)
         ComponentSetValue2(state.control_component, "mButtonDownFire2", false)
@@ -403,7 +428,7 @@ local function init_state()
         attack_wand = wandfinder.find_attack_wand({}),
         empty_wands = {},
 
-
+        is_pheremoned = -120,
         aim_up = false,
         aim_down = false,
 
@@ -442,7 +467,6 @@ local function choose_wand_actions()
         end
         dont_throw = false
         aim_at(t_x, t_y)
-
         fire_wand(not last_did_hit and state.init_timer > 90)-- or has_water_potion)
         return
     end
@@ -888,10 +912,10 @@ local function find_target()
             last_length = nil
             last_did_hit = true
         else
-            local dx = ch_x - x1
-            local dy = ch_y - y1
-            local dist = dx*dx + dy*dy
-            if not is_suitable_target(target) or (dist > 600 * 600) or (IsInvisible(target) and dist > 50*50) then
+            local dx = x - x1
+            local dy = y - y1
+            last_length = dx * dx + dy + dy
+            if not is_suitable_target(target) or (last_length > 600 * 600) or (IsInvisible(target) and last_length > 50*50) then
                 target = nil
                 last_length = nil
                 last_did_hit = true
@@ -968,6 +992,7 @@ local function find_target()
     end
 end
 
+local kick_wait = 0
 
 local function update()
     -- No taking control back, even after pressing esc.
@@ -981,14 +1006,17 @@ local function update()
 
     hold_something()
 
-    if do_kick then
-        fire_wand(false)
+    if state.is_pheremoned == -120 and has_pheremoned(ctx.my_player.entity) then
+        state.is_pheremoned = GameGetFrameNum()
+    end
+    if do_kick and kick_wait + 16 < GameGetFrameNum() then
+        kick_wait = GameGetFrameNum()
         ComponentSetValue2(state.control_component, "mButtonDownKick", true)
         ComponentSetValue2(state.control_component, "mButtonFrameKick", GameGetFrameNum()+1)
     else
         ComponentSetValue2(state.control_component, "mButtonDownKick", false)
-        choose_wand_actions()
     end
+    choose_wand_actions()
     choose_movement()
 
     ComponentSetValue2(state.control_component, "mButtonDownLeft", state.control_a)
