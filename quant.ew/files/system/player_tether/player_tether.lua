@@ -24,7 +24,13 @@ end
 
 local function not_in_hm(x, y)
     local list = {1198, 2734, 4782, 6318, 8366, 10414}
-    return not (in_normal_hm(list, x, y) or is_in_box(1536, 2726, 12798, 13312, x, y))
+    return not (in_normal_hm(list, x, y)
+            or is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
+            or is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
+            or is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
+            or is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
+            or is_in_box(8700, 11300, 3550, 10240, x, y) --tower
+    )
 end
 
 function module.on_client_spawned(peer_id, new_playerdata)
@@ -41,19 +47,38 @@ local function is_suitable_target(entity)
     return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
 end
 
-function module.on_world_update_client()
-    local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-    if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
-        return
+local function tether_enable(to_enable, entity)
+    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+        if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
+            local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
+            EntitySetComponentIsEnabled(child, emmiter, to_enable)
+            break
+        end
     end
+end
+
+
+function module.on_world_update_client()
     if GameGetFrameNum() % 10 == 7 then
+        local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+        if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
+            if host_playerdata ~= nil and host_playerdata.entity ~= nil and EntityGetIsAlive(host_playerdata.entity) then
+                tether_enable(false, host_playerdata.entity)
+            end
+            return
+        end
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         local dx = x1-x2
         local dy = y1-y2
         local dist_sq = dx*dx + dy*dy
-        if dist_sq > tether_length_2 * tether_length_2 and not_in_hm(x1, y1) and not_in_hm(x2, y2) then
-            EntitySetTransform(ctx.my_player.entity, x1, y1)
+        if x1 ~= nil and x2 ~= nil and not_in_hm(x1, y1) and not_in_hm(x2, y2) then
+            tether_enable(true, host_playerdata.entity)
+            if dist_sq > tether_length_2 * tether_length_2 then
+                EntitySetTransform(ctx.my_player.entity, x1, y1)
+            end
+        else
+            tether_enable(false, host_playerdata.entity)
         end
     end
 end

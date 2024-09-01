@@ -18,8 +18,6 @@ local KEY_WORLD_END = 1
 
 local CHUNK_SIZE = 128
 
-local iter_cam = false
-
 local iter_fast = 0
 
 local iter_slow = 0
