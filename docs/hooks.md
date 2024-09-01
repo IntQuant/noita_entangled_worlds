@@ -9,4 +9,5 @@
  - `ctx.hook.on_client_spawned(peer_id, new_playerdata)`
  - `ctx.hook.on_should_send_updates()` - called either when we connect, or somebody else connects (and sends "welcome" message)
  - `ctx.hook.on_draw_debug_window(imgui)`
- 
+ - `ctx.hook.on_local_player_polymorphed(currently_polymorphed)`
+ - `ctx.hook.on_client_polymorphed(peer_id, player_data)`

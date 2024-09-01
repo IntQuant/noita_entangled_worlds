@@ -22,6 +22,7 @@ local function entity_changed()
         rpc.change_entity(nil)
         wandfinder.set_wands_after_poly()
     end
+    ctx.hook.on_local_player_polymorphed(currently_polymorphed)
 end
 
 function module.on_local_player_spawn()
@@ -131,6 +132,7 @@ function rpc.change_entity(seri_ent)
         EntityKill(ctx.rpc_player_data.entity)
         player_fns.replace_player_entity(ent, ctx.rpc_player_data)
         ctx.rpc_player_data.currently_polymorphed = true
+        ctx.hook.on_client_polymorphed(ctx.rpc_peer_id, ctx.rpc_player_data)
     else
         if ctx.rpc_player_data.currently_polymorphed then
             EntityKill(ctx.rpc_player_data.entity)
