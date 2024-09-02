@@ -272,6 +272,8 @@ impl WorldManager {
                     } else {
                         new_auth = Some(new.0)
                     }
+                } else {
+                    *stop_sending = false
                 }
                 let mut new_auth_got = false;
                 if !*stop_sending {
@@ -502,7 +504,9 @@ impl WorldManager {
             }
             WorldNetMessage::LoseAuthority {chunk, new_authority, new_priority} => {
                 if let Some(ChunkState::Authority {new_authority: new_auth, ..}) = self.chunk_state.get_mut(&chunk) {
-                    if let Some(new) = new_auth {
+                    if new_authority == self.my_peer_id {
+                        *new_auth = None;
+                    } else if let Some(new) = new_auth {
                         if new.1 > new_priority
                         {
                             *new_auth = Some((new_authority, new_priority));
@@ -625,6 +629,17 @@ impl WorldManager {
                                 let cs = ChunkState::Listening {authority: *authority, priority};
                                 self.chunk_state.insert(delta.chunk_coord, cs);
                             }
+                        }
+                    _ if take_auth => 
+                        {
+                            self.emit_msg(
+                                Destination::Peer(source),
+                                WorldNetMessage::LoseAuthority {
+                                    chunk: delta.chunk_coord,
+                                    new_priority: priority,
+                                    new_authority: source,
+                                }
+                            );
                         }
                     _ => { return }
                 }
