@@ -23,14 +23,22 @@ local function in_normal_hm(list, x, y)
 end
 
 local function not_in_hm(x, y)
-    local list = {1198, 2734, 4782, 6318, 8366, 10414}
-    return not (in_normal_hm(list, x, y)
-            or is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
-            or is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
-            or is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
-            or is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
-            or is_in_box(8700, 11300, 3550, 10240, x, y) --tower
-    )
+    if np.GetGameModeNr() == 2 then
+        local list = {1198, 3758, 6318, 10414}
+        return not (in_normal_hm(list, x, y) or is_in_box(1536, 2726, 12798, 13312, x, y))
+    elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
+        local list = {1198, 2734, 6318, 10414}
+        return not (in_normal_hm(list, x, y) or is_in_box(1536, 2726, 12798, 13312, x, y))
+    else
+        local list = {1198, 2734, 4782, 6318, 8366, 10414}
+        return not (in_normal_hm(list, x, y)
+                or is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
+                or is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
+                or is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
+                or is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
+                or is_in_box(8700, 11300, 3550, 10240, x, y) --tower
+        )
+    end
 end
 
 function module.on_client_spawned(peer_id, new_playerdata)
