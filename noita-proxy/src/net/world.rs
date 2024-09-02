@@ -608,6 +608,16 @@ impl WorldManager {
                     Some(ChunkState::Listening { priority: pri, .. }) =>
                         {
                             *pri = priority;
+                            if take_auth {
+                                self.emit_msg(
+                                    Destination::Peer(source),
+                                    WorldNetMessage::LoseAuthority {
+                                        chunk: delta.chunk_coord,
+                                        new_priority: priority,
+                                        new_authority: source,
+                                    }
+                                );
+                            }
                         }
                     Some(ChunkState::WantToGetAuth { authority, my_priority, .. }) =>
                         {
@@ -630,7 +640,7 @@ impl WorldManager {
                                 self.chunk_state.insert(delta.chunk_coord, cs);
                             }
                         }
-                    _ if take_auth => 
+                    _ if take_auth =>
                         {
                             self.emit_msg(
                                 Destination::Peer(source),
