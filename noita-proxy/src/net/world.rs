@@ -249,7 +249,7 @@ impl WorldManager {
                     }
                 }
             }
-            ChunkState::Authority { listeners, priority: pri, new_authority, stop_sending } if !*stop_sending => {
+            ChunkState::Authority { listeners, priority: pri, new_authority, stop_sending } => {
                 let Some(delta) = self.outbound_model.get_chunk_delta(chunk, false) else {
                     return;
                 };
@@ -267,25 +267,28 @@ impl WorldManager {
                 let mut new_auth = None;
                 if let Some(new) = new_authority {
                     if new.1 >= priority {
-                        *new_authority = None
+                        *new_authority = None;
+                        *stop_sending = false
                     } else {
                         new_auth = Some(new.0)
                     }
                 }
                 let mut new_auth_got = false;
-                for &listener in listeners.iter() {
-                    let take_auth = new_auth == Some(listener);
-                    if take_auth {
-                        new_auth_got = true
+                if !*stop_sending {
+                    for &listener in listeners.iter() {
+                        let take_auth = new_auth == Some(listener);
+                        if take_auth {
+                            new_auth_got = true
+                        }
+                        emit_queue.push((
+                            Destination::Peer(listener),
+                            WorldNetMessage::ListenUpdate {
+                                delta: delta.clone(),
+                                priority,
+                                take_auth
+                            },
+                        ));
                     }
-                    emit_queue.push((
-                        Destination::Peer(listener),
-                        WorldNetMessage::ListenUpdate {
-                            delta: delta.clone(),
-                            priority,
-                            take_auth
-                        },
-                    ));
                 }
                 if new_auth_got && new_auth.is_some() {
                     *stop_sending = true
