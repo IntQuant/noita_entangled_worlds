@@ -895,8 +895,8 @@ impl eframe::App for App {
 
                     ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, "Show debug stuff");
                     ui.add_space(15.0);
-                    ui.label("Middle mouse button spawns a ping");
-                    ui.label("Use ',' and '.' keys to spectate over other players.");
+                    ui.label("[Middle mouse button or right thumb stick] spawns a ping");
+                    ui.label("Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.");
 
 
                     if self.app_saved_state.show_extra_debug_stuff {

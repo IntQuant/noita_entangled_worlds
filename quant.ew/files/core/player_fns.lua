@@ -22,6 +22,10 @@ typedef struct A {
     float mouseRawPrev_y;
     float mouseDelta_x;
     float mouseDelta_y;
+    float gamepad_x;
+    float gamepad_y;
+    float gamepad_vector_x;
+    float gamepad_vector_y;
     bool kick:1;
     bool fire:1;
     bool fire2:1;
@@ -248,15 +252,24 @@ local player_fns = {
             ComponentSetValue2(controlsComp, "mAimingVector", message.aim_x, message.aim_y)
             ComponentSetValue2(controlsComp, "mAimingVectorNormalized", message.aimNormal_x, message.aimNormal_y)
             ComponentSetValue2(controlsComp, "mAimingVectorNonZeroLatest", message.aimNonZero_x, message.aimNonZero_y)
-            ComponentSetValue2(controlsComp, "mMousePosition", message.mouse_x, message.mouse_y)
             ComponentSetValue2(controlsComp, "mMousePositionRaw", message.mouseRaw_x, message.mouseRaw_y)
             ComponentSetValue2(controlsComp, "mMousePositionRawPrev", message.mouseRawPrev_x, message.mouseRawPrev_y)
             ComponentSetValue2(controlsComp, "mMouseDelta", message.mouseDelta_x, message.mouseDelta_y)
+            if message.mouse_y == nil then
+                ComponentSetValue2(controlsComp, "mGamePadAimingVectorRaw", message.aim_x, message.aim_y)
+                ComponentSetValue2(controlsComp, "mGamePadCursorInWorld", message.gamepad_vector_x, message.gamepad_vector_y)
+            else
+                ComponentSetValue2(controlsComp, "mMousePosition", message.mouse_x, message.mouse_y)
+            end
 
             local children = EntityGetAllChildren(player_data.entity) or {}
             for i, child in ipairs(children) do
                 if (EntityGetName(child) == "cursor") then
-                    EntityApplyTransform(child, message.mouse_x, message.mouse_y)
+                    if message.mouse_y == nil then
+                        EntityApplyTransform(child, message.mouse_x, message.mouse_y)
+                    else
+                        EntityApplyTransform(child, message.gamepad_x, message.gamepad_y)
+                    end
                 end
             end
 
@@ -288,10 +301,19 @@ local player_fns = {
             local aim_x, aim_y = ComponentGetValue2(controls, "mAimingVector") -- float, float
             local aimNormal_x, aimNormal_y = ComponentGetValue2(controls, "mAimingVectorNormalized") -- float, float
             local aimNonZero_x, aimNonZero_y = ComponentGetValue2(controls, "mAimingVectorNonZeroLatest") -- float, float
-            local mouse_x, mouse_y = ComponentGetValue2(controls, "mMousePosition") -- float, float
+            local mouse_x, mouse_y -- float, float
             local mouseRaw_x, mouseRaw_y = ComponentGetValue2(controls, "mMousePositionRaw") -- float, float
             local mouseRawPrev_x, mouseRawPrev_y = ComponentGetValue2(controls, "mMousePositionRawPrev") -- float, float
             local mouseDelta_x, mouseDelta_y = ComponentGetValue2(controls, "mMouseDelta") -- float, float
+            local gamepad_x, gamepad_y -- float, float
+            local gamepad_vector_x, gamepad_vector_y -- float, float
+
+            if GameGetIsGamepadConnected() then
+                gamepad_x, gamepad_y = ComponentGetValue2(controls, "mGamePadCursorInWorld")
+                gamepad_vector_x, gamepad_vector_y = ComponentGetValue2(controls, "mGamePadAimingVectorRaw")
+            else
+                mouse_x, mouse_y = ComponentGetValue2(controls, "mMousePosition")
+            end
 
             local c = Controls{
                 kick = kick,
@@ -322,6 +344,10 @@ local player_fns = {
                 mouseRawPrev_y = mouseRawPrev_y,
                 mouseDelta_x = mouseDelta_x,
                 mouseDelta_y = mouseDelta_y,
+                gamepad_x = gamepad_x,
+                gamepad_y = gamepad_y,
+                gamepad_x = gamepad_vector_x,
+                gamepad_y = gamepad_vector_y
             }
 
             return c

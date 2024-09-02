@@ -19,6 +19,9 @@ local shield_angle = rpc:create_var("shield_angle", function(new_value)
 end)
 
 local function create_shield_for(spectator_peer_id, target_entity)
+    if GameGetIsGamepadConnected() then
+        return
+    end
     local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
     EntityAddChild(target_entity, ent)
     shield_entities[spectator_peer_id] = ent
@@ -76,9 +79,9 @@ function module.on_world_update()
     if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
         spectating_which.set(ctx.spectating_over_peer_id)
         if GameGetFrameNum() % 6 == 3 then
-            local mx, my = DEBUG_GetMouseWorld()
+            local x,y = DEBUG_GetMouseWorld()
             local cx, cy = GameGetCameraPos()
-            local dx, dy = mx - cx, my - cy
+            local dx, dy = x - cx, y - cy
             local angle = math.atan2(dy, dx)
             shield_angle.set(angle)
         end

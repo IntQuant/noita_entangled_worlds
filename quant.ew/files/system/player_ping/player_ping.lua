@@ -42,9 +42,18 @@ function module.on_world_update()
 
     local gui_id = 2
 
-    if InputIsMouseButtonJustDown(3) then
+    if InputIsMouseButtonJustDown(3) or InputIsJoystickButtonJustDown(0, 18) then
+        if GameGetIsGamepadConnected() and EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+            return
+        end
         if not mid_is_held then
-            local x,y = DEBUG_GetMouseWorld()
+            local x,y
+            if GameGetIsGamepadConnected() then
+                local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+                x,y = ComponentGetValue2(controls, "mGamePadCursorInWorld")
+            else
+                x,y = DEBUG_GetMouseWorld()
+            end
             rpc.send_ping(x, y)
         end
         mid_is_held = true

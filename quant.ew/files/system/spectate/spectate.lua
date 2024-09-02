@@ -162,14 +162,14 @@ function spectate.on_world_update()
         last_len = number_of_players()
     end
 
-    if InputIsKeyJustDown(54) then
+    if InputIsKeyJustDown(54) or InputIsJoystickButtonJustDown(0, 13) then
         camera_player = camera_player - 1
         if camera_player < 1 then
             camera_player = last_len
         end
 
         re_cam = true
-    elseif InputIsKeyJustDown(55) then
+    elseif InputIsKeyJustDown(55) or InputIsJoystickButtonJustDown(0, 14) then
         camera_player = camera_player + 1
         if camera_player > last_len then
             camera_player = 1
@@ -184,7 +184,12 @@ function spectate.on_world_update()
     GuiZSet(gui, 11)
     if GameHasFlagRun("ew_flag_notplayer_active") then
         local w, h = GuiGetScreenDimensions(gui)
-        local text = "Use ',' and '.' keys to spectate over other players."
+        local text
+        if GameGetIsGamepadConnected() then
+            text = "Use d-pad-left and d-pad-right keys to spectate over other players."
+        else
+            text = "Use ',' and '.' keys to spectate over other players."
+        end
         local tw, th = GuiGetTextDimensions(gui, text)
         GuiText(gui, w-2-tw, h-1-th, text)
     end

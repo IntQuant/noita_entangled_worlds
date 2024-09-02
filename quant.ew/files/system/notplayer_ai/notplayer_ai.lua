@@ -408,7 +408,7 @@ end
 local function init_state()
     local children = EntityGetAllChildren(ctx.my_player.entity)
     local items
-    for _, child in pairs(children) do
+    for _, child in pairs(children or {}) do
         if EntityGetName(child) == "inventory_quick" then
             items = child
         end
