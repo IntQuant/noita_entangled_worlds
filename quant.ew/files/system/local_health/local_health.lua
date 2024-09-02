@@ -78,7 +78,6 @@ local function allow_notplayer_perk(perk_id)
         EXTRA_PERK = true,
         FASTER_WANDS = true,
         EXTRA_MANA = true,
-        GLOBAL_GORE = true,
         RESPAWN = true,
         GENOME_MORE_HATRED = true,
         GENOME_MORE_LOVE = true,
