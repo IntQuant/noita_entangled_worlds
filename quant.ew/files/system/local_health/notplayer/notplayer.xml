@@ -368,7 +368,7 @@
     blood_healing_speed="0.0024"
   ></IngestionComponent>
 
-  <DrugEffectComponent>
+  <DrugEffectComponent _tags="ew_remove_on_send">
   </DrugEffectComponent>
 
   <!-- -->
