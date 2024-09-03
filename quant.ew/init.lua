@@ -92,7 +92,7 @@ local function load_modules()
     ctx.load_system("flag_sync")
     ctx.load_system("essence_sync")
     ctx.load_system("spectate")
-    -- ctx.load_system("effect_data_sync")
+    ctx.load_system("effect_data_sync")
 end
 
 local function is_suitable_target(entity)
