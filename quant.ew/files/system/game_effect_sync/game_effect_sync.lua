@@ -67,11 +67,30 @@ function effect_sync.remove_all_effects(entity)
     end
 end
 
+local function remove_duplicates(effects)
+    for i, effect1 in ipairs(effects) do
+        local name1 = EntityGetFilename(effect1)
+        for j, effect2 in ipairs(effects) do
+            if i ~= j and EntityGetIsAlive(effect1) and EntityGetIsAlive(effect2) then
+                local name2 = EntityGetFilename(effect2)
+                if name1 == name2 then
+                    if i < j then
+                        EntityKill(effect1)
+                    else
+                        EntityKill(effect2)
+                    end
+                end
+            end
+        end
+    end
+end
+
 function effect_sync.apply_effects(effects, entity)
     if not EntityGetIsAlive(entity) then
         return
     end
     local old_local_effects = effect_sync.get_ent_effects(entity)
+    remove_duplicates(old_local_effects)
     local effect_names = {}
     for _, effect in ipairs(effects) do
         local name
@@ -87,8 +106,7 @@ function effect_sync.apply_effects(effects, entity)
             if old_com ~= nil then
                 local old_name = EntityGetFilename(old_effect)
                 if old_name == name then
-                    local frames = ComponentGetValue2(old_com, "frames")
-                    if frames ~= -1 then
+                    if ComponentGetValue2(old_com, "frames") ~= -1 then
                         ComponentSetValue2(old_com, "frames", 999999999)
                     end
                     goto continue
@@ -98,26 +116,23 @@ function effect_sync.apply_effects(effects, entity)
         local ent = EntityLoad(name)
         EntityAddChild(entity, ent)
         local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
-        if com ~= nil then
+        if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
             ComponentSetValue2(com, "frames", 999999999)
         end
         ::continue::
     end
 
     local local_effects = effect_sync.get_ent_effects(entity)
-    if #local_effects > #effects then
+    if #local_effects > #effect_names then
         for _, effect in ipairs(local_effects) do
             local local_name = EntityGetFilename(effect)
-            local is_any = false
             for _, name in ipairs(effect_names) do
                 if name == local_name then
-                    is_any = true
-                    break
+                    goto cont
                 end
             end
-            if not is_any then
-                EntityKill(effect)
-            end
+            EntityKill(effect)
+            ::cont::
         end
     end
 end

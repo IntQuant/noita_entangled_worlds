@@ -835,9 +835,10 @@ local function hold_something()
         stop_potion = false
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
-    local has_water_potion = #state.water_potions ~= 0 and douse and (state.init_timer < 90 or last_did_hit)
-    local has_bad_potion = not has_water_potion and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
-    local has_good_potion = not has_water_potion and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
+    local is_ambrosia = has_ambrosia(ctx.my_player.entity)
+    local has_water_potion = not is_ambrosia and #state.water_potions ~= 0 and douse and (state.init_timer < 90 or last_did_hit)
+    local has_bad_potion = not has_water_potion and not is_ambrosia and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
+    local has_good_potion = not has_water_potion and not is_ambrosia and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
     if GameGetFrameNum() % 10 == 0 and state.had_potion and #state.bad_potions == 0 and #state.good_potions == 0 then
         local has_a_potion = false
         for _, item in pairs(EntityGetAllChildren(state.items)) do
