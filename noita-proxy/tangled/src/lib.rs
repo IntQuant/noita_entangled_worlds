@@ -5,100 +5,32 @@ use std::{
     io,
     net::{SocketAddr, UdpSocket},
     sync::{atomic::AtomicBool, Arc},
+    time::Duration,
 };
 
+use connection_manager::{
+    ConnectionManager, OutboundMessage, RemotePeer, Shared, TangledInitError,
+};
 use crossbeam::{
     self,
     atomic::AtomicCell,
     channel::{unbounded, Receiver, Sender},
 };
 
+use dashmap::DashMap;
 pub use error::NetError;
-use reactor::{Destination, RemotePeer, Shared};
-pub use reactor::{Reliability, Settings};
-use serde::{Deserialize, Serialize};
 
 const DATAGRAM_MAX_LEN: usize = 30000; // TODO this probably should be 1500
 
 /// Maximum size of a message which fits into a single datagram.
 pub const MAX_MESSAGE_LEN: usize = DATAGRAM_MAX_LEN - 100;
 
+mod common;
+mod connection_manager;
 mod error;
-mod reactor;
-mod util;
+mod helpers;
 
-struct Datagram {
-    pub size: usize,
-    pub data: [u8; DATAGRAM_MAX_LEN],
-}
-
-/// A value which refers to a specific peer.
-/// Peer 0 is always the host.
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
-pub struct PeerId(pub u16);
-
-impl PeerId {
-    pub const HOST: PeerId = PeerId(0);
-}
-
-impl Display for PeerId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-type SeqId = u16;
-
-/// Possible network events, returned by `Peer.recv()`.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum NetworkEvent {
-    /// A new peer has connected.
-    PeerConnected(PeerId),
-    /// Peer has disconnected.
-    PeerDisconnected(PeerId),
-    /// Message has been received.
-    Message(Message),
-}
-
-/// A message received from a peer.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Message {
-    /// Original peer who sent the message.
-    pub src: PeerId,
-    /// The data that has been sent.
-    pub data: Vec<u8>,
-}
-
-struct OutboundMessage {
-    pub dst: Destination,
-    pub data: Vec<u8>,
-    pub reliability: Reliability,
-}
-
-/// Current peer state
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PeerState {
-    /// Waiting for connection. Switches to `Connected` right after id from the host has been acquired.
-    /// Note: hosts switches to 'Connected' basically instantly.
-    #[default]
-    PendingConnection,
-    /// Connected to host and ready to send/receive messages.
-    Connected,
-    /// No longer connected, won't reconnect.
-    Disconnected,
-}
-
-impl Display for PeerState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PeerState::PendingConnection => write!(f, "Connection pending..."),
-            PeerState::Connected => write!(f, "Connected"),
-            PeerState::Disconnected => write!(f, "Disconnected"),
-        }
-    }
-}
-
-type Channel<T> = (Sender<T>, Receiver<T>);
+pub use common::*;
 
 /// Represents a network endpoint. Can be constructed in either `host` or `client` mode.
 ///
@@ -113,24 +45,8 @@ impl Peer {
         bind_addr: SocketAddr,
         host_addr: Option<SocketAddr>,
         settings: Option<Settings>,
-    ) -> io::Result<Self> {
-        let socket = UdpSocket::bind(bind_addr)?;
-        let shared = Arc::new(Shared {
-            socket,
-            inbound_channel: unbounded(),
-            outbound_channel: unbounded(),
-            keep_alive: AtomicBool::new(true),
-            host_addr,
-            peer_state: Default::default(),
-            remote_peers: Default::default(),
-            max_packets_per_second: 256,
-            my_id: AtomicCell::new(if host_addr.is_none() {
-                Some(PeerId(0))
-            } else {
-                None
-            }),
-            settings: settings.unwrap_or_default(),
-        });
+    ) -> Result<Self, TangledInitError> {
+        let shared = Arc::new(Shared::new(host_addr, settings));
         if host_addr.is_none() {
             shared.remote_peers.insert(PeerId(0), RemotePeer::default());
             shared
@@ -139,17 +55,23 @@ impl Peer {
                 .send(NetworkEvent::PeerConnected(PeerId(0)))
                 .unwrap();
         }
-        reactor::Reactor::start(Arc::clone(&shared));
+        ConnectionManager::new(Arc::clone(&shared), bind_addr)?.start()?;
         Ok(Peer { shared })
     }
 
     /// Host at a specified `bind_addr`.
-    pub fn host(bind_addr: SocketAddr, settings: Option<Settings>) -> io::Result<Self> {
+    pub fn host(
+        bind_addr: SocketAddr,
+        settings: Option<Settings>,
+    ) -> Result<Self, TangledInitError> {
         Self::new(bind_addr, None, settings)
     }
 
     /// Connect to a specified `host_addr`.
-    pub fn connect(host_addr: SocketAddr, settings: Option<Settings>) -> io::Result<Self> {
+    pub fn connect(
+        host_addr: SocketAddr,
+        settings: Option<Settings>,
+    ) -> Result<Self, TangledInitError> {
         Self::new("0.0.0.0:0".parse().unwrap(), Some(host_addr), settings)
     }
 
@@ -175,11 +97,6 @@ impl Peer {
     ) -> Result<(), NetError> {
         if data.len() > MAX_MESSAGE_LEN {
             return Err(NetError::MessageTooLong);
-        }
-        if reliability == Reliability::Unreliable
-            && self.shared.outbound_channel.0.len() * 2 > self.shared.max_packets_per_second
-        {
-            return Err(NetError::Dropped);
         }
         self.shared.outbound_channel.0.send(OutboundMessage {
             dst: destination,
@@ -233,7 +150,7 @@ impl Drop for Peer {
 mod test {
     use std::{thread, time::Duration};
 
-    use crate::{reactor::Settings, Message, NetworkEvent, Peer, PeerId, Reliability};
+    use crate::{common::Message, NetworkEvent, Peer, PeerId, Reliability, Settings};
 
     #[test_log::test]
     fn test_peer() {
