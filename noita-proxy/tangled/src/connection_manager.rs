@@ -18,7 +18,8 @@ use quinn::{
         self,
         pki_types::{CertificateDer, PrivatePkcs8KeyDer},
     },
-    ClientConfig, ConnectError, Connecting, ConnectionError, Endpoint, Incoming, ServerConfig,
+    ClientConfig, ConnectError, Connecting, ConnectionError, Endpoint, Incoming, RecvStream,
+    ServerConfig,
 };
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -29,6 +30,8 @@ use crate::{
     helpers::SkipServerVerification,
 };
 
+mod message_stream;
+
 #[derive(Default)]
 pub(crate) struct RemotePeer;
 
@@ -38,16 +41,29 @@ enum DirectConnectionError {
     QUICConnectionError(#[from] ConnectionError),
     #[error("Initial exchange failed")]
     InitialExchangeFailed,
+    #[error("Message read failed")]
+    MessageIoFailed,
 }
 
 struct DirectPeer {
     my_id: PeerId,
     remote_id: PeerId,
-    streams: (quinn::SendStream, quinn::RecvStream),
+    send_stream: message_stream::SendMessageStream,
 }
 
 impl DirectPeer {
+    async fn recv_task(shared: Arc<Shared>, recv_stream: RecvStream, remote_id: PeerId) {
+        let mut recv_stream = message_stream::RecvMessageStream::new(recv_stream);
+        while let Ok(msg) = recv_stream.recv().await {
+            if let Err(err) = shared.incoming_messages.0.send((remote_id, msg)) {
+                warn!("Could not send message to channel: {err}. Stopping.");
+                break;
+            }
+        }
+    }
+
     async fn accept(
+        shared: Arc<Shared>,
         incoming: Incoming,
         assigned_peer_id: PeerId,
     ) -> Result<Self, DirectConnectionError> {
@@ -64,16 +80,20 @@ impl DirectPeer {
             .await
             .map_err(|_err| DirectConnectionError::InitialExchangeFailed)?;
 
-        let streams = connection.open_bi().await?;
+        let (send_stream, recv_stream) = connection.open_bi().await?;
+        tokio::spawn(Self::recv_task(shared, recv_stream, assigned_peer_id));
 
         Ok(Self {
             my_id: PeerId::HOST,
             remote_id: assigned_peer_id,
-            streams,
+            send_stream: message_stream::SendMessageStream::new(send_stream),
         })
     }
 
-    async fn connect(connection: Connecting) -> Result<Self, DirectConnectionError> {
+    async fn connect(
+        shared: Arc<Shared>,
+        connection: Connecting,
+    ) -> Result<Self, DirectConnectionError> {
         let connection = connection
             .await
             .inspect_err(|err| warn!("Failed to initiate connection: {err}"))?;
@@ -84,17 +104,16 @@ impl DirectPeer {
             .await
             .map_err(|_err| DirectConnectionError::InitialExchangeFailed)?;
 
-        let streams = connection.accept_bi().await?;
+        let (send_stream, recv_stream) = connection.open_bi().await?;
+        tokio::spawn(Self::recv_task(shared, recv_stream, PeerId::HOST));
 
         Ok(Self {
             my_id: PeerId(peer_id),
             remote_id: PeerId::HOST,
-            streams,
+            send_stream: message_stream::SendMessageStream::new(send_stream),
         })
     }
 }
-
-type SeqId = u16;
 
 pub(crate) struct OutboundMessage {
     pub dst: Destination,
@@ -123,6 +142,7 @@ pub(crate) struct Shared {
     pub my_id: AtomicCell<Option<PeerId>>,
     // ConnectionManager-specific stuff
     direct_peers: DashMap<PeerId, DirectPeer>,
+    incoming_messages: Channel<(PeerId, Vec<u8>)>,
 }
 
 impl Shared {
@@ -141,6 +161,7 @@ impl Shared {
             }),
             settings: settings.unwrap_or_default(),
             direct_peers: DashMap::default(),
+            incoming_messages: unbounded(),
         }
     }
 }
@@ -189,7 +210,7 @@ impl ConnectionManager {
                 info!("Endpoint closed, stopping connection accepter task.");
                 return;
             };
-            match DirectPeer::accept(incoming, PeerId(peer_id_counter)).await {
+            match DirectPeer::accept(shared.clone(), incoming, PeerId(peer_id_counter)).await {
                 Ok(direct_peer) => {
                     shared
                         .direct_peers
@@ -205,7 +226,7 @@ impl ConnectionManager {
 
     async fn astart(mut self, host_conn: Option<Connecting>) {
         if let Some(host_conn) = host_conn {
-            match DirectPeer::connect(host_conn).await {
+            match DirectPeer::connect(self.shared.clone(), host_conn).await {
                 Ok(host_conn) => {
                     self.host_conn = Some(host_conn);
                 }
