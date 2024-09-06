@@ -7,6 +7,7 @@ use std::{
     },
 };
 
+use bitcode::{Decode, Encode};
 use crossbeam::{
     atomic::AtomicCell,
     channel::{unbounded, Receiver, Sender},
@@ -23,7 +24,7 @@ use quinn::{
 };
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::{
     common::{Destination, NetworkEvent, PeerId, PeerState, Reliability, Settings},
@@ -31,6 +32,13 @@ use crate::{
 };
 
 mod message_stream;
+
+#[derive(Debug, Encode, Decode)]
+enum InternalMessage {
+    Normal(OutboundMessage),
+    RemoteConnected(PeerId),
+    RemoteDisconnected(PeerId),
+}
 
 #[derive(Default)]
 pub(crate) struct RemotePeer;
@@ -43,23 +51,35 @@ enum DirectConnectionError {
     InitialExchangeFailed,
     #[error("Message read failed")]
     MessageIoFailed,
+    #[error("Failed to decode message")]
+    DecodeError,
 }
 
 struct DirectPeer {
     my_id: PeerId,
     remote_id: PeerId,
-    send_stream: message_stream::SendMessageStream,
+    send_stream: message_stream::SendMessageStream<InternalMessage>,
 }
 
 impl DirectPeer {
     async fn recv_task(shared: Arc<Shared>, recv_stream: RecvStream, remote_id: PeerId) {
         let mut recv_stream = message_stream::RecvMessageStream::new(recv_stream);
         while let Ok(msg) = recv_stream.recv().await {
-            if let Err(err) = shared.incoming_messages.0.send((remote_id, msg)) {
+            trace!("Received message from {remote_id}");
+            if let Err(err) = shared
+                .internal_incoming_messages_s
+                .send((remote_id, msg))
+                .await
+            {
                 warn!("Could not send message to channel: {err}. Stopping.");
                 break;
             }
         }
+        shared
+            .internal_events_s
+            .send(InternalEvent::Disconnected(remote_id))
+            .await
+            .ok();
     }
 
     async fn accept(
@@ -82,6 +102,7 @@ impl DirectPeer {
 
         let (send_stream, recv_stream) = connection.open_bi().await?;
         tokio::spawn(Self::recv_task(shared, recv_stream, assigned_peer_id));
+        debug!("Server: spawned recv task");
 
         Ok(Self {
             my_id: PeerId::HOST,
@@ -103,9 +124,11 @@ impl DirectPeer {
             .read_u16()
             .await
             .map_err(|_err| DirectConnectionError::InitialExchangeFailed)?;
+        debug!("Got peer id {peer_id}");
 
         let (send_stream, recv_stream) = connection.open_bi().await?;
         tokio::spawn(Self::recv_task(shared, recv_stream, PeerId::HOST));
+        debug!("Client: spawned recv task");
 
         Ok(Self {
             my_id: PeerId(peer_id),
@@ -115,7 +138,9 @@ impl DirectPeer {
     }
 }
 
+#[derive(Debug, Encode, Decode, Clone)]
 pub(crate) struct OutboundMessage {
+    pub src: PeerId,
     pub dst: Destination,
     pub reliability: Reliability,
     pub data: Vec<u8>,
@@ -131,10 +156,14 @@ pub enum TangledInitError {
     CouldNotConnectToHost(ConnectError),
 }
 
+enum InternalEvent {
+    Connected(PeerId),
+    Disconnected(PeerId),
+}
+
 pub(crate) struct Shared {
-    pub settings: Settings,
     pub inbound_channel: Channel<NetworkEvent>,
-    pub outbound_channel: Channel<OutboundMessage>,
+    pub outbound_messages_s: tokio::sync::mpsc::Sender<OutboundMessage>,
     pub keep_alive: AtomicBool,
     pub peer_state: AtomicCell<PeerState>,
     pub remote_peers: DashMap<PeerId, RemotePeer>,
@@ -142,28 +171,8 @@ pub(crate) struct Shared {
     pub my_id: AtomicCell<Option<PeerId>>,
     // ConnectionManager-specific stuff
     direct_peers: DashMap<PeerId, DirectPeer>,
-    incoming_messages: Channel<(PeerId, Vec<u8>)>,
-}
-
-impl Shared {
-    pub(crate) fn new(host_addr: Option<SocketAddr>, settings: Option<Settings>) -> Self {
-        Self {
-            inbound_channel: unbounded(),
-            outbound_channel: unbounded(),
-            keep_alive: AtomicBool::new(true),
-            host_addr,
-            peer_state: Default::default(),
-            remote_peers: Default::default(),
-            my_id: AtomicCell::new(if host_addr.is_none() {
-                Some(PeerId(0))
-            } else {
-                None
-            }),
-            settings: settings.unwrap_or_default(),
-            direct_peers: DashMap::default(),
-            incoming_messages: unbounded(),
-        }
-    }
+    internal_incoming_messages_s: tokio::sync::mpsc::Sender<(PeerId, InternalMessage)>,
+    internal_events_s: tokio::sync::mpsc::Sender<InternalEvent>,
 }
 
 pub(crate) struct ConnectionManager {
@@ -171,18 +180,42 @@ pub(crate) struct ConnectionManager {
     endpoint: Endpoint,
     host_conn: Option<DirectPeer>,
     is_server: bool,
+    incoming_messages_r: tokio::sync::mpsc::Receiver<(PeerId, InternalMessage)>,
+    outbound_messages_r: tokio::sync::mpsc::Receiver<OutboundMessage>,
+    internal_events_r: tokio::sync::mpsc::Receiver<InternalEvent>,
 }
 
 impl ConnectionManager {
-    pub(crate) fn new(shared: Arc<Shared>, addr: SocketAddr) -> Result<Self, TangledInitError> {
-        let is_server = shared.host_addr.is_none();
+    pub(crate) fn new(
+        host_addr: Option<SocketAddr>,
+        _settings: Option<Settings>,
+        bind_addr: SocketAddr,
+    ) -> Result<Self, TangledInitError> {
+        let is_server = host_addr.is_none();
+
+        let (internal_incoming_messages_s, incoming_messages_r) = tokio::sync::mpsc::channel(512);
+        let (outbound_messages_s, outbound_messages_r) = tokio::sync::mpsc::channel(512);
+        let (internal_events_s, internal_events_r) = tokio::sync::mpsc::channel(512);
+
+        let shared = Arc::new(Shared {
+            inbound_channel: unbounded(),
+            outbound_messages_s,
+            keep_alive: AtomicBool::new(true),
+            host_addr,
+            peer_state: Default::default(),
+            remote_peers: Default::default(),
+            my_id: AtomicCell::new(is_server.then_some(PeerId(0))),
+            direct_peers: DashMap::default(),
+            internal_incoming_messages_s,
+            internal_events_s,
+        });
 
         let config = default_server_config();
 
         let mut endpoint = if is_server {
-            Endpoint::server(config, addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
+            Endpoint::server(config, bind_addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
         } else {
-            Endpoint::client(addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
+            Endpoint::client(bind_addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
         };
 
         endpoint.set_default_client_config(ClientConfig::new(Arc::new(
@@ -200,6 +233,9 @@ impl ConnectionManager {
             is_server,
             endpoint,
             host_conn: None,
+            incoming_messages_r,
+            outbound_messages_r,
+            internal_events_r,
         })
     }
 
@@ -215,6 +251,11 @@ impl ConnectionManager {
                     shared
                         .direct_peers
                         .insert(PeerId(peer_id_counter), direct_peer);
+                    shared
+                        .internal_events_s
+                        .send(InternalEvent::Connected(PeerId(peer_id_counter)))
+                        .await
+                        .expect("channel to be open");
                     peer_id_counter += 1;
                 }
                 Err(err) => {
@@ -224,10 +265,142 @@ impl ConnectionManager {
         }
     }
 
+    async fn handle_incoming_message(&mut self, msg: InternalMessage) {
+        match msg {
+            InternalMessage::Normal(msg) => {
+                if self.is_server && msg.dst.is_broadcast() {
+                    self.server_send_to_peers(msg.clone()).await;
+                }
+                self.shared
+                    .inbound_channel
+                    .0
+                    .send(NetworkEvent::Message(crate::Message {
+                        src: msg.src,
+                        data: msg.data,
+                    }))
+                    .expect("channel to be open");
+            }
+            // TODO this might deadlock if internal_events_s is full.
+            InternalMessage::RemoteConnected(peer_id) => {
+                debug!("Got notified of peer {peer_id}");
+                self.shared
+                    .internal_events_s
+                    .send(InternalEvent::Connected(peer_id))
+                    .await
+                    .expect("channel to be open");
+            }
+            InternalMessage::RemoteDisconnected(peer_id) => self
+                .shared
+                .internal_events_s
+                .send(InternalEvent::Disconnected(peer_id))
+                .await
+                .expect("channel to be open"),
+        }
+    }
+
+    async fn handle_internal_event(&mut self, ev: InternalEvent) {
+        match ev {
+            InternalEvent::Connected(peer_id) => {
+                info!("Peer {} connected", peer_id);
+                self.shared
+                    .inbound_channel
+                    .0
+                    .send(NetworkEvent::PeerConnected(peer_id))
+                    .expect("channel to be open");
+                self.shared
+                    .remote_peers
+                    .insert(peer_id, RemotePeer::default());
+                if self.is_server {
+                    self.server_broadcast_internal_message(
+                        PeerId::HOST,
+                        InternalMessage::RemoteConnected(peer_id),
+                    )
+                    .await;
+
+                    let peers = self
+                        .shared
+                        .remote_peers
+                        .iter()
+                        .map(|i| *i.key())
+                        .collect::<Vec<_>>();
+                    for conn_peer in peers {
+                        debug!("Notifying peer of {conn_peer}");
+                        self.server_send_internal_message(
+                            peer_id,
+                            &InternalMessage::RemoteConnected(conn_peer),
+                        )
+                        .await;
+                    }
+                }
+            }
+            InternalEvent::Disconnected(peer_id) => {
+                info!("Peer {} disconnected", peer_id);
+                self.shared.direct_peers.remove(&peer_id);
+                self.shared
+                    .inbound_channel
+                    .0
+                    .send(NetworkEvent::PeerDisconnected(peer_id))
+                    .expect("channel to be open");
+                self.shared.remote_peers.remove(&peer_id);
+                if self.is_server {
+                    self.server_broadcast_internal_message(
+                        PeerId::HOST,
+                        InternalMessage::RemoteDisconnected(peer_id),
+                    )
+                    .await;
+                }
+            }
+        }
+    }
+
+    async fn server_send_to_peers(&mut self, msg: OutboundMessage) {
+        match msg.dst {
+            Destination::One(peer_id) => {
+                self.server_send_internal_message(peer_id, &InternalMessage::Normal(msg))
+                    .await;
+            }
+            Destination::Broadcast => {
+                let msg_src = msg.src;
+                let value = InternalMessage::Normal(msg);
+                self.server_broadcast_internal_message(msg_src, value).await;
+            }
+        }
+    }
+
+    async fn server_send_internal_message(&mut self, peer_id: PeerId, msg: &InternalMessage) {
+        let peer = self.shared.direct_peers.get_mut(&peer_id);
+        // TODO handle lack of peer?
+        if let Some(mut peer) = peer {
+            // TODO handle errors
+            peer.send_stream.send(msg).await.ok();
+        }
+    }
+
+    async fn server_broadcast_internal_message(
+        &mut self,
+        excluded: PeerId,
+        value: InternalMessage,
+    ) {
+        for mut peer in self.shared.direct_peers.iter_mut() {
+            let peer_id = *peer.key();
+            if peer_id != excluded {
+                // TODO handle errors
+                peer.send_stream.send(&value).await.ok();
+            }
+        }
+    }
+
     async fn astart(mut self, host_conn: Option<Connecting>) {
+        debug!("astart running");
         if let Some(host_conn) = host_conn {
             match DirectPeer::connect(self.shared.clone(), host_conn).await {
                 Ok(host_conn) => {
+                    self.shared.my_id.store(Some(host_conn.my_id));
+                    self.shared
+                        .internal_events_s
+                        .send(InternalEvent::Connected(host_conn.remote_id))
+                        .await
+                        .expect("channel to be open");
                     self.host_conn = Some(host_conn);
                 }
                 Err(err) => {
@@ -240,7 +413,30 @@ impl ConnectionManager {
         if self.is_server {
             let endpoint = self.endpoint.clone();
             tokio::spawn(Self::accept_connections(self.shared.clone(), endpoint));
-            info!("Started connection acceptor task");
+            debug!("Started connection acceptor task");
+        }
+
+        while self.shared.keep_alive.load(Ordering::Relaxed) {
+            tokio::select! {
+                msg = self.incoming_messages_r.recv() => {
+                    let msg = msg.expect("channel to not be closed");
+                    self.handle_incoming_message(msg.1).await;
+                }
+                msg = self.outbound_messages_r.recv() => {
+                    let msg = msg.expect("channel to not be closed");
+                    if self.is_server {
+                        self.server_send_to_peers(msg).await;
+                    } else {
+                        // TODO handle error
+                        self.host_conn.as_mut().unwrap().send_stream.send(&InternalMessage::Normal(msg)).await.ok();
+                    }
+                }
+                ev = self.internal_events_r.recv() => {
+                    let ev = ev.expect("channel to not be closed");
+                    self.handle_internal_event(ev).await;
+                }
+
+            }
         }
     }
 
@@ -256,8 +452,13 @@ impl ConnectionManager {
             })
             .transpose()?;
 
+        debug!("Spawning astart task");
         tokio::spawn(self.astart(host_conn));
         Ok(())
+    }
+
+    pub(crate) fn shared(&self) -> Arc<Shared> {
+        self.shared.clone()
     }
 }
 
