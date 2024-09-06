@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, time::Duration};
 
-use serde::{Deserialize, Serialize};
+use bitcode::{Decode, Encode};
 
 /// Per-peer settings. Peers that are connected to the same host, as well as the host itself, should have the same settings.
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ pub struct Settings {
 }
 
 /// Tells how reliable a message is.
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Debug)]
 pub enum Reliability {
     /// Message will be delivered at most once.
     Unreliable,
@@ -29,6 +29,7 @@ pub enum Reliability {
     Reliable,
 }
 
+#[derive(Debug, Encode, Decode, Clone, Copy)]
 pub enum Destination {
     One(PeerId),
     Broadcast,
@@ -36,7 +37,7 @@ pub enum Destination {
 
 /// A value which refers to a specific peer.
 /// Peer 0 is always the host.
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Encode, Decode)]
 pub struct PeerId(pub u16);
 
 /// Possible network events, returned by `Peer.recv()`.
@@ -99,5 +100,11 @@ impl Default for Settings {
             confirm_max_period: Duration::from_secs(1),
             connection_timeout: Duration::from_secs(10),
         }
+    }
+}
+
+impl Destination {
+    pub(crate) fn is_broadcast(self) -> bool {
+        matches!(self, Destination::Broadcast)
     }
 }

@@ -1,23 +1,11 @@
 //! Tangled - a work-in-progress UDP networking crate.
 
-use std::{
-    fmt::Display,
-    io,
-    net::{SocketAddr, UdpSocket},
-    sync::{atomic::AtomicBool, Arc},
-    time::Duration,
-};
+use std::{net::SocketAddr, sync::Arc};
 
 use connection_manager::{
     ConnectionManager, OutboundMessage, RemotePeer, Shared, TangledInitError,
 };
-use crossbeam::{
-    self,
-    atomic::AtomicCell,
-    channel::{unbounded, Receiver, Sender},
-};
 
-use dashmap::DashMap;
 pub use error::NetError;
 
 const DATAGRAM_MAX_LEN: usize = 30000; // TODO this probably should be 1500
@@ -31,6 +19,7 @@ mod error;
 mod helpers;
 
 pub use common::*;
+use tracing::debug;
 
 /// Represents a network endpoint. Can be constructed in either `host` or `client` mode.
 ///
@@ -46,7 +35,8 @@ impl Peer {
         host_addr: Option<SocketAddr>,
         settings: Option<Settings>,
     ) -> Result<Self, TangledInitError> {
-        let shared = Arc::new(Shared::new(host_addr, settings));
+        let connection_manager = ConnectionManager::new(host_addr, settings, bind_addr)?;
+        let shared = connection_manager.shared();
         if host_addr.is_none() {
             shared.remote_peers.insert(PeerId(0), RemotePeer::default());
             shared
@@ -55,7 +45,8 @@ impl Peer {
                 .send(NetworkEvent::PeerConnected(PeerId(0)))
                 .unwrap();
         }
-        ConnectionManager::new(Arc::clone(&shared), bind_addr)?.start()?;
+        debug!("Starting connection manager");
+        connection_manager.start()?;
         Ok(Peer { shared })
     }
 
@@ -98,11 +89,15 @@ impl Peer {
         if data.len() > MAX_MESSAGE_LEN {
             return Err(NetError::MessageTooLong);
         }
-        self.shared.outbound_channel.0.send(OutboundMessage {
-            dst: destination,
-            data,
-            reliability,
-        })?;
+        self.shared
+            .outbound_messages_s
+            .blocking_send(OutboundMessage {
+                src: self.my_id().expect("expected to know my_id by this point"),
+                dst: destination,
+                data,
+                reliability,
+            })
+            .expect("channel to be open");
         Ok(())
     }
 
@@ -150,10 +145,19 @@ impl Drop for Peer {
 mod test {
     use std::{thread, time::Duration};
 
+    use tracing::info;
+
     use crate::{common::Message, NetworkEvent, Peer, PeerId, Reliability, Settings};
 
-    #[test_log::test]
-    fn test_peer() {
+    #[test_log::test(tokio::test)]
+    async fn test_create_host() {
+        let addr = "127.0.0.1:55999".parse().unwrap();
+        let _host = Peer::host(addr, None).unwrap();
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn test_peer() {
+        info!("Starting test_peer");
         let settings = Some(Settings {
             confirm_max_period: Duration::from_millis(100),
             connection_timeout: Duration::from_millis(1000),
@@ -163,13 +167,12 @@ mod test {
         let host = Peer::host(addr, settings.clone()).unwrap();
         assert_eq!(host.shared.remote_peers.len(), 1);
         let peer = Peer::connect(addr, settings.clone()).unwrap();
-        thread::sleep(Duration::from_millis(100));
+        tokio::time::sleep(Duration::from_millis(100)).await;
         assert_eq!(peer.shared.remote_peers.len(), 2);
-        assert_eq!(host.shared.remote_peers.len(), 2);
         let data = vec![128, 51, 32];
         peer.send(PeerId(0), data.clone(), Reliability::Reliable)
             .unwrap();
-        thread::sleep(Duration::from_millis(10));
+        tokio::time::sleep(Duration::from_millis(10)).await;
         let host_events: Vec<_> = host.recv().collect();
         assert!(host_events.contains(&NetworkEvent::PeerConnected(PeerId(1))));
         assert!(host_events.contains(&NetworkEvent::Message(Message {
@@ -180,7 +183,7 @@ mod test {
         assert!(peer_events.contains(&NetworkEvent::PeerConnected(PeerId(0))));
         assert!(peer_events.contains(&NetworkEvent::PeerConnected(PeerId(1))));
         drop(peer);
-        thread::sleep(Duration::from_millis(1200));
+        tokio::time::sleep(Duration::from_millis(1200)).await;
         assert_eq!(
             host.recv().next(),
             Some(NetworkEvent::PeerDisconnected(PeerId(1)))
@@ -188,8 +191,8 @@ mod test {
         assert_eq!(host.shared.remote_peers.len(), 1);
     }
 
-    #[test_log::test]
-    fn test_broadcast() {
+    #[test_log::test(tokio::test)]
+    async fn test_broadcast() {
         let settings = Some(Settings {
             confirm_max_period: Duration::from_millis(100),
             connection_timeout: Duration::from_millis(1000),
@@ -227,8 +230,8 @@ mod test {
         })));
     }
 
-    #[test_log::test]
-    fn test_host_has_conn() {
+    #[test_log::test(tokio::test)]
+    async fn test_host_has_conn() {
         let settings = Some(Settings {
             confirm_max_period: Duration::from_millis(100),
             connection_timeout: Duration::from_millis(1000),

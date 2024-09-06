@@ -1,24 +1,31 @@
-use std::io;
+use std::marker::PhantomData;
 
+use bitcode::{DecodeOwned, Encode};
 use quinn::{RecvStream, SendStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tracing::{debug, trace};
 
 use super::DirectConnectionError;
 
-pub(crate) struct SendMessageStream {
+pub(crate) struct SendMessageStream<Msg> {
     inner: SendStream,
+    _phantom: PhantomData<fn(Msg)>,
 }
 
-pub(crate) struct RecvMessageStream {
+pub(crate) struct RecvMessageStream<Msg> {
     inner: RecvStream,
+    _phantom: PhantomData<fn() -> Msg>,
 }
 
-impl SendMessageStream {
+impl<Msg: Encode> SendMessageStream<Msg> {
     pub(crate) fn new(inner: SendStream) -> Self {
-        Self { inner }
+        Self {
+            inner,
+            _phantom: PhantomData,
+        }
     }
 
-    pub(crate) async fn send(&mut self, msg: &[u8]) -> Result<(), DirectConnectionError> {
+    async fn send_raw(&mut self, msg: &[u8]) -> Result<(), DirectConnectionError> {
         self.inner
             .write_u32(
                 msg.len()
@@ -33,24 +40,38 @@ impl SendMessageStream {
             .map_err(|_err| DirectConnectionError::MessageIoFailed)?;
         Ok(())
     }
+
+    pub(crate) async fn send(&mut self, msg: &Msg) -> Result<(), DirectConnectionError> {
+        trace!("Sending message");
+        let msg = bitcode::encode(msg);
+        self.send_raw(&msg).await
+    }
 }
 
-impl RecvMessageStream {
+impl<Msg: DecodeOwned> RecvMessageStream<Msg> {
     pub(crate) fn new(inner: RecvStream) -> Self {
-        Self { inner }
+        Self {
+            inner,
+            _phantom: PhantomData,
+        }
     }
 
-    pub(crate) async fn recv(&mut self) -> Result<Vec<u8>, DirectConnectionError> {
+    async fn recv_raw(&mut self) -> Result<Vec<u8>, DirectConnectionError> {
         let len = self
             .inner
             .read_u32()
             .await
             .map_err(|_err| DirectConnectionError::MessageIoFailed)?;
+        trace!("Expecting message of {len}");
         let mut buf = vec![0; len as usize];
         self.inner
             .read_exact(&mut buf)
             .await
             .map_err(|_err| DirectConnectionError::MessageIoFailed)?;
         Ok(buf)
+    }
+    pub(crate) async fn recv(&mut self) -> Result<Msg, DirectConnectionError> {
+        let raw = self.recv_raw().await?;
+        bitcode::decode(&raw).map_err(|_| DirectConnectionError::DecodeError)
     }
 }
