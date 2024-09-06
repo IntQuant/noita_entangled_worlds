@@ -5,6 +5,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    time::Duration,
 };
 
 use bitcode::{Decode, Encode};
@@ -429,9 +430,14 @@ impl ConnectionManager {
                     let ev = ev.expect("channel to not be closed");
                     self.handle_internal_event(ev).await;
                 }
-
+                // Check if we need to stop periodically.
+                _ = tokio::time::sleep(Duration::from_millis(1000)) => {}
             }
         }
+
+        debug!("Closing endpoint");
+        self.endpoint
+            .close(0u32.into(), b"peer decided to disconnect");
     }
 
     pub(crate) fn start(self) -> Result<(), TangledInitError> {
