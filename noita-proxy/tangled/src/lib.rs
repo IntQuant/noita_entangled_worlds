@@ -91,7 +91,7 @@ impl Peer {
         }
         self.shared
             .outbound_messages_s
-            .blocking_send(OutboundMessage {
+            .send(OutboundMessage {
                 src: self.my_id().expect("expected to know my_id by this point"),
                 dst: destination,
                 data,
@@ -143,7 +143,7 @@ impl Drop for Peer {
 
 #[cfg(test)]
 mod test {
-    use std::{thread, time::Duration};
+    use std::time::Duration;
 
     use tracing::info;
 
@@ -203,14 +203,14 @@ mod test {
         assert_eq!(host.shared.remote_peers.len(), 1);
         let peer1 = Peer::connect(addr, settings.clone()).unwrap();
         let peer2 = Peer::connect(addr, settings.clone()).unwrap();
-        thread::sleep(Duration::from_millis(10));
+        tokio::time::sleep(Duration::from_millis(10)).await;
         assert_eq!(host.shared.remote_peers.len(), 3);
 
         let data = vec![123, 112, 51, 23];
         peer1
             .broadcast(data.clone(), Reliability::Reliable)
             .unwrap();
-        thread::sleep(Duration::from_millis(10));
+        tokio::time::sleep(Duration::from_millis(10)).await;
 
         let host_events: Vec<_> = dbg!(host.recv().collect());
         let peer1_events: Vec<_> = dbg!(peer1.recv().collect());
@@ -239,7 +239,7 @@ mod test {
         });
         let addr = "127.0.0.1:56003".parse().unwrap();
         let host = Peer::host(addr, settings.clone()).unwrap();
-        thread::sleep(Duration::from_millis(10));
+        tokio::time::sleep(Duration::from_millis(10)).await;
         assert_eq!(
             host.recv().next(),
             Some(NetworkEvent::PeerConnected(PeerId(0)))
