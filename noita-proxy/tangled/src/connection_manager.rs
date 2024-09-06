@@ -78,7 +78,6 @@ impl DirectPeer {
         shared
             .internal_events_s
             .send(InternalEvent::Disconnected(remote_id))
-            .await
             .ok();
     }
 
@@ -126,7 +125,7 @@ impl DirectPeer {
             .map_err(|_err| DirectConnectionError::InitialExchangeFailed)?;
         debug!("Got peer id {peer_id}");
 
-        let (send_stream, recv_stream) = connection.open_bi().await?;
+        let (send_stream, recv_stream) = connection.accept_bi().await?;
         tokio::spawn(Self::recv_task(shared, recv_stream, PeerId::HOST));
         debug!("Client: spawned recv task");
 
@@ -163,7 +162,7 @@ enum InternalEvent {
 
 pub(crate) struct Shared {
     pub inbound_channel: Channel<NetworkEvent>,
-    pub outbound_messages_s: tokio::sync::mpsc::Sender<OutboundMessage>,
+    pub outbound_messages_s: tokio::sync::mpsc::UnboundedSender<OutboundMessage>,
     pub keep_alive: AtomicBool,
     pub peer_state: AtomicCell<PeerState>,
     pub remote_peers: DashMap<PeerId, RemotePeer>,
@@ -172,7 +171,7 @@ pub(crate) struct Shared {
     // ConnectionManager-specific stuff
     direct_peers: DashMap<PeerId, DirectPeer>,
     internal_incoming_messages_s: tokio::sync::mpsc::Sender<(PeerId, InternalMessage)>,
-    internal_events_s: tokio::sync::mpsc::Sender<InternalEvent>,
+    internal_events_s: tokio::sync::mpsc::UnboundedSender<InternalEvent>,
 }
 
 pub(crate) struct ConnectionManager {
@@ -181,8 +180,8 @@ pub(crate) struct ConnectionManager {
     host_conn: Option<DirectPeer>,
     is_server: bool,
     incoming_messages_r: tokio::sync::mpsc::Receiver<(PeerId, InternalMessage)>,
-    outbound_messages_r: tokio::sync::mpsc::Receiver<OutboundMessage>,
-    internal_events_r: tokio::sync::mpsc::Receiver<InternalEvent>,
+    outbound_messages_r: tokio::sync::mpsc::UnboundedReceiver<OutboundMessage>,
+    internal_events_r: tokio::sync::mpsc::UnboundedReceiver<InternalEvent>,
 }
 
 impl ConnectionManager {
@@ -194,8 +193,8 @@ impl ConnectionManager {
         let is_server = host_addr.is_none();
 
         let (internal_incoming_messages_s, incoming_messages_r) = tokio::sync::mpsc::channel(512);
-        let (outbound_messages_s, outbound_messages_r) = tokio::sync::mpsc::channel(512);
-        let (internal_events_s, internal_events_r) = tokio::sync::mpsc::channel(512);
+        let (outbound_messages_s, outbound_messages_r) = tokio::sync::mpsc::unbounded_channel();
+        let (internal_events_s, internal_events_r) = tokio::sync::mpsc::unbounded_channel();
 
         let shared = Arc::new(Shared {
             inbound_channel: unbounded(),
@@ -254,7 +253,6 @@ impl ConnectionManager {
                     shared
                         .internal_events_s
                         .send(InternalEvent::Connected(PeerId(peer_id_counter)))
-                        .await
                         .expect("channel to be open");
                     peer_id_counter += 1;
                 }
@@ -280,20 +278,17 @@ impl ConnectionManager {
                     }))
                     .expect("channel to be open");
             }
-            // TODO this might deadlock if internal_events_s is full.
             InternalMessage::RemoteConnected(peer_id) => {
                 debug!("Got notified of peer {peer_id}");
                 self.shared
                     .internal_events_s
                     .send(InternalEvent::Connected(peer_id))
-                    .await
                     .expect("channel to be open");
             }
             InternalMessage::RemoteDisconnected(peer_id) => self
                 .shared
                 .internal_events_s
                 .send(InternalEvent::Disconnected(peer_id))
-                .await
                 .expect("channel to be open"),
         }
     }
@@ -399,7 +394,6 @@ impl ConnectionManager {
                     self.shared
                         .internal_events_s
                         .send(InternalEvent::Connected(host_conn.remote_id))
-                        .await
                         .expect("channel to be open");
                     self.host_conn = Some(host_conn);
                 }

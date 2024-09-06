@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bitcode::{DecodeOwned, Encode};
 use quinn::{RecvStream, SendStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tracing::{debug, trace};
+use tracing::trace;
 
 use super::DirectConnectionError;
 
@@ -42,7 +42,6 @@ impl<Msg: Encode> SendMessageStream<Msg> {
     }
 
     pub(crate) async fn send(&mut self, msg: &Msg) -> Result<(), DirectConnectionError> {
-        trace!("Sending message");
         let msg = bitcode::encode(msg);
         self.send_raw(&msg).await
     }
@@ -62,7 +61,7 @@ impl<Msg: DecodeOwned> RecvMessageStream<Msg> {
             .read_u32()
             .await
             .map_err(|_err| DirectConnectionError::MessageIoFailed)?;
-        trace!("Expecting message of {len}");
+        trace!("Expecting message of len {len}");
         let mut buf = vec![0; len as usize];
         self.inner
             .read_exact(&mut buf)
