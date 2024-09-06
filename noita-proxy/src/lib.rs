@@ -598,17 +598,23 @@ impl App {
             GameMode::LocalHealth,
             "Local health",
         );
-        match game_settings.game_mode {
-            GameMode::SharedHealth => {
-                ui.label("Health is shared, but scales with player count.");
-                ui.label("Percentage-based damage and full heals are adjusted.");
-                ui.label("The original mode.");
-            }
-            GameMode::LocalHealth => {
-                ui.label("Every player has their own health, run ends when all player are dead.");
-                ui.label("There is a respawn mechanic.");
-            }
-        }
+
+        ui.scope(|ui| {
+            ui.set_height(60.0);
+
+            match game_settings.game_mode {
+                GameMode::SharedHealth => {
+                    ui.label("Health is shared, but scales with player count.");
+                    ui.label("Percentage-based damage and full heals are adjusted.");
+                    ui.label("The original mode.");
+                }
+                GameMode::LocalHealth => {
+                    ui.label("Every player has their own health, run ends when all player are dead.");
+                    ui.label("There is a respawn mechanic.");
+                }
+            }            
+        });
+
         ui.add_space(20.0);
         ui.label(tr("connect_settings_debug"));
         ui.checkbox(
