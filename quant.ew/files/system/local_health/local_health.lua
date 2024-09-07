@@ -254,15 +254,8 @@ ctx.cap.health = {
                 wait(1)
                 inventory_helper.set_item_data(item_data, ctx.my_player)
                 remove_inventory_tags()
-                GameSetCameraFree(false)
-                for id, player_data in pairs(ctx.players) do
-                    if id ~= ctx.my_id then
-                        local inventory_gui = EntityGetFirstComponent(player_data.entity, "InventoryGuiComponent")
-                        if inventory_gui ~= nil then
-                            EntityRemoveComponent(player_data.entity, inventory_gui)
-                        end
-                    end
-                end
+                local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+                ComponentSetValue2(controls, "enabled", false)
                 if GameHasFlagRun("ew_kill_player") then
                     GameRemoveFlagRun("ew_kill_player")
                     wait(100)
