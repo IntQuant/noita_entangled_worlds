@@ -255,7 +255,7 @@ ctx.cap.health = {
                 inventory_helper.set_item_data(item_data, ctx.my_player)
                 remove_inventory_tags()
                 local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-                ComponentSetValue2(controls, "enabled", false)
+                ComponentSetValue2(controls, "enabled", true)
                 if GameHasFlagRun("ew_kill_player") then
                     GameRemoveFlagRun("ew_kill_player")
                     wait(100)

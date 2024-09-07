@@ -265,7 +265,7 @@ local player_fns = {
             local children = EntityGetAllChildren(player_data.entity) or {}
             for i, child in ipairs(children) do
                 if (EntityGetName(child) == "cursor") then
-                    if message.mouse_y == nil then
+                    if message.gamepad_x == nil then
                         EntityApplyTransform(child, message.mouse_x, message.mouse_y)
                     else
                         EntityApplyTransform(child, message.gamepad_x, message.gamepad_y)
