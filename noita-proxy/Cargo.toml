@@ -57,7 +57,8 @@ opt-level = 1
 
 [profile.release-lto]
 inherits = "release"
-lto = "thin"
+# Lto seems to be broken for some reason?
+#lto = "thin"
 
 [profile.release-debug]
 inherits = "release"
