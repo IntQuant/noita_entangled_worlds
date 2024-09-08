@@ -21,6 +21,9 @@ end
 
 local function do_switch_effect(short)
     -- Make an effect
+    if not EntityGetIsAlive(ctx.my_player.entity) then
+        return
+    end
     local x, y = EntityGetTransform(ctx.my_player.entity)
     rpc.switch_effect(x, y)
     if short then
@@ -255,7 +258,9 @@ ctx.cap.health = {
                 inventory_helper.set_item_data(item_data, ctx.my_player)
                 remove_inventory_tags()
                 local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-                ComponentSetValue2(controls, "enabled", true)
+                if controls ~= nil then
+                    ComponentSetValue2(controls, "enabled", true)
+                end
                 if GameHasFlagRun("ew_kill_player") then
                     GameRemoveFlagRun("ew_kill_player")
                     wait(100)
