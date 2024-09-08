@@ -22,8 +22,6 @@ typedef struct A {
     float mouseRawPrev_y;
     float mouseDelta_x;
     float mouseDelta_y;
-    float gamepad_x;
-    float gamepad_y;
     float gamepad_vector_x;
     float gamepad_vector_y;
     bool has_gamepad;
@@ -257,21 +255,15 @@ local player_fns = {
             ComponentSetValue2(controlsComp, "mMousePositionRawPrev", message.mouseRawPrev_x, message.mouseRawPrev_y)
             ComponentSetValue2(controlsComp, "mMouseDelta", message.mouseDelta_x, message.mouseDelta_y)
             if message.has_gamepad then
-                ComponentSetValue2(controlsComp, "mGamePadAimingVectorRaw", message.aim_x, message.aim_y)
-                ComponentSetValue2(controlsComp, "mGamePadCursorInWorld", message.gamepad_vector_x, message.gamepad_vector_y)
-                ComponentSetValue2(controlsComp, "mMousePosition", message.gamepad_x, message.gamepad_y)
-            else
-                ComponentSetValue2(controlsComp, "mMousePosition", message.mouse_x, message.mouse_y)
+                ComponentSetValue2(controlsComp, "mGamepadAimingVectorRaw", message.gamepad_vector_x, message.gamepad_vector_y)
+                ComponentSetValue2(controlsComp, "mGamePadCursorInWorld", message.mouse_x, message.mouse_y)
             end
+            ComponentSetValue2(controlsComp, "mMousePosition", message.mouse_x, message.mouse_y)
 
             local children = EntityGetAllChildren(player_data.entity) or {}
             for i, child in ipairs(children) do
                 if (EntityGetName(child) == "cursor") then
-                    if not message.has_gamepad then
-                        EntityApplyTransform(child, message.mouse_x, message.mouse_y)
-                    else
-                        EntityApplyTransform(child, message.gamepad_x, message.gamepad_y)
-                    end
+                    EntityApplyTransform(child, message.mouse_x, message.mouse_y)
                 end
             end
 
@@ -307,13 +299,12 @@ local player_fns = {
             local mouseRaw_x, mouseRaw_y = ComponentGetValue2(controls, "mMousePositionRaw") -- float, float
             local mouseRawPrev_x, mouseRawPrev_y = ComponentGetValue2(controls, "mMousePositionRawPrev") -- float, float
             local mouseDelta_x, mouseDelta_y = ComponentGetValue2(controls, "mMouseDelta") -- float, float
-            local gamepad_x, gamepad_y -- float, float
             local gamepad_vector_x, gamepad_vector_y -- float, float
 
             local has_gamepad = GameGetIsGamepadConnected()
             if has_gamepad then
-                gamepad_x, gamepad_y = ComponentGetValue2(controls, "mGamePadCursorInWorld")
-                gamepad_vector_x, gamepad_vector_y = ComponentGetValue2(controls, "mGamePadAimingVectorRaw")
+                mouse_x, mouse_y = ComponentGetValue2(controls, "mGamePadCursorInWorld")
+                gamepad_vector_x, gamepad_vector_y = ComponentGetValue2(controls, "mGamepadAimingVectorRaw")
             else
                 mouse_x, mouse_y = ComponentGetValue2(controls, "mMousePosition")
             end
@@ -347,10 +338,8 @@ local player_fns = {
                 mouseRawPrev_y = mouseRawPrev_y,
                 mouseDelta_x = mouseDelta_x,
                 mouseDelta_y = mouseDelta_y,
-                gamepad_x = gamepad_x,
-                gamepad_y = gamepad_y,
-                gamepad_x = gamepad_vector_x,
-                gamepad_y = gamepad_vector_y,
+                gamepad_vector_x = gamepad_vector_x,
+                gamepad_vector_y = gamepad_vector_y,
                 has_gamepad = has_gamepad
             }
 
