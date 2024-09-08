@@ -4,6 +4,8 @@ local gui = GuiCreate()
 
 local module = {}
 
+local last_coords = {}
+
 -- "Borrowed" from MK VIII QF 2-puntaa NAVAL-ASE in Noita discord server.
 -- https://discord.com/channels/453998283174576133/632303734877192192/1178002118368559175
 local function world2gui( x, y )
@@ -26,6 +28,9 @@ local function is_suitable_target(entity)
 end
 
 function module.on_world_update()
+    if EntityHasTag(ctx.my_player.entity, "polymorphed") then
+        return
+    end
     GuiStartFrame(gui)
 
     GuiZSet(gui, 10)
@@ -40,14 +45,16 @@ function module.on_world_update()
 
     local gui_id = 2
 
-    for _, player_data in pairs(ctx.players) do
-        if player_data.peer_id == ctx.my_id and is_suitable_target(player_data.entity) then
-            goto continue
-        end
-
+    for peer_id, player_data in pairs(ctx.players) do
         local px, py = EntityGetTransform(player_data.entity)
         if px == nil then
-            return
+            if last_coords[peer_id] == nil then
+                return
+            else
+                px, py = last_coords[peer_id]
+            end
+        else
+            last_coords[peer_id] = px, py
         end
         local player_dir_x = px - ccx
         local player_dir_y = py - ccy
@@ -98,7 +105,7 @@ function module.on_world_update()
             if player_data.status and not player_data.status.is_alive then
                 is_notplayer = true
             end
-            if not is_notplayer and EntityHasTag(player_data.entity,"polymorphed_player") then
+            if not is_notplayer and EntityGetIsAlive(player_data.entity) and EntityHasTag(player_data.entity, "polymorphed_player") then
                 goto continue
             end
             local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)

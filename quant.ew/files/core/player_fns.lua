@@ -369,6 +369,9 @@ function player_fns.serialize_position(player_data)
     local x, y = EntityGetTransform(entity)
     local character_data = EntityGetFirstComponentIncludingDisabled(entity, "CharacterDataComponent")
     local character_platforming_comp = EntityGetFirstComponentIncludingDisabled(entity, "CharacterPlatformingComponent")
+    if character_data == nil or character_platforming_comp == nil then
+        return
+    end
     local vel_x, vel_y = ComponentGetValue2(character_data, "mVelocity")
 
     local c = CharacterPos{

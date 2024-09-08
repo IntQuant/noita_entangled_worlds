@@ -15,12 +15,16 @@ local function entity_changed()
     ctx.my_player.currently_polymorphed = currently_polymorphed
     if currently_polymorphed then
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+        if damage_model ~= nil then
+            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+        end
 
         rpc.change_entity({data = np.SerializeEntity(ctx.my_player.entity)})
     else
         rpc.change_entity(nil)
         wandfinder.set_wands_after_poly()
+        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+        ComponentSetValue2(controls, "enabled", true)
     end
     ctx.hook.on_local_player_polymorphed(currently_polymorphed)
 end

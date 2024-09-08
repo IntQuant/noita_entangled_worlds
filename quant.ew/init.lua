@@ -305,6 +305,9 @@ local function on_world_post_update_inner()
     GlobalsSetValue("ew_wand_fired", "0")
     if times_wand_fired > 0 then
         local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+        if inventory_component == nil then
+            return
+        end
         local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
         local switched_now = last_switch == GameGetFrameNum()
 

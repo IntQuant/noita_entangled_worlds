@@ -66,6 +66,10 @@ local function is_acceptable_help_target(spectating_over)
     if player_data.status == nil or not player_data.status.is_alive then
         return false
     end
+    -- No helping polied players
+    if EntityHasTag(player_data.entity, "polymorphed") then
+        return false
+    end
     return true
 end
 
