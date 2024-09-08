@@ -276,6 +276,14 @@ local function pickup_item(entity, item)
     end
 end
 
+local function remove_non_send(item)
+    for _, com in ipairs(EntityGetAllComponents(item) or {}) do
+       if ComponentHasTag(com, "ew_remove_on_send") then
+        EntityRemoveComponent(item, com)
+       end
+    end
+end
+
 function inventory_helper.set_item_data(item_data, player_data)
     local player = player_data.entity
     if (not EntityGetIsAlive(player)) then
@@ -305,9 +313,11 @@ function inventory_helper.set_item_data(item_data, player_data)
             local item
             if(itemInfo.is_wand)then
                 item = inventory_helper.deserialize_single_item(itemInfo.data)
+                remove_non_send(item)
                 item = EZWand(item)
             else
                 item = inventory_helper.deserialize_single_item(itemInfo.data)
+                remove_non_send(item)
             end
 
             if (item == nil) then

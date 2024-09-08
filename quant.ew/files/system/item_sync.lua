@@ -16,7 +16,7 @@ function item_sync.ensure_notify_component(ent)
     local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_notify_component")
     if notify == nil then
         EntityAddComponent2(ent, "LuaComponent", {
-            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component",
+            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component,ew_remove_on_send",
             script_throw_item = "mods/quant.ew/files/resource/cbs/item_notify.lua",
             script_item_picked_up = "mods/quant.ew/files/resource/cbs/item_notify.lua",
             -- script_kick = "mods/quant.ew/files/resource/cbs/item_notify.lua",
@@ -303,6 +303,7 @@ end
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
     if is_safe_to_remove() then
+        GamePrint("remove in globalize")
         item_sync.remove_item_with_id_now(item_data.gid)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
