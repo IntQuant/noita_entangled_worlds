@@ -53,11 +53,26 @@ local function target()
     if not EntityGetIsAlive(cam_target.entity) then
         return
     end
-    local t_x, t_y = EntityGetFirstHitboxCenter(cam_target.entity)
-    if t_x == nil then
-        t_x, t_y = EntityGetTransform(cam_target.entity)
+    local my_x, my_y = GameGetCameraPos()
+    local mx, my
+    if GameGetIsGamepadConnected() then
+        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+        mx, my = ComponentGetValue2(controls, "mGamePadCursorInWorld")
+    else
+        mx, my = DEBUG_GetMouseWorld()
     end
-    GameSetCameraPos(t_x, t_y)
+    local to_x, to_y = EntityGetTransform(cam_target.entity)
+    local t_x, t_y = to_x + (mx - to_x) / 3 , to_y + (my - to_y) / 3
+    local dx, dy = t_x - my_x, t_y - my_y
+    local di = dx * dx + dy * dy
+    if di > 256 * 256 then
+        GameSetCameraPos(to_x, to_y)
+    else
+        local cos, sin = dx / 512, dy / 512
+        local d = math.sqrt(di)
+        dx, dy = d * cos, d * sin
+        GameSetCameraPos(my_x + dx, my_y + dy)
+    end
     if camera_target == nil then
         camera_target = ctx.my_player
     end
