@@ -51,10 +51,10 @@ function module.on_world_update()
             if last_coords[peer_id] == nil then
                 return
             else
-                px, py = last_coords[peer_id]
+                px, py = last_coords[peer_id][1], last_coords[peer_id][2]
             end
         else
-            last_coords[peer_id] = px, py
+            last_coords[peer_id] = {px, py}
         end
         local player_dir_x = px - ccx
         local player_dir_y = py - ccy

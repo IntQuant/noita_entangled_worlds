@@ -2,7 +2,7 @@ local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
 local tether_length = ctx.proxy_opt.tether_length
-local tether_length_2 = tether_length + 200
+local tether_length_2 = tether_length + 128
 
 local module = {}
 
@@ -52,7 +52,7 @@ function module.on_client_spawned(peer_id, new_playerdata)
 end
 
 local function is_suitable_target(entity)
-    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
+    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"polymorphed")
 end
 
 local function tether_enable(to_enable, entity)
