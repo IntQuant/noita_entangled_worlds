@@ -38,7 +38,7 @@ function net_handling.proxy.host_id(_, value)
 end
 
 function net_handling.proxy.proxy_opt(_, key, value)
-    print("Proxy opt [str]: "..key.." = "..value)
+    print("Proxy opt [str]: "..key.." = "..tostring(value))
     ctx.proxy_opt[key] = value
 end
 

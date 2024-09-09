@@ -64,6 +64,19 @@ local function show_game_effects()
     end
 end
 
+local bring_cam = false
+local bring_cam_back = nil
+function module.on_world_update()
+    if bring_cam then
+        local cx, cy = GameGetCameraPos()
+        -- GameSetCameraPos(0, 8600 - 20)
+        GameSetCameraPos(-200, 1390)
+        bring_cam = false
+        GameSetCameraPos(cx, cy)
+        bring_cam_back = nil
+    end
+end
+
 function module.on_world_update_post()
     if imgui.Begin("EW Debug stuff") then
         if imgui.CollapsingHeader("General") then
@@ -98,6 +111,16 @@ function module.on_world_update_post()
             tp_button("Essence - Laser", 16000, -1800.003)
             tp_button("Essence - Eater", 12620.563, -141.003)
             tp_button("Mines HM", -200, 1390)
+            tp_button("Coal pits HM", -300, 2900)
+            tp_button("Snowy HM", -300, 5000)
+            tp_button("Hiisi HM", -300, 6500)
+            tp_button("Jungle HM", -300, 8550)
+            tp_button("Vault HM", -300, 10600)
+            tp_button("Lab HM", 2200, 13150)
+            
+            if fw_button("test_load") then
+                bring_cam = true
+            end
         end
         if imgui.CollapsingHeader("Game effects") then
             show_game_effects()
