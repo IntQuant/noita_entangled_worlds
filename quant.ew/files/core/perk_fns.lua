@@ -90,7 +90,7 @@ function perk_fns.update_perks(perk_data, player_data)
                 goto continue
             end
             if diff > 0 then
-                GamePrint("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
+                print("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
                 for i=current+1, count do
                     if not perks_to_ignore[perk_info.id] then
                         give_one_perk(entity, perk_info, i)

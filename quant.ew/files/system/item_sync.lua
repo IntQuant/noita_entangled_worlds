@@ -118,7 +118,7 @@ function item_sync.make_item_global(item, instant)
             wait(1) -- Wait 1 frame so that game sets proper velocity.
         end
         if not EntityGetIsAlive(item) then
-            GamePrint("Thrown item vanished before we could send it")
+            print("Thrown item vanished before we could send it")
             return
         end
         item_sync.ensure_notify_component(item)
@@ -303,7 +303,7 @@ end
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
     if is_safe_to_remove() then
-        GamePrint("remove in globalize")
+        print("remove in globalize")
         item_sync.remove_item_with_id_now(item_data.gid)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
