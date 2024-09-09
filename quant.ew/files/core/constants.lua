@@ -5,8 +5,8 @@ local module = {}
 module.phys_sync_allowed = {
     -- Starting prop
     ["data/entities/props/physics_skateboard.xml"] = true,
---  ["data/entities/props/physics_minecart.xml"] = true,
---  ["data/entities/props/physics/minecart.xml"] = true,
+    ["data/entities/props/physics_minecart.xml"] = true,
+    ["data/entities/props/physics/minecart.xml"] = true,
     ["data/entities/props/physics_cart.xml"] = true,
 
 

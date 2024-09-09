@@ -1,0 +1,82 @@
+<Entity name="unknown" >
+
+  <PhysicsBodyComponent 
+    uid="1" 
+    allow_sleep="1" 
+    angular_damping="0" 
+    fixed_rotation="0" 
+    is_bullet="0" 
+    linear_damping="0"
+    auto_clean="0"
+    on_death_leave_physics_body="1" >
+  </PhysicsBodyComponent>
+  <PhysicsImageShapeComponent 
+    body_id="1"
+    centered="1"
+    image_file="data/props_gfx/minecart.png"
+    material="metal_rust" >
+  </PhysicsImageShapeComponent>
+
+  <PhysicsBodyComponent 
+    uid="2" 
+    allow_sleep="1" 
+    angular_damping="0.1" 
+    fixed_rotation="0" 
+    is_bullet="0" 
+    linear_damping="0"
+    auto_clean="0" 
+    update_entity_transform="0"
+    on_death_leave_physics_body="1"
+    >
+  </PhysicsBodyComponent>
+  <PhysicsImageShapeComponent 
+    body_id="2"
+    centered="1"
+    is_circle="1"
+    image_file="data/props_gfx/minecart_wheel_left.png"
+    z="-1"
+    material="metal_rust" >
+  </PhysicsImageShapeComponent>
+
+  <PhysicsBodyComponent 
+    uid="3" 
+    allow_sleep="1" 
+    angular_damping="0.1" 
+    fixed_rotation="0" 
+    is_bullet="0" 
+    linear_damping="0"
+    auto_clean="0" 
+    update_entity_transform="0"
+    on_death_leave_physics_body="1"
+    >
+  </PhysicsBodyComponent>
+  <PhysicsImageShapeComponent 
+    body_id="3"
+    centered="1"
+    is_circle="1"
+    image_file="data/props_gfx/minecart_wheel_right.png"
+    z="-1"
+    material="metal_rust" >
+  </PhysicsImageShapeComponent>
+
+  <PhysicsJointComponent 
+    body1_id="1"
+    body2_id="2"		
+    pos_x="4"		
+    pos_y="12"			
+  	>
+  </PhysicsJointComponent>
+
+  <PhysicsJointComponent 
+    body1_id="1"
+    body2_id="3"		
+    pos_x="13"		
+    pos_y="12"			
+  	>
+  </PhysicsJointComponent>
+  
+  <CameraBoundComponent
+    max_count="50"
+    distance="500">
+  </CameraBoundComponent>
+</Entity>
