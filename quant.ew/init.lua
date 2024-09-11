@@ -375,7 +375,9 @@ end
 function OnModInit() end
 
 
-function OnModPostInit() end
+function OnModPostInit()
+    ctx.hook.on_late_init()
+end
 
 function OnPlayerDied(player_entity)
     ctx.hook.on_player_died(player_entity)

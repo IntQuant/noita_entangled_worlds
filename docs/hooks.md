@@ -11,3 +11,4 @@
  - `ctx.hook.on_draw_debug_window(imgui)`
  - `ctx.hook.on_local_player_polymorphed(currently_polymorphed)`
  - `ctx.hook.on_client_polymorphed(peer_id, player_data)`
+ - `ctx.hook.on_late_init()`
