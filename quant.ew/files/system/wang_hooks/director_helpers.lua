@@ -1,5 +1,7 @@
-local orig_RegisterSpawnFunction = RegisterSpawnFunction
 
+local function notload()
+    
+end
 
 -- The root file that imported everything else.
 -- TODO: maybe dofile should be patched?
@@ -15,7 +17,7 @@ do_mod_appends = function(filename, ...)
     print("do_mod_appends "..filename)
 end
 
-local orig_do_mod_appends = do_mod_appends
+local orig_RegisterSpawnFunction = RegisterSpawnFunction
 function RegisterSpawnFunction(color, fn_name)
     local root_id = "???" -- TODO, this should be id (path) of a file that actually calls RegisterSpawnFunction, that we can dofile to call related functions manually.
     detour_fn_name = "ew_detour_"..fn_name
