@@ -1,6 +1,8 @@
 
-local function notload()
-    
+local function notload(content)
+    ModTextFileSetContent("mods/quant.ew/tmp_load.lua", content)
+    loadfile("mods/quant.ew/tmp_load.lua")()
+    print("Dofiled stuff")
 end
 
 -- The root file that imported everything else.
@@ -11,19 +13,30 @@ print("Append for director helpers is running")
 
 orig_do_mod_appends = do_mod_appends
 do_mod_appends = function(filename, ...)
-    --do_mod_appends = orig_do_mod_appends
+    -- do_mod_appends = orig_do_mod_appends
     orig_do_mod_appends(filename, ...)
     EwImportRoot = filename
     print("do_mod_appends "..filename)
 end
 
-local orig_RegisterSpawnFunction = RegisterSpawnFunction
+function EwSpawnDispath(fn_name, ...)
+    print("Called "..fn_name.." from "..EwImportRoot)
+    return _G[fn_name](...)
+end
+
+orig_RegisterSpawnFunction = RegisterSpawnFunction
 function RegisterSpawnFunction(color, fn_name)
-    local root_id = "???" -- TODO, this should be id (path) of a file that actually calls RegisterSpawnFunction, that we can dofile to call related functions manually.
+    -- if fn_name == "init" then
+    --     orig_RegisterSpawnFunction(color, fn_name)
+    --     return
+    -- end
     detour_fn_name = "ew_detour_"..fn_name
-    _G[detour_fn_name] = function(...)
-        print("Called "..fn_name.." from "..EwImportRoot)
-        _G[fn_name](...)
-    end
-    orig_RegisterSpawnFunction(color, detour_fn_name)
+    print("Register", color, fn_name, detour_fn_name)
+    notload([[
+        function ]]..detour_fn_name..[[(...)
+            print("called detour ]] ..detour_fn_name.. [[")
+            return EwSpawnDispath("]] .. fn_name .. [[", ...)
+        end
+        orig_RegisterSpawnFunction(]]..color..[[, "]]..detour_fn_name..[[")
+    ]])
 end
