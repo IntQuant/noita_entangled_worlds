@@ -1,5 +1,4 @@
 data/scripts/biome_scripts.lua
-data/biome_impl/static_tile/puzzle_logic_potion_mimics.lua
 data/biome_impl/static_tile/watchtower.lua
 data/biome_impl/static_tile/temples_common.lua
 data/scripts/debug_biomes.lua
