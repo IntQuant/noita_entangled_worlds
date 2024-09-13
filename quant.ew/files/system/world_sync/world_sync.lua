@@ -148,6 +148,9 @@ local function get_all_chunks(ocx, ocy, pos_data, priority)
 end
 
 function world_sync.on_world_update()
+    if ctx.run_ended then
+        return
+    end
     local cx, cy = GameGetCameraPos()
     cx, cy = math.floor(cx / CHUNK_SIZE), math.floor(cy / CHUNK_SIZE)
     local player_data = ctx.my_player

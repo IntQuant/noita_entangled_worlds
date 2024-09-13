@@ -18,6 +18,8 @@ local inventory_target
 
 local was_notplayer = false
 
+local has_switched = false
+
 local function get_me()
     local i = 0
     for peer_id, _ in pairs(ctx.players) do
@@ -43,7 +45,9 @@ local function target()
             ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
             EntityRemoveComponent(camera_target.entity, audio)
-            EntityRemoveComponent(camera_target.entity, keep_alive)
+            if keep_alive ~= nil then
+                EntityRemoveComponent(camera_target.entity, keep_alive)
+            end
             EntityRemoveComponent(camera_target.entity, inventory_target)
             camera_target = cam_target
         end
@@ -94,10 +98,10 @@ local function target()
             local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
             ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             EntityRemoveComponent(camera_target.entity, audio)
-            if camera_target.entity ~= ctx.my_player.entity then
+            if camera_target.entity ~= ctx.my_player.entity and keep_alive ~= nil then
                 EntityRemoveComponent(camera_target.entity, keep_alive)
             end
-            if cam_target.entity ~= ctx.my_player.entity then
+            if cam_target.entity ~= ctx.my_player.entity and not EntityHasTag(cam_target, "ew_notplayer") then
                 EntityAddComponent2(cam_target.entity, "StreamingKeepAliveComponent")
             end
         end
@@ -183,6 +187,7 @@ function spectate.on_world_update()
             camera_player = last_len
         end
 
+        has_switched = true
         re_cam = true
     elseif InputIsKeyJustDown(55) or InputIsJoystickButtonJustDown(0, 14) then
         camera_player = camera_player + 1
@@ -190,6 +195,7 @@ function spectate.on_world_update()
             camera_player = 1
         end
 
+        has_switched = true
         re_cam = true
     end
     set_camera_pos()
@@ -197,7 +203,7 @@ function spectate.on_world_update()
 
     GuiStartFrame(gui)
     GuiZSet(gui, 11)
-    if GameHasFlagRun("ew_flag_notplayer_active") then
+    if GameHasFlagRun("ew_flag_notplayer_active") and not has_switched then
         local w, h = GuiGetScreenDimensions(gui)
         local text
         if GameGetIsGamepadConnected() then
@@ -215,6 +221,23 @@ function spectate.on_world_update()
             ComponentSetValue2(inv_spec, "mActive", false)
         end
         ComponentSetValue2(inv_me, "mActive", false)
+    elseif GameGetFrameNum() % 10 == 0 then
+        for peer_id, data in pairs(ctx.players) do
+            if peer_id ~= ctx.my_id then
+                local audio = EntityGetFirstComponent(data.entity, "AudioListenerComponent")
+                local inv_target = EntityGetFirstComponent(data.entity, "InventoryGuiComponent")
+                local keep_alive = EntityGetFirstComponent(data.entity, "StreamingKeepAliveComponent")
+                if audio ~= nil then
+                    EntityRemoveComponent(camera_target.entity, audio)
+                end
+                if keep_alive ~= nil then
+                    EntityRemoveComponent(camera_target.entity, keep_alive)
+                end
+                if inv_target ~= nil then
+                    EntityRemoveComponent(camera_target.entity, inv_target)
+                end
+            end
+        end
     end
 end
 

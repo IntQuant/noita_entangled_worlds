@@ -438,8 +438,11 @@ function player_fns.get_player_data_by_local_entity_id(entity)
 end
 
 function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
-    if ctx.run_ended or peer_id == ctx.my_id then
+    if peer_id == ctx.my_id then
         util.print_traceback()
+    end
+    if ctx.run_ended then
+        return
     end
     print("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)

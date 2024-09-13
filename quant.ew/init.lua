@@ -257,7 +257,7 @@ local function on_world_pre_update_inner()
         ctx.is_inventory_open = inventory_open
     end
 
-    if GameGetFrameNum() % 120 == 0 then
+    if GameGetFrameNum() % 120 == 0 and not ctx.run_ended then
         player_fns.respawn_if_necessary()
     end
 

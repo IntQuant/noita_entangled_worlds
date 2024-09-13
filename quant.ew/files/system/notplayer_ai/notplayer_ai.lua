@@ -220,8 +220,16 @@ local function has_ambrosia(entity)
 end
 
 local function needs_douse(entity)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
     local prot_fire = false
     local prot_toxic = false
+    if damage_model ~= nil then
+        local hp = ComponentGetValue2(damage_model, "hp")
+        local max_hp = ComponentGetValue2(damage_model, "max_hp")
+        if hp / max_hp <= 0.02 then
+            prot_toxic = true
+        end
+    end
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         local com = EntityGetFirstComponent(ent, "GameEffectComponent")
         if com ~= nil then

@@ -1,7 +1,6 @@
 local module = {}
 
 --TODO fix chained entities spawning repeatably on clients
---TODO fix minecart entity disapearing on spawn
 module.phys_sync_allowed = {
     -- Starting prop
     ["data/entities/props/physics_skateboard.xml"] = true,

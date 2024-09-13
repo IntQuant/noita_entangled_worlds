@@ -1,0 +1,11 @@
+<!--Borrowed from Evaisa's become stuff mod-->
+<Entity>
+    <InheritTransformComponent>
+    </InheritTransformComponent>
+
+    <GameEffectComponent
+        effect="IRON_STOMACH"
+        frames="-1"
+    >
+    </GameEffectComponent >
+</Entity>

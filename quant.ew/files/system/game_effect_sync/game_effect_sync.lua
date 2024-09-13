@@ -41,13 +41,15 @@ function effect_sync.get_sync_data(entity)
     local sync_data = {}
     for _, effect in ipairs(effects) do
         local name = EntityGetFilename(effect)
-        if name ~= nil and name ~= "" then --TODO serialize effects with no file
+        if name ~= nil and name ~= "" then
             local num = name_to_num(name)
             if num ~= -1 then
                 table.insert(sync_data, num)
             else
                 table.insert(sync_data, name)
             end
+        else
+            table.insert(sync_data, np.SerializeEntity(effect))
         end
     end
     return sync_data
@@ -69,10 +71,12 @@ end
 
 local function remove_duplicates(effects)
     for i, effect1 in ipairs(effects) do
-        local name1 = EntityGetFilename(effect1)
+        local com1 = EntityGetFirstComponentIncludingDisabled(effect1, "GameEffectComponent")
+        local name1 = ComponentGetValue2(com1, "effect")
         for j, effect2 in ipairs(effects) do
             if i ~= j and EntityGetIsAlive(effect1) and EntityGetIsAlive(effect2) then
-                local name2 = EntityGetFilename(effect2)
+                local com2 = EntityGetFirstComponentIncludingDisabled(effect2, "GameEffectComponent")
+                local name2 = ComponentGetValue2(com2, "effect")
                 if name1 == name2 then
                     if i < j then
                         EntityKill(effect1)
@@ -94,13 +98,36 @@ function effect_sync.apply_effects(effects, entity)
     local effect_names = {}
     for _, effect in ipairs(effects) do
         local name
-        local by_filenames = type(effect) ~= "number"
-        if by_filenames then
+        if type(effect) == "string" and (string.find(effect, "data/") == 1 or string.find(effect, "mods/") == 1) then
             name = effect
-        else
+        elseif type(effect) == "number" then
             name = constants.game_effects[effect]
+        else
+            local serialized = EntityCreateNew()
+            np.DeserializeEntity(serialized, effect)
+            local com = EntityGetFirstComponentIncludingDisabled(serialized, "GameEffectComponent")
+            local effect_name = ComponentGetValue2(com, "effect")
+            for _, old_effect in ipairs(old_local_effects) do
+                local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
+                if old_com ~= nil then
+                    local old_name = ComponentGetValue2(old_com, "effect")
+                    if old_name == effect_name then
+                        if ComponentGetValue2(old_com, "frames") ~= -1 then
+                            ComponentSetValue2(old_com, "frames", 999999999)
+                        end
+                        EntityKill(serialized)
+                        table.insert(effect_names, effect_name)
+                        goto continue
+                    end
+                end
+            end
+            if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
+                ComponentSetValue2(com, "frames", 999999999)
+            end
+            EntityAddChild(entity, serialized)
+            table.insert(effect_names, effect_name)
+            goto continue
         end
-        table.insert(effect_names, name)
         for _, old_effect in ipairs(old_local_effects) do
             local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
             if old_com ~= nil then
@@ -109,6 +136,7 @@ function effect_sync.apply_effects(effects, entity)
                     if ComponentGetValue2(old_com, "frames") ~= -1 then
                         ComponentSetValue2(old_com, "frames", 999999999)
                     end
+                    table.insert(effect_names, ComponentGetValue2(old_com, "effect"))
                     goto continue
                 end
             end
@@ -119,13 +147,15 @@ function effect_sync.apply_effects(effects, entity)
         if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
             ComponentSetValue2(com, "frames", 999999999)
         end
+        table.insert(effect_names, ComponentGetValue2(com, "effect"))
         ::continue::
     end
 
     local local_effects = effect_sync.get_ent_effects(entity)
     if #local_effects > #effect_names then
         for _, effect in ipairs(local_effects) do
-            local local_name = EntityGetFilename(effect)
+            local com = EntityGetFirstComponentIncludingDisabled(effect, "GameEffectComponent")
+            local local_name = ComponentGetValue2(com, "effect")
             for _, name in ipairs(effect_names) do
                 if name == local_name then
                     goto cont
