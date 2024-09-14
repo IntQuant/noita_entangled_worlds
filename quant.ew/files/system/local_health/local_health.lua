@@ -9,7 +9,7 @@ local nickname = dofile_once("mods/quant.ew/files/system/nickname.lua")
 
 local rpc = net.new_rpc_namespace()
 
-
+dofile_once("data/scripts/status_effects/status_list.lua")
 
 local module = {}
 
@@ -251,8 +251,21 @@ ctx.cap.health = {
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
             end_poly_effect(ctx.my_player.entity)
+            local status_effects = status_effects
             async(function ()
                 wait(1)
+                for _, child in pairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+                    if not EntityHasTag(child, "perk_entity") then
+                        local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+                        if com ~= nil then
+                            EntityKill(child)
+                        end
+                    end
+                end
+                for _, effect in pairs(status_effects) do
+                    EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
+                    EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+                end
                 inventory_helper.set_item_data(item_data, ctx.my_player)
                 remove_inventory_tags()
                 local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")

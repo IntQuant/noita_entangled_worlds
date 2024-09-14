@@ -64,7 +64,7 @@ function item_sync.find_by_gid(gid)
         return find_by_gid_cache[gid]
     end
 
-    print("find_by_gid: searching")
+    --print("find_by_gid: searching")
 
     local global_items = EntityGetWithTag("ew_global_item")
     for _, item in ipairs(global_items) do
