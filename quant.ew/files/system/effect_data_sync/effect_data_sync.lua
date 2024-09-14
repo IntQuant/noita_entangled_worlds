@@ -22,8 +22,7 @@ function rpc.send_present_stains(present_stains)
     local current_stains = ComponentGetValue2(effect_data, "stain_effects")
 
     for index, is_present in ipairs(present_stains) do
-        if not is_present and current_stains[index+1] ~= nil and current_stains[index+1] > 0.1 then
-            --GamePrint("Removing "..effect_by_index[index])
+        if not is_present and current_stains[index+1] ~= nil and current_stains[index+1] >= 0.15 then
             EntityRemoveStainStatusEffect(entity, effect_by_index[index])
         end
     end
@@ -43,10 +42,7 @@ function module.on_world_update()
     local present_stains = {}
     -- For some reason whatever value is at index 1 isn't used?
     for i=2, #stains do
-        table.insert(present_stains, stains[i] > 0.1)
-        --[[if stains[i] > 0.1 then
-            GamePrint(effect_by_index[i-1])
-        end]]
+        table.insert(present_stains, stains[i] >= 0.15)
     end
     rpc.send_present_stains(present_stains)
 end
