@@ -101,8 +101,7 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
     GameShootProjectile(ctx.rpc_player_data.entity, position_x, position_y, target_x, target_y, ent)
 end
 
-rpc.opts_reliable()
-function rpc.change_entity(seri_ent)
+local function apply_seri_ent(player_data, seri_ent)
     if seri_ent ~= nil then
         local ent = EntityCreateNew()
         np.DeserializeEntity(ent, seri_ent.data)
@@ -131,21 +130,34 @@ function rpc.change_entity(seri_ent)
         EntityRemoveTag(ent, "player_unit")
         EntityRemoveTag(ent, "teleportable")
 
-        EntitySetName(ent, ctx.rpc_player_data.name.."?")
+        EntitySetName(ent, player_data.name.."?")
 
-        EntityKill(ctx.rpc_player_data.entity)
-        player_fns.replace_player_entity(ent, ctx.rpc_player_data)
-        ctx.rpc_player_data.currently_polymorphed = true
-        ctx.hook.on_client_polymorphed(ctx.rpc_peer_id, ctx.rpc_player_data)
+        EntityKill(player_data.entity)
+        player_fns.replace_player_entity(ent, player_data)
+        player_data.currently_polymorphed = true
+        ctx.hook.on_client_polymorphed(ctx.rpc_peer_id, player_data)
     else
-        if ctx.rpc_player_data.currently_polymorphed then
+        if player_data.currently_polymorphed then
             EntityKill(ctx.rpc_player_data.entity)
-            player_fns.replace_player_entity(nil, ctx.rpc_player_data)
-            ctx.rpc_player_data.currently_polymorphed = false
+            player_fns.replace_player_entity(nil, player_data)
+            player_data.currently_polymorphed = false
         else
             print("Player is already not polymorphed, not doing anything")
         end
     end
+end
+
+local last_seri_ent = {}
+
+rpc.opts_reliable()
+function rpc.change_entity(seri_ent)
+    last_seri_ent[ctx.rpc_peer_id] = seri_ent
+    apply_seri_ent(ctx.rpc_player_data, seri_ent)
+end
+
+function module.on_client_spawned(peer_id, player_data)
+    player_data.currently_polymorphed = false
+    apply_seri_ent(player_data, last_seri_ent[peer_id])
 end
 
 return module
