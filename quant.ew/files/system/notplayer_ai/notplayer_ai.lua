@@ -420,6 +420,12 @@ local function init_state()
         if EntityGetName(child) == "inventory_quick" then
             items = child
         end
+        local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+        if com ~= nil then
+            if ComponentGetValue2(com, "effect") == "CHARM" then
+                EntityKill(child)
+            end
+        end
     end
     state = {
         entity = ctx.my_player.entity,
