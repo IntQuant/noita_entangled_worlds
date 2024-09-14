@@ -477,7 +477,7 @@ function rpc.handle_enemy_data(enemy_data)
                     EntityRemoveComponent(enemy_id, com)
                 end
             end
-            --EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+            EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
             local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
