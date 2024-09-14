@@ -146,13 +146,10 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "stealable", false)
         -- Item is stealable
         if item_data.shop_info[2] then
-            async(function()
-                local timer = 0
+            async(function()                
                 while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
-                    wait(1) -- Wait for a while, in case shop hasn't loaded yet.
-                    timer = timer + 1
-                    if timer > 60 * 60 then
-                        GamePrint("Waiting for shop: giving up. Made item non-stealable.")
+                    wait(30) -- Wait for a while, in case shop hasn't loaded yet.
+                    if not EntityGetIsAlive(item) then
                         return
                     end
                 end
