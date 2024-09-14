@@ -626,6 +626,7 @@
 
 	<BossHealthBarComponent
 		gui="0"
+        gui_max_distance_visible="1000000"
 		in_world="1">
 	</BossHealthBarComponent>
 

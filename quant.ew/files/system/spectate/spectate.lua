@@ -98,7 +98,7 @@ local function target()
             local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
             ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             EntityRemoveComponent(camera_target.entity, audio)
-            if camera_target.entity ~= ctx.my_player.entity and keep_alive ~= nil then
+            if camera_target.entity ~= ctx.my_player.entity and keep_alive ~= nil and not EntityHasTag(camera_target.entity, "ew_notplayer") then
                 EntityRemoveComponent(camera_target.entity, keep_alive)
             end
             if cam_target.entity ~= ctx.my_player.entity and not EntityHasTag(cam_target, "ew_notplayer") then
@@ -228,13 +228,13 @@ function spectate.on_world_update()
                 local inv_target = EntityGetFirstComponent(data.entity, "InventoryGuiComponent")
                 local keep_alive = EntityGetFirstComponent(data.entity, "StreamingKeepAliveComponent")
                 if audio ~= nil then
-                    EntityRemoveComponent(camera_target.entity, audio)
+                    EntityRemoveComponent(data.entity, audio)
                 end
-                if keep_alive ~= nil then
-                    EntityRemoveComponent(camera_target.entity, keep_alive)
+                if keep_alive ~= nil and not EntityHasTag(data.entity, "ew_notplayer") then
+                    EntityRemoveComponent(data.entity, keep_alive)
                 end
                 if inv_target ~= nil then
-                    EntityRemoveComponent(camera_target.entity, inv_target)
+                    EntityRemoveComponent(data.entity, inv_target)
                 end
             end
         end
