@@ -307,7 +307,6 @@ function rpc.initial_items(item_list)
         if item == nil then
             local item_new = inventory_helper.deserialize_single_item(item_data)
             add_stuff_to_globalized_item(item_new, item_data.gid)
-            maybe_disable_physics(item_new)
         end
     end
 end
@@ -320,7 +319,6 @@ function rpc.item_globalize(item_data)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
-    maybe_disable_physics(item)
 end
 
 rpc.opts_reliable()
