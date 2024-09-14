@@ -541,7 +541,7 @@ impl WorldManager {
                 }
             }
             WorldNetMessage::GotAuthority { chunk, chunk_data, priority } => {
-                if self.chunk_state.get(&chunk) == Some(&ChunkState::WaitingForAuthority)
+                if self.chunk_state.get(&chunk) != Some(&ChunkState::UnloadPending)
                 {
                     if let Some(chunk_data) = chunk_data {
                         self.inbound_model.apply_chunk_data(chunk, chunk_data);
@@ -679,7 +679,7 @@ impl WorldManager {
                 chunk,
                 current_authority,
             } => {
-                if self.chunk_state.get(&chunk) == Some(&ChunkState::WaitingForAuthority)
+                if self.chunk_state.get(&chunk) != Some(&ChunkState::UnloadPending)
                 {
                     info!("Will request authority transfer");
                     self.chunk_state.insert(chunk, ChunkState::Transfer);
