@@ -1,6 +1,6 @@
 use std::{ffi::c_int, sync::LazyLock};
 
-use lua_bindings::{lua_State, Lua51, LUA_GLOBALSINDEX};
+use lua_bindings::{lua_State, Lua51};
 
 mod lua_bindings;
 
