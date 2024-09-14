@@ -53,6 +53,7 @@ pub(crate) enum WorldNetMessage {
     GotAuthority {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
+        priority: u8
     },
     RelinquishAuthority {
         chunk: ChunkCoord,
@@ -128,10 +129,10 @@ enum ChunkState {
     WantToGetAuth { authority: OmniPeerId, auth_priority: u8, my_priority: u8 }
 }
 impl ChunkState {
-    fn authority() -> ChunkState {
+    fn authority(priority: u8) -> ChunkState {
         ChunkState::Authority {
             listeners: Default::default(),
-            priority: 255,
+            priority,
             new_authority: None,
             stop_sending: false
         }
@@ -318,7 +319,6 @@ impl WorldManager {
             }
         }
         let mut emit_queue = Vec::new();
-
         for (&chunk, state) in self.chunk_state.iter_mut() {
             let chunk_last_update = self
                 .chunk_last_update
@@ -337,7 +337,12 @@ impl WorldManager {
                     debug!("Requested authority for {chunk:?}")
                 }
                 // This state doesn't have much to do.
-                ChunkState::WaitingForAuthority => {}
+                ChunkState::WaitingForAuthority => {
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1)
+                    {
+                        *state = ChunkState::UnloadPending;
+                    }
+                }
                 ChunkState::Listening { authority, .. } => {
                     if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1)
                     {
@@ -444,7 +449,7 @@ impl WorldManager {
         let chunk_data = self.chunk_storage.get(&chunk).cloned();
         self.emit_msg(
             Destination::Peer(source),
-            WorldNetMessage::GotAuthority { chunk, chunk_data },
+            WorldNetMessage::GotAuthority { chunk, chunk_data, priority },
         );
     }
 
@@ -535,12 +540,24 @@ impl WorldManager {
                     }
                 }
             }
-            WorldNetMessage::GotAuthority { chunk, chunk_data } => {
-                if let Some(chunk_data) = chunk_data {
-                    self.inbound_model.apply_chunk_data(chunk, chunk_data);
+            WorldNetMessage::GotAuthority { chunk, chunk_data, priority } => {
+                if self.chunk_state.get(&chunk) == Some(&ChunkState::WaitingForAuthority)
+                {
+                    if let Some(chunk_data) = chunk_data {
+                        self.inbound_model.apply_chunk_data(chunk, chunk_data);
+                    }
+                    self.chunk_state.insert(chunk, ChunkState::authority(priority));
+                    self.last_request_priority.remove(&chunk);
+                } else {
+                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                    self.emit_msg(
+                        Destination::Host,
+                        WorldNetMessage::RelinquishAuthority {
+                            chunk,
+                            chunk_data,
+                        },
+                    );
                 }
-                self.chunk_state.insert(chunk, ChunkState::authority());
-                self.last_request_priority.remove(&chunk);
             }
             WorldNetMessage::RelinquishAuthority { chunk, chunk_data } => {
                 if !self.is_host {
@@ -662,12 +679,24 @@ impl WorldManager {
                 chunk,
                 current_authority,
             } => {
-                info!("Will request authority transfer");
-                self.chunk_state.insert(chunk, ChunkState::Transfer);
-                self.emit_msg(
-                    Destination::Peer(current_authority),
-                    WorldNetMessage::RequestAuthorityTransfer { chunk },
-                );
+                if self.chunk_state.get(&chunk) == Some(&ChunkState::WaitingForAuthority)
+                {
+                    info!("Will request authority transfer");
+                    self.chunk_state.insert(chunk, ChunkState::Transfer);
+                    self.emit_msg(
+                        Destination::Peer(current_authority),
+                        WorldNetMessage::RequestAuthorityTransfer { chunk },
+                    );
+                } else {
+                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                    self.emit_msg(
+                        Destination::Host,
+                        WorldNetMessage::RelinquishAuthority {
+                            chunk,
+                            chunk_data,
+                        },
+                    );
+                }
             }
             WorldNetMessage::RequestAuthorityTransfer { chunk } => {
                 info!("Got a request for authority transfer");
