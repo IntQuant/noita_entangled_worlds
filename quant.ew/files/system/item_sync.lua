@@ -167,8 +167,11 @@ local function send_item_positions()
     local position_data = {}
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
-        local x, y = EntityGetTransform(item)
-        position_data[gid] = {x, y}
+        -- Only send info about items created by us.
+        if string.sub(gid, 1, 16) == ctx.my_id then
+            local x, y = EntityGetTransform(item)
+            position_data[gid] = {x, y}
+        end
     end
     rpc.update_positions(position_data)
 end
@@ -188,9 +191,6 @@ function item_sync.on_world_update_host()
         item_sync.host_localize_item(gid, ctx.my_id)
     end
     remove_client_items_from_world()
-    if GameGetFrameNum() % (60*5) == 31 then
-        send_item_positions()
-    end
 end
 
 function item_sync.on_world_update_client()
@@ -222,6 +222,9 @@ function item_sync.on_world_update()
             local gid = table.remove(pending_remove)
             item_sync.remove_item_with_id_now(gid)
         end
+    end
+    if GameGetFrameNum() % (60*5) == 31 then
+        send_item_positions()
     end
 end
 
