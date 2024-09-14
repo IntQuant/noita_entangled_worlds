@@ -471,7 +471,13 @@ function rpc.handle_enemy_data(enemy_data)
             spawned_by_us[enemy_id] = true
             EntityAddTag(enemy_id, "ew_replicated")
             EntityAddTag(enemy_id, "polymorphable_NOT")
-            EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+            for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
+                local script = ComponentGetValue2(com, "script_damage_received")
+                if script ~= nil and (script == "data/scripts/animals/leader_damage.lua" or script == "data/scripts/animals/giantshooter_death.lua" or script == "data/scripts/animals/blob_damage.lua") then
+                    EntityRemoveComponent(enemy_id, com)
+                end
+            end
+            --EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
             local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
@@ -487,13 +493,6 @@ function rpc.handle_enemy_data(enemy_data)
             for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
                 if phys_component ~= nil and phys_component ~= 0 then
                     ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
-                end
-            end
-
-            for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
-                local script = ComponentGetValue2(com, "script_damage_received")
-                if script ~= nil and (script == "data/scripts/animals/leader_damage.lua" or script == "data/scripts/animals/giantshooter_death.lua") then
-                    EntityRemoveComponent(enemy_id, com)
                 end
             end
 
