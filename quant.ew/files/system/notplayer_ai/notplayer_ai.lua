@@ -7,6 +7,8 @@ local state
 
 local module = {}
 
+local throw_water = false
+
 local function log(...)
     -- GamePrint(...)
 end
@@ -332,14 +334,14 @@ local function aim_at(world_x, world_y)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", 0, 1)
         ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
         return
-    elseif water_potion ~= nil then
+    elseif water_potion ~= nil and not throw_water then
         ComponentSetValue2(state.control_component, "mAimingVector", 0, -312)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", 0, -1)
         ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
         return
     end
 
-    if bad_potion ~= nil then
+    if bad_potion ~= nil or throw_water then
         arc_potion(world_x, world_y)
     else
         local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
@@ -375,7 +377,7 @@ local function fire_wand(enable)
             state.is_pheremoned = 0
         end
     end
-    if bad_potion ~= nil or good_potion ~= nil then
+    if bad_potion ~= nil or good_potion ~= nil or throw_water then
         ComponentSetValue2(state.control_component, "mButtonDownFire", false)
         ComponentSetValue2(state.control_component, "mButtonDownFire2", false)
         if dont_throw then
@@ -826,11 +828,13 @@ local function hold_something()
         do_kick = true
     end
     local douse = needs_douse(ctx.my_player.entity)
-    if water_potion ~= nil and ((state.init_timer >= 90 and not last_did_hit) or not douse) then
+    local target_is_ambrosia = has_ambrosia(target) and not last_did_hit
+    if water_potion ~= nil and (((state.init_timer >= 90 and not last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
         if state.water_potions[1] == nil or not is_potion_of_type(state.water_potions[1], water_mats) then
             table.remove(state.water_potions, 1)
         end
         water_potion = nil
+        throw_water = false
         bathe = false
         do_kick = true
     end
@@ -844,7 +848,7 @@ local function hold_something()
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
     local is_ambrosia = has_ambrosia(ctx.my_player.entity)
-    local has_water_potion = not is_ambrosia and #state.water_potions ~= 0 and douse and (state.init_timer < 90 or last_did_hit)
+    local has_water_potion = (not is_ambrosia or target_is_ambrosia) and #state.water_potions ~= 0 and (douse or target_is_ambrosia) and (state.init_timer < 90 or last_did_hit or target_is_ambrosia)
     local has_bad_potion = not has_water_potion and not is_ambrosia and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
     local has_good_potion = not has_water_potion and not is_ambrosia and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
     if GameGetFrameNum() % 10 == 0 and state.had_potion and #state.bad_potions == 0 and #state.good_potions == 0 then
@@ -869,7 +873,8 @@ local function hold_something()
             water_potion = state.water_potions[1]
             do_kick = true
         end
-        bathe = true
+        throw_water = target_is_ambrosia
+        bathe = not target_is_ambrosia
     elseif (has_bad_potion or bad_potion ~= nil) and  (can_not_tablet or tablet) then
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
