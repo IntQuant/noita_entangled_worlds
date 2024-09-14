@@ -194,16 +194,9 @@ local function find_new_wand()
 end
 
 local function has_pheremoned(entity)
-    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
-        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
-        if com ~= nil then
-            local name = ComponentGetValue2(com, "effect")
-            if name == "CHARM" then
-                return true
-            end
-        end
-    end
-    return false
+    local com = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
+    local stains = ComponentGetValue2(com, "stain_effects")
+    return stains[17] ~= nil and stains[17] >= 0.15
 end
 
 local function has_ambrosia(entity)
@@ -373,11 +366,12 @@ local function fire_wand(enable)
         local damage = EntityGetFirstComponent(ctx.my_player.entity, "DamageModelComponent")
         if state.is_pheremoned >= ComponentGetValue2(damage, "mLastDamageFrame") then
             if has_pheremoned(ctx.my_player.entity) then
-                return
+                enable = false
             else
                 state.is_pheremoned = -120
             end
         else
+            EntityRemoveStainStatusEffect(ctx.my_player.entity, "CHARM")
             state.is_pheremoned = 0
         end
     end
@@ -1061,6 +1055,7 @@ local function update()
         teleport_to_next_hm()
         teleport_outside_cursed()
     end
+    EntityRemoveIngestionStatusEffect(ctx.my_player.entity, "CHARM")
 end
 
 function module.on_world_update()
