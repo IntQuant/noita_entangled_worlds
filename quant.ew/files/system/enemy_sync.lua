@@ -489,6 +489,14 @@ function rpc.handle_enemy_data(enemy_data)
                     ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
                 end
             end
+
+            for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
+                local script = ComponentGetValue2(com, "script_damage_received")
+                if script ~= nil and (script == "data/scripts/animals/leader_damage.lua" or script == "data/scripts/animals/giantshooter_death.lua") then
+                    EntityRemoveComponent(enemy_id, com)
+                end
+            end
+
             -- Make sure stuff doesn't decide to explode on clients by itself.
             local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
             if expl_component ~= nil and expl_component ~= 0 then
