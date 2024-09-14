@@ -61,7 +61,6 @@ end
 local find_by_gid_cache = {}
 function item_sync.find_by_gid(gid)
     if find_by_gid_cache[gid] ~= nil and EntityGetIsAlive(find_by_gid_cache[gid]) then
-        print("find_by_gid: found cached")
         return find_by_gid_cache[gid]
     end
 
@@ -164,6 +163,16 @@ local function remove_client_items_from_world()
     end
 end
 
+local function send_item_positions()
+    local position_data = {}
+    for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
+        local gid = item_sync.get_global_item_id(item)
+        local x, y = EntityGetTransform(item)
+        position_data[gid] = {x, y}
+    end
+    rpc.update_positions(position_data)
+end
+
 function item_sync.on_world_update_host()
     local my_player = ctx.my_player
     if GameGetFrameNum() % 5 == 4 then
@@ -179,6 +188,9 @@ function item_sync.on_world_update_host()
         item_sync.host_localize_item(gid, ctx.my_id)
     end
     remove_client_items_from_world()
+    if GameGetFrameNum() % (60*5) == 31 then
+        send_item_positions()
+    end
 end
 
 function item_sync.on_world_update_client()
@@ -330,6 +342,15 @@ function rpc.item_localize_req(gid)
         return
     end
     item_sync.host_localize_item(gid, ctx.rpc_peer_id)
+end
+
+function rpc.update_positions(position_data)
+    for gid, el in pairs(position_data) do
+        local item = item_sync.find_by_gid(gid)
+        if item ~= nil then
+            EntitySetTransform(item, el[1], el[2])
+        end
+    end
 end
 
 ctx.cap.item_sync = {
