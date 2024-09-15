@@ -28,7 +28,7 @@ modman_downloading = 正在下载Mod
 modman_receiving_rel_info = 正在接收版本信息
 modman_unpacking = 正在解压Mod
 modman_installed = Mod已安装
-modman_will_install_to = 代理将会把Mod安装到:
+modman_will_install_to = noita-proxy将会把Mod安装到:
 modman_another_path = 选择其他路径
 
 player_host = 房主
@@ -43,7 +43,7 @@ version_new_available = 有可用的更新，版本{ $new_version }
 selfupdate = 自动更新
 selfupdate_confirm = 确认更新
 selfupdate_receiving_rel_info = 接收版本信息...
-selfupdate_updated = 代理已更新！立即重启。
+selfupdate_updated = noita-proxy已更新！立即重启。
 selfupdate_unpacking = 正在解压中...
 
 noita_not_yet = 还没准备好，请等待Noita启动。
@@ -59,8 +59,8 @@ ip_connect = 连接至IP
 ip_host = 创建一个服务器
 
 error_occured = 发生错误：
-error_missing_version_field = 大厅没有版本字段。大厅是由旧的代理版本创建的。
-error_version_mismatch = 大厅是由具有不同版本的代理版本创建的：{$remote_version}。当前已安装的版本是{$current_version}。
+error_missing_version_field = 大厅没有版本字段。大厅是由旧的noita-proxy版本创建的。
+error_version_mismatch = 大厅是由具有不同版本的noita-proxy版本创建的：{$remote_version}。当前已安装的版本是{$current_version}。
 error_lobby_does_not_exist = 大厅不存在
 
 launcher_already_started = Noita已启动。
