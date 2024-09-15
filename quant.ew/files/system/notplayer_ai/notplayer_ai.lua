@@ -613,7 +613,7 @@ local function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         else
-            return 8
+            return 6
         end
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
         if y < 1199 then
@@ -627,7 +627,7 @@ local function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         else
-            return 8
+            return 6
         end
     else
         if y < 1199 then
