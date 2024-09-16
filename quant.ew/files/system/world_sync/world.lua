@@ -5,6 +5,8 @@ local world = {}
 local ffi = require("ffi")
 local world_ffi = require("noitapatcher.nsew.world_ffi")
 
+print("get_cell: " .. tostring(world_ffi.get_cell))
+
 local C = ffi.C
 
 ffi.cdef([[
