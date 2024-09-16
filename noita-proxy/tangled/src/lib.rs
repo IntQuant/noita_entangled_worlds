@@ -159,8 +159,6 @@ mod test {
     async fn test_peer() {
         info!("Starting test_peer");
         let settings = Some(Settings {
-            confirm_max_period: Duration::from_millis(100),
-            connection_timeout: Duration::from_millis(1000),
             ..Default::default()
         });
         let addr = "127.0.0.1:56001".parse().unwrap();
@@ -194,8 +192,6 @@ mod test {
     #[test_log::test(tokio::test)]
     async fn test_broadcast() {
         let settings = Some(Settings {
-            confirm_max_period: Duration::from_millis(100),
-            connection_timeout: Duration::from_millis(1000),
             ..Default::default()
         });
         let addr = "127.0.0.1:56002".parse().unwrap();
@@ -233,8 +229,6 @@ mod test {
     #[test_log::test(tokio::test)]
     async fn test_host_has_conn() {
         let settings = Some(Settings {
-            confirm_max_period: Duration::from_millis(100),
-            connection_timeout: Duration::from_millis(1000),
             ..Default::default()
         });
         let addr = "127.0.0.1:56003".parse().unwrap();

@@ -1,23 +1,12 @@
 //! Various common public types.
 
-use std::{fmt::Display, time::Duration};
+use std::fmt::Display;
 
 use bitcode::{Decode, Encode};
 
 /// Per-peer settings. Peers that are connected to the same host, as well as the host itself, should have the same settings.
 #[derive(Debug, Clone)]
-pub struct Settings {
-    /// A single datagram will confirm at most this much messages. Default is 128.
-    pub confirm_max_per_message: usize,
-    /// How much time can elapse before another confirm is sent.
-    /// Confirms are also sent when enough messages are awaiting confirm.
-    /// Note that confirms also double as "heartbeats" and keep the connection alive, so this value should be much less than `connection_timeout`.
-    /// Default: 1 second.
-    pub confirm_max_period: Duration,
-    /// Peers will be disconnected after this much time without any datagrams from them has passed.
-    /// Default: 10 seconds.
-    pub connection_timeout: Duration,
-}
+pub struct Settings {}
 
 /// Tells how reliable a message is.
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Debug)]
@@ -95,11 +84,7 @@ impl Display for PeerId {
 
 impl Default for Settings {
     fn default() -> Self {
-        Self {
-            confirm_max_per_message: 128,
-            confirm_max_period: Duration::from_secs(1),
-            connection_timeout: Duration::from_secs(10),
-        }
+        Self {}
     }
 }
 
