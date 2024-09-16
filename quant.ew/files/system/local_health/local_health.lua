@@ -25,7 +25,7 @@ local function do_switch_effect(short)
         return
     end
     local x, y = EntityGetTransform(ctx.my_player.entity)
-    rpc.switch_effect(x, y)
+    rpc.switch_effect(x, y, short)
     if short then
         LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
     else
@@ -315,8 +315,12 @@ function rpc.send_status(status)
 end
 
 rpc.opts_everywhere()
-function rpc.switch_effect(x, y)
-    EntityLoad("data/entities/particles/image_emitters/magical_symbol_fast.xml", x, y)
+function rpc.switch_effect(x, y, to_normal_player)
+    if to_normal_player then
+        EntityLoad("mods/quant.ew/files/system/local_health/entities/magical_symbol_player.xml", x, y)
+    else
+        EntityLoad("data/entities/particles/image_emitters/magical_symbol_fast.xml", x, y)
+    end
 end
 
 return module
