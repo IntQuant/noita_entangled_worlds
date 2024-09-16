@@ -2,6 +2,7 @@
     tags="shop" >
 
     <HitboxComponent
+        _tags="enabled_in_world"
         aabb_min_x="-5"
         aabb_min_y="-5"
         aabb_max_x="5"
@@ -11,5 +12,9 @@
         is_item="0"
         is_player="0"
         offset.x="0"
-        offset.y="0" />
+        offset.y="0" 
+        />
+
+    <InheritTransformComponent _tags="enabled_in_world"/>
+    <LuaComponent _tags="enabled_in_world" execute_every_n_frame="300" script_source_file="mods/quant.ew/files/system/gen_sync/tmp_shop_script.lua"/>
 </Entity>

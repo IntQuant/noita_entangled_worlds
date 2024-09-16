@@ -44,7 +44,8 @@ local function run_spawn_fn(fn_name, x, y, ...)
         local eid = ret
         ctx.cap.item_sync.globalize(eid, true, ctx.rpc_peer_id)
         local x, y = EntityGetTransform(eid)
-        EntityLoad("mods/quant.ew/files/system/gen_sync/tmp_shop_area.xml", x, y)
+        local minishop = EntityLoad("mods/quant.ew/files/system/gen_sync/tmp_shop_area.xml", x, y)
+        EntityAddChild(eid, minishop)
     end
 end
 
