@@ -42,7 +42,7 @@ local function run_spawn_fn(fn_name, x, y, ...)
     -- Function returns item's entity id.
     if fn_info.kind == "item" then
         local eid = ret
-        ctx.cap.item_sync.globalize(eid, false)
+        ctx.cap.item_sync.globalize(eid, true)
     end
 end
 
