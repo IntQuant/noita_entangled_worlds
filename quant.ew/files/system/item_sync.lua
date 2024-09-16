@@ -110,7 +110,7 @@ function item_sync.host_localize_item(gid, peer_id)
     rpc.item_localize(peer_id, gid)
 end
 
-function item_sync.make_item_global(item, instant)
+function item_sync.make_item_global(item, instant, give_authority_to)
     EntityAddTag(item, "ew_global_item")
     async(function()
         if not instant then
@@ -126,6 +126,9 @@ function item_sync.make_item_global(item, instant)
         local gid
         if gid_component == nil then
             gid = allocate_global_id()
+            if give_authority_to ~= nil then
+                gid = give_authority_to..":"..gid
+            end
             EntityAddComponent2(item, "VariableStorageComponent", {
                 _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
                 value_string = gid,
@@ -317,7 +320,6 @@ end
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
     if is_safe_to_remove() then
-        print("remove in globalize")
         item_sync.remove_item_with_id_now(item_data.gid)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
