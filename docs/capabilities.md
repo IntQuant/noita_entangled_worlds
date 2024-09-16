@@ -27,7 +27,7 @@ Used by:
 ## 'item_sync' capability
 
 Functions:
- - `globalize(entity_id, instantly: bool)`
+ - `globalize(entity_id, instantly: bool | nil, give_authority_to: PeerId | nil)`
  - `register_pickup_handler(fn(local_item_id))`
 
 Provided by:

@@ -24,6 +24,21 @@ local iter_slow = 0
 
 local iter_slow_2 = 0
 
+local function do_benchmark()
+    local world_ffi = require("noitapatcher.nsew.world_ffi")
+    local grid_world = world_ffi.get_grid_world()
+    local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
+    local start = GameGetRealWorldTimeSinceStarted()
+    local iters = 10000
+    for i=1, iters do
+        world.encode_area(chunk_map, 0, 0, 128, 128, encode_area)
+        -- world_ffi.get_cell(chunk_map, 0, 0)
+    end
+    local end_time = GameGetRealWorldTimeSinceStarted()
+    local elapsed = (end_time - start) * 1000 * 1000 * 1000 / (iters * 128 * 128)
+    print("Benchmark:", elapsed, "ns/pixel")
+end
+
 function world_sync.on_world_initialized()
     local c = 0
     while true do
@@ -53,14 +68,18 @@ local function send_chunks(cx, cy, chunk_map)
     end
 end
 
-local function get_all_chunks(ocx, ocy, pos_data, priority)
+local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     --local thread_impl = grid_world.mThreadImpl
     local int = 4 -- ctx.proxy_opt.world_sync_interval
     if GameGetFrameNum() % int == 0 then
         send_chunks(ocx, ocy, chunk_map)
-        net.proxy_bin_send(KEY_WORLD_END, string.char(priority))
+        local pri = priority
+        if give_0 then
+            pri = 0
+        end
+        net.proxy_bin_send(KEY_WORLD_END, string.char(pri))
     elseif GameGetFrameNum() % int == 2 then
         if iter_fast == 0 then
             send_chunks(ocx + 1, ocy, chunk_map)
@@ -163,16 +182,16 @@ function world_sync.on_world_update()
     local pos_data = ocx..":"..ocy..":"..cx..":"..cy
     if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
         if GameGetFrameNum() % 3 ~= 2 then
-            get_all_chunks(cx, cy, pos_data, 16)
+            get_all_chunks(cx, cy, pos_data, 16, false)
         else
-            get_all_chunks(ocx, ocy, pos_data, 16)
+            get_all_chunks(ocx, ocy, pos_data, 16, true)
         end
     else
         local pri = 0
         if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             pri = 16
         end
-        get_all_chunks(ocx, ocy, pos_data, pri)
+        get_all_chunks(ocx, ocy, pos_data, pri, true)
     end
 end
 

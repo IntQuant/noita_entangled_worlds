@@ -42,7 +42,11 @@ local function run_spawn_fn(fn_name, x, y, ...)
     -- Function returns item's entity id.
     if fn_info.kind == "item" then
         local eid = ret
-        ctx.cap.item_sync.globalize(eid, false)
+        ctx.cap.item_sync.globalize(eid, true, ctx.rpc_peer_id)
+        -- Avoid item losing it's cost on host.
+        local x, y = EntityGetTransform(eid)
+        local minishop = EntityLoad("mods/quant.ew/files/system/gen_sync/tmp_shop_area.xml", x, y)
+        EntityAddChild(eid, minishop)
     end
 end
 

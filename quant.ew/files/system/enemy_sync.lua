@@ -313,7 +313,7 @@ function enemy_sync.client_cleanup()
     local frame = GameGetFrameNum()
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
         if frame - enemy_data.frame > 60*1 then
-            print("Despawning stale "..remote_id.." "..enemy_data.id)
+            --print("Despawning stale "..remote_id.." "..enemy_data.id)
             EntityKill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
         end

@@ -21,7 +21,7 @@ use quinn::{
         pki_types::{CertificateDer, PrivatePkcs8KeyDer},
     },
     ClientConfig, ConnectError, Connecting, ConnectionError, Endpoint, Incoming, RecvStream,
-    ServerConfig,
+    ServerConfig, TransportConfig,
 };
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -467,6 +467,10 @@ fn default_server_config() -> ServerConfig {
     let cert_der = CertificateDer::from(cert.cert);
     let priv_key = PrivatePkcs8KeyDer::from(cert.key_pair.serialize_der());
 
-    let config = ServerConfig::with_single_cert(vec![cert_der.clone()], priv_key.into()).unwrap();
+    let mut config =
+        ServerConfig::with_single_cert(vec![cert_der.clone()], priv_key.into()).unwrap();
+    let mut transport_config = TransportConfig::default();
+    transport_config.keep_alive_interval(Some(Duration::from_secs(10)));
+    config.transport_config(Arc::new(transport_config));
     config
 }

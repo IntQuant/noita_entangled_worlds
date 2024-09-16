@@ -221,7 +221,7 @@ local function needs_douse(entity)
     if damage_model ~= nil then
         local hp = ComponentGetValue2(damage_model, "hp")
         local max_hp = ComponentGetValue2(damage_model, "max_hp")
-        if hp / max_hp <= 0.02 then
+        if hp / max_hp <= 0.05 then
             prot_toxic = true
         end
     end
@@ -451,7 +451,17 @@ local function init_state()
         control_a = false,
         control_w = false,
         control_d = false,
+
+        dtype = 0
     }
+    EntityAddComponent2(ctx.my_player.entity, "LuaComponent", {
+        script_damage_received = "mods/quant.ew/files/system/notplayer_ai/damage_tracker.lua"
+    })
+    EntityAddComponent2(ctx.my_player.entity, "VariableStorageComponent", {
+        _tags = "ew_damage_tracker",
+        name = "ew_damage_tracker",
+        value_int = 0,
+    })
 end
 
 local target
@@ -598,6 +608,15 @@ local function choose_movement()
             give_space = 100
         end
     end
+    GamePrint(state.dtype)
+    if state.dtype == 32 then
+        if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
+            give_space = give_space + 10
+        else
+            swap_side = true
+        end
+        state.control_w = false
+    end
 end
 
 local function position_to_area_number(x, y)
@@ -613,7 +632,7 @@ local function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         else
-            return 8
+            return 6
         end
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
         if y < 1199 then
@@ -627,7 +646,7 @@ local function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         else
-            return 8
+            return 6
         end
     else
         if y < 1199 then
@@ -1009,6 +1028,11 @@ end
 local kick_wait = 0
 
 local function update()
+    local var = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "VariableStorageComponent", "ew_damage_tracker")
+    if GameGetFrameNum() % 30 == 0 then
+        ComponentSetValue2(var, "value_int", 0)
+    end
+    state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
 
