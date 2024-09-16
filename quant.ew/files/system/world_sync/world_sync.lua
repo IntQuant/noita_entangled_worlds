@@ -24,6 +24,21 @@ local iter_slow = 0
 
 local iter_slow_2 = 0
 
+local function do_benchmark()
+    local world_ffi = require("noitapatcher.nsew.world_ffi")
+    local grid_world = world_ffi.get_grid_world()
+    local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
+    local start = GameGetRealWorldTimeSinceStarted()
+    local iters = 10000
+    for i=1, iters do
+        world.encode_area(chunk_map, 0, 0, 128, 128, encode_area)
+        -- world_ffi.get_cell(chunk_map, 0, 0)
+    end
+    local end_time = GameGetRealWorldTimeSinceStarted()
+    local elapsed = (end_time - start) * 1000 * 1000 * 1000 / (iters * 128 * 128)
+    print("Benchmark:", elapsed, "ns/pixel")
+end
+
 function world_sync.on_world_initialized()
     local c = 0
     while true do
