@@ -47,7 +47,6 @@ end
 function item_sync.get_global_item_id(item)
     local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     if gid == nil then
-        GamePrint("Item has no gid")
         return "unknown"
     end
     local ret = ComponentGetValue2(gid, "value_string")

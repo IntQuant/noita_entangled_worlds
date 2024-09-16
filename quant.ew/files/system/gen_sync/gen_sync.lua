@@ -43,6 +43,8 @@ local function run_spawn_fn(fn_name, x, y, ...)
     if fn_info.kind == "item" then
         local eid = ret
         ctx.cap.item_sync.globalize(eid, true, ctx.rpc_peer_id)
+        local x, y = EntityGetTransform(eid)
+        EntityLoad("mods/quant.ew/files/system/gen_sync/tmp_shop_area.xml", x, y)
     end
 end
 
