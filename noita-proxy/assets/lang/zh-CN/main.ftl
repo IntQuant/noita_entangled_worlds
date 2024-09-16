@@ -11,7 +11,7 @@ lang_picker = 选择语言(language)
 
 button_confirm = 确认
 button_continue = 继续
-button_retry = Retry
+button_retry = 重试
 button_select_again = 再次选择
 button_back = 返回
 
