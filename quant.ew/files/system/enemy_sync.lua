@@ -302,7 +302,7 @@ function enemy_sync.client_cleanup()
     for i, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
             local filename = EntityGetFilename(enemy_id)
-            print("Despawning unreplicated "..enemy_id.." "..filename)
+            --print("Despawning unreplicated "..enemy_id.." "..filename)
             EntityKill(enemy_id)
         elseif not spawned_by_us[enemy_id] then
             local filename = EntityGetFilename(enemy_id)

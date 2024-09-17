@@ -76,7 +76,7 @@ function module.entity_is_synced(ent_path)
         return entity_is_enemy_cache[ent_path]
     end
 
-    print("Checking if this is an enemy: " .. ent_path)
+    --print("Checking if this is an enemy: " .. ent_path)
 
     local tags = util.load_ents_tags(ent_path)
 
