@@ -4,6 +4,8 @@ use lua_bindings::{lua_State, Lua51};
 
 mod lua_bindings;
 
+mod noita;
+
 static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
     let lib = libloading::Library::new("./lua51.dll").expect("library to exist");
     Lua51::from_library(lib).expect("library to be lua")
