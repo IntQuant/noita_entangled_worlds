@@ -37,6 +37,10 @@ ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/resour
 
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
+np.CrossCallAdd("ew_per_peer_seed", function()
+    return tonumber(ctx.my_id, 16)
+end)
+
 local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
 
@@ -94,6 +98,7 @@ local function load_modules()
     ctx.load_system("spectate")
     ctx.load_system("effect_data_sync")
     ctx.load_system("gen_sync")
+    ctx.load_system("randomize_perks")
 end
 
 local function is_suitable_target(entity)
