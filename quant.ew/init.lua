@@ -98,7 +98,9 @@ local function load_modules()
     ctx.load_system("spectate")
     ctx.load_system("effect_data_sync")
     ctx.load_system("gen_sync")
-    ctx.load_system("randomize_perks")
+    if ctx.proxy_opt.randomize_perks then
+        ctx.load_system("randomize_perks")
+    end
 end
 
 local function is_suitable_target(entity)

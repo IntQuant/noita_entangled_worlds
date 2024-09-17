@@ -437,6 +437,7 @@ impl NetManager {
         state.try_ws_write_option("player_tether", settings.player_tether);
         state.try_ws_write_option("tether_length", settings.tether_length);
         state.try_ws_write_option("item_dedup", settings.item_dedup);
+        state.try_ws_write_option("randomize_perks", settings.randomize_perks);
         state.try_ws_write_option("enemy_hp_scale", settings.enemy_hp_mult);
         state.try_ws_write_option("world_sync_interval", settings.world_sync_interval);
         state.try_ws_write_option("game_mode", settings.game_mode);
