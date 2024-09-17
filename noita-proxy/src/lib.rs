@@ -70,6 +70,7 @@ pub struct GameSettings {
     friendly_fire: bool,
     chunk_target: u32,
     enemy_sync_interval: u32,
+    randomize_perks: bool,
     progress: Vec<String>,
 }
 
@@ -83,6 +84,7 @@ impl Default for GameSettings {
             tether_length: 2048,
             use_constant_seed: false,
             item_dedup: true,
+            randomize_perks: true,
             enemy_hp_mult: 1.0,
             world_sync_interval: 3,
             game_mode: GameMode::LocalHealth,
@@ -658,6 +660,11 @@ impl App {
         ui.checkbox(
             &mut game_settings.item_dedup,
             tr("connect_settings_item_dedup"),
+        );
+        ui.add_space(20.0);
+        ui.checkbox(
+            &mut game_settings.randomize_perks,
+            "have perk pools be independent of each other",
         );
         ui.add_space(20.0);
         ui.add(
