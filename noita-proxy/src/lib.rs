@@ -726,6 +726,10 @@ impl App {
             "noto_sans_jp".to_owned(),
             egui::FontData::from_static(include_bytes!("../assets/font/NotoSansJP-Light.ttf")),
         );
+        font_definitions.font_data.insert(
+            "noto_sans_sc".to_owned(),
+            egui::FontData::from_static(include_bytes!("../assets/font/NotoSansSChinese-Light.ttf")),
+        );
 
         font_definitions
             .families
@@ -749,6 +753,17 @@ impl App {
             .or_default()
             .push("noto_sans_jp".to_owned());
 
+        font_definitions
+            .families
+            .entry(FontFamily::Proportional)
+            .or_default()
+            .push("noto_sans_sc".to_owned());
+        font_definitions
+            .families
+            .entry(FontFamily::Monospace)
+            .or_default()
+            .push("noto_sans_sc".to_owned());
+            
         ctx.set_fonts(font_definitions);
     }
 
