@@ -96,6 +96,7 @@ end
 
 local function serialize_phys_component(phys_component)
     local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
+    px, py = PhysicsPosToGamePos(px, py)
     if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
         return PhysDataNoMotion {
             x = px,
@@ -115,10 +116,11 @@ local function serialize_phys_component(phys_component)
 end
 
 local function deserialize_phys_component(phys_component, phys_info)
+    local x, y = GamePosToPhysicsPos(phys_info.x, phys_info.y)
     if ffi.typeof(phys_info) == PhysDataNoMotion then
-        np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
+        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
     else
-        np.PhysBodySetTransform(phys_component, phys_info.x, phys_info.y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
     end
 end
 
