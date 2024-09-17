@@ -5,7 +5,11 @@ for _, flag in ipairs(util.string_split(ctx.proxy_opt.progress, ",")) do
 end
 
 local function has_flag(flag)
-    return flag_present[flag]
+    return flag_present[flag] == true
+end
+
+function EwHasPersistentFlag(flag)
+    return has_flag(flag)
 end
 
 np.CrossCallAdd("ew_has_flag", has_flag)
