@@ -9,5 +9,6 @@
     "Lua.diagnostics.globals": [
         "wait",
         "async"
-    ]
+    ],
+    "C_Cpp.default.compilerPath": "/usr/bin/clang++"
 }
