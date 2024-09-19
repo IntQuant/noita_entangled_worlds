@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use eframe::egui::{Align, Layout, Ui};
+use eframe::egui::{Align, Button, Color32, Layout, Ui};
 use poll_promise::Promise;
 use reqwest::blocking::Client;
 use tracing::info;
@@ -73,13 +73,13 @@ impl SelfUpdateManager {
                     ui.label(tr("version_latest"));
                 }
                 Some(&Some(VersionCheckResult { newest, ord: _ })) => {
-                    if ui
-                        .small_button(tr_a(
-                            "version_new_available",
-                            &[("new_version", newest.to_string().into())],
-                        ))
-                        .clicked()
-                    {
+                    let button = Button::new(tr_a(
+                        "version_new_available",
+                        &[("new_version", newest.to_string().into())],
+                    ))
+                    .small()
+                    .fill(Color32::RED);
+                    if ui.add(button).clicked() {
                         self.request_update = true;
                     }
                 }
