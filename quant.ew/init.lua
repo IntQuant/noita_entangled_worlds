@@ -38,7 +38,7 @@ ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/resour
 ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 
 np.CrossCallAdd("ew_per_peer_seed", function()
-    return tonumber(string.sub(9, ctx.my_id), 16)
+    return tonumber(string.sub(ctx.my_id, 9), 16)
 end)
 
 local function load_modules()
