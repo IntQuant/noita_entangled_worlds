@@ -81,7 +81,7 @@ local function get_potions_of_type(type)
             local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
             local materials = ComponentGetValue2(mat, "count_per_material_type")
             local total = 0
-            for id, amt in pairs(materials) do
+            for id, amt in pairs(materials or {}) do
                 if amt ~= 0 then
                     local name = CellFactory_GetName(id - 1)
                     local use = false
