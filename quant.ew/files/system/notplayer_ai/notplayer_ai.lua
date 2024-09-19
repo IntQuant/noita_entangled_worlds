@@ -608,7 +608,7 @@ local function choose_movement()
             give_space = 100
         end
     end
-    GamePrint(state.dtype)
+    --GamePrint(state.dtype)
     if state.dtype == 32 then
         if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
             give_space = give_space + 10
