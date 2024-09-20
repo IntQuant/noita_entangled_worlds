@@ -104,6 +104,22 @@ function inventory_helper.serialize_single_item(item)
     return item_data
 end
 
+function inventory_helper.make_item_stealable_later(item)
+    local item_cost_component = util.get_or_create_component(item, "ItemCostComponent")
+    ComponentSetValue2(item_cost_component, "stealable", false)
+    async(function()
+        -- HACK: Wait for ten seconds in case items fall or something before enabling the thing.
+        wait(600)
+        while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
+            wait(30) -- Wait for a while, in case shop hasn't loaded yet.
+            if not EntityGetIsAlive(item) then
+                return
+            end
+        end
+        ComponentSetValue2(item_cost_component, "stealable", true)
+    end)
+end
+
 function inventory_helper.deserialize_single_item(item_data)
     local item
     local x, y = item_data[3], item_data[4]
@@ -146,15 +162,7 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "stealable", false)
         -- Item is stealable
         if item_data.shop_info[2] then
-            async(function()                
-                while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
-                    wait(30) -- Wait for a while, in case shop hasn't loaded yet.
-                    if not EntityGetIsAlive(item) then
-                        return
-                    end
-                end
-                ComponentSetValue2(item_cost_component, "stealable", true)
-            end)
+            inventory_helper.make_item_stealable_later(item)
         end
 
 

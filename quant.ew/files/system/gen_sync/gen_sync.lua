@@ -44,9 +44,7 @@ local function run_spawn_fn(fn_name, x, y, ...)
         local eid = ret
         ctx.cap.item_sync.globalize(eid, true, ctx.rpc_peer_id)
         -- Avoid item losing it's cost on host.
-        local x, y = EntityGetTransform(eid)
-        local minishop = EntityLoad("mods/quant.ew/files/system/gen_sync/tmp_shop_area.xml", x, y)
-        EntityAddChild(eid, minishop)
+        inventory_helper.make_item_stealable_later(eid)
     end
 end
 
