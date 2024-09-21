@@ -42,7 +42,11 @@ local function target()
         elseif camera_target.entity ~= ctx.my_player.entity then
             local audio = EntityGetFirstComponent(camera_target.entity, "AudioListenerComponent")
             local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
-            ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
+            if audio == nil then
+                ComponentSetValue2(audio_n, "z", -60)
+            else
+                ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
+            end
             local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
             EntityRemoveComponent(camera_target.entity, audio)
             if keep_alive ~= nil then

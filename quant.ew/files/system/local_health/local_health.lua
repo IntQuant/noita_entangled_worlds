@@ -247,6 +247,9 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
+            if GameHasFlagRun("ending_game_completed") then
+                return
+            end
             local item_data = inventory_helper.get_item_data(ctx.my_player)
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")

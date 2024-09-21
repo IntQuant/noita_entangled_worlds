@@ -6,6 +6,25 @@ local init = -1
 
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.xml", "<Entity/>")
 
+local function teleport_random()
+    local r = Random(0, 7)
+    local x, y = 6400, 15128
+    if r == 0 then
+        x, y = 6234, 14900
+    elseif r == 1 then
+        x, y = (2 * 6400) - 6234, 14900
+    elseif r == 3 then
+        x, y = 6184, 15170
+    elseif r == 4 then
+        x, y = (2 * 6400) - 6184, 15170
+    elseif r == 5 then
+        x, y = 6296, 15040
+    elseif r == 6 then
+        x, y = (2 * 6400) - 6296, 15040
+    end
+    EntitySetTransform(ctx.my_player.entity, x, y)
+end
+
 function end_fight.on_world_update()
     if GameHasFlagRun("ending_game_completed") then
         if init == -1 then
@@ -21,7 +40,8 @@ function end_fight.on_world_update()
             GamePrintImportant("Fight for the spoils")
             first = false
             init = GameGetFrameNum() + 10
-        elseif init < GameGetFrameNum() then
+            teleport_random()
+        elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then
             local exists = false
             for peer_id, playerdata in pairs(ctx.players) do
                 if peer_id ~= ctx.my_id and not EntityHasTag(playerdata.entity, "ew_notplayer") then
@@ -37,7 +57,7 @@ function end_fight.on_world_update()
                 wait_to_heal = false
             end
             if not exists and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-                if try_kill == GameGetFrameNum() then
+                if try_kill <= GameGetFrameNum() then
                     local x, y = EntityGetTransform(ctx.my_player.entity)
                     EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
                 elseif try_kill == -1 then
