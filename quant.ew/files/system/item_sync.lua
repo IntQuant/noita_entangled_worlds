@@ -165,12 +165,16 @@ local function remove_client_items_from_world()
     end
 end
 
+local function is_my_item(gid)
+    return string.sub(gid, 1, 16) == ctx.my_id
+end
+
 local function send_item_positions()
     local position_data = {}
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
-        if string.sub(gid, 1, 16) == ctx.my_id then
+        if is_my_item(gid) then
             local x, y = EntityGetTransform(item)
             position_data[gid] = {x, y}
         end
@@ -347,12 +351,32 @@ function rpc.item_localize_req(gid)
 end
 
 function rpc.update_positions(position_data)
+    local LIMIT = 1000
+    local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
-        local item = item_sync.find_by_gid(gid)
-        if item ~= nil then
-            EntitySetTransform(item, el[1], el[2])
+        local x, y = el[1], el[2]
+        if math.abs(x - cx) < LIMIT and math.abs(y - cy) < LIMIT then
+            local item = item_sync.find_by_gid(gid)
+            if item ~= nil then
+                EntitySetTransform(item, x, y)
+            else
+                util.log("Requesting again", gid)
+                rpc.request_send_again(gid)
+            end
         end
     end
+end
+
+function rpc.request_send_again(gid)
+    if not is_my_item(gid) then
+        return
+    end
+    local item = item_sync.find_by_gid(gid)
+    if item == nil then
+        util.log("Requested to send item again, but this item wasn't found:", gid)
+        return
+    end
+    item_sync.make_item_global(item)
 end
 
 ctx.cap.item_sync = {

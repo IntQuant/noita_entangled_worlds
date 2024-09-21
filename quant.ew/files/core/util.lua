@@ -276,4 +276,10 @@ function util.make_type(typedata)
     return typ
 end
 
+function util.log(...)
+    if ctx.proxy_opt.debug then
+        GamePrint(...)
+    end
+end
+
 return util
