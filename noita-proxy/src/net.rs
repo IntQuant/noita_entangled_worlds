@@ -555,7 +555,12 @@ impl NetManager {
             // world end
             1 => {
                 let pos = if data.len() > 1 {
-                    Some(data[1..].split(|b| *b == b':').map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0)).collect::<Vec<i32>>())
+                    Some(
+                        data[1..]
+                            .split(|b| *b == b':')
+                            .map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0))
+                            .collect::<Vec<i32>>(),
+                    )
                 } else {
                     None
                 };
