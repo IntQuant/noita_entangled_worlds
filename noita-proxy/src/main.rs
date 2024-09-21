@@ -36,11 +36,12 @@ async fn main() -> Result<(), eframe::Error> {
     };
 
     eframe::run_native(
-        "Noita Proxy",
+        "Noita Proxy", // Don't change that, it defines where settings are stored.
         NativeOptions {
             viewport: ViewportBuilder::default()
                 .with_min_inner_size([800.0, 600.0])
-                .with_icon(icon),
+                .with_icon(icon)
+                .with_title("Noita Entangled Worlds Proxy"),
             follow_system_theme: false,
             ..Default::default()
         },
