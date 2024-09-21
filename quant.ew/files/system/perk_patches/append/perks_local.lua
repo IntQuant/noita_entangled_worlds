@@ -3,4 +3,4 @@ local function hide_perk(perk_id)
     perk_data.not_in_default_perk_pool = true
 end
 
-hide_perk("EXTRA_SHOP_ITEM")
+hide_perk("REVENGE_RATS")

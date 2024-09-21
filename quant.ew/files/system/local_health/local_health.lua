@@ -263,8 +263,10 @@ ctx.cap.health = {
                     end
                 end
                 for _, effect in pairs(status_effects) do
-                    EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
-                    EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+                    if EntityGetIsAlive(ctx.my_player.entity) then
+                        EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
+                        EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+                    end
                 end
                 inventory_helper.set_item_data(item_data, ctx.my_player)
                 remove_inventory_tags()
