@@ -360,8 +360,8 @@ function rpc.update_positions(position_data)
             if item ~= nil then
                 EntitySetTransform(item, x, y)
             else
-                util.log("Requesting again", gid)
-                rpc.request_send_again(gid)
+                -- util.log("Requesting again", gid)
+                -- rpc.request_send_again(gid)
             end
         end
     end
