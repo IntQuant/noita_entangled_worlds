@@ -41,6 +41,7 @@ function end_fight.on_world_update()
             first = false
             init = GameGetFrameNum() + 10
             teleport_random()
+            LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
         elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then
             local exists = false
             for peer_id, playerdata in pairs(ctx.players) do
