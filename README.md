@@ -12,8 +12,7 @@ What is synced as of now:
  - Fungal shifts
  - Polymorphing
 
-There is a video guide/showcase of the mod by Gudyni (in russian): https://www.youtube.com/watch?v=mqSKcDW-epg
-There is also a gameplay video by FuryForged: https://www.youtube.com/watch?v=7QihnJKXMHw
+There is a twitch VOD by nichelessone that showcases a recent version: https://www.twitch.tv/videos/2254946444
 
 Discord server: [https://discord.gg/2vHyEzBZ](https://discord.gg/uAK7utvVWN)
 
