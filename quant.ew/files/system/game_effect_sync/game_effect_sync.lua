@@ -142,6 +142,9 @@ function effect_sync.apply_effects(effects, entity)
             end
         end
         local ent = EntityLoad(name)
+        if not EntityGetIsAlive(entity) then
+            return
+        end
         EntityAddChild(entity, ent)
         local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
         if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
