@@ -19,10 +19,13 @@ local shield_angle = rpc:create_var("shield_angle", function(new_value)
 end)
 
 local function create_shield_for(spectator_peer_id, target_entity)
-    if GameGetIsGamepadConnected() then
+    if GameGetIsGamepadConnected() or GameHasFlagRun("ending_game_completed") then
         return
     end
     local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
+    if not EntityGetIsAlive(target_entity) then
+        return
+    end
     EntityAddChild(target_entity, ent)
     shield_entities[spectator_peer_id] = ent
     if shield_angle.values[spectator_peer_id] ~= nil then

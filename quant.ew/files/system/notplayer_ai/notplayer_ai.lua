@@ -114,6 +114,9 @@ end
 
 local function is_potion_of_type(item, type)
     local mat = EntityGetFirstComponent(item, "MaterialInventoryComponent")
+    if mat == nil then
+        return false
+    end
     local materials = ComponentGetValue2(mat, "count_per_material_type")
     local other = 0
     local water = 0

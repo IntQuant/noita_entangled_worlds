@@ -85,6 +85,9 @@ end
 
 local function reset_cast_state_if_has_any_other_item(player_data)
     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
+    if inventory2Comp == nil then
+        return
+    end
     local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
 
     for k, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_quick") or {}) do
@@ -151,7 +154,7 @@ function net_handling.mod.fire(peer_id, fire_data)
             ComponentSetValue2(controlsComp, "mButtonDownFire", firing)
         end
     end
-    if #player_data.projectile_rng_init > 0 then 
+    if #player_data.projectile_rng_init > 0 then
         -- Shouldn't happen
     end
 end
