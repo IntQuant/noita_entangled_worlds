@@ -611,10 +611,12 @@ impl App {
                     ui.label("The original mode.");
                 }
                 GameMode::LocalHealth => {
-                    ui.label("Every player has their own health, run ends when all player are dead.");
+                    ui.label(
+                        "Every player has their own health, run ends when all player are dead.",
+                    );
                     ui.label("There is a respawn mechanic.");
                 }
-            }            
+            }
         });
 
         ui.add_space(20.0);
@@ -735,7 +737,9 @@ impl App {
         );
         font_definitions.font_data.insert(
             "noto_sans_sc".to_owned(),
-            egui::FontData::from_static(include_bytes!("../assets/font/NotoSansSChinese-Light.ttf")),
+            egui::FontData::from_static(include_bytes!(
+                "../assets/font/NotoSansSChinese-Light.ttf"
+            )),
         );
 
         font_definitions
@@ -770,7 +774,7 @@ impl App {
             .entry(FontFamily::Monospace)
             .or_default()
             .push("noto_sans_sc".to_owned());
-            
+
         ctx.set_fonts(font_definitions);
     }
 
