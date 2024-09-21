@@ -174,7 +174,7 @@ local function send_item_positions()
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
-        if is_my_item(gid) then
+        if is_my_item(gid) and is_item_on_ground(item) then
             local x, y = EntityGetTransform(item)
             position_data[gid] = {x, y}
         end
