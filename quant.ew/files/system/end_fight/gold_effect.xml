@@ -1,0 +1,115 @@
+<Entity name="unknown" >
+	
+	<ParticleEmitterComponent 
+		emitted_material_name="spark_yellow"
+		gravity.y="0.0"
+		lifetime_min="5.5"
+		lifetime_max="25.5"
+		count_min="10"
+		count_max="20"
+		render_on_grid="1"
+		fade_based_on_lifetime="1"
+		area_circle_radius.max="256"
+		cosmetic_force_create="0"
+		airflow_force="0.5"
+		airflow_time="0.01"
+		airflow_scale="0.05"
+		attractor_force="2"
+		emission_interval_min_frames="1"
+		emission_interval_max_frames="1"
+		emit_cosmetic_particles="1"
+		is_emitting="1" >
+	</ParticleEmitterComponent>
+	
+	<ParticleEmitterComponent 
+		emitted_material_name="gold"
+		gravity.y="0.0"
+		lifetime_min="15.5"
+		lifetime_max="25.5"
+		count_min="1"
+		count_max="3"
+		render_on_grid="1"
+		fade_based_on_lifetime="1"
+		area_circle_radius.max="32"
+		cosmetic_force_create="0"
+		airflow_force="0.5"
+		airflow_time="0.01"
+		airflow_scale="0.05"
+		attractor_force="2"
+		emission_interval_min_frames="1"
+		emission_interval_max_frames="1"
+		emit_cosmetic_particles="1"
+		>
+	</ParticleEmitterComponent>
+	
+	<VelocityComponent 
+		gravity_y="0"
+		mass="0.1"
+		>
+	</VelocityComponent>
+	
+	<HomingComponent
+		target_tag="prey"
+		homing_targeting_coeff="30"
+		detect_distance="800"
+		homing_velocity_multiplier="0.9"
+		>
+	</HomingComponent>
+
+  <ProjectileComponent 
+    _enabled="1" 
+    lob_min="1.0"
+    lob_max="1.0"
+    speed_min="80"
+    speed_max="80"
+    friction="0"
+    direction_random_rad="0"
+    on_death_explode="0"
+    on_death_gfx_leave_sprite="0" 
+    on_lifetime_out_explode="0"
+    explosion_dont_damage_shooter="1" 
+    on_collision_die="0"
+    lifetime="180"
+    damage="0"
+    velocity_sets_scale="0"
+    ragdoll_force_multiplier="0"
+    hit_particle_force_multiplier="0"
+    camera_shake_when_shot="0" 
+    bounces_left="0"
+	muzzle_flash_file=""
+    shoot_light_flash_radius="1"
+	knockback_force="0"
+	>
+    <config_explosion
+      never_cache="1" 
+      camera_shake="0" 
+      explosion_radius="0" 
+      explosion_sprite="" 
+      explosion_sprite_lifetime="0" 
+      create_cell_probability="0" 
+      hole_destroy_liquid="0"
+	  explosion_sprite_emissive="0"
+	  explosion_sprite_additive="0"
+      hole_enabled="0" 
+      ray_energy="0"
+      damage="0"
+      particle_effect="0" 
+      damage_mortals="0"
+	  physics_explosion_power.min="0" 
+      physics_explosion_power.max="0"
+	  physics_throw_enabled="0"
+      shake_vegetation="0" 
+      sparks_enabled="0" 
+      stains_enabled="0" 
+      >
+    </config_explosion>
+  </ProjectileComponent>
+  
+  <LuaComponent
+	    execute_on_removed="1"
+	    execute_every_n_frame="-1"
+	    script_source_file="data/entities/animals/boss_centipede/ending/sampo_normal_ending.lua"
+	    remove_after_executed="0">
+  	</LuaComponent>
+</Entity>
+

@@ -488,7 +488,7 @@ local function choose_wand_actions()
         end
         dont_throw = false
         aim_at(t_x, t_y)
-        fire_wand(not last_did_hit and state.init_timer > 90)-- or has_water_potion)
+        fire_wand(not last_did_hit and state.init_timer > 90 and not do_kick)-- or has_water_potion)
         return
     end
     fire_wand(false)
