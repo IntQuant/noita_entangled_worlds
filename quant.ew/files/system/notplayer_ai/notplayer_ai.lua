@@ -426,6 +426,7 @@ local function init_state()
     state = {
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
+        inv_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
         items = items,
 
@@ -619,6 +620,10 @@ local function choose_movement()
     end
 end
 
+local function is_in_box(x1, x2, y1, y2, x, y)
+    return x1 < x and x < x2 and y1 < y and y < y2
+end
+
 local function position_to_area_number(x, y)
     if np.GetGameModeNr() == 2 then
         if y < 1199 then
@@ -631,6 +636,8 @@ local function position_to_area_number(x, y)
             return 4
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
+        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+            return 10
         else
             return 6
         end
@@ -645,6 +652,8 @@ local function position_to_area_number(x, y)
             return 4
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
+        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+            return 10
         else
             return 6
         end
@@ -663,6 +672,8 @@ local function position_to_area_number(x, y)
             return 6
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 7
+        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+            return 10
         else
             return 8
         end
@@ -692,6 +703,10 @@ local function teleport_to_area(area)
                 EntitySetTransform(ctx.my_player.entity, 3244, 13084)
                 wait(30)
                 EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            elseif area == 9 then
+                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
             end
         elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
             if area == 1 then
@@ -714,6 +729,10 @@ local function teleport_to_area(area)
                 EntitySetTransform(ctx.my_player.entity, 3244, 13084)
                 wait(30)
                 EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            elseif area == 9 then
+                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
             end
         else
             if area == 1 then
@@ -744,6 +763,10 @@ local function teleport_to_area(area)
                 EntitySetTransform(ctx.my_player.entity, 3244, 13084)
                 wait(30)
                 EntitySetTransform(ctx.my_player.entity, 3244, 13084)
+            elseif area == 9 then
+                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
+                wait(30)
+                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
             end
         end
     end)
@@ -768,11 +791,11 @@ local function teleport_to_next_hm()
     -- 7th area, y < 12880, exit 3244, 13084
 
     local my_area_num = -1
-    local others_area_num = 9
+    local others_area_num = 100
     for peer_id, player_data in pairs(ctx.players) do
         local player = player_data.entity
         local x, y = EntityGetTransform(player)
-        if x == nil or not (-5646 < x and x < 5120 and -1400 < y and y < 14336) then
+        if x == nil or not (-5646 < x and x < 5120 and -1400 < y and y < 14336) and not is_in_box(5632, 7168, 14336, 15872, x, y) then
             return
         end
         if peer_id == ctx.my_id then
@@ -1035,6 +1058,10 @@ local function update()
     state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
+    ComponentSetValue2(state.inv_component, "mActive", false)
+    if GameHasFlagRun("ending_game_completed") then
+        return
+    end
 
     state.init_timer = state.init_timer + 1
 
@@ -1080,7 +1107,7 @@ local function update()
     local _, y_n = EntityGetTransform(ctx.my_player.entity)
     ComponentSetValue2(state.control_component, "mFlyingTargetY", y_n - 10)
 
-    if (GameGetFrameNum() % 300) == 299 then
+    if (GameGetFrameNum() % 60) == 59 then
         teleport_to_next_hm()
         teleport_outside_cursed()
     end
