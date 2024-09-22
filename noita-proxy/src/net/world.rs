@@ -55,7 +55,13 @@ pub(crate) enum WorldNetMessage {
         chunk_data: Option<ChunkData>,
         priority: u8,
     },
+    // Tell host that someone is losing authority
     RelinquishAuthority {
+        chunk: ChunkCoord,
+        chunk_data: Option<ChunkData>,
+    },
+    // Ttell how to update a chunk storage
+    UpdateStorage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
     },
@@ -175,8 +181,8 @@ impl WorldManager {
         let chunk_storage = save_state.load().unwrap_or_default();
         WorldManager {
             is_host,
-            my_pos: (i32::MIN + 3, i32::MIN + 3),
-            cam_pos: (i32::MIN + 3, i32::MIN + 3),
+            my_pos: (i32::MIN / 2, i32::MIN / 2),
+            cam_pos: (i32::MIN / 2, i32::MIN / 2),
             my_peer_id,
             save_state,
             inbound_model: Default::default(),
@@ -589,12 +595,26 @@ impl WorldManager {
                     self.chunk_state
                         .insert(chunk, ChunkState::authority(priority));
                     self.last_request_priority.remove(&chunk);
+                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                    self.emit_msg(
+                        Destination::Host,
+                        WorldNetMessage::UpdateStorage { chunk, chunk_data },
+                    );
                 } else {
                     let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Host,
-                        WorldNetMessage::RelinquishAuthority { chunk, chunk_data },
+                        WorldNetMessage::UpdateStorage { chunk, chunk_data },
                     );
+                }
+            }
+            WorldNetMessage::UpdateStorage {chunk, chunk_data} => {
+                if !self.is_host {
+                    warn!("{} sent RelinquishAuthority to not-host.", source);
+                    return;
+                }
+                if let Some(chunk_data) = chunk_data {
+                    self.chunk_storage.insert(chunk, chunk_data);
                 }
             }
             WorldNetMessage::RelinquishAuthority { chunk, chunk_data } => {
@@ -807,6 +827,11 @@ impl WorldManager {
                     },
                 );
                 self.last_request_priority.remove(&chunk);
+                let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                self.emit_msg(
+                    Destination::Host,
+                    WorldNetMessage::UpdateStorage { chunk, chunk_data },
+                );
             }
             WorldNetMessage::TransferFailed { chunk } => {
                 warn!("Transfer failed, requesting authority normally");
