@@ -37,7 +37,8 @@ function rpc.send_karl(x, y, vx, vy, t, jet)
         for _, com in ipairs(EntityGetComponent(players_karl, "LuaComponent")) do
             if ComponentGetValue2(com, "script_source_file") == "data/scripts/buildings/racing_cart_move.lua" then
                 EntityRemoveComponent(players_karl, com)
-                break
+            elseif ComponentGetValue2(com, "script_collision_trigger_hit") == "data/scripts/buildings/racing_cart_checkpoint.lua" then
+                EntityRemoveComponent(players_karl, com)
             end
         end
     else
@@ -51,7 +52,7 @@ end
 local function draw_leaderboards_gui()
     GuiStartFrame(gui)
     GuiZSet(gui, 11)
-    
+
     local _w, h = GuiGetScreenDimensions(gui)
     local text_x = 10
     local text_y = h / 5
@@ -83,7 +84,7 @@ function karl.on_world_update()
         local vx, vy = ComponentGetValue2(vel, "mVelocity")
         local jet = ComponentGetIsEnabled(EntityGetFirstComponentIncludingDisabled(my_karl, "SpriteParticleEmitterComponent"))
         rpc.send_karl(x, y, vx, vy, t, jet)
-        
+
         local stopwatch_best = EntityGetClosestWithTag(x, y, "stopwatch_best_lap")
         local com = EntityGetFirstComponentIncludingDisabled(stopwatch_best, "VariableStorageComponent")
         if com ~= nil then
@@ -98,7 +99,7 @@ function karl.on_world_update()
     if x < center_x and center_x < x + w  and y < center_y and center_y < y+h then
         draw_leaderboards_gui()
     end
-    
+
 end
 
 return karl
