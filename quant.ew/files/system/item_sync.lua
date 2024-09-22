@@ -351,7 +351,7 @@ function rpc.item_localize_req(gid)
 end
 
 function rpc.update_positions(position_data)
-    local LIMIT = 1000
+    local LIMIT = 100
     local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
         local x, y = el[1], el[2]
@@ -360,8 +360,8 @@ function rpc.update_positions(position_data)
             if item ~= nil then
                 EntitySetTransform(item, x, y)
             else
-                -- util.log("Requesting again", gid)
-                -- rpc.request_send_again(gid)
+                util.log("Requesting again "..gid)
+                rpc.request_send_again(gid)
             end
         end
     end
@@ -373,7 +373,7 @@ function rpc.request_send_again(gid)
     end
     local item = item_sync.find_by_gid(gid)
     if item == nil then
-        util.log("Requested to send item again, but this item wasn't found:", gid)
+        util.log("Requested to send item again, but this item wasn't found: "..gid)
         return
     end
     item_sync.make_item_global(item)
