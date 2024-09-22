@@ -4,6 +4,16 @@ local karl = {}
 
 local my_karl
 
+function rpc.kill_karl()
+    for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
+        local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
+        if ComponentGetValue2(com, "value_string") == ctx.rpc_peer_id then
+            EntityKill(entity)
+            break
+        end
+    end
+end
+
 function rpc.send_karl(x, y, vx, vy, t, jet)
     local players_karl
     for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
@@ -33,7 +43,10 @@ end
 
 function karl.on_world_update()
     if my_karl == nil or not EntityGetIsAlive(my_karl) then
-        my_karl = nil
+        if my_karl ~= nil and not EntityGetIsAlive(my_karl) then
+            rpc.kill_karl()
+            my_karl = nil
+        end
         if GameGetFrameNum() % 30 == 0 then
             for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
                 local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
