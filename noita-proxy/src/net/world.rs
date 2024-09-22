@@ -153,6 +153,7 @@ pub(crate) struct WorldManager {
     is_host: bool,
     my_pos: (i32, i32),
     cam_pos: (i32, i32),
+    is_notplayer: bool,
     my_peer_id: OmniPeerId,
     save_state: SaveState,
     /// We receive changes from other clients here, intending to send them to Noita.
@@ -183,6 +184,7 @@ impl WorldManager {
             is_host,
             my_pos: (i32::MIN / 2, i32::MIN / 2),
             cam_pos: (i32::MIN / 2, i32::MIN / 2),
+            is_notplayer: false,
             my_peer_id,
             save_state,
             inbound_model: Default::default(),
@@ -219,6 +221,7 @@ impl WorldManager {
         if let Some(data) = pos {
             self.my_pos = (data[0], data[1]);
             self.cam_pos = (data[2], data[3]);
+            self.is_notplayer = data[4] == 1;
         }
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
             debug!("Created entry for {chunk:?}");
@@ -332,14 +335,16 @@ impl WorldManager {
     }
 
     pub(crate) fn update(&mut self) {
-        fn should_kill(my_pos: (i32, i32), cam_pos: (i32, i32), chx: i32, chy: i32) -> bool {
+        fn should_kill(my_pos: (i32, i32), cam_pos: (i32, i32), chx: i32, chy: i32, is_notplayer: bool) -> bool {
             let (x, y) = my_pos;
             let (cx, cy) = cam_pos;
-            if (x - cx).abs() <= 2 && (y - cy).abs() <= 2 {
-                !(chx <= x + 3 && chx >= x - 3 && chy <= y + 3 && chy >= y - 3)
-            } else {
+            if (x - cx).abs() > 2 && (y - cy).abs() > 2 {
                 !(chx <= x + 2 && chx >= x - 2 && chy <= y + 2 && chy >= y - 2)
                     && !(chx <= cx + 2 && chx >= cx - 2 && chy <= cy + 2 && chy >= cy - 2)
+            } else if is_notplayer {
+                !(chx <= x + 2 && chx >= x - 2 && chy <= y + 2 && chy >= y - 2)
+            } else {
+                !(chx <= x + 3 && chx >= x - 3 && chy <= y + 3 && chy >= y - 3)
             }
         }
         let mut emit_queue = Vec::new();
@@ -366,12 +371,12 @@ impl WorldManager {
                 }
                 // This state doesn't have much to do.
                 ChunkState::WaitingForAuthority => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1) {
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
                         *state = ChunkState::UnloadPending;
                     }
                 }
                 ChunkState::Listening { authority, .. } => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1) {
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
                         debug!("Unloading [listening] chunk {chunk:?}");
                         emit_queue.push((
                             Destination::Peer(*authority),
@@ -381,7 +386,7 @@ impl WorldManager {
                     }
                 }
                 ChunkState::Authority { new_authority, .. } => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1) {
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
                         if let Some(new) = new_authority {
                             emit_queue.push((
                                 Destination::Peer(new.0),
@@ -403,7 +408,7 @@ impl WorldManager {
                     }
                 }
                 ChunkState::WantToGetAuth { .. } => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1) {
+                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
                         debug!("Unloading [want to get auth] chunk {chunk:?}");
                         *state = ChunkState::UnloadPending;
                     }

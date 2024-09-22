@@ -5,6 +5,8 @@ local wait_to_heal = false
 local init = -1
 
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.xml", "<Entity/>")
+ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
+ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_chunks.xml", "<Entity/>")
 
 local function teleport_random()
     local r = Random(0, 7)
@@ -28,6 +30,7 @@ end
 function end_fight.on_world_update()
     if GameHasFlagRun("ending_game_completed") then
         if init == -1 then
+            np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
             if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
                 wait_to_heal = true
@@ -66,6 +69,19 @@ function end_fight.on_world_update()
                 end
             else
                 try_kill = -1
+            end
+            for _, player_data in pairs(ctx.players) do
+                local entity = player_data.entity
+                EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
+                EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
+                if EntityHasTag(entity, "ew_notplayer") then
+                    for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
+                        EntitySetComponentIsEnabled(entity, com, false)
+                    end
+                    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+                        EntityKill(child)
+                    end
+                end
             end
         end
     end

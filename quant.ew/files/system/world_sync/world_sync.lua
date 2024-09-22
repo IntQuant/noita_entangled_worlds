@@ -126,7 +126,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
         if iter_slow == 4 then
             iter_slow = 0
         end
-    elseif priority == 0 and GameGetFrameNum() % (int * 3) == 1 then
+    elseif (priority == 0 and not GameHasFlagRun("ending_game_completed")) and GameGetFrameNum() % (int * 3) == 1 then
         if iter_slow_2 == 0 then
             send_chunks(ocx + 3, ocy, chunk_map)
             send_chunks(ocx + 3, ocy + 1, chunk_map)
@@ -179,7 +179,11 @@ function world_sync.on_world_update()
     local px, py = EntityGetTransform(player_data.entity)
     -- Original Chunk x/y
     local ocx, ocy = math.floor(px / CHUNK_SIZE), math.floor(py / CHUNK_SIZE)
-    local pos_data = ocx..":"..ocy..":"..cx..":"..cy
+    local n = 0
+    if EntityHasTag(ctx.my_player.entity, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
+        n = 1
+    end
+    local pos_data = ocx..":"..ocy..":"..cx..":"..cy..":"..n
     if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
         if GameGetFrameNum() % 3 ~= 2 then
             get_all_chunks(cx, cy, pos_data, 16, false)
