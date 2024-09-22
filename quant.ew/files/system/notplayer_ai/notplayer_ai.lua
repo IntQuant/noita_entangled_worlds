@@ -205,16 +205,9 @@ local function has_pheremoned(entity)
 end
 
 local function has_ambrosia(entity)
-    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
-        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
-        if com ~= nil then
-            local name = ComponentGetValue2(com, "effect")
-            if name == "PROTECTION_ALL" then
-                return true
-            end
-        end
-    end
-    return false
+    local com = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
+    local stains = ComponentGetValue2(com, "stain_effects")
+    return stains[24] ~= nil and stains[24] >= 0.15
 end
 
 local function needs_douse(entity)
