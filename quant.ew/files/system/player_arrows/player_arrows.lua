@@ -108,6 +108,9 @@ function module.on_world_update()
             if not is_notplayer and EntityGetIsAlive(player_data.entity) and EntityHasTag(player_data.entity, "polymorphed_player") then
                 goto continue
             end
+            if is_notplayer and GameHasFlagRun("ending_game_completed") then
+                goto continue
+            end
             local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
             local img_path
             if is_host then

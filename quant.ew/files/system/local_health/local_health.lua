@@ -299,7 +299,21 @@ rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.trigger_game_over(message)
     do_game_over(message)
+    for _, player_data in pairs(ctx.players) do
+        local entity = player_data.entity
+        EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
+        EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
+        if EntityHasTag(entity, "ew_notplayer") then
+            for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
+                EntitySetComponentIsEnabled(entity, com, false)
+            end
+            for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+                EntityKill(child)
+            end
+        end
+    end
 end
+
 
 rpc.opts_reliable()
 function rpc.melee_damage_client(target_peer, damage, message)

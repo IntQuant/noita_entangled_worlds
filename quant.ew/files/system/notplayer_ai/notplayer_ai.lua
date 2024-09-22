@@ -201,13 +201,13 @@ end
 local function has_pheremoned(entity)
     local com = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
     local stains = ComponentGetValue2(com, "stain_effects")
-    return stains[17] ~= nil and stains[17] >= 0.15
+    return stains ~= nil and stains[17] ~= nil and stains[17] >= 0.15
 end
 
 local function has_ambrosia(entity)
     local com = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
     local stains = ComponentGetValue2(com, "stain_effects")
-    return stains[24] ~= nil and stains[24] >= 0.15
+    return stains ~= nil and stains[24] ~= nil and stains[24] >= 0.15
 end
 
 local function needs_douse(entity)

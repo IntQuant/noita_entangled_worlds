@@ -92,6 +92,10 @@ function module.on_world_update_client()
             end
             return
         end
+        if GameHasFlagRun("ending_game_completed") then
+            tether_enable(false, host_playerdata.entity)
+            return
+        end
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         local dx = x1-x2
