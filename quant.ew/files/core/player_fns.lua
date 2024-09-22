@@ -433,6 +433,13 @@ function player_fns.peer_get_player_data(peer_id, dont_spawn_new)
     return ctx.players[peer_id]
 end
 
+function player_fns.nickname_of_peer(peer_id)
+    if ctx.players[peer_id] ~= nil then
+        return ctx.players[peer_id].name
+    end
+    return "???"
+end
+
 function player_fns.get_player_data_by_local_entity_id(entity)
     return ctx.player_data_by_local_entity[entity]
 end

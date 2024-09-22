@@ -1,8 +1,12 @@
 local rpc = net.new_rpc_namespace()
 
+local best_times = rpc:create_var("best_times")
+
 local karl = {}
 
 local my_karl
+
+local gui = GuiCreate()
 
 function rpc.kill_karl()
     for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
@@ -44,6 +48,20 @@ function rpc.send_karl(x, y, vx, vy, t, jet)
     ComponentSetValue2(vel, "mVelocity", vx, vy)
 end
 
+local function draw_leaderboards_gui()
+    GuiStartFrame(gui)
+    GuiZSet(gui, 11)
+    
+    local _w, h = GuiGetScreenDimensions(gui)
+    local text_x = 10
+    local text_y = h / 5
+    GuiText(gui, text_x, text_y - 10, "Lap times")
+    for peer_id, peer_time in pairs(best_times.values) do
+        GuiText(gui, text_x, text_y, string.format("%-16s %.02fs", player_fns.nickname_of_peer(peer_id), peer_time/60))
+        text_y = text_y + 10
+    end
+end
+
 function karl.on_world_update()
     if my_karl == nil or not EntityGetIsAlive(my_karl) then
         if my_karl ~= nil and not EntityGetIsAlive(my_karl) then
@@ -65,7 +83,22 @@ function karl.on_world_update()
         local vx, vy = ComponentGetValue2(vel, "mVelocity")
         local jet = ComponentGetIsEnabled(EntityGetFirstComponentIncludingDisabled(my_karl, "SpriteParticleEmitterComponent"))
         rpc.send_karl(x, y, vx, vy, t, jet)
+        
+        local stopwatch_best = EntityGetClosestWithTag(x, y, "stopwatch_best_lap")
+        local com = EntityGetFirstComponentIncludingDisabled(stopwatch_best, "VariableStorageComponent")
+        if com ~= nil then
+            local best_time = ComponentGetValue2(com, "value_int")
+            best_times.set(best_time)
+        end
     end
+
+    -- Center of the race track
+    local center_x, center_y = 3200, 2312
+    local x, y, w, h = GameGetCameraBounds()
+    if x < center_x and center_x < x + w  and y < center_y and center_y < y+h then
+        draw_leaderboards_gui()
+    end
+    
 end
 
 return karl
