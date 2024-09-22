@@ -185,7 +185,7 @@ impl WorldModel {
         info!("World model reset");
     }
 
-    pub(crate) fn apply_chunk_data(&mut self, chunk: ChunkCoord, chunk_data: ChunkData) {
+    pub(crate) fn apply_chunk_data(&mut self, chunk: ChunkCoord, chunk_data: &ChunkData) {
         self.updated_chunks.insert(chunk);
         let chunk = self.chunks.entry(chunk).or_default();
         let mut offset = 0;

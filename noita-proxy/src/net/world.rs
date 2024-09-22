@@ -432,7 +432,7 @@ impl WorldManager {
         if env::var_os("NP_WORLD_SYNC_TEST").is_some() && self.current_update % 10 == 0 {
             let chunk_data = ChunkData::make_random();
             self.inbound_model
-                .apply_chunk_data(ChunkCoord(0, 0), chunk_data)
+                .apply_chunk_data(ChunkCoord(0, 0), &chunk_data)
         }
         let updates = self.inbound_model.get_all_noita_updates();
         self.inbound_model.reset_change_tracking();
@@ -590,7 +590,8 @@ impl WorldManager {
             } => {
                 if self.chunk_state.get(&chunk) != Some(&ChunkState::UnloadPending) {
                     if let Some(chunk_data) = chunk_data {
-                        self.inbound_model.apply_chunk_data(chunk, chunk_data);
+                        self.inbound_model.apply_chunk_data(chunk, &chunk_data);
+                        self.outbound_model.apply_chunk_data(chunk, &chunk_data);
                     }
                     self.chunk_state
                         .insert(chunk, ChunkState::authority(priority));
@@ -608,7 +609,7 @@ impl WorldManager {
                     );
                 }
             }
-            WorldNetMessage::UpdateStorage {chunk, chunk_data} => {
+            WorldNetMessage::UpdateStorage { chunk, chunk_data } => {
                 if !self.is_host {
                     warn!("{} sent RelinquishAuthority to not-host.", source);
                     return;
@@ -690,7 +691,7 @@ impl WorldManager {
                     },
                 );
                 if let Some(chunk_data) = chunk_data {
-                    self.inbound_model.apply_chunk_data(chunk, chunk_data);
+                    self.inbound_model.apply_chunk_data(chunk, &chunk_data);
                 } else {
                     warn!("Initial listen response has None chunk_data. It's generally supposed to have some.");
                 }
@@ -809,7 +810,7 @@ impl WorldManager {
             } => {
                 info!("Transfer ok");
                 if let Some(chunk_data) = chunk_data {
-                    self.inbound_model.apply_chunk_data(chunk, chunk_data);
+                    self.inbound_model.apply_chunk_data(chunk, &chunk_data);
                 }
                 for listener in listeners.iter() {
                     self.emit_msg(
