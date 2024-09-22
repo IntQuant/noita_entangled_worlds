@@ -19,8 +19,11 @@ function rpc.send_karl(x, y, vx, vy, t, jet)
     for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
         local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
         if ComponentGetValue2(com, "value_string") == ctx.rpc_peer_id then
-            players_karl = entity
-            break
+            if players_karl ~= nil then
+                EntityKill(entity)
+            else
+                players_karl = entity
+            end
         end
     end
     if players_karl == nil then
