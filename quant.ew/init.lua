@@ -5,9 +5,6 @@ package.cpath = package.cpath .. ";./mods/quant.ew/?.dll"
 package.path = package.path .. ";./mods/quant.ew/?.lua"
 print(package.cpath)
 
--- ewext = require("ewext")
--- ewext()
-
 dofile_once( "data/scripts/lib/utilities.lua" )
 
 dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
@@ -16,6 +13,8 @@ np.InstallShootProjectileFiredCallbacks()
 np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away...\n")
+
+ewext = require("ewext")
 
 -- Make some stuff global, as it's way too annoying to import each time.
 ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
@@ -42,6 +41,8 @@ np.CrossCallAdd("ew_per_peer_seed", function()
 end)
 
 local function load_modules()
+    ctx.load_system("ewext_init")
+
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
