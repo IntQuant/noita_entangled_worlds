@@ -9,7 +9,7 @@ impl ParticleWorldState {
     pub(crate) unsafe fn get_cell(&self, x: i32, y: i32) -> *const c_void {
         let x = dbg!(x as isize);
         let y = dbg!(y as isize);
-        let chunk_index = dbg!((((((y) >> 9) - 256) & 511) * 512 + ((((x) >> 9) - 256) & 511)) * 4);
+        let chunk_index = (((((y) >> 9) - 256) & 511) * 512 + ((((x) >> 9) - 256) & 511)) * 4;
         let chunk_arr = self.chunk_map_this.offset(8).cast::<*const c_void>().read();
         // dbg!(chunk_arr);
         let chunk = chunk_arr.offset(chunk_index).cast::<*const c_void>().read();
