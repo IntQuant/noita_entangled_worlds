@@ -11,4 +11,11 @@ function module.on_world_initialized()
     ewext.init_particle_world_state(grid_world, chunk_map)
 end
 
+function module.on_local_player_spawn()
+    local pix_p = ewext.get_pixel_pointer(0, 0)
+    -- assert(pix_p ~= 0)
+        -- assert(tonumber(ffi.cast("intptr_t", ppixel)) == pix_p)
+    
+end
+
 return module
