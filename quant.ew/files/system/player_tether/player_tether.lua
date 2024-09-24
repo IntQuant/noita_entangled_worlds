@@ -83,6 +83,17 @@ local no_tether = false
 local tether_length_3 = tether_length_2
 
 function module.on_world_update_client()
+    if GameGetFrameNum() < 60 and GameGetFrameNum() % 6 == 0 then
+        local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+        if host_playerdata.entity ~= nil then
+            local x1, y1 = EntityGetTransform(host_playerdata.entity)
+            local x2, y2 = EntityGetTransform(ctx.my_player.entity)
+            local dx = x1-x2
+            local dy = y1-y2
+            local dist_sq = dx*dx + dy*dy
+            tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
+        end
+    end
     if GameGetFrameNum() % 10 == 7 then
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
