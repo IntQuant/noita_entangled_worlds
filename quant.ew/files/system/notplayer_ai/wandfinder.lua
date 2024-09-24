@@ -44,7 +44,7 @@ function wandfinder.find_attack_wand(dont_do)
         ::continue::
     end
     if largest[1] == -1 then
-        return wands[1]
+        return wands[Random(1, #wands)]
     end
     return largest[1]
 end

@@ -79,6 +79,7 @@ local function allow_notplayer_perk(perk_id)
         ALWAYS_CAST = true,
         EXTRA_SLOTS = true,
         EXTRA_PERK = true,
+        EXTRA_SHOP_ITEM = true,
         FASTER_WANDS = true,
         EXTRA_MANA = true,
         RESPAWN = true,
@@ -87,6 +88,7 @@ local function allow_notplayer_perk(perk_id)
         ESSENCE_LASER = true,
         ESSENCE_FIRE = true,
         ESSENCE_WATER = true,
+        LUKKI_MINION = true,
         FOOD_CLOCK = true, -- TODO, should carry over satiation buff
         TELEPORTITIS = true, -- TODO: teleports to 0,0
         TELEPORTITIS_DODGE = true,
