@@ -73,10 +73,16 @@ local function remove_duplicates(effects)
     for i, effect1 in ipairs(effects) do
         local com1 = EntityGetFirstComponentIncludingDisabled(effect1, "GameEffectComponent")
         local name1 = ComponentGetValue2(com1, "effect")
+        if name1 == "CUSTOM" then
+            name1 = ComponentGetValue2(com1, "custom_effect_id")
+        end
         for j, effect2 in ipairs(effects) do
             if i ~= j and EntityGetIsAlive(effect1) and EntityGetIsAlive(effect2) then
                 local com2 = EntityGetFirstComponentIncludingDisabled(effect2, "GameEffectComponent")
                 local name2 = ComponentGetValue2(com2, "effect")
+                if name2 == "CUSTOM" then
+                    name2 = ComponentGetValue2(com2, "custom_effect_id")
+                end
                 if name1 == name2 then
                     if i < j then
                         EntityKill(effect1)
@@ -107,10 +113,16 @@ function effect_sync.apply_effects(effects, entity)
             np.DeserializeEntity(serialized, effect)
             local com = EntityGetFirstComponentIncludingDisabled(serialized, "GameEffectComponent")
             local effect_name = ComponentGetValue2(com, "effect")
+            if effect_name == "CUSTOM" then
+                effect_name = ComponentGetValue2(com, "custom_effect_id")
+            end
             for _, old_effect in ipairs(old_local_effects) do
                 local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
                 if old_com ~= nil then
                     local old_name = ComponentGetValue2(old_com, "effect")
+                    if old_name == "CUSTOM" then
+                        old_name = ComponentGetValue2(old_com, "custom_effect_id")
+                    end
                     if old_name == effect_name then
                         if ComponentGetValue2(old_com, "frames") ~= -1 then
                             ComponentSetValue2(old_com, "frames", 999999999)
@@ -136,7 +148,11 @@ function effect_sync.apply_effects(effects, entity)
                     if ComponentGetValue2(old_com, "frames") ~= -1 then
                         ComponentSetValue2(old_com, "frames", 999999999)
                     end
-                    table.insert(effect_names, ComponentGetValue2(old_com, "effect"))
+                    local name3 = ComponentGetValue2(old_com, "effect")
+                    if name3 == "CUSTOM" then
+                        name3 = ComponentGetValue2(old_com, "custom_effect_id")
+                    end
+                    table.insert(effect_names, name3)
                     goto continue
                 end
             end
@@ -150,15 +166,23 @@ function effect_sync.apply_effects(effects, entity)
         if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
             ComponentSetValue2(com, "frames", 999999999)
         end
-        table.insert(effect_names, ComponentGetValue2(com, "effect"))
+        local name3 = ComponentGetValue2(com, "effect")
+        if name3 == "CUSTOM" then
+            name3 = ComponentGetValue2(com, "custom_effect_id")
+        end
+        table.insert(effect_names, name3)
         ::continue::
     end
+
 
     local local_effects = effect_sync.get_ent_effects(entity)
     if #local_effects > #effect_names then
         for _, effect in ipairs(local_effects) do
             local com = EntityGetFirstComponentIncludingDisabled(effect, "GameEffectComponent")
             local local_name = ComponentGetValue2(com, "effect")
+            if local_name == "CUSTOM" then
+                local_name = ComponentGetValue2(com, "custom_effect_id")
+            end
             for _, name in ipairs(effect_names) do
                 if name == local_name then
                     goto cont
@@ -166,6 +190,19 @@ function effect_sync.apply_effects(effects, entity)
             end
             EntityKill(effect)
             ::cont::
+        end
+    end
+    local is_on_fire = false
+    for _, name in ipairs(effect_names) do
+        if name == "ON_FIRE" then
+            is_on_fire = true
+        end
+    end
+    if not is_on_fire then
+        local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+        if damage_model ~= nil then
+            ComponentSetValue2(damage_model, "mFireProbability", 0)
+            ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
         end
     end
 end
