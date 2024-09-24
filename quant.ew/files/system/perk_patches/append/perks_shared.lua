@@ -32,3 +32,4 @@ end)
 
 hide_perk("SAVING_GRACE")
 hide_perk("RESPAWN")
+hide_perk("REVENGE_EXPLOSION")
