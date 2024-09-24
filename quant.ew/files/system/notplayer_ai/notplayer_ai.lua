@@ -136,7 +136,7 @@ local function is_potion_of_type(item, type)
             end
         end
     end
-    return water >= other
+    return water >= other and water ~= 0
 end
 
 local do_kick
@@ -867,10 +867,16 @@ local function hold_something()
     end
     local douse = needs_douse(ctx.my_player.entity)
     local target_is_ambrosia = has_ambrosia(target) and not last_did_hit
-    if water_potion ~= nil and (((state.init_timer >= 90 and not last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
-        if state.water_potions[1] == nil or not is_potion_of_type(state.water_potions[1], water_mats) then
-            table.remove(state.water_potions, 1)
+    if state.water_potions[1] == nil or not is_potion_of_type(state.water_potions[1], water_mats) then
+        table.remove(state.water_potions, 1)
+        if water_potion ~= nil then
+            water_potion = nil
+            throw_water = false
+            bathe = false
+            do_kick = true
         end
+    end
+    if water_potion ~= nil and (((state.init_timer >= 90 and not last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
         water_potion = nil
         throw_water = false
         bathe = false
