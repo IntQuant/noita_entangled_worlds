@@ -3,6 +3,7 @@ local first = true
 local try_kill = -1
 local wait_to_heal = false
 local init = -1
+local done = false
 
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.xml", "<Entity/>")
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
@@ -28,7 +29,7 @@ local function teleport_random()
 end
 
 function end_fight.on_world_update()
-    if GameHasFlagRun("ending_game_completed") then
+    if GameHasFlagRun("ending_game_completed") and not done then
         if init == -1 then
             np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
             if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
@@ -64,6 +65,7 @@ function end_fight.on_world_update()
                 if try_kill <= GameGetFrameNum() then
                     local x, y = EntityGetTransform(ctx.my_player.entity)
                     EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
+                    done = true
                 elseif try_kill == -1 then
                     try_kill = GameGetFrameNum() + 180
                 end
