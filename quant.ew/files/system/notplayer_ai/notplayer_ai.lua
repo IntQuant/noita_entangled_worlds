@@ -7,6 +7,8 @@ local state
 
 local module = {}
 
+local no_shoot_time = 100
+
 local throw_water = false
 
 local function log(...)
@@ -484,7 +486,7 @@ local function choose_wand_actions()
         end
         dont_throw = false
         aim_at(t_x, t_y)
-        fire_wand(not last_did_hit and state.init_timer > 90 and not do_kick)-- or has_water_potion)
+        fire_wand(not last_did_hit and state.init_timer > no_shoot_time and not do_kick)-- or has_water_potion)
         return
     end
     fire_wand(false)
@@ -501,7 +503,7 @@ local on_right = false
 local rest = false
 
 local function choose_movement()
-    if target == nil or (has_ambrosia(ctx.my_player.entity) and state.init_timer > 94) then
+    if target == nil or (has_ambrosia(ctx.my_player.entity) and state.init_timer > no_shoot_time + 4) then
         state.control_a = false
         state.control_d = false
         state.control_w = false
@@ -876,7 +878,7 @@ local function hold_something()
             do_kick = true
         end
     end
-    if water_potion ~= nil and (((state.init_timer >= 90 and not last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
+    if water_potion ~= nil and (((state.init_timer >= no_shoot_time and not last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
         water_potion = nil
         throw_water = false
         bathe = false
@@ -892,7 +894,7 @@ local function hold_something()
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
     local is_ambrosia = has_ambrosia(ctx.my_player.entity)
-    local has_water_potion = (not is_ambrosia or target_is_ambrosia) and #state.water_potions ~= 0 and (douse or target_is_ambrosia) and (state.init_timer < 90 or last_did_hit or target_is_ambrosia)
+    local has_water_potion = (not is_ambrosia or target_is_ambrosia) and #state.water_potions ~= 0 and (douse or target_is_ambrosia) and (state.init_timer < no_shoot_time or last_did_hit or target_is_ambrosia)
     local has_bad_potion = not has_water_potion and not is_ambrosia and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
     local has_good_potion = not has_water_potion and not is_ambrosia and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
     if GameGetFrameNum() % 10 == 0 and state.had_potion and #state.bad_potions == 0 and #state.good_potions == 0 then
