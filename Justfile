@@ -3,11 +3,11 @@ extract_steam_redist:
 
 add_dylib_debug: extract_steam_redist
     mkdir noita-proxy/target/debug/ -p
-    cp target/tmp/libsteam_api.so noita-proxy/target/debug/
+    cp redist/libsteam_api.so noita-proxy/target/debug/
 
 add_dylib_release: extract_steam_redist
     mkdir noita-proxy/target/release/ -p
-    cp target/tmp/libsteam_api.so noita-proxy/target/release/
+    cp redist/libsteam_api.so noita-proxy/target/release/
 
 build:
     cd noita-proxy && cargo build
