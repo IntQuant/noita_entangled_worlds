@@ -74,10 +74,13 @@ impl SteamState {
             let friend = friends.get_friend(id);
             friend
                 .small_avatar()
-                .map(|data| {
+                .map(|(width, height, data)| {
                     ctx.load_texture(
                         format!("steam_avatar_for_{:?}", id),
-                        ColorImage::from_rgba_unmultiplied([32, 32], &data),
+                        ColorImage::from_rgba_unmultiplied(
+                            [width as usize, height as usize],
+                            &data,
+                        ),
                         TextureOptions::LINEAR,
                     )
                 })
