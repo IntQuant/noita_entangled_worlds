@@ -25,7 +25,7 @@ serde = { version = "1.0.207", features = ["serde_derive", "derive"] }
 bitcode = "0.6.0"
 lz4_flex = { version = "0.11.3", default-features = false, features = ["std"]}
 rand = "0.8.5"
-steamworks = "0.11.0"
+steamworks = { git = "https://github.com/IntQuant/steamworks-rs" }
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 clipboard = "0.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }
