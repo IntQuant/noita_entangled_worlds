@@ -63,8 +63,6 @@ def get_pull_requests_from(date):
 
 def extract_steam_redist():
     os.makedirs("target/tmp", exist_ok=True)
-    with ZipFile("redist/steam_dylib.zip", "r") as steam_dylib_zip:
-        steam_dylib_zip.extractall("target/tmp")
 
 def make_release_assets():
     print("Compiling Noita Proxy...")
@@ -91,13 +89,13 @@ def make_release_assets():
 
     with ZipFile("target/noita-proxy-win.zip", "w") as release:
         release.write("noita-proxy/target/x86_64-pc-windows-gnu/release-lto/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-        release.write("target/tmp/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing linux release...")
 
     with ZipFile("target/noita-proxy-linux.zip", "w") as release:
         release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release-lto/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-        release.write("target/tmp/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing mod release...")
 
