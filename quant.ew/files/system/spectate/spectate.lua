@@ -22,12 +22,19 @@ local has_switched = false
 
 local function get_me()
     local i = 0
-    for peer_id, _ in pairs(ctx.players) do
-        i = i + 1
-        if peer_id == ctx.my_id then
-            return i
+    local alive = -1, -1
+    for peer_id, potential_target in pairs(ctx.players) do
+        if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+            goto continue
         end
+        i = i + 1
+        alive = peer_id, i
+        if peer_id == ctx.my_id then
+            return peer_id, i
+        end
+        ::continue::
     end
+    return alive
 end
 
 local function target()
@@ -58,7 +65,7 @@ local function target()
         return
     end
     GameSetCameraFree(true)
-    if not EntityGetIsAlive(cam_target.entity) then
+    if cam_target == nil or not EntityGetIsAlive(cam_target.entity) then
         return
     end
     local my_x, my_y = GameGetCameraPos()
@@ -117,6 +124,9 @@ local function set_camera_pos()
     if cam_target == nil or re_cam then
         local i = 0
         for peer_id, potential_target in pairs(ctx.players) do
+            if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+                goto continue
+            end
             i = i + 1
             if i == camera_player then
                 cam_target = potential_target
@@ -125,10 +135,10 @@ local function set_camera_pos()
                 camera_player_id = peer_id
                 break
             end
+            ::continue::
         end
         if cam_target == nil then
-            camera_player = get_me()
-            camera_player_id = ctx.my_id
+            camera_player_id, camera_player = get_me()
             re_cam = true
             set_camera_pos()
         else
@@ -141,22 +151,29 @@ end
 
 local function update_i()
     local i = 0
-    for peer_id, _ in pairs(ctx.players) do
+    for peer_id, potential_target in pairs(ctx.players) do
+        if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+            goto continue
+        end
         i = i + 1
         if peer_id == camera_player_id then
             camera_player = i
             re_cam = true
             return
         end
+        ::continue::
     end
-    camera_player = get_me()
-    camera_player_id = ctx.my_id
+    camera_player_id, camera_player = get_me()
 end
 
 local function number_of_players()
     local i = 0
-    for _, _ in pairs(ctx.players) do
+    for _, potential_target in pairs(ctx.players) do
+        if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+            goto continue
+        end
         i = i + 1
+        ::continue::
     end
     return i
 end
@@ -168,13 +185,11 @@ function spectate.on_world_update()
         was_notplayer = true
     elseif was_notplayer then
         was_notplayer = false
-        camera_player = get_me()
-        camera_player_id = ctx.my_id
+        camera_player_id, camera_player = get_me()
         re_cam = true
     end
     if camera_player == nil then
-        camera_player = get_me()
-        camera_player_id = ctx.my_id
+        camera_player_id, camera_player = get_me()
         re_cam = true
     end
     if last_len == nil then
@@ -183,6 +198,13 @@ function spectate.on_world_update()
     if last_len ~= number_of_players() or (cam_target ~= nil and not EntityGetIsAlive(cam_target.entity)) then
         update_i()
         last_len = number_of_players()
+    end
+    if cam_target ~= nil and GameHasFlagRun("ending_game_completed") and EntityHasTag(cam_target.entity, "ew_notplayer") then
+        update_i()
+        last_len = number_of_players()
+    end
+    if camera_player == -1 then
+        return
     end
 
     if InputIsKeyJustDown(54) or InputIsJoystickButtonJustDown(0, 13) then

@@ -66,7 +66,7 @@ local function is_acceptable_help_target(spectating_over)
     end
     -- No helping notplayers
     local player_data = ctx.players[spectating_over]
-    if player_data.status == nil or not player_data.status.is_alive then
+    if player_data == nil or player_data.status == nil or not player_data.status.is_alive then
         return false
     end
     -- No helping polied players
@@ -82,6 +82,9 @@ function module.on_local_player_polymorphed(_currently_polymorphed)
 end
 
 function module.on_world_update()
+    if GameHasFlagRun("ending_game_completed") then
+        return
+    end
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
         spectating_which.set(ctx.spectating_over_peer_id)

@@ -5,6 +5,7 @@ local wait_to_heal = false
 local init = -1
 local done = false
 local kill_walls = false
+local rpc = net.new_rpc_namespace()
 
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.xml", "<Entity/>")
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
@@ -45,6 +46,11 @@ local function teleport_random()
     EntitySetTransform(ctx.my_player.entity, x, y)
 end
 
+rpc.opts_everywhere()
+function rpc.try_kill(x, y)
+    EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
+end
+
 function end_fight.on_world_update()
     if GameHasFlagRun("ending_game_completed") and not done then
         if kill_walls == GameGetFrameNum() then
@@ -73,7 +79,6 @@ function end_fight.on_world_update()
             LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
             kill_walls = GameGetFrameNum() + 180
         elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then
-            teleport_random()
             local exists = false
             for peer_id, playerdata in pairs(ctx.players) do
                 if peer_id ~= ctx.my_id and not EntityHasTag(playerdata.entity, "ew_notplayer") then
@@ -91,7 +96,7 @@ function end_fight.on_world_update()
             if not exists and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 if try_kill <= GameGetFrameNum() then
                     local x, y = EntityGetTransform(ctx.my_player.entity)
-                    EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
+                    rpc.try_kill(x, y)
                     done = true
                 elseif try_kill == -1 then
                     try_kill = GameGetFrameNum() + 180
