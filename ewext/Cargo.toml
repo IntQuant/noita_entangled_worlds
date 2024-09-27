@@ -12,4 +12,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 libloading = "0.8.5"
-backtrace = "0.3"
+backtrace = "0.3.74"

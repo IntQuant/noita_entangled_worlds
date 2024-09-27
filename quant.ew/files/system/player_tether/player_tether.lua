@@ -6,7 +6,63 @@ local tether_length_2 = tether_length + 128
 
 local module = {}
 
-local function is_in_box(x1, x2, y1, y2, x, y)
+function position_to_area_number(x, y)
+    if np.GetGameModeNr() == 2 then
+        if y < 1199 then
+            return 1
+        elseif y < 3759 then
+            return 2
+        elseif y < 6319 then
+            return 3
+        elseif y < 10415 then
+            return 4
+        elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
+            return 5
+        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+            return 10
+        else
+            return 6
+        end
+    elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
+        if y < 1199 then
+            return 1
+        elseif y < 2735 then
+            return 2
+        elseif y < 6319 then
+            return 3
+        elseif y < 10415 then
+            return 4
+        elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
+            return 5
+        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+            return 10
+        else
+            return 6
+        end
+    else
+        if y < 1199 then
+            return 1
+        elseif y < 2735 then
+            return 2
+        elseif y < 4783 then
+            return 3
+        elseif y < 6319 then
+            return 4
+        elseif y < 8367 then
+            return 5
+        elseif y < 10415 then
+            return 6
+        elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
+            return 7
+        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+            return 10
+        else
+            return 8
+        end
+    end
+end
+
+function is_in_box(x1, x2, y1, y2, x, y)
     return x1 < x and x < x2 and y1 < y and y < y2
 end
 

@@ -309,6 +309,10 @@ function rpc.trigger_game_over(message)
             for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
                 EntitySetComponentIsEnabled(entity, com, false)
             end
+            local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
+            local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
+            EntitySetComponentIsEnabled(entity, suck, false)
+            EntitySetComponentIsEnabled(entity, collision, false)
             for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                 EntityKill(child)
             end

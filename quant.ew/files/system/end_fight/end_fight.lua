@@ -11,6 +11,8 @@ ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.x
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_chunks.xml", "<Entity/>")
 
+local dont_effect = {}
+
 local function teleport_random()
     SetRandomSeed(5, 5)
     local my_num = Random(1,100)
@@ -49,6 +51,7 @@ end
 rpc.opts_everywhere()
 function rpc.try_kill(x, y)
     EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
+    done = true
 end
 
 function end_fight.on_world_update()
@@ -98,24 +101,33 @@ function end_fight.on_world_update()
                     local x, y = EntityGetTransform(ctx.my_player.entity)
                     rpc.try_kill(x, y)
                     done = true
+                    return
                 elseif try_kill == -1 then
                     try_kill = GameGetFrameNum() + 180
                 end
             else
                 try_kill = -1
             end
-            for _, player_data in pairs(ctx.players) do
-                local entity = player_data.entity
-                EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
-                EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
-                if EntityHasTag(entity, "ew_notplayer") then
+        end
+        for _, player_data in pairs(ctx.players) do
+            local entity = player_data.entity
+            EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
+            EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
+            if EntityHasTag(entity, "ew_notplayer") and not table.contains(dont_effect, entity) then
+                table.insert(dont_effect, entity)
+                async(function()
+                    wait(2)
                     for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
                         EntitySetComponentIsEnabled(entity, com, false)
                     end
+                    local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
+                    local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
+                    EntitySetComponentIsEnabled(entity, suck, false)
+                    EntitySetComponentIsEnabled(entity, collision, false)
                     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                         EntityKill(child)
                     end
-                end
+                end)
             end
         end
     end
