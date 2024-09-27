@@ -171,6 +171,9 @@ function module.on_world_update_client()
         end
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
+        if x1 == nil or x2 == nil then
+            return
+        end
         local dx = x1-x2
         local dy = y1-y2
         local dist_sq = dx*dx + dy*dy
