@@ -25,16 +25,16 @@ pub(crate) struct RawPixel {
     pub flags: u8,
 }
 
+struct ByteParser<'a> {
+    data: &'a [u8],
+}
+
 /// Stores a run of pixels.
 /// Not specific to Noita side - length is an actual length
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
 pub struct PixelRun<Pixel> {
     pub length: u32,
     pub data: Pixel,
-}
-
-struct ByteParser<'a> {
-    data: &'a [u8],
 }
 
 /// Converts a normal sequence of pixels to a run-length-encoded one.
