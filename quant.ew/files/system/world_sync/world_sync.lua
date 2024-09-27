@@ -51,6 +51,7 @@ function world_sync.on_world_initialized()
     c = c - 1
     print("Last material id: "..c)
     world.last_material_id = c
+    do_benchmark()
 end
 
 local function send_chunks(cx, cy, chunk_map)

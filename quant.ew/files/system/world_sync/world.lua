@@ -68,11 +68,11 @@ end
 -- @tparam EncodedArea encoded_area memory to use, if nil this function allocates its own memory
 -- @return returns an EncodedArea or nil if the area could not be encoded
 -- @see decode
-function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_area)
-    start_x = ffi.cast('int32_t', start_x)
-    start_y = ffi.cast('int32_t', start_y)
-    end_x = ffi.cast('int32_t', end_x)
-    end_y = ffi.cast('int32_t', end_y)
+function world.encode_area(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
+    start_x = ffi.cast('int32_t', start_x_ini)
+    start_y = ffi.cast('int32_t', start_y_ini)
+    end_x = ffi.cast('int32_t', end_x_ini)
+    end_y = ffi.cast('int32_t', end_y_ini)
 
     encoded_area = encoded_area or world.EncodedArea()
 
@@ -93,6 +93,11 @@ function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_ar
     encoded_area.header.y = start_y
     encoded_area.header.width = width - 1
     encoded_area.header.height = height - 1
+
+    encoded_area.header.pixel_run_count = ewext.encode_area(start_x_ini, start_y_ini, end_x_ini, end_y_ini, tonumber(ffi.cast("intptr_t", encoded_area.pixel_runs)))
+    if true then
+        return encoded_area
+    end
 
     local run_count = 1
 
