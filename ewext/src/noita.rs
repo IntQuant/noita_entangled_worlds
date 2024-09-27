@@ -130,6 +130,12 @@ impl ParticleWorldState {
         end_y: i32,
         pixel_runs: *mut NoitaPixelRun,
     ) -> usize {
+        // Allow compiler to generate better code.
+        assert!(start_x % 128 == 0);
+        assert!(start_y % 128 == 0);
+        assert!((end_x - start_x) <= 128);
+        assert!((end_y - start_y) <= 128);
+
         for y in start_y..end_y {
             for x in start_x..end_x {
                 let mut raw_pixel = RawPixel {
