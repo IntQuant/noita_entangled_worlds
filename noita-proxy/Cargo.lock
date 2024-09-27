@@ -2327,12 +2327,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "paste"
-version = "1.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
-
-[[package]]
 name = "pbkdf2"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3211,11 +3205,10 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "steamworks"
 version = "0.11.0"
-source = "git+https://github.com/IntQuant/steamworks-rs#d765c925e2c481a3e6eb3ecdff12e09dcd618f26"
+source = "git+https://github.com/IntQuant/steamworks-rs?branch=avatar-fix#56c1d4cf9aab3639b3f14daeafa6a32ae8f169ef"
 dependencies = [
  "bitflags 1.3.2",
  "lazy_static",
- "paste",
  "steamworks-sys",
  "thiserror",
 ]
@@ -3223,7 +3216,7 @@ dependencies = [
 [[package]]
 name = "steamworks-sys"
 version = "0.11.0"
-source = "git+https://github.com/IntQuant/steamworks-rs#d765c925e2c481a3e6eb3ecdff12e09dcd618f26"
+source = "git+https://github.com/IntQuant/steamworks-rs?branch=avatar-fix#56c1d4cf9aab3639b3f14daeafa6a32ae8f169ef"
 
 [[package]]
 name = "strict-num"

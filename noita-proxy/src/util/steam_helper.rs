@@ -37,16 +37,15 @@ impl SteamState {
             ));
         }
         let app_id = env::var("NP_APPID").ok().and_then(|x| x.parse().ok());
-        let client = steamworks::Client::init_app(app_id.unwrap_or(881100))?;
+        let (client, single) = steamworks::Client::init_app(app_id.unwrap_or(881100))?;
         client.networking_utils().init_relay_network_access();
         if let Err(err) = client.networking_sockets().init_authentication() {
             error!("Failed to init_authentication: {}", err)
         }
-        let client_c = client.clone();
         thread::spawn(move || {
             info!("Spawned steam callback thread");
             loop {
-                client_c.run_callbacks();
+                single.run_callbacks();
                 thread::sleep(Duration::from_millis(3));
             }
         });
