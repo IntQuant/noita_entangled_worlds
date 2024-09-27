@@ -24,12 +24,21 @@ function rpc.player_update(input_data, pos_data, current_slot)
     end
 end
 
+function rpc.check_gamemode(gamemode)
+    if gamemode ~= np.GetGameModeNr() then
+        GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different gamemode number then you")
+    end
+end
+
 function module.on_world_update()
     local input_data = player_fns.serialize_inputs(ctx.my_player)
     local pos_data =  player_fns.serialize_position(ctx.my_player)
     local current_slot = player_fns.get_current_slot(ctx.my_player)
     if input_data ~= nil and pos_data ~= nil then
         rpc.player_update(input_data, pos_data, current_slot)
+        if GameGetFrameNum() % 60 == 0 then
+            rpc.check_gamemode(np.GetGameModeNr())
+        end
     end
 end
 

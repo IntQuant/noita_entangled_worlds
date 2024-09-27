@@ -622,10 +622,6 @@ local function choose_movement()
     end
 end
 
-local function is_in_box(x1, x2, y1, y2, x, y)
-    return x1 < x and x < x2 and y1 < y and y < y2
-end
-
 local function teleport_to_area(area)
     async(function()
         if np.GetGameModeNr() == 2 then
@@ -741,7 +737,7 @@ local function teleport_to_next_hm()
     for peer_id, player_data in pairs(ctx.players) do
         local player = player_data.entity
         local x, y = EntityGetTransform(player)
-        if x == nil or not (-5646 < x and x < 5120 and -1400 < y and y < 14336) and not is_in_box(5632, 7168, 14336, 15872, x, y) then
+        if x == nil or not_in_normal_area(x, y) then
             return
         end
         if peer_id == ctx.my_id then

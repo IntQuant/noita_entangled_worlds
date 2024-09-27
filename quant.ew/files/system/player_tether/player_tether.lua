@@ -6,16 +6,24 @@ local tether_length_2 = tether_length + 128
 
 local module = {}
 
+function is_in_box(x1, x2, y1, y2, x, y)
+    return x1 < x and x < x2 and y1 < y and y < y2
+end
+
+function not_in_normal_area(x, y)
+    return not (-5646 < x and x < 5120 and -1400 < y and y < 14336) and not is_in_box(5632, 7168, 14336, 15872, x, y)
+end
+
 function position_to_area_number(x, y)
     if np.GetGameModeNr() == 2 then
         if y < 1199 then
-            return 1
+            return 1, 1199
         elseif y < 3759 then
-            return 2
+            return 2, 3759
         elseif y < 6319 then
-            return 3
+            return 3, 6319
         elseif y < 10415 then
-            return 4
+            return 4, 10415
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
@@ -25,13 +33,13 @@ function position_to_area_number(x, y)
         end
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
         if y < 1199 then
-            return 1
+            return 1, 1199
         elseif y < 2735 then
-            return 2
+            return 2, 2735
         elseif y < 6319 then
-            return 3
+            return 3, 6319
         elseif y < 10415 then
-            return 4
+            return 4, 10415
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
@@ -41,17 +49,17 @@ function position_to_area_number(x, y)
         end
     else
         if y < 1199 then
-            return 1
+            return 1, 1199
         elseif y < 2735 then
-            return 2
+            return 2, 2735
         elseif y < 4783 then
-            return 3
+            return 3, 4783
         elseif y < 6319 then
-            return 4
+            return 4, 6319
         elseif y < 8367 then
-            return 5
+            return 5, 8367
         elseif y < 10415 then
-            return 6
+            return 6, 10415
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 7
         elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
@@ -62,8 +70,12 @@ function position_to_area_number(x, y)
     end
 end
 
-function is_in_box(x1, x2, y1, y2, x, y)
-    return x1 < x and x < x2 and y1 < y and y < y2
+local function new_pos(given)
+    if given ~= nil then
+        return -678, given + 149
+    else
+        return 1914, 13119
+    end
 end
 
 local function in_normal_hm(list, x, y)
@@ -138,21 +150,12 @@ local no_tether = false
 
 local tether_length_3 = tether_length_2
 
+local was_in_hm = false
+
 function module.on_world_update_client()
-    if GameGetFrameNum() < 60 and GameGetFrameNum() % 6 == 0 then
-        local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-        if host_playerdata.entity ~= nil then
-            local x1, y1 = EntityGetTransform(host_playerdata.entity)
-            local x2, y2 = EntityGetTransform(ctx.my_player.entity)
-            local dx = x1-x2
-            local dy = y1-y2
-            local dist_sq = dx*dx + dy*dy
-            tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
-        end
-    end
     if GameGetFrameNum() % 10 == 7 then
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-        if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
+        if not no_tether and (host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity)) then
             if host_playerdata ~= nil and host_playerdata.entity ~= nil and EntityGetIsAlive(host_playerdata.entity) then
                 no_tether = true
                 tether_enable(false, host_playerdata.entity)
@@ -160,7 +163,10 @@ function module.on_world_update_client()
             return
         end
         if GameHasFlagRun("ending_game_completed") then
-            tether_enable(false, host_playerdata.entity)
+            if not no_tether then
+                tether_enable(false, host_playerdata.entity)
+                no_tether = true
+            end
             return
         end
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
@@ -168,15 +174,27 @@ function module.on_world_update_client()
         local dx = x1-x2
         local dy = y1-y2
         local dist_sq = dx*dx + dy*dy
-        if x1 ~= nil and x2 ~= nil and not_in_hm(x1, y1) and not_in_hm(x2, y2) then
+        local in_hm = not_in_hm(x1, y1)
+        if x1 ~= nil and x2 ~= nil and in_hm and not_in_hm(x2, y2) then
             if no_tether then
                 tether_enable(true, host_playerdata.entity)
                 no_tether = false
-                tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
-                set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                if not was_in_hm then
+                    tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
+                    set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                end
             end
             if dist_sq > tether_length_3 * tether_length_3 then
-                EntitySetTransform(ctx.my_player.entity, x1, y1)
+                local x, y = x1, y1
+                local my_pos, given = position_to_area_number(x2, y2)
+                if not not_in_normal_area(x, y) and not not_in_normal_area(x2, y2) and position_to_area_number(x, y) > my_pos then
+                    x, y = new_pos(given)
+                end
+                async(function()
+                    EntitySetTransform(ctx.my_player.entity, x, y)
+                    wait(40)
+                    EntitySetTransform(ctx.my_player.entity, x, y)
+                end)
             elseif tether_length_3 > tether_length_2 then
                 tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)
                 set_tether_length(tether_length_3 - 128, host_playerdata.entity)
@@ -185,6 +203,7 @@ function module.on_world_update_client()
             no_tether = true
             tether_enable(false, host_playerdata.entity)
         end
+        was_in_hm = in_hm
     end
 end
 
