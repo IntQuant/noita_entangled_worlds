@@ -27,7 +27,7 @@ struct PixelRun<Pixel> {
 
 /// Copied from proxy.
 /// Converts a normal sequence of pixels to a run-length-encoded one.
-struct PixelRunner<Pixel> {
+pub(crate) struct PixelRunner<Pixel> {
     current_pixel: Option<Pixel>,
     current_run_len: u32,
     runs: Vec<PixelRun<Pixel>>,
@@ -64,14 +64,20 @@ impl<Pixel: Eq + Copy> PixelRunner<Pixel> {
             self.current_run_len = 1;
         }
     }
-    fn build(mut self) -> Vec<PixelRun<Pixel>> {
+    fn build(&mut self) -> &[PixelRun<Pixel>] {
         if self.current_run_len > 0 {
             self.runs.push(PixelRun {
                 length: self.current_run_len,
                 data: self.current_pixel.expect("has current pixel"),
             });
         }
-        self.runs
+        &mut self.runs
+    }
+
+    fn clear(&mut self) {
+        self.current_pixel = None;
+        self.current_run_len = 0;
+        self.runs.clear();
     }
 }
 
@@ -79,6 +85,8 @@ pub(crate) struct ParticleWorldState {
     pub(crate) _world_ptr: *mut c_void,
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
+
+    pub(crate) runner: PixelRunner<RawPixel>,
 }
 
 impl ParticleWorldState {
@@ -115,14 +123,13 @@ impl ParticleWorldState {
     }
 
     pub(crate) unsafe fn encode_area(
-        &self,
+        &mut self,
         start_x: i32,
         start_y: i32,
         end_x: i32,
         end_y: i32,
         pixel_runs: *mut NoitaPixelRun,
     ) -> usize {
-        let mut runner = PixelRunner::default();
         for y in start_y..end_y {
             for x in start_x..end_x {
                 let mut raw_pixel = RawPixel {
@@ -148,12 +155,12 @@ impl ParticleWorldState {
                         ntypes::CellType::Invalid => {}
                     }
                 }
-                runner.put_pixel(raw_pixel);
+                self.runner.put_pixel(raw_pixel);
             }
         }
 
         let mut pixel_runs = pixel_runs;
-        let built_runner = runner.build();
+        let built_runner = self.runner.build();
         let runs = built_runner.len();
         for run in built_runner {
             let noita_pixel_run = pixel_runs.as_mut().unwrap();
@@ -162,6 +169,7 @@ impl ParticleWorldState {
             noita_pixel_run.flags = run.data.flags;
             pixel_runs = pixel_runs.offset(1);
         }
+        self.runner.clear();
         runs
     }
 }
