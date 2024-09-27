@@ -39,6 +39,7 @@ extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
             _world_ptr: world_pointer as *mut c_void,
             chunk_map_ptr: chunk_map_pointer as *mut c_void,
             material_list_ptr: material_list_pointer as _,
+            runner: Default::default(),
         });
     });
     0
@@ -52,8 +53,8 @@ extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
     let encoded_buffer = unsafe { LUA.lua_tointeger(lua, 5) } as *mut NoitaPixelRun;
 
     STATE.with(|state| {
-        let state = state.borrow_mut();
-        let pws = state.particle_world_state.as_ref().unwrap();
+        let mut state = state.borrow_mut();
+        let pws = state.particle_world_state.as_mut().unwrap();
         let runs = unsafe { pws.encode_area(start_x, start_y, end_x, end_y, encoded_buffer) };
         unsafe { LUA.lua_pushinteger(lua, runs as isize) };
     });
