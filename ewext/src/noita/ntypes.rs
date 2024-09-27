@@ -1,6 +1,6 @@
 // Type defs borrowed from NoitaPatcher.
 
-use std::ffi::{c_char, c_void};
+use std::ffi::c_char;
 
 pub(crate) const CELLDATA_SIZE: isize = 0x290;
 
@@ -15,6 +15,7 @@ pub(crate) struct StdString {
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[expect(dead_code)]
 pub(crate) enum CellType {
     None = 0,
     Liquid = 1,

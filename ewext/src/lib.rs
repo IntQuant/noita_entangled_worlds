@@ -36,25 +36,12 @@ extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
 
     STATE.with(|state| {
         state.borrow_mut().particle_world_state = Some(ParticleWorldState {
-            world_ptr: world_pointer as *mut c_void,
+            _world_ptr: world_pointer as *mut c_void,
             chunk_map_ptr: chunk_map_pointer as *mut c_void,
             material_list_ptr: material_list_pointer as _,
         });
     });
     0
-}
-
-extern "C" fn get_pixel_pointer(lua: *mut lua_State) -> c_int {
-    let x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
-    let y = unsafe { LUA.lua_tointeger(lua, 2) } as i32;
-
-    STATE.with(|state| {
-        let state = state.borrow_mut();
-        let pws = state.particle_world_state.as_ref().unwrap();
-        // let pixel_pointer = pws.get_cell_raw(x, y);
-        // unsafe { LUA.lua_pushinteger(lua, pixel_pointer as isize) };
-    });
-    1
 }
 
 extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
@@ -81,8 +68,6 @@ pub extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         LUA.lua_pushcclosure(lua, Some(init_particle_world_state), 0);
         LUA.lua_setfield(lua, -2, c"init_particle_world_state".as_ptr());
-        // LUA.lua_pushcclosure(lua, Some(get_pixel_pointer), 0);
-        // LUA.lua_setfield(lua, -2, c"get_pixel_pointer".as_ptr());
         LUA.lua_pushcclosure(lua, Some(encode_area), 0);
         LUA.lua_setfield(lua, -2, c"encode_area".as_ptr());
     }

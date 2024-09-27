@@ -84,8 +84,8 @@ function world.encode_area(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y
         return nil
     end
 
-    if width > 256 or height > 256 then
-        print("Invalid world part, dimension greater than 256")
+    if width > 128 or height > 128 then
+        print("Invalid world part, dimension greater than 128")
         return nil
     end
 
@@ -95,78 +95,6 @@ function world.encode_area(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y
     encoded_area.header.height = height - 1
 
     encoded_area.header.pixel_run_count = ewext.encode_area(start_x_ini, start_y_ini, end_x_ini, end_y_ini, tonumber(ffi.cast("intptr_t", encoded_area.pixel_runs)))
-    if true then
-        return encoded_area
-    end
-
-    local run_count = 1
-
-    local current_run = encoded_area.pixel_runs[0]
-    local run_length = 0
-    local current_material = 0
-    local current_flags = 0
-
-    local y = start_y
-    while y < end_y do
-        local x = start_x
-        while x < end_x do
-            local material_number = 0
-            local flags = 0
-
-            local ppixel = world_ffi.get_cell(chunk_map, x, y)
-            local pixel = ppixel[0]
-            if pixel ~= nil then
-                local cell_type = pixel.vtable.get_cell_type(pixel)
-
-                if cell_type ~= C.CELL_TYPE_SOLID then
-                    local material_ptr = pixel.vtable.get_material(pixel)
-                    material_number = world_ffi.get_material_id(material_ptr)
-                end
-
-                if cell_type == C.CELL_TYPE_LIQUID then
-                    local liquid_cell = ffi.cast(pliquid_cell, pixel)
-                    if liquid_cell.is_static then
-                        flags = bit.bor(flags, C.LIQUID_FLAG_STATIC)
-                    end
-                end
-            end
-
-            if x == start_x and y == start_y then
-                -- Initial run
-                current_material = material_number
-                current_flags = flags
-            elseif current_material ~= material_number or current_flags ~= flags then
-                -- Next run
-                current_run.length = run_length - 1
-                current_run.material = current_material
-                current_run.flags = current_flags
-
-                if run_count == C.PIXEL_RUN_MAX then
-                    print("Area too complicated to encode")
-                    return nil
-                end
-
-                current_run = encoded_area.pixel_runs[run_count]
-                run_count = run_count + 1
-
-                run_length = 0
-                current_material = material_number
-                current_flags = flags
-            end
-
-            run_length = run_length + 1
-
-            x = x + 1
-        end
-        y = y + 1
-    end
-
-    current_run.length = run_length - 1
-    current_run.material = current_material
-    current_run.flags = current_flags
-
-    encoded_area.header.pixel_run_count = run_count
-
     return encoded_area
 end
 
