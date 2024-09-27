@@ -1,4 +1,4 @@
-use std::{ffi::c_void, mem, ptr::null};
+use std::{ffi::c_void, mem};
 
 mod ntypes;
 
@@ -76,7 +76,7 @@ impl<Pixel: Eq + Copy> PixelRunner<Pixel> {
 }
 
 pub(crate) struct ParticleWorldState {
-    pub(crate) world_ptr: *mut c_void,
+    pub(crate) _world_ptr: *mut c_void,
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
 }
