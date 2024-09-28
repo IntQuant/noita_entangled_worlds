@@ -2,7 +2,7 @@ use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
 };
-use noita_proxy::{args::Args, recorder::replay_file, start_cli, App};
+use noita_proxy::{args::Args, recorder::replay_file, connect_cli, host_cli, App};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -24,9 +24,15 @@ async fn main() {
     if let Some(replay) = args.replay_folder {
         replay_file(replay)
     }
-    else if let Some(lobby) = args.lobby
-    {
-        start_cli(lobby)
+    else if let Some(host) = args.host {
+        let port = if host.to_ascii_lowercase() == "steam" {
+            0
+        } else {
+            host.parse::<u16>().unwrap_or(5123)
+        };
+        host_cli(port)
+    } else if let Some(lobby) = args.lobby {
+        connect_cli(lobby)
     } else {
         let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
             .unwrap()

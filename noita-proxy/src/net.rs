@@ -168,7 +168,7 @@ impl NetManager {
         create_dir(tmp).unwrap();
     }
 
-    pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf) -> io::Result<()> {
+    pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf, mut cli: bool) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
         if !self.init_settings.cosmetics.0 {
             File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
@@ -235,6 +235,12 @@ impl NetManager {
             ),
         );
         while self.continue_running.load(atomic::Ordering::Relaxed) {
+            if cli {
+                if let Some(n) = self.peer.lobby_id() {
+                    println!("Lobby ID: {}", n.raw());
+                    cli = false
+                }
+            }
             if self.end_run.load(atomic::Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {
                     self.send(id, &NetMsg::EndRun, Reliability::Reliable);
@@ -501,7 +507,7 @@ impl NetManager {
     pub fn start(self: Arc<NetManager>, player_path: PathBuf) -> JoinHandle<()> {
         info!("Starting netmanager");
         thread::spawn(move || {
-            let result = self.clone().start_inner(player_path);
+            let result = self.clone().start_inner(player_path, false);
             if let Err(err) = result {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);

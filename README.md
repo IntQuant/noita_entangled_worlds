@@ -51,6 +51,11 @@ After that, just start a new Noita game on everyone's PCs, and you should be in 
 
 can also connect via cli, just run `noita_proxy --lobby [steam_code/ip and port]`
 
+
+## Cli host
+
+can also host via cli, just run `noita_proxy --host [steam/port]`, "--host steam" will host a steam game and "--host 5123" or any port will host via ip at that port
+
 ## Connecting via steam without steam version of game
 
 to connect via steam without the steam version of game, since its more stable you can do the following

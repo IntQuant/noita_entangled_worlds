@@ -17,4 +17,7 @@ pub struct Args {
     /// steam lobby code.
     #[argh(option)]
     pub lobby: Option<String>,
+    /// host either steam or ip.
+    #[argh(option)]
+    pub host: Option<String>,
 }

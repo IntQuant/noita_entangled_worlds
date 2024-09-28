@@ -1187,8 +1187,7 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
     }
 }
 
-pub fn start_cli(lobby: String)
-{
+fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
     let mut state = steam_helper::SteamState::new().unwrap();
     let my_nickname = Some(state.get_user_name(state.get_my_id()));
     let mut mod_manager = ModmanagerSettings{game_exe_path: PathBuf::new(), game_save_path: Some(PathBuf::new())};
@@ -1222,8 +1221,13 @@ pub fn start_cli(lobby: String)
         player_color: PlayerColor::default(),
         cosmetics,
         mod_path: mod_manager.mod_path(),
-        player_path: player_path.clone(),
+        player_path,
     };
+    (state, netmaninit)
+}
+
+pub fn connect_cli(lobby: String) {
+    let (state, netmaninit) = cli_setup();
     let varient = if lobby.contains('.')
     {
         PeerVariant::Tangled(Peer::connect(SocketAddr::from_str(&lobby).unwrap(), None).unwrap())
@@ -1234,6 +1238,26 @@ pub fn start_cli(lobby: String)
         );
         PeerVariant::Steam(peer)
     };
+    let player_path = netmaninit.player_path.clone();
     let netman = net::NetManager::new(varient, netmaninit);
-    netman.clone().start_inner(player_path).unwrap();
+    netman.clone().start_inner(player_path, true).unwrap();
+}
+
+pub fn host_cli(port: u16) {
+    let (state, netmaninit) = cli_setup();
+    let varient = if port != 0
+    {
+        let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
+        let peer = Peer::host(bind_addr, None).unwrap();
+        PeerVariant::Tangled(peer)
+    } else {
+        let peer = net::steam_networking::SteamPeer::new_host(
+            steamworks::LobbyType::Private,
+            state.client,
+        );
+        PeerVariant::Steam(peer)
+    };
+    let player_path = netmaninit.player_path.clone();
+    let netman = net::NetManager::new(varient, netmaninit);
+    netman.clone().start_inner(player_path, true).unwrap();
 }
