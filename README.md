@@ -1,5 +1,7 @@
 ## Noita Entangled Worlds - Play Noita not alone
 
+[<img src="https://img.shields.io/liberapay/patrons/bgkillas.svg?logo=liberapay">](https://liberapay.com/bgkillas/) for one of the 2 devs, the other dev does not have the means for donations due to his residence
+
 Noita Entangled Worlds is an experimental mod for Noita that aims to make a true coop multiplayer possible.
 
 What is synced as of now:
