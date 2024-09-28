@@ -90,7 +90,7 @@ function module.on_world_update()
         spectating_which.set(ctx.spectating_over_peer_id)
         if GameGetFrameNum() % 6 == 3 then
             local x,y = DEBUG_GetMouseWorld()
-            local cx, cy = GameGetCameraPos()
+            local cx, cy = EntityGetTransform(ctx.players[ctx.spectating_over_peer_id].entity)
             local dx, dy = x - cx, y - cy
             local angle = math.atan2(dy, dx)
             shield_angle.set(angle)
