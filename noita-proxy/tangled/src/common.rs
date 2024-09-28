@@ -5,7 +5,7 @@ use std::fmt::Display;
 use bitcode::{Decode, Encode};
 
 /// Per-peer settings. Peers that are connected to the same host, as well as the host itself, should have the same settings.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Settings {}
 
 /// Tells how reliable a message is.
@@ -79,12 +79,6 @@ impl PeerId {
 impl Display for PeerId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {}
     }
 }
 

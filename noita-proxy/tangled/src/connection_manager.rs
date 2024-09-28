@@ -305,7 +305,7 @@ impl ConnectionManager {
                     .expect("channel to be open");
                 self.shared
                     .remote_peers
-                    .insert(peer_id, RemotePeer::default());
+                    .insert(peer_id, RemotePeer);
                 if self.is_server {
                     self.server_broadcast_internal_message(
                         PeerId::HOST,

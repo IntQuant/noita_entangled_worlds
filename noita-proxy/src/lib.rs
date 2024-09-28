@@ -122,7 +122,7 @@ enum AppState {
     Connect,
     ModManager,
     TangledConnecting {
-        peer: tangled::Peer,
+        peer: Peer,
     },
     Netman {
         netman: NetManStopOnDrop,
@@ -1240,7 +1240,7 @@ pub fn connect_cli(lobby: String) {
     };
     let player_path = netmaninit.player_path.clone();
     let netman = net::NetManager::new(varient, netmaninit);
-    netman.clone().start_inner(player_path, true).unwrap();
+    netman.start_inner(player_path, true).unwrap();
 }
 
 pub fn host_cli(port: u16) {
@@ -1259,5 +1259,5 @@ pub fn host_cli(port: u16) {
     };
     let player_path = netmaninit.player_path.clone();
     let netman = net::NetManager::new(varient, netmaninit);
-    netman.clone().start_inner(player_path, true).unwrap();
+    netman.start_inner(player_path, true).unwrap();
 }

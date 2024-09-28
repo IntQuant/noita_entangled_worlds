@@ -6,6 +6,7 @@ use noita_proxy::{args::Args, recorder::replay_file, connect_cli, host_cli, App}
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
+#[allow(clippy::needless_return)]
 #[tokio::main(worker_threads = 2)]
 async fn main() {
     let my_subscriber = tracing_subscriber::FmtSubscriber::builder()

@@ -38,7 +38,7 @@ impl Peer {
         let connection_manager = ConnectionManager::new(host_addr, settings, bind_addr)?;
         let shared = connection_manager.shared();
         if host_addr.is_none() {
-            shared.remote_peers.insert(PeerId(0), RemotePeer::default());
+            shared.remote_peers.insert(PeerId(0), RemotePeer);
             shared
                 .inbound_channel
                 .0
@@ -158,9 +158,7 @@ mod test {
     #[test_log::test(tokio::test)]
     async fn test_peer() {
         info!("Starting test_peer");
-        let settings = Some(Settings {
-            ..Default::default()
-        });
+        let settings: Option<Settings> = Some(Default::default());
         let addr = "127.0.0.1:56001".parse().unwrap();
         let host = Peer::host(addr, settings.clone()).unwrap();
         assert_eq!(host.shared.remote_peers.len(), 1);
@@ -191,9 +189,7 @@ mod test {
 
     #[test_log::test(tokio::test)]
     async fn test_broadcast() {
-        let settings = Some(Settings {
-            ..Default::default()
-        });
+        let settings: Option<Settings> = Some(Default::default());
         let addr = "127.0.0.1:56002".parse().unwrap();
         let host = Peer::host(addr, settings.clone()).unwrap();
         assert_eq!(host.shared.remote_peers.len(), 1);
@@ -228,9 +224,7 @@ mod test {
 
     #[test_log::test(tokio::test)]
     async fn test_host_has_conn() {
-        let settings = Some(Settings {
-            ..Default::default()
-        });
+        let settings: Option<Settings> = Some(Default::default());
         let addr = "127.0.0.1:56003".parse().unwrap();
         let host = Peer::host(addr, settings.clone()).unwrap();
         tokio::time::sleep(Duration::from_millis(10)).await;
