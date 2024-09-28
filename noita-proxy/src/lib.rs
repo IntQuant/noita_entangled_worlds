@@ -31,6 +31,7 @@ use std::{
     time::Duration,
 };
 use std::{net::IpAddr, path::PathBuf};
+use std::str::FromStr;
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -46,7 +47,7 @@ use crate::player_cosmetics::{
     player_skin_display_color_picker, shift_hue,
 };
 pub use bookkeeping::{mod_manager, releases, self_update};
-mod net;
+pub mod net;
 mod player_cosmetics;
 pub mod recorder;
 
@@ -1184,4 +1185,55 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
     } else {
         tr("player_player")
     }
+}
+
+pub fn start_cli(lobby: String)
+{
+    let mut state = steam_helper::SteamState::new().unwrap();
+    let my_nickname = Some(state.get_user_name(state.get_my_id()));
+    let mut mod_manager = ModmanagerSettings{game_exe_path: PathBuf::new(), game_save_path: Some(PathBuf::new())};
+    mod_manager.try_find_game_path(Some(&mut state));
+    mod_manager.try_find_save_path();
+    let run_save_state = if let Ok(path) = std::env::current_exe() {
+        SaveState::new(path.parent().unwrap().join("save_state"))
+    } else {
+        SaveState::new("./save_state/".into())
+    };
+    let player_path = player_path(mod_manager.mod_path());
+    let mut cosmetics = (false, false, false);
+    if let Some(path) = &mod_manager.game_save_path {
+        let flags = path.join("save00/persistent/flags");
+        let hat = flags.join("secret_hat").exists();
+        let amulet = flags.join("secret_amulet").exists();
+        let gem = flags.join("secret_amulet_gem").exists();
+        if !hat {
+            cosmetics.0 = false
+        }
+        if !amulet {
+            cosmetics.1 = false
+        }
+        if !gem {
+            cosmetics.2 = false
+        }
+    }
+    let netmaninit = NetManagerInit {
+        my_nickname,
+        save_state: run_save_state,
+        player_color: PlayerColor::default(),
+        cosmetics,
+        mod_path: mod_manager.mod_path(),
+        player_path: player_path.clone(),
+    };
+    let varient = if lobby.contains('.')
+    {
+        PeerVariant::Tangled(Peer::connect(SocketAddr::from_str(&lobby).unwrap(), None).unwrap())
+    } else {
+        let peer = net::steam_networking::SteamPeer::new_connect(
+            lobby.trim().parse().map(LobbyId::from_raw).unwrap(),
+            state.client,
+        );
+        PeerVariant::Steam(peer)
+    };
+    let netman = net::NetManager::new(varient, netmaninit);
+    netman.clone().start_inner(player_path).unwrap();
 }

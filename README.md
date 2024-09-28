@@ -46,6 +46,17 @@ After that, just start a new Noita game on everyone's PCs, and you should be in 
 
 [The mods listed here](https://docs.google.com/spreadsheets/d/1nMdqzrLCav_diXbNPB9RgxPcCQzDPgXdEv-klKWJyS0) have been tested by the community, it is publically editable so please add any untested mod with your findings
 
+
+## Cli connect
+
+can also connect via cli, just run `noita_proxy --lobby [steam_code/ip and port]`
+
+## Connecting via steam without steam version of game
+
+to connect via steam without the steam version of game, since its more stable you can do the following
+
+on all clients run the game with the NP_APPID=480 environemental variable, you can do that by making a bat/bash file to set that before running the executable
+
 ## Thanks
 
 Special thanks to:

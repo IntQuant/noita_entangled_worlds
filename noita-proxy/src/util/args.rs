@@ -14,4 +14,7 @@ pub struct Args {
     /// path to crashcatcher's replay folder.
     #[argh(option)]
     pub replay_folder: Option<PathBuf>,
+    /// steam lobby code.
+    #[argh(option)]
+    pub lobby: Option<String>,
 }

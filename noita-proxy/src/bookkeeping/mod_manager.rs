@@ -61,7 +61,7 @@ pub struct ModmanagerSettings {
 }
 
 impl ModmanagerSettings {
-    fn try_find_game_path(&mut self, steam_state: Option<&mut SteamState>) {
+    pub fn try_find_game_path(&mut self, steam_state: Option<&mut SteamState>) {
         info!("Trying to find game path");
         if let Some(state) = steam_state {
             let apps = state.client.apps();
@@ -79,7 +79,7 @@ impl ModmanagerSettings {
         }
     }
 
-    fn try_find_save_path(&mut self) {
+    pub fn try_find_save_path(&mut self) {
         if cfg!(target_os = "windows") {
             // Noita uses AppData folder instead of %AppData%
             let appdata_path = PathBuf::from(

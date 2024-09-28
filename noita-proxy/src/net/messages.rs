@@ -18,7 +18,7 @@ pub(crate) struct MessageRequest<T> {
 }
 
 #[derive(Debug, Decode, Encode)]
-pub enum NetMsg {
+pub(crate) enum NetMsg {
     Welcome,
     EndRun,
     StartGame { settings: GameSettings },
