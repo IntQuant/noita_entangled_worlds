@@ -43,6 +43,9 @@ function module.on_should_send_updates()
 end
 
 local function update_essences_on(player_data)
+    if not EntityGetIsAlive(player_data.entity) then
+        return
+    end
     local essence_effects = EntityGetAllChildren(player_data.entity, "essence_effect") or {}
     for _, essence in ipairs(essence_effects) do
         EntityRemoveFromParent(essence)
