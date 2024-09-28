@@ -110,3 +110,8 @@ Shift-hue = Shift hue
 Show-debug-info = Show debug info
 hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
 hint_ping = [Middle mouse button or right thumb stick] spawns a ping
+
+## IP Connect
+
+ip_could_not_connect = Could not connect
+ip_wait_for_connection = Connecting to ip...

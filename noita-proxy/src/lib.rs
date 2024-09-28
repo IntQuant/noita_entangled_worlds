@@ -23,6 +23,7 @@ use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
+    mem,
     net::SocketAddr,
     ops::Deref,
     sync::{atomic::Ordering, Arc},
@@ -119,6 +120,9 @@ impl Drop for NetManStopOnDrop {
 enum AppState {
     Connect,
     ModManager,
+    TangledConnecting {
+        peer: tangled::Peer,
+    },
     Netman {
         netman: NetManStopOnDrop,
         noita_launcher: NoitaLauncher,
@@ -425,6 +429,10 @@ impl App {
 
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
+        self.state = AppState::TangledConnecting { peer };
+    }
+
+    fn start_connect_step_2(&mut self, peer: Peer) {
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
@@ -1076,6 +1084,25 @@ impl eframe::App for App {
                             }
                         });
                     });
+            }
+            AppState::TangledConnecting { peer } => {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label(tr("ip_wait_for_connection"));
+                });
+                if peer.state() == tangled::PeerState::Disconnected {
+                    self.state = AppState::Error {
+                        message: tr("ip_could_not_connect"),
+                    };
+                    return;
+                }
+                if peer.my_id().is_some() {
+                    let AppState::TangledConnecting { peer } =
+                        mem::replace(&mut self.state, AppState::Connect)
+                    else {
+                        unreachable!();
+                    };
+                    self.start_connect_step_2(peer);
+                }
             }
         };
     }

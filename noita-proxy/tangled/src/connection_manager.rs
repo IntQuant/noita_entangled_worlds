@@ -397,6 +397,7 @@ impl ConnectionManager {
                         .send(InternalEvent::Connected(host_conn.remote_id))
                         .expect("channel to be open");
                     self.host_conn = Some(host_conn);
+                    self.shared.peer_state.store(PeerState::Connected);
                 }
                 Err(err) => {
                     error!("Could not connect to host: {}", err);
