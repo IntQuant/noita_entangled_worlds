@@ -79,7 +79,7 @@ connect_settings_wsv = Версия синхронизатора мира:
 connect_settings_player_tether = Предел расстояния до хоста
 connect_settings_player_tether_desc = Телепортирует игроков к хосту, если они слишком далеко.
 connect_settings_player_tether_length = Максимальная длина
-connect_settings_item_dedup = Синхронизация элементов, созданных при генерации мира.
+connect_settings_item_dedup = Синхронизация предметов, созданных при генерации мира.
 connect_settings_enemy_hp_scale = Модификатор здоровья противников.
 connect_settings_local = Локальные настройки
 connect_settings_autostart = Запускать игру автоматически
@@ -125,7 +125,7 @@ Shift-hue = Смещение тона
 ## Connected
 
 Show-debug-info = Показать отладочную информацию
-hint_spectate = Используйте [',' или левая сегмент d-pad] и ['.' или правый сегмент d-pad] для наблюдения за другими игроками.
+hint_spectate = Используйте [',' или левый сегмент d-pad] и ['.' или правый сегмент d-pad] для наблюдения за другими игроками.
 hint_ping = [Средняя кнопка мыши или правый стик] создают пинг
 
 ## IP Connect
