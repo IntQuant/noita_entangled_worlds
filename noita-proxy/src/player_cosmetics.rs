@@ -1,3 +1,4 @@
+use crate::lang::tr;
 use crate::{App, PlayerColor, PlayerPicker};
 use eframe::egui;
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
@@ -139,27 +140,27 @@ pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
     ui.scope(|ui| {
         ui.set_max_width(100.0);
         ui.vertical_centered_justified(|ui| {
-            if ui.button("Main color").clicked() {
+            if ui.button(tr("Main-color")).clicked() {
                 clicked = true;
                 app.appearance.player_picker = PlayerPicker::PlayerMain
             }
-            if ui.button("Alt color").clicked() {
+            if ui.button(tr("Alt-color")).clicked() {
                 clicked = true;
                 app.appearance.player_picker = PlayerPicker::PlayerAlt
             }
-            if ui.button("Arm color").clicked() {
+            if ui.button(tr("Arm-color")).clicked() {
                 clicked = true;
                 app.appearance.player_picker = PlayerPicker::PlayerArm
             }
-            if ui.button("Forearm color").clicked() {
+            if ui.button(tr("Forearm-color")).clicked() {
                 clicked = true;
                 app.appearance.player_picker = PlayerPicker::PlayerForearm
             }
-            if ui.button("Cape color").clicked() {
+            if ui.button(tr("Cape-color")).clicked() {
                 clicked = true;
                 app.appearance.player_picker = PlayerPicker::PlayerCape
             }
-            if ui.button("Cape edge color").clicked() {
+            if ui.button(tr("Cape-edge-color")).clicked() {
                 clicked = true;
                 app.appearance.player_picker = PlayerPicker::PlayerCapeEdge
             }
@@ -169,13 +170,13 @@ pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
                 let amulet = flags.join("secret_amulet").exists();
                 let gem = flags.join("secret_amulet_gem").exists();
                 if hat {
-                    ui.checkbox(&mut app.appearance.cosmetics.0, "Crown");
+                    ui.checkbox(&mut app.appearance.cosmetics.0, tr("Crown"));
                 }
                 if amulet {
-                    ui.checkbox(&mut app.appearance.cosmetics.1, "Amulet");
+                    ui.checkbox(&mut app.appearance.cosmetics.1, tr("Amulet"));
                 }
                 if gem {
-                    ui.checkbox(&mut app.appearance.cosmetics.2, "Gem");
+                    ui.checkbox(&mut app.appearance.cosmetics.2, tr("Gem"));
                 }
             }
         });

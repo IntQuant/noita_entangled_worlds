@@ -84,16 +84,46 @@ connect_settings_enemy_hp_scale = 敌人血量比例
 connect_settings_local = 本地设置
 connect_settings_autostart = 自动启动游戏
 
-## 游戏设置
+## Game settings
 
+Enable-friendly-fire = Enable friendly fire
+Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
+Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
+local_health_desc_2 = There is a respawn mechanic.
+local_health_desc_1 = Every player has their own health, run ends when all player are dead.
+shared_health_desc_3 = The original mode.
+shared_health_desc_2 = Percentage-based damage and full heals are adjusted.
+shared_health_desc_1 = Health is shared, but scales with player count.
+Local-health = Local health
+Shared-health = Shared health
+Game-mode = Game mode
 world-sync-is-pixel-sync-note = 注意：世界同步是指同步世界像素(材质)的部分。敌人和其他实体不受此影响。
 Higher-values-result-in-less-performance-impact = 该值越大，对性能影响越小。
 World-will-be-synced-every-this-many-frames = 该值将作为世界同步的间隔(帧)。
 
-
-## 存档状态
+## Savestate
 
 New-game = 新的游戏
 Continue = 继续游戏
 savestate_desc = 检测到上一次的存档。你想要继续启动该存档还是开启一局新游戏(并重置存档)？
 An-in-progress-run-has-been-detected = 检查到正在运行的存档。
+
+## Player appearance
+
+Gem = Gem
+Amulet = Amulet
+Crown = Crown
+Cape-edge-color = Cape edge color
+Cape-color = Cape color
+Forearm-color = Forearm color
+Arm-color = Arm color
+Alt-color = Alt color
+Main-color = Main color
+Reset-colors-to-default = Reset colors to default
+Shift-hue = Shift hue
+
+## Connected
+
+Show-debug-info = Show debug info
+hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
+hint_ping = [Middle mouse button or right thumb stick] spawns a ping

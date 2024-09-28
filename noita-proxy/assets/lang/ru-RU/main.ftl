@@ -69,12 +69,44 @@ error_lobby_does_not_exist = Лобби не существует.
 
 ## Game settings
 
+Enable-friendly-fire = Enable friendly fire
+Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
+Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
+local_health_desc_2 = There is a respawn mechanic.
+local_health_desc_1 = Every player has their own health, run ends when all player are dead.
+shared_health_desc_3 = The original mode.
+shared_health_desc_2 = Percentage-based damage and full heals are adjusted.
+shared_health_desc_1 = Health is shared, but scales with player count.
+Local-health = Local health
+Shared-health = Shared health
+Game-mode = Game mode
 world-sync-is-pixel-sync-note = Note: World sync refers to the part that syncs pixels(materials) of the world. Enemies and other entities aren't affected by this.
 Higher-values-result-in-less-performance-impact = Higher values result in less performance impact
 World-will-be-synced-every-this-many-frames = World will be synced every this many frames
+
 ## Savestate
 
 New-game = New game
 Continue = Continue
 savestate_desc = Savestate from a previous run has been detected. Do you wish to continue that run, or to start a new game (and reset the savestate)?
 An-in-progress-run-has-been-detected = An in-progress run has been detected.
+
+## Player appearance
+
+Gem = Gem
+Amulet = Amulet
+Crown = Crown
+Cape-edge-color = Cape edge color
+Cape-color = Cape color
+Forearm-color = Forearm color
+Arm-color = Arm color
+Alt-color = Alt color
+Main-color = Main color
+Reset-colors-to-default = Reset colors to default
+Shift-hue = Shift hue
+
+## Connected
+
+Show-debug-info = Show debug info
+hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
+hint_ping = [Middle mouse button or right thumb stick] spawns a ping

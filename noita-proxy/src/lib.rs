@@ -589,16 +589,16 @@ impl App {
     fn show_game_settings(&mut self, ui: &mut Ui, show_local: bool) {
         heading_with_underline(ui, tr("connect_settings"));
         let game_settings = &mut self.app_saved_state.game_settings;
-        ui.label("Game mode");
+        ui.label(tr("Game-mode"));
         ui.radio_value(
             &mut game_settings.game_mode,
             GameMode::SharedHealth,
-            "Shared health",
+            tr("Shared-health"),
         );
         ui.radio_value(
             &mut game_settings.game_mode,
             GameMode::LocalHealth,
-            "Local health",
+            tr("Local-health"),
         );
 
         ui.scope(|ui| {
@@ -606,15 +606,13 @@ impl App {
 
             match game_settings.game_mode {
                 GameMode::SharedHealth => {
-                    ui.label("Health is shared, but scales with player count.");
-                    ui.label("Percentage-based damage and full heals are adjusted.");
-                    ui.label("The original mode.");
+                    ui.label(tr("shared_health_desc_1"));
+                    ui.label(tr("shared_health_desc_2"));
+                    ui.label(tr("shared_health_desc_3"));
                 }
                 GameMode::LocalHealth => {
-                    ui.label(
-                        "Every player has their own health, run ends when all player are dead.",
-                    );
-                    ui.label("There is a respawn mechanic.");
+                    ui.label(tr("local_health_desc_1"));
+                    ui.label(tr("local_health_desc_2"));
                 }
             }
         });
@@ -634,7 +632,7 @@ impl App {
             ui.add(DragValue::new(&mut game_settings.seed));
         });
         ui.add_space(10.0);
-        ui.label("Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients");
+        ui.label(tr("Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients"));
         ui.add(Slider::new(&mut game_settings.chunk_target, 1..=64));
         /*if game_settings.world_sync_version == 2 {
             ui.add_space(10.0);
@@ -666,7 +664,7 @@ impl App {
         ui.add_space(20.0);
         ui.checkbox(
             &mut game_settings.randomize_perks,
-            "have perk pools be independent of each other",
+            tr("Have-perk-pools-be-independent-of-each-other"),
         );
         ui.add_space(20.0);
         ui.add(
@@ -675,7 +673,7 @@ impl App {
                 .text(tr("connect_settings_enemy_hp_scale")),
         );
         ui.add_space(20.0);
-        ui.checkbox(&mut game_settings.friendly_fire, "Friendly fire");
+        ui.checkbox(&mut game_settings.friendly_fire, tr("Enable-friendly-fire"));
         if show_local {
             heading_with_underline(ui, tr("connect_settings_local"));
             ui.checkbox(
@@ -690,7 +688,7 @@ impl App {
                     .into_rgba8();
             }
             let old_hue = self.appearance.hue;
-            ui.add(Slider::new(&mut self.appearance.hue, 0.0..=360.0).text("Shift hue"));
+            ui.add(Slider::new(&mut self.appearance.hue, 0.0..=360.0).text(tr("Shift-hue")));
             if old_hue != self.appearance.hue {
                 let diff = self.appearance.hue - old_hue;
                 shift_hue(diff, &mut self.appearance.player_color.player_main);
@@ -709,7 +707,7 @@ impl App {
                     &self.appearance.player_picker,
                 );
             });
-            if ui.button("Reset colors to default").clicked() {
+            if ui.button(tr("Reset-colors-to-default")).clicked() {
                 self.appearance.player_color = PlayerColor::default();
                 self.appearance.hue = 0.0
             }
@@ -925,10 +923,10 @@ impl eframe::App for App {
                     }
                     ui.add_space(15.0);
 
-                    ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, "Show debug stuff");
+                    ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, tr("Show-debug-info"));
                     ui.add_space(15.0);
-                    ui.label("[Middle mouse button or right thumb stick] spawns a ping");
-                    ui.label("Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.");
+                    ui.label(tr("hint_ping"));
+                    ui.label(tr("hint_spectate"));
 
 
                     if self.app_saved_state.show_extra_debug_stuff {
