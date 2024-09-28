@@ -27,7 +27,7 @@ struct ExtState {
 
 // const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
 
-extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
+unsafe extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
     println!("\nInitializing particle world state");
     let world_pointer = unsafe { LUA.lua_tointeger(lua, 1) };
     let chunk_map_pointer = unsafe { LUA.lua_tointeger(lua, 2) };
@@ -45,7 +45,7 @@ extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
     0
 }
 
-extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
+unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
     let start_x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
     let start_y = unsafe { LUA.lua_tointeger(lua, 2) } as i32;
     let end_x = unsafe { LUA.lua_tointeger(lua, 3) } as i32;
@@ -61,8 +61,11 @@ extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
     1
 }
 
+/// # Safety
+///
+/// Only gets called by lua when loading a module.
 #[no_mangle]
-pub extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
+pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
