@@ -128,7 +128,7 @@ impl ParticleWorldState {
         start_y: i32,
         end_x: i32,
         end_y: i32,
-        pixel_runs: *mut NoitaPixelRun,
+        mut pixel_runs: *mut NoitaPixelRun,
     ) -> usize {
         // Allow compiler to generate better code.
         assert!(start_x % 128 == 0);
@@ -165,7 +165,6 @@ impl ParticleWorldState {
             }
         }
 
-        let mut pixel_runs = pixel_runs;
         let built_runner = self.runner.build();
         let runs = built_runner.len();
         for run in built_runner {

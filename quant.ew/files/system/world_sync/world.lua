@@ -12,7 +12,8 @@ local C = ffi.C
 ffi.cdef([[
 
 enum ENCODE_CONST {
-    PIXEL_RUN_MAX = 16000,
+    // Maximum amount of runs 128*128 pixels can result in, plus one just in case.
+    PIXEL_RUN_MAX = 16385,
 
     LIQUID_FLAG_STATIC = 1,
 };
@@ -68,7 +69,115 @@ end
 -- @tparam EncodedArea encoded_area memory to use, if nil this function allocates its own memory
 -- @return returns an EncodedArea or nil if the area could not be encoded
 -- @see decode
-function world.encode_area(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
+function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_area)
+    start_x = ffi.cast('int32_t', start_x)
+    start_y = ffi.cast('int32_t', start_y)
+    end_x = ffi.cast('int32_t', end_x)
+    end_y = ffi.cast('int32_t', end_y)
+
+    encoded_area = encoded_area or world.EncodedArea()
+
+    local width = end_x - start_x
+    local height = end_y - start_y
+
+    if width <= 0 or height <= 0 then
+        print("Invalid world part, negative dimension")
+        return nil
+    end
+
+    if width > 256 or height > 256 then
+        print("Invalid world part, dimension greater than 256")
+        return nil
+    end
+
+    encoded_area.header.x = start_x
+    encoded_area.header.y = start_y
+    encoded_area.header.width = width - 1
+    encoded_area.header.height = height - 1
+
+    local run_count = 1
+
+    local current_run = encoded_area.pixel_runs[0]
+    local run_length = 0
+    local current_material = 0
+    local current_flags = 0
+
+    local y = start_y
+    while y < end_y do
+        local x = start_x
+        while x < end_x do
+            local material_number = 0
+            local flags = 0
+
+            local ppixel = world_ffi.get_cell(chunk_map, x, y)
+            local pixel = ppixel[0]
+            if pixel ~= nil then
+                local cell_type = pixel.vtable.get_cell_type(pixel)
+
+                if cell_type ~= C.CELL_TYPE_SOLID then
+                    local material_ptr = pixel.vtable.get_material(pixel)
+                    material_number = world_ffi.get_material_id(material_ptr)
+                end
+
+                if cell_type == C.CELL_TYPE_LIQUID then
+                    local liquid_cell = ffi.cast(pliquid_cell, pixel)
+                    if liquid_cell.is_static then
+                        flags = bit.bor(flags, C.LIQUID_FLAG_STATIC)
+                    end
+                end
+            end
+
+            if x == start_x and y == start_y then
+                -- Initial run
+                current_material = material_number
+                current_flags = flags
+            elseif current_material ~= material_number or current_flags ~= flags then
+                -- Next run
+                current_run.length = run_length - 1
+                current_run.material = current_material
+                current_run.flags = current_flags
+
+                if run_count == C.PIXEL_RUN_MAX then
+                    print("Area too complicated to encode")
+                    return nil
+                end
+
+                current_run = encoded_area.pixel_runs[run_count]
+                run_count = run_count + 1
+
+                run_length = 0
+                current_material = material_number
+                current_flags = flags
+            end
+
+            run_length = run_length + 1
+
+            x = x + 1
+        end
+        y = y + 1
+    end
+
+    current_run.length = run_length - 1
+    current_run.material = current_material
+    current_run.flags = current_flags
+
+    encoded_area.header.pixel_run_count = run_count
+
+    return encoded_area
+end
+
+--- Encode the given rectangle of the world
+-- The rectangle defined by {`start_x`, `start_y`, `end_x`, `end_y`} must not
+-- exceed 256 in width or height.
+-- @param chunk_map
+-- @tparam int start_x coordinate
+-- @tparam int start_y coordinate
+-- @tparam int end_x coordinate
+-- @tparam int end_y coordinate
+-- @tparam EncodedArea encoded_area memory to use, if nil this function allocates its own memory
+-- @return returns an EncodedArea or nil if the area could not be encoded
+-- @see decode
+function world.encode_area_fast(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
     start_x = ffi.cast('int32_t', start_x_ini)
     start_y = ffi.cast('int32_t', start_y_ini)
     end_x = ffi.cast('int32_t', end_x_ini)
