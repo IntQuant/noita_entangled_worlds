@@ -73,6 +73,9 @@ function nickname.calculate_textwidth(text, font)
 end
 
 function nickname.add_label(player_entity, text, font_filename, scale, font)
+    if not EntityGetIsAlive(player_entity) then
+        return
+    end
     local prev_nickname = EntityGetFirstComponentIncludingDisabled(player_entity, "SpriteComponent", "ew_nickname")
     if prev_nickname ~= nil then
       EntityRemoveComponent(player_entity, prev_nickname)

@@ -111,6 +111,9 @@ function end_fight.on_world_update()
         end
         for _, player_data in pairs(ctx.players) do
             local entity = player_data.entity
+            if not EntityGetIsAlive(entity) then
+                goto continue
+            end
             EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
             EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
             if EntityHasTag(entity, "ew_notplayer") and not table.contains(dont_effect, entity) then
@@ -129,6 +132,7 @@ function end_fight.on_world_update()
                     end
                 end)
             end
+            ::continue::
         end
     end
 end
