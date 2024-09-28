@@ -118,8 +118,8 @@ impl ParticleWorldState {
         mat_id
     }
 
-    fn get_cell_type(&self, cell: &ntypes::Cell) -> ntypes::CellType {
-        unsafe { cell.material_ptr().as_ref().unwrap().cell_type }
+    fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
+        unsafe { Some(cell.material_ptr().as_ref()?.cell_type) }
     }
 
     pub(crate) unsafe fn encode_area(
@@ -144,7 +144,7 @@ impl ParticleWorldState {
                 };
                 let cell = self.get_cell_raw(x, y);
                 if let Some(cell) = cell {
-                    let cell_type = self.get_cell_type(cell);
+                    let cell_type = self.get_cell_type(cell).unwrap_or(ntypes::CellType::None);
                     match cell_type {
                         ntypes::CellType::None => {}
                         // Nobody knows how box2d pixels work.
@@ -158,7 +158,7 @@ impl ParticleWorldState {
                             raw_pixel.material = self.get_cell_material_id(cell);
                         }
                         // ???
-                        ntypes::CellType::Invalid => {}
+                        _ => {}
                     }
                 }
                 self.runner.put_pixel(raw_pixel);
