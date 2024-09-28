@@ -114,8 +114,7 @@ impl ParticleWorldState {
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
         let offset = unsafe { mat_ptr.cast::<c_void>().offset_from(self.material_list_ptr) };
-        let mat_id = (offset / ntypes::CELLDATA_SIZE) as u16;
-        mat_id
+        (offset / ntypes::CELLDATA_SIZE) as u16
     }
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
@@ -131,8 +130,8 @@ impl ParticleWorldState {
         mut pixel_runs: *mut NoitaPixelRun,
     ) -> usize {
         // Allow compiler to generate better code.
-        assert!(start_x % 128 == 0);
-        assert!(start_y % 128 == 0);
+        assert_eq!(start_x % 128, 0);
+        assert_eq!(start_y % 128, 0);
         assert!((end_x - start_x) <= 128);
         assert!((end_y - start_y) <= 128);
 
