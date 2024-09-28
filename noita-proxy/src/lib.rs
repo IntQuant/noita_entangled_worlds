@@ -21,7 +21,6 @@ use net::{
 };
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::{
     fmt::Display,
     net::SocketAddr,
@@ -30,6 +29,7 @@ use std::{
     thread::JoinHandle,
     time::Duration,
 };
+use std::{net::IpAddr, path::PathBuf};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -48,6 +48,9 @@ pub use bookkeeping::{mod_manager, releases, self_update};
 mod net;
 mod player_cosmetics;
 pub mod recorder;
+
+const DEFAULT_PORT: u16 = 5123;
+
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub(crate) enum GameMode {
     SharedHealth,
@@ -393,7 +396,7 @@ impl App {
     }
 
     fn start_server(&mut self) {
-        let bind_addr = "0.0.0.0:5123".parse().unwrap();
+        let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), DEFAULT_PORT);
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
@@ -419,6 +422,7 @@ impl App {
         *netman.pending_settings.lock().unwrap() = settings.clone();
         netman.accept_local.store(true, Ordering::SeqCst);
     }
+
     fn start_connect(&mut self, addr: SocketAddr) {
         let peer = Peer::connect(addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
@@ -486,33 +490,7 @@ impl App {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    let lang_label = self
-                        .app_saved_state
-                        .lang_id
-                        .clone()
-                        .unwrap_or_default()
-                        .language;
-                    if square_button_text(ui, &lang_label.to_string().to_uppercase(), 21.0)
-                        .on_hover_text(tr("button_set_lang"))
-                        .clicked()
-                    {
-                        self.state = AppState::LangPick;
-                    }
-                    if square_button_icon(
-                        ui,
-                        egui::Image::new(egui::include_image!("../assets/discord-mark-white.png")),
-                    )
-                    .on_hover_text(tr("button_open_discord"))
-                    .clicked()
-                    {
-                        ctx.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
-                    }
-                    let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
-                    if secret_active && ui.button("reset all data").clicked() {
-                        self.app_saved_state = Default::default();
-                        self.modmanager_settings = Default::default();
-                        self.state = AppState::LangPick;
-                    }
+                    self.panel_right_bar(ui, ctx);
                 })
             });
 
@@ -528,61 +506,105 @@ impl App {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    heading_with_underline(ui, tr("connect_steam"));
-
-                    match &self.steam_state {
-                        Ok(_) => {
-                            if ui.button(tr("connect_steam_create")).clicked() {
-                                self.start_steam_host();
-                            }
-                            if ui.button(tr("connect_steam_connect")).clicked() {
-                                let id = ClipboardProvider::new()
-                                    .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
-                                match id {
-                                    Ok(id) => {
-                                        self.connect_to_steam_lobby(id);
-                                    }
-                                    Err(error) => self.notify_error(error),
-                                }
-                            }
-
-                            if cfg!(target_os = "linux") {
-                                ui.add_space(30.0);
-                                ui.label(tr("connect_steam_workaround_label"));
-                                ui.text_edit_singleline(&mut self.lobby_id_field);
-                                if ui.button(tr("connect_steam_connect_2")).clicked() {
-                                    self.connect_to_steam_lobby(self.lobby_id_field.clone());
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            ui.label(format!("Could not init steam networking: {}", err));
-                        }
-                    }
+                    self.panel_connect_by_steam(ui);
                 });
             });
             ui.allocate_ui_at_rect(ip_connect_rect.shrink(group_shrink), |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
-                    heading_with_underline(ui, tr("connect_ip"));
-
-                    ui.label(tr("ip_note"));
-                    if ui.button(tr("ip_host")).clicked() {
-                        self.start_server();
-                    }
-
-                    ui.text_edit_singleline(&mut self.app_saved_state.addr);
-                    let addr = self.app_saved_state.addr.parse();
-                    ui.add_enabled_ui(addr.is_ok(), |ui| {
-                        if ui.button(tr("ip_connect")).clicked() {
-                            if let Ok(addr) = addr {
-                                self.start_connect(addr);
-                            }
-                        }
-                    });
+                    self.panel_connect_by_ip(ui);
                 });
             });
+        });
+    }
+
+    fn panel_right_bar(&mut self, ui: &mut Ui, ctx: &Context) {
+        let lang_label = self
+            .app_saved_state
+            .lang_id
+            .clone()
+            .unwrap_or_default()
+            .language;
+        if square_button_text(ui, &lang_label.to_string().to_uppercase(), 21.0)
+            .on_hover_text(tr("button_set_lang"))
+            .clicked()
+        {
+            self.state = AppState::LangPick;
+        }
+        if square_button_icon(
+            ui,
+            egui::Image::new(egui::include_image!("../assets/discord-mark-white.png")),
+        )
+        .on_hover_text(tr("button_open_discord"))
+        .clicked()
+        {
+            ctx.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
+        }
+        let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
+        if secret_active && ui.button("reset all data").clicked() {
+            self.app_saved_state = Default::default();
+            self.modmanager_settings = Default::default();
+            self.state = AppState::LangPick;
+        }
+    }
+
+    fn panel_connect_by_steam(&mut self, ui: &mut Ui) {
+        heading_with_underline(ui, tr("connect_steam"));
+
+        match &self.steam_state {
+            Ok(_) => {
+                if ui.button(tr("connect_steam_create")).clicked() {
+                    self.start_steam_host();
+                }
+                if ui.button(tr("connect_steam_connect")).clicked() {
+                    let id = ClipboardProvider::new()
+                        .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
+                    match id {
+                        Ok(id) => {
+                            self.connect_to_steam_lobby(id);
+                        }
+                        Err(error) => self.notify_error(error),
+                    }
+                }
+
+                if cfg!(target_os = "linux") {
+                    ui.add_space(30.0);
+                    ui.label(tr("connect_steam_workaround_label"));
+                    ui.text_edit_singleline(&mut self.lobby_id_field);
+                    if ui.button(tr("connect_steam_connect_2")).clicked() {
+                        self.connect_to_steam_lobby(self.lobby_id_field.clone());
+                    }
+                }
+            }
+            Err(err) => {
+                ui.label(format!("Could not init steam networking: {}", err));
+            }
+        }
+    }
+
+    fn panel_connect_by_ip(&mut self, ui: &mut Ui) {
+        heading_with_underline(ui, tr("connect_ip"));
+
+        ui.label(tr("ip_note"));
+        if ui.button(tr("ip_host")).clicked() {
+            self.start_server();
+        }
+
+        ui.text_edit_singleline(&mut self.app_saved_state.addr);
+        let addr = self.app_saved_state.addr.parse();
+
+        let ip: Result<IpAddr, _> = self.app_saved_state.addr.parse();
+        let addr2 = ip.map(|ip| SocketAddr::new(ip, DEFAULT_PORT));
+
+        let addr = addr.or(addr2);
+
+        ui.add_enabled_ui(addr.is_ok(), |ui| {
+            if ui.button(tr("ip_connect")).clicked() {
+                if let Ok(addr) = addr {
+                    self.start_connect(addr);
+                }
+            }
         });
     }
 
