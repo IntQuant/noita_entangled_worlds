@@ -53,7 +53,7 @@ local spawned_by_us = {}
 -- HACK
 local times_spawned_last_minute = {}
 
-local DISTANCE_LIMIT = 128*5
+local DISTANCE_LIMIT = 128*6
 
 for filename, _ in pairs(constants.phys_sync_allowed) do
     util.add_tag_to(filename, "prop_physics")
@@ -129,6 +129,9 @@ local function get_sync_entities(return_all)
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
         return not (EntityHasTag(ent, "ew_no_enemy_sync"))
     end)
+    table_extend_filtered(entities, EntityGetWithTag("mimic_potion"), function (ent)
+        return not (EntityHasTag(ent, "ew_no_enemy_sync"))
+    end)
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
         return constants.phys_sync_allowed[EntityGetFilename(ent)]
@@ -142,7 +145,7 @@ local function get_sync_entities(return_all)
             local x, y = EntityGetTransform(ent)
             local has_anyone = EntityHasTag(ent, "worm")
                     or EntityGetFirstComponent(ent, "BossHealthBarComponent") ~= nil
-                    or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") > 0
+                    or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
             return has_anyone
         end)
     end
@@ -261,7 +264,9 @@ function enemy_sync.host_upload_entities()
             animation = ComponentGetValue2(sprite, "rect_animation")
         end
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data, animation})
+        local dont_cull = EntityHasTag(enemy_id, "worm") or EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
+
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data, animation, dont_cull})
         ::continue::
     end
 
@@ -310,6 +315,12 @@ function enemy_sync.client_cleanup()
             local filename = EntityGetFilename(enemy_id)
             print("Despawning persisted "..enemy_id.." "..filename)
             EntityKill(enemy_id)
+        else
+            local cull = EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull")
+            if cull ~= nil and ComponentGetValue2(cull, "value_int") + 120 < GameGetFrameNum() then
+                print("culling "..enemy_id)
+                EntityKill(enemy_id)
+            end
         end
     end
     local frame = GameGetFrameNum()
@@ -425,15 +436,21 @@ function rpc.handle_enemy_data(enemy_data)
         filename = constants.interned_index_to_filename[filename] or filename
 
         local en_data = enemy_info_raw[2]
+        local dont_cull = enemy_info_raw[9]
         local remote_enemy_id = en_data.enemy_id
-
-        local x = en_data.x
-        local y = en_data.y
+        local my_x, my_y = GameGetCameraPos()
+        local x, y = en_data.x, en_data.y
+        local dx, dy = my_x - x, my_y - y
+        if not dont_cull and dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT then
+            if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
+                EntityKill(ctx.entity_by_remote_id[remote_enemy_id])
+            end
+            goto continue
+        end
         local vx = 0
         local vy = 0
         if ffi.typeof(en_data) == EnemyData then
-            vx = en_data.vx
-            vy = en_data.vy
+            vx, vy = en_data.vx, en_data.vy
         end
         local not_ephemerial = enemy_info_raw[3]
         local phys_infos = enemy_info_raw[4]
@@ -479,6 +496,9 @@ function rpc.handle_enemy_data(enemy_data)
                     EntityRemoveComponent(enemy_id, com)
                 end
             end
+            if not dont_cull then
+                EntityAddComponent2(enemy_id, "VariableStorageComponent", {_tags="ew_cull", value_int = GameGetFrameNum()})
+            end
             EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
             local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
             if damage_component and damage_component ~= 0 then
@@ -518,6 +538,10 @@ function rpc.handle_enemy_data(enemy_data)
         local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
         enemy_data_new.frame = frame
         local enemy_id = enemy_data_new.id
+
+        if not dont_cull then
+            ComponentSetValue2(EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull"), "value_int", GameGetFrameNum())
+        end
 
         for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
             local phys_info = phys_infos[i]

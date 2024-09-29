@@ -103,7 +103,7 @@ function end_fight.on_world_update()
                     done = true
                     return
                 elseif try_kill == -1 then
-                    try_kill = GameGetFrameNum() + 180
+                    try_kill = GameGetFrameNum() + 60
                 end
             else
                 try_kill = -1

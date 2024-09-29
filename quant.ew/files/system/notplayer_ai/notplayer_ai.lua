@@ -2,7 +2,7 @@ local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfinder.lua")
 dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
 
-local MAX_RADIUS = 128*4
+local MAX_RADIUS = 128*5
 
 local state
 
