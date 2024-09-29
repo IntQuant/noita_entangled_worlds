@@ -16,7 +16,7 @@ What is synced as of now:
 
 There is a twitch VOD by nichelessone that showcases a recent version: https://www.twitch.tv/videos/2254946444
 
-Discord server: [https://discord.gg/2vHyEzBZ](https://discord.gg/uAK7utvVWN)
+Discord server: [https://discord.gg/uAK7utvVWN](https://discord.gg/uAK7utvVWN)
 
 ## Installation (provided by @stefnotch)
 
