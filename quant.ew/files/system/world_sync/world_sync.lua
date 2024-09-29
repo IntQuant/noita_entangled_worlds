@@ -196,7 +196,7 @@ function world_sync.on_world_update()
         if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             pri = 16
         end
-        get_all_chunks(ocx, ocy, pos_data, pri, true)
+        get_all_chunks(cx, cy, pos_data, pri, true)
     end
 end
 
