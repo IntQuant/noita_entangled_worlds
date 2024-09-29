@@ -58,6 +58,7 @@ function world.encoded_size(encoded_area)
     return (ffi.sizeof(world.EncodedAreaHeader) + encoded_area.header.pixel_run_count * ffi.sizeof(world.PixelRun))
 end
 
+--[[
 --- Encode the given rectangle of the world
 -- The rectangle defined by {`start_x`, `start_y`, `end_x`, `end_y`} must not
 -- exceed 256 in width or height.
@@ -165,6 +166,7 @@ function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_ar
 
     return encoded_area
 end
+]]
 
 --- Encode the given rectangle of the world
 -- The rectangle defined by {`start_x`, `start_y`, `end_x`, `end_y`} must not
@@ -177,7 +179,7 @@ end
 -- @tparam EncodedArea encoded_area memory to use, if nil this function allocates its own memory
 -- @return returns an EncodedArea or nil if the area could not be encoded
 -- @see decode
-function world.encode_area_fast(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
+function world.encode_area(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
     start_x = ffi.cast('int32_t', start_x_ini)
     start_y = ffi.cast('int32_t', start_y_ini)
     end_x = ffi.cast('int32_t', end_x_ini)
