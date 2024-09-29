@@ -127,12 +127,10 @@ end
 local function get_sync_entities(return_all)
     local entities = {}
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
-        return not (EntityHasTag(ent, "ew_no_enemy_sync"))
-    end)
-    table_extend_filtered(entities, EntityGetWithTag("mimic_potion"), function (ent)
-        return not (EntityHasTag(ent, "ew_no_enemy_sync"))
+        return not EntityHasTag(ent, "ew_no_enemy_sync") and not EntityHasTag(ent, "wand_ghost")
     end)
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
+    table_extend(entities, EntityGetWithTag("mimic_potion"))
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
         return constants.phys_sync_allowed[EntityGetFilename(ent)]
     end)
@@ -439,9 +437,11 @@ function rpc.handle_enemy_data(enemy_data)
         local dont_cull = enemy_info_raw[9]
         local remote_enemy_id = en_data.enemy_id
         local my_x, my_y = GameGetCameraPos()
+        local c_x, c_y = GameGetCameraPos()
         local x, y = en_data.x, en_data.y
         local dx, dy = my_x - x, my_y - y
-        if not dont_cull and dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT then
+        local cdx, cdy = c_x - x, c_y - y
+        if not dont_cull and dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT and cdx * cdx + cdy * cdy > DISTANCE_LIMIT * DISTANCE_LIMIT then
             if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
                 EntityKill(ctx.entity_by_remote_id[remote_enemy_id])
             end

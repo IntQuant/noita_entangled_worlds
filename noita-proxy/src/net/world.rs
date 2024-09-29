@@ -338,7 +338,7 @@ impl WorldManager {
         fn should_kill(my_pos: (i32, i32), cam_pos: (i32, i32), chx: i32, chy: i32, is_notplayer: bool) -> bool {
             let (x, y) = my_pos;
             let (cx, cy) = cam_pos;
-            if (x - cx).abs() > 2 && (y - cy).abs() > 2 {
+            if (x - cx).abs() > 2 || (y - cy).abs() > 2 {
                 !(chx <= x + 2 && chx >= x - 2 && chy <= y + 2 && chy >= y - 2)
                     && !(chx <= cx + 2 && chx >= cx - 2 && chy <= cy + 2 && chy >= cy - 2)
             } else if is_notplayer {
