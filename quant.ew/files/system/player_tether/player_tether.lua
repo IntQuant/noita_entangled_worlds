@@ -112,6 +112,8 @@ local function not_in_hm(x, y)
     end
 end
 
+local no_tether = false
+
 function module.on_client_spawned(peer_id, new_playerdata)
     local is_host = peer_id == ctx.host_id
     if is_host then
@@ -119,6 +121,7 @@ function module.on_client_spawned(peer_id, new_playerdata)
         EntityAddChild(new_playerdata.entity, zone_ent)
         local particle_component = EntityGetFirstComponentIncludingDisabled(zone_ent, "ParticleEmitterComponent")
         ComponentSetValue2(particle_component, "area_circle_radius", tether_length, tether_length + 2)
+        EntitySetComponentIsEnabled(zone_ent, particle_component, not no_tether)
     end
 end
 
@@ -145,8 +148,6 @@ local function set_tether_length(length, entity)
         end
     end
 end
-
-local no_tether = false
 
 local tether_length_3 = tether_length_2
 
