@@ -18,6 +18,7 @@ hide_perk("HOMUNCULUS")
 hide_perk("ATTACK_FOOT")
 hide_perk("ANGRY_GHOST")
 hide_perk("REVENGE_EXPLOSION")
+hide_perk("EXTRA_SHOP_ITEM")
 
 patch_perk_2("SHIELD", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     GlobalsSetValue("PERK_SHIELD_COUNT", tostring(pickup_count-1))
