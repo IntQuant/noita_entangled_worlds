@@ -40,10 +40,10 @@ version_check_failed = (无法检查更新)
 version_checking = (检查更新中)
 version_new_available = 有可用的更新，版本{ $new_version }
 
-selfupdate = 自动更新
+selfupdate = 软件更新
 selfupdate_confirm = 确认更新
 selfupdate_receiving_rel_info = 接收版本信息...
-selfupdate_updated = noita-proxy已更新！立即重启。
+selfupdate_updated = noita-proxy已更新！重启软件以完成更新。
 selfupdate_unpacking = 正在解压中...
 
 noita_not_yet = 还没准备好，请等待Noita启动。
@@ -86,17 +86,17 @@ connect_settings_autostart = 自动启动游戏
 
 ## Game settings
 
-Enable-friendly-fire = Enable friendly fire
-Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
-Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
-local_health_desc_2 = There is a respawn mechanic.
-local_health_desc_1 = Every player has their own health, run ends when all player are dead.
-shared_health_desc_3 = The original mode.
-shared_health_desc_2 = Percentage-based damage and full heals are adjusted.
-shared_health_desc_1 = Health is shared, but scales with player count.
-Local-health = Local health
-Shared-health = Shared health
-Game-mode = Game mode
+Enable-friendly-fire = 启用队友伤害
+Have-perk-pools-be-independent-of-each-other = 启用神山独立天赋池
+Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = 主机一次加载的区块数量，同步的敌人和物理对象需要由主机加载才能由客户端渲染
+local_health_desc_2 = 有一个复活机制：玩家死亡时变为不受控的敌对阵营，击杀后可以复活死亡的玩家。
+local_health_desc_1 = 每个玩家有自己的独立血量，所有玩家死亡时游戏结束。
+shared_health_desc_3 = 原始模式。
+shared_health_desc_2 = 调整基于百分比的伤害和完全恢复。
+shared_health_desc_1 = 生命值共享，值会随着玩家数量变化
+Local-health = 独立生命值模式
+Shared-health = 共享生命值模式
+Game-mode = 游戏模式
 world-sync-is-pixel-sync-note = 注意：世界同步是指同步世界像素(材质)的部分。敌人和其他实体不受此影响。
 Higher-values-result-in-less-performance-impact = 该值越大，对性能影响越小。
 World-will-be-synced-every-this-many-frames = 该值将作为世界同步的间隔(帧)。
@@ -110,25 +110,25 @@ An-in-progress-run-has-been-detected = 检查到正在运行的存档。
 
 ## Player appearance
 
-Gem = Gem
-Amulet = Amulet
-Crown = Crown
-Cape-edge-color = Cape edge color
-Cape-color = Cape color
-Forearm-color = Forearm color
-Arm-color = Arm color
-Alt-color = Alt color
-Main-color = Main color
-Reset-colors-to-default = Reset colors to default
-Shift-hue = Shift hue
+Gem = 宝石
+Amulet = 项链
+Crown = 皇冠
+Cape-edge-color = 斗篷边缘颜色
+Cape-color = 斗篷颜色
+Forearm-color = 前臂颜色
+Arm-color = 手臂颜色
+Alt-color = 次色调
+Main-color = 主色调
+Reset-colors-to-default = 将颜色重置为默认值
+Shift-hue = 调整色相
 
 ## Connected
 
-Show-debug-info = Show debug info
-hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
-hint_ping = [Middle mouse button or right thumb stick] spawns a ping
+Show-debug-info = 显示debug信息
+hint_spectate = 使用[','或d-pad-left]和['.'或d-pad-right]键观看其他玩家视角。
+hint_ping = [鼠标中键或右摇杆] 会产生一个信号
 
 ## IP Connect
 
-ip_could_not_connect = Could not connect
-ip_wait_for_connection = Connecting to ip...
+ip_could_not_connect = 无法连接
+ip_wait_for_connection = 连接至IP...
