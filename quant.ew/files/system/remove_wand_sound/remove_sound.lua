@@ -1,0 +1,1 @@
+function OnNotEnoughManaForAction() end

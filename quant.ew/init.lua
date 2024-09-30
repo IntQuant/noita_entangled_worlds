@@ -101,6 +101,7 @@ local function load_modules()
     ctx.load_system("effect_data_sync")
     ctx.load_system("gen_sync")
     ctx.load_system("karl")
+    ctx.load_system("remove_wand_sound")
     if ctx.proxy_opt.randomize_perks then
         ctx.load_system("randomize_perks")
     end
@@ -130,17 +131,6 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     -- Was shot locally
     if shooter_id == ctx.my_player.entity then
         -- If it was an initial shot by host
-        if is_suitable_target(ctx.my_player.entity) then
-            local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
-            local wand = ComponentGetValue2(inventory, "mActualActiveItem")
-            local item = EntityGetFirstComponentIncludingDisabled(wand, "ItemComponent")
-            local wands = ctx.my_player.wand_fire_count
-            if wands[wand] == nil then
-                wands[wand] = {0, {-1, -1}}
-            end
-            wands[wand] = {wands[wand][1] + 1, ComponentGetValue2(item, "inventory_slot")}
-        end
-
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
             rng = initial_rng
             table.insert(shooter_player_data.projectile_rng_init, rng)

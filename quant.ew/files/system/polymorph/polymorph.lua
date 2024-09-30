@@ -22,7 +22,6 @@ local function entity_changed()
         rpc.change_entity({data = np.SerializeEntity(ctx.my_player.entity)})
     else
         rpc.change_entity(nil)
-        wandfinder.set_wands_after_poly()
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
         ComponentSetValue2(controls, "enabled", true)
     end

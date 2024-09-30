@@ -355,7 +355,6 @@ local player_fns = {
             projectile_rng_init = {},
             projectile_seed_chain = {}, -- TODO clean
             currently_polymorphed = false,
-            wand_fire_count = {},
         }
     end,
 }

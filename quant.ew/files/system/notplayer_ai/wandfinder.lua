@@ -29,40 +29,17 @@ function wandfinder.find_attack_wand(dont_do)
         return nil
     end
     local largest = {-1, -1}
-    for entity, tuple in pairs(ctx.my_player.wand_fire_count) do
-        local fire_count, _ = tuple[1], tuple[2]
-        for _, wand in ipairs(wands) do
-            if wand == entity then
-                goto here
-            end
+    for _, wand in ipairs(wands) do
+        local ability = EntityGetFirstComponentIncludingDisabled(wand, "AbilityComponent")
+        local fire_count = ComponentGetValue2(ability, "stat_times_player_has_shot")
+        if fire_count > largest[2] then
+            largest = {wand, fire_count}
         end
-        goto continue
-        ::here::
-        if largest[2] < fire_count then
-            largest = {entity, fire_count}
-        end
-        ::continue::
     end
     if largest[1] == -1 then
         return wands[Random(1, #wands)]
     end
     return largest[1]
-end
-
-function wandfinder.set_wands_after_poly()
-    local wands = get_all_wands({})
-    for entity, tuple in pairs(ctx.my_player.wand_fire_count) do
-        local _, slot = tuple[1], tuple[2]
-        for _, wand in ipairs(wands) do
-            local item = EntityGetFirstComponentIncludingDisabled(wand, "ItemComponent")
-            local slot2 = ComponentGetValue2(item, "inventory_slot")
-            if slot == slot2 then
-                ctx.my_player.wand_fire_count[wand] = ctx.my_player.wand_fire_count[entity]
-                table.remove(ctx.my_player.wand_fire_count, entity)
-                break
-            end
-        end
-    end
 end
 
 return wandfinder
