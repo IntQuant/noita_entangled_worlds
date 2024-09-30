@@ -6,6 +6,9 @@ local init = -1
 local done = false
 local kill_walls = false
 local rpc = net.new_rpc_namespace()
+dofile_once("data/scripts/status_effects/status_list.lua")
+
+local status_effects = status_effects
 
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.xml", "<Entity/>")
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
@@ -129,6 +132,17 @@ function end_fight.on_world_update()
                     EntitySetComponentIsEnabled(entity, collision, false)
                     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                         EntityKill(child)
+                    end
+                    for _, effect in pairs(status_effects) do
+                        if EntityGetIsAlive(entity) then
+                            EntityRemoveStainStatusEffect(entity, effect.id)
+                            EntityRemoveIngestionStatusEffect(entity, effect.id)
+                        end
+                    end
+                    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+                    if damage_model ~= nil then
+                        ComponentSetValue2(damage_model, "mFireProbability", 0)
+                        ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
                     end
                 end)
             end

@@ -11,6 +11,8 @@ local rpc = net.new_rpc_namespace()
 
 dofile_once("data/scripts/status_effects/status_list.lua")
 
+local status_effects = status_effects
+
 local module = {}
 
 function module.on_player_died(player_entity)
@@ -257,7 +259,6 @@ ctx.cap.health = {
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
             end_poly_effect(ctx.my_player.entity)
-            local status_effects = status_effects
             async(function ()
                 wait(1)
                 for _, child in pairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
@@ -273,6 +274,11 @@ ctx.cap.health = {
                         EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
                         EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
                     end
+                end
+                local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+                if damage_model ~= nil then
+                    ComponentSetValue2(damage_model, "mFireProbability", 0)
+                    ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
                 end
                 inventory_helper.set_item_data(item_data, ctx.my_player)
                 remove_inventory_tags()
@@ -316,6 +322,17 @@ function rpc.trigger_game_over(message)
             EntitySetComponentIsEnabled(entity, collision, false)
             for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                 EntityKill(child)
+            end
+            for _, effect in pairs(status_effects) do
+                if EntityGetIsAlive(entity) then
+                    EntityRemoveStainStatusEffect(entity, effect.id)
+                    EntityRemoveIngestionStatusEffect(entity, effect.id)
+                end
+            end
+            local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+            if damage_model ~= nil then
+                ComponentSetValue2(damage_model, "mFireProbability", 0)
+                ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
             end
         end
     end
