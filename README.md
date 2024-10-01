@@ -14,7 +14,7 @@ What is synced as of now:
  - Fungal shifts
  - Polymorphing
 
-There is a twitch VOD by nichelessone that showcases a recent version: https://www.twitch.tv/videos/2254946444
+There is a video by nichelessone that showcases a recent version: https://www.youtube.com/watch?v=mMP-93-RTs0
 
 Discord server: [https://discord.gg/uAK7utvVWN](https://discord.gg/uAK7utvVWN)
 
