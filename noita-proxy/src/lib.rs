@@ -77,8 +77,8 @@ pub struct GameSettings {
     enemy_sync_interval: u32,
     randomize_perks: bool,
     progress: Vec<String>,
+    max_players: u32
 }
-
 impl Default for GameSettings {
     fn default() -> Self {
         GameSettings {
@@ -97,6 +97,7 @@ impl Default for GameSettings {
             chunk_target: 32,
             enemy_sync_interval: 3,
             progress: Vec::new(),
+            max_players: 250
         }
     }
 }
@@ -442,6 +443,7 @@ impl App {
         let peer = net::steam_networking::SteamPeer::new_host(
             steamworks::LobbyType::Private,
             self.steam_state.as_ref().unwrap().client.clone(),
+            self.app_saved_state.game_settings.max_players
         );
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
@@ -663,8 +665,11 @@ impl App {
             ui.add(DragValue::new(&mut game_settings.seed));
         });
         ui.add_space(10.0);
+        ui.label("Max players");
+        ui.add(Slider::new(&mut game_settings.max_players, 2..=250));
+        ui.add_space(10.0);
         ui.label(tr("Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients"));
-        ui.add(Slider::new(&mut game_settings.chunk_target, 1..=64));
+        ui.add(Slider::new(&mut game_settings.chunk_target, 12..=64));
 
         ui.add_space(20.0);
         ui.label(tr("connect_settings_player_tether_desc"));
@@ -1254,6 +1259,7 @@ pub fn host_cli(port: u16) {
         let peer = net::steam_networking::SteamPeer::new_host(
             steamworks::LobbyType::Private,
             state.client,
+            250
         );
         PeerVariant::Steam(peer)
     };

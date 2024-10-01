@@ -326,7 +326,7 @@ pub struct SteamPeer {
 }
 
 impl SteamPeer {
-    pub fn new_host(lobby_type: LobbyType, client: steamworks::Client) -> Self {
+    pub fn new_host(lobby_type: LobbyType, client: steamworks::Client, max_players: u32) -> Self {
         let (sender, events) = channel::unbounded();
 
         let connections = Connections::new(&client);
@@ -334,7 +334,7 @@ impl SteamPeer {
         let matchmaking = client.matchmaking();
         {
             let sender = sender.clone();
-            matchmaking.create_lobby(lobby_type, 100, {
+            matchmaking.create_lobby(lobby_type, max_players, {
                 let client = client.clone();
                 move |lobby| {
                     let matchmaking = client.matchmaking();

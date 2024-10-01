@@ -59,7 +59,7 @@ local water_mats = {"water", "swamp", "water_swamp", "water_salt", "blood", "mud
 local ignore_spell = {"ANTIHEAL", "BLACK_HOLE", "BLACK_HOLE_DEATH_TRIGGER", "POWERDIGGER", "DIGGER", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER", "GRENADE_LARGE", "CRUMBLING_EARTH", "HEAL_BULLET", "FISH",
                       "TELEPORT_PROJECTILE_CLOSER", "TELEPORT_PROJECTILE_STATIC", "SWAPPER_PROJECTILE", "TELEPORT_PROJECTILE", "TELEPORT_PROJECTILE_SHORT", "WHITE_HOLE", "CESSATION", "ADD_TRIGGER",
                       "ADD_TIMER", "ADD_DEATH_TRIGGER", "DIVIDE_2", "DIVIDE_3", "DIVIDE_4", "DIVIDE_10", "GAMMA", "MU", "ALPHA", "OMEGA", "PHI", "SIGMA", "TAU", "SUMMON_PORTAL", "DUPLICATE",
-                      "IF_PROJECTILE", "IF_HP", "IF_ENEMY", "IF_HALF", "IF_ELSE", "IF_END", "ALL_SPELLS"}
+                      "IF_PROJECTILE", "IF_HP", "IF_ENEMY", "IF_HALF", "IF_ELSE", "IF_END", "ALL_SPELLS", "SUMMON_ROCK", "SUMMON_EGG"}
 
 local function get_potions_of_type(type)
     local potions = {}
@@ -419,12 +419,14 @@ local function init_state()
             items = child
         end
         local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-        if com ~= nil then
+        if com ~= nil or EntityHasTag(child, "projectile") then
             if ComponentGetValue2(com, "effect") == "CHARM" then
                 EntityKill(child)
             end
         end
     end
+    local genome = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity)
+    ComponentSetValue2(genome, "berserk_dont_attack_friends", 1)
     state = {
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),

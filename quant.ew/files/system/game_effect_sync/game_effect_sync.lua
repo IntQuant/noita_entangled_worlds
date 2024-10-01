@@ -16,11 +16,15 @@ function effect_sync.get_ent_effects(entity)
     local list = {}
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         -- Do not include disabled components here
-        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
-        if com ~= nil then
-            local name = ComponentGetValue2(com, "effect")
-            if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) and not EntityHasTag(ent, "perk_entity") then
-                table.insert(list, ent)
+        if EntityHasTag(ent, "projectile") then
+            table.insert(list, ent)
+        else
+            local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+            if com ~= nil then
+                local name = ComponentGetValue2(com, "effect")
+                if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) and not EntityHasTag(ent, "perk_entity") then
+                    table.insert(list, ent)
+                end
             end
         end
     end
@@ -69,21 +73,26 @@ function effect_sync.remove_all_effects(entity)
     end
 end
 
+local function get_name(effect)
+    local com = EntityGetFirstComponentIncludingDisabled(effect1, "GameEffectComponent")
+    local name
+    if com == nil then
+        name = EntityGetFilename(effect)
+    else
+        name = ComponentGetValue2(com, "effect")
+        if name == "CUSTOM" then
+            name = ComponentGetValue2(com, "custom_effect_id")
+        end
+    end
+    return name
+end
+
 local function remove_duplicates(effects)
     for i, effect1 in ipairs(effects) do
-        local com1 = EntityGetFirstComponentIncludingDisabled(effect1, "GameEffectComponent")
-        local name1 = ComponentGetValue2(com1, "effect")
-        if name1 == "CUSTOM" then
-            name1 = ComponentGetValue2(com1, "custom_effect_id")
-        end
+        local name1 = get_name(effect1)
         for j, effect2 in ipairs(effects) do
             if i ~= j and EntityGetIsAlive(effect1) and EntityGetIsAlive(effect2) then
-                local com2 = EntityGetFirstComponentIncludingDisabled(effect2, "GameEffectComponent")
-                local name2 = ComponentGetValue2(com2, "effect")
-                if name2 == "CUSTOM" then
-                    name2 = ComponentGetValue2(com2, "custom_effect_id")
-                end
-                if name1 == name2 then
+                if name1 == get_name(effect2) then
                     if i < j then
                         EntityKill(effect1)
                     else
@@ -112,25 +121,16 @@ function effect_sync.apply_effects(effects, entity)
             local serialized = EntityCreateNew()
             np.DeserializeEntity(serialized, effect)
             local com = EntityGetFirstComponentIncludingDisabled(serialized, "GameEffectComponent")
-            local effect_name = ComponentGetValue2(com, "effect")
-            if effect_name == "CUSTOM" then
-                effect_name = ComponentGetValue2(com, "custom_effect_id")
-            end
+            local effect_name = get_name(serialized)
             for _, old_effect in ipairs(old_local_effects) do
                 local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
-                if old_com ~= nil then
-                    local old_name = ComponentGetValue2(old_com, "effect")
-                    if old_name == "CUSTOM" then
-                        old_name = ComponentGetValue2(old_com, "custom_effect_id")
+                if effect_name == get_name(old_effect) then
+                    if old_com ~= nil and ComponentGetValue2(old_com, "frames") ~= -1 then
+                        ComponentSetValue2(old_com, "frames", 999999999)
                     end
-                    if old_name == effect_name then
-                        if ComponentGetValue2(old_com, "frames") ~= -1 then
-                            ComponentSetValue2(old_com, "frames", 999999999)
-                        end
-                        EntityKill(serialized)
-                        table.insert(effect_names, effect_name)
-                        goto continue
-                    end
+                    EntityKill(serialized)
+                    table.insert(effect_names, effect_name)
+                    goto continue
                 end
             end
             if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
@@ -142,19 +142,13 @@ function effect_sync.apply_effects(effects, entity)
         end
         for _, old_effect in ipairs(old_local_effects) do
             local old_com = EntityGetFirstComponentIncludingDisabled(old_effect, "GameEffectComponent")
-            if old_com ~= nil then
-                local old_name = EntityGetFilename(old_effect)
-                if old_name == name then
-                    if ComponentGetValue2(old_com, "frames") ~= -1 then
-                        ComponentSetValue2(old_com, "frames", 999999999)
-                    end
-                    local name3 = ComponentGetValue2(old_com, "effect")
-                    if name3 == "CUSTOM" then
-                        name3 = ComponentGetValue2(old_com, "custom_effect_id")
-                    end
-                    table.insert(effect_names, name3)
-                    goto continue
+            local old_name = get_name(old_effect)
+            if name == old_name then
+                if old_com ~= nil and ComponentGetValue2(old_com, "frames") ~= -1 then
+                    ComponentSetValue2(old_com, "frames", 999999999)
                 end
+                table.insert(effect_names, old_name)
+                goto continue
             end
         end
         local ent = EntityLoad(name)
@@ -166,11 +160,7 @@ function effect_sync.apply_effects(effects, entity)
         if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
             ComponentSetValue2(com, "frames", 999999999)
         end
-        local name3 = ComponentGetValue2(com, "effect")
-        if name3 == "CUSTOM" then
-            name3 = ComponentGetValue2(com, "custom_effect_id")
-        end
-        table.insert(effect_names, name3)
+        table.insert(effect_names, get_name(ent))
         ::continue::
     end
 
@@ -178,11 +168,7 @@ function effect_sync.apply_effects(effects, entity)
     local local_effects = effect_sync.get_ent_effects(entity)
     if #local_effects > #effect_names then
         for _, effect in ipairs(local_effects) do
-            local com = EntityGetFirstComponentIncludingDisabled(effect, "GameEffectComponent")
-            local local_name = ComponentGetValue2(com, "effect")
-            if local_name == "CUSTOM" then
-                local_name = ComponentGetValue2(com, "custom_effect_id")
-            end
+            local local_name = get_name(effect)
             for _, name in ipairs(effect_names) do
                 if name == local_name then
                     goto cont
