@@ -229,7 +229,7 @@ function item_sync.on_world_update()
             item_sync.remove_item_with_id_now(gid)
         end
     end
-    if GameGetFrameNum() % (60*5) == 31 then
+    if GameGetFrameNum() % 60 == 31 then
         send_item_positions()
     end
 end
