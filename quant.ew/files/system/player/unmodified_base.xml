@@ -593,6 +593,8 @@
       <Base file="mods/quant.ew/files/resource/entities/chunk_loader.xml">
       </Base>
   </Entity>-->
+  <StreamingKeepAliveComponent>
+  </StreamingKeepAliveComponent>
 
   <Entity name="cursor">
     <SpriteComponent

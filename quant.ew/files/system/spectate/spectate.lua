@@ -54,11 +54,11 @@ local function target()
             else
                 ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             end
-            local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
+            --local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
             EntityRemoveComponent(camera_target.entity, audio)
-            if keep_alive ~= nil then
-                EntityRemoveComponent(camera_target.entity, keep_alive)
-            end
+            --if keep_alive ~= nil then
+            --    EntityRemoveComponent(camera_target.entity, keep_alive)
+            --end
             EntityRemoveComponent(camera_target.entity, inventory_target)
             camera_target = cam_target
         end
@@ -104,17 +104,17 @@ local function target()
             inventory_target = EntityAddComponent2(cam_target.entity, "InventoryGuiComponent")
         end
         local audio = EntityGetFirstComponent(camera_target.entity, "AudioListenerComponent")
-        local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
+        --local keep_alive = EntityGetFirstComponent(camera_target.entity, "StreamingKeepAliveComponent")
         if audio ~= nil then
             local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
             ComponentSetValue2(audio_n, "z", ComponentGetValue2(audio, "z"))
             EntityRemoveComponent(camera_target.entity, audio)
-            if camera_target.entity ~= ctx.my_player.entity and keep_alive ~= nil and not EntityHasTag(camera_target.entity, "ew_notplayer") then
-                EntityRemoveComponent(camera_target.entity, keep_alive)
-            end
-            if cam_target.entity ~= ctx.my_player.entity and not EntityHasTag(cam_target, "ew_notplayer") then
-                EntityAddComponent2(cam_target.entity, "StreamingKeepAliveComponent")
-            end
+            --if camera_target.entity ~= ctx.my_player.entity and keep_alive ~= nil and not EntityHasTag(camera_target.entity, "ew_notplayer") then
+            --    EntityRemoveComponent(camera_target.entity, keep_alive)
+            --end
+            --if cam_target.entity ~= ctx.my_player.entity and not EntityHasTag(cam_target, "ew_notplayer") then
+            --    EntityAddComponent2(cam_target.entity, "StreamingKeepAliveComponent")
+            --end
         end
     end
     camera_target = cam_target
@@ -252,13 +252,13 @@ function spectate.on_world_update()
             if peer_id ~= ctx.my_id then
                 local audio = EntityGetFirstComponent(data.entity, "AudioListenerComponent")
                 local inv_target = EntityGetFirstComponent(data.entity, "InventoryGuiComponent")
-                local keep_alive = EntityGetFirstComponent(data.entity, "StreamingKeepAliveComponent")
+                --local keep_alive = EntityGetFirstComponent(data.entity, "StreamingKeepAliveComponent")
                 if audio ~= nil then
                     EntityRemoveComponent(data.entity, audio)
                 end
-                if keep_alive ~= nil and not EntityHasTag(data.entity, "ew_notplayer") then
-                    EntityRemoveComponent(data.entity, keep_alive)
-                end
+                --if keep_alive ~= nil and not EntityHasTag(data.entity, "ew_notplayer") then
+                --    EntityRemoveComponent(data.entity, keep_alive)
+                --end
                 if inv_target ~= nil then
                     EntityRemoveComponent(data.entity, inv_target)
                 end

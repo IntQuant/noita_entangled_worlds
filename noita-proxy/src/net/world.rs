@@ -102,7 +102,6 @@ pub(crate) enum WorldNetMessage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
         listeners: FxHashSet<OmniPeerId>,
-        priority: u8,
     },
     TransferFailed {
         chunk: ChunkCoord,
@@ -473,8 +472,13 @@ impl WorldManager {
     }
 
     fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId, priority: u8) {
+        let auth = self.authority_map.get(&chunk).cloned();
         self.authority_map.insert(chunk, (source, priority));
-        let chunk_data = self.chunk_storage.get(&chunk).cloned();
+        let chunk_data = if auth.map(|a| a.0 != source).unwrap_or(true) {
+            self.chunk_storage.get(&chunk).cloned()
+        } else {
+            None
+        };
         self.emit_msg(
             Destination::Peer(source),
             WorldNetMessage::GotAuthority {
@@ -593,25 +597,12 @@ impl WorldManager {
                 chunk_data,
                 priority,
             } => {
-                if self.chunk_state.get(&chunk) != Some(&ChunkState::UnloadPending) {
-                    if let Some(chunk_data) = chunk_data {
-                        self.inbound_model.apply_chunk_data(chunk, &chunk_data);
-                        self.outbound_model.apply_chunk_data(chunk, &chunk_data);
-                    }
-                    self.chunk_state
-                        .insert(chunk, ChunkState::authority(priority));
-                    self.last_request_priority.remove(&chunk);
-                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
-                    self.emit_msg(
-                        Destination::Host,
-                        WorldNetMessage::UpdateStorage { chunk, chunk_data },
-                    );
-                } else {
-                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
-                    self.emit_msg(
-                        Destination::Host,
-                        WorldNetMessage::UpdateStorage { chunk, chunk_data },
-                    );
+                self.chunk_state
+                    .insert(chunk, ChunkState::authority(priority));
+                self.last_request_priority.remove(&chunk);
+                if let Some(chunk_data) = chunk_data {
+                    self.inbound_model.apply_chunk_data(chunk, &chunk_data);
+                    self.outbound_model.apply_chunk_data(chunk, &chunk_data);
                 }
             }
             WorldNetMessage::UpdateStorage { chunk, chunk_data } => {
@@ -773,10 +764,9 @@ impl WorldManager {
                         WorldNetMessage::RequestAuthorityTransfer { chunk },
                     );
                 } else {
-                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Host,
-                        WorldNetMessage::RelinquishAuthority { chunk, chunk_data },
+                        WorldNetMessage::RelinquishAuthority { chunk, chunk_data: None },
                     );
                 }
             }
@@ -785,7 +775,6 @@ impl WorldManager {
                 let state = self.chunk_state.get(&chunk);
                 if let Some(ChunkState::Authority {
                     listeners,
-                    priority,
                     ..
                 }) = state
                 {
@@ -796,10 +785,14 @@ impl WorldManager {
                             chunk,
                             chunk_data,
                             listeners: listeners.clone(),
-                            priority: *priority,
                         },
                     );
                     self.chunk_state.insert(chunk, ChunkState::UnloadPending);
+                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                    self.emit_msg(
+                        Destination::Host,
+                        WorldNetMessage::UpdateStorage { chunk, chunk_data },
+                    );
                 } else {
                     self.emit_msg(
                         Destination::Peer(source),
@@ -811,11 +804,11 @@ impl WorldManager {
                 chunk,
                 chunk_data,
                 listeners,
-                priority,
             } => {
                 info!("Transfer ok");
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, &chunk_data);
+                    self.outbound_model.apply_chunk_data(chunk, &chunk_data);
                 }
                 for listener in listeners.iter() {
                     self.emit_msg(
@@ -827,16 +820,10 @@ impl WorldManager {
                     chunk,
                     ChunkState::Authority {
                         listeners,
-                        priority,
+                        priority: self.last_request_priority.remove(&chunk).unwrap_or(0),
                         new_authority: None,
                         stop_sending: false,
                     },
-                );
-                self.last_request_priority.remove(&chunk);
-                let chunk_data = self.outbound_model.get_chunk_data(chunk);
-                self.emit_msg(
-                    Destination::Host,
-                    WorldNetMessage::UpdateStorage { chunk, chunk_data },
                 );
             }
             WorldNetMessage::TransferFailed { chunk } => {
