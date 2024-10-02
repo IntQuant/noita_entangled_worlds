@@ -105,6 +105,7 @@ local function load_modules()
     if ctx.proxy_opt.randomize_perks then
         ctx.load_system("randomize_perks")
     end
+    ctx.load_system("streaming_sync")
 end
 
 local function is_suitable_target(entity)
