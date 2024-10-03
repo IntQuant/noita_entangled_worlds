@@ -100,10 +100,19 @@ local function reset_cast_state_if_has_any_other_item(player_data)
 end
 
 function net_handling.mod.fire(peer_id, fire_data)
-    local rng = fire_data[1]
-    local message = fire_data[2]
     local player_data = player_fns.peer_get_player_data(peer_id)
     local entity = player_data.entity
+    local x, y = EntityGetTransform(entity)
+    local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+    local cam_x, cam_y = GameGetCameraPos()
+    local mdx, mdy = my_x - x, my_y - y
+    local cdx, cdy = cam_x - x, cam_y - y
+    if mdx * mdx + mdy * mdy > 2048 * 2048 and cdx * cdx + cdy * cdy > 2048 * 2048 then
+        return
+    end
+
+    local rng = fire_data[1]
+    local message = fire_data[2]
 
     local switched_now = fire_data.switched_now == true
     if switched_now then
