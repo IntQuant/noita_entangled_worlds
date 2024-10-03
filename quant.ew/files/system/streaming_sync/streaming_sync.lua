@@ -14,9 +14,7 @@ function rpc.remote_run_event(id)
 			if evt.action_delayed ~= nil then
 				if evt.delay_timer ~= nil then
                     local p = ctx.my_player.entity
-                    for a,b in ipairs( p ) do
-                        add_timer_above_head( b, evt.id, evt.delay_timer )
-                    end
+                    add_timer_above_head( p, evt.id, evt.delay_timer )
 				end
 			elseif evt.action ~= nil then
 				evt.action(evt)
