@@ -117,13 +117,13 @@ function module.on_world_update()
                 if is_notplayer then
                     img_path = "mods/quant.ew/files/system/player_arrows/arrow_host_notplayer.png"
                 else
-                    img_path = "mods/quant.ew/files/system/player_arrows/arrow_host.png"
+                    img_path = "mods/quant.ew/files/system/player/tmp/" .. player_data.peer_id .. "_arrow.png"
                 end
             else
                 if is_notplayer then
                     img_path = "mods/quant.ew/files/system/player_arrows/arrow_notplayer.png"
                 else
-                    img_path = "mods/quant.ew/files/system/player_arrows/arrow.png"
+                    img_path = "mods/quant.ew/files/system/player/tmp/" .. player_data.peer_id .. "_arrow.png"
                 end
             end
             local scale = math.max(1 / 6, 0.7 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi)

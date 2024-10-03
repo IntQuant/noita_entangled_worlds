@@ -233,6 +233,7 @@ impl NetManager {
                 self.init_settings.cosmetics,
                 self.init_settings.player_color,
             ),
+            self.is_host()
         );
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             if cli {
@@ -298,16 +299,18 @@ impl NetManager {
                                     self.init_settings.cosmetics,
                                     self.init_settings.player_color,
                                 ),
+                                self.is_host()
                             );
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(
                             id,
                             &NetMsg::PlayerColor((
-                                self.peer.my_id().unwrap().to_string(),
-                                self.init_settings.cosmetics,
-                                self.init_settings.player_color,
-                            )),
+                                                     self.peer.my_id().unwrap().to_string(),
+                                                     self.init_settings.cosmetics,
+                                                     self.init_settings.player_color),
+                                                 self.is_host()
+                            ),
                             Reliability::Reliable,
                         );
                     }
@@ -344,11 +347,12 @@ impl NetManager {
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
-                            NetMsg::PlayerColor(rgb) => {
+                            NetMsg::PlayerColor(rgb, host) => {
                                 create_player_png(
                                     &self.init_settings.mod_path,
                                     &self.init_settings.player_path,
                                     rgb,
+                                    host
                                 );
                             }
                         }
