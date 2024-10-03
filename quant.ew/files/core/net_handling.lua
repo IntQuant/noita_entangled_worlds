@@ -107,7 +107,8 @@ function net_handling.mod.fire(peer_id, fire_data)
     local cam_x, cam_y = GameGetCameraPos()
     local mdx, mdy = my_x - x, my_y - y
     local cdx, cdy = cam_x - x, cam_y - y
-    if mdx * mdx + mdy * mdy > 2048 * 2048 and cdx * cdx + cdy * cdy > 2048 * 2048 then
+    local DIST = 1024 * 1024
+    if mdx * mdx + mdy * mdy > DIST and cdx * cdx + cdy * cdy > DIST then
         return
     end
 
