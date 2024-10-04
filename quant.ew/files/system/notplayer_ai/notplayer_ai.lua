@@ -12,6 +12,8 @@ local no_shoot_time = 100
 
 local throw_water = false
 
+local changed_held = false
+
 local function log(...)
     -- GamePrint(...)
 end
@@ -149,7 +151,7 @@ local function find_new_wand()
     if children == nil then
         table.insert(state.empty_wands, state.attack_wand)
         state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
-        do_kick = true
+        changed_held = true
     else
         local bad_mod = false
         local is_any_not_empty = false
@@ -196,7 +198,7 @@ local function find_new_wand()
         if not is_any_not_empty then
             table.insert(state.empty_wands, state.attack_wand)
             state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
-            do_kick = true
+            changed_held = true
         end
     end
 end
@@ -492,7 +494,10 @@ local function choose_wand_actions()
         end
         dont_throw = false
         aim_at(t_x, t_y)
-        fire_wand(not last_did_hit and state.init_timer > no_shoot_time and not do_kick)-- or has_water_potion)
+        fire_wand(not last_did_hit and state.init_timer > no_shoot_time and not changed_held)-- or has_water_potion)
+        if changed_held then
+            changed_held = false
+        end
         return
     end
     fire_wand(false)
@@ -804,14 +809,14 @@ local function hold_something()
         table.remove(state.bad_potions, i)
         bad_potion = nil
         stop_potion = true
-        do_kick = true
+        changed_held = true
     end
     if good_potion ~= nil and (holding == nil or holding ~= good_potion) then
         table.remove(state.good_potions, 1)
         good_potion = nil
         stop_potion = true
         bathe = true
-        do_kick = true
+        changed_held = true
     end
     local douse = needs_douse(ctx.my_player.entity)
     local target_is_ambrosia = has_ambrosia(target) and not last_did_hit
@@ -821,14 +826,14 @@ local function hold_something()
             water_potion = nil
             throw_water = false
             bathe = false
-            do_kick = true
+            changed_held = true
         end
     end
     if water_potion ~= nil and (((state.init_timer >= no_shoot_time and not last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
         water_potion = nil
         throw_water = false
         bathe = false
-        do_kick = true
+        changed_held = true
     end
 
     if GameGetFrameNum() % 120 == 40 then
@@ -863,7 +868,7 @@ local function hold_something()
         np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
         if water_potion == nil then
             water_potion = state.water_potions[1]
-            do_kick = true
+            changed_held = true
         end
         throw_water = target_is_ambrosia
         bathe = not target_is_ambrosia
@@ -874,7 +879,7 @@ local function hold_something()
         np.SetActiveHeldEntity(state.entity, state.bad_potions[i], false, false)
         if bad_potion == nil then
             bad_potion = state.bad_potions[i]
-            do_kick = true
+            changed_held = true
         end
     elseif has_good_potion or good_potion ~= nil then
         if EntityHasTag(state.bad_potions[i], "potion") then
@@ -883,12 +888,16 @@ local function hold_something()
         np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
         if good_potion == nil then
             good_potion = state.good_potions[1]
-            do_kick = true
+            changed_held = true
         end
     else
         if state.attack_wand ~= nil then
             np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         end
+    end
+    local holding2 = ComponentGetValue2(inventory, "mActualActiveItem")
+    if holding ~= holding2 then
+        changed_held = true
     end
 end
 
@@ -1083,7 +1092,7 @@ local function update()
     EntityRemoveIngestionStatusEffect(ctx.my_player.entity, "CHARM")
 end
 
-function module.on_world_update()
+function module.on_world_update_post()
     local active = GameHasFlagRun("ew_flag_notplayer_active")
     if active then
         if state == nil then
