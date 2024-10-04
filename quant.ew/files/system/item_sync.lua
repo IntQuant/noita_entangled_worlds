@@ -176,7 +176,13 @@ local function send_item_positions()
         -- Only send info about items created by us.
         if is_my_item(gid) and is_item_on_ground(item) then
             local x, y = EntityGetTransform(item)
-            position_data[gid] = {x, y}
+            local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
+            local cost = 0
+            if costcom ~= nil then
+                ComponentSetValue2(costcom, "stealable", true)
+                cost = ComponentGetValue2(costcom, "cost")
+            end
+            position_data[gid] = {x, y, cost}
         end
     end
     rpc.update_positions(position_data)
@@ -355,10 +361,15 @@ function rpc.update_positions(position_data)
     local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
         local x, y = el[1], el[2]
+        local price = el[3]
         if math.abs(x - cx) < LIMIT and math.abs(y - cy) < LIMIT then
             local item = item_sync.find_by_gid(gid)
             if item ~= nil then
                 EntitySetTransform(item, x, y)
+                local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
+                if costcom ~= nil then
+                    ComponentSetValue2(costcom, "cost", price)
+                end
             else
                 util.log("Requesting again "..gid)
                 rpc.request_send_again(gid)
