@@ -1092,7 +1092,7 @@ local function update()
     EntityRemoveIngestionStatusEffect(ctx.my_player.entity, "CHARM")
 end
 
-function module.on_world_update_post()
+function module.on_world_update()
     local active = GameHasFlagRun("ew_flag_notplayer_active")
     if active then
         if state == nil then

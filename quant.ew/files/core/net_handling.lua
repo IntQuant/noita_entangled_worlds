@@ -102,14 +102,16 @@ end
 function net_handling.mod.fire(peer_id, fire_data)
     local player_data = player_fns.peer_get_player_data(peer_id)
     local entity = player_data.entity
-    local x, y = EntityGetTransform(entity)
-    local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
-    local cam_x, cam_y = GameGetCameraPos()
-    local mdx, mdy = my_x - x, my_y - y
-    local cdx, cdy = cam_x - x, cam_y - y
-    local DIST = 1024 * 1024
-    if mdx * mdx + mdy * mdy > DIST and cdx * cdx + cdy * cdy > DIST then
-        return
+    if ctx.my_id ~= ctx.host_id then
+        local x, y = EntityGetTransform(entity)
+        local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+        local cam_x, cam_y = GameGetCameraPos()
+        local mdx, mdy = my_x - x, my_y - y
+        local cdx, cdy = cam_x - x, cam_y - y
+        local DIST = 1024 * 1024
+        if mdx * mdx + mdy * mdy > DIST and cdx * cdx + cdy * cdy > DIST then
+            return
+        end
     end
 
     local rng = fire_data[1]

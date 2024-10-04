@@ -65,7 +65,7 @@ function module.on_world_update()
     while i <= #pings do
         local pos = pings[i]
         local frame = pos[3]
-        if frame + 180 < GameGetFrameNum() then
+        if frame + 300 < GameGetFrameNum() then
             table.remove(pings, i)
             goto continue
         end
