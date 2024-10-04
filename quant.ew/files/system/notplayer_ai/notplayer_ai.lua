@@ -428,7 +428,7 @@ local function init_state()
         end
     end
     local genome = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "GenomeDataComponent")
-    ComponentSetValue2(genome, "berserk_dont_attack_friends", 1)
+    ComponentSetValue2(genome, "berserk_dont_attack_friends", true)
     state = {
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),

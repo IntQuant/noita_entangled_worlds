@@ -24,6 +24,10 @@ pub fn arrows_path(path: PathBuf, is_host: bool) -> PathBuf {
     }
 }
 
+pub fn cursor_path(path: PathBuf) -> PathBuf {
+    path.parent().unwrap().parent().unwrap().join("resource/sprites/cursor.png")
+}
+
 pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
     let target_main = Rgba::from([155, 111, 154, 255]);
     let target_alt = Rgba::from([127, 84, 118, 255]);
@@ -239,6 +243,7 @@ pub fn create_player_png(
     let rgb = rgb.2;
     let tmp_path = player_path.parent().unwrap();
     let arrows_path = arrows_path(tmp_path.into(), is_host);
+    let cursor_path = cursor_path(tmp_path.into());
     let mut img = image::open(player_path).unwrap().into_rgba8();
     replace_color(
         &mut img,
@@ -253,10 +258,19 @@ pub fn create_player_png(
         Rgba::from(rgb.player_alt),
         Rgba::from(rgb.player_arm),
     );
+    let mut img_cursor = image::open(cursor_path).unwrap().into_rgba8();
+    replace_color(
+        &mut img_cursor,
+        Rgba::from(rgb.player_main),
+        Rgba::from(rgb.player_alt),
+        Rgba::from(rgb.player_arm),
+    );
     let path = tmp_path.join(format!("tmp/{}.png", id));
     img.save(path).unwrap();
     let path = tmp_path.join(format!("tmp/{}_arrow.png", id));
     img_arrow.save(path).unwrap();
+    let path = tmp_path.join(format!("tmp/{}_cursor.png", id));
+    img_cursor.save(path).unwrap();
     let img = create_arm(Rgba::from(rgb.player_forearm));
     let path = tmp_path.join(format!("tmp/{}_arm.png", id));
     img.save(path).unwrap();

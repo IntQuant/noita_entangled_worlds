@@ -264,6 +264,7 @@ local player_fns = {
             for i, child in ipairs(children) do
                 if (EntityGetName(child) == "cursor") then
                     EntityApplyTransform(child, message.mouse_x, message.mouse_y)
+                    break
                 end
             end
 
@@ -452,6 +453,13 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     end
     print("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
+    for _, child in ipairs(EntityGetAllChildren(new) or {}) do
+        if (EntityGetName(child) == "cursor") then
+            local sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+            ComponentSetValue2(sprite, "image_file", "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cursor.png")
+            break
+        end
+    end
 
     if ctx.proxy_opt.game_mode == "shared_health" then
         local player_components = EntityGetAllComponents(new)
