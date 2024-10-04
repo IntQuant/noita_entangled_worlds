@@ -46,7 +46,7 @@ function module.on_world_update()
     local gui_id = 2
 
     for peer_id, player_data in pairs(ctx.players) do
-        if ctx.my_id == peer_id and (ctx.spectating_over_peer_id ~= nil and ctx.spectating_over_peer_id ~= peer_id) then
+        if ctx.my_id == peer_id and (ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == peer_id) then
             goto continue
         end
         local px, py = EntityGetTransform(player_data.entity)
