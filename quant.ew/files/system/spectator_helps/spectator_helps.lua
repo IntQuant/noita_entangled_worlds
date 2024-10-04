@@ -2,58 +2,25 @@ local rpc = net.new_rpc_namespace()
 
 local shield_entities = {}
 
-local function delete_shields()
-    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-        if EntityGetName(child) == "spectator_shield" then
-            EntityKill(child)
-        end
+rpc.opts_everywhere()
+function rpc.add_shield(target)
+    if GameHasFlagRun("ending_game_completed") then
+        return
     end
-end
-
-local shield_angle = rpc:create_var("shield_angle", function(new_value)
-    local shield_ent = shield_entities[ctx.rpc_peer_id]
-    if shield_ent ~= nil then
-        local x, y = EntityGetTransform(shield_ent)
-        EntitySetTransform(shield_ent, x, y, new_value)
-    end
-end)
-
-local function create_shield_for(spectator_peer_id, target_entity)
-    if GameGetIsGamepadConnected() or GameHasFlagRun("ending_game_completed") then
+    local entity = ctx.players[target].entity
+    if not EntityGetIsAlive(entity) or EntityHasTag(entity, "polymorphed") then
         return
     end
     local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
-    if not EntityGetIsAlive(target_entity) then
-        return
-    end
-    EntityAddChild(target_entity, ent)
-    shield_entities[spectator_peer_id] = ent
-    if shield_angle.values[spectator_peer_id] ~= nil then
-        local x, y = EntityGetTransform(ent)
-        EntitySetTransform(ent, x, y, shield_angle.values[spectator_peer_id])
-    end
+    EntityAddChild(entity, ent)
+    shield_entities[ctx.rpc_peer_id] = {target, ent}
 end
 
-local function maybe_clean_existing_shield(spectator_peer_id)
-    if shield_entities[spectator_peer_id] ~= nil then
-        EntityKill(shield_entities[spectator_peer_id])
-        shield_entities[spectator_peer_id] = nil
-    end
-end
-
-local spectating_which = rpc:create_var("spectating_which", function(new_value)
-    maybe_clean_existing_shield(ctx.rpc_peer_id)
-    if ctx.rpc_peer_id ~= new_value and new_value ~= nil then
-        create_shield_for(ctx.rpc_peer_id, player_fns.peer_get_player_data(new_value).entity)
-    end
-end)
-
-local function recreate_shields_of(updated_peer_id)
-    for peer_id, target_peer_id in pairs(spectating_which.values) do
-        if target_peer_id == updated_peer_id then
-            maybe_clean_existing_shield(peer_id)
-            create_shield_for(peer_id, player_fns.peer_get_player_data(target_peer_id).entity)
-        end
+rpc.opts_everywhere()
+function rpc.del_shield(id)
+    if shield_entities[id] ~= nil then
+        EntityKill(shield_entities[id][2])
+        shield_entities[id] = nil
     end
 end
 
@@ -73,44 +40,89 @@ local function is_acceptable_help_target(spectating_over)
     if EntityHasTag(player_data.entity, "polymorphed") then
         return false
     end
+    if shield_entities[ctx.my_id] ~= nil then
+        return false
+    end
     return true
 end
 
-function module.on_local_player_polymorphed(_currently_polymorphed)
-    delete_shields()
-    recreate_shields_of(ctx.my_id)
-end
-
-function module.on_world_update()
-    if GameHasFlagRun("ending_game_completed") then
-        return
-    end
-    local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
-    if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
-        spectating_which.set(ctx.spectating_over_peer_id)
-        if GameGetFrameNum() % 6 == 3 then
-            local x,y = DEBUG_GetMouseWorld()
-            local cx, cy = EntityGetTransform(ctx.players[ctx.spectating_over_peer_id].entity)
-            local dx, dy = x - cx, y - cy
-            local angle = math.atan2(dy, dx)
-            shield_angle.set(angle)
+local function kill_all_shields()
+    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+        if EntityGetName(child) == "spectator_shield" then
+            EntityKill(child)
         end
-    else
-        spectating_which.set(nil)
     end
 end
 
 function module.on_local_player_spawn()
     -- Cleanup after restarts
-    delete_shields()
+    kill_all_shields()
 end
 
-function module.on_client_polymorphed(peer_id, _player_data)
-    recreate_shields_of(peer_id)
+function module.on_local_player_polymorphed(_currently_polymorphed)
+    kill_all_shields()
 end
 
-function module.on_client_spawned(peer_id, _new_playerdata)
-    recreate_shields_of(peer_id)
+function rpc.send_money(money)
+    local entity = ctx.rpc_player_data.entity
+    local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
+    ComponentSetValue2(wallet, "money", money)
+end
+
+local last_spectate
+
+function module.on_world_update()
+    if GameHasFlagRun("ending_game_completed") then
+        return
+    end
+    if GameGetFrameNum() % 10 == 8 then
+        local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
+        if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
+            rpc.add_shield(ctx.spectating_over_peer_id)
+        elseif last_spectate ~= nil and last_spectate ~= ctx.spectating_over_peer_id then
+            rpc.del_shield(ctx.my_id)
+        end
+        last_spectate = ctx.spectating_over_peer_id
+    end
+    for peer_id, _ in pairs(ctx.players) do
+        for shield_id, shield in pairs(shield_entities) do
+            if peer_id == shield[1] then
+                local shield_ent = shield[2]
+                local my_x, my_y = EntityGetTransform(ctx.players[peer_id].entity)
+                local his_x, his_y
+                if shield_id == ctx.my_id then
+                    if GameGetIsGamepadConnected() then
+                        his_x, his_y = InputGetJoystickAnalogStick(0, 1)
+                        his_x, his_y = his_x * 60 + my_x, his_y * 60 + my_y
+                    else
+                        his_x, his_y = DEBUG_GetMouseWorld()
+                    end
+                else
+                    for _, child in ipairs(EntityGetAllChildren(ctx.players[shield_id].entity) or {}) do
+                        if (EntityGetName(child) == "cursor") then
+                            his_x, his_y = EntityGetTransform(child)
+                            break
+                        end
+                    end
+                end
+                if his_x == nil then
+                    goto continue
+                end
+                local dx, dy = his_x - my_x, his_y - my_y
+                if dx * dx + dy * dy > 350 * 350 then
+                    goto continue
+                end
+                local angle = math.atan2(dy, dx)
+                local x, y = EntityGetTransform(shield_ent)
+                EntitySetTransform(shield_ent, x, y, angle)
+            end
+        end
+        ::continue::
+    end
+    if GameGetFrameNum() % 60 == 47 then
+        local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+        rpc.send_money(ComponentGetValue2(wallet, "money"))
+    end
 end
 
 return module

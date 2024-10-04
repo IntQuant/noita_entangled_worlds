@@ -16,6 +16,8 @@ typedef struct A {
     float aimNonZero_y;
     float mouse_x;
     float mouse_y;
+    float my_x;
+    float my_y;
     float mouseRaw_x;
     float mouseRaw_y;
     float mouseRawPrev_x;
@@ -24,6 +26,7 @@ typedef struct A {
     float mouseDelta_y;
     float gamepad_vector_x;
     float gamepad_vector_y;
+    int host_frame_num;
     bool has_gamepad;
     bool kick:1;
     bool fire:1;
@@ -260,14 +263,16 @@ local player_fns = {
             end
             ComponentSetValue2(controlsComp, "mMousePosition", message.mouse_x, message.mouse_y)
 
-            local children = EntityGetAllChildren(player_data.entity) or {}
-            for i, child in ipairs(children) do
-                if (EntityGetName(child) == "cursor") then
+            for _, child in ipairs(EntityGetAllChildren(player_data.entity) or {}) do
+                if EntityGetName(child) == "notcursor" then
                     EntityApplyTransform(child, message.mouse_x, message.mouse_y)
-                    break
+                elseif EntityGetName(child) == "cursor" then
+                    EntityApplyTransform(child, message.my_x, message.my_y)
                 end
             end
-
+            if message.host_frame_num ~= nil then
+                ctx.host_frame_num = message.host_frame_num
+            end
         end
     end,
     serialize_inputs = function(player_data)
@@ -302,12 +307,26 @@ local player_fns = {
             local mouseDelta_x, mouseDelta_y = ComponentGetValue2(controls, "mMouseDelta") -- float, float
             local gamepad_vector_x, gamepad_vector_y -- float, float
 
+            local my_x, my_y
             local has_gamepad = GameGetIsGamepadConnected()
             if has_gamepad then
+                local x, y
+                if ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == ctx.my_id then
+                    x, y = EntityGetTransform(ctx.my_player.entity)
+                else
+                    x, y = EntityGetTransform(ctx.players[ctx.spectating_over_peer_id].entity)
+                end
+                my_x, my_y = InputGetJoystickAnalogStick(0, 1)
+                my_x, my_y = my_x * 60 + x, my_y * 60 + y
                 mouse_x, mouse_y = ComponentGetValue2(controls, "mGamePadCursorInWorld")
                 gamepad_vector_x, gamepad_vector_y = ComponentGetValue2(controls, "mGamepadAimingVectorRaw")
             else
+                my_x, my_y = DEBUG_GetMouseWorld()
                 mouse_x, mouse_y = ComponentGetValue2(controls, "mMousePosition")
+            end
+            local host_frame_num
+            if ctx.my_id == ctx.host_id then
+                host_frame_num = GameGetFrameNum()
             end
 
             local c = Controls{
@@ -341,7 +360,10 @@ local player_fns = {
                 mouseDelta_y = mouseDelta_y,
                 gamepad_vector_x = gamepad_vector_x,
                 gamepad_vector_y = gamepad_vector_y,
-                has_gamepad = has_gamepad
+                has_gamepad = has_gamepad,
+                my_x = my_x,
+                my_y = my_y,
+                host_frame_num = host_frame_num
             }
 
             return c

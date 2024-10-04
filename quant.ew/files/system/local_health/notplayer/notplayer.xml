@@ -161,7 +161,7 @@
   </DamageModelComponent>
 
   <MaterialSuckerComponent
-    suck_gold="1"
+    suck_gold="0"
     suck_health="1"
   ></MaterialSuckerComponent>
 
@@ -635,10 +635,29 @@
 
   <LuaComponent _tags="ew_remove_on_send" script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"/>
 
-  <Entity name="cursor">
+  <Entity name="notcursor">
     <SpriteComponent
         alpha="1"
         image_file="mods/quant.ew/files/resource/sprites/cursor_notplayer.png"
+        next_rect_animation=""
+        offset_x="6.5"
+        offset_y="6.5"
+        emissive="1"
+        additive="1"
+        rect_animation=""
+        z_index="1"
+        update_transform="1"
+        update_transform_rotation="0"
+        has_special_scale="1"
+        special_scale_x="0.5"
+        special_scale_y="0.5"
+    ></SpriteComponent>
+  </Entity>
+
+  <Entity name="cursor">
+    <SpriteComponent
+        alpha="1"
+        image_file="mods/quant.ew/files/resource/sprites/cursor.png"
         next_rect_animation=""
         offset_x="6.5"
         offset_y="6.5"

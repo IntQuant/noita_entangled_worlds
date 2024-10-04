@@ -99,6 +99,16 @@ local function allow_notplayer_perk(perk_id)
     return not ignored_perks[perk_id]
 end
 
+function rpc.change_cursor()
+    for _, child in ipairs(EntityGetAllChildren(ctx.rpc_player_data.entity) or {}) do
+        if (EntityGetName(child) == "cursor") then
+            local sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+            ComponentSetValue2(sprite, "image_file", "mods/quant.ew/files/system/player/tmp/" .. ctx.rpc_peer_id .. "_cursor.png")
+            break
+        end
+    end
+end
+
 local function player_died()
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
@@ -126,6 +136,12 @@ local function player_died()
         EntityAddTag(iron, "kill_on_revive")
         rpc.add_nickname(ctx.my_id)
         remove_healthbar_locally()
+        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+            if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+                EntityKill(child)
+            end
+        end
+        rpc.change_cursor()
     end)
 end
 
