@@ -11,7 +11,7 @@ local IGNORE_EFFECTS = {
     POLYMORPH_UNSTABLE = true,
 }
 
-function effect_sync.get_ent_effects(entity)
+function effect_sync.get_ent_effects(entity, perks)
     local filename = EntityGetFilename(entity)
     local list = {}
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
@@ -22,7 +22,7 @@ function effect_sync.get_ent_effects(entity)
             local com = EntityGetFirstComponent(ent, "GameEffectComponent")
             if com ~= nil then
                 local name = ComponentGetValue2(com, "effect")
-                if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) and not EntityHasTag(ent, "perk_entity") then
+                if not IGNORE_EFFECTS[name] and filename ~= EntityGetFilename(ent) and (not EntityHasTag(ent, "perk_entity") or perks) then
                     table.insert(list, ent)
                 end
             end
@@ -40,8 +40,8 @@ local function name_to_num(name)
     return -1
 end
 
-function effect_sync.get_sync_data(entity)
-    local effects = effect_sync.get_ent_effects(entity)
+function effect_sync.get_sync_data(entity, perks)
+    local effects = effect_sync.get_ent_effects(entity, perks)
     local sync_data = {}
     for _, effect in ipairs(effects) do
         local name = EntityGetFilename(effect)
@@ -61,13 +61,13 @@ end
 
 function effect_sync.on_world_update()
     if GameGetFrameNum() % 30 == 9 then
-        local sync_data = effect_sync.get_sync_data(ctx.my_player.entity)
-        rpc.send_effects(sync_data)
+        local sync_data = effect_sync.get_sync_data(ctx.my_player.entity, false)
+        rpc.send_effects(sync_data, false)
     end
 end
 
-function effect_sync.remove_all_effects(entity)
-    local effects = effect_sync.get_ent_effects(entity)
+function effect_sync.remove_all_effects(entity, perks)
+    local effects = effect_sync.get_ent_effects(entity, perks)
     for _, effect in ipairs(effects) do
         EntityKill(effect)
     end
@@ -104,11 +104,11 @@ local function remove_duplicates(effects)
     end
 end
 
-function effect_sync.apply_effects(effects, entity)
+function effect_sync.apply_effects(effects, entity, perks)
     if not EntityGetIsAlive(entity) then
         return
     end
-    local old_local_effects = effect_sync.get_ent_effects(entity)
+    local old_local_effects = effect_sync.get_ent_effects(entity, perks)
     remove_duplicates(old_local_effects)
     local effect_names = {}
     for _, effect in ipairs(effects) do
@@ -164,8 +164,7 @@ function effect_sync.apply_effects(effects, entity)
         ::continue::
     end
 
-
-    local local_effects = effect_sync.get_ent_effects(entity)
+    local local_effects = effect_sync.get_ent_effects(entity, perks)
     if #local_effects > #effect_names then
         for _, effect in ipairs(local_effects) do
             local local_name = get_name(effect)
@@ -193,9 +192,9 @@ function effect_sync.apply_effects(effects, entity)
     end
 end
 
-function rpc.send_effects(effects)
+function rpc.send_effects(effects, perks)
     local entity = ctx.rpc_player_data.entity
-    effect_sync.apply_effects(effects, entity)
+    effect_sync.apply_effects(effects, entity, perks)
 end
 
 return effect_sync

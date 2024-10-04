@@ -254,7 +254,7 @@ function enemy_sync.host_upload_entities()
             table.remove(wands, enemy_id)
         end
 
-        local effect_data = effect_sync.get_sync_data(enemy_id)
+        local effect_data = effect_sync.get_sync_data(enemy_id, true)
 
         local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent")
         local animation
@@ -607,7 +607,7 @@ function rpc.handle_enemy_data(enemy_data)
             table.remove(wands, remote_enemy_id)
         end
 
-        effect_sync.apply_effects(effects, enemy_id)
+        effect_sync.apply_effects(effects, enemy_id, true)
 
         for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
             ComponentSetValue2(sprite, "rect_animation", animation)
