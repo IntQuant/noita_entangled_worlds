@@ -106,6 +106,7 @@ local function load_modules()
         ctx.load_system("randomize_perks")
     end
     ctx.load_system("streaming_sync")
+    ctx.load_system("random_start")
 end
 
 local function is_suitable_target(entity)
