@@ -425,7 +425,7 @@ local function init_state()
             end
         end
     end
-    local genome = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity)
+    local genome = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "GenomeDataComponent")
     ComponentSetValue2(genome, "berserk_dont_attack_friends", 1)
     state = {
         entity = ctx.my_player.entity,
@@ -917,14 +917,18 @@ local function find_target()
             target = nil
             last_length = nil
             last_did_hit = true
+            target_has_ambrosia = false
+            target_is_polied = false
         else
             local dx = x - x1
             local dy = y - y1
             last_length = dx * dx + dy + dy
-            if not is_suitable_target(target) or (last_length > 600 * 600) or (IsInvisible(target) and last_length > 50*50) then
+            if not is_suitable_target(target) or (last_length > 768 * 768) or (IsInvisible(target) and last_length > 32*32) then
                 target = nil
                 last_length = nil
                 last_did_hit = true
+                target_has_ambrosia = false
+                target_is_polied = false
             end
         end
     end
@@ -993,6 +997,21 @@ local function find_target()
                 target_has_ambrosia = new_has_ambrosia
                 target_is_polied = new_target_is_polied
                 target = potential_target
+            end
+        end
+    end
+    if last_did_hit then
+        local root_id = ctx.my_player.entity
+        local pos_x, pos_y = EntityGetTransform(root_id)
+        for _, id in pairs(EntityGetInRadiusWithTag(pos_x, pos_y, 256, "mortal")) do
+            if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < -100 then
+                local t_x, t_y = EntityGetTransform(id)
+                local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
+                if not did_hit then
+                    last_did_hit = false
+                    target = id
+                    break
+                end
             end
         end
     end

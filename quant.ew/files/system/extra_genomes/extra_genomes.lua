@@ -40,11 +40,13 @@ local function add_new_genome(genome_name, default_relation_ab, default_relation
     return output
 end
 
-content = add_new_genome("notplayer", 100, 100, 100, {
-    player = 0,
+content = add_new_genome("notplayer", 1000, 1000, 1000, {
+    player = -1000,
 })
 
-content = add_new_genome("player_pvp", 0, 0, 0, {})
+content = add_new_genome("player_pvp", 0, 0, 0, {
+    player = -1000
+})
 
 ModTextFileSetContent("data/genome_relations.csv", content)
 
