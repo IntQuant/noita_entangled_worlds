@@ -205,6 +205,9 @@ end
 
 local function has_pheremoned(entity)
     local com = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
+    if com == nil then
+        return
+    end
     local stains = ComponentGetValue2(com, "stain_effects")
     return stains ~= nil and stains[17] ~= nil and stains[17] >= 0.15
 end
@@ -252,6 +255,14 @@ local function needs_douse(entity)
                 return true
             end
         end
+    end
+    local com = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
+    if com == nil then
+        return
+    end
+    local stains = ComponentGetValue2(com, "stain_effects")
+    if stains ~= nil and stains[8] ~= nil and stains[8] >= 0.15 then
+        return true
     end
     return false
 end
@@ -1033,7 +1044,7 @@ local function update()
     if GameGetFrameNum() % 30 == 0 then
         ComponentSetValue2(var, "value_int", 0)
     end
-    state.dtype = ComponentGetValue2(var, "value_int")
+    --state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
     ComponentSetValue2(state.inv_component, "mActive", false)
