@@ -290,6 +290,22 @@ local function on_world_pre_update_inner()
         ctx.hook.on_world_update()
     end
 
+    if GameGetFrameNum() % 3 == 2 then
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
+            local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
+            if homing ~= nil then
+                local projcom = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
+                if projcom ~= nil then
+                    local whoshot = ComponentGetValue2(projcom, "mWhoShot")
+                    if EntityHasTag(whoshot, "ew_notplayer") then
+                        ComponentSetValue2(homing, "target_tag", "ew_peer")
+                    end
+                end
+            end
+        end
+    end
+
     wake_up_waiting_threads(1)
 end
 
