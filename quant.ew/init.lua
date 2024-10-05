@@ -107,6 +107,7 @@ local function load_modules()
     end
     ctx.load_system("streaming_sync")
     ctx.load_system("random_start")
+    ctx.load_system("worms")
 end
 
 local function is_suitable_target(entity)
