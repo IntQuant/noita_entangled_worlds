@@ -86,6 +86,7 @@ connect_settings_autostart = 自动启动游戏
 
 ## Game settings
 
+Health-per-player = Health per player
 Enable-friendly-fire = 启用队友伤害
 Have-perk-pools-be-independent-of-each-other = 启用神山独立天赋池
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = 主机一次加载的区块数量，同步的敌人和物理对象需要由主机加载才能由客户端渲染

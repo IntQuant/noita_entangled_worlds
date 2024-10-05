@@ -86,6 +86,7 @@ connect_settings_autostart = ゲームを自動的に開始する
 
 ## Game settings
 
+Health-per-player = Health per player
 Enable-friendly-fire = Enable friendly fire
 Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients

@@ -645,7 +645,7 @@ impl App {
                     ui.label(tr("shared_health_desc_2"));
                     ui.label(tr("shared_health_desc_3"));
                     ui.add_space(5.0);
-                    ui.label("Health per player");
+                    ui.label(tr("Health-per-player"));
                     ui.add(Slider::new(&mut game_settings.health_per_player, 0..=100));
                 }
                 GameMode::LocalHealth => {

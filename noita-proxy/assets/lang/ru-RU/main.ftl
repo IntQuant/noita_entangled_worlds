@@ -86,6 +86,7 @@ connect_settings_autostart = Запускать игру автоматичес�
 
 ## Game settings
 
+Health-per-player = Health per player
 Enable-friendly-fire = Включить дружественный огонь
 Have-perk-pools-be-independent-of-each-other = Сделать перки локальными для каждого игрока
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Количество чанков, загруженных хостом за один раз, враги и физические объекты должны быть загружены хостом для передачи другим игрокам
