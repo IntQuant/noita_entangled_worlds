@@ -302,6 +302,7 @@ impl App {
             });
         saved_state.times_started += 1;
 
+        info!("Setting fonts...");
         Self::set_fonts(&cc.egui_ctx);
         let state = if let Some(lang_id) = &saved_state.lang_id {
             set_current_locale(lang_id.clone());
@@ -310,10 +311,13 @@ impl App {
             AppState::LangPick
         };
 
+        info!("Installing image loaders...");
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
+        info!("Initializing steam state...");
         let steam_state = steam_helper::SteamState::new();
 
+        info!("Checking if running on steam deck...");
         let running_on_steamdeck = steam_state
             .as_ref()
             .map(|steam| steam.client.utils().is_steam_running_on_steam_deck())
