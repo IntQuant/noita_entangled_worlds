@@ -155,8 +155,8 @@
     critical_damage_resistance="1"
     ><damage_multipliers
       explosion="0.35"
-	  holy="1.5"
-	  >
+      holy="1.5"
+      >
     </damage_multipliers>
   </DamageModelComponent>
 
@@ -212,7 +212,7 @@
 
   <SpriteComponent
     _tags="character,lukki_enable"
-	_enabled="0"
+    _enabled="0"
     alpha="1"
     image_file="data/enemies_gfx/player_lukky.xml"
     next_rect_animation=""
@@ -312,7 +312,7 @@
     only_pick_this_entity="52395832806"
   ></ItemPickUpperComponent>
 
-	<Base file="data/entities/base_jetpack_nosound.xml">
+    <Base file="data/entities/base_jetpack_nosound.xml">
 
     <ParticleEmitterComponent
         offset.x="-2"
@@ -379,105 +379,105 @@
   <KickComponent>
   </KickComponent>
 
-	<VariableStorageComponent
-		name="ocarina_song"
-		value_string=""
-	></VariableStorageComponent>
+    <VariableStorageComponent
+        name="ocarina_song"
+        value_string=""
+    ></VariableStorageComponent>
 
-	<VariableStorageComponent
-		name="kantele_song"
-		value_string=""
-	></VariableStorageComponent>
+    <VariableStorageComponent
+        name="kantele_song"
+        value_string=""
+    ></VariableStorageComponent>
 
-	<VariableStorageComponent
-		name="ocarina_song_pos"
-		value_int="0"
-	></VariableStorageComponent>
+    <VariableStorageComponent
+        name="ocarina_song_pos"
+        value_int="0"
+    ></VariableStorageComponent>
 
-	<VariableStorageComponent
-		name="kantele_song_pos"
-		value_int="0"
-	></VariableStorageComponent>
+    <VariableStorageComponent
+        name="kantele_song_pos"
+        value_int="0"
+    ></VariableStorageComponent>
 
-	<SpriteComponent
-		_tags="character,player_amulet"
-		alpha="1"
-		image_file="data/enemies_gfx/player_amulet.xml"
-		next_rect_animation=""
-		offset_x="6"
-		offset_y="14"
-		rect_animation="walk"
-		z_index="0.59"
-		_enabled="0"
-	></SpriteComponent>
+    <SpriteComponent
+        _tags="character,player_amulet"
+        alpha="1"
+        image_file="data/enemies_gfx/player_amulet.xml"
+        next_rect_animation=""
+        offset_x="6"
+        offset_y="14"
+        rect_animation="walk"
+        z_index="0.59"
+        _enabled="0"
+    ></SpriteComponent>
 
-	<SpriteComponent
-		_tags="character,player_amulet_gem"
-		alpha="1"
-		image_file="data/enemies_gfx/player_amulet_gem.xml"
-		next_rect_animation=""
-		offset_x="6"
-		offset_y="14"
-		rect_animation="walk"
-		z_index="0.58"
-		_enabled="0"
-	></SpriteComponent>
+    <SpriteComponent
+        _tags="character,player_amulet_gem"
+        alpha="1"
+        image_file="data/enemies_gfx/player_amulet_gem.xml"
+        next_rect_animation=""
+        offset_x="6"
+        offset_y="14"
+        rect_animation="walk"
+        z_index="0.58"
+        _enabled="0"
+    ></SpriteComponent>
 
-	<SpriteComponent
-		_tags="character,player_hat"
-		alpha="1"
-		image_file="data/enemies_gfx/player_hat.xml"
-		next_rect_animation=""
-		offset_x="6"
-		offset_y="14"
-		rect_animation="walk"
-		z_index="0.59"
-		_enabled="0"
-	></SpriteComponent>
+    <SpriteComponent
+        _tags="character,player_hat"
+        alpha="1"
+        image_file="data/enemies_gfx/player_hat.xml"
+        next_rect_animation=""
+        offset_x="6"
+        offset_y="14"
+        rect_animation="walk"
+        z_index="0.59"
+        _enabled="0"
+    ></SpriteComponent>
 
-	<SpriteComponent
-		_tags="character,player_hat2"
-		alpha="1"
-		image_file="data/enemies_gfx/player_hat2.xml"
-		next_rect_animation=""
-		offset_x="6"
-		offset_y="14"
-		rect_animation="walk"
-		z_index="0.58"
-		_enabled="0"
-	></SpriteComponent>
+    <SpriteComponent
+        _tags="character,player_hat2"
+        alpha="1"
+        image_file="data/enemies_gfx/player_hat2.xml"
+        next_rect_animation=""
+        offset_x="6"
+        offset_y="14"
+        rect_animation="walk"
+        z_index="0.58"
+        _enabled="0"
+    ></SpriteComponent>
 
-<!--	<SpriteComponent
-		_tags="character,player_hat2_shadow"
-		alpha="1"
-		image_file="data/enemies_gfx/player_hat2_shadow.xml"
-		next_rect_animation=""
-		offset_x="6"
-		offset_y="14"
-		rect_animation="walk"
-		z_index="0.58"
-		_enabled="0"
-	></SpriteComponent>
+<!--    <SpriteComponent
+        _tags="character,player_hat2_shadow"
+        alpha="1"
+        image_file="data/enemies_gfx/player_hat2_shadow.xml"
+        next_rect_animation=""
+        offset_x="6"
+        offset_y="14"
+        rect_animation="walk"
+        z_index="0.58"
+        _enabled="0"
+    ></SpriteComponent>
 -->
-	<LuaComponent
-		script_source_file="data/scripts/magic/amulet.lua"
-		execute_on_added="1"
-		remove_after_executed="1"
-		>
-	</LuaComponent>
+    <LuaComponent
+        script_source_file="data/scripts/magic/amulet.lua"
+        execute_on_added="1"
+        remove_after_executed="1"
+        >
+    </LuaComponent>
 
-	<LuaComponent
-		script_source_file="data/scripts/magic/player_biome_check.lua"
-		execute_every_n_frame="80"
-		>
-	</LuaComponent>
+    <LuaComponent
+        script_source_file="data/scripts/magic/player_biome_check.lua"
+        execute_every_n_frame="80"
+        >
+    </LuaComponent>
 
-	<LuaComponent
-		script_source_file="data/scripts/magic/orb_map_init.lua"
-		execute_every_n_frame="10"
-		remove_after_executed="1"
-		>
-	</LuaComponent>
+    <LuaComponent
+        script_source_file="data/scripts/magic/orb_map_init.lua"
+        execute_every_n_frame="10"
+        remove_after_executed="1"
+        >
+    </LuaComponent>
 
   <Entity>
     <Base file="data/entities/misc/effect_no_heal_in_meat_biome.xml" >
@@ -599,36 +599,36 @@
 
   <InventoryGuiComponent/>
 
-	<SpriteComponent
-			_tags = "health_bar_back,ui,no_hitbox"
-			has_special_scale = "1"
-			image_file = "mods/quant.ew/files/resource/health_slider_back.png"
-			offset_x = "5"
-			offset_y = "-11"
-			special_scale_y = "0.45"
-			alpha = "0.4"
-			z_index = "-9000"
-			never_ragdollify_on_death = "1"
-		>
-	</SpriteComponent>
+    <SpriteComponent
+            _tags = "health_bar_back,ui,no_hitbox"
+            has_special_scale = "1"
+            image_file = "mods/quant.ew/files/resource/health_slider_back.png"
+            offset_x = "5"
+            offset_y = "-11"
+            special_scale_y = "0.45"
+            alpha = "0.4"
+            z_index = "-9000"
+            never_ragdollify_on_death = "1"
+        >
+    </SpriteComponent>
 
-	<SpriteComponent
-			_tags= "health_bar,ui,no_hitbox"
-			has_special_scale= "1"
-			image_file = "mods/quant.ew/files/resource/health_slider_front.png"
-			offset_x = "5"
-			offset_y = "-11"
-			special_scale_y = "0.45"
-			z_index = "-9001"
-			never_ragdollify_on_death = "1"
-		>
-	</SpriteComponent>
+    <SpriteComponent
+            _tags= "health_bar,ui,no_hitbox"
+            has_special_scale= "1"
+            image_file = "mods/quant.ew/files/resource/health_slider_front.png"
+            offset_x = "5"
+            offset_y = "-11"
+            special_scale_y = "0.45"
+            z_index = "-9001"
+            never_ragdollify_on_death = "1"
+        >
+    </SpriteComponent>
 
-	<BossHealthBarComponent
-		gui="0"
+    <BossHealthBarComponent
+        gui="0"
         gui_max_distance_visible="1000000"
-		in_world="1">
-	</BossHealthBarComponent>
+        in_world="1">
+    </BossHealthBarComponent>
 
   <StreamingKeepAliveComponent>
   </StreamingKeepAliveComponent>

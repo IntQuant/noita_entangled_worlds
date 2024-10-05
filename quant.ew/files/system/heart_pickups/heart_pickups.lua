@@ -53,8 +53,8 @@ local function heart_pickup(heart)
     if max_hp ~= max_hp_old and heart == "evil" then
         local entity_who_picked = peer_data.entity
         local x_pos, y_pos = EntityGetTransform( entity_who_picked )
-		local child_id = EntityLoad("data/entities/misc/effect_poison_big.xml", x_pos, y_pos)
-		EntityAddChild(entity_who_picked, child_id)
+        local child_id = EntityLoad("data/entities/misc/effect_poison_big.xml", x_pos, y_pos)
+        EntityAddChild(entity_who_picked, child_id)
     end
 
     GamePrint("Player "..peer_data.name.." picked up a heart")

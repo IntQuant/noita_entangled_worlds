@@ -1,1117 +1,1116 @@
-<Sprite 
-	filename="mods/quant.ew/files/system/local_health/notplayer/notplayer.png" 
-	hotspots_filename="data/enemies_gfx/player_hotspots.png" 
-	offset_x="6" 
-	offset_y="14" 
-	default_animation="stand"
-	>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.2" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="stand" 
-		pos_x="0" 
-		pos_y="1" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.105" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="walk" 
-		pos_x="0" 
-		pos_y="21" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="1" 
-			frame="3" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.105" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="run" 
-		pos_x="0" 
-		pos_y="21" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="1" 
-			frame="3" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.095" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="burn" 
-		pos_x="0" 
-		pos_y="21" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.082" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="jump_up" 
-		pos_x="0" 
-		pos_y="41" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="jump" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.082" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="jump_fall" 
-		pos_x="0" 
-		pos_y="61" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.075" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="land" 
-		pos_x="0" 
-		pos_y="81" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="land_NOEVENT" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="19" 
-		frame_wait="0.09" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="fly_idle" 
-		pos_x="0" 
-		pos_y="101" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="20" 
-		frame_wait="0.12" 
-		frame_width="13" 
-		frames_per_row="8" 
-		name="fly_move" 
-		pos_x="0" 
-		pos_y="121" 
-		shrink_by_one_pixel="1" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="20" 
-		frame_wait="0.06" 
-		frame_width="13" 
-		frames_per_row="8" 
-		name="knockback" 
-		pos_x="0" 
-		pos_y="141" 
-		shrink_by_one_pixel="1" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="20" 
-		frame_wait="0.08" 
-		frame_width="13" 
-		frames_per_row="8" 
-		name="swim_idle" 
-		pos_x="0" 
-		pos_y="161" 
-		shrink_by_one_pixel="1" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="5" 
-		frame_height="20" 
-		frame_wait="0.11" 
-		frame_width="13" 
-		frames_per_row="8" 
-		name="swim_move" 
-		pos_x="0" 
-		pos_y="181" 
-		shrink_by_one_pixel="1" >
-		<Event 
-			check_physics_material="0" 
-			frame="4" 
-			max_distance="500" 
-			name="swim" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="20" 
-		frame_wait="0.11" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="attack" 
-		pos_x="0" 
-		pos_y="201" 
-		shrink_by_one_pixel="1" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="20" 
-		frame_wait="0.11" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="kick" 
-		pos_x="0" 
-		pos_y="201" 
-		shrink_by_one_pixel="1" >
-
-		<Event 
-			check_physics_material="0" 
-			frame="1" 
-			max_distance="500" 
-			name="kick" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="20" 
-		frame_wait="0.11" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="kick_alt" 
-		pos_x="0" 
-		pos_y="221" 
-		shrink_by_one_pixel="1" >
-
-		<Event 
-			check_physics_material="0" 
-			frame="2" 
-			max_distance="500" 
-			name="kick" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.05" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="lower_head" 
-		pos_x="0" 
-		pos_y="241" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.05" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="raise_head" 
-		pos_x="0" 
-		pos_y="261" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="11" 
-		frame_height="19" 
-		frame_wait="0.07" 
-		frame_width="12" 
-		frames_per_row="11" 
-		name="eat" 
-		pos_x="0" 
-		pos_y="281" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="1" 
-		frame_height="19" 
-		frame_wait="0.14" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="crouch" 
-		pos_x="0" 
-		pos_y="281" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.105" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="walk_backwards" 
-		pos_x="0" 
-		pos_y="301" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="1" 
-			frame="3" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="5" 
-		frame_height="19" 
-		frame_wait="0.07" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="move_item_stash" 
-		pos_x="0" 
-		pos_y="321" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="19" 
-		frame_wait="0.09" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="move_item" 
-		pos_x="0" 
-		pos_y="341" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="5" 
-		frame_height="19" 
-		frame_wait="0.09" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="throw_old" 
-		pos_x="0" 
-		pos_y="361" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="2" 
-			max_distance="500" 
-			name="throw_release" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="2" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="4" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="sprite_visible" 
-			on_finished="1" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="throw" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.2" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="stand_crouched" 
-		pos_x="0" 
-		pos_y="381" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.095" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="walk_crouched" 
-		pos_x="0" 
-		pos_y="401" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="1" 
-			frame="3" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.095" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="run_crouched" 
-		pos_x="0" 
-		pos_y="401" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="1" 
-			frame="3" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.095" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="walk_backwards_crouched" 
-		pos_x="0" 
-		pos_y="421" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="1" 
-			frame="3" 
-			max_distance="500" 
-			name="step" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="20" 
-		frame_wait="0.11" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="kick_crouched" 
-		pos_x="0" 
-		pos_y="441" 
-		shrink_by_one_pixel="1" >
-
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="kick" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="20" 
-		frame_wait="0.11" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="kick_alt_crouched" 
-		pos_x="0" 
-		pos_y="461" 
-		shrink_by_one_pixel="1" >
-
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="kick" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="5" 
-		frame_height="19" 
-		frame_wait="0.09" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="throw_crouched" 
-		pos_x="0" 
-		pos_y="481" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="0" 
-			max_distance="500" 
-			name="throw_release" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="2" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="4" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="sprite_visible" 
-			on_finished="1" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="throw" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="5" 
-		frame_height="19" 
-		frame_wait="0.11" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="rise" 
-		pos_x="0" 
-		pos_y="501" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="5" 
-		frame_height="19" 
-		frame_wait="0.07" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="throw" 
-		pos_x="0" 
-		pos_y="521" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="2" 
-			max_distance="500" 
-			name="throw_release" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="2" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="4" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="sprite_visible" 
-			on_finished="1" 
-			probability="1" >
-
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="throw" 
-			on_finished="0" 
-			probability="1" >
-
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="19" 
-		frame_wait="0.08" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="slide" 
-		pos_x="0" 
-		pos_y="541" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.06" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="slide_end" 
-		pos_x="0" 
-		pos_y="561" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="19" 
-		frame_wait="0.08" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="slide_crouched" 
-		pos_x="0" 
-		pos_y="581" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.06" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="slide_end_crouched" 
-		pos_x="0" 
-		pos_y="601" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="2" 
-		frame_height="19" 
-		frame_wait="0.05" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="slide_start" 
-		pos_x="0" 
-		pos_y="621" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="2" 
-		frame_height="19" 
-		frame_wait="0.05" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="slide_start_crouched" 
-		pos_x="0" 
-		pos_y="641" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.08" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="hurt" 
-		pos_x="0" 
-		pos_y="661" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.08" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="hurt_swim" 
-		pos_x="0" 
-		pos_y="681" >
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="swim" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="3" 
-		frame_height="19" 
-		frame_wait="0.08" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="hurt_fly" 
-		pos_x="0" 
-		pos_y="681" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="9" 
-		frame_height="19" 
-		frame_wait="0.1" 
-		frame_width="12" 
-		frames_per_row="9" 
-		loop="0" 
-		name="grab_item" 
-		pos_x="0" 
-		pos_y="701" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.24" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="idle_hold" 
-		pos_x="0" 
-		pos_y="721" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="10" 
-		frame_height="20" 
-		frame_wait="0.07" 
-		frame_width="13" 
-		frames_per_row="10" 
-		loop="0" 
-		name="throw_item" 
-		pos_x="0" 
-		pos_y="741" 
-		shrink_by_one_pixel="1" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="19" 
-		frame_wait="0.09" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="push_start" 
-		pos_x="0" 
-		pos_y="761" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.12" 
-		frame_width="12" 
-		frames_per_row="8" 
-		name="push" 
-		pos_x="0" 
-		pos_y="781" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.09" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="cough" 
-		pos_x="0" 
-		pos_y="801" >
-	</RectAnimation>
-	
-	<RectAnimation 
-		frame_count="21" 
-		frame_wait="0.15" 
-		frame_width="20" 
-		frame_height="22" 
-		frames_per_row="21" 
-		loop="0" 
-		name="intro_stand_up" 
-		pos_x="0" 
-		pos_y="840" 
-		has_offset="1"
-		offset_x="10"
-		offset_y="14"
-		next_animation="stand" 
-		>
-	</RectAnimation>
-	
-	<RectAnimation 
-		frame_count="6" 
-		frame_wait="0.15" 
-		frame_width="20" 
-		frame_height="22" 
-		frames_per_row="8" 
-		loop="1" 
-		name="intro_sleep" 
-		pos_x="0" 
-		pos_y="862" 
-		has_offset="1"
-		offset_x="10"
-		offset_y="14"
-		>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="19" 
-		frame_wait="0.08" 
-		frame_width="12" 
-		frames_per_row="8" 
-		loop="0" 
-		name="throw_small" 
-		pos_x="0" 
-		pos_y="821" >
-
-		<Event 
-			check_physics_material="1" 
-			frame="2" 
-			max_distance="500" 
-			name="throw_release" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="2" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="sprite_invisible" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="0" 
-			max_distance="500" 
-			name="sprite_visible" 
-			on_finished="1" 
-			probability="1" >
-		</Event>
-
-		<Event 
-			check_physics_material="0" 
-			frame="2" 
-			max_distance="500" 
-			name="throw" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.06" 
-		frame_width="15" 
-		frames_per_row="12"
-		loop="0" 
-		name="telekinesis_grab_start" 
-		pos_x="0" 
-		pos_y="884" >
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="6" 
-		frame_height="19" 
-		frame_wait="0.06" 
-		frame_width="15" 
-		frames_per_row="12" 
-		loop="0" 
-		name="telekinesis_grab_start_crouched" 
-		pos_x="0" 
-		pos_y="903" >
-	</RectAnimation>
-
-	<!-- telekinesis throws use shorter+faster kick animations -->
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="20" 
-		frame_wait="0.06" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="telekinesis_throw" 
-		pos_x="26" 
-		pos_y="201" 
-		shrink_by_one_pixel="1" >
-		<Event 
-			check_physics_material="0" 
-			frame="1" 
-			max_distance="500" 
-			name="kick" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-	</RectAnimation>
-
-	<RectAnimation 
-		frame_count="4" 
-		frame_height="20" 
-		frame_wait="0.06" 
-		frame_width="13" 
-		frames_per_row="8" 
-		loop="0" 
-		name="telekinesis_throw_crouched" 
-		pos_x="26" 
-		pos_y="441" 
-		shrink_by_one_pixel="1" >
-		<Event 
-			check_physics_material="0" 
-			frame="3" 
-			max_distance="500" 
-			name="kick" 
-			on_finished="0" 
-			probability="1" >
-		</Event>
-	</RectAnimation>
-
-	<Hotspot 
-		color="ff0000" 
-		name="hand" >
-	</Hotspot>
-
-	<Hotspot 
-		color="800000" 
-		name="right_arm_start" >
-	</Hotspot>
-
-	<Hotspot 
-		color="ff00" 
-		name="belt" >
-	</Hotspot>
-
-	<Hotspot 
-		color="ff" 
-		name="cape" >
-	</Hotspot>
+<Sprite
+    filename="mods/quant.ew/files/system/local_health/notplayer/notplayer.png"
+    hotspots_filename="data/enemies_gfx/player_hotspots.png"
+    offset_x="6"
+    offset_y="14"
+    default_animation="stand"
+    >
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.2"
+        frame_width="12"
+        frames_per_row="8"
+        name="stand"
+        pos_x="0"
+        pos_y="1" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.105"
+        frame_width="12"
+        frames_per_row="8"
+        name="walk"
+        pos_x="0"
+        pos_y="21" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="1"
+            frame="3"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.105"
+        frame_width="12"
+        frames_per_row="8"
+        name="run"
+        pos_x="0"
+        pos_y="21" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="1"
+            frame="3"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.095"
+        frame_width="12"
+        frames_per_row="8"
+        name="burn"
+        pos_x="0"
+        pos_y="21" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.082"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="jump_up"
+        pos_x="0"
+        pos_y="41" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="jump"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.082"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="jump_fall"
+        pos_x="0"
+        pos_y="61" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.075"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="land"
+        pos_x="0"
+        pos_y="81" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="land_NOEVENT"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="19"
+        frame_wait="0.09"
+        frame_width="12"
+        frames_per_row="8"
+        name="fly_idle"
+        pos_x="0"
+        pos_y="101" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="20"
+        frame_wait="0.12"
+        frame_width="13"
+        frames_per_row="8"
+        name="fly_move"
+        pos_x="0"
+        pos_y="121"
+        shrink_by_one_pixel="1" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="20"
+        frame_wait="0.06"
+        frame_width="13"
+        frames_per_row="8"
+        name="knockback"
+        pos_x="0"
+        pos_y="141"
+        shrink_by_one_pixel="1" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="20"
+        frame_wait="0.08"
+        frame_width="13"
+        frames_per_row="8"
+        name="swim_idle"
+        pos_x="0"
+        pos_y="161"
+        shrink_by_one_pixel="1" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="5"
+        frame_height="20"
+        frame_wait="0.11"
+        frame_width="13"
+        frames_per_row="8"
+        name="swim_move"
+        pos_x="0"
+        pos_y="181"
+        shrink_by_one_pixel="1" >
+        <Event
+            check_physics_material="0"
+            frame="4"
+            max_distance="500"
+            name="swim"
+            on_finished="0"
+            probability="1" >
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="20"
+        frame_wait="0.11"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="attack"
+        pos_x="0"
+        pos_y="201"
+        shrink_by_one_pixel="1" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="20"
+        frame_wait="0.11"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="kick"
+        pos_x="0"
+        pos_y="201"
+        shrink_by_one_pixel="1" >
+
+        <Event
+            check_physics_material="0"
+            frame="1"
+            max_distance="500"
+            name="kick"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="20"
+        frame_wait="0.11"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="kick_alt"
+        pos_x="0"
+        pos_y="221"
+        shrink_by_one_pixel="1" >
+
+        <Event
+            check_physics_material="0"
+            frame="2"
+            max_distance="500"
+            name="kick"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.05"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="lower_head"
+        pos_x="0"
+        pos_y="241" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.05"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="raise_head"
+        pos_x="0"
+        pos_y="261" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="11"
+        frame_height="19"
+        frame_wait="0.07"
+        frame_width="12"
+        frames_per_row="11"
+        name="eat"
+        pos_x="0"
+        pos_y="281" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="1"
+        frame_height="19"
+        frame_wait="0.14"
+        frame_width="12"
+        frames_per_row="8"
+        name="crouch"
+        pos_x="0"
+        pos_y="281" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.105"
+        frame_width="12"
+        frames_per_row="8"
+        name="walk_backwards"
+        pos_x="0"
+        pos_y="301" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="1"
+            frame="3"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="5"
+        frame_height="19"
+        frame_wait="0.07"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="move_item_stash"
+        pos_x="0"
+        pos_y="321" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="19"
+        frame_wait="0.09"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="move_item"
+        pos_x="0"
+        pos_y="341" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="5"
+        frame_height="19"
+        frame_wait="0.09"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="throw_old"
+        pos_x="0"
+        pos_y="361" >
+
+        <Event
+            check_physics_material="1"
+            frame="2"
+            max_distance="500"
+            name="throw_release"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="2"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="4"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="sprite_visible"
+            on_finished="1"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="throw"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.2"
+        frame_width="12"
+        frames_per_row="8"
+        name="stand_crouched"
+        pos_x="0"
+        pos_y="381" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.095"
+        frame_width="12"
+        frames_per_row="8"
+        name="walk_crouched"
+        pos_x="0"
+        pos_y="401" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="1"
+            frame="3"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.095"
+        frame_width="12"
+        frames_per_row="8"
+        name="run_crouched"
+        pos_x="0"
+        pos_y="401" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="1"
+            frame="3"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.095"
+        frame_width="12"
+        frames_per_row="8"
+        name="walk_backwards_crouched"
+        pos_x="0"
+        pos_y="421" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="1"
+            frame="3"
+            max_distance="500"
+            name="step"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="20"
+        frame_wait="0.11"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="kick_crouched"
+        pos_x="0"
+        pos_y="441"
+        shrink_by_one_pixel="1" >
+
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="kick"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="20"
+        frame_wait="0.11"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="kick_alt_crouched"
+        pos_x="0"
+        pos_y="461"
+        shrink_by_one_pixel="1" >
+
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="kick"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="5"
+        frame_height="19"
+        frame_wait="0.09"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="throw_crouched"
+        pos_x="0"
+        pos_y="481" >
+
+        <Event
+            check_physics_material="1"
+            frame="0"
+            max_distance="500"
+            name="throw_release"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="2"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="4"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="sprite_visible"
+            on_finished="1"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="throw"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="5"
+        frame_height="19"
+        frame_wait="0.11"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="rise"
+        pos_x="0"
+        pos_y="501" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="5"
+        frame_height="19"
+        frame_wait="0.07"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="throw"
+        pos_x="0"
+        pos_y="521" >
+
+        <Event
+            check_physics_material="1"
+            frame="2"
+            max_distance="500"
+            name="throw_release"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="2"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="4"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="sprite_visible"
+            on_finished="1"
+            probability="1" >
+
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="throw"
+            on_finished="0"
+            probability="1" >
+
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="19"
+        frame_wait="0.08"
+        frame_width="12"
+        frames_per_row="8"
+        name="slide"
+        pos_x="0"
+        pos_y="541" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.06"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="slide_end"
+        pos_x="0"
+        pos_y="561" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="19"
+        frame_wait="0.08"
+        frame_width="12"
+        frames_per_row="8"
+        name="slide_crouched"
+        pos_x="0"
+        pos_y="581" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.06"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="slide_end_crouched"
+        pos_x="0"
+        pos_y="601" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="2"
+        frame_height="19"
+        frame_wait="0.05"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="slide_start"
+        pos_x="0"
+        pos_y="621" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="2"
+        frame_height="19"
+        frame_wait="0.05"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="slide_start_crouched"
+        pos_x="0"
+        pos_y="641" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.08"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="hurt"
+        pos_x="0"
+        pos_y="661" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.08"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="hurt_swim"
+        pos_x="0"
+        pos_y="681" >
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="swim"
+            on_finished="0"
+            probability="1" >
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="3"
+        frame_height="19"
+        frame_wait="0.08"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="hurt_fly"
+        pos_x="0"
+        pos_y="681" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="9"
+        frame_height="19"
+        frame_wait="0.1"
+        frame_width="12"
+        frames_per_row="9"
+        loop="0"
+        name="grab_item"
+        pos_x="0"
+        pos_y="701" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.24"
+        frame_width="12"
+        frames_per_row="8"
+        name="idle_hold"
+        pos_x="0"
+        pos_y="721" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="10"
+        frame_height="20"
+        frame_wait="0.07"
+        frame_width="13"
+        frames_per_row="10"
+        loop="0"
+        name="throw_item"
+        pos_x="0"
+        pos_y="741"
+        shrink_by_one_pixel="1" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="19"
+        frame_wait="0.09"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="push_start"
+        pos_x="0"
+        pos_y="761" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.12"
+        frame_width="12"
+        frames_per_row="8"
+        name="push"
+        pos_x="0"
+        pos_y="781" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.09"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="cough"
+        pos_x="0"
+        pos_y="801" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="21"
+        frame_wait="0.15"
+        frame_width="20"
+        frame_height="22"
+        frames_per_row="21"
+        loop="0"
+        name="intro_stand_up"
+        pos_x="0"
+        pos_y="840"
+        has_offset="1"
+        offset_x="10"
+        offset_y="14"
+        next_animation="stand"
+        >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_wait="0.15"
+        frame_width="20"
+        frame_height="22"
+        frames_per_row="8"
+        loop="1"
+        name="intro_sleep"
+        pos_x="0"
+        pos_y="862"
+        has_offset="1"
+        offset_x="10"
+        offset_y="14"
+        >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="19"
+        frame_wait="0.08"
+        frame_width="12"
+        frames_per_row="8"
+        loop="0"
+        name="throw_small"
+        pos_x="0"
+        pos_y="821" >
+
+        <Event
+            check_physics_material="1"
+            frame="2"
+            max_distance="500"
+            name="throw_release"
+            on_finished="0"
+            probability="1" >
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="2"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="sprite_invisible"
+            on_finished="0"
+            probability="1" >
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="0"
+            max_distance="500"
+            name="sprite_visible"
+            on_finished="1"
+            probability="1" >
+        </Event>
+
+        <Event
+            check_physics_material="0"
+            frame="2"
+            max_distance="500"
+            name="throw"
+            on_finished="0"
+            probability="1" >
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.06"
+        frame_width="15"
+        frames_per_row="12"
+        loop="0"
+        name="telekinesis_grab_start"
+        pos_x="0"
+        pos_y="884" >
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="6"
+        frame_height="19"
+        frame_wait="0.06"
+        frame_width="15"
+        frames_per_row="12"
+        loop="0"
+        name="telekinesis_grab_start_crouched"
+        pos_x="0"
+        pos_y="903" >
+    </RectAnimation>
+
+    <!-- telekinesis throws use shorter+faster kick animations -->
+    <RectAnimation
+        frame_count="4"
+        frame_height="20"
+        frame_wait="0.06"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="telekinesis_throw"
+        pos_x="26"
+        pos_y="201"
+        shrink_by_one_pixel="1" >
+        <Event
+            check_physics_material="0"
+            frame="1"
+            max_distance="500"
+            name="kick"
+            on_finished="0"
+            probability="1" >
+        </Event>
+    </RectAnimation>
+
+    <RectAnimation
+        frame_count="4"
+        frame_height="20"
+        frame_wait="0.06"
+        frame_width="13"
+        frames_per_row="8"
+        loop="0"
+        name="telekinesis_throw_crouched"
+        pos_x="26"
+        pos_y="441"
+        shrink_by_one_pixel="1" >
+        <Event
+            check_physics_material="0"
+            frame="3"
+            max_distance="500"
+            name="kick"
+            on_finished="0"
+            probability="1" >
+        </Event>
+    </RectAnimation>
+
+    <Hotspot
+        color="ff0000"
+        name="hand" >
+    </Hotspot>
+
+    <Hotspot
+        color="800000"
+        name="right_arm_start" >
+    </Hotspot>
+
+    <Hotspot
+        color="ff00"
+        name="belt" >
+    </Hotspot>
+
+    <Hotspot
+        color="ff"
+        name="cape" >
+    </Hotspot>
 
 </Sprite>
-

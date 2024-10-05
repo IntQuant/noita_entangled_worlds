@@ -20,7 +20,7 @@ function rpc.spawn_portal(x, y)
 end
 
 local function animate_sprite( current_name, next_name )
-	local kolmi = EntityGetClosestWithTag(0, 0, "boss_centipede")
+    local kolmi = EntityGetClosestWithTag(0, 0, "boss_centipede")
     if kolmi ~= nil and kolmi ~= 0 then
         GamePlayAnimation( kolmi, current_name, 0, next_name, 0 )
     end
@@ -128,7 +128,7 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
             async(function()
                 wait(10) -- Wait a bit for enemy sync to do it's thing.
                 local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
-	            local orbcount = GameGetOrbCountThisRun() + newgame_n
+                local orbcount = GameGetOrbCountThisRun() + newgame_n
                 rpc.kolmi_shield(true, orbcount)
                 rpc.init_boss(orbcount)
             end)

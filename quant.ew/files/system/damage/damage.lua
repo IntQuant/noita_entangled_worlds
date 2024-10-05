@@ -183,8 +183,8 @@ end
 function rpc.healing_effect()
     local entity_id = ctx.rpc_player_data.entity
     local x, y = EntityGetTransform( entity_id )
-	local entity_fx = EntityLoad( "data/entities/particles/heal_effect.xml", x, y )
-	EntityAddChild( entity_id, entity_fx )
+    local entity_fx = EntityLoad( "data/entities/particles/heal_effect.xml", x, y )
+    EntityAddChild( entity_id, entity_fx )
 end
 
 rpc.opts_reliable()

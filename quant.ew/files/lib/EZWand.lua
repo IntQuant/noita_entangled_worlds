@@ -218,8 +218,8 @@ end
 
 -- Returns true if entity is a wand
 local function entity_is_wand(entity_id)
-	local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
-	return ComponentGetValue2(ability_component, "use_gun_script") == true
+    local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
+    return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
 local function starts_with(str, start)
@@ -333,18 +333,18 @@ end
 
 
 local spell_type_bgs = {
-	[ACTION_TYPE_PROJECTILE] = "data/ui_gfx/inventory/item_bg_projectile.png",
-	[ACTION_TYPE_STATIC_PROJECTILE] = "data/ui_gfx/inventory/item_bg_static_projectile.png",
-	[ACTION_TYPE_MODIFIER] = "data/ui_gfx/inventory/item_bg_modifier.png",
-	[ACTION_TYPE_DRAW_MANY] = "data/ui_gfx/inventory/item_bg_draw_many.png",
-	[ACTION_TYPE_MATERIAL] = "data/ui_gfx/inventory/item_bg_material.png",
-	[ACTION_TYPE_OTHER] = "data/ui_gfx/inventory/item_bg_other.png",
-	[ACTION_TYPE_UTILITY] = "data/ui_gfx/inventory/item_bg_utility.png",
-	[ACTION_TYPE_PASSIVE] = "data/ui_gfx/inventory/item_bg_passive.png",
+    [ACTION_TYPE_PROJECTILE] = "data/ui_gfx/inventory/item_bg_projectile.png",
+    [ACTION_TYPE_STATIC_PROJECTILE] = "data/ui_gfx/inventory/item_bg_static_projectile.png",
+    [ACTION_TYPE_MODIFIER] = "data/ui_gfx/inventory/item_bg_modifier.png",
+    [ACTION_TYPE_DRAW_MANY] = "data/ui_gfx/inventory/item_bg_draw_many.png",
+    [ACTION_TYPE_MATERIAL] = "data/ui_gfx/inventory/item_bg_material.png",
+    [ACTION_TYPE_OTHER] = "data/ui_gfx/inventory/item_bg_other.png",
+    [ACTION_TYPE_UTILITY] = "data/ui_gfx/inventory/item_bg_utility.png",
+    [ACTION_TYPE_PASSIVE] = "data/ui_gfx/inventory/item_bg_passive.png",
 }
 
 local function get_spell_bg(action_id)
-	return spell_type_bgs[spell_lookup[action_id] and spell_lookup[action_id].type] or spell_type_bgs[ACTION_TYPE_OTHER]
+    return spell_type_bgs[spell_lookup[action_id] and spell_lookup[action_id].type] or spell_type_bgs[ACTION_TYPE_OTHER]
 end
 
 -- This function is a giant mess, but it works :)
@@ -904,7 +904,7 @@ function wand:GetFreeSlotsCount()
 end
 -- Returns: spells_count, always_cast_spells_count
 function wand:GetSpellsCount()
-	local children = EntityGetAllChildren(self.entity_id)
+    local children = EntityGetAllChildren(self.entity_id)
   if children == nil then
     return 0, 0
   end
@@ -917,7 +917,7 @@ function wand:GetSpellsCount()
     end
   end
 
-	return #children - always_cast_spells_count, always_cast_spells_count
+    return #children - always_cast_spells_count, always_cast_spells_count
 end
 -- Returns two values:
 -- 1: table of spells with each entry having the format { action_id = "BLACK_HOLE", inventory_x = 1, entity_id = <action_entity_id> }
@@ -925,15 +925,15 @@ end
 -- inventory_x should give the position in the wand slots, 1 = first up to num_slots
 -- inventory_x is not working yet
 function wand:GetSpells()
-	local spells = {}
-	local always_cast_spells = {}
-	local children = EntityGetAllChildren(self.entity_id)
+    local spells = {}
+    local always_cast_spells = {}
+    local children = EntityGetAllChildren(self.entity_id)
   if children == nil then
     return spells, always_cast_spells
   end
-	for _, spell in ipairs(children) do
-		local action_id = nil
-		local permanent = false
+    for _, spell in ipairs(children) do
+        local action_id = nil
+        local permanent = false
     local uses_remaining = -1
     local item_action_component = EntityGetFirstComponentIncludingDisabled(spell, "ItemActionComponent")
     if item_action_component then
@@ -947,12 +947,12 @@ function wand:GetSpells()
       uses_remaining = ComponentGetValue2(item_component, "uses_remaining")
     end
     if action_id then
-			if permanent == true then
-				table.insert(always_cast_spells, { action_id = action_id, entity_id = spell, inventory_x = inventory_x, inventory_y = inventory_y })
-			else
-				table.insert(spells, { action_id = action_id, entity_id = spell, uses_remaining = uses_remaining, inventory_x = inventory_x, inventory_y = inventory_y })
-			end
-		end
+            if permanent == true then
+                table.insert(always_cast_spells, { action_id = action_id, entity_id = spell, inventory_x = inventory_x, inventory_y = inventory_y })
+            else
+                table.insert(spells, { action_id = action_id, entity_id = spell, uses_remaining = uses_remaining, inventory_x = inventory_x, inventory_y = inventory_y })
+            end
+        end
   end
 
   local function assign_inventory_x(t)
@@ -983,11 +983,11 @@ function wand:GetSpells()
   -- and assign inventory_x to either what it was set as or by the order the entities appear on the wand
   assign_inventory_x(spells)
   table.sort(spells, function(a, b) return a.inventory_x < b.inventory_x end)
-	return spells, always_cast_spells
+    return spells, always_cast_spells
 end
 
 function wand:_RemoveSpells(spells_to_remove, detach)
-	local spells, attached_spells = self:GetSpells()
+    local spells, attached_spells = self:GetSpells()
   local which = detach and attached_spells or spells
   local spells_to_remove_remaining = {}
   for _, spell in ipairs(spells_to_remove) do
@@ -1050,36 +1050,36 @@ function wand:SetFrozen(freeze_wand, freeze_spells)
 end
 
 function wand:SetSprite(item_file, offset_x, offset_y, tip_x, tip_y)
-	if self.ability_component then
+    if self.ability_component then
     ComponentSetValue2(self.ability_component, "sprite_file", item_file)
-	end
+    end
   local sprite_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteComponent", "item")
   if sprite_comp then
     ComponentSetValue2(sprite_comp, "image_file", item_file)
     ComponentSetValue2(sprite_comp, "offset_x", offset_x)
     ComponentSetValue2(sprite_comp, "offset_y", offset_y)
     EntityRefreshSprite(self.entity_id, sprite_comp)
-	end
-	local hotspot_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "HotspotComponent", "shoot_pos")
+    end
+    local hotspot_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "HotspotComponent", "shoot_pos")
   if hotspot_comp then
     ComponentSetValue2(hotspot_comp, "offset", tip_x, tip_y)
-	end
+    end
 end
 
 function wand:GetSprite()
   local sprite_file, offset_x, offset_y, tip_x, tip_y = "", 0, 0, 0, 0
-	if self.ability_component then
-		sprite_file = ComponentGetValue2(self.ability_component, "sprite_file")
-	end
-	local sprite_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteComponent", "item")
-	if sprite_comp then
+    if self.ability_component then
+        sprite_file = ComponentGetValue2(self.ability_component, "sprite_file")
+    end
+    local sprite_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteComponent", "item")
+    if sprite_comp then
     if sprite_file == "" then
       sprite_file = ComponentGetValue2(sprite_comp, "image_file")
     end
     offset_x = ComponentGetValue2(sprite_comp, "offset_x")
     offset_y = ComponentGetValue2(sprite_comp, "offset_y")
-	end
-	local hotspot_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "HotspotComponent", "shoot_pos")
+    end
+    local hotspot_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "HotspotComponent", "shoot_pos")
   if hotspot_comp then
     tip_x, tip_y = ComponentGetValue2(hotspot_comp, "offset")
   end
@@ -1106,40 +1106,40 @@ end
   which ruins things in biome scripts
 ]]
 function WandDiff( gun, wand )
-	local score = 0
-	score = score + ( math.abs( gun.fire_rate_wait - wand.fire_rate_wait ) * 2 )
-	score = score + ( math.abs( gun.actions_per_round - wand.actions_per_round ) * 20 )
-	score = score + ( math.abs( gun.shuffle_deck_when_empty - wand.shuffle_deck_when_empty ) * 30 )
-	score = score + ( math.abs( gun.deck_capacity - wand.deck_capacity ) * 5 )
-	score = score + math.abs( gun.spread_degrees - wand.spread_degrees )
-	score = score + math.abs( gun.reload_time - wand.reload_time )
-	return score
+    local score = 0
+    score = score + ( math.abs( gun.fire_rate_wait - wand.fire_rate_wait ) * 2 )
+    score = score + ( math.abs( gun.actions_per_round - wand.actions_per_round ) * 20 )
+    score = score + ( math.abs( gun.shuffle_deck_when_empty - wand.shuffle_deck_when_empty ) * 30 )
+    score = score + ( math.abs( gun.deck_capacity - wand.deck_capacity ) * 5 )
+    score = score + math.abs( gun.spread_degrees - wand.spread_degrees )
+    score = score + math.abs( gun.reload_time - wand.reload_time )
+    return score
 end
 
 function GetWand( gun )
-	local best_wand = nil
-	local best_score = 1000
-	local gun_in_wand_space = {}
+    local best_wand = nil
+    local best_score = 1000
+    local gun_in_wand_space = {}
 
-	gun_in_wand_space.fire_rate_wait = clamp(((gun["fire_rate_wait"] + 5) / 7)-1, 0, 4)
-	gun_in_wand_space.actions_per_round = clamp(gun["actions_per_round"]-1,0,2)
-	gun_in_wand_space.shuffle_deck_when_empty = clamp(gun["shuffle_deck_when_empty"], 0, 1)
-	gun_in_wand_space.deck_capacity = clamp( (gun["deck_capacity"]-3)/3, 0, 7 ) -- TODO
-	gun_in_wand_space.spread_degrees = clamp( ((gun["spread_degrees"] + 5 ) / 5 ) - 1, 0, 2 )
-	gun_in_wand_space.reload_time = clamp( ((gun["reload_time"]+5)/25)-1, 0, 2 )
+    gun_in_wand_space.fire_rate_wait = clamp(((gun["fire_rate_wait"] + 5) / 7)-1, 0, 4)
+    gun_in_wand_space.actions_per_round = clamp(gun["actions_per_round"]-1,0,2)
+    gun_in_wand_space.shuffle_deck_when_empty = clamp(gun["shuffle_deck_when_empty"], 0, 1)
+    gun_in_wand_space.deck_capacity = clamp( (gun["deck_capacity"]-3)/3, 0, 7 ) -- TODO
+    gun_in_wand_space.spread_degrees = clamp( ((gun["spread_degrees"] + 5 ) / 5 ) - 1, 0, 2 )
+    gun_in_wand_space.reload_time = clamp( ((gun["reload_time"]+5)/25)-1, 0, 2 )
 
-	for k,wand in pairs(wands) do
-		local score = WandDiff( gun_in_wand_space, wand )
-		if( score <= best_score ) then
-			best_wand = wand
-			best_score = score
-			-- just randomly return one of them...
-			if( score == 0 and Random(0,100) < 33 ) then
-				return best_wand
-			end
-		end
-	end
-	return best_wand
+    for k,wand in pairs(wands) do
+        local score = WandDiff( gun_in_wand_space, wand )
+        if( score <= best_score ) then
+            best_wand = wand
+            best_score = score
+            -- just randomly return one of them...
+            if( score == 0 and Random(0,100) < 33 ) then
+                return best_wand
+            end
+        end
+    end
+    return best_wand
 end
 --[[ /data/scripts/gun/procedural/gun_procedural.lua ]]
 
@@ -1197,13 +1197,13 @@ function wand:PickUp(entity)
         EntityAddChild( child, self.entity_id)
       end
     end
-  
+
     EntitySetComponentsWithTagEnabled( self.entity_id, "enabled_in_world", false )
     EntitySetComponentsWithTagEnabled( self.entity_id, "enabled_in_hand", false )
     EntitySetComponentsWithTagEnabled( self.entity_id, "enabled_in_inventory", true )
-  
+
     local wand_children = EntityGetAllChildren(self.entity_id) or {}
-  
+
     for k, v in ipairs(wand_children)do
       EntitySetComponentsWithTagEnabled( self.entity_id, "enabled_in_world", false )
     end
@@ -1212,17 +1212,17 @@ function wand:PickUp(entity)
     if sprite_particle_emitter_comp ~= nil then
         EntitySetComponentIsEnabled(self.entity_id, sprite_particle_emitter_comp, false)
     end
-  
+
 end
 
 function wand:PlaceAt(x, y)
-	EntitySetComponentIsEnabled(self.entity_id, self.ability_component, true)
-	local hotspot_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "HotspotComponent")
-	EntitySetComponentIsEnabled(self.entity_id, hotspot_comp, true)
+    EntitySetComponentIsEnabled(self.entity_id, self.ability_component, true)
+    local hotspot_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "HotspotComponent")
+    EntitySetComponentIsEnabled(self.entity_id, hotspot_comp, true)
   local item_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "ItemComponent")
-	EntitySetComponentIsEnabled(self.entity_id, item_component, true)
-	local sprite_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteComponent")
-	EntitySetComponentIsEnabled(self.entity_id, sprite_component, true)
+    EntitySetComponentIsEnabled(self.entity_id, item_component, true)
+    local sprite_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteComponent")
+    EntitySetComponentIsEnabled(self.entity_id, sprite_component, true)
   local light_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "LightComponent")
   EntitySetComponentIsEnabled(self.entity_id, light_component, true)
 
@@ -1230,17 +1230,17 @@ function wand:PlaceAt(x, y)
   ComponentSetValue(item_component, "play_hover_animation", "1")
   ComponentSetValueVector2(item_component, "spawn_pos", x, y)
 
-	local lua_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "LuaComponent")
-	EntitySetComponentIsEnabled(self.entity_id, lua_comp, true)
-	local simple_physics_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SimplePhysicsComponent")
+    local lua_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "LuaComponent")
+    EntitySetComponentIsEnabled(self.entity_id, lua_comp, true)
+    local simple_physics_component = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SimplePhysicsComponent")
   EntitySetComponentIsEnabled(self.entity_id, simple_physics_component, false)
-	-- Does this wand have a ray particle effect? Most do, except the starter wands
-	local sprite_particle_emitter_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteParticleEmitterComponent")
-	if sprite_particle_emitter_comp ~= nil then
-		EntitySetComponentIsEnabled(self.entity_id, sprite_particle_emitter_comp, true)
-	else
-		-- TODO: As soon as there's some way to clone Components or Transplant/Remove+Add to another Entity, copy
-		-- the SpriteParticleEmitterComponent of entities/base_wand.xml
+    -- Does this wand have a ray particle effect? Most do, except the starter wands
+    local sprite_particle_emitter_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "SpriteParticleEmitterComponent")
+    if sprite_particle_emitter_comp ~= nil then
+        EntitySetComponentIsEnabled(self.entity_id, sprite_particle_emitter_comp, true)
+    else
+        -- TODO: As soon as there's some way to clone Components or Transplant/Remove+Add to another Entity, copy
+        -- the SpriteParticleEmitterComponent of entities/base_wand.xml
   end
 end
 
@@ -1337,7 +1337,7 @@ function wand:Serialize(include_mana, include_offsets)
 end
 
 local function get_held_wand()
-	local player = EntityGetWithTag("player_unit")[1]
+    local player = EntityGetWithTag("player_unit")[1]
   if player then
     local inventory2_comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
     local active_item = ComponentGetValue2(inventory2_comp, "mActiveItem")

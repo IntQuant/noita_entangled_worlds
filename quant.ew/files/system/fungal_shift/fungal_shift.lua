@@ -9,12 +9,12 @@ local module = {}
 ModLuaFileAppend("data/scripts/magic/fungal_shift.lua", "mods/quant.ew/files/system/fungal_shift/append/fungal_shift.lua")
 
 local log_messages = {
-	"$log_reality_mutation_00",
-	"$log_reality_mutation_01",
-	"$log_reality_mutation_02",
-	"$log_reality_mutation_03",
-	"$log_reality_mutation_04",
-	"$log_reality_mutation_05",
+    "$log_reality_mutation_00",
+    "$log_reality_mutation_01",
+    "$log_reality_mutation_02",
+    "$log_reality_mutation_03",
+    "$log_reality_mutation_04",
+    "$log_reality_mutation_05",
 }
 
 -- TODO figure out what to do when player isn't online at the time of shifting
@@ -29,7 +29,7 @@ function rpc.fungal_shift(conversions, iter, from_material_name)
     for _, conv in ipairs(conversions) do
         ConvertMaterialEverywhere(conv[1], conv[2])
         GameCreateParticle( CellFactory_GetName(conv[1]), x-10, y-10, 20, rand(-100,100), rand(-100,-30), true, true )
-		GameCreateParticle( CellFactory_GetName(conv[1]), x+10, y-10, 20, rand(-100,100), rand(-100,-30), true, true )
+        GameCreateParticle( CellFactory_GetName(conv[1]), x+10, y-10, 20, rand(-100,100), rand(-100,-30), true, true )
     end
 
     -- remove tripping effect

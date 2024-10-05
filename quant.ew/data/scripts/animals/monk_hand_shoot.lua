@@ -12,17 +12,17 @@ local pos_x, pos_y = EntityGetFirstHitboxCenter( entity_id )
 local enemy, enemy_x, enemy_y
 local min_dist = 9999
 for _,id in pairs(EntityGetInRadiusWithTag(pos_x, pos_y, range, "mortal")) do
-	-- is target a valid enemy
-	if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < 40 then
-		local x, y = EntityGetFirstHitboxCenter( id )
-		local dist = get_distance(pos_x, pos_y, x, y)
-		if dist < min_dist then
-			min_dist = dist
-			enemy = id
-			enemy_x = x
-			enemy_y = y
-		end
-	end
+    -- is target a valid enemy
+    if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < 40 then
+        local x, y = EntityGetFirstHitboxCenter( id )
+        local dist = get_distance(pos_x, pos_y, x, y)
+        if dist < min_dist then
+            min_dist = dist
+            enemy = id
+            enemy_x = x
+            enemy_y = y
+        end
+    end
 end
 
 -- check los
@@ -31,29 +31,29 @@ if enemy then can_shoot = not RaytraceSurfacesAndLiquiform(pos_x, pos_y, enemy_x
 
 -- hand/shooting state & animation control
 edit_component2( entity_id, "SpriteComponent", function(comp,vars)
-	-- if enemy is not visible then open hand
-	local hand_check = ComponentGetValue2( comp, "rect_animation" )
-	local hand_open = false
+    -- if enemy is not visible then open hand
+    local hand_check = ComponentGetValue2( comp, "rect_animation" )
+    local hand_open = false
 
-	if ( hand_check ~= nil ) and ( hand_check == "open" ) then
-		hand_open = true
-	end
+    if ( hand_check ~= nil ) and ( hand_check == "open" ) then
+        hand_open = true
+    end
 
-	if not can_shoot then
-		if not hand_open then
-			ComponentSetValue2( comp, "rect_animation", "open")
-			--EntitySetComponentsWithTagEnabled( entity_id, "enabled_when_attacking", false )
-		end
-		return
-	end
+    if not can_shoot then
+        if not hand_open then
+            ComponentSetValue2( comp, "rect_animation", "open")
+            --EntitySetComponentsWithTagEnabled( entity_id, "enabled_when_attacking", false )
+        end
+        return
+    end
 
-	-- prepare to shoot
-	if hand_open then
-		ComponentSetValue2( comp, "rect_animation", "close")
-		--EntitySetComponentsWithTagEnabled( entity_id, "enabled_when_attacking", true )
-		can_shoot = false
-		return
-	end
+    -- prepare to shoot
+    if hand_open then
+        ComponentSetValue2( comp, "rect_animation", "close")
+        --EntitySetComponentsWithTagEnabled( entity_id, "enabled_when_attacking", true )
+        can_shoot = false
+        return
+    end
 end)
 
 if not can_shoot then return end

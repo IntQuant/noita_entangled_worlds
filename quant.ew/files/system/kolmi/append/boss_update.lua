@@ -21,7 +21,7 @@ local shield_enabled = false
 
 function shield_on()
     local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
-	local orbcount = GameGetOrbCountThisRun() + newgame_n
+    local orbcount = GameGetOrbCountThisRun() + newgame_n
     if not shield_enabled then
         CrossCall("ew_kolmi_shield", true, orbcount)
         shield_enabled = true
@@ -31,11 +31,10 @@ end
 
 function shield_off()
     local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
-	local orbcount = GameGetOrbCountThisRun() + newgame_n
+    local orbcount = GameGetOrbCountThisRun() + newgame_n
     if shield_enabled then
         CrossCall("ew_kolmi_shield", false, orbcount)
         shield_enabled = false
     end
     return old_shield_off()
 end
-

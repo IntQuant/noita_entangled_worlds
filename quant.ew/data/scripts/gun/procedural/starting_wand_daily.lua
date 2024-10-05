@@ -2,30 +2,30 @@ dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("data/scripts/gun/procedural/gun_action_utils.lua")
 
 function get_random_from( target )
-	local rnd = Random(1, #target)
+    local rnd = Random(1, #target)
 
-	return tostring(target[rnd])
+    return tostring(target[rnd])
 end
 
 function get_multiple_random_from( target, amount_ )
-	local amount = amount_ or 1
+    local amount = amount_ or 1
 
-	local result = {}
+    local result = {}
 
-	for i=1,amount do
-		local rnd = Random(1, #target)
+    for i=1,amount do
+        local rnd = Random(1, #target)
 
-		table.insert(result, tostring(target[rnd]))
-	end
+        table.insert(result, tostring(target[rnd]))
+    end
 
-	return result
+    return result
 end
 
 function get_random_between_range( target )
-	local minval = target[1]
-	local maxval = target[2]
+    local minval = target[1]
+    local maxval = target[2]
 
-	return Random(minval, maxval)
+    return Random(minval, maxval)
 end
 
 local entity_id = GetUpdatedEntityID()
@@ -70,6 +70,6 @@ local action_count = math.min(Random(1,3), tonumber(deck_capacity))
 local gun_action = get_random_from( gun.actions )
 
 for i=1,action_count do
-	--AddGunActionPermanent( entity_id, gun_action )
-	AddGunAction( entity_id, gun_action )
+    --AddGunActionPermanent( entity_id, gun_action )
+    AddGunAction( entity_id, gun_action )
 end

@@ -396,7 +396,7 @@ function register_localizations(translation_file, clear_count)
 end
 
 function OnModPreInit()
-	register_localizations("mods/quant.ew/translations.csv", 1)
+    register_localizations("mods/quant.ew/translations.csv", 1)
     ctx.init()
     net.init()
 

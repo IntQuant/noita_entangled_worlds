@@ -10,22 +10,22 @@ rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.remote_run_event(id)
     for i,evt in ipairs(streaming_events) do
-		if evt.id == id then
-			if evt.action_delayed ~= nil then
-				if evt.delay_timer ~= nil then
+        if evt.id == id then
+            if evt.action_delayed ~= nil then
+                if evt.delay_timer ~= nil then
                     local p = ctx.my_player.entity
                     add_timer_above_head( p, evt.id, evt.delay_timer )
-				end
-			elseif evt.action ~= nil then
-				evt.action(evt)
-			end
+                end
+            elseif evt.action ~= nil then
+                evt.action(evt)
+            end
             if event_weights ~= nil then
                 event_weights[i] = -1.0
             end
             GamePrint("Incoming event "..GameTextGetTranslatedOrNot(evt.ui_name).." from "..ctx.rpc_player_data.name)
-			break
-		end
-	end
+            break
+        end
+    end
 end
 
 np.CrossCallAdd("ew_run_streaming_event", rpc.remote_run_event)

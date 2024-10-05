@@ -1,295 +1,295 @@
-<Entity 
-	tags="enemy,mortal,hittable,teleportable_NOT,boss_dragon,homing_target,glue_NOT,necrobot_NOT,polymorphable_NOT" name="$animal_boss_dragon">
+<Entity
+    tags="enemy,mortal,hittable,teleportable_NOT,boss_dragon,homing_target,glue_NOT,necrobot_NOT,polymorphable_NOT" name="$animal_boss_dragon">
 
-	<_Transform 
-		position.x="0" 
-		position.y="0" 
-		rotation="0" 
-		scale.x="1" 
-		scale.y="1" >
-	</_Transform>
+    <_Transform
+        position.x="0"
+        position.y="0"
+        rotation="0"
+        scale.x="1"
+        scale.y="1" >
+    </_Transform>
 
-	<BossDragonComponent
-		speed="3"
-		speed_hunt="4"
-		acceleration="0.25"
-		direction_adjust_speed="0.003"
-		direction_adjust_speed_hunt="0.04"
-		tail_gravity="30"
-		part_distance="16"
-		ground_check_offset="8"
-		eat_anim_wait_mult="0.15 "
-		hitbox_radius="9"
-		target_kill_radius="10"
-		target_kill_ragdoll_force="10"
-		hunt_box_radius="256"
-		random_target_box_radius="400"
-		new_hunt_target_check_every="240"
-		new_random_target_check_every="240"
-		ragdoll_filename="data/ragdolls/dragon/filenames.txt"
-		jump_cam_shake="20" >
-	</BossDragonComponent>
+    <BossDragonComponent
+        speed="3"
+        speed_hunt="4"
+        acceleration="0.25"
+        direction_adjust_speed="0.003"
+        direction_adjust_speed_hunt="0.04"
+        tail_gravity="30"
+        part_distance="16"
+        ground_check_offset="8"
+        eat_anim_wait_mult="0.15 "
+        hitbox_radius="9"
+        target_kill_radius="10"
+        target_kill_ragdoll_force="10"
+        hunt_box_radius="256"
+        random_target_box_radius="400"
+        new_hunt_target_check_every="240"
+        new_random_target_check_every="240"
+        ragdoll_filename="data/ragdolls/dragon/filenames.txt"
+        jump_cam_shake="20" >
+    </BossDragonComponent>
 
-	<CellEaterComponent
-		radius="9" >
-	</CellEaterComponent>
+    <CellEaterComponent
+        radius="9" >
+    </CellEaterComponent>
 
-	<DamageModelComponent 
-		_enabled="1" 
-		air_needed="0" 
-		falling_damages="0" 
-		fire_damage_amount="0" 
-		fire_how_much_fire_generates="0" 
-		fire_probability_of_ignition="0" 
-		hp="120" 
-		materials_damage="1" 
-		materials_how_much_damage="0.1" 
-		materials_that_damage="acid" 
-		ragdoll_filenames_file=""
-		ragdoll_offset_y="-6"
-		>
-		<damage_multipliers
-			explosion="0.5"
-			fire="0.5"
-			ice="0.5"
-			electricity="0.3"
-			>
-		</damage_multipliers>
-	</DamageModelComponent>
+    <DamageModelComponent
+        _enabled="1"
+        air_needed="0"
+        falling_damages="0"
+        fire_damage_amount="0"
+        fire_how_much_fire_generates="0"
+        fire_probability_of_ignition="0"
+        hp="120"
+        materials_damage="1"
+        materials_how_much_damage="0.1"
+        materials_that_damage="acid"
+        ragdoll_filenames_file=""
+        ragdoll_offset_y="-6"
+        >
+        <damage_multipliers
+            explosion="0.5"
+            fire="0.5"
+            ice="0.5"
+            electricity="0.3"
+            >
+        </damage_multipliers>
+    </DamageModelComponent>
 
-	<PathFindingGridMarkerComponent
-		marker_offset_y="0"
-		marker_work_flag="16" >
-	</PathFindingGridMarkerComponent>
+    <PathFindingGridMarkerComponent
+        marker_offset_y="0"
+        marker_work_flag="16" >
+    </PathFindingGridMarkerComponent>
 
-	<GenomeDataComponent 
-		_enabled="1"
-		herd_id="boss_dragon"
-		food_chain_rank="20"
-		is_predator="1" >
-	</GenomeDataComponent>
+    <GenomeDataComponent
+        _enabled="1"
+        herd_id="boss_dragon"
+        food_chain_rank="20"
+        is_predator="1" >
+    </GenomeDataComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_head.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15" 
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_head.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15" 
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_body.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_body.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_enabled="1" 
-		alpha="1" 
-		image_file="data/enemies_gfx/dragon_tail.xml" 
-		rect_animation="eat" 
-		next_rect_animation="eat" 
-		next_rect_animation="" 
-		offset_x="17" 
-		offset_y="15"  
-		update_transform="0"
-		 >
-	</SpriteComponent>
+    <SpriteComponent
+        _enabled="1"
+        alpha="1"
+        image_file="data/enemies_gfx/dragon_tail.xml"
+        rect_animation="eat"
+        next_rect_animation="eat"
+        next_rect_animation=""
+        offset_x="17"
+        offset_y="15"
+        update_transform="0"
+         >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_tags="health_bar_back,ui,no_hitbox"
-		_enabled="1" 
-		alpha="1" 
-		has_special_scale="1" 
-		image_file="data/ui_gfx/health_slider_back.png" 
-		is_text_sprite="0" 
-		next_rect_animation="" 
-		offset_x="12" 
-		offset_y="42" 
-		rect_animation="" 
-		special_scale_x="1" 
-		special_scale_y="1" 
-		ui_is_parent="0" 
-		update_transform="1" 
-		visible="1" 
-		emissive="1"
-		never_ragdollify_on_death="1"
-		z_index="-9000" >
-	</SpriteComponent>
+    <SpriteComponent
+        _tags="health_bar_back,ui,no_hitbox"
+        _enabled="1"
+        alpha="1"
+        has_special_scale="1"
+        image_file="data/ui_gfx/health_slider_back.png"
+        is_text_sprite="0"
+        next_rect_animation=""
+        offset_x="12"
+        offset_y="42"
+        rect_animation=""
+        special_scale_x="1"
+        special_scale_y="1"
+        ui_is_parent="0"
+        update_transform="1"
+        visible="1"
+        emissive="1"
+        never_ragdollify_on_death="1"
+        z_index="-9000" >
+    </SpriteComponent>
 
-	<SpriteComponent 
-		_tags="health_bar,ui,no_hitbox" 
-		_enabled="1" 
-		alpha="1" 
-		has_special_scale="1" 
-		image_file="data/ui_gfx/health_slider_front.png" 
-		is_text_sprite="0" 
-		next_rect_animation="" 
-		offset_x="11" 
-		offset_y="42" 
-		rect_animation="" 
-		special_scale_x="1" 
-		special_scale_y="1" 
-		ui_is_parent="0" 
-		update_transform="1" 
-		visible="1" 
-		emissive="1"
-		never_ragdollify_on_death="1"
-		z_index="-9000" >
-	</SpriteComponent>
-		
-	<LightComponent 
-		_enabled="1" 
-		radius="100"
-		r="255"
-		g="149"
-		b="0" >
-	</LightComponent>
+    <SpriteComponent
+        _tags="health_bar,ui,no_hitbox"
+        _enabled="1"
+        alpha="1"
+        has_special_scale="1"
+        image_file="data/ui_gfx/health_slider_front.png"
+        is_text_sprite="0"
+        next_rect_animation=""
+        offset_x="11"
+        offset_y="42"
+        rect_animation=""
+        special_scale_x="1"
+        special_scale_y="1"
+        ui_is_parent="0"
+        update_transform="1"
+        visible="1"
+        emissive="1"
+        never_ragdollify_on_death="1"
+        z_index="-9000" >
+    </SpriteComponent>
 
-	<HealthBarComponent>
-	</HealthBarComponent>
-	
+    <LightComponent
+        _enabled="1"
+        radius="100"
+        r="255"
+        g="149"
+        b="0" >
+    </LightComponent>
+
+    <HealthBarComponent>
+    </HealthBarComponent>
+
     <MusicEnergyAffectorComponent
-    	energy_target="1">
+        energy_target="1">
     </MusicEnergyAffectorComponent>
 
-	<AudioLoopComponent
-		file="data/audio/Desktop/animals.bank"
-		event_name="animals/worm/movement_loop_big"
-		set_speed_parameter="1"
-		auto_play="1">
-	</AudioLoopComponent>
-	
-	<Entity>
-		
-		<InheritTransformComponent
-			parent_sprite_id="10"
-			>
-		</InheritTransformComponent>
-		
-		<LuaComponent
-			script_source_file="data/scripts/projectiles/orb_green_dragon.lua"
-			execute_every_n_frame="80"
-			execute_times="-1"
-			>
-		</LuaComponent>
-		
-		<GenomeDataComponent 
-			_enabled="1"
-			herd_id="boss_dragon"
-			food_chain_rank="20"
-			is_predator="1" >
-		</GenomeDataComponent>
+    <AudioLoopComponent
+        file="data/audio/Desktop/animals.bank"
+        event_name="animals/worm/movement_loop_big"
+        set_speed_parameter="1"
+        auto_play="1">
+    </AudioLoopComponent>
+
+    <Entity>
+
+        <InheritTransformComponent
+            parent_sprite_id="10"
+            >
+        </InheritTransformComponent>
+
+        <LuaComponent
+            script_source_file="data/scripts/projectiles/orb_green_dragon.lua"
+            execute_every_n_frame="80"
+            execute_times="-1"
+            >
+        </LuaComponent>
+
+        <GenomeDataComponent
+            _enabled="1"
+            herd_id="boss_dragon"
+            food_chain_rank="20"
+            is_predator="1" >
+        </GenomeDataComponent>
 
 
-	</Entity>
-    
+    </Entity>
+
     <LuaComponent
         script_death = "data/scripts/animals/boss_dragon_death.lua",
         execute_every_n_frame = "-1",
