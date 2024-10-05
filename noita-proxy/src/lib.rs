@@ -21,6 +21,7 @@ use net::{
 };
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::{
     fmt::Display,
     mem,
@@ -31,7 +32,6 @@ use std::{
     time::Duration,
 };
 use std::{net::IpAddr, path::PathBuf};
-use std::str::FromStr;
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -78,7 +78,7 @@ pub struct GameSettings {
     randomize_perks: bool,
     progress: Vec<String>,
     max_players: u32,
-    health_per_player: u32
+    health_per_player: u32,
 }
 impl Default for GameSettings {
     fn default() -> Self {
@@ -445,7 +445,7 @@ impl App {
         let peer = net::steam_networking::SteamPeer::new_host(
             steamworks::LobbyType::Private,
             self.steam_state.as_ref().unwrap().client.clone(),
-            self.app_saved_state.game_settings.max_players
+            self.app_saved_state.game_settings.max_players,
         );
         let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
@@ -637,14 +637,15 @@ impl App {
         );
 
         ui.scope(|ui| {
-            ui.set_height(60.0);
+            ui.set_height(100.0);
 
             match game_settings.game_mode {
                 GameMode::SharedHealth => {
                     ui.label(tr("shared_health_desc_1"));
                     ui.label(tr("shared_health_desc_2"));
                     ui.label(tr("shared_health_desc_3"));
-                    ui.label("health per player");
+                    ui.add_space(5.0);
+                    ui.label("Health per player");
                     ui.add(Slider::new(&mut game_settings.health_per_player, 0..=100));
                 }
                 GameMode::LocalHealth => {
@@ -1199,7 +1200,10 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
 fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
     let mut state = steam_helper::SteamState::new().unwrap();
     let my_nickname = Some(state.get_user_name(state.get_my_id()));
-    let mut mod_manager = ModmanagerSettings{game_exe_path: PathBuf::new(), game_save_path: Some(PathBuf::new())};
+    let mut mod_manager = ModmanagerSettings {
+        game_exe_path: PathBuf::new(),
+        game_save_path: Some(PathBuf::new()),
+    };
     mod_manager.try_find_game_path(Some(&mut state));
     mod_manager.try_find_save_path();
     let run_save_state = if let Ok(path) = std::env::current_exe() {
@@ -1237,8 +1241,7 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
 
 pub fn connect_cli(lobby: String) {
     let (state, netmaninit) = cli_setup();
-    let varient = if lobby.contains('.')
-    {
+    let varient = if lobby.contains('.') {
         PeerVariant::Tangled(Peer::connect(SocketAddr::from_str(&lobby).unwrap(), None).unwrap())
     } else {
         let peer = net::steam_networking::SteamPeer::new_connect(
@@ -1254,8 +1257,7 @@ pub fn connect_cli(lobby: String) {
 
 pub fn host_cli(port: u16) {
     let (state, netmaninit) = cli_setup();
-    let varient = if port != 0
-    {
+    let varient = if port != 0 {
         let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
         let peer = Peer::host(bind_addr, None).unwrap();
         PeerVariant::Tangled(peer)
@@ -1263,7 +1265,7 @@ pub fn host_cli(port: u16) {
         let peer = net::steam_networking::SteamPeer::new_host(
             steamworks::LobbyType::Private,
             state.client,
-            250
+            250,
         );
         PeerVariant::Steam(peer)
     };
