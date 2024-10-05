@@ -11,16 +11,19 @@ function rpc.add_shield(target)
     if not EntityGetIsAlive(entity) or EntityHasTag(entity, "polymorphed") then
         return
     end
+    if shield_entities[ctx.rpc_peer_id] ~= nil then
+        EntityKill(shield_entities[ctx.rpc_peer_id][2])
+    end
     local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
     EntityAddChild(entity, ent)
     shield_entities[ctx.rpc_peer_id] = {target, ent}
 end
 
 rpc.opts_everywhere()
-function rpc.del_shield(id)
-    if shield_entities[id] ~= nil then
-        EntityKill(shield_entities[id][2])
-        shield_entities[id] = nil
+function rpc.del_shield()
+    if shield_entities[ctx.rpc_peer_id] ~= nil then
+        EntityKill(shield_entities[ctx.rpc_peer_id][2])
+        shield_entities[ctx.rpc_peer_id] = nil
     end
 end
 
@@ -41,6 +44,10 @@ local function is_acceptable_help_target(spectating_over)
         return false
     end
     if shield_entities[ctx.my_id] ~= nil then
+        if shield_entities[ctx.my_id][1] ~= spectating_over then
+            rpc.del_shield()
+            return false
+        end
         return false
     end
     return true
@@ -80,7 +87,7 @@ function module.on_world_update()
         if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
             rpc.add_shield(ctx.spectating_over_peer_id)
         elseif last_spectate ~= nil and last_spectate ~= ctx.spectating_over_peer_id then
-            rpc.del_shield(ctx.my_id)
+            rpc.del_shield()
         end
         last_spectate = ctx.spectating_over_peer_id
     end
