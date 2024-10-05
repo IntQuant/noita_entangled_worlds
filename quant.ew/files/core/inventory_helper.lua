@@ -159,7 +159,9 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentAddTag(item_cost_component, "enabled_in_world")
         ComponentAddTag(item_cost_component, "shop_cost")
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
-        ComponentSetValue2(item_cost_component, "stealable", false)
+        if string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
+            ComponentSetValue2(item_cost_component, "stealable", false)
+        end
         -- Item is stealable
         --if item_data.shop_info[2] then
             --inventory_helper.make_item_stealable_later(item)
