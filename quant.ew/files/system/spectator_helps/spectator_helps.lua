@@ -73,7 +73,9 @@ end
 function rpc.send_money(money)
     local entity = ctx.rpc_player_data.entity
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
-    ComponentSetValue2(wallet, "money", money)
+    if wallet ~= nil then
+        ComponentSetValue2(wallet, "money", money)
+    end
 end
 
 local last_spectate
@@ -128,7 +130,9 @@ function module.on_world_update()
     end
     if GameGetFrameNum() % 60 == 47 then
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
-        rpc.send_money(ComponentGetValue2(wallet, "money"))
+        if wallet ~= nil then
+            rpc.send_money(ComponentGetValue2(wallet, "money"))
+        end
     end
 end
 

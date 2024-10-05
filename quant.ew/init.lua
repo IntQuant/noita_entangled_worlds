@@ -307,12 +307,16 @@ local function on_world_pre_update_inner()
 
     if GameGetFrameNum() % 4 == 0 then
         local x, y = EntityGetTransform(ctx.my_player.entity)
-        change_homing(x, y)
+        if x ~= nil then
+            change_homing(x, y)
+        end
     elseif GameGetFrameNum() % 4 == 1 then
         local x, y = EntityGetTransform(ctx.my_player.entity)
         local cx, cy = GameGetCameraPos()
-        if math.abs(x - cx) > 256 or math.abs(y - cy) > 256 then
-            change_homing(cx, cy)
+        if x ~= nil and cx ~= nil then
+            if math.abs(x - cx) > 256 or math.abs(y - cy) > 256 then
+                change_homing(cx, cy)
+            end
         end
     end
 

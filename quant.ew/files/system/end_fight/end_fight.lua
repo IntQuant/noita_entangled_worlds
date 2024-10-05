@@ -129,9 +129,15 @@ function end_fight.on_world_update()
                     local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
                     local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
                     local gui = EntityGetFirstComponentIncludingDisabled(entity, "InventoryGuiComponent")
-                    EntitySetComponentIsEnabled(entity, gui, false)
-                    EntitySetComponentIsEnabled(entity, suck, false)
-                    EntitySetComponentIsEnabled(entity, collision, false)
+                    if gui ~= nil then
+                        EntitySetComponentIsEnabled(entity, gui, false)
+                    end
+                    if suck ~= nil then
+                        EntitySetComponentIsEnabled(entity, suck, false)
+                    end
+                    if collision ~= nil then
+                        EntitySetComponentIsEnabled(entity, collision, false)
+                    end
                     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                         EntityKill(child)
                     end

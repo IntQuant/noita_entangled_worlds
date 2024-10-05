@@ -246,7 +246,9 @@ function spectate.on_world_update()
         if inv_spec ~= nil then
             ComponentSetValue2(inv_spec, "mActive", false)
         end
-        ComponentSetValue2(inv_me, "mActive", false)
+        if inv_me ~= nil then
+            ComponentSetValue2(inv_me, "mActive", false)
+        end
     elseif GameGetFrameNum() % 10 == 0 then
         for peer_id, data in pairs(ctx.players) do
             if peer_id ~= ctx.my_id then
