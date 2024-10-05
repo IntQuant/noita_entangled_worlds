@@ -95,6 +95,9 @@ function module.on_world_update()
     end
     for peer_id, _ in pairs(ctx.players) do
         for shield_id, shield in pairs(shield_entities) do
+            if ctx.players[shield_id] == nil then
+                shield_entities[shield_id] = nil
+            end
             if peer_id == shield[1] then
                 local shield_ent = shield[2]
                 local my_x, my_y = EntityGetTransform(ctx.players[peer_id].entity)
