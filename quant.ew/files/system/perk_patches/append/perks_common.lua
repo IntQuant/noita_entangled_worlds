@@ -16,7 +16,6 @@ hide_perk("TELEKINESIS")
 hide_perk("CORDYCEPS")
 hide_perk("HOMUNCULUS")
 hide_perk("ATTACK_FOOT")
-hide_perk("ANGRY_GHOST")
 hide_perk("REVENGE_EXPLOSION")
 hide_perk("EXTRA_SHOP_ITEM")
 
