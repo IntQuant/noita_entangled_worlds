@@ -31,10 +31,10 @@ local function run_spawn_fn(fn_name, x, y, ...)
     if fn_info == nil then
         print("Could find spawn_fn:", fn_name)
     end
-    
+
     --Call the function.
     local ret = fn_info.fn(x, y, ...)
-    
+
     -- Check what it returns, we might need to sync it to other clients.
     if ret == nil then
         return
@@ -44,7 +44,7 @@ local function run_spawn_fn(fn_name, x, y, ...)
         local eid = ret
         ctx.cap.item_sync.globalize(eid, true, ctx.rpc_peer_id)
         -- Avoid item losing it's cost on host.
-        inventory_helper.make_item_stealable_later(eid)
+        --inventory_helper.make_item_stealable_later(eid)
     end
 end
 

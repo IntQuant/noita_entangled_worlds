@@ -161,9 +161,9 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
         ComponentSetValue2(item_cost_component, "stealable", false)
         -- Item is stealable
-        if item_data.shop_info[2] then
-            inventory_helper.make_item_stealable_later(item)
-        end
+        --if item_data.shop_info[2] then
+            --inventory_helper.make_item_stealable_later(item)
+        --end
 
 
         util.ensure_component_present(item, "SpriteComponent", "shop_cost", {

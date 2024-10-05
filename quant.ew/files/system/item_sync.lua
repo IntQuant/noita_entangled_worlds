@@ -179,7 +179,6 @@ local function send_item_positions()
             local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
             local cost = 0
             if costcom ~= nil then
-                ComponentSetValue2(costcom, "stealable", true)
                 cost = ComponentGetValue2(costcom, "cost")
             end
             position_data[gid] = {x, y, cost}
