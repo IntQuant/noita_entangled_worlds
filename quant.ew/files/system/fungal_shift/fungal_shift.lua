@@ -17,7 +17,6 @@ local log_messages = {
     "$log_reality_mutation_05",
 }
 
--- TODO figure out what to do when player isn't online at the time of shifting
 rpc.opts_reliable()
 function rpc.fungal_shift(conversions, iter, from_material_name)
     dofile_once("data/scripts/lib/utilities.lua")
@@ -89,5 +88,42 @@ np.CrossCallAdd("ew_fungal_shift", function(iter, from_material_name)
     rpc.fungal_shift(conversions, iter, from_material_name)
     conversions = {}
 end)
+
+local last_fungals
+
+function rpc.give_fungals(changed_materials)
+    local world = GameGetWorldStateEntity()
+    local com = EntityGetFirstComponentIncludingDisabled(world, "WorldStateComponent")
+    local my_changed_materials = ComponentGetValue2(com, "changed_materials")
+    local n = #my_changed_materials
+    if n == nil then
+        n = 0
+    end
+    if #changed_materials > n then
+        if last_fungals ~= nil and #last_fungals == #changed_materials then
+            for i = n + 1, #changed_materials, 2 do
+                ConvertMaterialEverywhere(changed_materials[i], changed_materials[i + 1])
+            end
+            last_fungals = nil
+        else
+            last_fungals = changed_materials
+        end
+    end
+end
+
+function module.on_world_update()
+    if ctx.my_id == ctx.host_id and GameGetFrameNum() % 600 == 34 then
+        local world = GameGetWorldStateEntity()
+        local com = EntityGetFirstComponentIncludingDisabled(world, "WorldStateComponent")
+        local changed_materials = ComponentGetValue2(com, "changed_materials")
+        if changed_materials ~= nil then
+            local mats = {}
+            for _, mat in ipairs(changed_materials) do
+                table.insert(mats, CellFactory_GetType(mat))
+            end
+            rpc.give_fungals(mats)
+        end
+    end
+end
 
 return module
