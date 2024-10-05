@@ -242,6 +242,21 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ComponentSetValue2(controls_component, "enabled", true)
 end
 
+local function change_homing(x, y)
+    for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
+        local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
+        if homing ~= nil then
+            local projcom = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
+            if projcom ~= nil then
+                local whoshot = ComponentGetValue2(projcom, "mWhoShot")
+                if EntityHasTag(whoshot, "ew_notplayer") then
+                    ComponentSetValue2(homing, "target_tag", "ew_peer")
+                end
+            end
+        end
+    end
+end
+
 local function on_world_pre_update_inner()
     if ctx.my_player == nil or ctx.my_player.entity == nil then return end
 
@@ -290,19 +305,14 @@ local function on_world_pre_update_inner()
         ctx.hook.on_world_update()
     end
 
-    if GameGetFrameNum() % 3 == 2 then
+    if GameGetFrameNum() % 4 == 0 then
         local x, y = EntityGetTransform(ctx.my_player.entity)
-        for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
-            local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
-            if homing ~= nil then
-                local projcom = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
-                if projcom ~= nil then
-                    local whoshot = ComponentGetValue2(projcom, "mWhoShot")
-                    if EntityHasTag(whoshot, "ew_notplayer") then
-                        ComponentSetValue2(homing, "target_tag", "ew_peer")
-                    end
-                end
-            end
+        change_homing(x, y)
+    elseif GameGetFrameNum() % 4 == 1 then
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        local cx, cy = GameGetCameraPos()
+        if math.abs(x - cx) > 256 or math.abs(y - cy) > 256 then
+            change_homing(cx, cy)
         end
     end
 
