@@ -77,7 +77,8 @@ pub struct GameSettings {
     enemy_sync_interval: u32,
     randomize_perks: bool,
     progress: Vec<String>,
-    max_players: u32
+    max_players: u32,
+    health_per_player: u32
 }
 impl Default for GameSettings {
     fn default() -> Self {
@@ -97,7 +98,8 @@ impl Default for GameSettings {
             chunk_target: 32,
             enemy_sync_interval: 3,
             progress: Vec::new(),
-            max_players: 250
+            max_players: 250,
+            health_per_player: 100,
         }
     }
 }
@@ -642,6 +644,8 @@ impl App {
                     ui.label(tr("shared_health_desc_1"));
                     ui.label(tr("shared_health_desc_2"));
                     ui.label(tr("shared_health_desc_3"));
+                    ui.label("health per player");
+                    ui.add(Slider::new(&mut game_settings.health_per_player, 0..=100));
                 }
                 GameMode::LocalHealth => {
                     ui.label(tr("local_health_desc_1"));
