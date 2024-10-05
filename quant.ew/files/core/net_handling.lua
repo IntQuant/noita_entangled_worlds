@@ -102,7 +102,10 @@ end
 function net_handling.mod.fire(peer_id, fire_data)
     local player_data = player_fns.peer_get_player_data(peer_id)
     local entity = player_data.entity
-    if ctx.my_id ~= ctx.host_id then
+    if not EntityGetIsAlive(entity) then
+        return
+    end
+    if ctx.my_id ~= ctx.host_id and EntityGetIsAlive(ctx.my_player.entity) then
         local x, y = EntityGetTransform(entity)
         local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
         local cam_x, cam_y = GameGetCameraPos()

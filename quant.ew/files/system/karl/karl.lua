@@ -11,7 +11,7 @@ local gui = GuiCreate()
 function rpc.kill_karl()
     for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
         local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
-        if ComponentGetValue2(com, "value_string") == ctx.rpc_peer_id then
+        if com ~= nil and ComponentGetValue2(com, "value_string") == ctx.rpc_peer_id then
             EntityKill(entity)
             break
         end
@@ -22,7 +22,7 @@ function rpc.send_karl(x, y, vx, vy, t, jet, rgb)
     local players_karl
     for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
         local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
-        if ComponentGetValue2(com, "value_string") == ctx.rpc_peer_id then
+        if com ~= nil and ComponentGetValue2(com, "value_string") == ctx.rpc_peer_id then
             if players_karl ~= nil then
                 EntityKill(entity)
             else

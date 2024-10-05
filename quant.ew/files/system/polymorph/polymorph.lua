@@ -84,11 +84,13 @@ function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, posi
     -- Do not sync notplayer's projectiles extra time.
     if ctx.my_player.currently_polymorphed and shooter_id == ctx.my_player.entity and not EntityHasTag(shooter_id, "player_unit") then
         local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
-        local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
-        if entity_that_shot == 0 then
-            rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y)
+        if projectileComponent ~= nil then
+            local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+            if entity_that_shot == 0 then
+                rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y)
+            end
+            EntityAddTag(projectile_id, "ew_no_enemy_sync")
         end
-        EntityAddTag(projectile_id, "ew_no_enemy_sync")
     end
 end
 
