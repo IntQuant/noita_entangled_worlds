@@ -180,6 +180,10 @@ local function send_item_positions()
             local cost = 0
             if costcom ~= nil then
                 cost = ComponentGetValue2(costcom, "cost")
+                local mx, my = GameGetCameraPos()
+                if math.abs(mx - x) < 1024 and math.abs(my - y) < 1024 and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
+                    ComponentSetValue2(costcom, "stealable", true)
+                end
             end
             position_data[gid] = {x, y, cost}
         end

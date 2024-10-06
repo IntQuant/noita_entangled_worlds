@@ -173,6 +173,12 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
         if string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
             ComponentSetValue2(item_cost_component, "stealable", false)
+        else
+            local mx, my = GameGetCameraPos()
+            if math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 then
+                EntityAddComponent2(item, "VariableStorageComponent", {_tags = "ew_try_stealable"})
+                ComponentSetValue2(item_cost_component, "stealable", false)
+            end
         end
         -- Item is stealable
         --if item_data.shop_info[2] then
