@@ -533,6 +533,18 @@ local function choose_movement()
         stop_y = false
         swap_side = false
         on_right = false
+        local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        if state.dtype == 32 and ComponentGetValue2(damage_model, "mLiquidCount") ~= 0 then
+            state.control_w = true
+            local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+            local did_hit_3, _, _ = RaytracePlatforms(my_x, my_y, my_x + 128, my_y)
+            local did_hit_4, _, _ = RaytracePlatforms(my_x, my_y, my_x - 128, my_y)
+            if not did_hit_4 then
+                state.control_a = true
+            elseif not did_hit_3 then
+                state.control_d = true
+            end
+        end
         return
     end
     local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
