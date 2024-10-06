@@ -1993,7 +1993,7 @@ checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "noita-proxy"
-version = "0.25.14"
+version = "0.25.15"
 dependencies = [
  "argh",
  "bincode",
