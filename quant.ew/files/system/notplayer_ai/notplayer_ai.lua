@@ -630,7 +630,8 @@ local function choose_movement()
         end
     end
     --GamePrint(state.dtype)
-    if state.dtype == 32 then
+    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+    if state.dtype == 32 and ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
         if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
             give_space = give_space + 10
         else
@@ -1044,7 +1045,7 @@ local function update()
     if GameGetFrameNum() % 30 == 0 then
         ComponentSetValue2(var, "value_int", 0)
     end
-    --state.dtype = ComponentGetValue2(var, "value_int")
+    state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
     ComponentSetValue2(state.inv_component, "mActive", false)

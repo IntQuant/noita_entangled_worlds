@@ -40,6 +40,14 @@ np.CrossCallAdd("ew_per_peer_seed", function()
     return tonumber(string.sub(ctx.my_id, 8, 12), 16), tonumber(string.sub(ctx.my_id, 12), 16)
 end)
 
+np.CrossCallAdd("ew_spectator", function()
+    if ctx.spectating_over_peer_id == nil then
+        return ctx.my_player.entity or EntityGetWithTag("player_unit")[1]
+    else
+        return ctx.players[ctx.spectating_over_peer_id].entity
+    end
+end)
+
 local function load_modules()
     ctx.load_system("ewext_init")
 
