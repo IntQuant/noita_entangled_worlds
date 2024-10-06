@@ -30,7 +30,8 @@ end
 
 local entity_id = GetUpdatedEntityID()
 local x, y = EntityGetTransform( entity_id )
-SetRandomSeed( x - CrossCall("ew_per_peer_seed"), y + CrossCall("ew_per_peer_seed"))
+local sx, sy = CrossCall("ew_per_peer_seed")
+SetRandomSeed( x - 72 - sx, y + 72 + sy)
 
 local ability_comp = EntityGetFirstComponent( entity_id, "AbilityComponent" )
 

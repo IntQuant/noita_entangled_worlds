@@ -36,16 +36,15 @@ local function actual_orbs_update(found_orbs)
     last_orb_count = GameGetOrbCountThisRun()
 end
 
-function rpc.update_orbs(found_orbs)
+function rpc.update_orbs(found_orbs, to_host)
+    if to_host and ctx.my_id ~= ctx.host_id then
+        return
+    end
     if EntityHasTag(ctx.my_player.entity, "polymorphed") then
         wait_for_these = found_orbs
         return
     end
     actual_orbs_update(found_orbs)
-end
-
-local function send_orbs()
-    rpc.update_orbs(orbs_found_this_run())
 end
 
 function module.on_world_update()
@@ -66,13 +65,7 @@ function module.on_world_update()
         wait_for_these = nil
     elseif last_orb_count ~= GameGetOrbCountThisRun() then
         last_orb_count = GameGetOrbCountThisRun()
-        send_orbs()
-    end
-end
-
-function module.on_should_send_updates()
-    if ctx.is_host then
-        send_orbs()
+        rpc.update_orbs(orbs_found_this_run(), ctx.my_id ~= ctx.host_id)
     end
 end
 
