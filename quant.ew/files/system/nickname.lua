@@ -72,7 +72,7 @@ function nickname.calculate_textwidth(text, font)
     return textwidth
 end
 
-function nickname.add_label(player_entity, text, font_filename, scale, font)
+function nickname.add_label(player_entity, text, font_filename, scale, alpha)
     if not EntityGetIsAlive(player_entity) then
         return
     end
@@ -84,9 +84,10 @@ function nickname.add_label(player_entity, text, font_filename, scale, font)
     if (scale == nil) then
         scale = 1
     end
-    if (font == nil) then
-        font = nickname.parse(font_filename)
+    if alpha == nil then
+        alpha = 0.5
     end
+    local font = nickname.parse(font_filename)
     local textwidth = nickname.calculate_textwidth(text, font)
 
     local nickname_component = EntityAddComponent2(player_entity, "SpriteComponent", {
@@ -100,7 +101,7 @@ function nickname.add_label(player_entity, text, font_filename, scale, font)
         fog_of_war_hole = true,
         text=text,
         z_index=1,
-        alpha=0.5,
+        alpha=alpha,
         emissive = true,
         has_special_scale=true,
         special_scale_x = scale,

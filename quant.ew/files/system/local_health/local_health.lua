@@ -60,11 +60,7 @@ local function remove_inventory()
 end
 
 function rpc.add_nickname(id)
-    for _, data in pairs(ctx.players) do
-        if data.peer_id == id then
-            nickname.add_label(data.entity, data.name, "data/fonts/font_pixel_white.xml", 0.75)
-        end
-    end
+    nickname.add_label(ctx.players[id].entity, ctx.players[id].name, "mods/quant.ew/files/resource/font_pixel_runes.xml", 0.75, 0.75)
 end
 
 local function remove_healthbar_locally()

@@ -407,6 +407,7 @@ local function fire_wand(enable)
         throw = true
     else
         if water_potion ~= nil then
+            aim_at(0, 0)
             enable = true
         end
         ComponentSetValue2(state.control_component, "mButtonDownRightClick", false)
