@@ -14,8 +14,6 @@ ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.x
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_chunks.xml", "<Entity/>")
 
-local dont_effect = {}
-
 local function teleport_random()
     SetRandomSeed(5, 5)
     local my_num = Random(1,100)
@@ -112,6 +110,9 @@ function end_fight.on_world_update()
                 try_kill = -1
             end
         end
+        if GameGetFrameNum() % 5 ~= 0 then
+            return
+        end
         for _, player_data in pairs(ctx.players) do
             local entity = player_data.entity
             if not EntityGetIsAlive(entity) then
@@ -120,48 +121,47 @@ function end_fight.on_world_update()
             EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
             EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
             if EntityHasTag(entity, "ew_notplayer") then
-                if not table.contains(dont_effect, entity) then
-                    table.insert(dont_effect, entity)
-                    async(function()
-                        wait(2)
-                        for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
-                            EntitySetComponentIsEnabled(entity, com, false)
-                        end
-                        local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
-                        local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
-                        local gui = EntityGetFirstComponentIncludingDisabled(entity, "InventoryGuiComponent")
-                        local damage = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-                        if gui ~= nil then
-                            EntitySetComponentIsEnabled(entity, gui, false)
-                        end
-                        if suck ~= nil then
-                            EntitySetComponentIsEnabled(entity, suck, false)
-                        end
-                        if collision ~= nil then
-                            EntitySetComponentIsEnabled(entity, collision, false)
-                        end
-                        if damage ~= nil then
-                            EntitySetComponentIsEnabled(entity, damage, false)
-                        end
-                        for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-                            EntityKill(child)
-                        end
-                        for _, effect in pairs(status_effects) do
-                            if EntityGetIsAlive(entity) then
-                                EntityRemoveStainStatusEffect(entity, effect.id)
-                                EntityRemoveIngestionStatusEffect(entity, effect.id)
-                            end
-                        end
-                        local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-                        if damage_model ~= nil then
-                            ComponentSetValue2(damage_model, "mFireProbability", 0)
-                            ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
-                        end
-                    end)
-                else
-                    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-                        EntityKill(child)
+                for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
+                    EntitySetComponentIsEnabled(entity, com, false)
+                end
+                EntityRemoveTag(entity, "ew_peer")
+                EntityRemoveTag(entity, "ew_client")
+                EntityRemoveTag(entity, "mortal")
+                EntityRemoveTag(entity, "homing_target")
+                EntityRemoveTag(entity, "hittable")
+                local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
+                local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
+                local gui = EntityGetFirstComponentIncludingDisabled(entity, "InventoryGuiComponent")
+                local damage = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+                local genome = EntityGetFirstComponentIncludingDisabled(entity, "GenomeDataComponent")
+                if gui ~= nil then
+                    EntitySetComponentIsEnabled(entity, gui, false)
+                end
+                if suck ~= nil then
+                    EntitySetComponentIsEnabled(entity, suck, false)
+                end
+                if collision ~= nil then
+                    EntitySetComponentIsEnabled(entity, collision, false)
+                end
+                if damage ~= nil then
+                    EntitySetComponentIsEnabled(entity, damage, false)
+                end
+                if genome ~= nil then
+                    EntitySetComponentIsEnabled(entity, genome, false)
+                end
+                for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+                    EntityKill(child)
+                end
+                for _, effect in pairs(status_effects) do
+                    if EntityGetIsAlive(entity) then
+                        EntityRemoveStainStatusEffect(entity, effect.id)
+                        EntityRemoveIngestionStatusEffect(entity, effect.id)
                     end
+                end
+                local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+                if damage_model ~= nil then
+                    ComponentSetValue2(damage_model, "mFireProbability", 0)
+                    ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
                 end
             end
             ::continue::
