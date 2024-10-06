@@ -93,7 +93,11 @@ local function target()
     end
     if camera_target.entity ~= cam_target.entity then
         if camera_target == ctx.my_player then
-            nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
+            if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+                nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "mods/quant.ew/files/resource/font_pixel_runes.xml", 0.75, 0.75)
+            else
+                nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
+            end
         end
         if ctx.my_player.entity ~= camera_target.entity and inventory_target ~= nil then
             EntityRemoveComponent(camera_target.entity, inventory_target)
