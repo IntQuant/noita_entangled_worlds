@@ -48,7 +48,7 @@ function ctx.add_hook(hook_name, system_name, fn)
                 __call = function (self, ...)
                     for _, entry in ipairs(self) do
                         local start_time = GameGetRealWorldTimeSinceStarted()
-                        entry.fn(...)
+                        util.tpcall(entry.fn, ...)
                         local end_time = GameGetRealWorldTimeSinceStarted()
                         local delta = (end_time-start_time) * 1000
                         if delta > 0.02 then
@@ -61,7 +61,7 @@ function ctx.add_hook(hook_name, system_name, fn)
             setmetatable(tbl, {
                 __call = function (self, ...)
                     for _, entry in ipairs(self) do
-                        entry.fn(...)
+                        util.tpcall(entry.fn, ...)
                     end
                 end
             })
