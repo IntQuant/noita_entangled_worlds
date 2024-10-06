@@ -368,10 +368,10 @@ function rpc.update_positions(position_data)
                 local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
                 if costcom ~= nil then
                     if price == 0 then
-                        EntitySetComponentWithTagEnabled(item, "shop_cost", false)
+                        EntitySetComponentsWithTagEnabled(item, "shop_cost", false)
                         ComponentSetValue2(costcom, "cost", 0)
                     else
-                        EntitySetComponentWithTagEnabled(item, "shop_cost", true)
+                        EntitySetComponentsWithTagEnabled(item, "shop_cost", true)
                         ComponentSetValue2(costcom, "cost", price)
                     end
                 end
