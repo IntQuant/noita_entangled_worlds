@@ -90,7 +90,10 @@ function inventory_helper.serialize_single_item(item)
         if vel and vel ~= 0 then
             vx, vy = ComponentGetValue2(vel, "mVelocity")
         end
-        item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}}
+        local sprite = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
+        sprite = ComponentGetValue2(sprite, "image_file")
+        local varp = EntityGetFilename(item) == "data/entities/items/wand_varpuluuta.xml"
+        item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}, sprite, varp}
     else
         item_data = {false, np.SerializeEntity(item), x, y}
     end
@@ -128,6 +131,15 @@ function inventory_helper.deserialize_single_item(item_data)
         local extra = item_data[5]
         local is_new = item_data[6]
         local vx, vy = item_data[7][1], item_data[7][2]
+        local image = item_data[8]
+        local sprite = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
+        ComponentSetValue2(sprite, "image_file", image)
+        if item_data[9] then
+            local varp = EntityCreateNew()
+            EntityAddComponent2(varp, "InheritTransformComponent", {_tags="enabled_in_world,enabled_in_hand", only_position=true, parent_hotspot_tag="shoot_pos"})
+            EntityAddComponent2(varp, "CellEaterComponent", {_tags="enabled_in_world,enabled_in_hand", radius=20, eat_probability=10, only_stain=true})
+            EntityAddChild(item, varp)
+        end
         local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
         if extra ~= nil and ability ~= nil then
             for i, field in ipairs(ability_component_extra_fields) do
