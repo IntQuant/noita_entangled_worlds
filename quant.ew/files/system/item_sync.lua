@@ -39,9 +39,25 @@ end
 
 -- Try to guess if the item is in world.
 local function is_item_on_ground(item)
-    return EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or
-        EntityGetComponent(item, "PhysicsBodyComponent") ~= nil or
-        EntityGetComponent(item, "SpriteParticleEmitterComponent") ~= nil
+    local has_physics = EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent") ~= nil
+    if has_physics then
+        -- Has at least one of phys components enabled, definitely in world.
+        return true, "has physics"
+    end
+    -- What if it's a new wand?
+    local spec = EntityGetFirstComponent(item, "SpriteParticleEmitterComponent")
+    if spec == nil then
+        -- All disabled, certainly not in world.
+        return false, "no spec component"
+    end
+    -- Ones in starter wands don't have any tags, ukko rock and co do.
+    if ComponentHasTag(spec, "enabled_in_hand") then
+        return false, "spec tags enabled_in_hand"
+    end
+    if ComponentHasTag(spec, "enabled_in_inventory") then
+        return false, "spec tags enabled_in_inventory"
+    end
+    return true, "other "..spec
 end
 
 function item_sync.get_global_item_id(item)
@@ -274,6 +290,12 @@ function item_sync.on_draw_debug_window(imgui)
                 imgui.Text("Localize prevented")
             else
                 imgui.Text("Localize allowed")
+            end
+            local on_ground, reason = is_item_on_ground(ent)
+            if on_ground then
+                imgui.Text("On ground: "..reason)
+            else
+                imgui.Text("Not on ground: "..reason)
             end
         end
     end
