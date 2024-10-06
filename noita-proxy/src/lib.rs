@@ -391,6 +391,7 @@ impl App {
             cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
+            modmanager_settings: self.modmanager_settings.clone(),
         }
     }
 
@@ -1239,6 +1240,7 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
         cosmetics,
         mod_path: mod_manager.mod_path(),
         player_path,
+        modmanager_settings: mod_manager,
     };
     (state, netmaninit)
 }

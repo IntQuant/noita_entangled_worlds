@@ -29,6 +29,7 @@ use crate::{
     recorder::Recorder,
     GameSettings, PlayerColor,
 };
+use crate::mod_manager::ModmanagerSettings;
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -109,6 +110,7 @@ pub struct NetManagerInit {
     pub cosmetics: (bool, bool, bool),
     pub mod_path: PathBuf,
     pub player_path: PathBuf,
+    pub modmanager_settings: ModmanagerSettings
 }
 
 pub struct NetManager {
@@ -593,6 +595,7 @@ impl NetManager {
                 settings.seed = rand::random();
             }
             info!("New seed: {}", settings.seed);
+            settings.progress = self.init_settings.modmanager_settings.get_progress().unwrap_or_default();
             *self.settings.lock().unwrap() = settings;
             state.world.reset()
         }
