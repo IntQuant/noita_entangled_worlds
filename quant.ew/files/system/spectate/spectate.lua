@@ -20,6 +20,22 @@ local was_notplayer = false
 
 local has_switched = false
 
+local function disable_throwing(enable)
+    local inv
+    for _, child in ipairs(EntityGetAllChildren(cam_target.entity) or {}) do
+        if EntityGetName(child) == "inventory_quick" then
+            inv = child
+            break
+        end
+    end
+    for _, item in ipairs(EntityGetAllChildren(inv) or {}) do
+        local com = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+        if com ~= nil then
+            ComponentSetValue2(com, "permanently_attached", enable)
+        end
+    end
+end
+
 local function get_me()
     local i = 0
     local alive = -1, -1
@@ -184,6 +200,8 @@ end
 
 local last_len
 
+local attached = false
+
 function spectate.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         was_notplayer = true
@@ -249,22 +267,10 @@ function spectate.on_world_update()
         local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
         if inv_spec ~= nil then
             if ComponentGetValue2(inv_me, "mActive") then
-                local enable = not ComponentGetValue2(inv_spec, "mActive")
-                ComponentSetValue2(inv_spec, "mActive", enable)
-                local inv
-                for _, child in ipairs(EntityGetAllChildren(cam_target.entity) or {}) do
-                    if EntityGetName(child) == "inventory_quick" then
-                        inv = child
-                        break
-                    end
-                end
-                for _, item in ipairs(EntityGetAllChildren(inv) or {}) do
-                    local com = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-                    if com ~= nil then
-                        ComponentSetValue2(com, "permanently_attached", enable)
-                    end
-                end
+                attached = not ComponentGetValue2(inv_spec, "mActive")
+                ComponentSetValue2(inv_spec, "mActive", attached)
             end
+            disable_throwing(attached)
         end
         if inv_me ~= nil then
             ComponentSetValue2(inv_me, "mActive", false)
