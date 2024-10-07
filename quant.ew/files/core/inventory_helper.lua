@@ -400,6 +400,12 @@ function inventory_helper.set_item_data(item_data, player_data)
             np.SetActiveHeldEntity(player, active_item_entity, false, false)
         end
     end
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
+    ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
+    async(function()
+        wait(1)
+        ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
+    end)
 end
 
 function inventory_helper.has_inventory_changed(player_data)

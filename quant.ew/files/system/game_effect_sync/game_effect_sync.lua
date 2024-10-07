@@ -9,6 +9,7 @@ local IGNORE_EFFECTS = {
     POLYMORPH_RANDOM = true,
     POLYMORPH_CESSATION = true,
     POLYMORPH_UNSTABLE = true,
+    NO_WAND_EDITING = true,
 }
 
 function effect_sync.get_ent_effects(entity, perks)

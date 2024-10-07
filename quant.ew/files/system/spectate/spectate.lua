@@ -248,7 +248,23 @@ function spectate.on_world_update()
         local inv_spec = EntityGetFirstComponent(cam_target.entity, "InventoryGuiComponent")
         local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
         if inv_spec ~= nil then
-            ComponentSetValue2(inv_spec, "mActive", false)
+            if ComponentGetValue2(inv_me, "mActive") then
+                local enable = not ComponentGetValue2(inv_spec, "mActive")
+                ComponentSetValue2(inv_spec, "mActive", enable)
+                local inv
+                for _, child in ipairs(EntityGetAllChildren(cam_target.entity) or {}) do
+                    if EntityGetName(child) == "inventory_quick" then
+                        inv = child
+                        break
+                    end
+                end
+                for _, item in ipairs(EntityGetAllChildren(inv) or {}) do
+                    local com = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+                    if com ~= nil then
+                        ComponentSetValue2(com, "permanently_attached", enable)
+                    end
+                end
+            end
         end
         if inv_me ~= nil then
             ComponentSetValue2(inv_me, "mActive", false)

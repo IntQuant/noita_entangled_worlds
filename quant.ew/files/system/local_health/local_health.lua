@@ -59,8 +59,9 @@ local function remove_inventory()
     end
 end
 
-function rpc.add_nickname(id)
-    nickname.add_label(ctx.players[id].entity, ctx.players[id].name, "mods/quant.ew/files/resource/font_pixel_runes.xml", 0.75, 0.75)
+function rpc.add_nickname()
+    nickname.add_label(ctx.rpc_player_data.entity, ctx.rpc_player_data.name, "mods/quant.ew/files/resource/font_pixel_runes.xml", 0.75, 0.75)
+    LoadGameEffectEntityTo(ctx.rpc_player_data.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
 end
 
 local function remove_healthbar_locally()
@@ -130,7 +131,7 @@ local function player_died()
         remove_inventory_tags()
         local iron = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml")
         EntityAddTag(iron, "kill_on_revive")
-        rpc.add_nickname(ctx.my_id)
+        rpc.add_nickname()
         remove_healthbar_locally()
         for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
             if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then

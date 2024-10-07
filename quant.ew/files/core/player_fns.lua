@@ -475,6 +475,10 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     end
     print("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
+    local inv_full = EntityCreateNew("inventory_full")
+    EntityAddChild(new, inv_full)
+    LoadGameEffectEntityTo(new, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+
     for _, child in ipairs(EntityGetAllChildren(new) or {}) do
         if (EntityGetName(child) == "cursor") then
             local sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
