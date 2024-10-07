@@ -20,7 +20,7 @@ local was_notplayer = false
 
 local has_switched = false
 
-local function disable_throwing(enable)
+function spectate.disable_throwing(enable)
     local inv
     for _, child in ipairs(EntityGetAllChildren(cam_target.entity) or {}) do
         if EntityGetName(child) == "inventory_quick" then
@@ -270,7 +270,7 @@ function spectate.on_world_update()
                 attached = not ComponentGetValue2(inv_spec, "mActive")
                 ComponentSetValue2(inv_spec, "mActive", attached)
             end
-            disable_throwing(attached)
+            spectate.disable_throwing(attached)
         end
         if inv_me ~= nil then
             ComponentSetValue2(inv_me, "mActive", false)

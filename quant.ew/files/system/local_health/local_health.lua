@@ -138,6 +138,7 @@ local function player_died()
                 EntityKill(child)
             end
         end
+        LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
         rpc.change_cursor()
     end)
 end

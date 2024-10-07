@@ -1,6 +1,7 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfinder.lua")
 dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
+local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
 local MAX_RADIUS = 128*5
 
@@ -1061,7 +1062,11 @@ local function update()
     state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
-    ComponentSetValue2(state.inv_component, "mActive", false)
+    if InputIsKeyJustDown(43) or InputIsJoystickButtonJustDown(0, 16) then
+        local active = not ComponentGetValue2(state.inv_component, "mActive")
+        ComponentSetValue2(state.inv_component, "mActive", active)
+        spectate.disable_throwing(active)
+    end
     if GameHasFlagRun("ending_game_completed") then
         return
     end
