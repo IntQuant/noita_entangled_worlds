@@ -156,6 +156,8 @@ local tether_length_3 = tether_length_2
 
 local was_not_hm = false
 
+local was_notplayer = false
+
 function module.on_world_update_client()
     if GameGetFrameNum() % 10 == 7 then
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
@@ -163,6 +165,7 @@ function module.on_world_update_client()
             if host_playerdata ~= nil and host_playerdata.entity ~= nil and EntityGetIsAlive(host_playerdata.entity) then
                 no_tether = true
                 tether_enable(false, host_playerdata.entity)
+                was_notplayer = true
             end
             return
         end
@@ -187,7 +190,7 @@ function module.on_world_update_client()
             if no_tether then
                 tether_enable(true, host_playerdata.entity)
                 no_tether = false
-                if not was_not_hm then
+                if not was_not_hm or was_notplayer then
                     tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
                     set_tether_length(tether_length_3 - 128, host_playerdata.entity)
                 end
@@ -212,6 +215,7 @@ function module.on_world_update_client()
             tether_enable(false, host_playerdata.entity)
         end
         was_not_hm = not_hm
+        was_notplayer = false
     end
 end
 
