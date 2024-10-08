@@ -21,7 +21,7 @@ function inventory_helper.get_all_inventory_items(player_data)
             goto continue
         end
         table.insert(result, item)
-        for _, sub_item in pairs(EntityGetAllChildren(item) or {}) do
+        for _, sub_item in ipairs(EntityGetAllChildren(item) or {}) do
             table.insert(result, sub_item)
         end
         ::continue::
@@ -107,22 +107,6 @@ function inventory_helper.serialize_single_item(item)
     return item_data
 end
 
-function inventory_helper.make_item_stealable_later(item)
-    local item_cost_component = util.get_or_create_component(item, "ItemCostComponent")
-    ComponentSetValue2(item_cost_component, "stealable", false)
-    async(function()
-        -- HACK: Wait for ten seconds in case items fall or something before enabling the thing.
-        wait(600)
-        while #(EntityGetInRadiusWithTag(x, y, 256, "shop") or {}) == 0 do
-            wait(30) -- Wait for a while, in case shop hasn't loaded yet.
-            if not EntityGetIsAlive(item) then
-                return
-            end
-        end
-        ComponentSetValue2(item_cost_component, "stealable", true)
-    end)
-end
-
 function inventory_helper.deserialize_single_item(item_data)
     local item
     local x, y = item_data[3], item_data[4]
@@ -180,11 +164,6 @@ function inventory_helper.deserialize_single_item(item_data)
                 ComponentSetValue2(item_cost_component, "stealable", false)
             end
         end
-        -- Item is stealable
-        --if item_data.shop_info[2] then
-            --inventory_helper.make_item_stealable_later(item)
-        --end
-
 
         util.ensure_component_present(item, "SpriteComponent", "shop_cost", {
             image_file = "data/fonts/font_pixel_white.xml",
@@ -400,10 +379,9 @@ function inventory_helper.set_item_data(item_data, player_data)
             np.SetActiveHeldEntity(player, active_item_entity, false, false)
         end
     end
-    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
-    ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
     async(function()
         wait(1)
+        local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
         ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
     end)
 end

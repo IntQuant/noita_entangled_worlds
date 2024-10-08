@@ -125,13 +125,10 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
             GameAddFlagRun("ew_sampo_picked")
             dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
             item_pickup(item_id)
-            async(function()
-                wait(10) -- Wait a bit for enemy sync to do it's thing.
-                local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
-                local orbcount = GameGetOrbCountThisRun() + newgame_n
-                rpc.kolmi_shield(true, orbcount)
-                rpc.init_boss(orbcount)
-            end)
+            local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
+            local orbcount = GameGetOrbCountThisRun() + newgame_n
+            rpc.kolmi_shield(true, orbcount)
+            rpc.init_boss(orbcount)
         end
     end
 end)

@@ -656,94 +656,58 @@ local function choose_movement()
 end
 
 local function teleport_to_area(area)
-    async(function()
-        if np.GetGameModeNr() == 2 then
-            if area == 1 then
-                EntitySetTransform(ctx.my_player.entity, 191, 1514)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 1514)
-            elseif area == 2 then
-                EntitySetTransform(ctx.my_player.entity, 191, 4066)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 4066)
-            elseif area == 3 then
-                EntitySetTransform(ctx.my_player.entity, 191, 6626)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 6626)
-            elseif area == 4 then
-                EntitySetTransform(ctx.my_player.entity, 191, 10722)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 10722)
-            elseif area == 5 then
-                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-            elseif area == 9 then
-                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
-            end
-        elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
-            if area == 1 then
-                EntitySetTransform(ctx.my_player.entity, 191, 1514)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 1514)
-            elseif area == 2 then
-                EntitySetTransform(ctx.my_player.entity, 191, 3040)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 3040)
-            elseif area == 3 then
-                EntitySetTransform(ctx.my_player.entity, 191, 6626)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 6626)
-            elseif area == 4 then
-                EntitySetTransform(ctx.my_player.entity, 191, 10722)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 10722)
-            elseif area == 5 then
-                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-            elseif area == 9 then
-                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
-            end
-        else
-            if area == 1 then
-                EntitySetTransform(ctx.my_player.entity, 191, 1514)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 1514)
-            elseif area == 2 then
-                EntitySetTransform(ctx.my_player.entity, 191, 3066)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 3066)
-            elseif area == 3 then
-                EntitySetTransform(ctx.my_player.entity, 191, 5114)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 5114)
-            elseif area == 4 then
-                EntitySetTransform(ctx.my_player.entity, 191, 6634)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 6634)
-            elseif area == 5 then
-                EntitySetTransform(ctx.my_player.entity, 191, 8696)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 8696)
-            elseif area == 6 then
-                EntitySetTransform(ctx.my_player.entity, 191, 10730)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 191, 10730)
-            elseif area == 7 then
-                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 3244, 13084)
-            elseif area == 9 then
-                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
-                wait(30)
-                EntitySetTransform(ctx.my_player.entity, 6400, 15000)
-            end
+    local x, y
+    if np.GetGameModeNr() == 2 then
+        if area == 1 then
+            x, y = 191, 1514
+        elseif area == 2 then
+            x, y = 191, 4066
+        elseif area == 3 then
+            x, y = 191, 6626
+        elseif area == 4 then
+            x, y = 191, 10722
+        elseif area == 5 then
+            x, y = 3244, 13084
+        elseif area == 9 then
+            x, y = 6400, 15000
         end
+    elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
+        if area == 1 then
+            x, y = 191, 1514
+        elseif area == 2 then
+            x, y = 191, 3040
+        elseif area == 3 then
+            x, y = 191, 6626
+        elseif area == 4 then
+            x, y = 191, 10722
+        elseif area == 5 then
+            x, y = 3244, 13084
+        elseif area == 9 then
+            x, y = 6400, 15000
+        end
+    else
+        if area == 1 then
+            x, y = 191, 1514
+        elseif area == 2 then
+            x, y = 191, 3066
+        elseif area == 3 then
+            x, y = 191, 5114
+        elseif area == 4 then
+            x, y = 191, 6634
+        elseif area == 5 then
+            x, y = 191, 8696
+        elseif area == 6 then
+            x, y = 191, 10730
+        elseif area == 7 then
+            x, y = 3244, 13084
+        elseif area == 9 then
+            x, y = 6400, 15000
+        end
+    end
+    async(function()
+        EntitySetTransform(ctx.my_player.entity, x, y)
+        wait(30)
+        EntitySetTransform(ctx.my_player.entity, x, y)
     end)
 end
 
@@ -876,7 +840,7 @@ local function hold_something()
     local has_good_potion = not has_water_potion and not is_ambrosia and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
     if GameGetFrameNum() % 10 == 0 and state.had_potion and #state.bad_potions == 0 and #state.good_potions == 0 then
         local has_a_potion = false
-        for _, item in pairs(EntityGetAllChildren(state.items)) do
+        for _, item in ipairs(EntityGetAllChildren(state.items)) do
             if EntityHasTag(item, "potion") then
                 has_a_potion = true
             end

@@ -44,7 +44,6 @@ local function run_spawn_fn(fn_name, x, y, ...)
         local eid = ret
         ctx.cap.item_sync.globalize(eid, true, ctx.rpc_peer_id)
         -- Avoid item losing it's cost on host.
-        -- inventory_helper.make_item_stealable_later(eid)
         if ctx.rpc_peer_id ~= nil and ctx.rpc_peer_id ~= ctx.my_id then
             local item_cost_component = EntityGetFirstComponentIncludingDisabled(eid, "ItemCostComponent")
             ComponentSetValue2(item_cost_component, "stealable", false)

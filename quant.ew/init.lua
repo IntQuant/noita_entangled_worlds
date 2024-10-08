@@ -288,14 +288,10 @@ local function on_world_pre_update_inner()
     end
 
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or (GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)) then
-        async(function()
-            -- Wait 1 frame because apperently it takes some time for an item to get properly "registered" in an inventory?
-            wait(1)
-            local inventory_state = player_fns.serialize_items(ctx.my_player)
-            if inventory_state ~= nil then
-                net.send_player_inventory(inventory_state)
-            end
-        end)
+        local inventory_state = player_fns.serialize_items(ctx.my_player)
+        if inventory_state ~= nil then
+            net.send_player_inventory(inventory_state)
+        end
     end
 
     -- Perk sync

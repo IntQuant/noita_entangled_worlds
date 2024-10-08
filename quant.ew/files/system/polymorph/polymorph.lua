@@ -11,7 +11,7 @@ local module = {}
 
 local function entity_changed()
     local currently_polymorphed = EntityGetName(ctx.my_player.entity) ~= "DEBUG_NAME:player"
-
+    print(tostring(currently_polymorphed))
     ctx.my_player.currently_polymorphed = currently_polymorphed
     if currently_polymorphed then
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
@@ -70,12 +70,16 @@ function module.on_world_update()
     end
 end
 
+function module.switch_entity(ent)
+    player_fns.replace_player_entity(ent, ctx.my_player)
+    EntityAddTag(ent, "ew_no_enemy_sync")
+    entity_changed()
+end
+
 function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
     if ent ~= ctx.my_player.entity then
-        player_fns.replace_player_entity(ent, ctx.my_player)
-        EntityAddTag(ent, "ew_no_enemy_sync")
-        entity_changed()
+        module.switch_entity(ent)
     end
 end
 
@@ -131,7 +135,7 @@ local function apply_seri_ent(player_data, seri_ent)
         EntityRemoveTag(ent, "player_unit")
         EntityRemoveTag(ent, "teleportable")
 
-        EntitySetName(ent, player_data.name.."?")
+        EntitySetName(ent, player_data.peer_id.."?")
 
         EntityKill(player_data.entity)
         player_fns.replace_player_entity(ent, player_data)

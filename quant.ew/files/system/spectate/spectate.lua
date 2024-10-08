@@ -56,10 +56,18 @@ end
 local function target()
     if cam_target.entity == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         local sprite = EntityGetFirstComponent(ctx.my_player.entity, "SpriteComponent", "ew_nickname")
-        if sprite ~= nil then
+        if sprite ~= nil and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             EntityRemoveComponent(ctx.my_player.entity, sprite)
         end
-        GameSetCameraFree(false)
+        if GameHasFlagRun("ew_cam_wait") then
+            GameRemoveFlagRun("ew_cam_wait")
+            async(function()
+                wait(1)
+                GameSetCameraFree(false)
+            end)
+        else
+            GameSetCameraFree(false)
+        end
         if camera_target == nil then
             camera_target = ctx.my_player
         elseif camera_target.entity ~= ctx.my_player.entity then
@@ -109,9 +117,7 @@ local function target()
     end
     if camera_target.entity ~= cam_target.entity then
         if camera_target == ctx.my_player then
-            if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-                nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "mods/quant.ew/files/resource/font_pixel_runes.xml", 0.75, 0.75)
-            else
+            if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
             end
         end
@@ -249,9 +255,9 @@ function spectate.on_world_update()
     set_camera_pos()
     ctx.spectating_over_peer_id = camera_player_id
 
-    GuiStartFrame(gui)
-    GuiZSet(gui, 11)
     if GameHasFlagRun("ew_flag_notplayer_active") and not has_switched then
+        GuiStartFrame(gui)
+        GuiZSet(gui, 11)
         local w, h = GuiGetScreenDimensions(gui)
         local text
         if GameGetIsGamepadConnected() then
@@ -266,9 +272,16 @@ function spectate.on_world_update()
         local inv_spec = EntityGetFirstComponent(cam_target.entity, "InventoryGuiComponent")
         local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
         if inv_spec ~= nil then
-            if ComponentGetValue2(inv_me, "mActive") then
-                attached = not ComponentGetValue2(inv_spec, "mActive")
-                ComponentSetValue2(inv_spec, "mActive", attached)
+            if inv_me == nil then
+                if InputIsKeyJustDown(43) or InputIsJoystickButtonJustDown(0, 16) then
+                    attached = not ComponentGetValue2(inv_spec, "mActive")
+                    ComponentSetValue2(inv_spec, "mActive", attached)
+                end
+            else
+                if ComponentGetValue2(inv_me, "mActive") then
+                    attached = not ComponentGetValue2(inv_spec, "mActive")
+                    ComponentSetValue2(inv_spec, "mActive", attached)
+                end
             end
             spectate.disable_throwing(attached)
         end

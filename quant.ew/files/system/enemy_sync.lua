@@ -582,7 +582,7 @@ function rpc.handle_enemy_data(enemy_data)
                 local wand = inventory_helper.deserialize_single_item(wands[remote_enemy_id])
                 EntityAddTag(wand, "ew_client_item")
                 local found = false
-                for _, child in pairs(EntityGetAllChildren(enemy_id) or {}) do
+                for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
                     if EntityGetName(child) == "inventory_quick" then
                         EntityAddChild(child, wand)
                         found = true

@@ -1,7 +1,6 @@
 local end_fight = {}
 local first = true
 local try_kill = -1
-local wait_to_heal = false
 local init = -1
 local done = false
 local kill_walls = false
@@ -55,6 +54,35 @@ function rpc.try_kill(x, y)
     done = true
 end
 
+local function remove_status(entity, little)
+    if little then
+        EntityRemoveStainStatusEffect(entity, status_effects[24].id)
+        EntityRemoveIngestionStatusEffect(entity, status_effects[24].id)
+    else
+        for _, effect in pairs(status_effects) do
+            if EntityGetIsAlive(entity) then
+                EntityRemoveStainStatusEffect(entity, effect.id)
+                EntityRemoveIngestionStatusEffect(entity, effect.id)
+            end
+        end
+    end
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "mFireProbability", 0)
+        ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+    end
+end
+
+local function remove_game_effects()
+    remove_status(ctx.my_player.entity, true)
+    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+        local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+        if com ~= nil and ComponentGetValue2(com, "effect") == "PROTECTION_ALL" then
+            EntityKill(child)
+        end
+    end
+end
+
 function end_fight.on_world_update()
     if GameHasFlagRun("ending_game_completed") and not done then
         if kill_walls == GameGetFrameNum() then
@@ -68,13 +96,11 @@ function end_fight.on_world_update()
         if init == -1 then
             np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
             if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+                remove_game_effects()
                 EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
-                wait_to_heal = true
             else
-                async(function()
-                    wait(3)
-                    EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
-                end)
+                remove_game_effects()
+                EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
             end
             GamePrintImportant("Fight for the spoils")
             first = false
@@ -89,13 +115,6 @@ function end_fight.on_world_update()
                     exists = true
                     GenomeSetHerdId(playerdata.entity, "player_pvp")
                 end
-            end
-            if wait_to_heal and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-                async(function()
-                    wait(3)
-                    EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
-                end)
-                wait_to_heal = false
             end
             if not exists and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 if try_kill <= GameGetFrameNum() then
@@ -152,17 +171,7 @@ function end_fight.on_world_update()
                 for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                     EntityKill(child)
                 end
-                for _, effect in pairs(status_effects) do
-                    if EntityGetIsAlive(entity) then
-                        EntityRemoveStainStatusEffect(entity, effect.id)
-                        EntityRemoveIngestionStatusEffect(entity, effect.id)
-                    end
-                end
-                local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-                if damage_model ~= nil then
-                    ComponentSetValue2(damage_model, "mFireProbability", 0)
-                    ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
-                end
+                remove_status(entity)
             end
             ::continue::
         end

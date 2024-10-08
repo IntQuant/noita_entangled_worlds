@@ -1,4 +1,6 @@
 dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
+local polymorph = dofile_once("mods/quant.ew/files/system/polymorph/polymorph.lua")
+local base64 = dofile_once("mods/quant.ew/files/resource/base64.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
@@ -59,9 +61,20 @@ local function remove_inventory()
     end
 end
 
-function rpc.add_nickname()
+rpc.opts_everywhere()
+function rpc.add_nickname_change_cursor()
     nickname.add_label(ctx.rpc_player_data.entity, ctx.rpc_player_data.name, "mods/quant.ew/files/resource/font_pixel_runes.xml", 0.75, 0.75)
-    LoadGameEffectEntityTo(ctx.rpc_player_data.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+
+    if ctx.my_id ~= ctx.rpc_peer_id then
+        LoadGameEffectEntityTo(ctx.rpc_player_data.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+        for _, child in ipairs(EntityGetAllChildren(ctx.rpc_player_data.entity) or {}) do
+            if (EntityGetName(child) == "cursor") then
+                local sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+                ComponentSetValue2(sprite, "image_file", "mods/quant.ew/files/system/player/tmp/" .. ctx.rpc_peer_id .. "_cursor.png")
+                break
+            end
+        end
+    end
 end
 
 local function remove_healthbar_locally()
@@ -96,16 +109,6 @@ local function allow_notplayer_perk(perk_id)
     return not ignored_perks[perk_id]
 end
 
-function rpc.change_cursor()
-    for _, child in ipairs(EntityGetAllChildren(ctx.rpc_player_data.entity) or {}) do
-        if (EntityGetName(child) == "cursor") then
-            local sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
-            ComponentSetValue2(sprite, "image_file", "mods/quant.ew/files/system/player/tmp/" .. ctx.rpc_peer_id .. "_cursor.png")
-            break
-        end
-    end
-end
-
 local function player_died()
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
@@ -115,32 +118,27 @@ local function player_died()
 
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
     -- Which is, like, perfect.
-    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
-
-    -- We kinda need to wait a frame for things to update.
-    async(function ()
-        wait(1)
-        GameSetCameraFree(true)
-        GameAddFlagRun("ew_flag_notplayer_active")
-        EntitySetName(ctx.my_player.entity, ctx.my_player.name.."?")
-        do_switch_effect(false)
-        inventory_helper.set_item_data(item_data, ctx.my_player)
-        perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
-        util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
-        send_player_cosmetics(ctx.my_id)
-        remove_inventory_tags()
-        local iron = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml")
-        EntityAddTag(iron, "kill_on_revive")
-        rpc.add_nickname()
-        remove_healthbar_locally()
-        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-            if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
-                EntityKill(child)
-            end
+    local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
+    ctx.my_player.entity = ent + 1
+    GameAddFlagRun("ew_flag_notplayer_active")
+    do_switch_effect(false)
+    inventory_helper.set_item_data(item_data, ctx.my_player)
+    perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
+    EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
+    util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
+    send_player_cosmetics(ctx.my_id)
+    remove_inventory_tags()
+    local iron = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml")
+    EntityAddTag(iron, "kill_on_revive")
+    remove_healthbar_locally()
+    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+    polymorph.switch_entity(ent + 1)
+    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+        if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+            EntityKill(child)
         end
-        LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
-        rpc.change_cursor()
-    end)
+    end
+    rpc.add_nickname_change_cursor()
 end
 
 local function do_game_over(message)
@@ -243,16 +241,29 @@ function module.inflict_damage(dmg)
 end
 
 local function end_poly_effect(ent)
-    local children = EntityGetAllChildren(ent) or {}
-    for _, child in pairs(children)do
+    local serialized
+    for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
         local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
         if game_effect_comp then
             local effect = ComponentGetValue2(game_effect_comp, "effect")
-            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" or EntityHasTag(effect, "kill_on_revive") then
-                ComponentSetValue2(game_effect_comp, "frames", 1)
+            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" then
+                serialized = ComponentGetValue2(game_effect_comp, "mSerializedData")
+                if serialized ~= nil then
+                    break
+                end
             end
         end
     end
+    if serialized == nil then
+        return
+    end
+    local x, y = EntityGetTransform(ent)
+    local new_ent = EntityCreateNew()
+    np.DeserializeEntity(new_ent, base64.decode(serialized), x, y)
+    np.SetPlayerEntity(new_ent)
+    EntityKill(ent)
+    GameAddFlagRun("ew_cam_wait")
+    return new_ent
 end
 
 -- Provides health capability
@@ -266,54 +277,59 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
-            if GameHasFlagRun("ending_game_completed") then
+            if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") then
                 return
             end
             local item_data = inventory_helper.get_item_data(ctx.my_player)
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
-            end_poly_effect(ctx.my_player.entity)
-            async(function ()
-                wait(1)
-                for _, child in pairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-                    if not EntityHasTag(child, "perk_entity") then
-                        local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-                        if com ~= nil or EntityHasTag(child, "projectile") then
-                            EntityKill(child)
-                        end
+            local ent = end_poly_effect(ctx.my_player.entity)
+            ctx.my_player.entity = ent
+            for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+                if not EntityHasTag(child, "perk_entity") then
+                    local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+                    if com ~= nil or EntityHasTag(child, "projectile") then
+                        EntityKill(child)
                     end
                 end
-                for _, effect in pairs(status_effects) do
-                    if EntityGetIsAlive(ctx.my_player.entity) then
-                        EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
-                        EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+            end
+            for _, effect in pairs(status_effects) do
+                if EntityGetIsAlive(ctx.my_player.entity) then
+                    EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
+                    EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+                end
+            end
+            local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+            if damage_model ~= nil then
+                ComponentSetValue2(damage_model, "mFireProbability", 0)
+                ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+            end
+            inventory_helper.set_item_data(item_data, ctx.my_player)
+            remove_inventory_tags()
+            local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+            if controls ~= nil then
+                ComponentSetValue2(controls, "enabled", true)
+            end
+            if GameHasFlagRun("ew_kill_player") then
+                GameRemoveFlagRun("ew_kill_player")
+                polymorph.switch_entity(ent)
+                async(function()
+                    wait(1)
+                    if GameHasFlagRun("ending_game_completed") then
+                        EntityInflictDamage(ctx.my_player.entity, -1000000, "DAMAGE_HEALING", "", "NONE", 0, 0, GameGetWorldStateEntity())
+                    else
+                        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
                     end
-                end
-                local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-                if damage_model ~= nil then
-                    ComponentSetValue2(damage_model, "mFireProbability", 0)
-                    ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
-                end
-                inventory_helper.set_item_data(item_data, ctx.my_player)
-                remove_inventory_tags()
-                local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-                if controls ~= nil then
-                    ComponentSetValue2(controls, "enabled", true)
-                end
-                if GameHasFlagRun("ew_kill_player") then
-                    GameRemoveFlagRun("ew_kill_player")
-                    wait(100)
-                    EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
-                else
-                    do_switch_effect(true)
-                end
-            end)
+                end)
+            else
+                do_switch_effect(true)
+                polymorph.switch_entity(ent)
+            end
         else
-            end_poly_effect(ctx.my_player.entity)
-            async(function ()
-                wait(1)
-                player_died()
-            end)
+            local ent = end_poly_effect(ctx.my_player.entity)
+            ctx.my_player.entity = ent
+            player_died()
+            polymorph.switch_entity(ent)
         end
     end,
 }
