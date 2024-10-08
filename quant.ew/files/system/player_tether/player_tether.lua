@@ -1,5 +1,6 @@
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
+local rpc = net.new_rpc_namespace()
 
 local tether_length = ctx.proxy_opt.tether_length
 local tether_length_2 = tether_length + 128
@@ -152,6 +153,14 @@ local function set_tether_length(length, entity)
     end
 end
 
+function rpc.teleport_to_tower()
+    async(function()
+        EntitySetTransform(ctx.my_player.entity, 9740, 9100)
+        wait(30)
+        EntitySetTransform(ctx.my_player.entity, 9740, 9100)
+    end)
+end
+
 local tether_length_3 = tether_length_2
 
 local was_not_hm = false
@@ -160,6 +169,9 @@ local was_notplayer = false
 
 function module.on_world_update_client()
     if GameGetFrameNum() % 10 == 7 then
+        if ctx.my_id == ctx.host_id then
+            return
+        end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
             if host_playerdata ~= nil and host_playerdata.entity ~= nil and EntityGetIsAlive(host_playerdata.entity) then
@@ -179,6 +191,19 @@ function module.on_world_update_client()
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         if x1 == nil or x2 == nil then
+            return
+        end
+        if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
+            local any_not = false
+            for _, player in pairs(ctx.players) do
+                local x, y = EntityGetTransform(player.entity)
+                if not (is_in_box(9200, 11000, 8300, 9800, x, y) or is_in_box(-4740, 4140, 8700, 13880, x, y)) then
+                    any_not = true
+                end
+            end
+            if not any_not then
+                rpc.teleport_to_tower()
+            end
             return
         end
         local dx = x1-x2
