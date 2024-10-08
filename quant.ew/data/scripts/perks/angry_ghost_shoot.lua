@@ -10,6 +10,9 @@ function wand_fired( wand_id )
     local shooter
     if EntityHasTag(root, "ew_peer") and not EntityHasTag(root, "ew_notplayer") then
         shooter = EntityGetWithTag("player_unit")[1]
+        if EntityHasTag(shooter, "ew_notplayer") then
+            shooter = root
+        end
     else
         shooter = root
     end
