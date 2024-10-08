@@ -288,7 +288,10 @@ ctx.cap.health = {
             for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
                 if not EntityHasTag(child, "perk_entity") then
                     local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-                    if com ~= nil or EntityHasTag(child, "projectile") then
+                    local comt = EntityGetFirstComponentIncludingDisabled(child, "LifetimeComponent")
+                    if (com ~= nil and ComponentGetValue2(com, "effect") ~= "EDIT_WANDS_EVERYWHERE")
+                            or comt ~= nil
+                            or EntityHasTag(child, "projectile") then
                         EntityKill(child)
                     end
                 end
