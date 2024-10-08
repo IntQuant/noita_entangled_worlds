@@ -1,0 +1,14 @@
+<Entity  >
+    <CollisionTriggerComponent
+      width="96"
+      height="110"
+      radius="60"
+      destroy_this_entity_when_triggered="1"
+      required_tag="ew_peer" >
+  	</CollisionTriggerComponent>
+
+    <LuaComponent
+      script_collision_trigger_hit="data/scripts/buildings/orb_07_pitcheck_a.lua"
+      execute_every_n_frame="-1" >
+    </LuaComponent>
+</Entity>
