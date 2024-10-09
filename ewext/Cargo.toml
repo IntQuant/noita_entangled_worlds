@@ -8,7 +8,8 @@ crate-type = ["cdylib"]
 
 
 [profile.release]
-#lto = "thin"
+lto = true
+strip = true
 
 [dependencies]
 libloading = "0.8.5"

@@ -4,11 +4,7 @@ use bookkeeping::{
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{
-    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
-    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui,
-    Vec2, Window,
-};
+use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, UiBuilder, Vec2, Window};
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -493,7 +489,7 @@ impl App {
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
             let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
 
-            ui.allocate_ui_at_rect(bottom_panel.shrink(group_shrink), |ui| {
+            ui.allocate_new_ui(UiBuilder{max_rect: Some(bottom_panel.shrink(group_shrink)), ..Default::default()}, |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     self.self_update.display_version(ui);
@@ -504,7 +500,7 @@ impl App {
                 });
             });
 
-            ui.allocate_ui_at_rect(right_b_panel.shrink(group_shrink), |ui| {
+            ui.allocate_new_ui(UiBuilder{max_rect: Some(right_b_panel.shrink(group_shrink)), ..Default::default()}, |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
@@ -512,7 +508,7 @@ impl App {
                 })
             });
 
-            ui.allocate_ui_at_rect(settings_rect.shrink(group_shrink), |ui| {
+            ui.allocate_new_ui(UiBuilder{max_rect: Some(settings_rect.shrink(group_shrink)), ..Default::default()}, |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
                     ScrollArea::both().auto_shrink(false).show(ui, |ui| {
@@ -520,14 +516,14 @@ impl App {
                     });
                 });
             });
-            ui.allocate_ui_at_rect(steam_connect_rect.shrink(group_shrink), |ui| {
+            ui.allocate_new_ui(UiBuilder{max_rect: Some(steam_connect_rect.shrink(group_shrink)), ..Default::default()}, |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 
                     self.panel_connect_by_steam(ui);
                 });
             });
-            ui.allocate_ui_at_rect(ip_connect_rect.shrink(group_shrink), |ui| {
+            ui.allocate_new_ui(UiBuilder{max_rect: Some(ip_connect_rect.shrink(group_shrink)), ..Default::default()}, |ui| {
                 filled_group(ui, |ui| {
                     ui.set_min_size(ui.available_size());
 

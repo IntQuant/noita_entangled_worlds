@@ -50,7 +50,6 @@ async fn main() {
                     .with_min_inner_size([800.0, 600.0])
                     .with_icon(icon)
                     .with_title("Noita Entangled Worlds Proxy"),
-                follow_system_theme: false,
                 ..Default::default()
             },
             Box::new(|cc| Ok(Box::new(App::new(cc, args)))),
