@@ -20,9 +20,14 @@ local was_notplayer = false
 
 local has_switched = false
 
-function spectate.disable_throwing(enable)
+local attached = false
+
+function spectate.disable_throwing(enable, entity)
+    if entity == nil then
+        entity = cam_target.entity
+    end
     local inv
-    for _, child in ipairs(EntityGetAllChildren(cam_target.entity) or {}) do
+    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
         if EntityGetName(child) == "inventory_quick" then
             inv = child
             break
@@ -55,6 +60,13 @@ end
 
 local function target()
     if cam_target.entity == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        if attached then
+            local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
+            if inv_me ~= nil then
+                ComponentSetValue2(inv_me, "mActive", attached)
+            end
+            attached = false
+        end
         local sprite = EntityGetFirstComponent(ctx.my_player.entity, "SpriteComponent", "ew_nickname")
         if sprite ~= nil and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             EntityRemoveComponent(ctx.my_player.entity, sprite)
@@ -116,6 +128,20 @@ local function target()
         camera_target = ctx.my_player
     end
     if camera_target.entity ~= cam_target.entity then
+        if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+            if cam_target.entity ~= ctx.my_player.entity then
+                spectate.disable_throwing(false, ctx.my_player.entity)
+            elseif attached then
+                spectate.disable_throwing(true, ctx.my_player.entity)
+            end
+        end
+        if attached then
+            local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
+            if inv_me ~= nil then
+                ComponentSetValue2(inv_me, "mActive", attached)
+            end
+            attached = false
+        end
         if camera_target == ctx.my_player then
             if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
@@ -205,8 +231,6 @@ local function number_of_players()
 end
 
 local last_len
-
-local attached = false
 
 function spectate.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
