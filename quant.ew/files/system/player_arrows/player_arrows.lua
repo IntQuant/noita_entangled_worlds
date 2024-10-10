@@ -50,7 +50,7 @@ function module.on_world_update()
             goto continue
         end
         local px, py = EntityGetTransform(player_data.entity)
-        if px == nil then
+        if px == nil or (px == 0 and py == 0) then
             if last_coords[peer_id] == nil then
                 return
             else
