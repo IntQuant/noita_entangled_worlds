@@ -32,16 +32,16 @@ def try_remove(path):
 class ReleaseNotes:
     def __init__(self):
         self.md = []
-    
+
     def title(self, t):
         self.md.append(f"## {t}\n")
 
     def p(self, t):
         self.md.append(f"\n{t}\n")
-    
+
     def l(self, t):
         self.md.append(f"- {t}")
-    
+
     def gen_md(self):
         return "\n".join(self.md)
 
@@ -69,8 +69,8 @@ def make_release_assets():
 
     os.chdir("noita-proxy")
 
-    subprocess.run(["cross", "build", "--profile", "release-lto", "--target", "x86_64-unknown-linux-gnu"], check=True)
-    subprocess.run(["cargo", "build", "--profile", "release-lto", "--target", "x86_64-pc-windows-gnu"], check=True)
+    subprocess.run(["cross", "build", "--release", "--target", "x86_64-unknown-linux-gnu"], check=True)
+    subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"], check=True)
 
     os.chdir("..")
 
@@ -147,10 +147,10 @@ def main():
     notes.title("Installation")
     notes.p("Download and unpack `noita-proxy-win.zip` or `noita-proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
     notes.p("Proxy is able to download and install the mod automatically. There is no need to download the mod (`quant.ew.zip`) manually.")
-    notes.p("""You'll be prompted for a path to `noita.exe` when launching the proxy for the first time. 
+    notes.p("""You'll be prompted for a path to `noita.exe` when launching the proxy for the first time.
 It should be detected automatically as long as you use steam version of the game and steam is launched.
         """)
-    
+
     notes.title("Updating")
     notes.p("There is a button in bottom-left corner on noita-proxy's main screen that allows to auto-update to a new version when one is available")
 
@@ -158,7 +158,7 @@ It should be detected automatically as long as you use steam version of the game
     notes_path = "/tmp/rnotes.md"
     with open(notes_path, "w") as f:
         print(notes.gen_md(), file=f)
-    
+
     subprocess.check_call(["nano", notes_path])
 
     title = input("Release title: ")
