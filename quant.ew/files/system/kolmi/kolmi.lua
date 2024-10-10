@@ -118,6 +118,10 @@ np.CrossCallAdd("ew_kolmi_anim", rpc.kolmi_anim)
 
 np.CrossCallAdd("ew_kolmi_shield", rpc.kolmi_shield)
 
+local function is_in_box(x1, x2, y1, y2, x, y)
+    return x1 < x and x < x2 and y1 < y and y < y2
+end
+
 ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
         -- Check if it's the first time we pick it up to avoid that sound on later pickups.
@@ -129,6 +133,15 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
             local orbcount = GameGetOrbCountThisRun() + newgame_n
             rpc.kolmi_shield(true, orbcount)
             rpc.init_boss(orbcount)
+            local x, y = EntityGetTransform(ctx.my_player.entity)
+            if not is_in_box(1530, 4130, 12300, 13300, x, y) then
+                async(function()
+                    x, y = 3244, 13084
+                    EntitySetTransform(ctx.my_player.entity, x, y)
+                    wait(30)
+                    EntitySetTransform(ctx.my_player.entity, x, y)
+                end)
+            end
         end
     end
 end)
