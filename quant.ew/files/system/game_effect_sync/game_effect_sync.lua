@@ -17,7 +17,7 @@ function effect_sync.get_ent_effects(entity, perks)
     local list = {}
     for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
         -- Do not include disabled components here
-        if EntityHasTag(ent, "projectile") then
+        if EntityHasTag(ent, "projectile") or EntityGetFirstComponentIncludingDisabled(ent, "LifetimeComponent") ~= nil then
             table.insert(list, ent)
         else
             local com = EntityGetFirstComponent(ent, "GameEffectComponent")
