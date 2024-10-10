@@ -22,6 +22,26 @@ local has_switched = false
 
 local attached = false
 
+local function perks_ui(enable)
+    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+        if EntityHasTag(child, "perk_entity") then
+            local ui = EntityGetFirstComponentIncludingDisabled(child, "UIIconComponent")
+            if ui ~= nil then
+                local sprite = ComponentGetValue2(ui, "icon_sprite_file")
+                if string.sub(sprite, -1, -1) == "g" then
+                    if not enable then
+                        ComponentSetValue2(ui, "icon_sprite_file", string.sub(sprite, 0, -2))
+                    end
+                else
+                    if enable then
+                        ComponentSetValue2(ui, "icon_sprite_file", sprite .. "g")
+                    end
+                end
+            end
+        end
+    end
+end
+
 function spectate.disable_throwing(enable, entity)
     if entity == nil then
         entity = cam_target.entity
@@ -60,6 +80,7 @@ end
 
 local function target()
     if cam_target.entity == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        perks_ui(true)
         if attached then
             local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
             if inv_me ~= nil then
@@ -143,6 +164,7 @@ local function target()
             attached = false
         end
         if camera_target == ctx.my_player then
+            perks_ui(true)
             if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
             end
@@ -312,6 +334,7 @@ function spectate.on_world_update()
         if inv_me ~= nil then
             ComponentSetValue2(inv_me, "mActive", false)
         end
+        perks_ui(false)
     elseif GameGetFrameNum() % 10 == 0 then
         for peer_id, data in pairs(ctx.players) do
             if peer_id ~= ctx.my_id then

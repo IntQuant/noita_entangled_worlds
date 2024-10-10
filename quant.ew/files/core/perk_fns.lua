@@ -57,6 +57,13 @@ local function give_one_perk(entity_who_picked, perk_info, count)
         end
     end
 
+    if perk_info.ui_icon ~= nil then
+        local icon = EntityCreateNew()
+        EntityAddTag(icon, "perk_entity")
+        EntityAddComponent2(icon, "UIIconComponent", {icon_sprite_file = perk_info.ui_icon, name = perk_info.ui_name, description = perk_info.ui_description})
+        EntityAddChild(entity_who_picked, icon)
+    end
+
     if perk_info.func ~= nil then
         perk_info.func( 0, entity_who_picked, "", count )
     end
