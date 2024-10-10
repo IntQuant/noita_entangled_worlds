@@ -55,12 +55,6 @@ winresource = "0.1.17"
 [profile.dev]
 opt-level = 1
 
-[profile.release-lto]
-inherits = "release"
+[profile.release]
 lto = true
 strip = true
-
-[profile.release-debug]
-inherits = "release"
-debug = true
-lto = false
