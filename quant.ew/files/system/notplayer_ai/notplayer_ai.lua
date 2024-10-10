@@ -429,9 +429,13 @@ end
 local function init_state()
     local children = EntityGetAllChildren(ctx.my_player.entity)
     local items
+    local attack_foot = false
     for _, child in pairs(children or {}) do
         if EntityGetName(child) == "inventory_quick" then
             items = child
+        end
+        if EntityHasTag(child, "attack_foot_walker") then
+            attack_foot = true
         end
         local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
         if com ~= nil or EntityHasTag(child, "projectile") then
@@ -471,6 +475,9 @@ local function init_state()
         control_a = false,
         control_w = false,
         control_d = false,
+        control_s = false,
+
+        has_attack_foot = attack_foot,
 
         dtype = 0
     }
@@ -531,6 +538,7 @@ local function choose_movement()
         state.control_a = false
         state.control_d = false
         state.control_w = false
+        state.control_s = false
         stop_y = false
         swap_side = false
         on_right = false
@@ -547,6 +555,10 @@ local function choose_movement()
             end
         end
         return
+    end
+    if state.attack_foot then
+        stop_y = false
+        rest = false
     end
     local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
     local t_x, t_y = EntityGetTransform(target)
@@ -653,6 +665,8 @@ local function choose_movement()
         end
         state.control_w = false
     end
+    local did_hit_up, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 40)
+    state.control_s = did_hit_up
 end
 
 local function teleport_to_area(area)
@@ -1068,7 +1082,7 @@ local function update()
     end
     state.was_d = state.control_d
 
-    ComponentSetValue2(state.control_component, "mButtonDownDown", false)
+    ComponentSetValue2(state.control_component, "mButtonDownDown", state.control_s and not state.control_w)
     ComponentSetValue2(state.control_component, "mButtonDownUp", true)
     ComponentSetValue2(state.control_component, "mButtonDownFly", state.control_w)
     if state.control_w and not state.was_w then
