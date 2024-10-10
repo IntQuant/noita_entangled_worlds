@@ -70,7 +70,7 @@ def make_release_assets():
     os.chdir("noita-proxy")
 
     #subprocess.run(["cross", "build", "--release", "--target", "x86_64-unknown-linux-gnu"], check=True)
-    subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"], check=True)
+    #subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"], check=True)
 
     os.chdir("..")
 
@@ -88,13 +88,13 @@ def make_release_assets():
     print("Writing win release...")
 
     with ZipFile("target/noita-proxy-win.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release-lto/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing linux release...")
 
     with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release-lto/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing mod release...")
