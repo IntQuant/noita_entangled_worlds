@@ -144,7 +144,7 @@ end
 local function do_game_over(message)
     net.proxy_notify_game_over()
     ctx.run_ended = true
-
+    GameSetCameraFree(true)
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
     EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
