@@ -121,6 +121,10 @@ function end_fight.on_world_update()
                     local x, y = EntityGetTransform(ctx.my_player.entity)
                     rpc.try_kill(x, y)
                     done = true
+                    async(function()
+                        wait(100)
+                        GameTriggerGameOver()
+                    end)
                     return
                 elseif try_kill == -1 then
                     try_kill = GameGetFrameNum() + 60

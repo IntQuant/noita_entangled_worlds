@@ -40,22 +40,6 @@ end
 
 local function give_one_perk(entity_who_picked, perk_info, count)
     lazyload()
-    -- add game effect
-    if perk_info.game_effect ~= nil then
-        local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
-        if game_effect_comp ~= nil then
-            ComponentSetValue( game_effect_comp, "frames", "-1" )
-            EntityAddTag( ent, "perk_entity" )
-        end
-    end
-
-    if perk_info.game_effect2 ~= nil then
-        local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect2, true )
-        if game_effect_comp ~= nil then
-            ComponentSetValue( game_effect_comp, "frames", "-1" )
-            EntityAddTag( ent, "perk_entity" )
-        end
-    end
 
     if perk_info.ui_icon ~= nil then
         local icon = EntityCreateNew()
@@ -64,21 +48,40 @@ local function give_one_perk(entity_who_picked, perk_info, count)
         EntityAddChild(entity_who_picked, icon)
     end
 
-    if perk_info.func ~= nil then
-        perk_info.func( 0, entity_who_picked, "", count )
-    end
-
-    local no_remove = perk_info.do_not_remove or false
-
-    -- particle effect only applied once
-    if perk_info.particle_effect ~= nil and ( count <= 1 ) then
-        local particle_id = EntityLoad( "data/entities/particles/perks/" .. perk_info.particle_effect .. ".xml" )
-
-        if ( no_remove == false ) then
-            EntityAddTag( particle_id, "perk_entity" )
+    if not perks_to_ignore[perk_info.id] then
+        -- add game effect
+        if perk_info.game_effect ~= nil then
+            local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
+            if game_effect_comp ~= nil then
+                ComponentSetValue( game_effect_comp, "frames", "-1" )
+                EntityAddTag( ent, "perk_entity" )
+            end
         end
 
-        EntityAddChild( entity_who_picked, particle_id )
+        if perk_info.game_effect2 ~= nil then
+            local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect2, true )
+            if game_effect_comp ~= nil then
+                ComponentSetValue( game_effect_comp, "frames", "-1" )
+                EntityAddTag( ent, "perk_entity" )
+            end
+        end
+
+        if perk_info.func ~= nil then
+            perk_info.func( 0, entity_who_picked, "", count )
+        end
+
+        local no_remove = perk_info.do_not_remove or false
+
+        -- particle effect only applied once
+        if perk_info.particle_effect ~= nil and ( count <= 1 ) then
+            local particle_id = EntityLoad( "data/entities/particles/perks/" .. perk_info.particle_effect .. ".xml" )
+
+            if ( no_remove == false ) then
+                EntityAddTag( particle_id, "perk_entity" )
+            end
+
+            EntityAddChild( entity_who_picked, particle_id )
+        end
     end
 end
 
@@ -99,9 +102,7 @@ function perk_fns.update_perks(perk_data, player_data)
             if diff > 0 then
                 print("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
                 for i=current+1, count do
-                    if not perks_to_ignore[perk_info.id] then
-                        give_one_perk(entity, perk_info, i)
-                    end
+                    give_one_perk(entity, perk_info, i)
                 end
             end
         end

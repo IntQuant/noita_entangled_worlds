@@ -151,8 +151,6 @@ local function player_died()
     ctx.my_player.entity = ent + 1
     GameAddFlagRun("ew_flag_notplayer_active")
     do_switch_effect(false)
-    inventory_helper.set_item_data(item_data, ctx.my_player)
-    perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
     local iron = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml")
@@ -168,6 +166,8 @@ local function player_died()
             EntityKill(child)
         end
     end
+    inventory_helper.set_item_data(item_data, ctx.my_player)
+    perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     rpc.add_nickname_change_cursor()
 end
 
