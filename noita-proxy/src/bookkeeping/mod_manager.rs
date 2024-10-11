@@ -446,15 +446,17 @@ impl Mods {
     fn entry(&mut self, name: &str) -> &mut ModEntry {
         let index = self.mod_entries.iter().position(|ent| ent.name == name);
         if let Some(index) = index {
-            &mut self.mod_entries[index]
+            let entry = self.mod_entries.remove(index);
+            self.mod_entries.insert(0, entry);
+            &mut self.mod_entries[0]
         } else {
-            self.mod_entries.push(ModEntry {
+            self.mod_entries.insert(0, ModEntry {
                 enabled: 0,
                 name: name.to_owned(),
                 settings_fold_open: 0,
                 workshop_item_id: 0,
             });
-            self.mod_entries.last_mut().unwrap()
+            &mut self.mod_entries[0]
         }
     }
 }
