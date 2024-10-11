@@ -4,7 +4,7 @@ use bookkeeping::{
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, UiBuilder, Vec2, Window};
+use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui, UiBuilder, Vec2, Visuals, Window};
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -274,6 +274,7 @@ fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
+        cc.egui_ctx.set_visuals(Visuals::dark());
         let mut saved_state: AppSavedState = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))

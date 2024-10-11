@@ -69,8 +69,8 @@ def make_release_assets():
 
     os.chdir("noita-proxy")
 
-    #subprocess.run(["cross", "build", "--release", "--target", "x86_64-unknown-linux-gnu"], check=True)
-    #subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"], check=True)
+    subprocess.run(["cross", "build", "--release", "--target", "x86_64-unknown-linux-gnu"], check=True)
+    subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"], check=True)
 
     os.chdir("..")
 

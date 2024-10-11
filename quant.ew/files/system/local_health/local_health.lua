@@ -126,13 +126,14 @@ local function player_died()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
-    send_player_cosmetics(ctx.my_id)
-    remove_inventory_tags()
     local iron = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml")
     EntityAddTag(iron, "kill_on_revive")
-    remove_healthbar_locally()
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+    set_cosmetics_locally(ctx.my_id)
     polymorph.switch_entity(ent + 1)
+
+    remove_inventory_tags()
+    remove_healthbar_locally()
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
             EntityKill(child)
@@ -332,7 +333,6 @@ ctx.cap.health = {
             local ent = end_poly_effect(ctx.my_player.entity)
             ctx.my_player.entity = ent
             player_died()
-            polymorph.switch_entity(ent)
         end
     end,
 }

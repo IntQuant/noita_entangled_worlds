@@ -55,27 +55,35 @@ function send_player_cosmetics(id)
             ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_crown"))
 end
 
-rpc.opts_everywhere()
-function rpc.set_cosmetics_all(id, amulet, gem, crown)
-    for peer_id, player_data in pairs(ctx.players) do
-        if peer_id == id then
-            local player_entity = player_data.entity
-            local player_components = EntityGetComponent(player_entity, "SpriteComponent", "character")
-            if player_components ~= nil then
-                for _, comp in ipairs(player_components) do
-                    if comp == nil then
-                        goto continue
-                    end
-                    if amulet and ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet.xml" then
-                        EntitySetComponentIsEnabled(player_entity, comp, false)
-                    elseif gem and ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet_gem.xml" then
-                        EntitySetComponentIsEnabled(player_entity, comp, false)
-                    elseif crown and ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_hat2.xml" then
-                        EntitySetComponentIsEnabled(player_entity, comp, false)
-                    end
-                    ::continue::
-                end
+local function set_cosmetics(id, amulet, gem, crown)
+    local player_entity = ctx.players[id].entity
+    local player_components = EntityGetComponent(player_entity, "SpriteComponent", "character")
+    if player_components ~= nil then
+        for _, comp in ipairs(player_components) do
+            if comp == nil then
+                goto continue
             end
+            if amulet and ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet.xml" then
+                EntitySetComponentIsEnabled(player_entity, comp, false)
+            elseif gem and ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_amulet_gem.xml" then
+                EntitySetComponentIsEnabled(player_entity, comp, false)
+            elseif crown and ComponentGetValue2(comp, "image_file") == "data/enemies_gfx/player_hat2.xml" then
+                EntitySetComponentIsEnabled(player_entity, comp, false)
+            end
+            ::continue::
+
         end
     end
+end
+
+function set_cosmetics_locally(id)
+    set_cosmetics(id,
+            ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_amulet"),
+            ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_amulet_gem"),
+            ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_crown"))
+end
+
+rpc.opts_everywhere()
+function rpc.set_cosmetics_all(id, amulet, gem, crown)
+    set_cosmetics(id, amulet, gem, crown)
 end

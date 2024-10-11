@@ -3,12 +3,6 @@ local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfind
 dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
 local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
---TODO item position sync
-
---TODO enemy sync in rust??
-
---TODO if player tether is enabled, allow picking teams
-
 local MAX_RADIUS = 128*5
 
 local state

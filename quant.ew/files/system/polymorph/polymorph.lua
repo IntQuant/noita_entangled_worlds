@@ -78,7 +78,7 @@ end
 
 function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
-    if ent ~= ctx.my_player.entity then
+    if ent ~= nil and ent ~= ctx.my_player.entity then
         module.switch_entity(ent)
     end
 end
