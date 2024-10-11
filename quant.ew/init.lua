@@ -14,7 +14,7 @@ np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away...\n")
 
-ewext = require("ewext")
+ewext = require("ewext0")
 
 -- Make some stuff global, as it's way too annoying to import each time.
 ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")

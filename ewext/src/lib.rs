@@ -65,7 +65,7 @@ unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
 ///
 /// Only gets called by lua when loading a module.
 #[no_mangle]
-pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
+pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
