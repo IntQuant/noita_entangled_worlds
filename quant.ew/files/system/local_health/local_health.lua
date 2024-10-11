@@ -23,6 +23,32 @@ function module.on_player_died(player_entity)
     -- Also inventory items seem to be borked.
 end
 
+local function end_poly_effect(ent)
+    local serialized
+    for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
+        local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+        if game_effect_comp then
+            local effect = ComponentGetValue2(game_effect_comp, "effect")
+            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" then
+                serialized = ComponentGetValue2(game_effect_comp, "mSerializedData")
+                if serialized ~= nil then
+                    break
+                end
+            end
+        end
+    end
+    if serialized == nil then
+        return
+    end
+    local x, y = EntityGetTransform(ent)
+    local new_ent = EntityCreateNew()
+    np.DeserializeEntity(new_ent, base64.decode(serialized), x, y)
+    np.SetPlayerEntity(new_ent)
+    EntityKill(ent)
+    GameAddFlagRun("ew_cam_wait")
+    return new_ent
+end
+
 local function do_switch_effect(short)
     -- Make an effect
     if not EntityGetIsAlive(ctx.my_player.entity) then
@@ -110,6 +136,9 @@ local function allow_notplayer_perk(perk_id)
 end
 
 local function player_died()
+    if ctx.my_player.entity == nil then
+        return
+    end
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
     remove_inventory()
@@ -143,12 +172,16 @@ local function player_died()
 end
 
 local function do_game_over(message)
+    GameSetCameraFree(false)
     net.proxy_notify_game_over()
     ctx.run_ended = true
-    GameSetCameraFree(true)
+    GameRemoveFlagRun("ew_flag_notplayer_active")
+    ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-    EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+    end
     GameTriggerGameOver()
     EntityKill(ctx.my_player.entity)
 end
@@ -241,32 +274,6 @@ function module.inflict_damage(dmg)
     module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
 end
 
-local function end_poly_effect(ent)
-    local serialized
-    for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
-        local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-        if game_effect_comp then
-            local effect = ComponentGetValue2(game_effect_comp, "effect")
-            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" then
-                serialized = ComponentGetValue2(game_effect_comp, "mSerializedData")
-                if serialized ~= nil then
-                    break
-                end
-            end
-        end
-    end
-    if serialized == nil then
-        return
-    end
-    local x, y = EntityGetTransform(ent)
-    local new_ent = EntityCreateNew()
-    np.DeserializeEntity(new_ent, base64.decode(serialized), x, y)
-    np.SetPlayerEntity(new_ent)
-    EntityKill(ent)
-    GameAddFlagRun("ew_cam_wait")
-    return new_ent
-end
-
 -- Provides health capability
 ctx.cap.health = {
     health = module.health,
@@ -274,7 +281,7 @@ ctx.cap.health = {
     set_health = module.set_health,
     set_max_health = module.set_max_health,
     inflict_damage = module.inflict_damage,
-    do_game_over = function(message) do_game_over(message) rpc.trigger_game_over(message) end,
+    do_game_over = function(message) rpc.trigger_game_over(message) end,
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
@@ -343,29 +350,31 @@ function rpc.trigger_game_over(message)
     do_game_over(message)
     for _, player_data in pairs(ctx.players) do
         local entity = player_data.entity
-        EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
-        EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
-        if EntityHasTag(entity, "ew_notplayer") then
-            for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
-                EntitySetComponentIsEnabled(entity, com, false)
-            end
-            local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
-            local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
-            EntitySetComponentIsEnabled(entity, suck, false)
-            EntitySetComponentIsEnabled(entity, collision, false)
-            for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-                EntityKill(child)
-            end
-            for _, effect in pairs(status_effects) do
-                if EntityGetIsAlive(entity) then
-                    EntityRemoveStainStatusEffect(entity, effect.id)
-                    EntityRemoveIngestionStatusEffect(entity, effect.id)
+        if entity ~= nil and EntityGetIsAlive(entity) then
+            EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
+            EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
+            if EntityHasTag(entity, "ew_notplayer") then
+                for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
+                    EntitySetComponentIsEnabled(entity, com, false)
                 end
-            end
-            local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-            if damage_model ~= nil then
-                ComponentSetValue2(damage_model, "mFireProbability", 0)
-                ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+                local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
+                local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
+                EntitySetComponentIsEnabled(entity, suck, false)
+                EntitySetComponentIsEnabled(entity, collision, false)
+                for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+                    EntityKill(child)
+                end
+                for _, effect in pairs(status_effects) do
+                    if EntityGetIsAlive(entity) then
+                        EntityRemoveStainStatusEffect(entity, effect.id)
+                        EntityRemoveIngestionStatusEffect(entity, effect.id)
+                    end
+                end
+                local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+                if damage_model ~= nil then
+                    ComponentSetValue2(damage_model, "mFireProbability", 0)
+                    ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+                end
             end
         end
     end

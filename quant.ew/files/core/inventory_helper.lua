@@ -155,7 +155,10 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentAddTag(item_cost_component, "enabled_in_world")
         ComponentAddTag(item_cost_component, "shop_cost")
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
-        if string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
+        if item_data.gid == nil then
+            ComponentSetValue2(item_cost_component, "stealable", false)
+            print("ERROR: why is ".. item_data.shop_info .. " gid nil" .. " item")
+        elseif string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
             ComponentSetValue2(item_cost_component, "stealable", false)
         else
             local mx, my = GameGetCameraPos()
@@ -290,8 +293,10 @@ end
 
 function inventory_helper.set_item_data(item_data, player_data)
     local player = player_data.entity
-    if (not EntityGetIsAlive(player)) then
-        GamePrint("Skip set_item_data, player ".. player_data.name .. " " .. player_data.entity .. " is dead")
+    if player == nil or not EntityGetIsAlive(player) then
+        if player ~= nil then
+            GamePrint("Skip set_item_data, player ".. player_data.name .. " " .. player_data.entity .. " is dead")
+        end
         return
     end
 
@@ -379,11 +384,13 @@ function inventory_helper.set_item_data(item_data, player_data)
             np.SetActiveHeldEntity(player, active_item_entity, false, false)
         end
     end
-    async(function()
-        wait(1)
-        local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
-        ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
-    end)
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
+    if inventory2Comp ~= nil then
+        async(function()
+            wait(1)
+            ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
+        end)
+    end
 end
 
 function inventory_helper.has_inventory_changed(player_data)

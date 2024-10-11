@@ -718,11 +718,13 @@ local function teleport_to_area(area)
             x, y = 6400, 15000
         end
     end
-    async(function()
-        EntitySetTransform(ctx.my_player.entity, x, y)
-        wait(30)
-        EntitySetTransform(ctx.my_player.entity, x, y)
-    end)
+    if x ~= nil then
+        async(function()
+            EntitySetTransform(ctx.my_player.entity, x, y)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, x, y)
+        end)
+    end
 end
 
 local function teleport_to_next_hm()
