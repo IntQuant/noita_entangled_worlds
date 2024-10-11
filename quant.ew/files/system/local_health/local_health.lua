@@ -172,18 +172,23 @@ local function player_died()
 end
 
 local function do_game_over(message)
-    GameSetCameraFree(false)
     net.proxy_notify_game_over()
     ctx.run_ended = true
-    GameRemoveFlagRun("ew_flag_notplayer_active")
-    ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-    if damage_model ~= nil then
-        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+    GameRemoveFlagRun("ew_flag_notplayer_active")
+    if damage_model ~= nil and #EntityGetAllChildren(ctx.my_player.entity) ~= 0 then
+        GameSetCameraFree(false)
+        ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
+        if ctx.my_player.entity ~= nil then
+            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+            EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+            GameTriggerGameOver()
+            EntityKill(ctx.my_player.entity)
+        end
+    else
+        GameSetCameraFree(true)
+        GameTriggerGameOver()
     end
-    GameTriggerGameOver()
-    EntityKill(ctx.my_player.entity)
 end
 
 function module.on_local_player_spawn(my_player)
