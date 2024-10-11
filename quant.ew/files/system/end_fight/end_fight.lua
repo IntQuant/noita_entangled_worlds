@@ -117,13 +117,13 @@ function end_fight.on_world_update()
                 end
             end
             if not exists and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-                if try_kill <= GameGetFrameNum() then
+                if try_kill <= GameGetFrameNum() and try_kill ~= -1 then
                     local x, y = EntityGetTransform(ctx.my_player.entity)
                     rpc.try_kill(x, y)
                     done = true
                     return
                 elseif try_kill == -1 then
-                    try_kill = GameGetFrameNum() + 180
+                    try_kill = GameGetFrameNum() + 60
                 end
             else
                 try_kill = -1
