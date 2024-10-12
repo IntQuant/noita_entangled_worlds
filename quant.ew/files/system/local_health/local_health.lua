@@ -176,7 +176,7 @@ local function do_game_over(message)
     ctx.run_ended = true
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     GameRemoveFlagRun("ew_flag_notplayer_active")
-    if damage_model ~= nil and #EntityGetAllChildren(ctx.my_player.entity) ~= 0 then
+    if damage_model ~= nil and #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
         GameSetCameraFree(false)
         ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
         if ctx.my_player.entity ~= nil then
@@ -309,10 +309,12 @@ ctx.cap.health = {
                     end
                 end
             end
-            for _, effect in pairs(status_effects) do
-                if EntityGetIsAlive(ctx.my_player.entity) then
-                    EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
-                    EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+            if not ctx.run_ended then
+                for _, effect in pairs(status_effects) do
+                    if EntityGetIsAlive(ctx.my_player.entity) then
+                        EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
+                        EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+                    end
                 end
             end
             local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
@@ -369,10 +371,12 @@ function rpc.trigger_game_over(message)
                 for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                     EntityKill(child)
                 end
-                for _, effect in pairs(status_effects) do
-                    if EntityGetIsAlive(entity) then
-                        EntityRemoveStainStatusEffect(entity, effect.id)
-                        EntityRemoveIngestionStatusEffect(entity, effect.id)
+                if not ctx.run_ended then
+                    for _, effect in pairs(status_effects) do
+                        if EntityGetIsAlive(entity) then
+                            EntityRemoveStainStatusEffect(entity, effect.id)
+                            EntityRemoveIngestionStatusEffect(entity, effect.id)
+                        end
                     end
                 end
                 local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")

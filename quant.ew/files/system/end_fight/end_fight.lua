@@ -52,6 +52,20 @@ rpc.opts_everywhere()
 function rpc.try_kill(x, y)
     EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
     done = true
+    async(function()
+        wait(180)
+        if not ctx.run_ended then
+            GameTriggerGameOver()
+        end
+    end)
+end
+
+local function remove_fire(entity)
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "mFireProbability", 0)
+        ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+    end
 end
 
 local function remove_status(entity, little)
@@ -66,11 +80,7 @@ local function remove_status(entity, little)
             end
         end
     end
-    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-    if damage_model ~= nil then
-        ComponentSetValue2(damage_model, "mFireProbability", 0)
-        ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
-    end
+    remove_fire(entity)
 end
 
 local function remove_game_effects()
@@ -84,56 +94,54 @@ local function remove_game_effects()
 end
 
 function end_fight.on_world_update()
-    if GameHasFlagRun("ending_game_completed") and not done then
-        if kill_walls == GameGetFrameNum() then
-            for _, entity in pairs(EntityGetInRadius(6400, 15155, 100) or {}) do
-                if EntityGetFilename(entity) == "data/entities/animals/boss_centipede/ending/midas_walls.xml" then
-                    EntityKill(entity)
-                    break
+    if GameHasFlagRun("ending_game_completed") then
+        if not done then
+            if kill_walls == GameGetFrameNum() then
+                for _, entity in pairs(EntityGetInRadius(6400, 15155, 100) or {}) do
+                    if EntityGetFilename(entity) == "data/entities/animals/boss_centipede/ending/midas_walls.xml" then
+                        EntityKill(entity)
+                        break
+                    end
+                end
+            end
+            if init == -1 then
+                np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
+                if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+                    remove_game_effects()
+                    EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
+                else
+                    remove_game_effects()
+                    EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
+                end
+                GamePrintImportant("Fight for the spoils")
+                first = false
+                init = GameGetFrameNum() + 10
+                teleport_random()
+                remove_fire(ctx.my_player.entity)
+                LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
+                kill_walls = GameGetFrameNum() + 180
+            elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then
+                local exists = false
+                for peer_id, playerdata in pairs(ctx.players) do
+                    if peer_id ~= ctx.my_id and not EntityHasTag(playerdata.entity, "ew_notplayer") then
+                        exists = true
+                        GenomeSetHerdId(playerdata.entity, "player_pvp")
+                    end
+                end
+                if not exists and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+                    if try_kill <= GameGetFrameNum() and try_kill ~= -1 then
+                        local x, y = EntityGetTransform(ctx.my_player.entity)
+                        rpc.try_kill(x, y)
+                        return
+                    elseif try_kill == -1 then
+                        try_kill = GameGetFrameNum() + 60
+                    end
+                else
+                    try_kill = -1
                 end
             end
         end
-        if init == -1 then
-            np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
-            if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-                remove_game_effects()
-                EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
-            else
-                remove_game_effects()
-                EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
-            end
-            GamePrintImportant("Fight for the spoils")
-            first = false
-            init = GameGetFrameNum() + 10
-            teleport_random()
-            LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
-            kill_walls = GameGetFrameNum() + 180
-        elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then
-            local exists = false
-            for peer_id, playerdata in pairs(ctx.players) do
-                if peer_id ~= ctx.my_id and not EntityHasTag(playerdata.entity, "ew_notplayer") then
-                    exists = true
-                    GenomeSetHerdId(playerdata.entity, "player_pvp")
-                end
-            end
-            if not exists and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-                if try_kill <= GameGetFrameNum() and try_kill ~= -1 then
-                    local x, y = EntityGetTransform(ctx.my_player.entity)
-                    rpc.try_kill(x, y)
-                    done = true
-                    async(function()
-                        wait(100)
-                        GameTriggerGameOver()
-                    end)
-                    return
-                elseif try_kill == -1 then
-                    try_kill = GameGetFrameNum() + 60
-                end
-            else
-                try_kill = -1
-            end
-        end
-        if GameGetFrameNum() % 5 ~= 0 then
+        if GameGetFrameNum() % 3 ~= 0 then
             return
         end
         for _, player_data in pairs(ctx.players) do
@@ -175,7 +183,9 @@ function end_fight.on_world_update()
                 for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                     EntityKill(child)
                 end
-                remove_status(entity)
+                if not ctx.run_ended then
+                    remove_status(entity)
+                end
             end
             ::continue::
         end
