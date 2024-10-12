@@ -364,7 +364,7 @@ function rpc.item_localize_req(gid)
 end
 
 function rpc.update_positions(position_data)
-    local LIMIT = 256
+    local LIMIT = 128 * 3
     local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
         local x, y = el[1], el[2]

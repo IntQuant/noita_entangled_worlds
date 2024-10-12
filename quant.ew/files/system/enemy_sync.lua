@@ -44,6 +44,8 @@ local wands = {}
 
 local enemy_sync = {}
 
+local unsynced_enemys = {}
+
 local dead_entities = {}
 --this basically never happens, doesn't seem that useful anymore. Perhaps should be removed to conserve memory.
 --local confirmed_kills = {}
@@ -304,9 +306,9 @@ end
 
 function enemy_sync.client_cleanup()
     local entities = get_sync_entities(true)
-    for i, enemy_id in ipairs(entities) do
+    for _, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
-            local filename = EntityGetFilename(enemy_id)
+            --local filename = EntityGetFilename(enemy_id)
             --print("Despawning unreplicated "..enemy_id.." "..filename)
             EntityKill(enemy_id)
         elseif not spawned_by_us[enemy_id] then
@@ -316,14 +318,13 @@ function enemy_sync.client_cleanup()
         else
             local cull = EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull")
             if cull ~= nil and ComponentGetValue2(cull, "value_int") + 120 < GameGetFrameNum() then
-                print("culling "..enemy_id)
                 EntityKill(enemy_id)
             end
         end
     end
     local frame = GameGetFrameNum()
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
-        if frame - enemy_data.frame > 60*1 then
+        if frame - enemy_data.frame > 60*2 then
             --print("Despawning stale "..remote_id.." "..enemy_data.id)
             EntityKill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
@@ -356,6 +357,202 @@ function enemy_sync.on_world_update_client()
     end
 end
 
+local function sync_enemy(enemy_info_raw, force_no_cull)
+    local filename = enemy_info_raw[1]
+    filename = constants.interned_index_to_filename[filename] or filename
+
+    local en_data = enemy_info_raw[2]
+    local dont_cull = enemy_info_raw[9]
+    local remote_enemy_id = en_data.enemy_id
+    local x, y = en_data.x, en_data.y
+    if not force_no_cull and not dont_cull  then
+        local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+        local c_x, c_y = GameGetCameraPos()
+        local dx, dy = my_x - x, my_y - y
+        local cdx, cdy = c_x - x, c_y - y
+        if dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT and cdx * cdx + cdy * cdy > DISTANCE_LIMIT * DISTANCE_LIMIT then
+            if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
+                EntityKill(ctx.entity_by_remote_id[remote_enemy_id])
+                ctx.entity_by_remote_id[remote_enemy_id] = nil
+            end
+            unsynced_enemys[remote_enemy_id] = enemy_info_raw
+            goto continue
+        else
+            unsynced_enemys[remote_enemy_id] = nil
+        end
+    else
+        unsynced_enemys[remote_enemy_id] = nil
+    end
+    local vx = 0
+    local vy = 0
+    if ffi.typeof(en_data) == EnemyData then
+        vx, vy = en_data.vx, en_data.vy
+    end
+    local not_ephemerial = enemy_info_raw[3]
+    local phys_infos = enemy_info_raw[4]
+    local phys_infos_2 = enemy_info_raw[5]
+    local has_wand = enemy_info_raw[6]
+    local effects = enemy_info_raw[7]
+    local animation = enemy_info_raw[8]
+    local has_died = filename == nil
+
+    local frame = GameGetFrameNum()
+
+    --[[if confirmed_kills[remote_enemy_id] then
+        goto continue
+    end]]
+
+    if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
+        ctx.entity_by_remote_id[remote_enemy_id] = nil
+    end
+
+    if ctx.entity_by_remote_id[remote_enemy_id] == nil then
+        if filename == nil then
+            goto continue
+        end
+        times_spawned_last_minute[remote_enemy_id] = (times_spawned_last_minute[remote_enemy_id] or 0) + 1
+        if times_spawned_last_minute[remote_enemy_id] > 5 then
+            if times_spawned_last_minute[remote_enemy_id] == 6 then
+                print("Entity has been spawned again more than 5 times in last minute, skipping "..filename)
+            end
+            goto continue
+        end
+        local enemy_id
+        if not_ephemerial then
+            enemy_id = EntityLoad(filename, x, y)
+        else
+            enemy_id = util.load_ephemerial(filename, x, y)
+        end
+        spawned_by_us[enemy_id] = true
+        EntityAddTag(enemy_id, "ew_replicated")
+        EntityAddTag(enemy_id, "polymorphable_NOT")
+        for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
+            local script = ComponentGetValue2(com, "script_damage_received")
+            if script ~= nil and (script == "data/scripts/animals/leader_damage.lua" or script == "data/scripts/animals/giantshooter_death.lua" or script == "data/scripts/animals/blob_damage.lua") then
+                EntityRemoveComponent(enemy_id, com)
+            end
+        end
+        if not dont_cull then
+            EntityAddComponent2(enemy_id, "VariableStorageComponent", {_tags="ew_cull", value_int = GameGetFrameNum()})
+        end
+        EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+        if damage_component and damage_component ~= 0 then
+            ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
+        end
+        for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "CameraBoundComponent"}) do
+            local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
+            if ai_component ~= 0 then
+                EntityRemoveComponent(enemy_id, ai_component)
+            end
+        end
+        ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
+
+        for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
+            if phys_component ~= nil and phys_component ~= 0 then
+                ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
+            end
+        end
+
+        -- Make sure stuff doesn't decide to explode on clients by itself.
+        local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
+        if expl_component ~= nil and expl_component ~= 0 then
+            ComponentSetValue2(expl_component, "explode_on_damage_percent", 0)
+            ComponentSetValue2(expl_component, "physics_body_modified_death_probability", 0)
+            ComponentSetValue2(expl_component, "explode_on_death_percent", 0)
+        end
+        local pick_up = EntityGetFirstComponentIncludingDisabled(enemy_id, "ItemPickUpperComponent")
+        if pick_up ~= nil then
+            EntityRemoveComponent(enemy_id, pick_up)
+        end
+        for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "character") or {}) do
+            ComponentAddTag(sprite, "ew_sprite")
+            ComponentRemoveTag(sprite, "character")
+        end
+    end
+
+    local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
+    enemy_data_new.frame = frame
+    local enemy_id = enemy_data_new.id
+
+    if not dont_cull then
+        ComponentSetValue2(EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull"), "value_int", GameGetFrameNum())
+    end
+
+    for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
+        local phys_info = phys_infos[i]
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+            deserialize_phys_component(phys_component, phys_info)
+        end
+    end
+    for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
+        local phys_info = phys_infos_2[i]
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+            -- A physics body doesn't exist otherwise, causing a crash
+            local initialized = ComponentGetValue2(phys_component, "mInitialized")
+            if initialized then
+                deserialize_phys_component(phys_component, phys_info)
+            end
+        end
+    end
+
+    if not has_died then
+        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
+        if character_data ~= nil then
+            ComponentSetValue2(character_data, "mVelocity", vx, vy)
+        end
+        local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+        if velocity_data ~= nil then
+            ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
+        end
+        EntitySetTransform(enemy_id, x, y)
+    end
+
+    local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
+    local item
+    if inv ~= nil then
+        item = ComponentGetValue2(inv, "mActualActiveItem")
+    end
+    if has_wand and item == nil then
+        if wands[remote_enemy_id] ~= nil then
+            local wand = inventory_helper.deserialize_single_item(wands[remote_enemy_id])
+            EntityAddTag(wand, "ew_client_item")
+            local found = false
+            for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
+                if EntityGetName(child) == "inventory_quick" then
+                    EntityAddChild(child, wand)
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                local inv_quick = EntityCreateNew("inventory_quick")
+                EntityAddChild(enemy_id, inv_quick)
+                EntityAddChild(inv_quick, wand)
+                EntityAddComponent2(enemy_id, "Inventory2Component")
+            end
+            EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
+            EntitySetComponentsWithTagEnabled(wand, "enabled_in_hand", true)
+            EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
+            np.SetActiveHeldEntity(enemy_id, wand, false, false)
+        else
+            rpc.request_wand(ctx.my_id, remote_enemy_id)
+        end
+    end
+    if not has_wand and wands[remote_enemy_id] ~= nil then
+        table.remove(wands, remote_enemy_id)
+    end
+
+    effect_sync.apply_effects(effects, enemy_id, true)
+
+    for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
+        ComponentSetValue2(sprite, "rect_animation", animation)
+        ComponentSetValue2(sprite, "next_rect_animation", animation)
+    end
+
+    ::continue::
+end
+
 rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
@@ -373,6 +570,9 @@ function rpc.handle_death_data(death_data)
             responsible_entity = ctx.entity_by_remote_id[remote_data[2]]
         end
 
+        if unsynced_enemys[remote_id] ~= nil then
+            sync_enemy(unsynced_enemys[remote_id], true)
+        end
         local enemy_data = ctx.entity_by_remote_id[remote_id]
         if enemy_data ~= nil and EntityGetIsAlive(enemy_data.id) then
             local enemy_id = enemy_data.id
@@ -430,191 +630,7 @@ end
 
 function rpc.handle_enemy_data(enemy_data)
     for _, enemy_info_raw in ipairs(enemy_data) do
-        local filename = enemy_info_raw[1]
-        filename = constants.interned_index_to_filename[filename] or filename
-
-        local en_data = enemy_info_raw[2]
-        local dont_cull = enemy_info_raw[9]
-        local remote_enemy_id = en_data.enemy_id
-        local my_x, my_y = GameGetCameraPos()
-        local c_x, c_y = GameGetCameraPos()
-        local x, y = en_data.x, en_data.y
-        local dx, dy = my_x - x, my_y - y
-        local cdx, cdy = c_x - x, c_y - y
-        if not dont_cull and dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT and cdx * cdx + cdy * cdy > DISTANCE_LIMIT * DISTANCE_LIMIT then
-            if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
-                EntityKill(ctx.entity_by_remote_id[remote_enemy_id])
-            end
-            goto continue
-        end
-        local vx = 0
-        local vy = 0
-        if ffi.typeof(en_data) == EnemyData then
-            vx, vy = en_data.vx, en_data.vy
-        end
-        local not_ephemerial = enemy_info_raw[3]
-        local phys_infos = enemy_info_raw[4]
-        local phys_infos_2 = enemy_info_raw[5]
-        local has_wand = enemy_info_raw[6]
-        local effects = enemy_info_raw[7]
-        local animation = enemy_info_raw[8]
-        local has_died = filename == nil
-
-        local frame = GameGetFrameNum()
-
-        --[[if confirmed_kills[remote_enemy_id] then
-            goto continue
-        end]]
-
-        if ctx.entity_by_remote_id[remote_enemy_id] ~= nil and not EntityGetIsAlive(ctx.entity_by_remote_id[remote_enemy_id].id) then
-            ctx.entity_by_remote_id[remote_enemy_id] = nil
-        end
-
-        if ctx.entity_by_remote_id[remote_enemy_id] == nil then
-            if filename == nil then
-                goto continue
-            end
-            times_spawned_last_minute[remote_enemy_id] = (times_spawned_last_minute[remote_enemy_id] or 0) + 1
-            if times_spawned_last_minute[remote_enemy_id] > 5 then
-                if times_spawned_last_minute[remote_enemy_id] == 6 then
-                    print("Entity has been spawned again more than 5 times in last minute, skipping "..filename)
-                end
-                goto continue
-            end
-            local enemy_id
-            if not_ephemerial then
-                enemy_id = EntityLoad(filename, x, y)
-            else
-                enemy_id = util.load_ephemerial(filename, x, y)
-            end
-            spawned_by_us[enemy_id] = true
-            EntityAddTag(enemy_id, "ew_replicated")
-            EntityAddTag(enemy_id, "polymorphable_NOT")
-            for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
-                local script = ComponentGetValue2(com, "script_damage_received")
-                if script ~= nil and (script == "data/scripts/animals/leader_damage.lua" or script == "data/scripts/animals/giantshooter_death.lua" or script == "data/scripts/animals/blob_damage.lua") then
-                    EntityRemoveComponent(enemy_id, com)
-                end
-            end
-            if not dont_cull then
-                EntityAddComponent2(enemy_id, "VariableStorageComponent", {_tags="ew_cull", value_int = GameGetFrameNum()})
-            end
-            EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
-            local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
-            if damage_component and damage_component ~= 0 then
-                ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
-            end
-            for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "CameraBoundComponent"}) do
-                local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
-                if ai_component ~= 0 then
-                    EntityRemoveComponent(enemy_id, ai_component)
-                end
-            end
-            ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
-
-            for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
-                if phys_component ~= nil and phys_component ~= 0 then
-                    ComponentSetValue2(phys_component, "destroy_body_if_entity_destroyed", true)
-                end
-            end
-
-            -- Make sure stuff doesn't decide to explode on clients by itself.
-            local expl_component = EntityGetFirstComponent(enemy_id, "ExplodeOnDamageComponent")
-            if expl_component ~= nil and expl_component ~= 0 then
-                ComponentSetValue2(expl_component, "explode_on_damage_percent", 0)
-                ComponentSetValue2(expl_component, "physics_body_modified_death_probability", 0)
-                ComponentSetValue2(expl_component, "explode_on_death_percent", 0)
-            end
-            local pick_up = EntityGetFirstComponentIncludingDisabled(enemy_id, "ItemPickUpperComponent")
-            if pick_up ~= nil then
-                EntityRemoveComponent(enemy_id, pick_up)
-            end
-            for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "character") or {}) do
-                ComponentAddTag(sprite, "ew_sprite")
-                ComponentRemoveTag(sprite, "character")
-            end
-        end
-
-        local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
-        enemy_data_new.frame = frame
-        local enemy_id = enemy_data_new.id
-
-        if not dont_cull then
-            ComponentSetValue2(EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull"), "value_int", GameGetFrameNum())
-        end
-
-        for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
-            local phys_info = phys_infos[i]
-            if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-                deserialize_phys_component(phys_component, phys_info)
-            end
-        end
-        for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
-            local phys_info = phys_infos_2[i]
-            if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-                -- A physics body doesn't exist otherwise, causing a crash
-                local initialized = ComponentGetValue2(phys_component, "mInitialized")
-                if initialized then
-                    deserialize_phys_component(phys_component, phys_info)
-                end
-            end
-        end
-
-        if not has_died then
-            local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
-            if character_data ~= nil then
-                ComponentSetValue2(character_data, "mVelocity", vx, vy)
-            end
-            local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
-            if velocity_data ~= nil then
-                ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
-            end
-            EntitySetTransform(enemy_id, x, y)
-        end
-
-        local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
-        local item
-        if inv ~= nil then
-            item = ComponentGetValue2(inv, "mActualActiveItem")
-        end
-        if has_wand and item == nil then
-            if wands[remote_enemy_id] ~= nil then
-                local wand = inventory_helper.deserialize_single_item(wands[remote_enemy_id])
-                EntityAddTag(wand, "ew_client_item")
-                local found = false
-                for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
-                    if EntityGetName(child) == "inventory_quick" then
-                        EntityAddChild(child, wand)
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    local inv_quick = EntityCreateNew("inventory_quick")
-                    EntityAddChild(enemy_id, inv_quick)
-                    EntityAddChild(inv_quick, wand)
-                    EntityAddComponent2(enemy_id, "Inventory2Component")
-                end
-                EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
-                EntitySetComponentsWithTagEnabled(wand, "enabled_in_hand", true)
-                EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
-                np.SetActiveHeldEntity(enemy_id, wand, false, false)
-            else
-                rpc.request_wand(ctx.my_id, remote_enemy_id)
-            end
-        end
-        if not has_wand and wands[remote_enemy_id] ~= nil then
-            table.remove(wands, remote_enemy_id)
-        end
-
-        effect_sync.apply_effects(effects, enemy_id, true)
-
-        for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
-            ComponentSetValue2(sprite, "rect_animation", animation)
-            ComponentSetValue2(sprite, "next_rect_animation", animation)
-        end
-
-        ::continue::
+        sync_enemy(enemy_info_raw, false)
     end
 end
 

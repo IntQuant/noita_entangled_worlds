@@ -162,7 +162,7 @@ function inventory_helper.deserialize_single_item(item_data)
             ComponentSetValue2(item_cost_component, "stealable", false)
         else
             local mx, my = GameGetCameraPos()
-            if math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 then
+            if (math.abs(mx - x) > 1024 or math.abs(my - y) > 1024) and ComponentGetValue2(item_cost_component, "stealable") then
                 EntityAddComponent2(item, "VariableStorageComponent", {_tags = "ew_try_stealable"})
                 ComponentSetValue2(item_cost_component, "stealable", false)
             end
