@@ -159,7 +159,6 @@ local function player_died()
     set_cosmetics_locally(ctx.my_id)
     polymorph.switch_entity(ent + 1)
 
-    remove_inventory_tags()
     remove_healthbar_locally()
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
@@ -167,6 +166,7 @@ local function player_died()
         end
     end
     inventory_helper.set_item_data(item_data, ctx.my_player)
+    remove_inventory_tags()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     rpc.add_nickname_change_cursor()
 end

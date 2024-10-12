@@ -117,6 +117,7 @@ local function load_modules()
     ctx.load_system("random_start")
     ctx.load_system("worms")
     ctx.load_system("wand_charm")
+    ctx.load_system("stevari")
 end
 
 local function load_extra_modules()
