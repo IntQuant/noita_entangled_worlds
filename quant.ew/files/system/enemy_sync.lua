@@ -367,6 +367,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local x, y = en_data.x, en_data.y
     if not force_no_cull and not dont_cull  then
         local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+        if my_x == nil then
+            goto continue
+        end
         local c_x, c_y = GameGetCameraPos()
         local dx, dy = my_x - x, my_y - y
         local cdx, cdy = c_x - x, c_y - y

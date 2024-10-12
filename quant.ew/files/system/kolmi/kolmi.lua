@@ -129,10 +129,6 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
             GameAddFlagRun("ew_sampo_picked")
             dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
             item_pickup(item_id)
-            local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
-            local orbcount = GameGetOrbCountThisRun() + newgame_n
-            rpc.kolmi_shield(true, orbcount)
-            rpc.init_boss(orbcount)
             local x, y = EntityGetTransform(ctx.my_player.entity)
             if not is_in_box(1530, 4130, 12300, 13300, x, y) then
                 async(function()
@@ -142,6 +138,13 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
                     EntitySetTransform(ctx.my_player.entity, x, y)
                 end)
             end
+            async(function()
+                wait(10) -- Wait a bit for enemy sync to do it's thing.
+                local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
+                local orbcount = GameGetOrbCountThisRun() + newgame_n
+                rpc.kolmi_shield(true, orbcount)
+                rpc.init_boss(orbcount)
+            end)
         end
     end
 end)

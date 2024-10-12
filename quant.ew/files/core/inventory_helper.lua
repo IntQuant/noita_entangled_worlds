@@ -157,7 +157,7 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
         if item_data.gid == nil then
             ComponentSetValue2(item_cost_component, "stealable", false)
-            print("ERROR: why is ".. item_data.shop_info .. " gid nil" .. " item")
+            print("ERROR: why is ".. tostring(item) .. " gid nil")
         elseif string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
             ComponentSetValue2(item_cost_component, "stealable", false)
         else
