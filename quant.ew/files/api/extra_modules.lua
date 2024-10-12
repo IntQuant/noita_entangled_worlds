@@ -1,0 +1,4 @@
+-- All files that get LuaAppended here before OnModInit happens get run as modules.
+-- Every module should return a table of functions (can be empty).
+-- Functions starting with `on_` are called hooks. They will get called when relevant.
+-- See docs/hooks.md for a list of all hooks.

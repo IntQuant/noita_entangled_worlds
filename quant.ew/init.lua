@@ -119,6 +119,13 @@ local function load_modules()
     ctx.load_system("wand_charm")
 end
 
+local function load_extra_modules()
+    print("Starting to load extra stuff")
+    for _, file in ipairs(ModLuaFileGetAppends("mods/quant.ew/files/api/extra_modules.lua")) do
+        ctx.dofile_and_add_hooks(file)
+    end
+end
+
 local function is_suitable_target(entity)
     return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
 end
@@ -410,8 +417,9 @@ function OnModPreInit()
     print("Entangled worlds init ok")
 end
 
-function OnModInit() end
-
+function OnModInit()
+    load_extra_modules()
+end
 
 function OnModPostInit()
     ctx.hook.on_late_init()

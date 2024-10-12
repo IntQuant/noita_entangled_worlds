@@ -1,0 +1,9 @@
+<Mod
+    name="EW API Example mod"
+    description=""
+    request_no_api_restrictions="0"
+    is_game_mode="0"
+    translation_xml_path=""
+    translation_csv_path=""
+>
+</Mod>
