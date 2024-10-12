@@ -42,7 +42,7 @@ mod_settings =
 function ModSettingsUpdate( init_scope )
     --local old_version = mod_settings_get_version( mod_id ) -- This can be used to migrate some settings between mod versions.
     mod_settings_update( mod_id, mod_settings, init_scope )
-    if ModIsEnabled(mod_id) then
+    if ModIsEnabled(mod_id) and (init_scope == 0 or init_scope == 1) then
         print("Running early init fn")
         early_init()
     end
