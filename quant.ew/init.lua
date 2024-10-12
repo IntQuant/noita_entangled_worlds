@@ -371,6 +371,7 @@ end
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
     util.tpcall(on_world_post_update_inner)
     ctx.events = {}
+    net.proxy_send("flush")
 end
 
 function register_localizations(translation_file, clear_count)

@@ -145,6 +145,13 @@ impl Connections {
             connected: Default::default(),
         }
     }
+    fn flush(&self) {
+        for i in &self.peers {
+            if let Some(c) = i.connection() {
+                c.flush_messages().unwrap()
+            }
+        }
+    }
 
     fn poll_listener(&self) {
         while let Some(event) = self.listen_socket.try_receive_event() {
@@ -326,6 +333,9 @@ pub struct SteamPeer {
 }
 
 impl SteamPeer {
+    pub fn flush(&self) {
+        self.connections.flush()
+    }
     pub fn new_host(lobby_type: LobbyType, client: steamworks::Client, max_players: u32) -> Self {
         let (sender, events) = channel::unbounded();
 

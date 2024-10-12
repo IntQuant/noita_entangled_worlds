@@ -92,6 +92,12 @@ impl PeerVariant {
             }
         }
     }
+    
+    pub(crate) fn flush(&self) {
+        if let PeerVariant::Steam(p) = self {
+            p.flush()
+        }
+    }
 
     pub(crate) fn broadcast(
         &self,
