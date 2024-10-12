@@ -309,7 +309,7 @@ ctx.cap.health = {
                     end
                 end
             end
-            if not ctx.run_ended then
+            if EntityGetFirstComponent(ctx.my_player.entity, "StatusEffectDataComponent") ~= nil then
                 for _, effect in pairs(status_effects) do
                     if EntityGetIsAlive(ctx.my_player.entity) then
                         EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
@@ -375,7 +375,7 @@ function rpc.trigger_game_over(message)
                 for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                     EntityKill(child)
                 end
-                if not ctx.run_ended then
+                if EntityGetFirstComponent(entity, "StatusEffectDataComponent") ~= nil then
                     for _, effect in pairs(status_effects) do
                         if EntityGetIsAlive(entity) then
                             EntityRemoveStainStatusEffect(entity, effect.id)

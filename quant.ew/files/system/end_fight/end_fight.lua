@@ -69,6 +69,9 @@ local function remove_fire(entity)
 end
 
 local function remove_status(entity, little)
+    if EntityGetFirstComponent(entity, "StatusEffectDataComponent") == nil then
+        return
+    end
     if little then
         EntityRemoveStainStatusEffect(entity, status_effects[24].id)
         EntityRemoveIngestionStatusEffect(entity, status_effects[24].id)
@@ -183,9 +186,7 @@ function end_fight.on_world_update()
                 for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
                     EntityKill(child)
                 end
-                if not ctx.run_ended then
-                    remove_status(entity)
-                end
+                remove_status(entity)
             end
             ::continue::
         end
