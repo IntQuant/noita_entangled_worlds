@@ -74,6 +74,14 @@ np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
     table.insert(dead_entities, {enemy_id, responsible})
 end)
 
+local function kill(entity)
+    local parent = EntityGetParent(entity)
+    if parent ~= nil then
+        EntityKill(parent)
+    end
+    EntityKill(entity)
+end
+
 local function world_exists_for(entity)
     local x, y = EntityGetFirstHitboxCenter(entity)
     local w, h = 5, 5 -- TODO
@@ -186,7 +194,7 @@ function enemy_sync.host_upload_entities()
                 local ret, info = pcall(serialize_phys_component, phys_component)
                 if not ret then
                     GamePrint("Physics component has no body, deleting entity")
-                    EntityKill(enemy_id)
+                    kill(enemy_id)
                     goto continue
                 end
                 table.insert(phys_info, info)
@@ -201,7 +209,7 @@ function enemy_sync.host_upload_entities()
                     local ret, info = pcall(serialize_phys_component, phys_component)
                     if not ret then
                         GamePrint("Physics component has no body, deleting entity")
-                        EntityKill(enemy_id)
+                        kill(enemy_id)
                         goto continue
                     end
                     table.insert(phys_info_2, info)
@@ -310,15 +318,15 @@ function enemy_sync.client_cleanup()
         if not EntityHasTag(enemy_id, "ew_replicated") then
             --local filename = EntityGetFilename(enemy_id)
             --print("Despawning unreplicated "..enemy_id.." "..filename)
-            EntityKill(enemy_id)
+            kill(enemy_id)
         elseif not spawned_by_us[enemy_id] then
             local filename = EntityGetFilename(enemy_id)
             print("Despawning persisted "..enemy_id.." "..filename)
-            EntityKill(enemy_id)
+            kill(enemy_id)
         else
             local cull = EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull")
             if cull ~= nil and ComponentGetValue2(cull, "value_int") + 120 < GameGetFrameNum() then
-                EntityKill(enemy_id)
+                kill(enemy_id)
             end
         end
     end
@@ -326,7 +334,7 @@ function enemy_sync.client_cleanup()
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
         if frame - enemy_data.frame > 60*2 then
             --print("Despawning stale "..remote_id.." "..enemy_data.id)
-            EntityKill(enemy_data.id)
+            kill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
         end
     end
@@ -375,7 +383,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         local cdx, cdy = c_x - x, c_y - y
         if dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT and cdx * cdx + cdy * cdy > DISTANCE_LIMIT * DISTANCE_LIMIT then
             if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
-                EntityKill(ctx.entity_by_remote_id[remote_enemy_id])
+                kill(ctx.entity_by_remote_id[remote_enemy_id])
                 ctx.entity_by_remote_id[remote_enemy_id] = nil
             end
             unsynced_enemys[remote_enemy_id] = enemy_info_raw
@@ -606,11 +614,7 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            local parent = EntityGetParent(enemy_id)
-            if parent ~= nil then
-                EntityKill(parent)
-            end
-            EntityKill(enemy_id)
+            kill(enemy_id)
         end
         if wands[remote_id] ~= nil then
             table.remove(wands, remote_id)
