@@ -346,7 +346,11 @@ ctx.cap.health = {
         else
             local ent = end_poly_effect(ctx.my_player.entity)
             ctx.my_player.entity = ent
-            player_died()
+            polymorph.switch_entity(ent)
+            async(function()
+                wait(1)
+                player_died()
+            end)
         end
     end,
 }
