@@ -67,6 +67,11 @@ local rpc_meta = {
   __newindex = function (t, k, v)
       table.insert(rpc_inner.rpcs, v)
       local index = #rpc_inner.rpcs
+      if t._ew_id ~= nil then
+        index = t._ew_id..t._ew_index
+        t._ew_index = t._ew_index + 1
+        print("Created API rpc: "..index)
+      end
       local reliable = rpc_inner.opts.reliable == true
       local everywhere = rpc_inner.opts.everywhere == true
       rawset(t, k, function(...)
@@ -93,6 +98,14 @@ local rpc_meta = {
 
 function net.new_rpc_namespace()
   local ret = {}
+  setmetatable(ret, rpc_meta)
+  return ret
+end
+
+function net.new_rpc_namespace_with_id(id)
+  local ret = {}
+  ret._ew_id = id
+  ret._ew_index = 0
   setmetatable(ret, rpc_meta)
   return ret
 end
