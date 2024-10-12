@@ -58,3 +58,6 @@ opt-level = 1
 [profile.release]
 lto = true
 strip = true
+
+[profile.release-lto]
+inherits = "release"
