@@ -184,11 +184,14 @@ function effect_sync.apply_effects(effects, entity, perks)
             is_on_fire = true
         end
     end
-    if not is_on_fire then
-        local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-        if damage_model ~= nil then
+    local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    if damage_model ~= nil then
+        if not is_on_fire then
             ComponentSetValue2(damage_model, "mFireProbability", 0)
             ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+        else
+            ComponentSetValue2(damage_model, "mFireProbability", 100)
+            ComponentSetValue2(damage_model, "mFireFramesLeft", 1000)
         end
     end
 end
