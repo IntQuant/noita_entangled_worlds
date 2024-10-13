@@ -2,7 +2,7 @@ use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
 };
-use noita_proxy::{args::Args, recorder::replay_file, connect_cli, host_cli, App};
+use noita_proxy::{args::Args, connect_cli, host_cli, recorder::replay_file, App};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -24,8 +24,7 @@ async fn main() {
 
     if let Some(replay) = args.replay_folder {
         replay_file(replay)
-    }
-    else if let Some(host) = args.host {
+    } else if let Some(host) = args.host {
         let port = if host.to_ascii_lowercase() == "steam" {
             0
         } else {
@@ -48,11 +47,13 @@ async fn main() {
             NativeOptions {
                 viewport: ViewportBuilder::default()
                     .with_min_inner_size([800.0, 600.0])
+                    .with_inner_size([1200.0, 800.0])
                     .with_icon(icon)
                     .with_title("Noita Entangled Worlds Proxy"),
                 ..Default::default()
             },
             Box::new(|cc| Ok(Box::new(App::new(cc, args)))),
-        ).unwrap()
+        )
+        .unwrap()
     }
 }

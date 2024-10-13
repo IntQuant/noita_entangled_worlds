@@ -4,7 +4,11 @@ use bookkeeping::{
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window};
+use eframe::egui::{
+    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
+    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions,
+    ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+};
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -18,6 +22,8 @@ use net::{
 use player_cosmetics::PlayerPngDesc;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{Read, Write};
 use std::str::FromStr;
 use std::{
     fmt::Display,
@@ -29,8 +35,6 @@ use std::{
     time::Duration,
 };
 use std::{net::IpAddr, path::PathBuf};
-use std::fs::File;
-use std::io::{Read, Write};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -380,7 +384,11 @@ impl App {
     }
 
     fn set_settings(&self) {
-        settings_set(self.app_saved_state.clone(), self.appearance.clone(), self.modmanager_settings.clone())
+        settings_set(
+            self.app_saved_state.clone(),
+            self.appearance.clone(),
+            self.modmanager_settings.clone(),
+        )
     }
 
     fn get_netman_init(&self) -> NetManagerInit {
@@ -717,7 +725,7 @@ impl App {
             }
         });
 
-        ui.add_space(20.0);
+        ui.add_space(10.0);
         ui.label(tr("connect_settings_debug"));
         ui.checkbox(
             &mut game_settings.debug_mode,
@@ -753,18 +761,15 @@ impl App {
             &mut game_settings.item_dedup,
             tr("connect_settings_item_dedup"),
         );
-        ui.add_space(20.0);
         ui.checkbox(
             &mut game_settings.randomize_perks,
             tr("Have-perk-pools-be-independent-of-each-other"),
         );
-        ui.add_space(20.0);
         ui.add(
             Slider::new(&mut game_settings.enemy_hp_mult, 1.0..=1000.0)
                 .logarithmic(true)
                 .text(tr("connect_settings_enemy_hp_scale")),
         );
-        ui.add_space(20.0);
         ui.checkbox(&mut game_settings.friendly_fire, tr("Enable-friendly-fire"));
         if show_local {
             heading_with_underline(ui, tr("connect_settings_local"));
