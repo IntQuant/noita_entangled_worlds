@@ -18,7 +18,7 @@ pub enum Reliability {
     Reliable,
 }
 
-#[derive(Debug, Encode, Decode, Clone, Copy)]
+#[derive(Debug, Encode, Decode, Clone, Copy, PartialEq, Eq)]
 pub enum Destination {
     One(PeerId),
     Broadcast,
@@ -85,5 +85,12 @@ impl Display for PeerId {
 impl Destination {
     pub(crate) fn is_broadcast(self) -> bool {
         matches!(self, Destination::Broadcast)
+    }
+    pub(crate) fn to_one(self) -> Option<PeerId> {
+        if let Self::One(peer_id) = self {
+            Some(peer_id)
+        } else {
+            None
+        }
     }
 }

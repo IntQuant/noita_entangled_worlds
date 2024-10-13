@@ -267,17 +267,33 @@ impl ConnectionManager {
     async fn handle_incoming_message(&mut self, msg: InternalMessage) {
         match msg {
             InternalMessage::Normal(msg) => {
+                let intended_for_me = self
+                    .shared
+                    .my_id
+                    .load()
+                    .map(|my_id| msg.dst == Destination::One(my_id))
+                    .unwrap_or(false);
+                if self.is_server && !intended_for_me && !msg.dst.is_broadcast() {
+                    self.server_send_internal_message(
+                        msg.dst.to_one().unwrap(),
+                        &InternalMessage::Normal(msg),
+                    )
+                    .await;
+                    return;
+                }
                 if self.is_server && msg.dst.is_broadcast() {
                     self.server_send_to_peers(msg.clone()).await;
                 }
-                self.shared
-                    .inbound_channel
-                    .0
-                    .send(NetworkEvent::Message(crate::Message {
-                        src: msg.src,
-                        data: msg.data,
-                    }))
-                    .expect("channel to be open");
+                if msg.dst.is_broadcast() || intended_for_me {
+                    self.shared
+                        .inbound_channel
+                        .0
+                        .send(NetworkEvent::Message(crate::Message {
+                            src: msg.src,
+                            data: msg.data,
+                        }))
+                        .expect("channel to be open");
+                }
             }
             InternalMessage::RemoteConnected(peer_id) => {
                 debug!("Got notified of peer {peer_id}");
