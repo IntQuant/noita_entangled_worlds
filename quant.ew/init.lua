@@ -118,6 +118,9 @@ local function load_modules()
     ctx.load_system("worms")
     ctx.load_system("wand_charm")
     ctx.load_system("stevari")
+    ctx.load_system("angry_ghost_memory")
+    ctx.load_system("gate_boss")
+    ctx.load_system("tapion")
 end
 
 local function load_extra_modules()
@@ -189,7 +192,7 @@ function OnPausedChanged(paused, is_wand_pickup)
             --EntitySetComponentIsEnabled(players[1], inventory_gui, false)
             np.EnableInventoryGuiUpdate(false)
             np.EnablePlayerItemPickUpper(false)
-            ComponentSetValue2(controls_component, "enabled", false)
+            ComponentSetValue2(controls_component, "enabled", true)
         else
             --EntitySetComponentIsEnabled(players[1], inventory_gui, true)
             np.EnableInventoryGuiUpdate(true)

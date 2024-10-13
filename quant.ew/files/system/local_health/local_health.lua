@@ -181,17 +181,14 @@ local function do_game_over(message)
         GameRemoveFlagRun("ew_cam_wait")
         ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
         polymorph.switch_entity(ctx.my_player.entity)
-        async(function()
-            wait(1)
-            if ctx.my_player.entity ~= nil then
-                ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-                EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
-                GameTriggerGameOver()
-                EntityKill(ctx.my_player.entity)
-            else
-                GameTriggerGameOver()
-            end
-        end)
+        if ctx.my_player.entity ~= nil then
+            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+            EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+            GameTriggerGameOver()
+            EntityKill(ctx.my_player.entity)
+        else
+            GameTriggerGameOver()
+        end
     else
         GameSetCameraFree(true)
         GameTriggerGameOver()

@@ -1,0 +1,47 @@
+<Entity>
+
+    <LoadEntitiesComponent
+        count.min="1"
+        count.max="1"
+        kill_entity="0"
+        entity_file="data/entities/particles/image_emitters/magical_symbol.xml" >
+    </LoadEntitiesComponent>
+
+    <LifetimeComponent
+        lifetime="240" >
+    </LifetimeComponent>
+
+
+    <!-- clear area -->
+    <CellEaterComponent
+        eat_probability="2"
+        radius="140"
+        ignored_material="rock_box2d_nohit_hard" >
+    </CellEaterComponent>
+
+    <ParticleEmitterComponent
+        emitted_material_name="spark_red"
+        gravity.y="0.0"
+        lifetime_min="0.4"
+        lifetime_max="1.2"
+        x_pos_offset_min="0"
+        x_pos_offset_max="0"
+        y_pos_offset_min="0"
+        y_pos_offset_max="0"
+        area_circle_radius.min="0"
+        area_circle_radius.max="150"
+        count_min="100"
+        count_max="100"
+        render_on_grid="1"
+        collide_with_grid="0"
+        fade_based_on_lifetime="1"
+        cosmetic_force_create="0"
+        airflow_force="0.251"
+        airflow_time="1.01"
+        airflow_scale="0.05"
+        emission_interval_min_frames="1"
+        emission_interval_max_frames="1"
+        emit_cosmetic_particles="1"
+        is_emitting="1" >
+    </ParticleEmitterComponent>
+</Entity>

@@ -141,6 +141,7 @@ local function get_sync_entities(return_all)
     end)
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
     table_extend(entities, EntityGetWithTag("mimic_potion"))
+    table_extend(entities, EntityGetWithTag("plague_rat"))
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
         return constants.phys_sync_allowed[EntityGetFilename(ent)]
     end)

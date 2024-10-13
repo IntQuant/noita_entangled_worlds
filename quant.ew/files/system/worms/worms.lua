@@ -21,21 +21,22 @@ function worms.on_world_update()
     if GameGetFrameNum() % 10 ~= 0 then
         return
     end
-    for _, ent in ipairs(EntityGetWithTag("boss_dragon") or {}) do
+    for _, ent in ipairs(EntityGetWithTag("enemy") or {}) do
         local dragon = EntityGetFirstComponentIncludingDisabled(ent, "BossDragonComponent")
-        local x, y = EntityGetTransform(ent)
-        local min_ent = get_closest_alive(x, y)
-        if min_ent ~= nil then
-            ComponentSetValue2(dragon, "mTargetEntityId", min_ent)
-        end
-    end
-    for _, ent in ipairs(EntityGetWithTag("worm") or {}) do
-        local worm = EntityGetFirstComponentIncludingDisabled(ent, "WormAIComponent")
-        if EntityHasTag(ComponentGetValue2(worm, "mTargetEntityId"), "ew_notplayer") then
+        if dragon ~= nil then
             local x, y = EntityGetTransform(ent)
             local min_ent = get_closest_alive(x, y)
             if min_ent ~= nil then
-                ComponentSetValue2(worm, "mTargetEntityId", min_ent)
+                ComponentSetValue2(dragon, "mTargetEntityId", min_ent)
+            end
+        else
+            local worm = EntityGetFirstComponentIncludingDisabled(ent, "WormAIComponent")
+            if worm ~= nil and EntityHasTag(ComponentGetValue2(worm, "mTargetEntityId"), "ew_notplayer") then
+                local x, y = EntityGetTransform(ent)
+                local min_ent = get_closest_alive(x, y)
+                if min_ent ~= nil then
+                    ComponentSetValue2(worm, "mTargetEntityId", min_ent)
+                end
             end
         end
     end

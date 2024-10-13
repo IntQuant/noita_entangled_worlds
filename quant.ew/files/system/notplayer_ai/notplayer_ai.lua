@@ -1106,7 +1106,7 @@ end
 
 function module.on_world_update()
     local active = GameHasFlagRun("ew_flag_notplayer_active")
-    if active then
+    if active and EntityGetIsAlive(ctx.my_player.entity) and EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         if state == nil then
             init_state()
         end

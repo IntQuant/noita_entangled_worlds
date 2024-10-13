@@ -1,0 +1,65 @@
+<Entity tags="necromancer_shop" serialize="1">
+
+    <LightComponent
+        _enabled="1"
+        radius="255"
+        fade_out_time="10.5"
+        r="130"
+        g="83"
+        b="222"
+        offset_y="-16"
+        >
+    </LightComponent>
+
+    <SpriteParticleEmitterComponent
+        sprite_file="data/particles/purple_whirl_0$[1-8].png"
+        sprite_centered="1"
+        delay="0"
+        lifetime="1.5"
+        color.r="1" color.g="1" color.b="1" color.a="0.75"
+        color_change.r="0" color_change.g="0" color_change.b="0" color_change.a="-0.8"
+        velocity.x="0" velocity.y="0"
+        gravity.x="0" gravity.y="0"
+        velocity_slowdown="0.35"
+        rotation="0"
+        angular_velocity="7.5"
+        render_back="1"
+        use_velocity_as_rotation="0"
+        scale.x="1.0" scale.y="1.0"
+        scale_velocity.x="1.0075" scale_velocity.y="1.0075"
+        emission_interval_min_frames="2"
+        emission_interval_max_frames="4"
+        count_min="1" count_max="1"
+        randomize_position.min_x="-0.5"
+        randomize_position.max_x="0.5"
+        randomize_position.min_y="-0.5"
+        randomize_position.max_y="0.5"
+        randomize_velocity.min_x="-5"
+        randomize_velocity.max_x="5"
+        randomize_velocity.min_y="-5"
+        randomize_velocity.max_y="5"
+        randomize_lifetime.min="-0.2"
+        randomize_lifetime.max="0.2"
+        randomize_angular_velocity.min="-3.5"
+        randomize_angular_velocity.max="3.5"
+        randomize_rotation.min="-90"
+        randomize_rotation.max="90"
+        >
+    </SpriteParticleEmitterComponent>
+
+    <LuaComponent
+        script_source_file="mods/quant.ew/files/resource/kill_root.lua"
+        execute_every_n_frame="180"
+    >
+    </LuaComponent>
+
+    <!--
+    <LoadEntitiesComponent
+        count.min="1"
+        count.max="1"
+        timeout_frames="180"
+        kill_entity="1"
+        entity_file="data/entities/animals/necromancer_shop.xml" >
+    </LoadEntitiesComponent>
+    -->
+</Entity>

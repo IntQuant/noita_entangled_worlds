@@ -1,18 +1,18 @@
 <Entity tags="pitcheck_b">
     <CollisionTriggerComponent
-	  _enabled="0"
-	  _tags="disabled"
+      _enabled="0"
+      _tags="disabled"
       width="96"
       height="430"
       radius="430"
       destroy_this_entity_when_triggered="0"
       required_tag="ew_peer" >
-  	</CollisionTriggerComponent>
+      </CollisionTriggerComponent>
 
     <!-- this spawns squidward -->
     <LuaComponent
-	  _enabled="0"
-	  _tags="disabled"
+      _enabled="0"
+      _tags="disabled"
       script_collision_trigger_hit="data/scripts/buildings/orb_07_pitcheck_b.lua"
       execute_every_n_frame="-1" >
     </LuaComponent>
