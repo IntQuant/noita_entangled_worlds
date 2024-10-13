@@ -832,9 +832,7 @@ impl App {
         );
         font_definitions.font_data.insert(
             "noto_sans_sc".to_owned(),
-            egui::FontData::from_static(include_bytes!(
-                "../assets/font/NotoSansSChinese-Light.ttf"
-            )),
+            egui::FontData::from_static(include_bytes!("../assets/font/MiSans-Light.ttf")),
         );
 
         font_definitions
