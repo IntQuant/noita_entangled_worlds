@@ -286,6 +286,7 @@ impl NetManager {
                         }
                         if id != self.peer.my_id() {
                             // Create temporary appearance files for new player.
+                            info!("Created temporary appearance for {id}");
                             create_player_png(
                                 id,
                                 &self.init_settings.mod_path,
@@ -293,16 +294,17 @@ impl NetManager {
                                 &PlayerPngDesc::default(),
                                 self.is_host(),
                             );
+                            info!("Sending PlayerColor to {id}");
+                            self.send(
+                                id,
+                                &NetMsg::PlayerColor(
+                                    self.init_settings.player_png_desc,
+                                    self.is_host(),
+                                ),
+                                Reliability::Reliable,
+                            );
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
-                        self.send(
-                            id,
-                            &NetMsg::PlayerColor(
-                                self.init_settings.player_png_desc,
-                                self.is_host(),
-                            ),
-                            Reliability::Reliable,
-                        );
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
                         state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
