@@ -258,6 +258,9 @@ end
 local last_len
 
 function spectate.on_world_update()
+    if ctx.run_ended then
+        return
+    end
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         was_notplayer = true
     elseif was_notplayer then

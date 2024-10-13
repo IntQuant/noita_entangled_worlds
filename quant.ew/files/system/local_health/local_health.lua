@@ -177,14 +177,21 @@ local function do_game_over(message)
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     GameRemoveFlagRun("ew_flag_notplayer_active")
     if damage_model ~= nil and #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
-        GameSetCameraFree(false)
+        GameSetCameraFree(true)
+        GameRemoveFlagRun("ew_cam_wait")
         ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
-        if ctx.my_player.entity ~= nil then
-            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-            EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
-            GameTriggerGameOver()
-            EntityKill(ctx.my_player.entity)
-        end
+        polymorph.switch_entity(ctx.my_player.entity)
+        async(function()
+            wait(1)
+            if ctx.my_player.entity ~= nil then
+                ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+                EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+                GameTriggerGameOver()
+                EntityKill(ctx.my_player.entity)
+            else
+                GameTriggerGameOver()
+            end
+        end)
     else
         GameSetCameraFree(true)
         GameTriggerGameOver()
