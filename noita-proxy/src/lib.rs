@@ -1233,7 +1233,7 @@ fn add_per_status_ui(
 fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> String {
     if peer == netman.peer.host_id() {
         tr("player_host")
-    } else if Some(peer) == netman.peer.my_id() {
+    } else if peer == netman.peer.my_id() {
         tr("player_me")
     } else {
         tr("player_player")

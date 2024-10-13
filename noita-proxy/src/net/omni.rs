@@ -92,7 +92,7 @@ impl PeerVariant {
             }
         }
     }
-    
+
     pub(crate) fn flush(&self) {
         if let PeerVariant::Steam(p) = self {
             p.flush()
@@ -113,10 +113,13 @@ impl PeerVariant {
         }
     }
 
-    pub(crate) fn my_id(&self) -> Option<OmniPeerId> {
+    pub(crate) fn my_id(&self) -> OmniPeerId {
         match self {
-            PeerVariant::Tangled(p) => p.my_id().map(OmniPeerId::from),
-            PeerVariant::Steam(p) => Some(p.my_id().into()),
+            PeerVariant::Tangled(p) => p
+                .my_id()
+                .map(OmniPeerId::from)
+                .expect("Peer id to be available"),
+            PeerVariant::Steam(p) => p.my_id().into(),
         }
     }
 
@@ -161,7 +164,7 @@ impl PeerVariant {
 
     pub fn is_host(&self) -> bool {
         match self {
-            PeerVariant::Tangled(_) => Some(self.host_id()) == self.my_id(),
+            PeerVariant::Tangled(_) => self.host_id() == self.my_id(),
             PeerVariant::Steam(p) => p.is_host(),
         }
     }

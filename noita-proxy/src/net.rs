@@ -209,17 +209,7 @@ impl NetManager {
         socket.listen(1)?;
         socket.set_nonblocking(true)?;
         let local_server: TcpListener = socket.into();
-        for _ in 1..3 {
-            if self.peer.my_id().is_none() {
-                info!("Waiting on my_id...");
-                thread::sleep(Duration::from_millis(100));
-            } else {
-                break;
-            }
-        }
-        if self.peer.my_id().is_none() {
-            std::process::exit(1)
-        }
+
         let is_host = self.is_host();
         info!("Is host: {is_host}");
         let mut state = NetInnerState {
@@ -227,14 +217,14 @@ impl NetManager {
             recorder: None,
             world: WorldManager::new(
                 is_host,
-                self.peer.my_id().unwrap(),
+                self.peer.my_id(),
                 self.init_settings.save_state.clone(),
             ),
         };
         let mut last_iter = Instant::now();
         // Create appearance files for local player.
         create_player_png(
-            self.peer.my_id().unwrap(),
+            self.peer.my_id(),
             &self.init_settings.mod_path,
             &self.init_settings.player_path,
             &self.init_settings.player_png_desc,
@@ -251,10 +241,7 @@ impl NetManager {
                 for id in self.peer.iter_peer_ids() {
                     self.send(id, &NetMsg::EndRun, Reliability::Reliable);
                 }
-                state.try_ws_write(ws_encode_proxy(
-                    "end_run",
-                    self.peer.my_id().unwrap().to_string(),
-                ));
+                state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().to_string()));
                 self.end_run(&mut state);
                 self.end_run.store(false, atomic::Ordering::Relaxed);
             }
@@ -287,7 +274,7 @@ impl NetManager {
                     omni::OmniNetworkEvent::PeerConnected(id) => {
                         self.broadcast(&NetMsg::Welcome, Reliability::Reliable);
                         info!("Peer connected {id}");
-                        if self.peer.my_id() == Some(self.peer.host_id()) {
+                        if self.peer.my_id() == self.peer.host_id() {
                             info!("Sending start game message");
                             self.send(
                                 id,
@@ -297,7 +284,7 @@ impl NetManager {
                                 Reliability::Reliable,
                             );
                         }
-                        if id != self.peer.my_id().unwrap() {
+                        if id != self.peer.my_id() {
                             // Create temporary appearance files for new player.
                             create_player_png(
                                 id,
@@ -332,7 +319,7 @@ impl NetManager {
                             NetMsg::Welcome => {}
                             NetMsg::EndRun => state.try_ws_write(ws_encode_proxy(
                                 "end_run",
-                                self.peer.my_id().unwrap().to_string(),
+                                self.peer.my_id().to_string(),
                             )),
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
@@ -436,8 +423,8 @@ impl NetManager {
 
         let settings = self.settings.lock().unwrap();
         state.try_ws_write(ws_encode_proxy("seed", settings.seed));
-        let value = self.peer.my_id().expect("Has peer id at this point");
-        state.try_ws_write(ws_encode_proxy("peer_id", format!("{:016x}", value.0)));
+        let my_id = self.peer.my_id();
+        state.try_ws_write(ws_encode_proxy("peer_id", format!("{:016x}", my_id.0)));
         state.try_ws_write(ws_encode_proxy(
             "host_id",
             format!("{:016x}", self.peer.host_id().0),
