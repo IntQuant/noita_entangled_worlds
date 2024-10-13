@@ -254,4 +254,30 @@ mod test {
 
         assert_eq!(peer1.recv().next(), None);
     }
+
+    #[test_log::test(tokio::test)]
+    async fn test_p2p() {
+        let settings: Option<Settings> = Some(Default::default());
+        let addr = "127.0.0.1:56005".parse().unwrap();
+        let host = Peer::host(addr, settings.clone()).unwrap();
+        assert_eq!(host.shared.remote_peers.len(), 1);
+        let peer1 = Peer::connect(addr, settings.clone()).unwrap();
+        let peer2 = Peer::connect(addr, settings.clone()).unwrap();
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        assert_eq!(host.shared.remote_peers.len(), 3);
+
+        peer1
+            .send(
+                peer2.my_id().unwrap(),
+                vec![123, 32, 51],
+                Reliability::Reliable,
+            )
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        let events = peer2.recv().collect::<Vec<_>>();
+        assert!(events.contains(&NetworkEvent::Message(Message {
+            src: peer1.my_id().unwrap(),
+            data: vec![123, 32, 51],
+        })))
+    }
 }
