@@ -60,7 +60,7 @@ ip_host = 创建一个服务器
 
 error_occured = 发生错误：
 error_missing_version_field = 大厅没有版本字段。大厅是由旧的noita-proxy版本创建的。
-error_version_mismatch = 大厅是由具有不同版本的noita-proxy版本创建的：{$remote_version}。当前已安装的版本是{$current_version}。
+error_version_mismatch = 版本不匹配，大厅是由{$remote_version}版本的noita-proxy创建的，当前已安装的版本是{$current_version}。
 error_lobby_does_not_exist = 大厅不存在
 
 launcher_already_started = Noita已启动。
