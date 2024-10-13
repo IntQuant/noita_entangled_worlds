@@ -183,6 +183,7 @@ end)
 -- Load an entity that doesn't get saved.
 function util.load_ephemerial(path, x, y)
     local entity = EntityCreateNew()
+    EntityAddTag(entity, "ew_synced_entity")
     EntitySetTransform(entity, x, y)
     local ent_2 = EntityLoad(path, x, y)
     EntityAddChild(entity, ent_2)

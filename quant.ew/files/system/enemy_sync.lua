@@ -339,6 +339,11 @@ function enemy_sync.client_cleanup()
             ctx.entity_by_remote_id[remote_id] = nil
         end
     end
+    for _, ent in ipairs(EntityGetWithTag("ew_synced_entity") or {}) do
+        if #(EntityGetAllChildren(ent) or {}) == 0 then
+            EntityKill(ent)
+        end
+    end
 end
 
 function enemy_sync.on_world_update_host()

@@ -1,21 +1,37 @@
 dofile_once("data/scripts/lib/utilities.lua")
 
+local function get_herd_id( entity_id )
+    local genome = EntityGetFirstComponentIncludingDisabled(entity_id, "GenomeDataComponent")
+    local herd = ComponentGetValue2(genome, "herd_id")
+    return herd
+end
+
+local function shoot_projectile( who_shot, entity_file, x, y, vel_x, vel_y, send_message )
+    local entity_id = EntityLoad( entity_file, x, y )
+    local herd_id   = get_herd_id( who_shot )
+    if( send_message == nil ) then send_message = true end
+
+    GameShootProjectile( who_shot, x, y, x+vel_x, y+vel_y, entity_id, send_message )
+
+    edit_component( entity_id, "ProjectileComponent", function(comp,vars)
+        vars.mWhoShot       = who_shot
+        vars.mShooterHerdId = herd_id
+    end)
+
+    edit_component( entity_id, "VelocityComponent", function(comp,vars)
+        ComponentSetValueVector2( comp, "mVelocity", vel_x, vel_y )
+    end)
+
+    return entity_id
+end
+
 function wand_fired( wand_id )
     local projectile_velocity = 600
 
     local entity_id = GetUpdatedEntityID()
     local children = EntityGetAllChildren( entity_id )
     local ghost_ids = {}
-    local root = EntityGetRootEntity(entity_id)
-    local shooter
-    if EntityHasTag(root, "ew_peer") and not EntityHasTag(root, "ew_notplayer") then
-        shooter = EntityGetWithTag("player_unit")[1]
-        if EntityHasTag(shooter, "ew_notplayer") then
-            shooter = root
-        end
-    else
-        shooter = root
-    end
+    local shooter = EntityGetRootEntity(entity_id)
 
     if ( children ~= nil ) then
         for i,v in ipairs( children ) do

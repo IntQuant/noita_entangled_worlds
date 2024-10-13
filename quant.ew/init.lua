@@ -130,10 +130,6 @@ local function load_extra_modules()
     end
 end
 
-local function is_suitable_target(entity)
-    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
-end
-
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
     ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
