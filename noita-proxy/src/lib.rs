@@ -19,6 +19,7 @@ use net::{
     steam_networking::{ExtraPeerState, PerPeerStatusEntry},
     NetManagerInit, RunInfo,
 };
+use player_cosmetics::PlayerPngDesc;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -395,6 +396,10 @@ impl App {
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
             modmanager_settings: self.modmanager_settings.clone(),
+            player_png_desc: PlayerPngDesc {
+                cosmetics: cosmetics.into(),
+                colors: self.appearance.player_color,
+            },
         }
     }
 
@@ -1274,6 +1279,10 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
         mod_path: mod_manager.mod_path(),
         player_path,
         modmanager_settings: mod_manager,
+        player_png_desc: PlayerPngDesc {
+            cosmetics: cosmetics.into(),
+            colors: PlayerColor::default(),
+        },
     };
     (state, netmaninit)
 }

@@ -1,6 +1,6 @@
 use bitcode::{Decode, Encode};
 
-use crate::{GameSettings, PlayerColor};
+use crate::{player_cosmetics::PlayerPngDesc, GameSettings};
 
 use super::{omni::OmniPeerId, world::WorldNetMessage};
 
@@ -25,7 +25,7 @@ pub(crate) enum NetMsg {
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
     WorldMessage(WorldNetMessage),
-    PlayerColor((String, (bool, bool, bool), PlayerColor), bool),
+    PlayerColor(PlayerPngDesc, bool),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

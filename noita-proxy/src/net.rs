@@ -23,13 +23,13 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 use tungstenite::{accept, WebSocket};
 
-use crate::player_cosmetics::create_player_png;
+use crate::mod_manager::ModmanagerSettings;
+use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
     recorder::Recorder,
     GameSettings, PlayerColor,
 };
-use crate::mod_manager::ModmanagerSettings;
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -110,7 +110,8 @@ pub struct NetManagerInit {
     pub cosmetics: (bool, bool, bool),
     pub mod_path: PathBuf,
     pub player_path: PathBuf,
-    pub modmanager_settings: ModmanagerSettings
+    pub modmanager_settings: ModmanagerSettings,
+    pub player_png_desc: PlayerPngDesc,
 }
 
 pub struct NetManager {
@@ -170,7 +171,11 @@ impl NetManager {
         create_dir(tmp).unwrap();
     }
 
-    pub(crate) fn start_inner(self: Arc<NetManager>, player_path: PathBuf, mut cli: bool) -> io::Result<()> {
+    pub(crate) fn start_inner(
+        self: Arc<NetManager>,
+        player_path: PathBuf,
+        mut cli: bool,
+    ) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
         if !self.init_settings.cosmetics.0 {
             File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
@@ -227,15 +232,13 @@ impl NetManager {
             ),
         };
         let mut last_iter = Instant::now();
+        // Create appearance files for local player.
         create_player_png(
+            self.peer.my_id().unwrap(),
             &self.init_settings.mod_path,
             &self.init_settings.player_path,
-            (
-                self.peer.my_id().unwrap().to_string(),
-                self.init_settings.cosmetics,
-                self.init_settings.player_color,
-            ),
-            self.is_host()
+            &self.init_settings.player_png_desc,
+            self.is_host(),
         );
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             if cli {
@@ -283,7 +286,7 @@ impl NetManager {
                 match net_event {
                     omni::OmniNetworkEvent::PeerConnected(id) => {
                         self.broadcast(&NetMsg::Welcome, Reliability::Reliable);
-                        info!("Peer connected");
+                        info!("Peer connected {id}");
                         if self.peer.my_id() == Some(self.peer.host_id()) {
                             info!("Sending start game message");
                             self.send(
@@ -293,25 +296,23 @@ impl NetManager {
                                 },
                                 Reliability::Reliable,
                             );
+                        }
+                        if id != self.peer.my_id().unwrap() {
+                            // Create temporary appearance files for new player.
                             create_player_png(
+                                id,
                                 &self.init_settings.mod_path,
                                 &self.init_settings.player_path,
-                                (
-                                    self.peer.my_id().unwrap().to_string(),
-                                    self.init_settings.cosmetics,
-                                    self.init_settings.player_color,
-                                ),
-                                self.is_host()
+                                &PlayerPngDesc::default(),
+                                self.is_host(),
                             );
                         }
                         state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
                         self.send(
                             id,
-                            &NetMsg::PlayerColor((
-                                                     self.peer.my_id().unwrap().to_string(),
-                                                     self.init_settings.cosmetics,
-                                                     self.init_settings.player_color),
-                                                 self.is_host()
+                            &NetMsg::PlayerColor(
+                                self.init_settings.player_png_desc,
+                                self.is_host(),
                             ),
                             Reliability::Reliable,
                         );
@@ -350,11 +351,14 @@ impl NetManager {
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
                             NetMsg::PlayerColor(rgb, host) => {
+                                info!("Player appearance created for {}", src);
+                                // Create proper appearance files for new player.
                                 create_player_png(
+                                    src,
                                     &self.init_settings.mod_path,
                                     &self.init_settings.player_path,
-                                    rgb,
-                                    host
+                                    &rgb,
+                                    host,
                                 );
                             }
                         }
@@ -458,7 +462,10 @@ impl NetManager {
         state.try_ws_write_option("health_per_player", settings.health_per_player);
         state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval);
         let rgb = self.init_settings.player_color.player_main;
-        state.try_ws_write_option("mina_color", rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16));
+        state.try_ws_write_option(
+            "mina_color",
+            rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
+        );
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
@@ -572,9 +579,9 @@ impl NetManager {
             1 => {
                 let pos = if data.len() > 1 {
                     let pos = data[1..]
-                            .split(|b| *b == b':')
-                            .map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0))
-                            .collect::<Vec<i32>>();
+                        .split(|b| *b == b':')
+                        .map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0))
+                        .collect::<Vec<i32>>();
                     Some(pos)
                 } else {
                     None
@@ -595,7 +602,11 @@ impl NetManager {
                 settings.seed = rand::random();
             }
             info!("New seed: {}", settings.seed);
-            settings.progress = self.init_settings.modmanager_settings.get_progress().unwrap_or_default();
+            settings.progress = self
+                .init_settings
+                .modmanager_settings
+                .get_progress()
+                .unwrap_or_default();
             *self.settings.lock().unwrap() = settings;
             state.world.reset()
         }

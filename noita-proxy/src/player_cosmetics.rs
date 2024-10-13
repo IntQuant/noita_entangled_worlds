@@ -1,5 +1,7 @@
 use crate::lang::tr;
+use crate::net::omni::OmniPeerId;
 use crate::{App, PlayerColor, PlayerPicker};
+use bitcode::{Decode, Encode};
 use eframe::egui;
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
 use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
@@ -25,7 +27,11 @@ pub fn arrows_path(path: PathBuf, is_host: bool) -> PathBuf {
 }
 
 pub fn cursor_path(path: PathBuf) -> PathBuf {
-    path.parent().unwrap().parent().unwrap().join("resource/sprites/cursor.png")
+    path.parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("resource/sprites/cursor.png")
 }
 
 pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
@@ -228,19 +234,22 @@ pub fn create_arm(arm: Rgba<u8>) -> RgbaImage {
     img
 }
 
+#[derive(Clone, Copy, Debug, Decode, Encode, Default)]
+pub struct PlayerPngDesc {
+    pub(crate) cosmetics: [bool; 3],
+    pub(crate) colors: PlayerColor,
+}
+
 pub fn create_player_png(
+    peer: OmniPeerId,
     mod_path: &Path,
     player_path: &Path,
-    rgb: (String, (bool, bool, bool), PlayerColor),
-    is_host: bool
+    rgb: &PlayerPngDesc,
+    is_host: bool,
 ) {
-    let id = if rgb.0.len() < 5 {
-        format!("{:01$}", rgb.0.parse::<usize>().unwrap(), 16)
-    } else {
-        format!("{:01$X}", rgb.0.parse::<u64>().unwrap(), 16).to_ascii_lowercase()
-    };
-    let cosmetics = rgb.1;
-    let rgb = rgb.2;
+    let id = peer.as_hex();
+    let cosmetics = rgb.cosmetics;
+    let rgb = rgb.colors;
     let tmp_path = player_path.parent().unwrap();
     let arrows_path = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
@@ -303,7 +312,7 @@ pub fn create_player_png(
         &[
             (
                 "MARKER_HAT2_ENABLED",
-                (if cosmetics.0 {
+                (if cosmetics[0] {
                     "image_file=\"data/enemies_gfx/player_hat2.xml\""
                 } else {
                     ""
@@ -312,7 +321,7 @@ pub fn create_player_png(
             ),
             (
                 "MARKER_AMULET_ENABLED",
-                (if cosmetics.1 {
+                (if cosmetics[1] {
                     "image_file=\"data/enemies_gfx/player_amulet.xml\""
                 } else {
                     ""
@@ -321,7 +330,7 @@ pub fn create_player_png(
             ),
             (
                 "MARKER_AMULET_GEM_ENABLED",
-                (if cosmetics.2 {
+                (if cosmetics[2] {
                     "image_file=\"data/enemies_gfx/player_amulet_gem.xml\""
                 } else {
                     ""
