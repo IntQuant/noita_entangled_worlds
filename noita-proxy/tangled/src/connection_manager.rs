@@ -25,7 +25,7 @@ use quinn::{
 };
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     common::{Destination, NetworkEvent, PeerId, PeerState, Reliability, Settings},
@@ -243,7 +243,7 @@ impl ConnectionManager {
         let mut peer_id_counter = 1;
         while shared.keep_alive.load(Ordering::Relaxed) {
             let Some(incoming) = endpoint.accept().await else {
-                info!("Endpoint closed, stopping connection accepter task.");
+                debug!("Endpoint closed, stopping connection accepter task.");
                 return;
             };
             match DirectPeer::accept(shared.clone(), incoming, PeerId(peer_id_counter)).await {
@@ -323,7 +323,7 @@ impl ConnectionManager {
                     .send(NetworkEvent::PeerConnected(peer_id))
                     .expect("channel to be open");
                 self.shared.remote_peers.insert(peer_id, RemotePeer);
-                info!(
+                debug!(
                     "Peer {} connected, total connected: {}",
                     peer_id,
                     self.shared.remote_peers.len()
@@ -352,7 +352,7 @@ impl ConnectionManager {
                 }
             }
             InternalEvent::Disconnected(peer_id) => {
-                info!("Peer {} disconnected", peer_id);
+                debug!("Peer {} disconnected", peer_id);
                 self.shared.direct_peers.remove(&peer_id);
                 self.shared
                     .inbound_channel
