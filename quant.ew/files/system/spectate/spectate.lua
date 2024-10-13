@@ -128,6 +128,9 @@ local function target()
     local my_x, my_y = GameGetCameraPos()
     local mx, my
     local to_x, to_y = EntityGetTransform(cam_target.entity)
+    if to_x == nil then
+        return
+    end
     if GameGetIsGamepadConnected() then
         mx, my = InputGetJoystickAnalogStick(0, 1)
         mx, my = mx * 256 + to_x, my * 256 + to_y

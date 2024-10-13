@@ -1025,6 +1025,8 @@ local function find_target()
                 if not did_hit then
                     last_did_hit = false
                     target = id
+                    target_is_polied = false
+                    target_has_ambrosia = false
                     break
                 end
             end

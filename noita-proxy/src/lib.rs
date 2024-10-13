@@ -33,6 +33,8 @@ use std::{
     time::Duration,
 };
 use std::{net::IpAddr, path::PathBuf};
+use std::fs::File;
+use std::io::{Read, Write};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::Peer;
 use tracing::info;
@@ -61,7 +63,7 @@ pub(crate) enum GameMode {
     // MestariMina, // TODO later
 }
 
-#[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize)]
+#[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GameSettings {
     seed: u64,
@@ -141,7 +143,7 @@ enum AppState {
     AskSavestateReset,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct PlayerAppearance {
     player_color: PlayerColor,
     player_picker: PlayerPicker,
@@ -160,7 +162,7 @@ impl Default for PlayerAppearance {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 struct AppSavedState {
     addr: String,
@@ -244,9 +246,6 @@ pub struct App {
     appearance: PlayerAppearance,
 }
 
-const MODMANAGER: &str = "modman";
-const APPEARANCE: &str = "appearance";
-
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
     let style = ui.style();
     let frame = egui::Frame {
@@ -279,31 +278,50 @@ fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
     )
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct Settings {
+    color: PlayerAppearance,
+    app: AppSavedState,
+    modmanager: ModmanagerSettings,
+}
+
+fn settings_get() -> Settings {
+    if let Ok(s) = std::env::current_exe() {
+        let file = s.parent().unwrap().join("proxy.ron");
+        if let Ok(mut file) = File::open(file) {
+            let mut s = String::new();
+            let _ = file.read_to_string(&mut s);
+            ron::from_str::<Settings>(&s).unwrap_or_default()
+        } else {
+            Settings::default()
+        }
+    } else {
+        Settings::default()
+    }
+}
+
+fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: ModmanagerSettings) {
+    if let Ok(s) = std::env::current_exe() {
+        let settings = Settings {
+            app,
+            color,
+            modmanager,
+        };
+        let file = s.parent().unwrap().join("proxy.ron");
+        let settings = ron::to_string(&settings).unwrap();
+        if let Ok(mut file) = File::create(file) {
+            file.write_all(settings.as_bytes()).unwrap();
+        }
+    }
+}
+
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
         cc.egui_ctx.set_visuals(Visuals::dark());
-        let mut saved_state: AppSavedState = cc
-            .storage
-            .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
-            .unwrap_or_default();
-        let modmanager_settings: ModmanagerSettings = cc
-            .storage
-            .and_then(|storage| eframe::get_value(storage, MODMANAGER))
-            .unwrap_or_default();
-        let appearance: PlayerAppearance = cc
-            .storage
-            .and_then(|storage| {
-                eframe::get_value(storage, APPEARANCE).inspect(|x| info!("Loaded appearance {x:?}"))
-            })
-            .unwrap_or_else(|| {
-                // Fallback to loading from the old location
-                cc.storage
-                    .and_then(|storage| {
-                        eframe::get_value(storage, eframe::APP_KEY)
-                            .inspect(|x| info!("Loaded appearance from fallback: {x:?}"))
-                    })
-                    .unwrap_or_default()
-            });
+        let settings = settings_get();
+        let mut saved_state: AppSavedState = settings.app;
+        let modmanager_settings: ModmanagerSettings = settings.modmanager;
+        let appearance: PlayerAppearance = settings.color;
         saved_state.times_started += 1;
 
         info!("Setting fonts...");
@@ -362,6 +380,10 @@ impl App {
             end_run_confirmation: false,
             appearance,
         }
+    }
+
+    fn set_settings(&self) {
+        settings_set(self.app_saved_state.clone(), self.appearance.clone(), self.modmanager_settings.clone())
     }
 
     fn get_netman_init(&self) -> NetManagerInit {
@@ -1160,11 +1182,8 @@ impl eframe::App for App {
             }
         };
     }
-
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, &self.app_saved_state);
-        eframe::set_value(storage, MODMANAGER, &self.modmanager_settings);
-        eframe::set_value(storage, APPEARANCE, &self.appearance);
+    fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        self.set_settings()
     }
 }
 

@@ -11,12 +11,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = { version="0.29.1", features = ["persistence", "glow", "default_fonts"], default-features = false }
+eframe = { version="0.29.1", features = ["glow", "default_fonts"], default-features = false }
 egui-file-dialog = "0.7.0"
 egui_extras = { version = "0.29.1", features = ["all_loaders"] }
 egui_plot = "0.29.0"
 image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 
+ron = "0.8.1"
 tungstenite = "0.24.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
