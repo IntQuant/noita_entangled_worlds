@@ -99,7 +99,7 @@ impl Default for GameSettings {
             world_sync_interval: 3,
             game_mode: GameMode::LocalHealth,
             friendly_fire: false,
-            chunk_target: 32,
+            chunk_target: 24,
             enemy_sync_interval: 3,
             progress: Vec::new(),
             max_players: 250,
