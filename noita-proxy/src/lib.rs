@@ -4,11 +4,7 @@ use bookkeeping::{
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{
-    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
-    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, Ui,
-    UiBuilder, Vec2, Visuals, Window,
-};
+use eframe::egui::{self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton, InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window};
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -318,6 +314,7 @@ fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: Modmana
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
         cc.egui_ctx.set_visuals(Visuals::dark());
+        cc.egui_ctx.set_theme(ThemePreference::Dark);
         let settings = settings_get();
         let mut saved_state: AppSavedState = settings.app;
         let modmanager_settings: ModmanagerSettings = settings.modmanager;
