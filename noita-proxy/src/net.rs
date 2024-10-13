@@ -166,9 +166,9 @@ impl NetManager {
     fn clean_dir(path: PathBuf) {
         let tmp = path.parent().unwrap().join("tmp");
         if tmp.exists() {
-            remove_dir_all(tmp.clone()).unwrap();
+            remove_dir_all(tmp.clone()).ok();
         }
-        create_dir(tmp).unwrap();
+        create_dir(tmp).ok();
     }
 
     pub(crate) fn start_inner(

@@ -233,4 +233,25 @@ mod test {
             Some(NetworkEvent::PeerConnected(PeerId(0)))
         );
     }
+
+    #[test_log::test(tokio::test)]
+    async fn test_single_connection_event() {
+        let settings: Option<Settings> = Some(Default::default());
+        let addr = "127.0.0.1:56004".parse().unwrap();
+        let host = Peer::host(addr, settings.clone()).unwrap();
+        assert_eq!(host.shared.remote_peers.len(), 1);
+        let peer1 = Peer::connect(addr, settings.clone()).unwrap();
+        tokio::time::sleep(Duration::from_millis(10)).await;
+
+        assert_eq!(
+            peer1.recv().next(),
+            Some(NetworkEvent::PeerConnected(PeerId(0)))
+        );
+        assert_eq!(
+            peer1.recv().next(),
+            Some(NetworkEvent::PeerConnected(PeerId(1)))
+        );
+
+        assert_eq!(peer1.recv().next(), None);
+    }
 }

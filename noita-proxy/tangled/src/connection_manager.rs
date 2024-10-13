@@ -297,15 +297,21 @@ impl ConnectionManager {
     async fn handle_internal_event(&mut self, ev: InternalEvent) {
         match ev {
             InternalEvent::Connected(peer_id) => {
-                info!("Peer {} connected", peer_id);
+                if self.shared.remote_peers.contains_key(&peer_id) {
+                    // Already connected, no need to emit an event.
+                    return;
+                }
                 self.shared
                     .inbound_channel
                     .0
                     .send(NetworkEvent::PeerConnected(peer_id))
                     .expect("channel to be open");
-                self.shared
-                    .remote_peers
-                    .insert(peer_id, RemotePeer);
+                self.shared.remote_peers.insert(peer_id, RemotePeer);
+                info!(
+                    "Peer {} connected, total connected: {}",
+                    peer_id,
+                    self.shared.remote_peers.len()
+                );
                 if self.is_server {
                     self.server_broadcast_internal_message(
                         PeerId::HOST,
