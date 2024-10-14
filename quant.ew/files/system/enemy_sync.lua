@@ -663,7 +663,11 @@ function rpc.handle_enemy_health(enemy_health_data)
         local dmg = current_hp-hp
         if dmg > 0 then
             -- Make sure the enemy doesn't die from the next EntityInflictDamage.
-            util.set_ent_health(enemy_id, {dmg*2, dmg*2})
+            if EntityGetName(enemy_id) ~= "$animal_boss_sky" then
+                util.set_ent_health(enemy_id, {dmg*2, dmg*2})
+            else
+                util.set_ent_health(enemy_id, {hp + dmg, max_hp})
+            end
             -- Deal damage, so that game displays damage numbers.
             EntityInflictDamage(enemy_id, dmg, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
         end
