@@ -6,10 +6,10 @@ use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::info;
 
-mod chunk;
+pub(crate) mod chunk;
 pub mod encoding;
 
-const CHUNK_SIZE: usize = 128;
+pub(crate) const CHUNK_SIZE: usize = 128;
 
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
 pub(crate) struct ChunkCoord(pub i32, pub i32);
@@ -50,6 +50,17 @@ impl ChunkData {
         }
         let runs = runner.build();
         ChunkData { runs }
+    }
+
+    pub(crate) fn apply_to_chunk(&self, chunk: &mut Chunk) {
+        let mut offset = 0;
+        for run in &self.runs {
+            for _ in 0..run.length {
+                let pixel = run.data;
+                chunk.set_compact_pixel(offset, pixel);
+                offset += 1;
+            }
+        }
     }
 }
 
@@ -188,24 +199,12 @@ impl WorldModel {
     pub(crate) fn apply_chunk_data(&mut self, chunk: ChunkCoord, chunk_data: &ChunkData) {
         self.updated_chunks.insert(chunk);
         let chunk = self.chunks.entry(chunk).or_default();
-        let mut offset = 0;
-        for run in &chunk_data.runs {
-            for _ in 0..run.length {
-                let pixel = run.data;
-                chunk.set_compact_pixel(offset, pixel);
-                offset += 1;
-            }
-        }
+        chunk_data.apply_to_chunk(chunk);
     }
 
     pub(crate) fn get_chunk_data(&mut self, chunk: ChunkCoord) -> Option<ChunkData> {
         let chunk = self.chunks.get(&chunk)?;
-        let mut runner = PixelRunner::new();
-        for i in 0..CHUNK_SIZE * CHUNK_SIZE {
-            runner.put_pixel(chunk.compact_pixel(i))
-        }
-        let runs = runner.build();
-        Some(ChunkData { runs })
+        Some(chunk.to_chunk_data())
     }
 
     pub(crate) fn forget_chunk(&mut self, chunk: ChunkCoord) {

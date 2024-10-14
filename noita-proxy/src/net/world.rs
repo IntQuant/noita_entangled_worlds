@@ -1,10 +1,13 @@
-use std::{env, mem};
+use std::{env, f32::consts::PI, mem, time::Instant};
 
 use bitcode::{Decode, Encode};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
-use world_model::{ChunkCoord, ChunkData, ChunkDelta, WorldModel};
+use world_model::{
+    chunk::{Chunk, Pixel},
+    ChunkCoord, ChunkData, ChunkDelta, WorldModel, CHUNK_SIZE,
+};
 
 pub use world_model::encoding::NoitaWorldUpdate;
 
@@ -334,7 +337,13 @@ impl WorldManager {
     }
 
     pub(crate) fn update(&mut self) {
-        fn should_kill(my_pos: (i32, i32), cam_pos: (i32, i32), chx: i32, chy: i32, is_notplayer: bool) -> bool {
+        fn should_kill(
+            my_pos: (i32, i32),
+            cam_pos: (i32, i32),
+            chx: i32,
+            chy: i32,
+            is_notplayer: bool,
+        ) -> bool {
             let (x, y) = my_pos;
             let (cx, cy) = cam_pos;
             if (x - cx).abs() > 2 || (y - cy).abs() > 2 {
@@ -370,12 +379,24 @@ impl WorldManager {
                 }
                 // This state doesn't have much to do.
                 ChunkState::WaitingForAuthority => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
+                    if should_kill(
+                        self.my_pos,
+                        self.cam_pos,
+                        chunk.0,
+                        chunk.1,
+                        self.is_notplayer,
+                    ) {
                         *state = ChunkState::UnloadPending;
                     }
                 }
                 ChunkState::Listening { authority, .. } => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
+                    if should_kill(
+                        self.my_pos,
+                        self.cam_pos,
+                        chunk.0,
+                        chunk.1,
+                        self.is_notplayer,
+                    ) {
                         debug!("Unloading [listening] chunk {chunk:?}");
                         emit_queue.push((
                             Destination::Peer(*authority),
@@ -385,7 +406,13 @@ impl WorldManager {
                     }
                 }
                 ChunkState::Authority { new_authority, .. } => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
+                    if should_kill(
+                        self.my_pos,
+                        self.cam_pos,
+                        chunk.0,
+                        chunk.1,
+                        self.is_notplayer,
+                    ) {
                         if let Some(new) = new_authority {
                             emit_queue.push((
                                 Destination::Peer(new.0),
@@ -407,7 +434,13 @@ impl WorldManager {
                     }
                 }
                 ChunkState::WantToGetAuth { .. } => {
-                    if should_kill(self.my_pos, self.cam_pos, chunk.0, chunk.1, self.is_notplayer) {
+                    if should_kill(
+                        self.my_pos,
+                        self.cam_pos,
+                        chunk.0,
+                        chunk.1,
+                        self.is_notplayer,
+                    ) {
                         debug!("Unloading [want to get auth] chunk {chunk:?}");
                         *state = ChunkState::UnloadPending;
                     }
@@ -766,18 +799,17 @@ impl WorldManager {
                 } else {
                     self.emit_msg(
                         Destination::Host,
-                        WorldNetMessage::RelinquishAuthority { chunk, chunk_data: None },
+                        WorldNetMessage::RelinquishAuthority {
+                            chunk,
+                            chunk_data: None,
+                        },
                     );
                 }
             }
             WorldNetMessage::RequestAuthorityTransfer { chunk } => {
                 info!("Got a request for authority transfer");
                 let state = self.chunk_state.get(&chunk);
-                if let Some(ChunkState::Authority {
-                    listeners,
-                    ..
-                }) = state
-                {
+                if let Some(ChunkState::Authority { listeners, .. }) = state {
                     let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Peer(source),
@@ -898,6 +930,62 @@ impl WorldManager {
                 }
             })
             .collect()
+    }
+
+    pub(crate) fn cut_through_world(&mut self, x: i32, y_min: i32, y_max: i32, radius: i32) {
+        let start = Instant::now();
+        info!("Started cut_through_world");
+
+        let max_wiggle = 5;
+        let interval = 300.0;
+
+        let cut_x_clip_range =
+            (x - radius - max_wiggle - CHUNK_SIZE as i32)..(x + radius + max_wiggle);
+        let cut_x_range = x - radius..x + radius;
+
+        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
+            // Check if this chunk is anywhere close to the cut. Skip if it isn't.
+            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+            if !cut_x_clip_range.contains(&chunk_start_x) {
+                continue;
+            }
+
+            let mut chunk = Chunk::default();
+            chunk_encoded.apply_to_chunk(&mut chunk);
+
+            for in_chunk_y in 0..(CHUNK_SIZE as i32) {
+                let global_y = in_chunk_y + chunk_start_y;
+                // Skip if higher/lower than the cut.
+                if global_y < y_min || global_y > y_max {
+                    continue;
+                }
+
+                let wiggle = -f32::cos((global_y as f32) / interval * PI * 2.0) * max_wiggle as f32;
+                let wiggle = wiggle as i32; // TODO find a more accurate way to compute wiggle.
+
+                let in_chunk_x_range = cut_x_range.start - chunk_start_x + wiggle
+                    ..cut_x_range.end - chunk_start_x + wiggle;
+                let in_chunk_x_range = in_chunk_x_range.start.clamp(0, CHUNK_SIZE as i32 - 1)
+                    ..in_chunk_x_range.end.clamp(0, CHUNK_SIZE as i32);
+
+                for in_chunk_x in in_chunk_x_range {
+                    let air_pixel = Pixel {
+                        flags: world_model::chunk::PixelFlags::Normal,
+                        material: 0,
+                    };
+                    chunk.set_pixel(
+                        (in_chunk_y as usize) * CHUNK_SIZE + (in_chunk_x as usize),
+                        air_pixel,
+                    );
+                }
+            }
+
+            *chunk_encoded = chunk.to_chunk_data();
+        }
+
+        let elapsed = start.elapsed();
+        info!("Cut through world took {} ms", elapsed.as_millis());
     }
 }
 

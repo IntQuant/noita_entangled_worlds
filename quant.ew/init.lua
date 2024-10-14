@@ -121,6 +121,7 @@ local function load_modules()
     ctx.load_system("angry_ghost_memory")
     ctx.load_system("gate_boss")
     ctx.load_system("tapion")
+    ctx.load_system("world_sync_cuts")
 end
 
 local function load_extra_modules()

@@ -3,10 +3,14 @@ use std::num::NonZeroU16;
 use bitcode::{Decode, Encode};
 use crossbeam::atomic::AtomicCell;
 
-use super::{encoding::RawPixel, CHUNK_SIZE};
+use super::{
+    encoding::{PixelRunner, RawPixel},
+    ChunkData, CHUNK_SIZE,
+};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
 pub enum PixelFlags {
+    /// Actual material isn't known yet.
     #[default]
     Unknown,
     Normal,
@@ -138,5 +142,14 @@ impl Chunk {
     pub fn clear_changed(&mut self) {
         self.changed = [false; CHUNK_SIZE * CHUNK_SIZE];
         self.any_changed = false;
+    }
+
+    pub fn to_chunk_data(&self) -> ChunkData {
+        let mut runner = PixelRunner::new();
+        for i in 0..CHUNK_SIZE * CHUNK_SIZE {
+            runner.put_pixel(self.compact_pixel(i))
+        }
+        let runs = runner.build();
+        ChunkData { runs }
     }
 }
