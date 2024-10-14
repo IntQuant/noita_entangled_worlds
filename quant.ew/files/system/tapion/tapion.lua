@@ -7,7 +7,7 @@ function rpc.set_helpless(anger)
 end
 
 function tapion.on_world_update()
-    if GameGetFrameNum() % 60 == 57 then
+    if ctx.is_host and GameGetFrameNum() % 60 == 57 then
         rpc.set_helpless(tonumber(GlobalsGetValue( "HELPLESS_KILLS", "1" )))
     end
 end
