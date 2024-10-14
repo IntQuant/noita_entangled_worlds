@@ -5,6 +5,7 @@ use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
 use std::path::PathBuf;
+use std::sync::atomic::AtomicI32;
 use std::{
     env,
     fmt::Display,
@@ -17,7 +18,6 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-use std::sync::atomic::AtomicI32;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -193,7 +193,8 @@ impl NetManager {
         let mut last_team = -2;
         if let Ok(n) = self.settings.lock() {
             last_team = n.friendly_fire_team;
-            self.friendly_fire_team.store(last_team, atomic::Ordering::Relaxed);
+            self.friendly_fire_team
+                .store(last_team, atomic::Ordering::Relaxed);
         }
 
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
@@ -452,7 +453,10 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
-        state.try_ws_write_option("friendly_fire_team", (settings.friendly_fire_team + 1) as u32);
+        state.try_ws_write_option(
+            "friendly_fire_team",
+            (settings.friendly_fire_team + 1) as u32,
+        );
         state.try_ws_write_option("debug", settings.debug_mode);
         state.try_ws_write_option("world_sync_version", settings.world_sync_version);
         state.try_ws_write_option("player_tether", settings.player_tether);
@@ -490,20 +494,8 @@ impl NetManager {
             }
             // Broadcast
             2 => {
-                let msg_to_send =/* if false {
-                    let compressed = lz4_flex::compress_prepend_size(&msg[1..]);
-
-                    debug!(
-                        "Compressed {} bytes to {} bytes",
-                        msg.len(),
-                        compressed.len()
-                    );
-
-                    NetMsg::ModCompressed { data: compressed }
-                } else*/ {
-                    NetMsg::ModRaw {
-                        data: msg[1..].to_owned(),
-                    }
+                let msg_to_send = NetMsg::ModRaw {
+                    data: msg[1..].to_owned(),
                 };
                 let reliable = msg[0] & 4 > 0;
                 self.broadcast(
