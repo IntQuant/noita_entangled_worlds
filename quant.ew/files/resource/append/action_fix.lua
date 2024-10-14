@@ -41,5 +41,9 @@ end
 local orig = GetUpdatedEntityID
 
 function GetUpdatedEntityID()
-    return EntityGetRootEntity(orig())
+    local ent = EntityGetRootEntity(orig())
+    if EntityHasTag(ent, "ew_synced_entity") then
+        ent = (EntityGetAllChildren(ent) or {0})[1]
+    end
+    return ent
 end
