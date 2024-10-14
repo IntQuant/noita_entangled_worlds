@@ -37,3 +37,9 @@ for i=#actions,1,-1 do
     end
 
 end
+
+local orig = GetUpdatedEntityID
+
+function GetUpdatedEntityID()
+    return EntityGetRootEntity(orig())
+end
