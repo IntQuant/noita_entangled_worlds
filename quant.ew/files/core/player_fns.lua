@@ -498,10 +498,6 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
         end
     end
 
-    if ctx.proxy_opt.friendly_fire then
-        GenomeSetHerdId(new, "player_pvp")
-    end
-
     local new_playerdata = existing_playerdata or player_fns.make_playerdata_for(new, peer_id)
     new_playerdata.entity = new
     -- util.tpcall(nickname.addLabel, new, new_playerdata.name, "data/fonts/font_pixel_white.xml", 1)

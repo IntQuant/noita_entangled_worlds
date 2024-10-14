@@ -87,7 +87,7 @@ connect_settings_autostart = Start the game automatically
 ## Game settings
 
 Health-per-player = Health per player
-Enable-friendly-fire = Enable friendly fire
+Enable-friendly-fire = Enable friendly fire, allows picking teams in lobby
 Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
 local_health_desc_1 = Every player has their own health, run ends when all player are dead.
@@ -125,7 +125,7 @@ Shift-hue = Shift hue
 
 ## Connected
 
-Show-debug-info = Show debug info
+Show-debug-info = Show debug/connection info
 hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
 hint_ping = [Middle mouse button or right thumb stick] spawns a ping
 

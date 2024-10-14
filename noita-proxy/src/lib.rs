@@ -77,6 +77,7 @@ pub struct GameSettings {
     world_sync_interval: u32,
     game_mode: GameMode,
     friendly_fire: bool,
+    friendly_fire_team: i32,
     chunk_target: u32,
     enemy_sync_interval: u32,
     randomize_perks: bool,
@@ -99,6 +100,7 @@ impl Default for GameSettings {
             world_sync_interval: 3,
             game_mode: GameMode::LocalHealth,
             friendly_fire: false,
+            friendly_fire_team: 0,
             chunk_target: 24,
             enemy_sync_interval: 3,
             progress: Vec::new(),
@@ -1020,6 +1022,15 @@ impl eframe::App for App {
 
                     ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, tr("Show-debug-info"));
                     ui.add_space(15.0);
+                    if self.app_saved_state.game_settings.friendly_fire {
+                        let last = self.app_saved_state.game_settings.friendly_fire_team;
+                        ui.add(Slider::new(&mut self.app_saved_state.game_settings.friendly_fire_team, -1..=16));
+                        if last != self.app_saved_state.game_settings.friendly_fire_team {
+                            netman.friendly_fire_team.store(self.app_saved_state.game_settings.friendly_fire_team, Ordering::Relaxed);
+                        }
+                        ui.label("what team number you are on, 0 means no team, -1 means friendly");
+                        ui.add_space(15.0);
+                    }
                     ui.label(tr("hint_ping"));
                     ui.label(tr("hint_spectate"));
 

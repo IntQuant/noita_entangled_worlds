@@ -17,6 +17,7 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
+use std::sync::atomic::AtomicI32;
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -128,6 +129,7 @@ pub struct NetManager {
     pub enable_recorder: AtomicBool,
     pub end_run: AtomicBool,
     pub debug_markers: Mutex<Vec<DebugMarker>>,
+    pub friendly_fire_team: AtomicI32,
 }
 
 impl NetManager {
@@ -146,6 +148,7 @@ impl NetManager {
             enable_recorder: AtomicBool::new(false),
             end_run: AtomicBool::new(false),
             debug_markers: Default::default(),
+            friendly_fire_team: AtomicI32::new(-2),
         }
         .into()
     }
@@ -186,6 +189,13 @@ impl NetManager {
         if !self.init_settings.cosmetics.2 {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
         }
+
+        let mut last_team = -2;
+        if let Ok(n) = self.settings.lock() {
+            last_team = n.friendly_fire_team;
+            self.friendly_fire_team.store(last_team, atomic::Ordering::Relaxed);
+        }
+
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
         // This allows several proxies to listen on the same address.
         // While this works, I couldn't get Noita to reliably connect to correct proxy instances on my os (linux).
@@ -236,6 +246,11 @@ impl NetManager {
                     println!("Lobby ID: {}", n.raw());
                     cli = false
                 }
+            }
+            let team = self.friendly_fire_team.load(atomic::Ordering::Relaxed);
+            if team != last_team {
+                last_team = team;
+                state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
             }
             if self.end_run.load(atomic::Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {
@@ -437,6 +452,7 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
+        state.try_ws_write_option("friendly_fire_team", (settings.friendly_fire_team + 1) as u32);
         state.try_ws_write_option("debug", settings.debug_mode);
         state.try_ws_write_option("world_sync_version", settings.world_sync_version);
         state.try_ws_write_option("player_tether", settings.player_tether);
