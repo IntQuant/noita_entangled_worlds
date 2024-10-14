@@ -268,6 +268,23 @@ local function needs_douse(entity)
     return false
 end
 
+local function is_frozen(entity)
+    local frozen = false
+    for _, ent in ipairs(EntityGetAllChildren(entity) or {}) do
+        local com = EntityGetFirstComponent(ent, "GameEffectComponent")
+        if com ~= nil then
+            local name = ComponentGetValue2(com, "effect")
+            if name == "FROZEN" then
+                frozen = true
+            elseif name == "PROTECTION_MELEE" then
+                return false
+            end
+        end
+    end
+    return frozen
+end
+
+
 local bad_potion
 local good_potion
 local water_potion
@@ -286,7 +303,7 @@ local function arc_potion(world_x, world_y)
     local v = 180
     local g = 156
     dy = -dy
-    local is_behind = dx<0
+    local is_behind = dx < 0
     if is_behind then
         dx = -dx
     end
@@ -533,6 +550,12 @@ local on_right = false
 
 local rest = false
 
+local move = -1
+
+local material_gas = -1
+
+local stick = false
+
 local function choose_movement()
     if target == nil or (has_ambrosia(ctx.my_player.entity) and state.init_timer > no_shoot_time + 4) then
         state.control_a = false
@@ -543,16 +566,22 @@ local function choose_movement()
         swap_side = false
         on_right = false
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-        if state.dtype == 32 and ComponentGetValue2(damage_model, "mLiquidCount") ~= 0 then
+        local start = (state.dtype == 32 or state.init_timer < 100) and ComponentGetValue2(damage_model, "mLiquidCount") ~= 0
+        if start or move > GameGetFrameNum() then
+            if start then
+                move = GameGetFrameNum() + 120
+            end
             state.control_w = true
             local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
-            local did_hit_3, _, _ = RaytracePlatforms(my_x, my_y, my_x + 128, my_y)
             local did_hit_4, _, _ = RaytracePlatforms(my_x, my_y, my_x - 128, my_y)
-            if not did_hit_4 then
+            if not did_hit_4 or stick then
+                stick = true
                 state.control_a = true
-            elseif not did_hit_3 then
+            else
                 state.control_d = true
             end
+        else
+            move = -1
         end
         return
     end
@@ -571,6 +600,10 @@ local function choose_movement()
     if swap_side then
         LIM = 0
         give_space = 100
+    end
+    local is_froze = is_frozen(target)
+    if is_froze then
+        give_space = 5
     end
     if dist > 0 then
         state.control_a = dist > LIM
@@ -644,7 +677,6 @@ local function choose_movement()
         state.control_w = false
     end
     if bathe then
-        state.control_w = false
         state.control_a = false
         state.control_d = false
     end
@@ -657,12 +689,53 @@ local function choose_movement()
     end
     --GamePrint(state.dtype)
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-    if state.dtype == 32 and ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
-        if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
-            give_space = give_space + 10
+    if ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
+        if state.dtype == 32 or material_gas > GameGetFrameNum() then
+            material_gas = GameGetFrameNum() + 30
+            if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
+                give_space = give_space + 10
+            else
+                swap_side = true
+            end
+            state.control_w = false
         else
-            swap_side = true
+            material_gas = -1
+            if move > GameGetFrameNum() then
+                state.control_w = true
+                if my_x > t_x then
+                    state.control_a = true
+                    state.control_d = false
+                else
+                    state.control_d = true
+                    state.control_a = false
+                end
+            else
+                move = -1
+            end
         end
+    elseif state.dtype == 32 or state.init_timer < 100 then
+        move = GameGetFrameNum() + 120
+        state.control_w = true
+        if my_x > t_x then
+            state.control_a = true
+            state.control_d = false
+        else
+            state.control_d = true
+            state.control_a = false
+        end
+    elseif move > GameGetFrameNum() then
+        state.control_w = true
+        if my_x > t_x then
+            state.control_a = true
+            state.control_d = false
+        else
+            state.control_d = true
+            state.control_a = false
+        end
+    else
+        move = -1
+    end
+    if is_froze and math.abs(dist) < 10 then
         state.control_w = false
     end
     local did_hit_up, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 40)
@@ -851,9 +924,17 @@ local function hold_something()
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
     local is_ambrosia = has_ambrosia(ctx.my_player.entity)
-    local has_water_potion = (not is_ambrosia or target_is_ambrosia) and #state.water_potions ~= 0 and (douse or target_is_ambrosia) and (state.init_timer < no_shoot_time or last_did_hit or target_is_ambrosia)
-    local has_bad_potion = not has_water_potion and not is_ambrosia and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
-    local has_good_potion = not has_water_potion and not is_ambrosia and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
+    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+    local can_hold_potion = state.dtype ~= 32
+    if ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
+        can_hold_potion = true
+    elseif state.init_timer < 100 then
+        can_hold_potion = false
+    end
+
+    local has_water_potion = can_hold_potion and (not is_ambrosia or target_is_ambrosia) and #state.water_potions ~= 0 and (douse or target_is_ambrosia) and (state.init_timer < no_shoot_time or last_did_hit or target_is_ambrosia)
+    local has_bad_potion = can_hold_potion and not has_water_potion and not is_ambrosia and #state.bad_potions ~= 0 and not last_did_hit and ((GameGetFrameNum() % 120 > 100 and state.init_timer > 120 and not stop_potion) or tablet)
+    local has_good_potion = can_hold_potion and not has_water_potion and not is_ambrosia and #state.good_potions ~= 0 and not last_did_hit and GameGetFrameNum() % 120 < 20 and state.init_timer > 120 and not stop_potion and ground_below
     if GameGetFrameNum() % 10 == 0 and state.had_potion and #state.bad_potions == 0 and #state.good_potions == 0 then
         local has_a_potion = false
         for _, item in ipairs(EntityGetAllChildren(state.items)) do
@@ -1064,7 +1145,7 @@ local function update()
     if state.is_pheremoned == -120 and has_pheremoned(ctx.my_player.entity) then
         state.is_pheremoned = GameGetFrameNum()
     end
-    if do_kick and kick_wait + 16 < GameGetFrameNum() then
+    if do_kick and kick_wait + 24 < GameGetFrameNum() then
         kick_wait = GameGetFrameNum()
         ComponentSetValue2(state.control_component, "mButtonDownKick", true)
         ComponentSetValue2(state.control_component, "mButtonFrameKick", GameGetFrameNum()+1)
