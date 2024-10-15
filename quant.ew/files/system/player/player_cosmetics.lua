@@ -29,7 +29,8 @@ function player_color(player_entity)
 
     EntityKill(cape)
     local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
-    local cape2 = EntityLoad(player_cape_sprite_file, 0, 0)
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+    local cape2 = EntityLoad(player_cape_sprite_file, x, y)
     EntityAddChild( player_entity, cape2 )
 end
 

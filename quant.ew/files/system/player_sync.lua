@@ -61,6 +61,31 @@ function module.on_world_update()
             rpc.check_gamemode(np.GetGameModeName(n))
         end
     end
+
+    if GameGetFrameNum() % 16 == 7 then
+        local mx, my = GameGetCameraPos()
+        for peer_id, player in pairs(ctx.players) do
+            local ent = player.entity
+            local x, y = EntityGetTransform(ent)
+            local dx, dy = x - mx, y - my
+            local cape
+            for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
+                if EntityGetName(child) == "cape" then
+                    cape = child
+                    break
+                end
+            end
+            if dx * dx + dy * dy > 300 * 300 then
+                if cape ~= nil  then
+                    EntityKill(cape)
+                end
+            elseif cape == nil then
+                local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cape.xml"
+                local cape2 = EntityLoad(player_cape_sprite_file, x, y)
+                EntityAddChild(ent, cape2)
+            end
+        end
+    end
 end
 
 return module
