@@ -78,6 +78,21 @@ local function get_me()
     return alive
 end
 
+local function set_camera_free(enable)
+    local cam = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PlatformShooterPlayerComponent")
+    if cam ~= nil then
+        ComponentSetValue2(cam, "center_camera_on_this_entity", not enable)
+        ComponentSetValue2(cam, "move_camera_with_aim", not enable)
+    end
+end
+
+local function set_camera_pos(x, y)
+    local cam = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PlatformShooterPlayerComponent")
+    if cam ~= nil then
+        ComponentSetValue2(cam, "mDesiredCameraPos", x, y)
+    end
+end
+
 local function target()
     if cam_target.entity == ctx.my_player.entity and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         perks_ui(true)
@@ -96,10 +111,10 @@ local function target()
             GameRemoveFlagRun("ew_cam_wait")
             async(function()
                 wait(1)
-                GameSetCameraFree(false)
+                set_camera_free(false)
             end)
         else
-            GameSetCameraFree(false)
+            set_camera_free(false)
         end
         if camera_target == nil then
             camera_target = ctx.my_player
@@ -121,7 +136,7 @@ local function target()
         end
         return
     end
-    GameSetCameraFree(true)
+    set_camera_free(true)
     if cam_target == nil or not EntityGetIsAlive(cam_target.entity) then
         return
     end
@@ -141,12 +156,12 @@ local function target()
     local dx, dy = t_x - my_x, t_y - my_y
     local di = dx * dx + dy * dy
     if di > 256 * 256 then
-        GameSetCameraPos(to_x, to_y)
+        set_camera_pos(to_x, to_y)
     else
         local cos, sin = dx / 512, dy / 512
         local d = math.sqrt(di)
         dx, dy = d * cos, d * sin
-        GameSetCameraPos(my_x + dx, my_y + dy)
+        set_camera_pos(my_x + dx, my_y + dy)
     end
     if camera_target == nil then
         camera_target = ctx.my_player
