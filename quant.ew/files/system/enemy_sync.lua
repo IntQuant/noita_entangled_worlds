@@ -11,13 +11,13 @@ local rpc = net.new_rpc_namespace()
 
 local EnemyData = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y", "vx", "vy"},
+    f32 = {"x", "y", "vx", "vy", "rot"},
 })
 
 -- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
 local EnemyDataNoMotion = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y"}
+    f32 = {"x", "y", "rot"}
 })
 
 local HpData = util.make_type({
@@ -142,6 +142,8 @@ local function get_sync_entities(return_all)
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
     table_extend(entities, EntityGetWithTag("mimic_potion"))
     table_extend(entities, EntityGetWithTag("plague_rat"))
+    table_extend(entities, EntityGetWithTag("perk_fungus_tiny"))
+    table_extend(entities, EntityGetWithTag("helpless_animal"))
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
         return constants.phys_sync_allowed[EntityGetFilename(ent)]
     end)
@@ -172,7 +174,7 @@ function enemy_sync.host_upload_entities()
         local filename = EntityGetFilename(enemy_id)
         filename = constants.interned_filename_to_index[filename] or filename
 
-        local x, y = EntityGetTransform(enemy_id)
+        local x, y, rot = EntityGetTransform(enemy_id)
         local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
         local vx, vy = 0, 0
         if character_data ~= nil then
@@ -239,6 +241,7 @@ function enemy_sync.host_upload_entities()
                 enemy_id = enemy_id,
                 x = x,
                 y = y,
+                rot = rot,
             }
         else
             en_data= EnemyData {
@@ -247,6 +250,7 @@ function enemy_sync.host_upload_entities()
                 y = y,
                 vx = vx,
                 vy = vy,
+                rot = rot,
             }
         end
 
@@ -379,6 +383,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local dont_cull = enemy_info_raw[9]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
+    local rot = en_data.rot
     if not force_no_cull and not dont_cull  then
         local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
         if my_x == nil then
@@ -457,7 +462,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         if damage_component and damage_component ~= 0 then
             ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
         end
-        for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "CameraBoundComponent"}) do
+        for _, name in ipairs({"AnimalAIComponent", "PhysicsAIComponent", "CameraBoundComponent", "AdvancedFishAIComponent", "AIAttackComponent"}) do
             local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, name)
             if ai_component ~= 0 then
                 EntityRemoveComponent(enemy_id, ai_component)
@@ -522,7 +527,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         if velocity_data ~= nil then
             ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
         end
-        EntitySetTransform(enemy_id, x, y)
+        EntitySetTransform(enemy_id, x, y, rot)
     end
 
     local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")

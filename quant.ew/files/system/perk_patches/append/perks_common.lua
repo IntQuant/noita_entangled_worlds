@@ -13,7 +13,6 @@ end
 
 hide_perk("ABILITY_ACTIONS_MATERIALIZED")
 hide_perk("TELEKINESIS")
-hide_perk("CORDYCEPS")
 hide_perk("HOMUNCULUS")
 hide_perk("REVENGE_EXPLOSION")
 hide_perk("EXTRA_SHOP_ITEM")
