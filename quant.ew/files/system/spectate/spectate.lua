@@ -166,8 +166,9 @@ local function target()
             end
             attached = false
         end
-        if camera_target == ctx.my_player then
+        if cam_target == ctx.my_player then
             perks_ui(true)
+        else
             if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                 nickname.add_label(ctx.my_player.entity, ctx.my_player.name, "data/fonts/font_pixel_white.xml", 0.75)
             end
