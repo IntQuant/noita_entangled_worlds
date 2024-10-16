@@ -453,10 +453,16 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
-        state.try_ws_write_option(
-            "friendly_fire_team",
-            (settings.friendly_fire_team + 1) as u32,
-        );
+        if let Ok(mut set) = self.settings.lock() {
+            state.try_ws_write_option(
+                "friendly_fire_team",
+                (set.friendly_fire_team + 1) as u32,
+            );
+            if settings.friendly_fire {
+                set.friendly_fire = true
+            }
+        }
+        state.try_ws_write_option("friendly_fire", settings.friendly_fire);
         state.try_ws_write_option("debug", settings.debug_mode);
         state.try_ws_write_option("world_sync_version", settings.world_sync_version);
         state.try_ws_write_option("player_tether", settings.player_tether);
@@ -466,7 +472,6 @@ impl NetManager {
         state.try_ws_write_option("enemy_hp_scale", settings.enemy_hp_mult);
         state.try_ws_write_option("world_sync_interval", settings.world_sync_interval);
         state.try_ws_write_option("game_mode", settings.game_mode);
-        state.try_ws_write_option("friendly_fire", settings.friendly_fire);
         state.try_ws_write_option("chunk_target", settings.chunk_target);
         state.try_ws_write_option("health_per_player", settings.health_per_player);
         state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval);

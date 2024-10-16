@@ -11,19 +11,41 @@ local rpc = net.new_rpc_namespace()
 
 local EnemyData = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y", "vx", "vy", "rot"},
+    f32 = {"x", "y", "vx", "vy"},
 })
 
 -- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
 local EnemyDataNoMotion = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y", "rot"}
+    f32 = {"x", "y"}
 })
+
+local EnemyDataWorm = util.make_type({
+    u32 = {"enemy_id"},
+    f32 = {"x", "y", "vx", "vy", "tx", "ty"},
+})
+
+local EnemyDataFish = util.make_type({
+    u32 = {"enemy_id"},
+    f32 = {"x", "y", "vx", "vy"},
+    u8 = {"r"}
+})
+
+--local EnemyDataSniper = util.make_type({
+--    u32 = {"enemy_id"},
+--    f32 = {"x", "y", "vx", "vy"},
+--    bool = {"aiming"},
+--})
 
 local HpData = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"hp", "max_hp"}
 })
+
+--local HpDataMom = util.make_type({
+--    u32 = {"enemy_id"},
+--    f32 = {"hp", "max_hp", "hp1", "hp2", "hp3", "hp4"}
+--})
 
 local FULL_TURN = math.pi * 2
 
@@ -236,21 +258,40 @@ function enemy_sync.host_upload_entities()
         -- end
 
         local en_data
-        if math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
-            en_data= EnemyDataNoMotion {
-                enemy_id = enemy_id,
-                x = x,
-                y = y,
-                rot = rot,
-            }
-        else
-            en_data= EnemyData {
+        local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
+        if worm ~= nil then
+            local tx, ty = ComponentGetValue2(worm, "mRandomTarget")
+            en_data = EnemyDataWorm {
                 enemy_id = enemy_id,
                 x = x,
                 y = y,
                 vx = vx,
                 vy = vy,
-                rot = rot,
+                tx = tx,
+                ty = ty,
+            }
+        elseif math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
+            en_data = EnemyDataNoMotion {
+                enemy_id = enemy_id,
+                x = x,
+                y = y,
+            }
+        elseif EntityGetFirstComponentIncludingDisabled(enemy_id, "AdvancedFishAIComponent") ~= nil then
+            en_data = EnemyDataFish {
+                enemy_id = enemy_id,
+                x = x,
+                y = y,
+                vx = vx,
+                vy = vy,
+                r = math.floor((rot % FULL_TURN) / FULL_TURN * 255),
+            }
+        else
+            en_data = EnemyData {
+                enemy_id = enemy_id,
+                x = x,
+                y = y,
+                vx = vx,
+                vy = vy,
             }
         end
 
@@ -383,7 +424,6 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local dont_cull = enemy_info_raw[9]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
-    local rot = en_data.rot
     if not force_no_cull and not dont_cull  then
         local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
         if my_x == nil then
@@ -407,7 +447,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     end
     local vx = 0
     local vy = 0
-    if ffi.typeof(en_data) == EnemyData then
+    if ffi.typeof(en_data) ~= EnemyDataNoMotion then
         vx, vy = en_data.vx, en_data.vy
     end
     local not_ephemerial = enemy_info_raw[3]
@@ -527,7 +567,16 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         if velocity_data ~= nil then
             ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
         end
-        EntitySetTransform(enemy_id, x, y, rot)
+        if ffi.typeof(en_data) == EnemyDataFish then
+            EntitySetTransform(enemy_id, x, y, en_data.r / 255 * FULL_TURN)
+        else
+            EntitySetTransform(enemy_id, x, y)
+        end
+        local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
+        if worm ~= nil and ffi.typeof(en_data) == EnemyDataWorm then
+            local tx, ty = en_data.tx, en_data.ty
+            ComponentSetValue2(worm, "mRandomTarget", tx, ty)
+        end
     end
 
     local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")

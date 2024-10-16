@@ -1022,7 +1022,7 @@ impl eframe::App for App {
 
                     ui.checkbox(&mut self.app_saved_state.show_extra_debug_stuff, tr("Show-debug-info"));
                     ui.add_space(15.0);
-                    if self.app_saved_state.game_settings.friendly_fire {
+                    if self.app_saved_state.game_settings.friendly_fire || netman.settings.lock().map(|a| a.friendly_fire).unwrap_or(false) {
                         let last = self.app_saved_state.game_settings.friendly_fire_team;
                         ui.add(Slider::new(&mut self.app_saved_state.game_settings.friendly_fire_team, -1..=16));
                         if last != self.app_saved_state.game_settings.friendly_fire_team {

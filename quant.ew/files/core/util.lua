@@ -266,6 +266,14 @@ function util.make_type(typedata)
         inner = inner .. "unsigned int "..var..";\n"
     end
 
+    for _, var in ipairs(typedata.bool or {}) do
+        inner = inner .. "bool "..var..";\n"
+    end
+
+    for _, var in ipairs(typedata.string or {}) do
+        inner = inner .. "const char* "..var..";\n"
+    end
+
     ffi.cdef([[
     #pragma pack(push, 1)
     typedef struct ]] .. name .. [[{

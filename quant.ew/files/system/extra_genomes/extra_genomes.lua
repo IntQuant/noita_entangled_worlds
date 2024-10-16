@@ -42,6 +42,7 @@ end
 
 content = add_new_genome("notplayer", 1000, 1000, 1000, {
     player = -1000,
+    player_pvp = -1000,
 })
 
 content = add_new_genome("player_pvp", 0, 0, 0, {
