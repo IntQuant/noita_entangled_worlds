@@ -60,7 +60,7 @@ can also host via cli, just run `noita_proxy --host [steam/port]`, "--host steam
 
 to connect via steam without the steam version of game, since its more stable you can do the following
 
-on all clients run the game with the NP_APPID=480 environemental variable, you can do that by making a bat/bash file to set that before running the executable
+on all clients run the proxy with the NP_APPID=480 environemental variable, you can do that by making a bat/bash file to set that before running the executable
 
 ## Thanks
 

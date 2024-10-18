@@ -14,7 +14,7 @@ function rpc.player_update(input_data, pos_data, current_slot, team)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
 
-    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "ew_notplayer") then
+    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.friendly_fire_team ~= nil then
         local my_team = ctx.proxy_opt.friendly_fire_team - 1
         if my_team ~= -1 and team ~= -1 and (team == 0 or my_team == 0 or team ~= my_team) then
             GenomeSetHerdId(player_data.entity, "player_pvp")
@@ -51,7 +51,7 @@ function module.on_world_update()
     local current_slot = player_fns.get_current_slot(ctx.my_player)
     if input_data ~= nil and pos_data ~= nil then
         local my_team
-        if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 60 == 43 then
+        if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 60 == 43 and ctx.proxy_opt.friendly_fire_team ~= nil then
             my_team = ctx.proxy_opt.friendly_fire_team - 1
         end
 

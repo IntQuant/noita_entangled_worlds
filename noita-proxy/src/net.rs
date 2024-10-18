@@ -130,6 +130,7 @@ pub struct NetManager {
     pub end_run: AtomicBool,
     pub debug_markers: Mutex<Vec<DebugMarker>>,
     pub friendly_fire_team: AtomicI32,
+    pub friendly_fire: AtomicBool,
 }
 
 impl NetManager {
@@ -149,6 +150,7 @@ impl NetManager {
             end_run: AtomicBool::new(false),
             debug_markers: Default::default(),
             friendly_fire_team: AtomicI32::new(-2),
+            friendly_fire: AtomicBool::new(false),
         }
         .into()
     }
@@ -188,13 +190,6 @@ impl NetManager {
         }
         if !self.init_settings.cosmetics.2 {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
-        }
-
-        let mut last_team = -2;
-        if let Ok(n) = self.settings.lock() {
-            last_team = n.friendly_fire_team;
-            self.friendly_fire_team
-                .store(last_team, atomic::Ordering::Relaxed);
         }
 
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
@@ -241,6 +236,7 @@ impl NetManager {
             &self.init_settings.player_png_desc,
             self.is_host(),
         );
+        let mut timer = Instant::now();
         while self.continue_running.load(atomic::Ordering::Relaxed) {
             if cli {
                 if let Some(n) = self.peer.lobby_id() {
@@ -248,10 +244,12 @@ impl NetManager {
                     cli = false
                 }
             }
-            let team = self.friendly_fire_team.load(atomic::Ordering::Relaxed);
-            if team != last_team {
-                last_team = team;
-                state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
+            if self.friendly_fire.load(atomic::Ordering::Relaxed) {
+                let team = self.friendly_fire_team.load(atomic::Ordering::Relaxed);
+                if timer.elapsed().as_secs() > 2 {
+                    state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
+                    timer = Instant::now()
+                }
             }
             if self.end_run.load(atomic::Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {
@@ -453,6 +451,7 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
+        self.friendly_fire.store(settings.friendly_fire, atomic::Ordering::Relaxed);
         state.try_ws_write_option("friendly_fire", settings.friendly_fire);
         state.try_ws_write_option("debug", settings.debug_mode);
         state.try_ws_write_option("world_sync_version", settings.world_sync_version);
