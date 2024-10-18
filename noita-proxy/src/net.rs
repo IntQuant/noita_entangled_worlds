@@ -453,15 +453,6 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
-        if let Ok(mut set) = self.settings.lock() {
-            state.try_ws_write_option(
-                "friendly_fire_team",
-                (set.friendly_fire_team + 1) as u32,
-            );
-            if settings.friendly_fire {
-                set.friendly_fire = true
-            }
-        }
         state.try_ws_write_option("friendly_fire", settings.friendly_fire);
         state.try_ws_write_option("debug", settings.debug_mode);
         state.try_ws_write_option("world_sync_version", settings.world_sync_version);

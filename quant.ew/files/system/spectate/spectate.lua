@@ -155,7 +155,7 @@ local function target()
     local t_x, t_y = to_x + (mx - to_x) / 3 , to_y + (my - to_y) / 3
     local dx, dy = t_x - my_x, t_y - my_y
     local di = dx * dx + dy * dy
-    if di > 256 * 256 then
+    if di > 512 * 512 then
         set_camera_pos(to_x, to_y)
     else
         local cos, sin = dx / 512, dy / 512
