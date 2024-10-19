@@ -118,7 +118,7 @@ function module.on_world_update()
                         end
                     end
                 end
-                if his_x == nil then
+                if his_x == nil or my_x == nil then
                     goto continue
                 end
                 local dx, dy = his_x - my_x, his_y - my_y

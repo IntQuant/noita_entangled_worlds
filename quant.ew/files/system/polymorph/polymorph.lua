@@ -2,7 +2,6 @@ local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfinder.lua")
 local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()

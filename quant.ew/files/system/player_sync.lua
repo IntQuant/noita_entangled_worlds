@@ -67,6 +67,9 @@ function module.on_world_update()
         for peer_id, player in pairs(ctx.players) do
             local ent = player.entity
             local x, y = EntityGetTransform(ent)
+            if x == nil or not EntityGetIsAlive(ent) or EntityHasTag(ent, "polymorphed") then
+                return
+            end
             local dx, dy = x - mx, y - my
             local cape
             for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
