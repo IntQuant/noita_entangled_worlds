@@ -75,7 +75,7 @@ function effect_sync.remove_all_effects(entity, perks)
 end
 
 local function get_name(effect)
-    local com = EntityGetFirstComponentIncludingDisabled(effect1, "GameEffectComponent")
+    local com = EntityGetFirstComponentIncludingDisabled(effect, "GameEffectComponent")
     local name
     if com == nil then
         name = EntityGetFilename(effect)
@@ -153,9 +153,6 @@ function effect_sync.apply_effects(effects, entity, perks)
             end
         end
         local ent = EntityLoad(name)
-        if not EntityGetIsAlive(entity) then
-            return
-        end
         EntityAddChild(entity, ent)
         local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
         if com ~= nil and ComponentGetValue2(com, "frames") ~= -1 then
@@ -182,6 +179,7 @@ function effect_sync.apply_effects(effects, entity, perks)
     for _, name in ipairs(effect_names) do
         if name == "ON_FIRE" then
             is_on_fire = true
+            break
         end
     end
     local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
