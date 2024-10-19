@@ -8,8 +8,7 @@ local perk_fns = {}
 
 -- Which perks we do not add to clients.
 local perks_to_ignore = {
-    GAMBLE = true, -- Tends to get readded, causing players to get a lot of random perks.
-    -- Doesn't make sense to duplicate those to clients.
+    GAMBLE = true,
     PERKS_LOTTERY = true,
     REMOVE_FOG_OF_WAR = true,
     MEGA_BEAM_STONE = true,
@@ -20,9 +19,6 @@ local perks_to_ignore = {
     EXTRA_PERK = true,
     FASTER_WANDS = true,
     EXTRA_MANA = true,
-    -- TODO: Needs extra work to work correctly
-    -- NO_MORE_SHUFFLE = true,
-    -- UNLIMITED_SPELLS = true,
 }
 
 function perk_fns.get_my_perks()

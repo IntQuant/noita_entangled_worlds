@@ -246,7 +246,7 @@ impl NetManager {
             }
             if self.friendly_fire.load(atomic::Ordering::Relaxed) {
                 let team = self.friendly_fire_team.load(atomic::Ordering::Relaxed);
-                if timer.elapsed().as_secs() > 2 {
+                if timer.elapsed().as_secs() > 4 {
                     state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
                     timer = Instant::now()
                 }
