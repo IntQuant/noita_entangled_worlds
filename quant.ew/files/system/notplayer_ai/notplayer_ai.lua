@@ -485,6 +485,7 @@ local function init_state()
 
         was_firing_wand = false,
         was_a = false,
+        was_s = false,
         was_w = false,
         was_d = false,
         init_timer = 0,
@@ -557,6 +558,21 @@ local material_gas = -1
 local stick = false
 
 local function choose_movement()
+    local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+    local did_hit_down, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 2)
+    if did_hit_down then
+        state.control_w = true
+        state.control_a = true
+        state.control_d = true
+        state.was_a = true
+        state.was_d = true
+        state.was_w = true
+        ComponentSetValue2(state.control_component, "mButtonFrameUp", GameGetFrameNum()+100)
+        ComponentSetValue2(state.control_component, "mButtonFrameFly", GameGetFrameNum()+100)
+        ComponentSetValue2(state.control_component, "mButtonFrameLeft", GameGetFrameNum()+100)
+        ComponentSetValue2(state.control_component, "mButtonFrameRight", GameGetFrameNum()+100)
+        return
+    end
     if target == nil or (has_ambrosia(ctx.my_player.entity) and state.init_timer > no_shoot_time + 4) then
         state.control_a = false
         state.control_d = false
@@ -572,7 +588,6 @@ local function choose_movement()
                 move = GameGetFrameNum() + 120
             end
             state.control_w = true
-            local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
             local did_hit_4, _, _ = RaytracePlatforms(my_x, my_y, my_x - 128, my_y)
             if not did_hit_4 or stick then
                 stick = true
@@ -589,7 +604,6 @@ local function choose_movement()
         stop_y = false
         rest = false
     end
-    local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
     local t_x, t_y = EntityGetTransform(target)
     local dist = my_x - t_x
     local LIM = give_space
@@ -1168,12 +1182,16 @@ local function update()
     state.was_d = state.control_d
 
     ComponentSetValue2(state.control_component, "mButtonDownDown", state.control_s and not state.control_w)
-    ComponentSetValue2(state.control_component, "mButtonDownUp", true)
+    ComponentSetValue2(state.control_component, "mButtonDownUp", state.control_w)
     ComponentSetValue2(state.control_component, "mButtonDownFly", state.control_w)
     if state.control_w and not state.was_w then
         ComponentSetValue2(state.control_component, "mButtonFrameUp", GameGetFrameNum()+1)
         ComponentSetValue2(state.control_component, "mButtonFrameFly", GameGetFrameNum()+1)
     end
+    if state.control_s and not state.control_w and not state.was_s then
+        ComponentSetValue2(state.control_component, "mButtonFrameDown", GameGetFrameNum()+1)
+    end
+    state.was_s = state.control_s and not state.control_w
     state.was_w = state.control_w
     local _, y_n = EntityGetTransform(ctx.my_player.entity)
     ComponentSetValue2(state.control_component, "mFlyingTargetY", y_n - 10)

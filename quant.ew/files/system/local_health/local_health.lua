@@ -329,10 +329,11 @@ ctx.cap.health = {
                     end
                 end
             end
-            local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+            local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
             if damage_model ~= nil then
                 ComponentSetValue2(damage_model, "mFireProbability", 0)
                 ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+                ComponentSetValue2(damage_model, "air_in_lungs", ComponentGetValue2(damage_model, "air_in_lungs_max"))
             end
             inventory_helper.set_item_data(item_data, ctx.my_player)
             remove_inventory_tags()
