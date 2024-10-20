@@ -144,7 +144,7 @@ function effect_sync.apply_effects(effects, entity, perks)
                 if old_com ~= nil and ComponentGetValue2(old_com, "frames") ~= -1 then
                     ComponentSetValue2(old_com, "frames", 999999999)
                 end
-                table.insert(effect_names, old_name)
+                table.insert(effect_names, get_name(old_effect))
                 goto continue
             end
         end
@@ -181,9 +181,11 @@ function effect_sync.apply_effects(effects, entity, perks)
         if not is_on_fire then
             ComponentSetValue2(damage_model, "mFireProbability", 0)
             ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+            ComponentSetValue2(damage_model, "mFireDurationFrames", 0)
         else
             ComponentSetValue2(damage_model, "mFireProbability", 100)
-            ComponentSetValue2(damage_model, "mFireFramesLeft", 1000)
+            ComponentSetValue2(damage_model, "mFireFramesLeft", 1600)
+            ComponentSetValue2(damage_model, "mFireDurationFrames", 1600)
         end
     end
 end
