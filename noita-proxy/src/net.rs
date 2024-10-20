@@ -131,6 +131,8 @@ pub struct NetManager {
     pub debug_markers: Mutex<Vec<DebugMarker>>,
     pub friendly_fire_team: AtomicI32,
     pub friendly_fire: AtomicBool,
+    pub ban_list: Mutex<Vec<OmniPeerId>>,
+    pub kick_list: Mutex<Vec<OmniPeerId>>,
 }
 
 impl NetManager {
@@ -151,6 +153,8 @@ impl NetManager {
             debug_markers: Default::default(),
             friendly_fire_team: AtomicI32::new(-2),
             friendly_fire: AtomicBool::new(false),
+            ban_list: Default::default(),
+            kick_list: Default::default(),
         }
         .into()
     }
@@ -283,6 +287,23 @@ impl NetManager {
                     warn!("Websocket flush not ok: {err}");
                 }
             }
+            let mut list = self.kick_list.lock().unwrap();
+            for peer in list.iter() {
+                info!("player kicked: {}", peer);
+                state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
+                state.world.handle_peer_left(*peer);
+                self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
+                self.broadcast(&NetMsg::PeerDisconnected {id: *peer}, Reliability::Reliable);
+            }
+            list.clear();
+            let list = self.ban_list.lock().unwrap();
+            for peer in list.iter() {
+                info!("player kicked: {}", peer);
+                state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
+                state.world.handle_peer_left(*peer);
+                self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
+                self.broadcast(&NetMsg::PeerDisconnected {id: *peer}, Reliability::Reliable);
+            }
             for net_event in self.peer.recv() {
                 match net_event {
                     omni::OmniNetworkEvent::PeerConnected(id) => {
@@ -333,6 +354,11 @@ impl NetManager {
                         };
                         match net_msg {
                             NetMsg::Welcome => {}
+                            NetMsg::PeerDisconnected{id} => {
+                                info!("player kicked: {}", id);
+                                state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
+                                state.world.handle_peer_left(id);
+                            }
                             NetMsg::EndRun => state.try_ws_write(ws_encode_proxy(
                                 "end_run",
                                 self.peer.my_id().to_string(),
@@ -364,6 +390,9 @@ impl NetManager {
                                     host,
                                 );
                             }
+                            NetMsg::Kick => {
+                                std::process::exit(0)
+                            },
                         }
                     }
                 }

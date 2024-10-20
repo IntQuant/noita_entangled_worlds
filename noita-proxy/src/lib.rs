@@ -937,20 +937,37 @@ impl eframe::App for App {
                             ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
                                 for peer in netman.peer.iter_peer_ids() {
                                     let role = peer_role(peer, netman);
-
                                     let username = steam.get_user_name(peer.into());
                                     let avatar = steam.get_avatar(ctx, peer.into());
                                     if let Some(avatar) = avatar {
                                         avatar.display_with_labels(ui, &username, &role);
-                                        ui.add_space(5.0);
                                     } else {
                                         ui.label(&username);
+                                    }
+                                    if netman.peer.is_host() && peer != netman.peer.my_id() {
+                                        if ui.button("kick").clicked() {
+                                            netman.kick_list.lock().unwrap().push(peer)
+                                        }
+                                        if ui.button("ban").clicked() {
+                                            netman.ban_list.lock().unwrap().push(peer)
+                                        }
+                                    }
+                                    if avatar.is_some() {
+                                        ui.add_space(5.0);
                                     }
                                 }
                             });
                         } else {
                             for peer in netman.peer.iter_peer_ids() {
                                 ui.label(peer.to_string());
+                                if netman.peer.is_host() && peer != netman.peer.my_id() {
+                                    if ui.button("kick").clicked() {
+                                        netman.kick_list.lock().unwrap().push(peer)
+                                    }
+                                    if ui.button("ban").clicked() {
+                                        netman.ban_list.lock().unwrap().push(peer)
+                                    }
+                                }
                             }
                         }
                     });

@@ -21,6 +21,8 @@ pub(crate) struct MessageRequest<T> {
 pub(crate) enum NetMsg {
     Welcome,
     EndRun,
+    Kick,
+    PeerDisconnected { id: OmniPeerId },
     StartGame { settings: GameSettings },
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
