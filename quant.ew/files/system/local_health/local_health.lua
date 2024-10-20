@@ -145,7 +145,7 @@ local function player_died()
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
     -- Which is, like, perfect.
     local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
-    polymorph.switch_entity(ent + 1)
+    ctx.my_player.entity = ent + 1
     GameAddFlagRun("ew_flag_notplayer_active")
     do_switch_effect(false)
     EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
@@ -154,6 +154,7 @@ local function player_died()
     EntityAddTag(iron, "kill_on_revive")
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
     set_cosmetics_locally(ctx.my_id)
+    polymorph.switch_entity(ent + 1)
 
     remove_healthbar_locally()
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
@@ -304,8 +305,7 @@ ctx.cap.health = {
             local item_data = inventory_helper.get_item_data(ctx.my_player)
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
-            local ent = end_poly_effect(ctx.my_player.entity)
-            polymorph.switch_entity(ent)
+            ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
             for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
                 if not EntityHasTag(child, "perk_entity") then
                     local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
@@ -339,6 +339,7 @@ ctx.cap.health = {
             end
             if GameHasFlagRun("ew_kill_player") then
                 GameRemoveFlagRun("ew_kill_player")
+                polymorph.switch_entity(ctx.my_player.entity)
                 async(function()
                     wait(1)
                     if GameHasFlagRun("ending_game_completed") then
@@ -349,10 +350,10 @@ ctx.cap.health = {
                 end)
             else
                 do_switch_effect(true)
+                polymorph.switch_entity(ctx.my_player.entity)
             end
         else
-            local ent = end_poly_effect(ctx.my_player.entity)
-            polymorph.switch_entity(ent)
+            polymorph.switch_entity(end_poly_effect(ctx.my_player.entity))
             async(function()
                 wait(1)
                 player_died()

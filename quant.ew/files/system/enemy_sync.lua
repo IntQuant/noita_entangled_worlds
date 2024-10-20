@@ -172,14 +172,16 @@ local function get_sync_entities(return_all)
 
     local entities2 = {}
     if return_all then
-        entities2 = entities
+        table_extend_filtered(entities2, entities, function(ent)
+            return not EntityHasTag(ent, "ew_no_enemy_sync")
+        end)
     else
         table_extend_filtered(entities2, entities, function(ent)
             local x, y = EntityGetTransform(ent)
             local has_anyone = EntityHasTag(ent, "worm")
                     or EntityGetFirstComponent(ent, "BossHealthBarComponent") ~= nil
                     or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
-            return has_anyone
+            return has_anyone and not EntityHasTag(ent, "ew_no_enemy_sync")
         end)
     end
 
