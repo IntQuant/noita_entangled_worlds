@@ -385,6 +385,7 @@ impl NetManager {
                     }
                     Err(err) => {
                         error!("Error occured while reading from websocket: {}", err);
+                        error!("Likely that just means that the game has closed.");
                         state.ws = None;
                     }
                 }
@@ -451,7 +452,8 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
-        self.friendly_fire.store(settings.friendly_fire, atomic::Ordering::Relaxed);
+        self.friendly_fire
+            .store(settings.friendly_fire, atomic::Ordering::Relaxed);
         state.try_ws_write_option("friendly_fire", settings.friendly_fire);
         state.try_ws_write_option("debug", settings.debug_mode);
         state.try_ws_write_option("world_sync_version", settings.world_sync_version);
