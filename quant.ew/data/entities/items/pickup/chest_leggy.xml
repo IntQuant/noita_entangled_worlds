@@ -1,0 +1,64 @@
+<Entity tags="teleportable_NOT,item_physics,item_pickup,effectable_prop">
+    <UIInfoComponent
+        name="$item_chest_treasure"
+        >
+    </UIInfoComponent>
+
+  <PositionSeedComponent />
+
+    <PhysicsBodyComponent
+    _tags="enabled_in_world"
+    uid="1"
+    allow_sleep="1"
+    angular_damping="0"
+    fixed_rotation="0"
+    is_bullet="1"
+    linear_damping="0"
+    auto_clean="1"
+    hax_fix_going_through_ground="1"
+    on_death_leave_physics_body="0"
+    on_death_really_leave_body="0"
+  ></PhysicsBodyComponent>
+
+  <PhysicsImageShapeComponent
+    body_id="1"
+    centered="1"
+    image_file="data/buildings_gfx/chest_random.png"
+    material="wood_prop"
+  ></PhysicsImageShapeComponent>
+
+  <ItemComponent
+    item_name="$item_chest_treasure"
+    play_spinning_animation="0"
+    stats_count_as_item_pick_up="0"
+    custom_pickup_string="$itempickup_open"
+    play_pick_sound="0" >
+  </ItemComponent>
+
+  <LuaComponent
+    script_physics_body_modified="data/scripts/items/chest_leggy.lua"
+    script_item_picked_up="data/scripts/items/chest_leggy.lua"
+    script_collision_trigger_hit="data/scripts/items/chest_leggy.lua"
+    execute_times="1"
+    >
+  </LuaComponent>
+
+  <CollisionTriggerComponent
+    width="30"
+    height="30"
+    radius="30"
+    required_tag="ew_peer"
+    >
+  </CollisionTriggerComponent>
+
+
+  <LightComponent
+    _tags="enabled_in_world"
+    r="255"
+    g="255"
+    b="255"
+    radius="64"
+    fade_out_time="0.75" >
+  </LightComponent>
+
+</Entity>
