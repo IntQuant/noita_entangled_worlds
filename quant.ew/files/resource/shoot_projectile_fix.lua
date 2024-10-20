@@ -1,7 +1,6 @@
 function get_herd_id( entity_id )
     local genome = EntityGetFirstComponentIncludingDisabled(entity_id, "GenomeDataComponent")
-    local herd = ComponentGetValue2(genome, "herd_id")
-    return herd
+    return ComponentGetValue2(genome, "herd_id")
 end
 
 function shoot_projectile( who_shot, entity_file, x, y, vel_x, vel_y, send_message )
