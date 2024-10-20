@@ -338,6 +338,14 @@ local function on_world_pre_update_inner()
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
+    if  net.connect_failed then
+        if GameGetFrameNum() % 180 == 0 then
+            GamePrint("Entangled Worlds mod is enabled, but it couldn't connect to proxy!")
+            GamePrint("You need to start the proxy and join the lobby first.")
+            GamePrint("If you want to play singleplayer, disable the mod and start a new game.")
+        end
+        return
+    end
     util.tpcall(on_world_pre_update_inner)
 end
 
@@ -370,6 +378,9 @@ local function on_world_post_update_inner()
 end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
+    if  net.connect_failed then
+        return
+    end
     util.tpcall(on_world_post_update_inner)
     ctx.events = {}
     net.proxy_send("flush", "")
@@ -414,9 +425,10 @@ function OnModPreInit()
     ctx.init()
     net.init()
 
-    load_modules()
-
-    print("Entangled worlds init ok")
+    if not net.connect_failed then
+        load_modules()
+        print("Entangled worlds init ok")
+    end
 end
 
 function OnModInit()

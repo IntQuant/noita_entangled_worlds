@@ -23,6 +23,7 @@ net._rpc_inner = {
   opts = {},
 }
 net.rpc = {}
+net.connect_failed = false
 
 local rpc_inner = net._rpc_inner
 
@@ -177,6 +178,11 @@ function net.init()
     while not ready do
         reactor:update()
         pollnet.sleep_ms(100)
+        local status = net.sock:status()
+        if status == "error" or status == "closed" then
+          net.connect_failed = true
+          return
+        end
         --print("Waiting for connection...")
     end
 
