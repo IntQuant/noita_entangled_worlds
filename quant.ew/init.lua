@@ -280,7 +280,9 @@ local function on_world_pre_update_inner()
 
     GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
 
-    net.update()
+    if not ctx.run_ended then
+        net.update()
+    end
 
     local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if inventory_gui_comp and inventory_gui_comp ~= 0 then

@@ -55,6 +55,7 @@ function rpc.try_kill(x, y)
     async(function()
         wait(180)
         if not ctx.run_ended then
+            ctx.run_ended = true
             GameTriggerGameOver()
         end
     end)
