@@ -1,5 +1,6 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 local ffi = require("ffi")
+local base64 = dofile_once("mods/quant.ew/files/resource/base64.lua")
 
 local util = {}
 
@@ -45,12 +46,12 @@ function util.get_ent_variable(entity, key)
     if value == "" then
         return nil
     end
-    return bitser.loads(value)
+    return bitser.loads(base64.decode(value))
 end
 
 function util.set_ent_variable(entity, key, value)
     local storage = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", key)
-    ComponentSetValue2(storage, "value_string", bitser.dumps(value))
+    ComponentSetValue2(storage, "value_string", base64.encode(bitser.dumps(value)))
 end
 
 function util.get_ent_health(entity)
