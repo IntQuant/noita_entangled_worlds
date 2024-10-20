@@ -23,10 +23,6 @@ local function world2gui( x, y )
     return x, y, vres_scaling_factor
 end
 
-local function is_suitable_target(entity)
-    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
-end
-
 function module.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "polymorphed") and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         return
@@ -129,7 +125,7 @@ function module.on_world_update()
                     img_path = "mods/quant.ew/files/system/player/tmp/" .. player_data.peer_id .. "_arrow.png"
                 end
             end
-            local scale = math.max(1 / 6, 0.7 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi)
+            local scale = math.max(1 / 6, 0.75 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi)
             GuiImage(gui, gui_id, x, y, img_path, 1, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
             gui_id = gui_id + 1
         end

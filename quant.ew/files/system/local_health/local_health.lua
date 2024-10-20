@@ -173,6 +173,8 @@ local function set_camera_free(enable)
     if cam ~= nil then
         ComponentSetValue2(cam, "center_camera_on_this_entity", not enable)
         ComponentSetValue2(cam, "move_camera_with_aim", not enable)
+    else
+        GameSetCameraFree(true)
     end
 end
 

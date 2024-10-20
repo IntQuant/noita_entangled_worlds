@@ -17,13 +17,15 @@ pub fn player_path(path: PathBuf) -> PathBuf {
     path.join("files/system/player/unmodified.png")
 }
 
-pub fn arrows_path(path: PathBuf, is_host: bool) -> PathBuf {
-    let p = path.parent().unwrap().join("player_arrows");
-    if is_host {
+pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf) {
+    let parent = path.parent().unwrap();
+    let p = parent.join("player_arrows");
+    let o = parent.join("player_ping");
+    (if is_host {
         p.join("arrow_host.png")
     } else {
         p.join("arrow.png")
-    }
+    }, o.join("arrow.png"))
 }
 
 pub fn cursor_path(path: PathBuf) -> PathBuf {
@@ -251,7 +253,7 @@ pub fn create_player_png(
     let cosmetics = rgb.cosmetics;
     let rgb = rgb.colors;
     let tmp_path = player_path.parent().unwrap();
-    let arrows_path = arrows_path(tmp_path.into(), is_host);
+    let (arrows_path, ping_path) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
     let mut img = image::open(player_path).unwrap().into_rgba8();
     replace_color(
@@ -267,6 +269,13 @@ pub fn create_player_png(
         Rgba::from(rgb.player_alt),
         Rgba::from(rgb.player_arm),
     );
+    let mut img_ping = image::open(ping_path).unwrap().into_rgba8();
+    replace_color(
+        &mut img_ping,
+        Rgba::from(rgb.player_main),
+        Rgba::from(rgb.player_alt),
+        Rgba::from(rgb.player_arm),
+    );
     let mut img_cursor = image::open(cursor_path).unwrap().into_rgba8();
     replace_color(
         &mut img_cursor,
@@ -278,6 +287,8 @@ pub fn create_player_png(
     img.save(path).unwrap();
     let path = tmp_path.join(format!("tmp/{}_arrow.png", id));
     img_arrow.save(path).unwrap();
+    let path = tmp_path.join(format!("tmp/{}_ping.png", id));
+    img_ping.save(path).unwrap();
     let path = tmp_path.join(format!("tmp/{}_cursor.png", id));
     img_cursor.save(path).unwrap();
     let img = create_arm(Rgba::from(rgb.player_forearm));

@@ -17,7 +17,9 @@ function ghost.on_world_update()
         local memory = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "angry_ghost_projectile_memory")
         table.insert(ghosts_memory, ComponentGetValue2(memory, "value_string"))
     end
-    rpc.send_ghost_data(ghosts_memory)
+    if #ghosts_memory ~= 0 then
+        rpc.send_ghost_data(ghosts_memory)
+    end
 end
 
 return ghost
