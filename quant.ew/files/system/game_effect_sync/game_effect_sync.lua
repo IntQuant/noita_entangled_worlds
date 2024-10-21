@@ -54,7 +54,7 @@ function effect_sync.get_sync_data(entity, perks)
                 table.insert(sync_data, name)
             end
         else
-            table.insert(sync_data, np.SerializeEntity(effect))
+            table.insert(sync_data, util.serialize_entity(effect))
         end
     end
     return sync_data
@@ -115,8 +115,7 @@ function effect_sync.apply_effects(effects, entity, perks)
         elseif type(effect) == "number" then
             name = constants.game_effects[effect]
         else
-            local serialized = EntityCreateNew()
-            np.DeserializeEntity(serialized, effect)
+            local serialized = util.deserialize_entity(effect)
             local com = EntityGetFirstComponentIncludingDisabled(serialized, "GameEffectComponent")
             local effect_name = get_name(serialized)
             for _, old_effect in ipairs(old_local_effects) do

@@ -292,4 +292,22 @@ function util.log(...)
     end
 end
 
+function util.serialize_entity(ent)
+    -- Serialized entities usually get sent to other clients, and it's a very bad idea to try and send them another WorldState.
+    if EntityHasTag(ent, "world_state") or EntityGetFirstComponentIncludingDisabled(ent, "WorldStateComponent") ~= nil then
+        error("Tried to serialize WorldStateEntity")
+    end
+    return np.SerializeEntity(ent)
+end
+
+function util.deserialize_entity(ent_data, x, y)
+    local ent = EntityCreateNew()
+    np.DeserializeEntity(ent, ent_data, x, y)
+    if EntityGetFirstComponentIncludingDisabled(ent, "WorldStateComponent") ~= nil then
+        error("Tried to deserialize WorldStateEntity. The world is screwed.")
+        EntityKill(ent)
+    end
+    return ent
+end
+
 return util

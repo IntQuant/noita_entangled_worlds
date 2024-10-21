@@ -41,8 +41,7 @@ local function end_poly_effect(ent)
         return
     end
     local x, y = EntityGetTransform(ent)
-    local new_ent = EntityCreateNew()
-    np.DeserializeEntity(new_ent, base64.decode(serialized), x, y)
+    local new_ent = util.deserialize_entity(base64.decode(serialized), x, y)
     np.SetPlayerEntity(new_ent)
     EntityKill(ent)
     GameAddFlagRun("ew_cam_wait")

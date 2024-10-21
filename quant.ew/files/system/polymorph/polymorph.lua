@@ -18,7 +18,7 @@ local function entity_changed()
             ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
         end
 
-        rpc.change_entity({data = np.SerializeEntity(ctx.my_player.entity)})
+        rpc.change_entity({data = util.serialize_entity(ctx.my_player.entity)})
     else
         rpc.change_entity(nil)
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
@@ -90,7 +90,7 @@ function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, posi
         if projectileComponent ~= nil then
             local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
             if entity_that_shot == 0 then
-                rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y)
+                rpc.replicate_projectile(util.serialize_entity(projectile_id), position_x, position_y, target_x, target_y)
             end
             EntityAddTag(projectile_id, "ew_no_enemy_sync")
         end
@@ -99,16 +99,14 @@ end
 
 rpc.opts_reliable()
 function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, target_y)
-    local ent = EntityCreateNew()
-    np.DeserializeEntity(ent, seri_ent)
+    local ent = util.deserialize_entity(seri_ent)
     EntityAddTag(ent, "ew_no_enemy_sync")
     GameShootProjectile(ctx.rpc_player_data.entity, position_x, position_y, target_x, target_y, ent)
 end
 
 local function apply_seri_ent(player_data, seri_ent)
     if seri_ent ~= nil then
-        local ent = EntityCreateNew()
-        np.DeserializeEntity(ent, seri_ent.data)
+        local ent = util.deserialize_entity(seri_ent.data)
         EntityAddTag(ent, "ew_no_enemy_sync")
         EntityAddTag(ent, "ew_client")
 

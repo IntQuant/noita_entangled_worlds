@@ -95,7 +95,7 @@ function inventory_helper.serialize_single_item(item)
         local varp = EntityGetFilename(item) == "data/entities/items/wand_varpuluuta.xml"
         item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}, sprite, varp}
     else
-        item_data = {false, np.SerializeEntity(item), x, y}
+        item_data = {false, util.serialize_entity(item), x, y}
     end
     local item_cost_component = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
     if item_cost_component and item_cost_component ~= 0 then
@@ -146,8 +146,7 @@ function inventory_helper.deserialize_single_item(item_data)
         end
         -- EntityAddTag(item, "does_physics_update")
     else
-        item = EntityCreateNew()
-        np.DeserializeEntity(item, item_data[2], x, y)
+        item = util.deserialize_entity(item_data[2], x, y)
     end
 
     if item_data.shop_info ~= nil then

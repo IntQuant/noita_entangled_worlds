@@ -740,7 +740,7 @@ function enemy_sync.on_projectile_fired(shooter_id, projectile_id, initial_rng, 
         if projectileComponent ~= nil then
             local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
             if entity_that_shot == 0 then
-                rpc.replicate_projectile(np.SerializeEntity(projectile_id), position_x, position_y, target_x, target_y, shooter_id, initial_rng)
+                rpc.replicate_projectile(util.serialize_entity(projectile_id), position_x, position_y, target_x, target_y, shooter_id, initial_rng)
             end
         end
     end
@@ -755,8 +755,7 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
         return
     end
     local source_ent = ctx.entity_by_remote_id[remote_source_ent].id
-    local ent = EntityCreateNew()
-    np.DeserializeEntity(ent, seri_ent)
+    local ent = util.deserialize_entity(seri_ent)
     GameShootProjectile(source_ent, position_x, position_y, target_x, target_y, ent)
 end
 
