@@ -17,7 +17,11 @@ local function entity_changed()
         if damage_model ~= nil then
             ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
         end
-
+        if ctx.my_player.entity == GameGetWorldStateEntity() then
+            print("Player entity is equal to WSE, skipping...")
+            return
+        end
+        
         rpc.change_entity({data = util.serialize_entity(ctx.my_player.entity)})
     else
         rpc.change_entity(nil)
