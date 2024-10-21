@@ -25,8 +25,6 @@ local function world2gui( x, y )
     return x, y, vres_scaling_factor
 end
 
-local mid_is_held = false
-
 function module.on_world_update()
     GuiStartFrame(gui)
 
@@ -42,26 +40,22 @@ function module.on_world_update()
 
     local gui_id = 2
 
-    if InputIsMouseButtonJustDown(3) or InputIsJoystickButtonJustDown(0, 18) then
-        if not mid_is_held then
-            local x,y
-            if GameGetIsGamepadConnected() then
-                local tx, ty
-                if ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == ctx.my_id then
-                    tx, ty = EntityGetTransform(ctx.my_player.entity)
-                else
-                    tx, ty = EntityGetTransform(ctx.players[ctx.spectating_over_peer_id].entity)
-                end
-                x, y = InputGetJoystickAnalogStick(0, 1)
-                x, y = x * 60 + tx, y * 60 + ty
+    if (not EntityHasTag(ctx.my_player.entity, "polymorphed") or EntityHasTag(ctx.my_player.entity, "ew_notplayer"))
+            and (InputIsMouseButtonJustDown(3) or InputIsJoystickButtonJustDown(0, 18)) then
+        local x,y
+        if GameGetIsGamepadConnected() then
+            local tx, ty
+            if ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == ctx.my_id then
+                tx, ty = EntityGetTransform(ctx.my_player.entity)
             else
-                x,y = DEBUG_GetMouseWorld()
+                tx, ty = EntityGetTransform(ctx.players[ctx.spectating_over_peer_id].entity)
             end
-            rpc.send_ping(x, y)
+            x, y = InputGetJoystickAnalogStick(0, 1)
+            x, y = x * 60 + tx, y * 60 + ty
+        else
+            x,y = DEBUG_GetMouseWorld()
         end
-        mid_is_held = true
-    else
-        mid_is_held = false
+        rpc.send_ping(x, y)
     end
 
     local i = 1
