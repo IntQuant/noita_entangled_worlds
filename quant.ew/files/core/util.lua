@@ -302,7 +302,11 @@ end
 
 function util.deserialize_entity(ent_data, x, y)
     local ent = EntityCreateNew()
-    np.DeserializeEntity(ent, ent_data, x, y)
+    if x == nil or y == nil then
+        np.DeserializeEntity(ent, ent_data)
+    else
+        np.DeserializeEntity(ent, ent_data, x, y)
+    end
     if EntityGetFirstComponentIncludingDisabled(ent, "WorldStateComponent") ~= nil then
         error("Tried to deserialize WorldStateEntity. The world is screwed.")
         EntityKill(ent)
