@@ -97,4 +97,9 @@ impl SteamState {
     pub(crate) fn get_my_id(&self) -> SteamId {
         self.client.user().steam_id()
     }
+
+    pub(crate) fn reset_avatar_cache(&mut self) {
+        info!("Avatar cache reset");
+        self.avatar_cache.clear();
+    }
 }

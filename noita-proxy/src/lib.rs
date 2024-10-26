@@ -6,8 +6,8 @@ use bookkeeping::{
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
-    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions,
-    ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+    InnerResponse, Key, KeyboardShortcut, Margin, Modifiers, OpenUrl, Rect, RichText, ScrollArea,
+    Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
@@ -934,29 +934,7 @@ impl eframe::App for App {
                             let steam = self.steam_state.as_mut().expect(
                                 "steam should be available, as we are using steam networking",
                             );
-                            ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                                for peer in netman.peer.iter_peer_ids() {
-                                    let role = peer_role(peer, netman);
-                                    let username = steam.get_user_name(peer.into());
-                                    let avatar = steam.get_avatar(ctx, peer.into());
-                                    if let Some(avatar) = avatar {
-                                        avatar.display_with_labels(ui, &username, &role);
-                                    } else {
-                                        ui.label(&username);
-                                    }
-                                    if netman.peer.is_host() && peer != netman.peer.my_id() {
-                                        if ui.button("kick").clicked() {
-                                            netman.kick_list.lock().unwrap().push(peer)
-                                        }
-                                        if ui.button("ban").clicked() {
-                                            netman.ban_list.lock().unwrap().push(peer)
-                                        }
-                                    }
-                                    if avatar.is_some() {
-                                        ui.add_space(5.0);
-                                    }
-                                }
-                            });
+                            show_player_list_steam(ctx, steam, ui, netman);
                         } else {
                             for peer in netman.peer.iter_peer_ids() {
                                 ui.label(peer.to_string());
@@ -1213,6 +1191,40 @@ impl eframe::App for App {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
         self.set_settings()
     }
+}
+
+fn show_player_list_steam(
+    ctx: &Context,
+    steam: &mut steam_helper::SteamState,
+    ui: &mut Ui,
+    netman: &mut NetManStopOnDrop,
+) {
+    if ctx.input_mut(|i| i.consume_shortcut(&KeyboardShortcut::new(Modifiers::CTRL, Key::R))) {
+        steam.reset_avatar_cache();
+    }
+    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+        for peer in netman.peer.iter_peer_ids() {
+            let role = peer_role(peer, netman);
+            let username = steam.get_user_name(peer.into());
+            let avatar = steam.get_avatar(ctx, peer.into());
+            if let Some(avatar) = avatar {
+                avatar.display_with_labels(ui, &username, &role);
+            } else {
+                ui.label(&username);
+            }
+            if netman.peer.is_host() && peer != netman.peer.my_id() {
+                if ui.button("kick").clicked() {
+                    netman.kick_list.lock().unwrap().push(peer)
+                }
+                if ui.button("ban").clicked() {
+                    netman.ban_list.lock().unwrap().push(peer)
+                }
+            }
+            if avatar.is_some() {
+                ui.add_space(5.0);
+            }
+        }
+    });
 }
 
 fn add_per_status_ui(
