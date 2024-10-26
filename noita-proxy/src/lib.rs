@@ -1207,22 +1207,26 @@ fn show_player_list_steam(
             let role = peer_role(peer, netman);
             let username = steam.get_user_name(peer.into());
             let avatar = steam.get_avatar(ctx, peer.into());
-            if let Some(avatar) = avatar {
-                avatar.display_with_labels(ui, &username, &role);
-            } else {
-                ui.label(&username);
-            }
-            if netman.peer.is_host() && peer != netman.peer.my_id() {
-                if ui.button("kick").clicked() {
-                    netman.kick_list.lock().unwrap().push(peer)
+            ui.group(|ui| {
+                if let Some(avatar) = avatar {
+                    avatar.display_with_labels(ui, &username, &role);
+                } else {
+                    ui.label(&username);
                 }
-                if ui.button("ban").clicked() {
-                    netman.ban_list.lock().unwrap().push(peer)
+                if netman.peer.is_host() && peer != netman.peer.my_id() {
+                    if avatar.is_some() {
+                        ui.add_space(5.0);
+                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("Kick").clicked() {
+                            netman.kick_list.lock().unwrap().push(peer)
+                        }
+                        if ui.button("Ban").clicked() {
+                            netman.ban_list.lock().unwrap().push(peer)
+                        }
+                    });
                 }
-            }
-            if avatar.is_some() {
-                ui.add_space(5.0);
-            }
+            });
         }
     });
 }

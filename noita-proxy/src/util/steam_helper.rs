@@ -11,7 +11,7 @@ pub struct SteamUserAvatar {
 impl SteamUserAvatar {
     pub fn display_with_labels(&self, ui: &mut Ui, label_top: &str, label_bottom: &str) {
         let image = egui::Image::new(&self.avatar).fit_to_exact_size([32.0, 32.0].into());
-        ui.group(|ui| {
+        ui.scope(|ui| {
             ui.set_min_width(200.0);
             ui.horizontal(|ui| {
                 ui.add(image);
@@ -76,6 +76,7 @@ impl SteamState {
             friend
                 .small_avatar()
                 .map(|(width, height, data)| {
+                    info!("Loaded avatar for {:?}", id);
                     ctx.load_texture(
                         format!("steam_avatar_for_{:?}", id),
                         ColorImage::from_rgba_unmultiplied(

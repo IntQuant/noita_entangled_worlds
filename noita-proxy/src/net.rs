@@ -119,7 +119,7 @@ pub struct NetManager {
     pub peer: omni::PeerVariant,
     pub pending_settings: Mutex<GameSettings>,
     pub settings: Mutex<GameSettings>,
-    pub continue_running: AtomicBool, // TODO stop on drop
+    pub continue_running: AtomicBool,
     pub accept_local: AtomicBool,
     pub local_connected: AtomicBool,
     pub stopped: AtomicBool,
@@ -293,7 +293,10 @@ impl NetManager {
                 state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
                 state.world.handle_peer_left(*peer);
                 self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
-                self.broadcast(&NetMsg::PeerDisconnected {id: *peer}, Reliability::Reliable);
+                self.broadcast(
+                    &NetMsg::PeerDisconnected { id: *peer },
+                    Reliability::Reliable,
+                );
             }
             list.clear();
             let list = self.ban_list.lock().unwrap();
@@ -302,7 +305,10 @@ impl NetManager {
                 state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
                 state.world.handle_peer_left(*peer);
                 self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
-                self.broadcast(&NetMsg::PeerDisconnected {id: *peer}, Reliability::Reliable);
+                self.broadcast(
+                    &NetMsg::PeerDisconnected { id: *peer },
+                    Reliability::Reliable,
+                );
             }
             for net_event in self.peer.recv() {
                 match net_event {
@@ -354,7 +360,7 @@ impl NetManager {
                         };
                         match net_msg {
                             NetMsg::Welcome => {}
-                            NetMsg::PeerDisconnected{id} => {
+                            NetMsg::PeerDisconnected { id } => {
                                 info!("player kicked: {}", id);
                                 state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
                                 state.world.handle_peer_left(id);
@@ -390,9 +396,7 @@ impl NetManager {
                                     host,
                                 );
                             }
-                            NetMsg::Kick => {
-                                std::process::exit(0)
-                            },
+                            NetMsg::Kick => std::process::exit(0),
                         }
                     }
                 }
