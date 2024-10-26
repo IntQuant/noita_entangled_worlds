@@ -301,14 +301,16 @@ impl NetManager {
             list.clear();
             let list = self.ban_list.lock().unwrap();
             for peer in list.iter() {
-                info!("player kicked: {}", peer);
-                state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
-                state.world.handle_peer_left(*peer);
-                self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
-                self.broadcast(
-                    &NetMsg::PeerDisconnected { id: *peer },
-                    Reliability::Reliable,
-                );
+                if self.peer.iter_peer_ids().contains(peer) {
+                    info!("player kicked from ban: {}", peer);
+                    state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
+                    state.world.handle_peer_left(*peer);
+                    self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
+                    self.broadcast(
+                        &NetMsg::PeerDisconnected { id: *peer },
+                        Reliability::Reliable,
+                    );
+                }
             }
             for net_event in self.peer.recv() {
                 match net_event {
