@@ -81,19 +81,6 @@ function rpc.kolmi_shield(is_on, orbcount)
     switch_shield(kolmi, is_on)
 end
 
-rpc.opts_reliable()
-function rpc.init_boss(orbcount)
-    local kolmi = EntityGetClosestWithTag(0, 0, "boss_centipede")
-    if kolmi == nil or kolmi == 0 then
-        return
-    end
-    local lua_components = EntityGetComponentIncludingDisabled(kolmi, "LuaComponent") or {}
-    for _, c in ipairs(lua_components) do
-        EntityRemoveComponent(kolmi, c)
-    end
-    EntitySetComponentsWithTagEnabled(kolmi, "enabled_at_start", false)
-    EntitySetComponentsWithTagEnabled(kolmi, "disabled_at_start", true)
-end
 
 np.CrossCallAdd("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
@@ -138,13 +125,9 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
                     EntitySetTransform(ctx.my_player.entity, x, y)
                 end)
             end
-            async(function()
-                wait(10) -- Wait a bit for enemy sync to do it's thing.
-                local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
-                local orbcount = GameGetOrbCountThisRun() + newgame_n
-                rpc.kolmi_shield(true, orbcount)
-                rpc.init_boss(orbcount)
-            end)
+            local newgame_n = tonumber( SessionNumbersGetValue("NEW_GAME_PLUS_COUNT") )
+            local orbcount = GameGetOrbCountThisRun() + newgame_n
+            rpc.kolmi_shield(true, orbcount)
         end
     end
 end)

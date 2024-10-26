@@ -3,6 +3,7 @@ local rpc = net.new_rpc_namespace()
 local shield_entities = {}
 
 rpc.opts_everywhere()
+rpc.opts_reliable()
 function rpc.add_shield(target)
     if GameHasFlagRun("ending_game_completed") then
         return
@@ -20,6 +21,7 @@ function rpc.add_shield(target)
 end
 
 rpc.opts_everywhere()
+rpc.opts_reliable()
 function rpc.del_shield()
     if shield_entities[ctx.rpc_peer_id] ~= nil then
         EntityKill(shield_entities[ctx.rpc_peer_id][2])
@@ -70,14 +72,6 @@ function module.on_local_player_polymorphed(_currently_polymorphed)
     kill_all_shields()
 end
 
-function rpc.send_money(money)
-    local entity = ctx.rpc_player_data.entity
-    local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
-    if wallet ~= nil then
-        ComponentSetValue2(wallet, "money", money)
-    end
-end
-
 local last_spectate
 
 function module.on_world_update()
@@ -86,6 +80,9 @@ function module.on_world_update()
     end
     if GameGetFrameNum() % 10 == 8 then
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
+        if shield_entities[ctx.my_id] ~= nil and not EntityGetIsAlive(shield_entities[ctx.my_id]) then
+            rpc.del_shield()
+        end
         if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
             rpc.add_shield(ctx.spectating_over_peer_id)
         elseif last_spectate ~= nil and last_spectate ~= ctx.spectating_over_peer_id then
@@ -131,12 +128,6 @@ function module.on_world_update()
             end
         end
         ::continue::
-    end
-    if GameGetFrameNum() % 60 == 47 then
-        local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
-        if wallet ~= nil then
-            rpc.send_money(ComponentGetValue2(wallet, "money"))
-        end
     end
 end
 

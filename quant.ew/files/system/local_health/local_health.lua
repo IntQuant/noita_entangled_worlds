@@ -23,6 +23,16 @@ function module.on_player_died(player_entity)
     -- Also inventory items seem to be borked.
 end
 
+local function set_camera_free(enable, entity, dont)
+    local cam = EntityGetFirstComponentIncludingDisabled(entity, "PlatformShooterPlayerComponent")
+    if cam ~= nil then
+        ComponentSetValue2(cam, "center_camera_on_this_entity", not enable)
+        ComponentSetValue2(cam, "move_camera_with_aim", not enable)
+    elseif not dont then
+        GameSetCameraFree(true)
+    end
+end
+
 local function end_poly_effect(ent)
     local serialized
     for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
@@ -42,9 +52,13 @@ local function end_poly_effect(ent)
     end
     local x, y = EntityGetTransform(ent)
     local new_ent = util.deserialize_entity(base64.decode(serialized), x, y)
+    GameSetCameraFree(true)
     np.SetPlayerEntity(new_ent)
+    async(function()
+        wait(1)
+        GameSetCameraFree(false)
+    end)
     EntityKill(ent)
-    GameAddFlagRun("ew_cam_wait")
     return new_ent
 end
 
@@ -167,24 +181,13 @@ local function player_died()
     rpc.add_nickname_change_cursor()
 end
 
-local function set_camera_free(enable)
-    local cam = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PlatformShooterPlayerComponent")
-    if cam ~= nil then
-        ComponentSetValue2(cam, "center_camera_on_this_entity", not enable)
-        ComponentSetValue2(cam, "move_camera_with_aim", not enable)
-    else
-        GameSetCameraFree(true)
-    end
-end
-
 local function do_game_over(message)
     net.proxy_notify_game_over()
     ctx.run_ended = true
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     GameRemoveFlagRun("ew_flag_notplayer_active")
+    set_camera_free(true, ctx.my_player.entity)
     if damage_model ~= nil and #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
-        set_camera_free(true)
-        GameRemoveFlagRun("ew_cam_wait")
         local ent = end_poly_effect(ctx.my_player.entity)
         polymorph.switch_entity(ent)
         if ctx.my_player.entity ~= nil then
@@ -196,7 +199,6 @@ local function do_game_over(message)
             GameTriggerGameOver()
         end
     else
-        set_camera_free(true)
         GameTriggerGameOver()
     end
 end

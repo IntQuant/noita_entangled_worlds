@@ -134,12 +134,20 @@ local function is_suitable_target(entity)
 end
 
 local function tether_enable(to_enable, entity)
+    local found = false
     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
         if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
             local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
             EntitySetComponentIsEnabled(child, emmiter, to_enable)
+            found = true
             break
         end
+    end
+    if not found then
+        local child = EntityLoad("mods/quant.ew/files/system/player_tether/zone_entity.xml")
+        EntityAddChild(entity, child)
+        local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
+        EntitySetComponentIsEnabled(child, emmiter, to_enable)
     end
 end
 
@@ -173,7 +181,15 @@ function module.on_world_update_client()
             return
         end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-        if host_playerdata == nil or not is_suitable_target(host_playerdata.entity) or not is_suitable_target(ctx.my_player.entity) then
+        local x1, y1 = EntityGetTransform(host_playerdata.entity)
+        local x2, y2 = EntityGetTransform(ctx.my_player.entity)
+        if x1 == nil or x2 == nil then
+            return
+        end
+        if host_playerdata == nil
+                or (not is_suitable_target(host_playerdata.entity)
+                    and not (not not_in_normal_area(x1, y1) and not not_in_normal_area(x2, y2) and position_to_area_number(x1, y1) > position_to_area_number(x2, y2)))
+                or not is_suitable_target(ctx.my_player.entity) then
             if host_playerdata ~= nil and host_playerdata.entity ~= nil and EntityGetIsAlive(host_playerdata.entity) then
                 no_tether = true
                 tether_enable(false, host_playerdata.entity)
@@ -186,11 +202,6 @@ function module.on_world_update_client()
                 tether_enable(false, host_playerdata.entity)
                 no_tether = true
             end
-            return
-        end
-        local x1, y1 = EntityGetTransform(host_playerdata.entity)
-        local x2, y2 = EntityGetTransform(ctx.my_player.entity)
-        if x1 == nil or x2 == nil then
             return
         end
         if is_in_box(9200, 11000, 8300, 9800, x2, y2) then

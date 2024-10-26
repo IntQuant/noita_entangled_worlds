@@ -25,6 +25,12 @@ local EnemyDataWorm = util.make_type({
     f32 = {"x", "y", "vx", "vy", "tx", "ty"},
 })
 
+local EnemyDataKolmi = util.make_type({
+    u32 = {"enemy_id"},
+    f32 = {"x", "y", "vx", "vy"},
+    bool = {"enabled"},
+})
+
 local EnemyDataFish = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
@@ -261,7 +267,16 @@ function enemy_sync.host_upload_entities()
 
         local en_data
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
-        if worm ~= nil then
+        if EntityHasTag(enemy_id, "boss_centipede") then
+            en_data = EnemyDataKolmi {
+                enemy_id = enemy_id,
+                x = x,
+                y = y,
+                vx = vx,
+                vy = vy,
+                enabled = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent", "disabled_at_start") ~= nil,
+            }
+        elseif worm ~= nil then
             local tx, ty = ComponentGetValue2(worm, "mRandomTarget")
             en_data = EnemyDataWorm {
                 enemy_id = enemy_id,
@@ -578,6 +593,14 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         if worm ~= nil and ffi.typeof(en_data) == EnemyDataWorm then
             local tx, ty = en_data.tx, en_data.ty
             ComponentSetValue2(worm, "mRandomTarget", tx, ty)
+        end
+        if ffi.typeof(en_data) == EnemyDataKolmi and en_data.enabled then
+            local lua_components = EntityGetComponentIncludingDisabled(enemy_id, "LuaComponent") or {}
+            for _, c in ipairs(lua_components) do
+                EntityRemoveComponent(enemy_id, c)
+            end
+            EntitySetComponentsWithTagEnabled(enemy_id, "enabled_at_start", false)
+            EntitySetComponentsWithTagEnabled(enemy_id, "disabled_at_start", true)
         end
     end
 

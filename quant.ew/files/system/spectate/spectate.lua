@@ -22,6 +22,8 @@ local has_switched = false
 
 local attached = false
 
+local redo = false
+
 local function perks_ui(enable)
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityHasTag(child, "perk_entity") then
@@ -86,7 +88,7 @@ local function set_camera_free(enable)
     end
 end
 
-local function set_camera_pos(x, y)
+local function set_camera_position(x, y)
     local cam = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PlatformShooterPlayerComponent")
     if cam ~= nil then
         ComponentSetValue2(cam, "mDesiredCameraPos", x, y)
@@ -107,15 +109,7 @@ local function target()
         if sprite ~= nil and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             EntityRemoveComponent(ctx.my_player.entity, sprite)
         end
-        if GameHasFlagRun("ew_cam_wait") then
-            GameRemoveFlagRun("ew_cam_wait")
-            async(function()
-                wait(1)
-                set_camera_free(false)
-            end)
-        else
-            set_camera_free(false)
-        end
+        set_camera_free(false)
         if camera_target == nil then
             camera_target = ctx.my_player
         elseif camera_target.entity ~= ctx.my_player.entity then
@@ -138,6 +132,7 @@ local function target()
     end
     set_camera_free(true)
     if cam_target == nil or not EntityGetIsAlive(cam_target.entity) then
+        redo = true
         return
     end
     local my_x, my_y = GameGetCameraPos()
@@ -156,17 +151,18 @@ local function target()
     local dx, dy = t_x - my_x, t_y - my_y
     local di = dx * dx + dy * dy
     if di > 512 * 512 then
-        set_camera_pos(to_x, to_y)
+        set_camera_position(to_x, to_y)
     else
         local cos, sin = dx / 512, dy / 512
         local d = math.sqrt(di)
         dx, dy = d * cos, d * sin
-        set_camera_pos(my_x + dx, my_y + dy)
+        set_camera_position(my_x + dx, my_y + dy)
     end
     if camera_target == nil then
         camera_target = ctx.my_player
     end
-    if camera_target.entity ~= cam_target.entity then
+    if camera_target.entity ~= cam_target.entity or redo then
+        redo = false
         if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
             if cam_target.entity ~= ctx.my_player.entity then
                 spectate.disable_throwing(false, ctx.my_player.entity)

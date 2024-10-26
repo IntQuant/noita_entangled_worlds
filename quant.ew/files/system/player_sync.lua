@@ -6,6 +6,14 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
+function rpc.send_money(money)
+    local entity = ctx.rpc_player_data.entity
+    local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
+    if wallet ~= nil then
+        ComponentSetValue2(wallet, "money", money)
+    end
+end
+
 function rpc.player_update(input_data, pos_data, current_slot, team)
     local peer_id = ctx.rpc_peer_id
 
@@ -67,14 +75,22 @@ function module.on_world_update()
         for peer_id, player in pairs(ctx.players) do
             local ent = player.entity
             local x, y = EntityGetTransform(ent)
-            if x == nil or not EntityGetIsAlive(ent) or EntityHasTag(ent, "polymorphed") then
-                return
+            local notplayer = EntityHasTag(ent, "ew_notplayer")
+            if x == nil or not EntityGetIsAlive(ent) or (not notplayer and EntityHasTag(ent, "polymorphed")) then
+                goto continue
             end
             local dx, dy = x - mx, y - my
             local cape
             for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
                 if EntityGetName(child) == "cape" then
-                    cape = child
+                    local cpe = EntityGetFirstComponentIncludingDisabled(child, "VerletPhysicsComponent")
+                    local cx, cy = ComponentGetValue2(cpe, "m_position_previous")
+                    local dcx, dcy = x - cx, y - cy
+                    if dcx * dcx + dcy * dcy > 300 * 300 then
+                        EntityKill(child)
+                    else
+                        cape = child
+                    end
                     break
                 end
             end
@@ -83,10 +99,23 @@ function module.on_world_update()
                     EntityKill(cape)
                 end
             elseif cape == nil then
-                local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cape.xml"
+                local player_cape_sprite_file
+                if notplayer then
+                    player_cape_sprite_file = "mods/quant.ew/files/system/local_health/notplayer/notplayer_cape.xml"
+                else
+                    player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cape.xml"
+                end
                 local cape2 = EntityLoad(player_cape_sprite_file, x, y)
                 EntityAddChild(ent, cape2)
             end
+            ::continue::
+        end
+    end
+
+    if GameGetFrameNum() % 60 == 47 then
+        local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+        if wallet ~= nil then
+            rpc.send_money(ComponentGetValue2(wallet, "money"))
         end
     end
 end
