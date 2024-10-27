@@ -189,17 +189,17 @@ local function do_game_over(message)
     set_camera_free(true, ctx.my_player.entity)
     if damage_model ~= nil and #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
         local ent = end_poly_effect(ctx.my_player.entity)
-        polymorph.switch_entity(ent)
-        if ctx.my_player.entity ~= nil then
-            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-            EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
-            GameTriggerGameOver()
-            EntityKill(ctx.my_player.entity)
-        else
-            GameTriggerGameOver()
+        if ent ~= nil then
+            polymorph.switch_entity(ent)
+            if ctx.my_player.entity ~= nil then
+                ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+                EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+            end
         end
-    else
-        GameTriggerGameOver()
+    end
+    GameTriggerGameOver()
+    for _, data in pairs(ctx.players) do
+        EntityKill(data.entity)
     end
 end
 
@@ -369,38 +369,6 @@ rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.trigger_game_over(message)
     do_game_over(message)
-    for _, player_data in pairs(ctx.players) do
-        local entity = player_data.entity
-        if entity ~= nil and EntityGetIsAlive(entity) then
-            EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
-            EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
-            if EntityHasTag(entity, "ew_notplayer") then
-                for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
-                    EntitySetComponentIsEnabled(entity, com, false)
-                end
-                local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
-                local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
-                EntitySetComponentIsEnabled(entity, suck, false)
-                EntitySetComponentIsEnabled(entity, collision, false)
-                for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-                    EntityKill(child)
-                end
-                if EntityGetFirstComponent(entity, "StatusEffectDataComponent") ~= nil then
-                    for _, effect in pairs(status_effects) do
-                        if EntityGetIsAlive(entity) then
-                            EntityRemoveStainStatusEffect(entity, effect.id)
-                            EntityRemoveIngestionStatusEffect(entity, effect.id)
-                        end
-                    end
-                end
-                local damage_model = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-                if damage_model ~= nil then
-                    ComponentSetValue2(damage_model, "mFireProbability", 0)
-                    ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
-                end
-            end
-        end
-    end
 end
 
 

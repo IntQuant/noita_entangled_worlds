@@ -13,6 +13,44 @@ ModTextFileSetContent("data/entities/animals/boss_centipede/ending/gold_effect.x
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_sand.xml", "<Entity/>")
 ModTextFileSetContent("data/entities/animals/boss_centipede/ending/midas_chunks.xml", "<Entity/>")
 
+local function remove_stuff(entity)
+    for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
+        EntitySetComponentIsEnabled(entity, com, false)
+    end
+    EntityRemoveTag(entity, "ew_peer")
+    EntityRemoveTag(entity, "ew_client")
+    EntityRemoveTag(entity, "mortal")
+    EntityRemoveTag(entity, "homing_target")
+    EntityRemoveTag(entity, "hittable")
+    local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
+    local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
+    local gui = EntityGetFirstComponentIncludingDisabled(entity, "InventoryGuiComponent")
+    local damage = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+    local genome = EntityGetFirstComponentIncludingDisabled(entity, "GenomeDataComponent")
+    local status = EntityGetFirstComponentIncludingDisabled(entity, "StatusEffectDataComponent")
+    if gui ~= nil then
+        EntitySetComponentIsEnabled(entity, gui, false)
+    end
+    if suck ~= nil then
+        EntitySetComponentIsEnabled(entity, suck, false)
+    end
+    if collision ~= nil then
+        EntitySetComponentIsEnabled(entity, collision, false)
+    end
+    if damage ~= nil then
+        EntitySetComponentIsEnabled(entity, damage, false)
+    end
+    if genome ~= nil then
+        EntitySetComponentIsEnabled(entity, genome, false)
+    end
+    if status ~= nil then
+        EntitySetComponentIsEnabled(entity, status, false)
+    end
+    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+        EntityKill(child)
+    end
+end
+
 local function teleport_random()
     SetRandomSeed(5, 5)
     local my_num = Random(1,100)
@@ -53,10 +91,14 @@ function rpc.try_kill(x, y)
     EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
     done = true
     async(function()
-        wait(180)
+        wait(300)
         if not ctx.run_ended then
+            GameSetCameraFree(true)
             ctx.run_ended = true
             GameTriggerGameOver()
+            for _, data in pairs(ctx.players) do
+                EntityKill(data.entity)
+            end
         end
     end)
 end
@@ -156,38 +198,7 @@ function end_fight.on_world_update()
             EntitySetComponentsWithTagEnabled(entity, "health_bar", false)
             EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
             if EntityHasTag(entity, "ew_notplayer") then
-                for _, com in ipairs(EntityGetComponent(entity, "SpriteComponent") or {}) do
-                    EntitySetComponentIsEnabled(entity, com, false)
-                end
-                EntityRemoveTag(entity, "ew_peer")
-                EntityRemoveTag(entity, "ew_client")
-                EntityRemoveTag(entity, "mortal")
-                EntityRemoveTag(entity, "homing_target")
-                EntityRemoveTag(entity, "hittable")
-                local collision = EntityGetFirstComponentIncludingDisabled(entity, "PlayerCollisionComponent")
-                local suck = EntityGetFirstComponentIncludingDisabled(entity, "MaterialSuckerComponent")
-                local gui = EntityGetFirstComponentIncludingDisabled(entity, "InventoryGuiComponent")
-                local damage = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
-                local genome = EntityGetFirstComponentIncludingDisabled(entity, "GenomeDataComponent")
-                if gui ~= nil then
-                    EntitySetComponentIsEnabled(entity, gui, false)
-                end
-                if suck ~= nil then
-                    EntitySetComponentIsEnabled(entity, suck, false)
-                end
-                if collision ~= nil then
-                    EntitySetComponentIsEnabled(entity, collision, false)
-                end
-                if damage ~= nil then
-                    EntitySetComponentIsEnabled(entity, damage, false)
-                end
-                if genome ~= nil then
-                    EntitySetComponentIsEnabled(entity, genome, false)
-                end
-                for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-                    EntityKill(child)
-                end
-                remove_status(entity)
+                remove_stuff(entity)
             end
             ::continue::
         end
