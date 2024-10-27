@@ -2,7 +2,7 @@ use std::{env, ops::Deref, sync::Arc, thread, time::Duration};
 
 use dashmap::DashMap;
 use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui};
-use steamworks::{PersonaStateChange, SteamAPIInitError, SteamId};
+use steamworks::{PersonaChange, PersonaStateChange, SteamAPIInitError, SteamId};
 use tracing::{error, info};
 
 pub struct SteamUserAvatar {
@@ -58,11 +58,13 @@ impl SteamState {
         {
             let avatar_cache = avatar_cache.clone();
             client.register_callback(move |event: PersonaStateChange| {
-                info!(
-                    "Got PersonaStateChange for {:?}, removing from avatar cache.",
-                    event.steam_id
-                );
-                avatar_cache.remove(&event.steam_id);
+                if event.flags.contains(PersonaChange::AVATAR) {
+                    info!(
+                        "Got PersonaStateChange for {:?}, removing from avatar cache.",
+                        event.steam_id
+                    );
+                    avatar_cache.remove(&event.steam_id);
+                }
             });
         }
         Ok(SteamState {
