@@ -76,6 +76,9 @@ function module.on_world_update()
             local ent = player.entity
             local x, y = EntityGetTransform(ent)
             local notplayer = EntityHasTag(ent, "ew_notplayer")
+            if notplayer and GameHasFlagRun("ending_game_completed") then
+                goto continue
+            end
             if x == nil or not EntityGetIsAlive(ent) or (not notplayer and EntityHasTag(ent, "polymorphed")) then
                 goto continue
             end
