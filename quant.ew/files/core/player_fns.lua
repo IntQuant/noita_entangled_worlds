@@ -267,6 +267,8 @@ local player_fns = {
                 if EntityGetName(child) == "notcursor" then
                     EntityApplyTransform(child, message.mouse_x, message.mouse_y)
                 elseif EntityGetName(child) == "cursor" then
+                    player_data.mouse_x = message.my_x
+                    player_data.mouse_y = message.my_y
                     EntityApplyTransform(child, message.my_x, message.my_y)
                 end
             end
@@ -378,6 +380,8 @@ local player_fns = {
             projectile_rng_init = {},
             projectile_seed_chain = {}, -- TODO clean
             currently_polymorphed = false,
+            mouse_x = 0,
+            mouse_y = 0,
         }
     end,
 }

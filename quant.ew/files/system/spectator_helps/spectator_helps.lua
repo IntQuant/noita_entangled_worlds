@@ -24,7 +24,9 @@ rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.del_shield()
     if shield_entities[ctx.rpc_peer_id] ~= nil then
-        EntityKill(shield_entities[ctx.rpc_peer_id][2])
+        if EntityGetIsAlive(shield_entities[ctx.rpc_peer_id][2]) then
+            EntityKill(shield_entities[ctx.rpc_peer_id][2])
+        end
         shield_entities[ctx.rpc_peer_id] = nil
     end
 end
@@ -80,7 +82,7 @@ function module.on_world_update()
     end
     if GameGetFrameNum() % 10 == 8 then
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
-        if shield_entities[ctx.my_id] ~= nil and not EntityGetIsAlive(shield_entities[ctx.my_id]) then
+        if shield_entities[ctx.my_id] ~= nil and not EntityGetIsAlive(shield_entities[ctx.my_id][2]) then
             rpc.del_shield()
         end
         if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
@@ -108,12 +110,7 @@ function module.on_world_update()
                         his_x, his_y = DEBUG_GetMouseWorld()
                     end
                 else
-                    for _, child in ipairs(EntityGetAllChildren(ctx.players[shield_id].entity) or {}) do
-                        if (EntityGetName(child) == "cursor") then
-                            his_x, his_y = EntityGetTransform(child)
-                            break
-                        end
-                    end
+                    his_x, his_y = ctx.players[shield_id].mouse_x, ctx.players[shield_id].mouse_y
                 end
                 if his_x == nil or my_x == nil then
                     goto continue

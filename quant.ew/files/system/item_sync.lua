@@ -96,6 +96,12 @@ function item_sync.remove_item_with_id_now(gid)
     for _, item in ipairs(global_items) do
         local i_gid = item_sync.get_global_item_id(item)
         if i_gid == gid then
+             --TODO properly note when actually was from a peer picking up a potion maybe
+            for _, audio in ipairs(EntityGetComponent(item, "AudioComponent") or {}) do
+                if string.sub(ComponentGetValue2(audio, "event_root"), 1, 10) == "collision/" then
+                    EntitySetComponentIsEnabled(item, audio, false)
+                end
+            end
             EntityKill(item)
         end
     end

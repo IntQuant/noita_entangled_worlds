@@ -88,7 +88,7 @@ function module.on_world_update()
                 if EntityGetName(child) == "cape" then
                     local cpe = EntityGetFirstComponentIncludingDisabled(child, "VerletPhysicsComponent")
                     local cx, cy = ComponentGetValue2(cpe, "m_position_previous")
-                    local dcx, dcy = x - cx, y - cy
+                    local dcx, dcy = mx - cx, my - cy
                     if dcx * dcx + dcy * dcy > 300 * 300 then
                         EntityKill(child)
                     else
