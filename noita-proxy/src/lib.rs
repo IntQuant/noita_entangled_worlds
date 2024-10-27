@@ -1208,7 +1208,7 @@ fn show_player_list_steam(
             let username = steam.get_user_name(peer.into());
             let avatar = steam.get_avatar(ctx, peer.into());
             ui.group(|ui| {
-                if let Some(avatar) = avatar {
+                if let Some(ref avatar) = avatar {
                     avatar.display_with_labels(ui, &username, &role);
                 } else {
                     ui.label(&username);

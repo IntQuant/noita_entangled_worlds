@@ -1,7 +1,8 @@
-use std::{collections::HashMap, env, thread, time::Duration};
+use std::{env, ops::Deref, sync::Arc, thread, time::Duration};
 
+use dashmap::DashMap;
 use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui};
-use steamworks::{SteamAPIInitError, SteamId};
+use steamworks::{PersonaStateChange, SteamAPIInitError, SteamId};
 use tracing::{error, info};
 
 pub struct SteamUserAvatar {
@@ -26,7 +27,7 @@ impl SteamUserAvatar {
 
 pub struct SteamState {
     pub client: steamworks::Client,
-    avatar_cache: HashMap<SteamId, SteamUserAvatar>,
+    avatar_cache: Arc<DashMap<SteamId, SteamUserAvatar>>,
 }
 
 impl SteamState {
@@ -44,6 +45,8 @@ impl SteamState {
         if let Err(err) = client.networking_sockets().init_authentication() {
             error!("Failed to init_authentication: {}", err)
         }
+        let avatar_cache = Arc::new(DashMap::new());
+
         thread::spawn(move || {
             info!("Spawned steam callback thread");
             loop {
@@ -51,9 +54,20 @@ impl SteamState {
                 thread::sleep(Duration::from_millis(3));
             }
         });
+
+        {
+            let avatar_cache = avatar_cache.clone();
+            client.register_callback(move |event: PersonaStateChange| {
+                info!(
+                    "Got PersonaStateChange for {:?}, removing from avatar cache.",
+                    event.steam_id
+                );
+                avatar_cache.remove(&event.steam_id);
+            });
+        }
         Ok(SteamState {
             client,
-            avatar_cache: HashMap::new(),
+            avatar_cache,
         })
     }
 
@@ -62,7 +76,11 @@ impl SteamState {
         friends.get_friend(id).name()
     }
 
-    pub fn get_avatar(&mut self, ctx: &egui::Context, id: SteamId) -> Option<&SteamUserAvatar> {
+    pub fn get_avatar<'a>(
+        &'a mut self,
+        ctx: &egui::Context,
+        id: SteamId,
+    ) -> Option<impl Deref<Target = SteamUserAvatar> + 'a> {
         let friends = self.client.friends();
 
         if self.avatar_cache.contains_key(&id) {
@@ -88,7 +106,7 @@ impl SteamState {
                 })
                 .map(|avatar| {
                     let avatar = SteamUserAvatar { avatar };
-                    &*self.avatar_cache.entry(id).or_insert(avatar)
+                    self.avatar_cache.entry(id).or_insert(avatar).downgrade()
                 })
         }
 
