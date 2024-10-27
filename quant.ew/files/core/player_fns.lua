@@ -382,6 +382,7 @@ local player_fns = {
             currently_polymorphed = false,
             mouse_x = 0,
             mouse_y = 0,
+            mutations = {ghost = false, luuki = false, rat = false, fungus = false, halo = 0}
         }
     end,
 }
