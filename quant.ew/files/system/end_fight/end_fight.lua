@@ -1,9 +1,8 @@
 local end_fight = {}
-local first = true
 local try_kill = -1
 local init = -1
 local done = false
-local kill_walls = false
+local kill_walls = -1
 local rpc = net.new_rpc_namespace()
 dofile_once("data/scripts/status_effects/status_list.lua")
 
@@ -160,11 +159,9 @@ function end_fight.on_world_update()
                     EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
                 end
                 GamePrintImportant("Fight for the spoils")
-                first = false
                 init = GameGetFrameNum() + 10
                 teleport_random()
                 remove_fire(ctx.my_player.entity)
-                LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/safe_effect2.xml")
                 kill_walls = GameGetFrameNum() + 180
             elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then
                 local exists = false
