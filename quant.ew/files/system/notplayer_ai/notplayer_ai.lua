@@ -882,6 +882,11 @@ local function teleport_to_next_hm()
     end
 end
 
+local function float()
+    local character_data = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent")
+    ComponentSetValue2(character_data, "mVelocity", 0, -40)
+end
+
 local function teleport_outside_cursed()
     --17370 < x < 18470
     --53210 < x
@@ -894,7 +899,12 @@ local function teleport_outside_cursed()
     local x, _ = EntityGetTransform(ctx.my_player.entity)
     local how_far_right = (x - (17370+550)) % 35840
     if how_far_right <= 550 or how_far_right >= (35840 - 550) then
-        EntitySetTransform(ctx.my_player.entity, 14074, -820)
+        async(function()
+            EntitySetTransform(ctx.my_player.entity, 14074, -820)
+            wait(30)
+            EntitySetTransform(ctx.my_player.entity, 14074, -820)
+            float()
+        end)
     end
 end
 

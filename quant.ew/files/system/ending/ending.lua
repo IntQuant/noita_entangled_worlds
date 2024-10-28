@@ -9,6 +9,11 @@ local module = {}
 
 util.replace_text_in("data/entities/animals/boss_centipede/sampo.xml", "data/entities/animals/boss_centipede/ending/sampo_start_ending_sequence.lua", "mods/quant.ew/files/system/ending/ending_sequence.lua")
 
+local function float()
+    local character_data = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent")
+    ComponentSetValue2(character_data, "mVelocity", 0, -40)
+end
+
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.gather_and_do_ending(x, y, sx, sy)
@@ -30,6 +35,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
         wait(30)
 
         EntitySetTransform(ctx.my_player.entity, x, y)
+        float()
 
         -- Emulate the following script being called from LuaComponent
         local old_updated = GetUpdatedEntityID

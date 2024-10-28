@@ -161,11 +161,17 @@ local function set_tether_length(length, entity)
     end
 end
 
+local function float()
+    local character_data = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent")
+    ComponentSetValue2(character_data, "mVelocity", 0, -80)
+end
+
 function rpc.teleport_to_tower()
     async(function()
         EntitySetTransform(ctx.my_player.entity, 9740, 9100)
         wait(30)
         EntitySetTransform(ctx.my_player.entity, 9740, 9100)
+        float()
     end)
 end
 
@@ -241,6 +247,7 @@ function module.on_world_update_client()
                     EntitySetTransform(ctx.my_player.entity, x, y)
                     wait(40)
                     EntitySetTransform(ctx.my_player.entity, x, y)
+                    float()
                 end)
             elseif tether_length_3 > tether_length_2 then
                 tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)
