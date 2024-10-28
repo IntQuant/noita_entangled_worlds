@@ -444,6 +444,13 @@ local function fire_wand(enable)
 end
 
 local function init_state()
+    if ctx.proxy_opt.no_material_damage then
+        local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        ComponentSetValue2(damage_model, "materials_damage", false)
+        LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_protection_fire.xml")
+        LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_protection_radioactivity.xml")
+        LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_breath_underwater.xml")
+    end
     local children = EntityGetAllChildren(ctx.my_player.entity)
     local items
     local attack_foot = false

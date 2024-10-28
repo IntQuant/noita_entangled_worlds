@@ -84,7 +84,11 @@ pub struct GameSettings {
     progress: Vec<String>,
     max_players: u32,
     health_per_player: u32,
+    health_lost_on_revive: u32,
+    no_material_damage: bool,
+    global_hp_loss: bool,
 }
+
 impl Default for GameSettings {
     fn default() -> Self {
         GameSettings {
@@ -106,6 +110,9 @@ impl Default for GameSettings {
             progress: Vec::new(),
             max_players: 250,
             health_per_player: 100,
+            health_lost_on_revive: 0,
+            no_material_damage: false,
+            global_hp_loss: false,
         }
     }
 }
@@ -723,6 +730,11 @@ impl App {
                 GameMode::LocalHealth => {
                     ui.label(tr("local_health_desc_1"));
                     ui.label(tr("local_health_desc_2"));
+                    ui.add_space(5.0);
+                    ui.label("hp % lost on reviving");
+                    ui.add(Slider::new(&mut game_settings.health_lost_on_revive, 0..=100));
+                    ui.checkbox(&mut game_settings.global_hp_loss, "lose hp globally");
+                    ui.checkbox(&mut game_settings.no_material_damage, "no material damage");
                 }
             }
         });

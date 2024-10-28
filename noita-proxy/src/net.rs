@@ -502,6 +502,9 @@ impl NetManager {
         state.try_ws_write_option("chunk_target", settings.chunk_target);
         state.try_ws_write_option("health_per_player", settings.health_per_player);
         state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval);
+        state.try_ws_write_option("global_hp_loss", settings.global_hp_loss);
+        state.try_ws_write_option("no_material_damage", settings.no_material_damage);
+        state.try_ws_write_option("health_lost_on_revive", settings.health_lost_on_revive);
         let rgb = self.init_settings.player_color.player_main;
         state.try_ws_write_option(
             "mina_color",

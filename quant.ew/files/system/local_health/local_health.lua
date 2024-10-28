@@ -291,6 +291,24 @@ function module.inflict_damage(dmg)
     module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
 end
 
+rpc.opts_reliable()
+function rpc.loss_hp()
+    local p = 100 - ctx.proxy_opt.health_lost_on_revive
+    local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+    util.set_ent_health(ctx.my_player.entity, {(hp * p) / 100, (max_hp * p) / 100})
+end
+
+local function reduce_hp()
+    local p = 100 - ctx.proxy_opt.health_lost_on_revive
+    if p ~= 100 then
+        if ctx.proxy_opt.global_hp_loss then
+            rpc.loss_hp()
+        end
+        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+        util.set_ent_health(ctx.my_player.entity, {(hp * p) / 100, (max_hp * p) / 100})
+    end
+end
+
 -- Provides health capability
 ctx.cap.health = {
     health = module.health,
@@ -355,6 +373,7 @@ ctx.cap.health = {
                 do_switch_effect(true)
                 polymorph.switch_entity(ctx.my_player.entity)
             end
+            reduce_hp()
         else
             polymorph.switch_entity(end_poly_effect(ctx.my_player.entity))
             async(function()
