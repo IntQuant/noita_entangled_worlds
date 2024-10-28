@@ -5,6 +5,8 @@ local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
 local MAX_RADIUS = 128*5
 
+local INVIS_RANGE = 64
+
 local state
 
 local module = {}
@@ -14,6 +16,10 @@ local no_shoot_time = 100
 local throw_water = false
 
 local changed_held = false
+
+local target
+
+local target_hp = {-1, -1}
 
 local function log(...)
     -- GamePrint(...)
@@ -147,11 +153,25 @@ end
 
 local do_kick
 
+local function combine_tables(a, b)
+    if b == nil then
+        return a
+    end
+    local c = {}
+    for _, v in ipairs(a) do
+        table.insert(c, v)
+    end
+    for _, v in ipairs(b) do
+        table.insert(c, v)
+    end
+    return c
+end
+
 local function find_new_wand()
     local children = EntityGetAllChildren(state.attack_wand)
     if children == nil then
         table.insert(state.empty_wands, state.attack_wand)
-        state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
+        state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[target]))
         changed_held = true
     else
         local bad_mod = false
@@ -198,7 +218,7 @@ local function find_new_wand()
         end
         if not is_any_not_empty then
             table.insert(state.empty_wands, state.attack_wand)
-            state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
+            state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[target]))
             changed_held = true
         end
     end
@@ -485,6 +505,8 @@ local function init_state()
 
         attack_wand = wandfinder.find_attack_wand({}),
         empty_wands = {},
+        bad_wands = {},
+        good_wands = {},
 
         is_pheremoned = -120,
         aim_up = false,
@@ -516,14 +538,13 @@ local function init_state()
     })
 end
 
-local target
-
 local last_length
 
 local last_did_hit = true
 
 local function is_suitable_target(entity)
-    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer")
+    return EntityGetIsAlive(entity)
+            and not EntityHasTag(entity,"ew_notplayer")
 end
 
 local function choose_wand_actions()
@@ -639,7 +660,7 @@ local function choose_movement()
         if did_hit then
             state.control_w = false
             stop_y = true
-            local did_hit_down, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 12)
+            did_hit_down, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 12)
             if did_hit_down then
                 if give_space == 100 then
                     give_space = math.abs(dist)
@@ -1013,13 +1034,12 @@ local target_has_ambrosia = false
 
 local target_is_polied = false
 
-local function better_player(length, did_hit, new_has_ambrosia, new_target_is_polied, potential_target)
+local function better_player(length, did_hit, new_has_ambrosia, new_target_is_polied)
     return (last_length == nil or
             (not did_hit and ((last_length > length or last_did_hit)
                     or (new_target_is_polied and not target_is_polied)
                     or (not new_has_ambrosia and target_has_ambrosia))
             ))
-            and (not IsInvisible(potential_target) or length < 50*50)
 end
 
 local function find_target()
@@ -1040,7 +1060,9 @@ local function find_target()
             local dx = x - x1
             local dy = y - y1
             last_length = dx * dx + dy + dy
-            if not is_suitable_target(target) or (last_length > 768 * 768) or (IsInvisible(target) and last_length > 32*32) then
+            if not is_suitable_target(target)
+                    or (last_length > (MAX_RADIUS + 128) * (MAX_RADIUS + 128))
+                    or (IsInvisible(target) and last_length > (INVIS_RANGE + 32)*(INVIS_RANGE + 32)) then
                 target = nil
                 last_length = nil
                 last_did_hit = true
@@ -1084,23 +1106,26 @@ local function find_target()
             local dx = x - t_x
             local dy = y - t_y
             local length = dx * dx + dy * dy
+            if (IsInvisible(potential_target) and length > INVIS_RANGE*INVIS_RANGE) or target == potential_target then
+                goto continue
+            end
             local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
             local new_has_ambrosia = has_ambrosia(potential_target)
             local new_target_is_polied = EntityHasTag(target, "polymorphed")
             local success = false
-            if better_player(length, did_hit, new_has_ambrosia, new_target_is_polied, potential_target) then
+            if better_player(length, did_hit, new_has_ambrosia, new_target_is_polied) then
                 success = true
                 state.aim_up = false
                 state.aim_down = false
             elseif did_hit then
                 local did_hit_up, _, _ = RaytracePlatforms(x, y, t_x, t_y - 7)
-                if better_player(length, did_hit_up, new_has_ambrosia, new_target_is_polied, potential_target) then
+                if better_player(length, did_hit_up, new_has_ambrosia, new_target_is_polied) then
                     success = true
                     state.aim_up = true
                     state.aim_down = false
                 elseif did_hit_up then
                     local did_hit_down, _, _ = RaytracePlatforms(x, y, t_x, t_y + 7)
-                    if better_player(length, did_hit_down, new_has_ambrosia, new_target_is_polied, potential_target) then
+                    if better_player(length, did_hit_down, new_has_ambrosia, new_target_is_polied) then
                         success = true
                         target = potential_target
                         state.aim_up = false
@@ -1108,13 +1133,14 @@ local function find_target()
                     end
                 end
             end
-            if success then
+            if success and (not IsInvisible(potential_target) or not did_hit) then
                 last_length = length
                 last_did_hit = did_hit
                 target_has_ambrosia = new_has_ambrosia
                 target_is_polied = new_target_is_polied
                 target = potential_target
             end
+            ::continue::
         end
     end
     if last_did_hit then
@@ -1124,7 +1150,10 @@ local function find_target()
             if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < -100 then
                 local t_x, t_y = EntityGetTransform(id)
                 local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
-                if not did_hit then
+                local dx = x - t_x
+                local dy = y - t_y
+                local length = dx * dx + dy * dy
+                if not did_hit and not (IsInvisible(id) and length > INVIS_RANGE*INVIS_RANGE) then
                     last_did_hit = false
                     target = id
                     target_is_polied = false
@@ -1208,6 +1237,44 @@ local function update()
         teleport_outside_cursed()
     end
     EntityRemoveIngestionStatusEffect(ctx.my_player.entity, "CHARM")
+
+    if target ~= nil
+            and water_potion == nil and good_potion == nil and bad_potion == nil
+            and not last_did_hit then
+        local hp = util.get_ent_health(target)
+        if state.good_wands[target] == nil then
+            state.good_wands[target] = {}
+        end
+        if target_hp[1] == hp then
+            local f = target_hp[2] + 64
+            if table.contains(state.good_wands[target], state.attack_wand) then
+                GamePrint(state.attack_wand)
+                f = f + 256
+            end
+            if GameGetFrameNum() == f then
+                if state.bad_wands[target] == nil then
+                    state.bad_wands[target] = {}
+                end
+                if not table.contains(state.bad_wands[target], state.attack_wand) then
+                    table.insert(state.bad_wands[target], state.attack_wand)
+                end
+                state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[target]))
+                if state.attack_wand == nil then
+                    state.bad_wands[target] = {}
+                    state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
+                end
+                changed_held = true
+                target_hp = {-1, -1}
+            end
+        else
+            if target_hp[1] ~= -1 and not table.contains(state.good_wands[target], state.attack_wand) then
+                table.insert(state.good_wands[target], state.attack_wand)
+            end
+            target_hp = {hp, GameGetFrameNum()}
+        end
+    else
+        target_hp = {-1, -1}
+    end
 end
 
 function module.on_world_update()
