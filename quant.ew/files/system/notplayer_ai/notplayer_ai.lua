@@ -463,7 +463,21 @@ local function fire_wand(enable)
     end
 end
 
+local rpc = net.new_rpc_namespace()
+
+rpc.opts_everywhere()
+function rpc.remove_homing()
+    local x, y = EntityGetTransform(ctx.rpc_player_data.entity)
+    for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
+        local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
+        if homing ~= nil and ComponentGetValue2(homing, "target_tag") ~= "ew_peer" then
+            EntitySetComponentIsEnabled(proj, homing, false)
+        end
+    end
+end
+
 local function init_state()
+    rpc.remove_homing()
     if ctx.proxy_opt.no_material_damage then
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         ComponentSetValue2(damage_model, "materials_damage", false)
@@ -1260,7 +1274,6 @@ local function update()
         if target_hp[1] == hp then
             local f = target_hp[2] + 64
             if table.contains(state.good_wands[target], state.attack_wand) then
-                GamePrint(state.attack_wand)
                 f = f + 256
             end
             if GameGetFrameNum() == f then
