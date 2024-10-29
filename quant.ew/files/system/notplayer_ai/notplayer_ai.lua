@@ -470,6 +470,8 @@ local function init_state()
         LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_protection_fire.xml")
         LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_protection_radioactivity.xml")
         LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_breath_underwater.xml")
+        LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_stun_protection_electricity.xml")
+        LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_stun_protection_freeze.xml")
     end
     local children = EntityGetAllChildren(ctx.my_player.entity)
     local items
