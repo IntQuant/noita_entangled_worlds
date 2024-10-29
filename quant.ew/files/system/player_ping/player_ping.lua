@@ -40,8 +40,12 @@ function module.on_world_update()
 
     local gui_id = 2
 
+    local rebind = tonumber(ModSettingGet("quant.ew.rebind_ping"))
     if (not EntityHasTag(ctx.my_player.entity, "polymorphed") or EntityHasTag(ctx.my_player.entity, "ew_notplayer"))
-            and (InputIsMouseButtonJustDown(3) or InputIsJoystickButtonJustDown(0, 18)) then
+            and (
+            ((rebind == 42 and InputIsMouseButtonJustDown(3))
+                    or (rebind ~= 42 and InputIsKeyJustDown(rebind)))
+                        or InputIsJoystickButtonJustDown(0, 18)) then
         local x,y
         if GameGetIsGamepadConnected() then
             local tx, ty

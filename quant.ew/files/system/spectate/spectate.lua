@@ -299,7 +299,7 @@ function spectate.on_world_update()
         return
     end
 
-    if InputIsKeyJustDown(54) or InputIsJoystickButtonJustDown(0, 13) then
+    if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_lspectate"))) or InputIsJoystickButtonJustDown(0, 13) then
         camera_player = camera_player - 1
         if camera_player < 1 then
             camera_player = last_len
@@ -307,7 +307,7 @@ function spectate.on_world_update()
 
         has_switched = true
         re_cam = true
-    elseif InputIsKeyJustDown(55) or InputIsJoystickButtonJustDown(0, 14) then
+    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_rspectate"))) or InputIsJoystickButtonJustDown(0, 14) then
         camera_player = camera_player + 1
         if camera_player > last_len then
             camera_player = 1
