@@ -5,7 +5,7 @@ for _, flag in ipairs(util.string_split(ctx.proxy_opt.progress, ",")) do
 end
 
 local function has_flag(flag)
-    return flag_present[flag] == true
+    return flag_present[flag] == true or GameHasFlagRun("ew_pf_"..flag)
 end
 
 function EwHasPersistentFlag(flag)
