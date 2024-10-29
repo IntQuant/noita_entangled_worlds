@@ -185,7 +185,7 @@ local was_not_hm = false
 
 local was_notplayer = false
 
-function module.on_world_update_client()
+function module.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
