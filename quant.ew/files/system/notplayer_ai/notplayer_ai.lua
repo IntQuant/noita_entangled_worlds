@@ -644,6 +644,7 @@ local function choose_movement()
         on_right = false
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         local start = (state.dtype == 32 or state.init_timer < 100) and ComponentGetValue2(damage_model, "mLiquidCount") ~= 0
+        state.dtype = 0
         if start or move > GameGetFrameNum() then
             if start then
                 move = GameGetFrameNum() + 120
@@ -766,7 +767,8 @@ local function choose_movement()
     for i = #state.stay_away, 1, -1 do
         local pos = state.stay_away[i]
         local x, y = pos[1], pos[2]
-        if pos[3] ~= nil and not EntityGetIsAlive(pos[3]) then
+        if (pos[3] ~= nil and not EntityGetIsAlive(pos[3]))
+                or (pos[4] ~= nil and pos[4] < GameGetFrameNum()) then
             table.remove(state.stay_away, i)
         else
             local pdx, pdy = x - my_x, y - my_y
@@ -792,7 +794,7 @@ local function choose_movement()
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     if ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
         if state.dtype == 32 or material_gas > GameGetFrameNum() then
-            table.insert(state.stay_away, {my_x, my_y - 4})
+            table.insert(state.stay_away, {my_x, my_y - 4, nil, GameGetFrameNum() + 600})
             material_gas = GameGetFrameNum() + 30
             if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
                 give_space = give_space + 10
@@ -816,7 +818,7 @@ local function choose_movement()
             end
         end
     elseif state.dtype == 32 or state.init_timer < 100 then
-        table.insert(state.stay_away, {my_x, my_y + 4})
+        table.insert(state.stay_away, {my_x, my_y + 4, nil, GameGetFrameNum() + 600})
         move = GameGetFrameNum() + 120
         state.control_w = true
         if my_x > t_x then
@@ -838,6 +840,7 @@ local function choose_movement()
     else
         move = -1
     end
+    state.dtype = 0
     if is_froze and math.abs(dist) < 10 then
         state.control_w = false
     end
@@ -1237,9 +1240,6 @@ local kick_wait = 0
 
 local function update()
     local var = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "VariableStorageComponent", "ew_damage_tracker")
-    if GameGetFrameNum() % 30 == 0 then
-        ComponentSetValue2(var, "value_int", 0)
-    end
     state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
@@ -1308,7 +1308,8 @@ local function update()
 
     if state.target ~= nil
             and water_potion == nil and good_potion == nil and bad_potion == nil
-            and not state.last_did_hit then
+            and not state.last_did_hit
+            and state.init_timer > 100 then
         local hp = util.get_ent_health(state.target)
         if state.good_wands[state.target] == nil then
             state.good_wands[state.target] = {}

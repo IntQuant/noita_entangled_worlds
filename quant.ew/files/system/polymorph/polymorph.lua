@@ -21,7 +21,13 @@ local function entity_changed()
             print("Player entity is equal to WSE, skipping...")
             return
         end
-        
+        for _, com in ipairs(EntityGetComponent(ctx.my_player.entity, "CollisionTriggerComponent") or {}) do
+            if ComponentGetValue2(com, "destroy_this_entity_when_triggered") then
+                ComponentSetValue2(com, "destroy_this_entity_when_triggered", false)
+                ComponentSetValue2(com, "remove_component_when_triggered", true)
+            end
+        end
+
         rpc.change_entity({data = util.serialize_entity(ctx.my_player.entity)})
     else
         rpc.change_entity(nil)
