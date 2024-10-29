@@ -205,6 +205,9 @@ function module.on_world_update_client()
             return
         end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+        if host_playerdata == nil or host_playerdata.entity == nil or not EntityGetIsAlive(host_playerdata.entity) then
+            return
+        end
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
         if x1 == nil or x2 == nil then
             return
