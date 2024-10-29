@@ -12,29 +12,33 @@ local rpc = net.new_rpc_namespace()
 local EnemyData = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
+    bool = {"drop_gold"},
 })
 
 -- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
 local EnemyDataNoMotion = util.make_type({
     u32 = {"enemy_id"},
-    f32 = {"x", "y"}
+    f32 = {"x", "y"},
+    bool = {"drop_gold"}
 })
 
 local EnemyDataWorm = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy", "tx", "ty"},
+    bool = {"drop_gold"}
 })
 
 local EnemyDataKolmi = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
-    bool = {"enabled"},
+    bool = {"enabled", "drop_gold"},
 })
 
 local EnemyDataFish = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
-    u8 = {"r"}
+    u8 = {"r"},
+    bool = {"drop_gold"},
 })
 
 --local EnemyDataSniper = util.make_type({
@@ -265,6 +269,12 @@ function enemy_sync.host_upload_entities()
         --     -- local x, y, r =
         -- end
 
+        local drop_gold = false
+        for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
+            if ComponentGetValue2(com, "script_death") == "data/scripts/items/drop_money.lua" then
+                drop_gold = true
+            end
+        end
         local en_data
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
         if EntityHasTag(enemy_id, "boss_centipede") then
@@ -275,6 +285,7 @@ function enemy_sync.host_upload_entities()
                 vx = vx,
                 vy = vy,
                 enabled = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent", "disabled_at_start") ~= nil,
+                drop_gold = drop_gold
             }
         elseif worm ~= nil then
             local tx, ty = ComponentGetValue2(worm, "mRandomTarget")
@@ -286,12 +297,14 @@ function enemy_sync.host_upload_entities()
                 vy = vy,
                 tx = tx,
                 ty = ty,
+                drop_gold = drop_gold
             }
         elseif math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
             en_data = EnemyDataNoMotion {
                 enemy_id = enemy_id,
                 x = x,
                 y = y,
+                drop_gold = drop_gold
             }
         elseif EntityGetFirstComponentIncludingDisabled(enemy_id, "AdvancedFishAIComponent") ~= nil then
             en_data = EnemyDataFish {
@@ -301,6 +314,7 @@ function enemy_sync.host_upload_entities()
                 vx = vx,
                 vy = vy,
                 r = math.floor((rot % FULL_TURN) / FULL_TURN * 255),
+                drop_gold = drop_gold
             }
         else
             en_data = EnemyData {
@@ -309,6 +323,7 @@ function enemy_sync.host_upload_entities()
                 y = y,
                 vx = vx,
                 vy = vy,
+                drop_gold = drop_gold
             }
         end
 
@@ -601,6 +616,13 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             end
             EntitySetComponentsWithTagEnabled(enemy_id, "enabled_at_start", false)
             EntitySetComponentsWithTagEnabled(enemy_id, "disabled_at_start", true)
+        end
+    end
+    if not en_data.drop_gold then
+        for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
+            if ComponentGetValue2(com, "script_death") == "data/scripts/items/drop_money.lua" then
+                ComponentSetValue2(com, "script_death", "")
+            end
         end
     end
 
