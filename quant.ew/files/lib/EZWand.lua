@@ -121,7 +121,7 @@ wand_props = {
     validate = function(val)
       return test_conditionals{
         { type(val) == "number", "manaMax must be a number" },
-        { val > 0, "manaMax must be a number > 0" },
+        { val >= 0, "manaMax must be a number >= 0" },
       }
     end,
     default = 500,
@@ -130,7 +130,7 @@ wand_props = {
     validate = function(val)
       return test_conditionals{
         { type(val) == "number", "mana must be a number" },
-        { val > 0, "mana must be a number > 0" },
+        { val >= 0, "mana must be a number >= 0" },
       }
     end,
     default = 500,
