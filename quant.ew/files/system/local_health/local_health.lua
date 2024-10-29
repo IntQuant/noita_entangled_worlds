@@ -139,8 +139,6 @@ local function allow_notplayer_perk(perk_id)
         LUKKI_MINION = true,
         CONTACT_DAMAGE = true,
         FOOD_CLOCK = true, -- TODO, should carry over satiation buff
-        TELEPORTITIS = true, -- TODO: teleports to 0,0
-        TELEPORTITIS_DODGE = true,
     }
     return not ignored_perks[perk_id]
 end
