@@ -167,6 +167,10 @@ local function float()
 end
 
 function rpc.teleport_to_tower()
+    local x2, y2 = EntityGetTransform(ctx.my_player.entity)
+    if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
+        return
+    end
     async(function()
         EntitySetTransform(ctx.my_player.entity, 9740, 9100)
         wait(30)
@@ -183,12 +187,25 @@ local was_notplayer = false
 
 function module.on_world_update_client()
     if GameGetFrameNum() % 10 == 7 then
+        local x2, y2 = EntityGetTransform(ctx.my_player.entity)
+        if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
+            local any_not = false
+            for _, player in pairs(ctx.players) do
+                local x, y = EntityGetTransform(player.entity)
+                if not is_in_box(9200, 11000, 8300, 9800, x, y) then
+                    any_not = true
+                end
+            end
+            if any_not then
+                rpc.teleport_to_tower()
+            end
+            return
+        end
         if ctx.my_id == ctx.host_id then
             return
         end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         local x1, y1 = EntityGetTransform(host_playerdata.entity)
-        local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         if x1 == nil or x2 == nil then
             return
         end
@@ -207,19 +224,6 @@ function module.on_world_update_client()
             if not no_tether then
                 tether_enable(false, host_playerdata.entity)
                 no_tether = true
-            end
-            return
-        end
-        if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
-            local any_not = false
-            for _, player in pairs(ctx.players) do
-                local x, y = EntityGetTransform(player.entity)
-                if not (is_in_box(9200, 11000, 8300, 9800, x, y) or is_in_box(-4740, 4140, 8700, 13880, x, y)) then
-                    any_not = true
-                end
-            end
-            if not any_not then
-                rpc.teleport_to_tower()
             end
             return
         end
