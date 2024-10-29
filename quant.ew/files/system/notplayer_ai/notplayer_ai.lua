@@ -410,8 +410,7 @@ local throw = false
 
 local function fire_wand(enable)
     if state.is_pheremoned ~= -120 then
-        local damage = EntityGetFirstComponent(ctx.my_player.entity, "DamageModelComponent")
-        if state.is_pheremoned >= ComponentGetValue2(damage, "mLastDamageFrame") then
+        if state.is_pheremoned >= ComponentGetValue2(state.damage, "mLastDamageFrame") then
             if has_pheremoned(ctx.my_player.entity) then
                 enable = false
             else
@@ -484,8 +483,8 @@ local function init_state()
         emissive = 1,
     })
     rpc.remove_homing()
+    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     if ctx.proxy_opt.no_material_damage then
-        local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         ComponentSetValue2(damage_model, "materials_damage", false)
         LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_protection_fire.xml")
         LoadGameEffectEntityTo(ctx.my_player.entity, "data/entities/misc/effect_protection_radioactivity.xml")
@@ -517,6 +516,7 @@ local function init_state()
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         inv_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
+        damage_model = damage_model,
         items = items,
 
         bad_potions = get_potions_of_type(bad_mats),
@@ -642,8 +642,7 @@ local function choose_movement()
         stop_y = false
         swap_side = false
         on_right = false
-        local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-        local start = (state.dtype == 32 or state.init_timer < 100) and ComponentGetValue2(damage_model, "mLiquidCount") ~= 0
+        local start = (state.dtype == 32 or state.init_timer < 100) and ComponentGetValue2(state.damage_model, "mLiquidCount") ~= 0
         state.dtype = 0
         if start or move > GameGetFrameNum() then
             if start then
@@ -659,6 +658,15 @@ local function choose_movement()
             end
         else
             move = -1
+        end
+
+        local air = ComponentGetValue2(state.damage_model, "air_in_lungs")
+        if air < 1 then
+            state.control_w = true
+            state.control_s = false
+        elseif air < 2 then
+            state.control_s = true
+            state.control_w = false
         end
         return
     end
@@ -791,8 +799,7 @@ local function choose_movement()
         end
     end
 
-    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-    if ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
+    if ComponentGetValue2(state.damage_model, "mLiquidCount") == 0 then
         if state.dtype == 32 or material_gas > GameGetFrameNum() then
             table.insert(state.stay_away, {my_x, my_y - 4, nil, GameGetFrameNum() + 600})
             material_gas = GameGetFrameNum() + 30
@@ -846,6 +853,14 @@ local function choose_movement()
     end
     local did_hit_up, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 40)
     state.control_s = did_hit_up
+    local air = ComponentGetValue2(state.damage_model, "air_in_lungs")
+    if air < 1 then
+        state.control_w = true
+        state.control_s = false
+    elseif air < 2 then
+        state.control_s = true
+        state.control_w = false
+    end
 end
 
 local function teleport_to_area(area)
@@ -1040,9 +1055,8 @@ local function hold_something()
     end
     local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
     local is_ambrosia = has_ambrosia(ctx.my_player.entity)
-    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     local can_hold_potion = state.dtype ~= 32
-    if ComponentGetValue2(damage_model, "mLiquidCount") == 0 then
+    if ComponentGetValue2(state.damage_model, "mLiquidCount") == 0 then
         can_hold_potion = true
     elseif state.init_timer < 100 then
         can_hold_potion = false
