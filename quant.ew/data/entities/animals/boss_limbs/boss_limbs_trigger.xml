@@ -1,0 +1,19 @@
+<Entity>
+    <CollisionTriggerComponent
+      width="144"
+      height="70"
+      radius="160"
+      required_tag="ew_peers" >
+      </CollisionTriggerComponent>
+
+    <LuaComponent
+      script_collision_trigger_hit="data/entities/animals/boss_limbs/boss_limbs_spawn.lua"
+      execute_every_n_frame="-1" >
+    </LuaComponent>
+
+    <SpriteComponent
+        image_file="data/entities/animals/boss_limbs/boss_limbs_dormant.png"
+        offset_y="23.5"
+        offset_x="21.5" >
+    </SpriteComponent>
+</Entity>
