@@ -1389,6 +1389,15 @@ local function update()
         end
         state.stationary_check = {}
     end
+    if GameGetFrameNum() % 10 == 6 then
+        for _, ent in ipairs(EntityGetInRadius(mx, my, 256)) do
+            if EntityGetFirstComponentIncludingDisabled(ent, "TeleportComponent") ~= nil and not table.contains(state.ignore, ent) then
+                table.insert(state.ignore, ent)
+                local x, y = EntityGetTransform(ent)
+                table.insert(state.stay_away, {x, y, ent})
+            end
+        end
+    end
 end
 
 function module.on_world_update()
