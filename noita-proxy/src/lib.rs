@@ -799,7 +799,10 @@ impl App {
                     .into_rgba8();
             }
             let old_hue = self.appearance.hue;
-            ui.add(Slider::new(&mut self.appearance.hue, 0.0..=360.0).text(tr("Shift-hue")));
+            let old = ui.style_mut().spacing.slider_width;
+            ui.style_mut().spacing.slider_width = 256.0;
+            ui.add(Slider::new(&mut self.appearance.hue, 0.0..=360.0).text(tr("Shift-hue")).min_decimals(0).max_decimals(0).step_by(2.0));
+            ui.style_mut().spacing.slider_width = old;
             if old_hue != self.appearance.hue {
                 let diff = self.appearance.hue - old_hue;
                 shift_hue(diff, &mut self.appearance.player_color.player_main);
