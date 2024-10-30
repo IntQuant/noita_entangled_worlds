@@ -770,6 +770,7 @@ local function choose_movement()
         end
     end
 
+    local closest = {500 * 500, 500, 500}
     for i = #state.stay_away, 1, -1 do
         local pos = state.stay_away[i]
         local x, y = pos[1], pos[2]
@@ -779,21 +780,26 @@ local function choose_movement()
         else
             local pdx, pdy = x - my_x, y - my_y
             local r = pdx * pdx + pdy * pdy
-            if r <= 64 * 64 then
-                if pdx < 0 then
-                    state.control_d = true
-                    state.control_a = false
-                else
-                    state.control_a = true
-                    state.control_d = false
-                end
-                if pdy < 0 then
-                    state.control_w = false
-                else
-                    state.control_w = true
-                end
-                break
+            if r < closest[1] then
+                closest = {r, pdx, pdy}
             end
+        end
+    end
+    local pdx, pdy = closest[2], closest[3]
+    GamePrint(pdx)
+    GamePrint(pdy)
+    if math.abs(pdy) < 60 and math.abs(pdx) < 55 then
+        if pdx < 0 then
+            state.control_d = true
+            state.control_a = false
+        else
+            state.control_a = true
+            state.control_d = false
+        end
+        if pdy < 0 then
+            state.control_w = false
+        else
+            state.control_w = true
         end
     end
 
