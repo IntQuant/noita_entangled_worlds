@@ -296,11 +296,6 @@ local function is_frozen(entity)
     return frozen
 end
 
-
-local bad_potion
-local good_potion
-local water_potion
-
 local dont_throw = true
 local stop_potion = false
 
@@ -323,7 +318,7 @@ local function arc_potion(world_x, world_y)
     local interior = v*v*v*v - g*g*dx*dx - 2*g*dy*v*v
     if interior < 0 then
         dont_throw = true
-        bad_potion = nil
+        state.bad_potion = nil
         stop_potion = true
         return
     end
@@ -374,19 +369,19 @@ end
 
 
 local function aim_at(world_x, world_y)
-    if good_potion ~= nil then
+    if state.good_potion ~= nil then
         ComponentSetValue2(state.control_component, "mAimingVector", 0, 312)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", 0, 1)
         ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
         return
-    elseif water_potion ~= nil and not throw_water then
+    elseif state.water_potion ~= nil and not throw_water then
         ComponentSetValue2(state.control_component, "mAimingVector", 0, -312)
         ComponentSetValue2(state.control_component, "mAimingVectorNormalized", 0, -1)
         ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
         return
     end
 
-    if bad_potion ~= nil or throw_water then
+    if state.bad_potion ~= nil or throw_water then
         arc_potion(world_x, world_y)
     else
         local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
@@ -421,7 +416,7 @@ local function fire_wand(enable)
             state.is_pheremoned = 0
         end
     end
-    if bad_potion ~= nil or good_potion ~= nil or throw_water then
+    if state.bad_potion ~= nil or state.good_potion ~= nil or throw_water then
         ComponentSetValue2(state.control_component, "mButtonDownFire", false)
         ComponentSetValue2(state.control_component, "mButtonDownFire2", false)
         if dont_throw then
@@ -435,7 +430,7 @@ local function fire_wand(enable)
         end
         throw = true
     else
-        if water_potion ~= nil then
+        if state.water_potion ~= nil then
             aim_at(0, 0)
             enable = true
         end
@@ -522,6 +517,9 @@ local function init_state()
         bad_potions = get_potions_of_type(bad_mats),
         good_potions = get_potions_of_type(good_mats),
         water_potions = get_potions_of_type(water_mats),
+        bad_potion = nil,
+        good_potion = nil,
+        water_potion = nil,
 
         had_potion = false,
 
@@ -581,7 +579,7 @@ local function is_suitable_target(entity)
 end
 
 local function choose_wand_actions()
-    if (state.attack_wand ~= nil or bad_potion ~= nil) and state.target ~= nil and EntityGetIsAlive(state.target) then
+    if (state.attack_wand ~= nil or state.bad_potion ~= nil) and state.target ~= nil and EntityGetIsAlive(state.target) then
         local t_x, t_y = EntityGetFirstHitboxCenter(state.target)
         if t_x == nil then
             t_x, t_y = EntityGetTransform(state.target)
@@ -642,7 +640,7 @@ local function choose_movement()
         stop_y = false
         swap_side = false
         on_right = false
-        local start = (state.dtype == 32 or state.init_timer < 100) and ComponentGetValue2(state.damage_model, "mLiquidCount") ~= 0
+        local start = (state.dtype == 32 or state.init_timer < no_shoot_time) and ComponentGetValue2(state.damage_model, "mLiquidCount") ~= 0
         state.dtype = 0
         if start or move > GameGetFrameNum() then
             if start then
@@ -824,7 +822,7 @@ local function choose_movement()
                 move = -1
             end
         end
-    elseif state.dtype == 32 or state.init_timer < 100 then
+    elseif state.dtype == 32 or state.init_timer < no_shoot_time then
         table.insert(state.stay_away, {my_x, my_y + 4, nil, GameGetFrameNum() + 600})
         move = GameGetFrameNum() + 120
         state.control_w = true
@@ -1015,15 +1013,15 @@ local function hold_something()
             end
         end
     end
-    if bad_potion ~= nil and (holding == nil or holding ~= bad_potion) then
+    if state.bad_potion ~= nil and (holding == nil or holding ~= state.bad_potion) then
         table.remove(state.bad_potions, i)
-        bad_potion = nil
+        state.bad_potion = nil
         stop_potion = true
         changed_held = true
     end
-    if good_potion ~= nil and (holding == nil or holding ~= good_potion) then
+    if state.good_potion ~= nil and (holding == nil or holding ~= state.good_potion) then
         table.remove(state.good_potions, 1)
-        good_potion = nil
+        state.good_potion = nil
         stop_potion = true
         bathe = true
         changed_held = true
@@ -1032,15 +1030,15 @@ local function hold_something()
     local target_is_ambrosia = has_ambrosia(state.target) and not state.last_did_hit
     if state.water_potions[1] == nil or not is_potion_of_type(state.water_potions[1], water_mats) then
         table.remove(state.water_potions, 1)
-        if water_potion ~= nil then
-            water_potion = nil
+        if state.water_potion ~= nil then
+            state.water_potion = nil
             throw_water = false
             bathe = false
             changed_held = true
         end
     end
-    if water_potion ~= nil and (((state.init_timer >= no_shoot_time and not state.last_did_hit) or not douse) or (holding == nil or holding ~= water_potion) or (throw_water and not target_is_ambrosia)) then
-        water_potion = nil
+    if state.water_potion ~= nil and (((state.init_timer >= no_shoot_time and not state.last_did_hit) or not douse) or (holding == nil or holding ~= state.water_potion) or (throw_water and not target_is_ambrosia)) then
+        state.water_potion = nil
         throw_water = false
         bathe = false
         changed_held = true
@@ -1081,30 +1079,30 @@ local function hold_something()
             EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_inventory", true)
         end
     end
-    if has_water_potion or water_potion ~= nil then
+    if has_water_potion or state.water_potion ~= nil then
         np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
-        if water_potion == nil then
-            water_potion = state.water_potions[1]
+        if state.water_potion == nil then
+            state.water_potion = state.water_potions[1]
             changed_held = true
         end
         throw_water = target_is_ambrosia
         bathe = not target_is_ambrosia
-    elseif (has_bad_potion or bad_potion ~= nil) and  (can_not_tablet or tablet) then
+    elseif (has_bad_potion or state.bad_potion ~= nil) and  (can_not_tablet or tablet) then
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
         end
         np.SetActiveHeldEntity(state.entity, state.bad_potions[i], false, false)
-        if bad_potion == nil then
-            bad_potion = state.bad_potions[i]
+        if state.bad_potion == nil then
+            state.bad_potion = state.bad_potions[i]
             changed_held = true
         end
-    elseif has_good_potion or good_potion ~= nil then
+    elseif has_good_potion or state.good_potion ~= nil then
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
         end
         np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
-        if good_potion == nil then
-            good_potion = state.good_potions[1]
+        if state.good_potion == nil then
+            state.good_potion = state.good_potions[1]
             changed_held = true
         end
     else
@@ -1250,6 +1248,89 @@ local function find_target()
     end
 end
 
+local function cycle_wands()
+    if state.target ~= nil
+            and state.water_potion == nil and state.good_potion == nil and state.bad_potion == nil
+            and not state.last_did_hit
+            and state.init_timer > no_shoot_time then
+        local hp = util.get_ent_health(state.target)
+        if state.good_wands[state.target] == nil then
+            state.good_wands[state.target] = {}
+        end
+        if state.target_hp[1] == hp then
+            local f = state.target_hp[2] + 64
+            if table.contains(state.good_wands[state.target], state.attack_wand) then
+                f = f + 256
+            end
+            if GameGetFrameNum() == f then
+                if state.bad_wands[state.target] == nil then
+                    state.bad_wands[state.target] = {}
+                end
+                if not table.contains(state.bad_wands[state.target], state.attack_wand) then
+                    table.insert(state.bad_wands[state.target], state.attack_wand)
+                end
+                state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target]))
+                if state.attack_wand == nil then
+                    state.bad_wands[state.target] = {}
+                    state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
+                end
+                changed_held = true
+                state.target_hp = {-1, -1}
+            end
+        else
+            if state.target_hp[1] ~= -1 and not table.contains(state.good_wands[state.target], state.attack_wand) then
+                table.insert(state.good_wands[state.target], state.attack_wand)
+            end
+            state.target_hp = {hp, GameGetFrameNum()}
+        end
+    else
+        state.target_hp = {-1, -1}
+    end
+end
+
+local function stay_away_from()
+    local mx, my = EntityGetTransform(ctx.my_player.entity)
+    if GameGetFrameNum() % 4 == 0 then
+        for _, proj in ipairs(EntityGetInRadiusWithTag(mx, my, 256, "projectile")) do
+            if not table.contains(state.ignore, proj) then
+                local com = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
+                if EntityGetFilename(proj) == "data/entities/projectiles/deck/regeneration_field.xml"
+                        or (com ~= nil and ComponentGetValue2(com, "mShooterHerdId") == state.herd_id
+                            and (ComponentGetValue2(com, "friendly_fire")
+                                or (ComponentGetValue2(com, "collide_with_shooter_frames") == -1
+                                    and ComponentGetValue2(com, "mWhoShot") == ctx.my_player.entity))) then
+                    table.insert(state.ignore, proj)
+                    goto continue
+                end
+                local x, y = EntityGetTransform(proj)
+                state.stationary_check[proj] = {x, y}
+            end
+            ::continue::
+        end
+    elseif GameGetFrameNum() % 4 == 2 then
+        for _, proj in ipairs(EntityGetInRadiusWithTag(mx, my, 256, "projectile")) do
+            local x, y = EntityGetTransform(proj)
+            local p = state.stationary_check[proj]
+            if p ~= nil then
+                table.insert(state.ignore, proj)
+                if p[1] == x and p[2] == y then
+                    table.insert(state.stay_away, {x, y, proj})
+                end
+            end
+        end
+        state.stationary_check = {}
+    end
+    if GameGetFrameNum() % 10 == 6 then
+        for _, ent in ipairs(EntityGetInRadius(mx, my, 256)) do
+            if EntityGetFirstComponentIncludingDisabled(ent, "TeleportComponent") ~= nil and not table.contains(state.ignore, ent) then
+                table.insert(state.ignore, ent)
+                local x, y = EntityGetTransform(ent)
+                table.insert(state.stay_away, {x, y, ent})
+            end
+        end
+    end
+end
+
 local kick_wait = 0
 
 local function update()
@@ -1270,7 +1351,7 @@ local function update()
 
     find_target()
 
-    do_kick = state.last_length ~= nil and state.last_length < 100
+    do_kick = state.last_length ~= nil and state.last_length < no_shoot_time
 
     hold_something()
 
@@ -1320,84 +1401,9 @@ local function update()
     end
     EntityRemoveIngestionStatusEffect(ctx.my_player.entity, "CHARM")
 
-    if state.target ~= nil
-            and water_potion == nil and good_potion == nil and bad_potion == nil
-            and not state.last_did_hit
-            and state.init_timer > 100 then
-        local hp = util.get_ent_health(state.target)
-        if state.good_wands[state.target] == nil then
-            state.good_wands[state.target] = {}
-        end
-        if state.target_hp[1] == hp then
-            local f = state.target_hp[2] + 64
-            if table.contains(state.good_wands[state.target], state.attack_wand) then
-                f = f + 256
-            end
-            if GameGetFrameNum() == f then
-                if state.bad_wands[state.target] == nil then
-                    state.bad_wands[state.target] = {}
-                end
-                if not table.contains(state.bad_wands[state.target], state.attack_wand) then
-                    table.insert(state.bad_wands[state.target], state.attack_wand)
-                end
-                state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target]))
-                if state.attack_wand == nil then
-                    state.bad_wands[state.target] = {}
-                    state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
-                end
-                changed_held = true
-                state.target_hp = {-1, -1}
-            end
-        else
-            if state.target_hp[1] ~= -1 and not table.contains(state.good_wands[state.target], state.attack_wand) then
-                table.insert(state.good_wands[state.target], state.attack_wand)
-            end
-            state.target_hp = {hp, GameGetFrameNum()}
-        end
-    else
-        state.target_hp = {-1, -1}
-    end
+    cycle_wands()
 
-    local mx, my = EntityGetTransform(ctx.my_player.entity)
-    if GameGetFrameNum() % 4 == 0 then
-        for _, proj in ipairs(EntityGetInRadiusWithTag(mx, my, 256, "projectile")) do
-            if not table.contains(state.ignore, proj) then
-                local com = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
-                if EntityGetFilename(proj) == "data/entities/projectiles/deck/regeneration_field.xml"
-                        or (com ~= nil and ComponentGetValue2(com, "mShooterHerdId") == state.herd_id
-                            and (ComponentGetValue2(com, "friendly_fire")
-                                or (ComponentGetValue2(com, "collide_with_shooter_frames") == -1
-                                    and ComponentGetValue2(com, "mWhoShot") == ctx.my_player.entity))) then
-                    table.insert(state.ignore, proj)
-                    goto continue
-                end
-                local x, y = EntityGetTransform(proj)
-                state.stationary_check[proj] = {x, y}
-            end
-            ::continue::
-        end
-    elseif GameGetFrameNum() % 4 == 2 then
-        for _, proj in ipairs(EntityGetInRadiusWithTag(mx, my, 256, "projectile")) do
-            local x, y = EntityGetTransform(proj)
-            local p = state.stationary_check[proj]
-            if p ~= nil then
-                table.insert(state.ignore, proj)
-                if p[1] == x and p[2] == y then
-                    table.insert(state.stay_away, {x, y, proj})
-                end
-            end
-        end
-        state.stationary_check = {}
-    end
-    if GameGetFrameNum() % 10 == 6 then
-        for _, ent in ipairs(EntityGetInRadius(mx, my, 256)) do
-            if EntityGetFirstComponentIncludingDisabled(ent, "TeleportComponent") ~= nil and not table.contains(state.ignore, ent) then
-                table.insert(state.ignore, ent)
-                local x, y = EntityGetTransform(ent)
-                table.insert(state.stay_away, {x, y, ent})
-            end
-        end
-    end
+    stay_away_from()
 end
 
 function module.on_world_update()
