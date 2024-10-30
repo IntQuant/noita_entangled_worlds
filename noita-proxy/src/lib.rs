@@ -156,7 +156,7 @@ enum AppState {
 struct PlayerAppearance {
     player_color: PlayerColor,
     player_picker: PlayerPicker,
-    hue: f32,
+    hue: f64,
     cosmetics: (bool, bool, bool),
 }
 
@@ -204,23 +204,23 @@ impl Default for AppSavedState {
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
 pub struct PlayerColor {
-    player_main: [u8; 4],
-    player_alt: [u8; 4],
-    player_arm: [u8; 4],
-    player_cape: [u8; 4],
-    player_cape_edge: [u8; 4],
-    player_forearm: [u8; 4],
+    player_main: [f64; 4],
+    player_alt: [f64; 4],
+    player_arm: [f64; 4],
+    player_cape: [f64; 4],
+    player_cape_edge: [f64; 4],
+    player_forearm: [f64; 4],
 }
 
 impl Default for PlayerColor {
     fn default() -> Self {
         Self {
-            player_main: [155, 111, 154, 255],
-            player_alt: [127, 84, 118, 255],
-            player_arm: [89, 67, 84, 255],
-            player_cape: [118, 84, 127, 255],
-            player_cape_edge: [154, 111, 155, 255],
-            player_forearm: [158, 115, 154, 255],
+            player_main: [155.0, 111.0, 154.0, 255.0],
+            player_alt: [127.0, 84.0, 118.0, 255.0],
+            player_arm: [89.0, 67.0, 84.0, 255.0],
+            player_cape: [118.0, 84.0, 127.0, 255.0],
+            player_cape_edge: [154.0, 111.0, 155.0, 255.0],
+            player_forearm: [158.0, 115.0, 154.0, 255.0],
         }
     }
 }
