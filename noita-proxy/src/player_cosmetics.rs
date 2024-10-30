@@ -51,7 +51,7 @@ pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: 
 }
 
 fn to_u8(c: [f64; 4]) -> [u8; 4] {
-    [c[0] as u8, c[1] as u8, c[2] as u8, c[3] as u8]
+    [c[0].round() as u8, c[1].round() as u8, c[2].round() as u8, c[3].round() as u8]
 }
 
 pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
@@ -119,11 +119,11 @@ fn rgb_to_oklch(color: &mut [f64; 4]) {
     let mut l = 0.4122214708 * color[0] + 0.5363325363 * color[1] + 0.0514459929 * color[2];
     let mut m = 0.2119034982 * color[0] + 0.6806995451 * color[1] + 0.1073969566 * color[2];
     let mut s = 0.0883024619 * color[0] + 0.2817188376 * color[1] + 0.6299787005 * color[2];
-    
+
     l = l.cbrt();
     m = m.cbrt();
     s = s.cbrt();
-    
+
     color[0] = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
     color[1] = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
     color[2] = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
@@ -191,9 +191,10 @@ pub fn player_skin_display_color_picker(
 }
 
 pub fn color_picker(ui: &mut Ui, color: &mut [f64; 4]) {
-    let mut rgb = Color32::from_rgb(color[0] as u8, color[1] as u8, color[2] as u8);
-    color_picker_color32(ui, &mut rgb, Alpha::Opaque);
-    *color = [rgb.r() as f64, rgb.g() as f64, rgb.b() as f64, 255.0]
+    let mut rgb = Color32::from_rgb(color[0].round() as u8, color[1].round() as u8, color[2].round() as u8);
+    if color_picker_color32(ui, &mut rgb, Alpha::Opaque) {
+        *color = [rgb.r() as f64, rgb.g() as f64, rgb.b() as f64, 255.0]
+    }
 }
 
 pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
