@@ -28,12 +28,10 @@ local function set_cooldown(on_cooldown, frames)
     })
 end
 
-local genome = EntityGetFirstComponentIncludingDisabled(entity_id, "GenomeDataComponent")
-local my_herd
-if genome ~= nil then
-    my_herd = ComponentGetValue(genome, "herd_id")
-end
-
+local my_herd = -1
+edit_component(root_id, "GenomeDataComponent", function(comp,vars)
+    my_herd = ComponentGetValue2( comp, "herd_id" )
+end)
 
 -- look for enemy projectiles
 for _,proj_id in ipairs(EntityGetInRadiusWithTag( pos_x, pos_y, sensor_range, "projectile" )) do
