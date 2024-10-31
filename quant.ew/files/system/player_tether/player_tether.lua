@@ -188,12 +188,23 @@ local was_notplayer = false
 function module.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
-        if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
+        if np.GetGameModeNr() ~= 2
+                and tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) == 0
+                and is_in_box(9200, 11000, 8300, 9800, x2, y2) then
             local any_not = false
             for _, player in pairs(ctx.players) do
                 local x, y = EntityGetTransform(player.entity)
-                if not is_in_box(9200, 11000, 8300, 9800, x, y) then
+                if not is_in_box(9200, 11000, 4000, 9800, x, y) then
                     any_not = true
+                end
+                if is_in_box(0, 1000, -2000, 0, x, y) then
+                    async(function()
+                        EntitySetTransform(ctx.my_player.entity, 770, 900)
+                        wait(30)
+                        EntitySetTransform(ctx.my_player.entity, 770, 900)
+                        float()
+                    end)
+                    return
                 end
             end
             if any_not then
