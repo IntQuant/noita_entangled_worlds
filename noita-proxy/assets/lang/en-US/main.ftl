@@ -68,6 +68,8 @@ launcher_no_command = Can't start noita: no launch command.
 launcher_no_command_2 = Launch command can be specified with --launch-cmd <command> option.
 launcher_no_command_3 = You can put `noita-proxy --launch-cmd "%command%"` in steam's launch options to intercept whatever command steam uses to start the game.
 launcher_start_game = Start noita
+launcher_end_run = End run
+launcher_end_run_confirm = Confirm
 launcher_only_when_awaiting = Can only launch the game in "waiting for noita connection" state.
 
 connect_settings = Game settings
@@ -75,6 +77,7 @@ connect_settings_debug = Debug settings
 connect_settings_debug_en = Debug/cheat mode
 connect_settings_debug_fixed_seed = Use fixed seed
 connect_settings_seed = Seed:
+connect_settings_max_players = Max players
 connect_settings_wsv = World sync version to use:
 connect_settings_player_tether = Player tether enabled
 connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
@@ -92,6 +95,9 @@ Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
 local_health_desc_1 = Every player has their own health, run ends when all player are dead.
 local_health_desc_2 = There is a respawn mechanic.
+Health-percent-lost-on-reviving = HP percent lost on reviving
+global_hp_loss = Lose HP globally
+no_material_damage = No material damage
 shared_health_desc_1 = Health is shared, but scales with player count.
 shared_health_desc_2 = Percentage-based damage and full heals are adjusted.
 shared_health_desc_3 = The original mode.
@@ -128,6 +134,8 @@ Shift-hue = Shift hue
 Show-debug-info = Show debug/connection info
 hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
 hint_ping = [Middle mouse button or right thumb stick] spawns a ping
+Show-debug-plot = Show debug plot
+Record-everything-sent-to-noita = Record EVERYTHING sent to noita.
 
 ## IP Connect
 

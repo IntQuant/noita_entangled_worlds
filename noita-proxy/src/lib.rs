@@ -731,10 +731,10 @@ impl App {
                     ui.label(tr("local_health_desc_1"));
                     ui.label(tr("local_health_desc_2"));
                     ui.add_space(5.0);
-                    ui.label("hp % lost on reviving");
+                    ui.label(tr("Health-percent-lost-on-reviving"));
                     ui.add(Slider::new(&mut game_settings.health_lost_on_revive, 0..=100));
-                    ui.checkbox(&mut game_settings.global_hp_loss, "lose hp globally");
-                    ui.checkbox(&mut game_settings.no_material_damage, "no material damage");
+                    ui.checkbox(&mut game_settings.global_hp_loss, tr("global_hp_loss"));
+                    ui.checkbox(&mut game_settings.no_material_damage, tr("no_material_damage"));
                 }
             }
         });
@@ -754,7 +754,7 @@ impl App {
             ui.add(DragValue::new(&mut game_settings.seed));
         });
         ui.add_space(10.0);
-        ui.label("Max players");
+        ui.label(tr("connect_settings_max_players"));
         ui.add(Slider::new(&mut game_settings.max_players, 2..=250));
         ui.add_space(10.0);
         ui.label(tr("Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients"));
@@ -1016,11 +1016,11 @@ impl eframe::App for App {
 
                     if netman.peer.is_host() {
                         ui.add_space(15.0);
-                        if !self.end_run_confirmation && ui.button("End run").clicked()
+                        if !self.end_run_confirmation && ui.button(tr("launcher_end_run")).clicked()
                         {
                             self.end_run_confirmation = true
                         }
-                        else if self.end_run_confirmation && ui.button("Confirm").clicked()
+                        else if self.end_run_confirmation && ui.button(tr("launcher_end_run_confirm")).clicked()
                         {
                             self.end_run_confirmation = false;
                             netman.end_run.store(true, Ordering::Relaxed)
@@ -1085,10 +1085,10 @@ impl eframe::App for App {
                                 });
                             };
                             Plot::new("map").data_aspect(1.0).show(ui, build_fn);
-                        } else if ui.button("Show debug plot").clicked() {
+                        } else if ui.button(tr("Show-debug-plot")).clicked() {
                             self.show_map_plot = true;
                         }
-                        ui.checkbox(&mut self.app_saved_state.record_all, "Record EVERYTHING sent to noita.");
+                        ui.checkbox(&mut self.app_saved_state.record_all, tr("Record-everything-sent-to-noita"));
                     }
                 });
                 netman

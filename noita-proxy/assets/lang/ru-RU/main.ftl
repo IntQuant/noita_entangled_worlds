@@ -47,7 +47,7 @@ selfupdate_updated = Прокси был обновлён! Теперь его �
 selfupdate_unpacking = Распаковка...
 
 noita_not_yet = Ещё не готово. Подождите, прежде чем запускать игру.
-noita_can_connect = Ожидается подключение из игры. Можно запускать игру.
+noita_can_connect = Ожидается подключение. Можно запускать игру.
 noita_connected = Локальный инстанс Ноиты подключен.
 
 netman_save_lobby = Сохранить код лобби в буфер обмена
@@ -68,13 +68,16 @@ launcher_no_command = Не получается запустить Noita: отс
 launcher_no_command_2 = Launch command can be specified with --launch-cmd <command> option.
 launcher_no_command_3 = You can put `noita-proxy --launch-cmd "%command%"` in steam's launch options to intercept whatever command steam uses to start the game.
 launcher_start_game = Запустить Noita
-launcher_only_when_awaiting = Can only launch the game in "waiting for noita connection" state.
+launcher_end_run = Закончить забег
+launcher_end_run_confirm = Подтвердить
+launcher_only_when_awaiting = Запустить игру можно только в состоянии «Ожидается подключение»
 
 connect_settings = Настройки игры
 connect_settings_debug = Настройки разработчика
 connect_settings_debug_en = Включить читы
 connect_settings_debug_fixed_seed = Фиксированный сид мира
 connect_settings_seed = Сид:
+connect_settings_max_players = Максимум игроков
 connect_settings_wsv = Версия синхронизатора мира:
 connect_settings_player_tether = Предел расстояния до хоста
 connect_settings_player_tether_desc = Телепортирует игроков к хосту, если они слишком далеко.
@@ -86,12 +89,15 @@ connect_settings_autostart = Запускать игру автоматичес�
 
 ## Game settings
 
-Health-per-player = Health per player
+Health-per-player = Стартовое здоровье
 Enable-friendly-fire = Включить дружественный огонь
 Have-perk-pools-be-independent-of-each-other = Сделать перки локальными для каждого игрока
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Количество чанков, загруженных хостом за один раз, враги и физические объекты должны быть загружены хостом для передачи другим игрокам
 local_health_desc_1 = У каждого игрока свое здоровье, забег заканчивается, когда все игроки умрут.
 local_health_desc_2 = Включена механика возрождения.
+Health-percent-lost-on-reviving = Процент потери здоровья при возрождении
+global_hp_loss = Все игроки теряют здоровье
+no_material_damage = Отключить урон от физики
 shared_health_desc_1 = Здоровье общее, но скалируется в зависимости от количества игроков.
 shared_health_desc_2 = Процентный урон и полное исцеление скорректированы.
 shared_health_desc_3 = Оригинальный игровой режим.
@@ -111,25 +117,27 @@ An-in-progress-run-has-been-detected = Была обнаружена незав�
 
 ## Player appearance
 
+Shift-hue = Смещение тона
+Main-color = Первичный
+Alt-color = Вторичный
+Arm-color = Правая рука
+Forearm-color = Левая руки
+Cape-color = Плащ
+Cape-edge-color = Кромка плаща
 Gem = Самоцвет
 Amulet = Амулет
 Crown = Корона
-Cape-edge-color = Цвет кромки плаща
-Cape-color = Цвет плаща
-Forearm-color = Цвет левой руки
-Arm-color = Цвет правой руки
-Alt-color = Дополнительный цвет
-Main-color = Главный цвет
 Reset-colors-to-default = Сбросить цвета
-Shift-hue = Смещение тона
 
 ## Connected
 
 Show-debug-info = Показать отладочную информацию
+hint_ping = [Средняя кнопка мыши или правый стик] создают метку
 hint_spectate = Используйте [',' или левый сегмент d-pad] и ['.' или правый сегмент d-pad] для наблюдения за другими игроками.
-hint_ping = [Средняя кнопка мыши или правый стик] создают пинг
+Show-debug-plot = Показать отладочный график
+Record-everything-sent-to-noita = Записывать всё что отправляется в игру
 
 ## IP Connect
 
-ip_could_not_connect = Could not connect
-ip_wait_for_connection = Connecting to ip...
+ip_could_not_connect = Не удалось подключиться
+ip_wait_for_connection = Подключение к ip...
