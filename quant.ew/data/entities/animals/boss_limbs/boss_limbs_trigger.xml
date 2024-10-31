@@ -3,7 +3,7 @@
       width="144"
       height="70"
       radius="160"
-      required_tag="ew_peers" >
+      required_tag="ew_peer" >
       </CollisionTriggerComponent>
 
     <LuaComponent
