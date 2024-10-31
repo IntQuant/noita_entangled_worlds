@@ -822,8 +822,10 @@ impl App {
                 );
             });
             if ui.button(tr("Reset-colors-to-default")).clicked() {
-                self.appearance.player_color = PlayerColor::default();
-                self.appearance.hue = 0.0
+                let old = self.appearance.clone();
+                self.appearance = Default::default();
+                self.appearance.cosmetics = old.cosmetics;
+                self.appearance.player_picker = old.player_picker;
             }
         }
     }

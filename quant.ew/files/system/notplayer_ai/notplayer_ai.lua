@@ -786,8 +786,6 @@ local function choose_movement()
         end
     end
     local pdx, pdy = closest[2], closest[3]
-    GamePrint(pdx)
-    GamePrint(pdy)
     if math.abs(pdy) < 60 and math.abs(pdx) < 55 then
         if pdx < 0 then
             state.control_d = true

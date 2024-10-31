@@ -119,7 +119,13 @@ pub fn add_cosmetics(
     }
 }
 
-fn rgb_to_oklch(color: &mut [f64; 4]) {
+pub fn get_lch(color: [f64; 4]) -> (f64, f64, f64) {
+    let c = (color[1].powi(2) + color[2].powi(2)).sqrt();
+    let h = color[2].atan2(color[1]);
+    (color[0], c, h)
+}
+
+pub fn rgb_to_oklch(color: &mut [f64; 4]) {
     let mut l = 0.4122214708 * color[0] + 0.5363325363 * color[1] + 0.0514459929 * color[2];
     let mut m = 0.2119034982 * color[0] + 0.6806995451 * color[1] + 0.1073969566 * color[2];
     let mut s = 0.0883024619 * color[0] + 0.2817188376 * color[1] + 0.6299787005 * color[2];
@@ -150,8 +156,7 @@ fn oklch_to_rgb(color: &mut [f64; 4]) {
 fn shift_hue_by(color: &mut [f64; 4], diff: f64) {
     let tau = std::f64::consts::TAU;
     let diff = tau * diff / 360.0;
-    let c = (color[1].powi(2) + color[2].powi(2)).sqrt();
-    let hue = color[2].atan2(color[1]);
+    let (_, c, hue) = get_lch(*color);
     let mut new_hue = (hue + diff) % tau;
     if new_hue.is_sign_negative() {
         new_hue += tau;
