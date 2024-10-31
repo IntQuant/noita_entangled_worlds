@@ -50,8 +50,12 @@ pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: 
     }
 }
 
+fn f_to_u(n: f64) -> u8 {
+    255.0_f64.min(0.0_f64.max(n.round())) as u8
+}
+
 fn to_u8(c: [f64; 4]) -> [u8; 4] {
-    [c[0].round() as u8, c[1].round() as u8, c[2].round() as u8, c[3].round() as u8]
+    [f_to_u(c[0]), f_to_u(c[1]), f_to_u(c[2]), f_to_u(c[3])]
 }
 
 pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
@@ -191,7 +195,7 @@ pub fn player_skin_display_color_picker(
 }
 
 pub fn color_picker(ui: &mut Ui, color: &mut [f64; 4]) {
-    let mut rgb = Color32::from_rgb(color[0].round() as u8, color[1].round() as u8, color[2].round() as u8);
+    let mut rgb = Color32::from_rgb(f_to_u(color[0]), f_to_u(color[1]), f_to_u(color[2]));
     if color_picker_color32(ui, &mut rgb, Alpha::Opaque) {
         *color = [rgb.r() as f64, rgb.g() as f64, rgb.b() as f64, 255.0]
     }
