@@ -248,12 +248,10 @@ impl NetManager {
                     cli = false
                 }
             }
-            if self.friendly_fire.load(atomic::Ordering::Relaxed) {
+            if self.friendly_fire.load(atomic::Ordering::Relaxed) && timer.elapsed().as_secs() > 4 {
                 let team = self.friendly_fire_team.load(atomic::Ordering::Relaxed);
-                if timer.elapsed().as_secs() > 4 {
-                    state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
-                    timer = Instant::now()
-                }
+                state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
+                timer = Instant::now()
             }
             if self.end_run.load(atomic::Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {

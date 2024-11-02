@@ -1098,7 +1098,8 @@ impl eframe::App for App {
                     if netman.friendly_fire.load(Ordering::Relaxed) {
                         let last = self.app_saved_state.game_settings.friendly_fire_team;
                         ui.add(Slider::new(&mut self.app_saved_state.game_settings.friendly_fire_team, -1..=16));
-                        if last != self.app_saved_state.game_settings.friendly_fire_team {
+                        if last != self.app_saved_state.game_settings.friendly_fire_team
+                            || netman.friendly_fire_team.load(Ordering::Relaxed) == -2 {
                             netman.friendly_fire_team.store(self.app_saved_state.game_settings.friendly_fire_team, Ordering::Relaxed);
                         }
                         ui.label("what team number you are on, 0 means no team, -1 means friendly");
