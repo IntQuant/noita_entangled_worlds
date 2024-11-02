@@ -86,6 +86,7 @@ connect_settings_autostart = ゲームを自動的に開始する
 
 ## Game settings
 
+connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
 Health-per-player = Health per player
 Enable-friendly-fire = Enable friendly fire, allows picking teams in lobby
 Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
@@ -133,3 +134,7 @@ hint_ping = [Middle mouse button or right thumb stick] spawns a ping
 
 ip_could_not_connect = Could not connect
 ip_wait_for_connection = Connecting to ip...
+## Info
+
+info_stress_tests = We're doing public lobbies (a.k.a stress tests) every saturday, 18:00 UTC. Join our discord for more info.
+Info = Info

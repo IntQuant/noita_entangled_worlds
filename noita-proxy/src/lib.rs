@@ -199,7 +199,7 @@ impl Default for AppSavedState {
             start_game_automatically: false,
             show_extra_debug_stuff: false,
             record_all: false,
-            spacewars: false
+            spacewars: false,
         }
     }
 }
@@ -537,7 +537,8 @@ impl App {
             let (rect, right_b_panel) =
                 rect.split_left_right_at_x(rect.width() - (50.0 + group_shrink * 2.0));
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
-            let (steam_connect_rect, ip_connect_rect) = right.split_top_bottom_at_fraction(0.5);
+            let (steam_connect_rect, other_rect) = right.split_top_bottom_at_fraction(0.33);
+            let (ip_connect_rect, info_rect) = other_rect.split_top_bottom_at_fraction(0.5);
 
             ui.allocate_new_ui(
                 UiBuilder {
@@ -552,6 +553,20 @@ impl App {
                         if self.self_update.request_update {
                             self.state = AppState::SelfUpdate;
                         }
+                    });
+                },
+            );
+
+            ui.allocate_new_ui(
+                UiBuilder {
+                    max_rect: Some(info_rect.shrink(group_shrink)),
+                    ..Default::default()
+                },
+                |ui| {
+                    filled_group(ui, |ui| {
+                        ui.set_min_size(ui.available_size());
+                        heading_with_underline(ui, tr("Info"));
+                        ui.label(tr("info_stress_tests"));
                     });
                 },
             );
@@ -663,7 +678,7 @@ impl App {
                 }
 
                 if cfg!(target_os = "linux") {
-                    ui.add_space(30.0);
+                    ui.add_space(15.0);
                     ui.label(tr("connect_steam_workaround_label"));
                     ui.text_edit_singleline(&mut self.lobby_id_field);
                     if ui.button(tr("connect_steam_connect_2")).clicked() {
@@ -734,9 +749,15 @@ impl App {
                     ui.label(tr("local_health_desc_2"));
                     ui.add_space(5.0);
                     ui.label(tr("Health-percent-lost-on-reviving"));
-                    ui.add(Slider::new(&mut game_settings.health_lost_on_revive, 0..=100));
+                    ui.add(Slider::new(
+                        &mut game_settings.health_lost_on_revive,
+                        0..=100,
+                    ));
                     ui.checkbox(&mut game_settings.global_hp_loss, tr("global_hp_loss"));
-                    ui.checkbox(&mut game_settings.no_material_damage, tr("no_material_damage"));
+                    ui.checkbox(
+                        &mut game_settings.no_material_damage,
+                        tr("no_material_damage"),
+                    );
                 }
             }
         });
@@ -795,7 +816,7 @@ impl App {
             );
             ui.checkbox(
                 &mut self.app_saved_state.spacewars,
-                "make steam work with non steam noita versions, all players need this ticked to work, restart proxy to take effect",
+                tr("connect_settings_spacewars"),
             );
             ui.add_space(20.0);
             if self.player_image.width() == 1 {
@@ -807,7 +828,13 @@ impl App {
             let old_hue = self.appearance.hue;
             let old = ui.style_mut().spacing.slider_width;
             ui.style_mut().spacing.slider_width = 256.0;
-            ui.add(Slider::new(&mut self.appearance.hue, 0.0..=360.0).text(tr("Shift-hue")).min_decimals(0).max_decimals(0).step_by(2.0));
+            ui.add(
+                Slider::new(&mut self.appearance.hue, 0.0..=360.0)
+                    .text(tr("Shift-hue"))
+                    .min_decimals(0)
+                    .max_decimals(0)
+                    .step_by(2.0),
+            );
             ui.style_mut().spacing.slider_width = old;
             if old_hue != self.appearance.hue {
                 let diff = self.appearance.hue - old_hue;
