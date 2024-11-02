@@ -163,7 +163,7 @@ local function find_new_wand()
     local children = EntityGetAllChildren(state.attack_wand)
     if children == nil then
         table.insert(state.empty_wands, state.attack_wand)
-        state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target]))
+        state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
         changed_held = true
     else
         local bad_mod = false
@@ -171,6 +171,19 @@ local function find_new_wand()
         for _, child in pairs(children or {}) do
             local is_proj = false
             local is_bad_proj = false
+            if not state.is_electric_immune
+                    and ComponentGetValue2(state.damage_model, "mLiquidCount") > 10 and
+                    (EntityGetFirstComponent(child, "ElectricChargeComponent") ~= nil
+                    or EntityGetFirstComponent(child, "ElectricSourceComponent") ~= nil) then
+                if state.bad_wands[state.target or 1] == nil then
+                    state.bad_wands[state.target or 1] = {}
+                end
+                table.insert(state.bad_wands[state.target or 1], state.attack_wand)
+                table.insert(state.empty_wands, state.attack_wand)
+                state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
+                changed_held = true
+                return
+            end
             local sprites = EntityGetComponentIncludingDisabled(child, "SpriteComponent")
             for _, sprite in pairs(sprites) do
                 local image = ComponentGetValue2(sprite, "image_file")
@@ -210,7 +223,7 @@ local function find_new_wand()
         end
         if not is_any_not_empty then
             table.insert(state.empty_wands, state.attack_wand)
-            state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target]))
+            state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
             changed_held = true
         end
     end
@@ -476,6 +489,7 @@ local function init_state()
     local children = EntityGetAllChildren(ctx.my_player.entity)
     local items
     local attack_foot = false
+    local has_electric = false
     for _, child in pairs(children or {}) do
         if EntityGetName(child) == "inventory_quick" then
             items = child
@@ -484,9 +498,12 @@ local function init_state()
             attack_foot = true
         end
         local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-        if com ~= nil or EntityHasTag(child, "projectile") then
+        if com ~= nil then
             if ComponentGetValue2(com, "effect") == "CHARM" then
                 EntityKill(child)
+            end
+            if ComponentGetValue2(com, "effect") == "PROTECTION_ELECTRICITY" then
+                has_electric = true
             end
         end
     end
@@ -499,6 +516,7 @@ local function init_state()
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
         damage_model = damage_model,
         items = items,
+        is_electric_immune = has_electric,
 
         bad_potions = get_potions_of_type(bad_mats),
         good_potions = get_potions_of_type(good_mats),
@@ -1247,32 +1265,32 @@ local function cycle_wands()
             and not state.last_did_hit
             and state.init_timer > no_shoot_time then
         local hp = util.get_ent_health(state.target)
-        if state.good_wands[state.target] == nil then
-            state.good_wands[state.target] = {}
+        if state.good_wands[state.target or 1] == nil then
+            state.good_wands[state.target or 1] = {}
         end
         if state.target_hp[1] == hp then
             local f = state.target_hp[2] + 64
-            if table.contains(state.good_wands[state.target], state.attack_wand) then
+            if table.contains(state.good_wands[state.target or 1], state.attack_wand) then
                 f = f + 256
             end
             if GameGetFrameNum() == f then
-                if state.bad_wands[state.target] == nil then
-                    state.bad_wands[state.target] = {}
+                if state.bad_wands[state.target or 1] == nil then
+                    state.bad_wands[state.target or 1] = {}
                 end
-                if not table.contains(state.bad_wands[state.target], state.attack_wand) then
-                    table.insert(state.bad_wands[state.target], state.attack_wand)
+                if not table.contains(state.bad_wands[state.target or 1], state.attack_wand) then
+                    table.insert(state.bad_wands[state.target or 1], state.attack_wand)
                 end
-                state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target]))
+                state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
                 if state.attack_wand == nil then
-                    state.bad_wands[state.target] = {}
+                    state.bad_wands[state.target or 1] = {}
                     state.attack_wand = wandfinder.find_attack_wand(state.empty_wands)
                 end
                 changed_held = true
                 state.target_hp = {-1, -1}
             end
         else
-            if state.target_hp[1] ~= -1 and not table.contains(state.good_wands[state.target], state.attack_wand) then
-                table.insert(state.good_wands[state.target], state.attack_wand)
+            if state.target_hp[1] ~= -1 and not table.contains(state.good_wands[state.target or 1], state.attack_wand) then
+                table.insert(state.good_wands[state.target or 1], state.attack_wand)
             end
             state.target_hp = {hp, GameGetFrameNum()}
         end
