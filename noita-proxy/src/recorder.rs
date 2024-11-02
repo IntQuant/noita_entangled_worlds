@@ -194,7 +194,7 @@ fn replay_loop(recording_dir: PathBuf) {
 
 pub fn replay_file(path: PathBuf) {
     info!("Will replay {}", path.display());
-    let mut steam_state = steam_helper::SteamState::new().expect("Can init steam state");
+    let mut steam_state = steam_helper::SteamState::new(false).expect("Can init steam state");
 
     let apps = steam_state.client.apps();
     let app_id = AppId::from(881100);

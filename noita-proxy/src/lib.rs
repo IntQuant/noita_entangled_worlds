@@ -185,6 +185,7 @@ struct AppSavedState {
     show_extra_debug_stuff: bool,
     #[serde(default)]
     record_all: bool,
+    spacewars: bool,
 }
 
 impl Default for AppSavedState {
@@ -198,6 +199,7 @@ impl Default for AppSavedState {
             start_game_automatically: false,
             show_extra_debug_stuff: false,
             record_all: false,
+            spacewars: false
         }
     }
 }
@@ -347,7 +349,7 @@ impl App {
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
         info!("Initializing steam state...");
-        let steam_state = steam_helper::SteamState::new();
+        let steam_state = steam_helper::SteamState::new(saved_state.spacewars);
 
         info!("Checking if running on steam deck...");
         let running_on_steamdeck = steam_state
@@ -790,6 +792,10 @@ impl App {
             ui.checkbox(
                 &mut self.app_saved_state.start_game_automatically,
                 tr("connect_settings_autostart"),
+            );
+            ui.checkbox(
+                &mut self.app_saved_state.spacewars,
+                "make steam work with non steam noita versions, all players need this ticked to work, restart proxy to take effect",
             );
             ui.add_space(20.0);
             if self.player_image.width() == 1 {
@@ -1343,7 +1349,7 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
 }
 
 fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
-    let mut state = steam_helper::SteamState::new().unwrap();
+    let mut state = steam_helper::SteamState::new(false).unwrap();
     let my_nickname = Some(state.get_user_name(state.get_my_id()));
     let mut mod_manager = ModmanagerSettings {
         game_exe_path: PathBuf::new(),
