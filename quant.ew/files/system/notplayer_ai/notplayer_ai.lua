@@ -174,7 +174,7 @@ local function find_new_wand()
             if not state.is_electric_immune
                     and ComponentGetValue2(state.damage_model, "mLiquidCount") > 10 and
                     (EntityGetFirstComponent(child, "ElectricChargeComponent") ~= nil
-                    or EntityGetFirstComponent(child, "ElectricSourceComponent") ~= nil) then
+                    or EntityGetFirstComponent(child, "ElectricitySourceComponent") ~= nil) then
                 if state.bad_wands[state.target or 1] == nil then
                     state.bad_wands[state.target or 1] = {}
                 end
