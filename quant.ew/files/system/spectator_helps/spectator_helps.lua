@@ -5,7 +5,7 @@ local shield_entities = {}
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.add_shield(target)
-    if GameHasFlagRun("ending_game_completed") then
+    if GameHasFlagRun("ending_game_completed") or target == nil or ctx.players[target] == nil then
         return
     end
     local entity = ctx.players[target].entity
