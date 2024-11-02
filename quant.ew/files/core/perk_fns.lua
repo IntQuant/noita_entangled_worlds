@@ -17,6 +17,7 @@ local perks_to_ignore = {
     EXTRA_PERK = true,
     FASTER_WANDS = true,
     EXTRA_MANA = true,
+    TELEKINESIS = true,
 }
 
 function perk_fns.get_my_perks()

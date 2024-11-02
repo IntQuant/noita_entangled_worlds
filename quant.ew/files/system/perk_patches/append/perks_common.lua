@@ -12,7 +12,6 @@ local function hide_perk(perk_id)
 end
 
 hide_perk("ABILITY_ACTIONS_MATERIALIZED")
-hide_perk("TELEKINESIS")
 hide_perk("HOMUNCULUS")
 
 patch_perk_2("SHIELD", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
