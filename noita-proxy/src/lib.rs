@@ -87,6 +87,7 @@ pub struct GameSettings {
     health_lost_on_revive: u32,
     no_material_damage: bool,
     global_hp_loss: bool,
+    perk_ban_list: String,
 }
 
 impl Default for GameSettings {
@@ -113,6 +114,7 @@ impl Default for GameSettings {
             health_lost_on_revive: 0,
             no_material_damage: false,
             global_hp_loss: false,
+            perk_ban_list: String::new(),
         }
     }
 }
@@ -802,6 +804,10 @@ impl App {
             &mut game_settings.randomize_perks,
             tr("Have-perk-pools-be-independent-of-each-other"),
         );
+        ui.horizontal(|ui| {
+            ui.text_edit_singleline(&mut game_settings.perk_ban_list);
+            ui.label("perk ban list, comma seperated");
+        });
         ui.add(
             Slider::new(&mut game_settings.enemy_hp_mult, 1.0..=1000.0)
                 .logarithmic(true)

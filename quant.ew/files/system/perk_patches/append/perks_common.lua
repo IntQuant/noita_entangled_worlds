@@ -36,3 +36,7 @@ patch_perk_2("LEGGY_FEET", function(entity_perk_item, entity_who_picked, item_na
     end
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
 end)
+
+for _, perk in ipairs(util.string_split(ctx.proxy_opt.perk_ban_list)) do
+    hide_perk(perk)
+end 

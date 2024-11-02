@@ -183,10 +183,11 @@ end
 
 function net_handling.proxy.end_run(_, _)
     local entity = ctx.my_player.entity
-    if entity ~= nil and EntityGetIsAlive(entity) and not EntityHasTag(entity,"ew_notplayer") then
+    if entity ~= nil and EntityGetIsAlive(entity) and not EntityHasTag(entity, "ew_notplayer") then
         EntityInflictDamage(entity, 1000000, "DAMAGE_CURSE", "Run Ended", "NONE", 0, 0, GameGetWorldStateEntity())
     end
     ctx.run_ended = true
+    EntityKill(entity)
     GameTriggerGameOver()
 end
 
