@@ -1220,7 +1220,10 @@ local function find_target()
         local root_id = ctx.my_player.entity
         local pos_x, pos_y = EntityGetTransform(root_id)
         for _, id in pairs(EntityGetInRadiusWithTag(pos_x, pos_y, 256, "mortal")) do
-            if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < -10 then
+            if EntityGetFilename(id) ~= 'data/entities/misc/invisibility_last_known_player_position.xml'
+                    and EntityGetComponent(id, "GenomeDataComponent") ~= nil
+                    and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil
+                    and EntityGetHerdRelation(root_id, id) < -10 then
                 local t_x, t_y = EntityGetTransform(id)
                 local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
                 local dx = x - t_x
