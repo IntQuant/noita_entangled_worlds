@@ -422,6 +422,8 @@ function player_fns.deserialize_position(message, player_data)
     if player_data == nil or not EntityGetIsAlive(player_data.entity) then
         return
     end
+    player_data.pos_x = x
+    player_data.pos_y = y
     local entity = player_data.entity
     local character_data = EntityGetFirstComponentIncludingDisabled(entity, "CharacterDataComponent")
     local velocity_comp = EntityGetFirstComponentIncludingDisabled(entity, "VelocityComponent")
