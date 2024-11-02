@@ -805,12 +805,34 @@ impl App {
             ui.style_mut().spacing.slider_width = old;
             if old_hue != self.appearance.hue {
                 let diff = self.appearance.hue - old_hue;
-                shift_hue(diff, &mut self.appearance.player_color.player_main);
-                shift_hue(diff, &mut self.appearance.player_color.player_alt);
-                shift_hue(diff, &mut self.appearance.player_color.player_arm);
-                shift_hue(diff, &mut self.appearance.player_color.player_forearm);
-                shift_hue(diff, &mut self.appearance.player_color.player_cape);
-                shift_hue(diff, &mut self.appearance.player_color.player_cape_edge);
+                match self.appearance.player_picker {
+                    PlayerPicker::PlayerAlt => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_alt);
+                    }
+                    PlayerPicker::PlayerArm => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_arm);
+                    }
+                    PlayerPicker::PlayerCape => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_cape);
+                    }
+                    PlayerPicker::PlayerForearm => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_forearm);
+                    }
+                    PlayerPicker::PlayerCapeEdge => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_cape_edge);
+                    }
+                    PlayerPicker::PlayerMain => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_main);
+                    }
+                    PlayerPicker::None => {
+                        shift_hue(diff, &mut self.appearance.player_color.player_main);
+                        shift_hue(diff, &mut self.appearance.player_color.player_alt);
+                        shift_hue(diff, &mut self.appearance.player_color.player_arm);
+                        shift_hue(diff, &mut self.appearance.player_color.player_forearm);
+                        shift_hue(diff, &mut self.appearance.player_color.player_cape);
+                        shift_hue(diff, &mut self.appearance.player_color.player_cape_edge);
+                    }
+                }
             }
             ui.horizontal(|ui| {
                 display_player_skin(ui, self);

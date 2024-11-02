@@ -23,6 +23,17 @@ function module.on_player_died(player_entity)
     -- Also inventory items seem to be borked.
 end
 
+rpc.opts_everywhere()
+function rpc.remove_homing()
+    local x, y = EntityGetTransform(ctx.rpc_player_data.entity)
+    for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
+        local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
+        if homing ~= nil and ComponentGetValue2(homing, "target_tag") ~= "ew_peer" then
+            EntitySetComponentIsEnabled(proj, homing, false)
+        end
+    end
+end
+
 local function set_camera_free(enable, entity, dont)
     local cam = EntityGetFirstComponentIncludingDisabled(entity, "PlatformShooterPlayerComponent")
     if cam ~= nil then
@@ -147,6 +158,7 @@ local function player_died()
     if ctx.my_player.entity == nil then
         return
     end
+    rpc.remove_homing()
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
     remove_inventory()
@@ -317,6 +329,7 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
+            rpc.remove_homing()
             if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") then
                 return
             end

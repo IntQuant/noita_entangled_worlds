@@ -449,19 +449,6 @@ local function fire_wand(enable)
     end
 end
 
-local rpc = net.new_rpc_namespace()
-
-rpc.opts_everywhere()
-function rpc.remove_homing()
-    local x, y = EntityGetTransform(ctx.rpc_player_data.entity)
-    for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
-        local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
-        if homing ~= nil and ComponentGetValue2(homing, "target_tag") ~= "ew_peer" then
-            EntitySetComponentIsEnabled(proj, homing, false)
-        end
-    end
-end
-
 local function init_state()
     EntityAddTag(ctx.my_player.entity, "teleportable")
     EntityAddComponent2(ctx.my_player.entity, "SpriteComponent", {
@@ -477,7 +464,6 @@ local function init_state()
         z_index = -10000,
         emissive = 1,
     })
-    rpc.remove_homing()
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     if ctx.proxy_opt.no_material_damage then
         ComponentSetValue2(damage_model, "materials_damage", false)
@@ -1234,7 +1220,7 @@ local function find_target()
         local root_id = ctx.my_player.entity
         local pos_x, pos_y = EntityGetTransform(root_id)
         for _, id in pairs(EntityGetInRadiusWithTag(pos_x, pos_y, 256, "mortal")) do
-            if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < -100 then
+            if EntityGetComponent(id, "GenomeDataComponent") ~= nil and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil and EntityGetHerdRelation(root_id, id) < -10 then
                 local t_x, t_y = EntityGetTransform(id)
                 local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
                 local dx = x - t_x

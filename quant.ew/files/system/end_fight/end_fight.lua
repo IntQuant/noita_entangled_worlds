@@ -100,6 +100,7 @@ function rpc.try_kill(x, y)
             end
         end
     end)
+    GamePrintImportant(ctx.rpc_player_data.name .. " has won")
 end
 
 local function remove_fire(entity)
