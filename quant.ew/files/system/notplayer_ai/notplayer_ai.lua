@@ -859,6 +859,9 @@ local function choose_movement()
     end
     local did_hit_up, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 40)
     state.control_s = did_hit_up
+    if did_hit_up and state.water_potion ~= nil then
+        state.control_w = false
+    end
     local air = ComponentGetValue2(state.damage_model, "air_in_lungs")
     if air < 1 then
         state.control_w = true

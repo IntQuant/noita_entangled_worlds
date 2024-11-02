@@ -24,13 +24,21 @@ function module.on_player_died(player_entity)
 end
 
 rpc.opts_everywhere()
-function rpc.remove_homing()
-    local x, y = EntityGetTransform(ctx.rpc_player_data.entity)
+function rpc.remove_homing(clear_area)
+    local x, y
+    if ctx.rpc_peer_id == ctx.my_id then
+        x, y = EntityGetTransform(ctx.rpc_player_data.entity)
+    else
+        x, y = ctx.rpc_player_data.pos_x, ctx.rpc_player_data.pos_y
+    end
     for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
         local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
         if homing ~= nil and ComponentGetValue2(homing, "target_tag") ~= "ew_peer" then
             EntitySetComponentIsEnabled(proj, homing, false)
         end
+    end
+    if clear_area then
+        LoadPixelScene("mods/quant.ew/files/system/local_health/revive.png", "", x - 6, y - 13, "", true, true)
     end
 end
 
@@ -158,7 +166,7 @@ local function player_died()
     if ctx.my_player.entity == nil then
         return
     end
-    rpc.remove_homing()
+    rpc.remove_homing(false)
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
     remove_inventory()
@@ -329,10 +337,10 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
-            rpc.remove_homing()
             if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") then
                 return
             end
+            rpc.remove_homing(true)
             local item_data = inventory_helper.get_item_data(ctx.my_player)
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
