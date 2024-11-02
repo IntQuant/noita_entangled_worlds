@@ -381,7 +381,9 @@ local player_fns = {
             projectile_seed_chain = {}, -- TODO clean
             currently_polymorphed = false,
             mouse_x = 0,
+            pos_x = 0,
             mouse_y = 0,
+            pos_y = 0,
             mutations = {ghost = false, luuki = false, rat = false, fungus = false, halo = 0}
         }
     end,
@@ -400,6 +402,9 @@ function player_fns.serialize_position(player_data)
         return
     end
     local vel_x, vel_y = ComponentGetValue2(character_data, "mVelocity")
+
+    player_data.pos_x = x
+    player_data.pos_y = y
 
     local c = CharacterPos{
         frames_in_air = ComponentGetValue2(character_platforming_comp, "mFramesInAirCounter"),

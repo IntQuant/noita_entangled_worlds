@@ -219,7 +219,7 @@ function module.on_world_update()
         if host_playerdata == nil or host_playerdata.entity == nil or not EntityGetIsAlive(host_playerdata.entity) then
             return
         end
-        local x1, y1 = EntityGetTransform(host_playerdata.entity)
+        local x1, y1 = host_playerdata.pos_x, host_playerdata.pos_y
         if x1 == nil or x2 == nil then
             return
         end
@@ -246,7 +246,10 @@ function module.on_world_update()
         local dist_sq = dx*dx + dy*dy
         local not_actual_hm, not_hm = not_in_hm(x1, y1)
         local _, i_not_in_hm = not_in_hm(x2, y2)
-        if x1 ~= nil and x2 ~= nil and (not_hm or (not not_actual_hm and y1 < y2)) and i_not_in_hm then
+        local host_mx, host_my = host_playerdata.mouse_x, host_playerdata.mouse_y
+        local dxm, dym = host_mx - x2, host_my - y2
+        if x1 ~= nil and x2 ~= nil and (not_hm or (not not_actual_hm and y1 < y2)) and i_not_in_hm
+                and dxm * dxm + dym * dym > tether_length * tether_length / 2 then
             if no_tether then
                 tether_enable(true, host_playerdata.entity)
                 no_tether = false
