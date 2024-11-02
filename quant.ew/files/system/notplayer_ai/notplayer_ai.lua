@@ -418,7 +418,7 @@ local throw = false
 
 local function fire_wand(enable)
     if state.is_pheremoned ~= -120 then
-        if state.is_pheremoned >= ComponentGetValue2(state.damage, "mLastDamageFrame") then
+        if state.is_pheremoned >= ComponentGetValue2(state.damage_model, "mLastDamageFrame") then
             if has_pheremoned(ctx.my_player.entity) then
                 enable = false
             else
