@@ -12,33 +12,29 @@ local rpc = net.new_rpc_namespace()
 local EnemyData = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
-    bool = {"drop_gold"},
 })
 
 -- Variant of EnemyData for when we don't have any motion (or no VelocityComponent).
 local EnemyDataNoMotion = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y"},
-    bool = {"drop_gold"}
 })
 
 local EnemyDataWorm = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy", "tx", "ty"},
-    bool = {"drop_gold"}
 })
 
 local EnemyDataKolmi = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
-    bool = {"enabled", "drop_gold"},
+    bool = {"enabled"},
 })
 
 local EnemyDataFish = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
     u8 = {"r"},
-    bool = {"drop_gold"},
 })
 
 --local EnemyDataSniper = util.make_type({
@@ -269,10 +265,11 @@ function enemy_sync.host_upload_entities()
         --     -- local x, y, r =
         -- end
 
-        local drop_gold = false
+        local death_triggers = {}
         for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
-            if ComponentGetValue2(com, "script_death") == "data/scripts/items/drop_money.lua" then
-                drop_gold = true
+            local script = ComponentGetValue2(com, "script_death")
+            if script ~= nil and script ~= "" then
+                table.insert(death_triggers, constants.interned_filename_to_index[script] or script)
             end
         end
         local en_data
@@ -285,7 +282,6 @@ function enemy_sync.host_upload_entities()
                 vx = vx,
                 vy = vy,
                 enabled = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent", "disabled_at_start") ~= nil,
-                drop_gold = drop_gold
             }
         elseif worm ~= nil then
             local tx, ty = ComponentGetValue2(worm, "mRandomTarget")
@@ -297,14 +293,12 @@ function enemy_sync.host_upload_entities()
                 vy = vy,
                 tx = tx,
                 ty = ty,
-                drop_gold = drop_gold
             }
         elseif math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
             en_data = EnemyDataNoMotion {
                 enemy_id = enemy_id,
                 x = x,
                 y = y,
-                drop_gold = drop_gold
             }
         elseif EntityGetFirstComponentIncludingDisabled(enemy_id, "AdvancedFishAIComponent") ~= nil then
             en_data = EnemyDataFish {
@@ -314,7 +308,6 @@ function enemy_sync.host_upload_entities()
                 vx = vx,
                 vy = vy,
                 r = math.floor((rot % FULL_TURN) / FULL_TURN * 255),
-                drop_gold = drop_gold
             }
         else
             en_data = EnemyData {
@@ -323,7 +316,6 @@ function enemy_sync.host_upload_entities()
                 y = y,
                 vx = vx,
                 vy = vy,
-                drop_gold = drop_gold
             }
         end
 
@@ -352,7 +344,7 @@ function enemy_sync.host_upload_entities()
 
         local dont_cull = EntityHasTag(enemy_id, "worm") or EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data, animation, dont_cull})
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data, animation, dont_cull, death_triggers})
         ::continue::
     end
 
@@ -454,6 +446,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
 
     local en_data = enemy_info_raw[2]
     local dont_cull = enemy_info_raw[9]
+    local death_triggers = enemy_info_raw[10]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
     if not force_no_cull and not dont_cull  then
@@ -617,11 +610,27 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             EntitySetComponentsWithTagEnabled(enemy_id, "enabled_at_start", false)
             EntitySetComponentsWithTagEnabled(enemy_id, "disabled_at_start", true)
         end
-    end
-    if not en_data.drop_gold then
+
+        local indexed = {}
         for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
-            if ComponentGetValue2(com, "script_death") == "data/scripts/items/drop_money.lua" then
+            local script = ComponentGetValue2(com, "script_death")
+            local has = false
+            for _, inx in ipairs(death_triggers) do
+                local script2 = constants.interned_index_to_filename[inx] or inx
+                if script == script2 then
+                    has = true
+                    indexed[script] = true
+                end
+            end
+            if not has then
                 ComponentSetValue2(com, "script_death", "")
+            end
+        end
+        for _, inx in ipairs(death_triggers) do
+            local script = constants.interned_index_to_filename[inx] or inx
+            if indexed[script] == nil then
+                EntityAddComponent(enemy_id, "LuaComponent", { script_death = script,
+                            execute_every_n_frame = "-1"})
             end
         end
     end
