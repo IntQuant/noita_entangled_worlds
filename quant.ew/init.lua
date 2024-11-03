@@ -122,6 +122,7 @@ local function load_modules()
     ctx.load_system("gate_boss")
     ctx.load_system("tapion")
     ctx.load_system("world_sync_cuts")
+    ctx.load_system("hamis")
 end
 
 local function load_extra_modules()

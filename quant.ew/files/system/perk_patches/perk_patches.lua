@@ -45,6 +45,8 @@ end
 
 np.CrossCallAdd("ew_perks_modify_max_hp", rpc.modify_max_hp)
 
+np.CrossCallAdd("ew_perk_ban_list", ctx.proxy_opt.perk_ban_list)
+
 rpc.opts_everywhere()
 function rpc.sync_perk_amount(items, genome)
     GlobalsSetValue("TEMPLE_SHOP_ITEM_COUNT", tostring(items))
