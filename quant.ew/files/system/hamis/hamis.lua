@@ -60,6 +60,7 @@ np.CrossCallAdd("ew_pet_hamis", function(x, y)
     for a, b in pairs(ctx.entity_by_remote_id) do
         if b.id == y then
             ent = a
+            break
         end
     end
     rpc.pet(ctx.player_data_by_local_entity[x] or x, ent, frame(), hx, hy)
