@@ -23,7 +23,7 @@ local EnemyDataNoMotion = util.make_type({
 local EnemyDataWorm = util.make_type({
     u32 = {"enemy_id", "target"},
     f32 = {"x", "y", "vx", "vy", "tx", "ty"},
-    string = {"peer_id"}
+    peer_id = {"peer_id"}
 })
 
 local EnemyDataKolmi = util.make_type({

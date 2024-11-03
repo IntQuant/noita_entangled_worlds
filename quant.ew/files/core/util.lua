@@ -271,8 +271,8 @@ function util.make_type(typedata)
         inner = inner .. "bool "..var..";\n"
     end
 
-    for _, var in ipairs(typedata.string or {}) do
-        inner = inner .. "const char* "..var..";\n"
+    for _, var in ipairs(typedata.peer_id or {}) do
+        inner = inner .. "char "..var.."[16];\n"
     end
 
     ffi.cdef([[
