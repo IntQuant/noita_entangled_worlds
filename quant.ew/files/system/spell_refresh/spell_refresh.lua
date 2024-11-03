@@ -5,6 +5,6 @@ np.CrossCallAdd("ew_refresh_inventory", function()
     end
 end)
 
-ModLuaFileAppend("data/scripts/items/spell_refresh.lua", "mods/quant.ew/files/system/spell_refresh/spell_refresh.lua")
+ModLuaFileAppend("data/scripts/items/spell_refresh.lua", "mods/quant.ew/files/system/spell_refresh/append.lua")
 
 return {}
