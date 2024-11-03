@@ -1,0 +1,133 @@
+<Entity
+  name="$projectile_default"
+  tags="resist_repulsion"
+   >
+
+    <Base file="data/entities/base_projectile.xml" >
+        <VelocityComponent
+            gravity_y="0"
+            air_friction="0"
+            mass="0.8"
+            >
+        </VelocityComponent>
+    </Base>
+
+    <HomingComponent
+        target_tag="mortal"
+        homing_targeting_coeff="7"
+        detect_distance="160"
+        homing_velocity_multiplier="1.0"
+        >
+    </HomingComponent>
+
+  <ProjectileComponent
+    _enabled="1"
+    lob_min="0.8"
+      lob_max="1.0"
+      speed_min="100"
+      speed_max="120"
+    die_on_low_velocity="0"
+    on_death_explode="1"
+    on_death_gfx_leave_sprite="0"
+    on_lifetime_out_explode="1"
+    explosion_dont_damage_shooter="1"
+    damage="2.8"
+    on_collision_die="1"
+    lifetime="300"
+    knockback_force="1.4"
+    collide_with_tag="ew_peer"
+    >
+    <config_explosion
+      never_cache="1"
+      camera_shake="4.0"
+      explosion_radius="20"
+      explosion_sprite="data/particles/explosion_032_slime.xml"
+      explosion_sprite_lifetime="0.0"
+      create_cell_probability="0"
+      ray_energy="230000"
+      hole_destroy_liquid="1"
+      hole_enabled="1"
+      damage = "1.5"
+      hole_image="data/temp/explosion_hole.png"
+      explosion_sprite_emissive="0"
+      explosion_sprite_additive="1"
+      particle_effect="0"
+      damage_mortals="1"
+      physics_explosion_power.min="0.4"
+      physics_explosion_power.max="0.6"
+      physics_throw_enabled="1"
+      shake_vegetation="1"
+      sparks_enabled="1"
+      sparks_count_max="40"
+      sparks_count_min="30"
+      spark_material="spark_green"
+      light_fade_time="1.2"
+      light_r="35"
+      light_g="240"
+      light_b="140"
+      stains_enabled="1"
+      stains_image="data/temp/explosion_stain.png"
+      audio_enabled="0" >
+    </config_explosion>
+  </ProjectileComponent>
+
+  <SpriteComponent
+    _enabled="1"
+    alpha="1"
+    image_file="data/projectiles_gfx/orb_green_big.xml"
+    next_rect_animation=""
+    offset_x="8"
+    offset_y="8"
+    rect_animation="fireball"
+    emissive="1"
+    additive="1"
+    update_transform_rotation="0"
+    >
+  </SpriteComponent>
+
+  <SpriteParticleEmitterComponent
+    sprite_file="data/particles/orb_green_big_out.xml"
+    delay="0"
+    lifetime="0"
+    additive="1"
+    emissive="1"
+    color.r="1" color.g="1" color.b="1" color.a="1"
+    color_change.r="0" color_change.g="0" color_change.b="0" color_change.a="0"
+    velocity.x="0" velocity.y="0"
+    gravity.x="0" gravity.y="10"
+    velocity_slowdown="0"
+    rotation="0"
+    angular_velocity="0"
+    use_velocity_as_rotation="0"
+    scale.x="1" scale.y="1"
+    scale_velocity.x="0" scale_velocity.y="0"
+    emission_interval_min_frames="1"
+    emission_interval_max_frames="1"
+    count_min="1" count_max="1"
+    randomize_rotation.min="-0.3415"
+    randomize_rotation.max="0.3415"
+    randomize_angular_velocity.min="-1.3415"
+    randomize_angular_velocity.max="1.3415"
+    is_emitting="1"
+    >
+  </SpriteParticleEmitterComponent>
+
+  <LightComponent
+    _enabled="1"
+    radius="150"
+    r="10"
+    g="240"
+    b="120">
+  </LightComponent>
+
+    <AudioComponent
+        file="data/audio/Desktop/projectiles.bank"
+        event_root="projectiles/orb_b" >
+    </AudioComponent>
+
+    <VariableStorageComponent
+        name="projectile_file"
+        value_string="data/entities/animals/maggot_tiny/orb.xml"
+        >
+    </VariableStorageComponent>
+</Entity>
