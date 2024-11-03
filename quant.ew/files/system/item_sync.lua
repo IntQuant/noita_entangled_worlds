@@ -346,6 +346,12 @@ function rpc.item_globalize(item_data)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
+    local coms = EntityGetComponent(item, "VariableStorageComponent")
+    for _, com in ipairs(coms) do
+        if ComponentGetValue2(com, "name") == "throw_time" then
+            ComponentSetValue2(com, "value_int", GameGetFrameNum())
+        end
+    end
 end
 
 rpc.opts_reliable()
