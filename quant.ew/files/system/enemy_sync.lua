@@ -21,9 +21,8 @@ local EnemyDataNoMotion = util.make_type({
 })
 
 local EnemyDataWorm = util.make_type({
-    u32 = {"enemy_id", "target"},
+    u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy", "tx", "ty"},
-    peer_id = {"peer_id"}
 })
 
 local EnemyDataKolmi = util.make_type({
@@ -275,6 +274,7 @@ function enemy_sync.host_upload_entities()
         end
         local en_data
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
+            or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
         if EntityHasTag(enemy_id, "boss_centipede") then
             en_data = EnemyDataKolmi {
                 enemy_id = enemy_id,
@@ -285,14 +285,7 @@ function enemy_sync.host_upload_entities()
                 enabled = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent", "disabled_at_start") ~= nil,
             }
         elseif worm ~= nil then
-            local tx, ty = ComponentGetValue2(worm, "mRandomTarget")
-            local target = ComponentGetValue2(worm, "mTargetEntityId")
-            local peer_id
-            local data = player_fns.get_player_data_by_local_entity_id(target)
-            if data ~= nil then
-                peer_id = data.peer_id
-                target = nil
-            end
+            local tx, ty = ComponentGetValue2(worm, "mTargetVec")
             en_data = EnemyDataWorm {
                 enemy_id = enemy_id,
                 x = x,
@@ -301,8 +294,6 @@ function enemy_sync.host_upload_entities()
                 vy = vy,
                 tx = tx,
                 ty = ty,
-                target = target,
-                peer_id = peer_id,
             }
         elseif math.abs(vx) < 0.01 and math.abs(vy) < 0.01 then
             en_data = EnemyDataNoMotion {
@@ -608,23 +599,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             EntitySetTransform(enemy_id, x, y)
         end
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
+            or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
         if worm ~= nil and ffi.typeof(en_data) == EnemyDataWorm then
             local tx, ty = en_data.tx, en_data.ty
-            ComponentSetValue2(worm, "mRandomTarget", tx, ty)
-            local ent
-            if en_data.peer_id == nil then
-                if ctx.entity_by_remote_id[en_data.target] ~= nil then
-                    ent = ctx.entity_by_remote_id[en_data.target].id
-                end
-            else
-                --help quant :( GamePrint(ffi.string(en_data.peer_id))
-                --if ctx.players[ffi.string(en_data.peer_id)] ~= nil then
-                --    ent = ctx.players[ffi.string(en_data.peer_id)].entity
-                --end
-            end
-            if ent ~= nil then
-                ComponentSetValue2(worm, "mTargetEntityId", ent)
-            end
+            ComponentSetValue2(worm, "mTargetVec", tx, ty)
         end
         if ffi.typeof(en_data) == EnemyDataKolmi and en_data.enabled then
             local lua_components = EntityGetComponentIncludingDisabled(enemy_id, "LuaComponent") or {}
