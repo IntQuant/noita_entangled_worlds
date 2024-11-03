@@ -513,10 +513,12 @@ local function init_state()
         entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         inv_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
+        inv2_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component"),
         data_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent"),
         damage_model = damage_model,
         items = items,
         is_electric_immune = has_electric,
+        expected_held = nil,
 
         bad_potions = get_potions_of_type(bad_mats),
         good_potions = get_potions_of_type(good_mats),
@@ -1090,15 +1092,27 @@ local function hold_something()
             EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_inventory", true)
         end
     end
+
+    local held = ComponentGetValue2(state.inv2_component, "mActiveItem")
+    if state.expected_held ~= nil and state.expected_held ~= held then
+        spectate.nofun = true
+        spectate.disable_throwing(true, ctx.my_player.entity)
+    end
+
     if has_water_potion or state.water_potion ~= nil then
+        state.expected_held = state.water_potions[1]
         np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
         if state.water_potion == nil then
             state.water_potion = state.water_potions[1]
             changed_held = true
         end
         throw_water = target_is_ambrosia
+        if throw_water then
+            state.had_potion = true
+        end
         bathe = not target_is_ambrosia
     elseif (has_bad_potion or state.bad_potion ~= nil) and  (can_not_tablet or tablet) then
+        state.expected_held = state.bad_potions[i]
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
         end
@@ -1108,9 +1122,10 @@ local function hold_something()
             changed_held = true
         end
     elseif has_good_potion or state.good_potion ~= nil then
-        if EntityHasTag(state.bad_potions[i], "potion") then
+        if EntityHasTag(state.good_potions[1], "potion") then
             state.had_potion = true
         end
+        state.expected_held = state.good_potions[1]
         np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
         if state.good_potion == nil then
             state.good_potion = state.good_potions[1]
@@ -1118,6 +1133,7 @@ local function hold_something()
         end
     else
         if state.attack_wand ~= nil then
+            state.expected_held = state.attack_wand
             np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
         end
     end

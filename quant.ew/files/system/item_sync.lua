@@ -223,7 +223,8 @@ function item_sync.on_world_update_host()
         item_sync.make_item_global(thrown_item)
     end
     local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item")
+            and EntityHasTag(EntityGetRootEntity(picked_item), "ew_peer") then
         local gid = item_sync.get_global_item_id(picked_item)
         item_sync.host_localize_item(gid, ctx.my_id)
     end
@@ -241,7 +242,8 @@ function item_sync.on_world_update_client()
     end
 
     local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item")
+            and EntityHasTag(EntityGetRootEntity(picked_item), "ew_peer") then
         local gid = item_sync.get_global_item_id(picked_item)
         rpc.item_localize_req(gid)
     end
@@ -433,5 +435,7 @@ ctx.cap.item_sync = {
         table.insert(pickup_handlers, handler)
     end
 }
+
+item_sync.rpc = rpc
 
 return item_sync

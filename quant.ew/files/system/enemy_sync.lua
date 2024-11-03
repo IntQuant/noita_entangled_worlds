@@ -2,7 +2,7 @@ local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
+local item_sync = dofile_once("mods/quant.ew/files/system/item_sync.lua")
 local effect_sync = dofile_once("mods/quant.ew/files/system/game_effect_sync/game_effect_sync.lua")
 local np = require("noitapatcher")
 
@@ -67,8 +67,6 @@ local PhysDataNoMotion = util.make_type({
     -- We should be able to cram rotation into 1 byte.
     u8 = {"r"}
 })
-
-local wands = {}
 
 local enemy_sync = {}
 
@@ -165,7 +163,7 @@ end
 local function get_sync_entities(return_all)
     local entities = {}
     table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
-        return not EntityHasTag(ent, "ew_no_enemy_sync") and not EntityHasTag(ent, "wand_ghost")
+        return not EntityHasTag(ent, "ew_no_enemy_sync")
     end)
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
     table_extend(entities, EntityGetWithTag("plague_rat"))
@@ -319,19 +317,17 @@ function enemy_sync.host_upload_entities()
             }
         end
 
-        local has_wand = false
+        local wand
         local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
         if inv ~= nil then
             local item = ComponentGetValue2(inv, "mActualActiveItem")
             if item ~= nil and EntityGetIsAlive(item) then
-                if wands[enemy_id] == nil then
-                    wands[enemy_id] = inventory_helper.serialize_single_item(item)
+                if not EntityHasTag(item, "ew_global_item") then
+                    item_sync.make_item_global(item)
+                else
+                    wand = item_sync.get_global_item_id(item)
                 end
-                has_wand = true
             end
-        end
-        if not has_wand and wands[enemy_id] ~= nil then
-            table.remove(wands, enemy_id)
         end
 
         local effect_data = effect_sync.get_sync_data(enemy_id, true)
@@ -344,7 +340,7 @@ function enemy_sync.host_upload_entities()
 
         local dont_cull = EntityHasTag(enemy_id, "worm") or EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, has_wand, effect_data, animation, dont_cull, death_triggers})
+        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, wand, effect_data, animation, dont_cull, death_triggers})
         ::continue::
     end
 
@@ -478,7 +474,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local not_ephemerial = enemy_info_raw[3]
     local phys_infos = enemy_info_raw[4]
     local phys_infos_2 = enemy_info_raw[5]
-    local has_wand = enemy_info_raw[6]
+    local gid = enemy_info_raw[6]
     local effects = enemy_info_raw[7]
     local animation = enemy_info_raw[8]
     local has_died = filename == nil
@@ -641,9 +637,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     if inv ~= nil then
         item = ComponentGetValue2(inv, "mActualActiveItem")
     end
-    if has_wand and item == nil then
-        if wands[remote_enemy_id] ~= nil then
-            local wand = inventory_helper.deserialize_single_item(wands[remote_enemy_id])
+    if gid ~= nil and (item == nil or item == 0 or not EntityGetIsAlive(item)) then
+        local wand = item_sync.find_by_gid(gid)
+        if wand ~= nil then
             EntityAddTag(wand, "ew_client_item")
             local found = false
             for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
@@ -657,6 +653,8 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
                 local inv_quick = EntityCreateNew("inventory_quick")
                 EntityAddChild(enemy_id, inv_quick)
                 EntityAddChild(inv_quick, wand)
+            end
+            if EntityGetFirstComponent(enemy_id, "Inventory2Component") == nil then
                 EntityAddComponent2(enemy_id, "Inventory2Component")
             end
             EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
@@ -664,11 +662,8 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
             np.SetActiveHeldEntity(enemy_id, wand, false, false)
         else
-            rpc.request_wand(ctx.my_id, remote_enemy_id)
+            item_sync.rpc.request_send_again(gid)
         end
-    end
-    if not has_wand and wands[remote_enemy_id] ~= nil then
-        table.remove(wands, remote_enemy_id)
     end
 
     effect_sync.apply_effects(effects, enemy_id, true)
@@ -733,22 +728,7 @@ function rpc.handle_death_data(death_data)
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
             kill(enemy_id)
         end
-        if wands[remote_id] ~= nil then
-            table.remove(wands, remote_id)
-        end
         ::continue::
-    end
-end
-
-function rpc.send_wand(peer_id, remote_enemy_id, wand)
-    if ctx.my_id == peer_id and wand ~= nil then
-        wands[remote_enemy_id] = wand
-    end
-end
-
-function rpc.request_wand(peer_id, remote_enemy_id)
-    if ctx.my_id == ctx.host_id then
-        rpc.send_wand(peer_id, remote_enemy_id, wands[remote_enemy_id])
     end
 end
 

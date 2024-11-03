@@ -8,6 +8,7 @@ local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.
 local np = require("noitapatcher")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 local nickname = dofile_once("mods/quant.ew/files/system/nickname.lua")
+local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
 local rpc = net.new_rpc_namespace()
 
@@ -392,6 +393,7 @@ ctx.cap.health = {
                 polymorph.switch_entity(ctx.my_player.entity)
             end
             reduce_hp()
+            spectate.disable_throwing(false, ctx.my_player.entity)
         else
             polymorph.switch_entity(end_poly_effect(ctx.my_player.entity))
             local _, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)

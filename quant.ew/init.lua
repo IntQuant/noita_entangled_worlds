@@ -123,6 +123,7 @@ local function load_modules()
     ctx.load_system("tapion")
     ctx.load_system("world_sync_cuts")
     ctx.load_system("hamis")
+    ctx.load_system("spell_refresh")
 end
 
 local function load_extra_modules()

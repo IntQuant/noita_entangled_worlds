@@ -44,9 +44,14 @@ local function perks_ui(enable)
     end
 end
 
+spectate.nofun = false
+
 function spectate.disable_throwing(enable, entity)
     if entity == nil then
         entity = cam_target.entity
+    end
+    if spectate.nofun and not enable and entity == ctx.my_player.entity and EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        return
     end
     local inv
     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do

@@ -101,7 +101,7 @@ function module.on_world_update()
         if okay_to_display then
             local is_host = ctx.host_id == player_data.peer_id
             local is_notplayer = false
-            if player_data.status and not player_data.status.is_alive then
+            if EntityHasTag(player_data.entity, "ew_notplayer") then
                 is_notplayer = true
             end
             if not is_notplayer and EntityGetIsAlive(player_data.entity) and EntityHasTag(player_data.entity, "polymorphed_player") then
