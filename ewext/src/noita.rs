@@ -1,6 +1,9 @@
 use std::{ffi::c_void, mem};
 
 pub(crate) mod ntypes;
+mod api {
+    noita_api_macro::generate_components!();
+}
 
 #[repr(packed)]
 pub(crate) struct NoitaPixelRun {
