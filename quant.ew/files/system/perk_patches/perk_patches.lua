@@ -45,7 +45,9 @@ end
 
 np.CrossCallAdd("ew_perks_modify_max_hp", rpc.modify_max_hp)
 
-np.CrossCallAdd("ew_perk_ban_list", ctx.proxy_opt.perk_ban_list)
+np.CrossCallAdd("ew_perk_ban_list", function()
+    return ctx.proxy_opt.perk_ban_list
+end)
 
 rpc.opts_everywhere()
 function rpc.sync_perk_amount(items, genome)

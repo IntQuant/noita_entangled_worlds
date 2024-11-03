@@ -48,6 +48,11 @@ local function string_split( s, splitter )
     return words;
 end
 
-for _, perk in ipairs(string_split(CrossCall("ew_perk_ban_list"), ',')) do
+--this crosscall check may break it but idc enough to test
+local s = ""
+if CrossCall ~= nil then
+    s = CrossCall("ew_perk_ban_list")
+end
+for _, perk in ipairs(string_split(s, ',')) do
     hide_perk(perk)
 end
