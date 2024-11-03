@@ -252,19 +252,6 @@ local function is_safe_to_remove()
     return not ctx.is_wand_pickup
 end
 
-rpc.opts_everywhere()
-function rpc.mimic_potion(ent, gid)
-    ent = ctx.entity_by_remote_id[ent] or ent
-    if not EntityHasTag(ent, "ew_global_item") then
-        item_sync.ensure_notify_component(ent)
-        EntityAddTag(ent, "ew_global_item")
-        EntityAddComponent2(ent, "VariableStorageComponent", {
-            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
-            value_string = gid,
-        })
-    end
-end
-
 function item_sync.on_world_update()
     -- TODO check that we not removing item we are going to pick now, instead of checking if picker gui is open.
     if is_safe_to_remove() then
