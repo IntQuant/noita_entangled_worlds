@@ -7,6 +7,7 @@ local function patch_perk_2(perk_id, fn)
 end
 
 local function hide_perk(perk_id)
+    print("Hiding perk", perk_id)
     local perk_data = get_perk_with_id(perk_list, perk_id)
     perk_data.not_in_default_perk_pool = true
 end
