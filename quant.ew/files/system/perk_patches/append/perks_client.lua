@@ -1,4 +1,4 @@
-if not ctx.proxy_opts.randomize_perks then
+if CrossCall ~= nil and not CrossCall("ew_randomize_perks") then
     return
 end
 

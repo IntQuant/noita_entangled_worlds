@@ -49,6 +49,10 @@ np.CrossCallAdd("ew_perk_ban_list", function()
     return ctx.proxy_opt.perk_ban_list
 end)
 
+np.CrossCallAdd("ew_randomize_perks", function()
+    return ctx.proxy_opt.randomize_perks
+end)
+
 rpc.opts_everywhere()
 function rpc.sync_perk_amount(items, genome)
     GlobalsSetValue("TEMPLE_SHOP_ITEM_COUNT", tostring(items))

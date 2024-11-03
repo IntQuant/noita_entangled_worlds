@@ -20,6 +20,14 @@ local perks_to_ignore = {
     TELEKINESIS = true,
 }
 
+local global_perks = {
+    NO_MORE_SHUFFLE = true,
+    UNLIMITED_SPELLS = true,
+    TRICK_BLOOD_MONEY = true,
+    GOLD_IS_FOREVER = true,
+    PEACE_WITH_GODS = true
+}
+
 function perk_fns.get_my_perks()
     lazyload()
     local perks = {}
@@ -32,6 +40,19 @@ function perk_fns.get_my_perks()
     end
     return perks
 end
+
+local function spawn_perk(perk_info, auto_pickup_entity)
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+    local perk_entity = perk_spawn(x, y - 8, perk_info.id)
+    if auto_pickup_entity then
+        perk_pickup(perk_entity, auto_pickup_entity, nil, true, false)
+    end
+    local icon = EntityCreateNew()
+    EntityAddTag(icon, "perk_entity")
+    EntityAddComponent2(icon, "UIIconComponent", {icon_sprite_file = perk_info.ui_icon, name = perk_info.ui_name, description = perk_info.ui_description})
+    EntityAddChild(ctx.my_player.entity, icon)
+end
+
 
 local function give_one_perk(entity_who_picked, perk_info, count)
     lazyload()
@@ -77,6 +98,12 @@ local function give_one_perk(entity_who_picked, perk_info, count)
 
             EntityAddChild( entity_who_picked, particle_id )
         end
+    end
+
+    if global_perks[perk_info.id]
+            and perk_fns.get_my_perks()[perk_info.id] == nil then
+        spawn_perk(perk_info, true)
+        global_perks[perk_info.id] = false
     end
 end
 
