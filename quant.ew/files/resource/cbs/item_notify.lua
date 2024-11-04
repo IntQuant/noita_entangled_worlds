@@ -3,7 +3,12 @@ function throw_item()
 end
 
 function item_pickup()
-    GlobalsSetValue("ew_picked", tostring(GetUpdatedEntityID()))
+    local ent = GetUpdatedEntityID()
+    local com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+    if com ~= nil then
+        ComponentSetValue2(com, "permanently_attached", false)
+    end
+    GlobalsSetValue("ew_picked", tostring(ent))
 end
 
 function kick()
