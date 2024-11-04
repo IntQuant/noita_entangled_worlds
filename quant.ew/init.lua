@@ -124,6 +124,7 @@ local function load_modules()
     ctx.load_system("world_sync_cuts")
     ctx.load_system("hamis")
     ctx.load_system("spell_refresh")
+    ctx.load_system("shiny_orb")
 end
 
 local function load_extra_modules()
