@@ -268,7 +268,10 @@ function item_sync.on_world_update()
     if GameGetFrameNum() % 5 == 2 then
         for _, ent in ipairs(EntityGetWithTag("mimic_potion")) do
             if EntityHasTag(ent, "polymorphed_player") then
-                EntityRemoveComponent(ent, EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent"))
+                local com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+                if com ~= nil then
+                    EntityRemoveComponent(ent, com)
+                end
             elseif ctx.is_host then
                 if not EntityHasTag(ent, "ew_global_item") then
                     item_sync.make_item_global(ent)

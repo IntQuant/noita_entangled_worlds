@@ -644,6 +644,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             local found = false
             for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
                 if EntityGetName(child) == "inventory_quick" then
+                    if EntityGetParent(wand) ~= nil then
+                        EntityRemoveFromParent(wand)
+                    end
                     EntityAddChild(child, wand)
                     found = true
                     break
