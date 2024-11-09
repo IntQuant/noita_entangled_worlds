@@ -5,7 +5,7 @@ use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
 use std::path::PathBuf;
-use std::sync::atomic::AtomicI32;
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::{
     env,
     fmt::Display,
@@ -130,6 +130,7 @@ pub struct NetManager {
     pub ban_list: Mutex<Vec<OmniPeerId>>,
     pub kick_list: Mutex<Vec<OmniPeerId>>,
     pub no_more_players: AtomicBool,
+    dont_kick: Mutex<Vec<OmniPeerId>>,
 }
 
 impl NetManager {
@@ -153,6 +154,7 @@ impl NetManager {
             ban_list: Default::default(),
             kick_list: Default::default(),
             no_more_players: AtomicBool::new(false),
+            dont_kick: Default::default(),
         }
         .into()
     }
@@ -282,6 +284,26 @@ impl NetManager {
                 if let Err(err) = ws.flush() {
                     warn!("Websocket flush not ok: {err}");
                 }
+            }
+            let mut dont_kick = self.dont_kick.lock().unwrap();
+            if self.no_more_players.load(Ordering::Relaxed) {
+                if dont_kick.is_empty() {
+                    dont_kick.extend(self.peer.iter_peer_ids())
+                } else {
+                    for peer in self.peer.iter_peer_ids() {
+                        if !dont_kick.contains(&peer) {
+                            state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
+                            state.world.handle_peer_left(peer);
+                            self.send(peer, &NetMsg::Kick, Reliability::Reliable);
+                            self.broadcast(
+                                &NetMsg::PeerDisconnected { id: peer },
+                                Reliability::Reliable,
+                            );
+                        }
+                    }
+                }
+            } else {
+                dont_kick.clear()
             }
             let mut list = self.kick_list.lock().unwrap();
             for peer in list.iter() {

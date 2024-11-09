@@ -1196,6 +1196,10 @@ impl eframe::App for App {
                         if ui.button(tr("netman_show_settings")).clicked() {
                             self.show_settings = true;
                         }
+                        let mut temp = netman.no_more_players.load(Ordering::Relaxed);
+                        if ui.checkbox(&mut temp, "don't let more players join").changed() {
+                            netman.no_more_players.store(temp, Ordering::Relaxed);
+                        }
                     }
                     ui.add_space(15.0);
 
