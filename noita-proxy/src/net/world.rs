@@ -554,10 +554,10 @@ impl WorldManager {
                 match current_authority {
                     Some((authority, priority_state)) => {
                         if source == authority {
-                            info!("{source} already has authority of {chunk:?}");
+                            debug!("{source} already has authority of {chunk:?}");
                             self.emit_got_authority(chunk, source, priority);
                         } else if priority_state > priority && !can_wait {
-                            info!("{source} is gaining priority over {chunk:?} from {authority}");
+                            debug!("{source} is gaining priority over {chunk:?} from {authority}");
                             self.emit_transfer_authority(chunk, source, priority, authority);
                         } else {
                             debug!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
@@ -879,7 +879,7 @@ impl WorldManager {
                 if let Some(ChunkState::Listening { authority, .. }) = state {
                     *authority = source;
                 } else {
-                    warn!("Got notified of new authority, but not a listener");
+                    info!("Got notified of new authority, but not a listener");
                 }
             }
         }
