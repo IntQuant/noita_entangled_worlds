@@ -109,13 +109,13 @@ end
 
 function item_sync.host_localize_item(gid, peer_id)
     if ctx.item_prevent_localize[gid] then
-        GamePrint("Item localize for " .. gid .. " prevented")
+        print("Item localize for " .. gid .. " prevented")
         return
     end
     ctx.item_prevent_localize[gid] = true
 
     if table.contains(pending_remove, gid) then
-        GamePrint("Item localize prevented, already taken")
+        print("Item localize prevented, already taken")
         return
     end
 
