@@ -72,7 +72,7 @@ local function get_me()
     local i = 0
     local alive = -1, -1
     for peer_id, potential_target in pairs(ctx.players) do
-        if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+        if (GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death) and EntityHasTag(potential_target.entity, "ew_notplayer") then
             goto continue
         end
         i = i + 1
@@ -218,7 +218,7 @@ local function set_camera_pos()
     if cam_target == nil or re_cam then
         local i = 0
         for peer_id, potential_target in pairs(ctx.players) do
-            if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+            if (GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death) and EntityHasTag(potential_target.entity, "ew_notplayer") then
                 goto continue
             end
             i = i + 1
@@ -246,7 +246,8 @@ end
 local function update_i()
     local i = 0
     for peer_id, potential_target in pairs(ctx.players) do
-        if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+        if (GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death)
+                and EntityHasTag(potential_target.entity, "ew_notplayer") then
             goto continue
         end
         i = i + 1
@@ -263,7 +264,7 @@ end
 local function number_of_players()
     local i = 0
     for _, potential_target in pairs(ctx.players) do
-        if GameHasFlagRun("ending_game_completed") and EntityHasTag(potential_target.entity, "ew_notplayer") then
+        if (GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death) and EntityHasTag(potential_target.entity, "ew_notplayer") then
             goto continue
         end
         i = i + 1
@@ -296,7 +297,9 @@ function spectate.on_world_update()
         update_i()
         last_len = number_of_players()
     end
-    if cam_target ~= nil and GameHasFlagRun("ending_game_completed") and EntityHasTag(cam_target.entity, "ew_notplayer") then
+    if cam_target ~= nil
+            and ((GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death)
+                and EntityHasTag(cam_target.entity, "ew_notplayer")) then
         update_i()
         last_len = number_of_players()
     end

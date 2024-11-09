@@ -74,8 +74,15 @@ function module.on_world_update()
         local mx, my = GameGetCameraPos()
         for peer_id, player in pairs(ctx.players) do
             local ent = player.entity
+            local children = EntityGetAllChildren(ent) or {}
+            for _, child in ipairs(children) do
+                if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+                    EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+                end
+            end
             local x, y = EntityGetTransform(ent)
             local notplayer = EntityHasTag(ent, "ew_notplayer")
+                    and not ctx.proxy_opt.perma_death
             if notplayer and GameHasFlagRun("ending_game_completed") then
                 goto continue
             end
@@ -84,7 +91,7 @@ function module.on_world_update()
             end
             local dx, dy = x - mx, y - my
             local cape
-            for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
+            for _, child in ipairs(children) do
                 if EntityGetName(child) == "cape" then
                     local cpe = EntityGetFirstComponentIncludingDisabled(child, "VerletPhysicsComponent")
                     local cx, cy = ComponentGetValue2(cpe, "m_position_previous")

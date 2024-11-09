@@ -637,6 +637,8 @@ local function choose_movement()
         ComponentSetValue2(state.control_component, "mButtonFrameRight", GameGetFrameNum()+100)
         return
     end
+    local air = ComponentGetValue2(state.damage_model, "air_in_lungs")
+    local fly = ComponentGetValue2(state.data_component, "mFlyingTimeLeft")
     if state.target == nil or (has_ambrosia(ctx.my_player.entity) and state.init_timer > no_shoot_time + 4) then
         state.control_a = false
         state.control_d = false
@@ -663,13 +665,14 @@ local function choose_movement()
             move = -1
         end
 
-        local air = ComponentGetValue2(state.damage_model, "air_in_lungs")
-        if air < 1 then
-            state.control_w = true
-            state.control_s = false
-        elseif air < 2 then
-            state.control_s = true
-            state.control_w = false
+        if air < 2 then
+            if fly < 0.5 then
+                state.control_s = true
+                state.control_w = false
+            else
+                state.control_w = true
+                state.control_s = false
+            end
         end
         return
     end
@@ -752,7 +755,7 @@ local function choose_movement()
         on_right = my_x > t_x
     end
 
-    if ComponentGetValue2(state.data_component, "mFlyingTimeLeft") < 0.2 and GameGetFrameNum() % 300 > 250 then
+    if fly < 0.2 and GameGetFrameNum() % 300 > 250 then
         rest = true
         give_space = give_space + 10
         swap_side = false
@@ -863,13 +866,14 @@ local function choose_movement()
     if did_hit_up and state.water_potion ~= nil then
         state.control_w = false
     end
-    local air = ComponentGetValue2(state.damage_model, "air_in_lungs")
-    if air < 1 then
-        state.control_w = true
-        state.control_s = false
-    elseif air < 2 then
-        state.control_s = true
-        state.control_w = false
+    if air < 2 then
+        if fly < 0.5 then
+            state.control_s = true
+            state.control_w = false
+        else
+            state.control_w = true
+            state.control_s = false
+        end
     end
 end
 
@@ -1441,6 +1445,7 @@ end
 
 function module.on_world_update()
     local active = GameHasFlagRun("ew_flag_notplayer_active")
+            and not ctx.proxy_opt.perma_death
     if active and EntityGetIsAlive(ctx.my_player.entity) and EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         if state == nil then
             init_state()

@@ -99,6 +99,7 @@ local_health_desc_2 = There is a respawn mechanic.
 Health-percent-lost-on-reviving = HP percent lost on reviving
 global_hp_loss = Lose HP globally
 no_material_damage = No material damage
+perma_death = Perma death
 shared_health_desc_1 = Health is shared, but scales with player count.
 shared_health_desc_2 = Percentage-based damage and full heals are adjusted.
 shared_health_desc_3 = The original mode.

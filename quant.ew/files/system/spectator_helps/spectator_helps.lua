@@ -2,6 +2,15 @@ local rpc = net.new_rpc_namespace()
 
 local shield_entities = {}
 
+local function remove_shield(peer_id)
+    if shield_entities[peer_id] ~= nil then
+        if EntityGetIsAlive(shield_entities[peer_id][2]) then
+            EntityKill(shield_entities[peer_id][2])
+        end
+        shield_entities[peer_id] = nil
+    end
+end
+
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.add_shield(target)
@@ -12,23 +21,21 @@ function rpc.add_shield(target)
     if not EntityGetIsAlive(entity) or EntityHasTag(entity, "polymorphed") then
         return
     end
-    if shield_entities[ctx.rpc_peer_id] ~= nil then
-        EntityKill(shield_entities[ctx.rpc_peer_id][2])
+    if shield_entities[ctx.rpc_peer_id] == nil or shield_entities[ctx.rpc_peer_id][1] ~= target then
+        if shield_entities[ctx.rpc_peer_id] ~= nil
+                and EntityGetIsAlive(shield_entities[ctx.rpc_peer_id][2]) then
+            EntityKill(shield_entities[ctx.rpc_peer_id][2])
+        end
+        local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
+        EntityAddChild(entity, ent)
+        shield_entities[ctx.rpc_peer_id] = {target, ent}
     end
-    local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
-    EntityAddChild(entity, ent)
-    shield_entities[ctx.rpc_peer_id] = {target, ent}
 end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.del_shield()
-    if shield_entities[ctx.rpc_peer_id] ~= nil then
-        if EntityGetIsAlive(shield_entities[ctx.rpc_peer_id][2]) then
-            EntityKill(shield_entities[ctx.rpc_peer_id][2])
-        end
-        shield_entities[ctx.rpc_peer_id] = nil
-    end
+    remove_shield(ctx.rpc_peer_id)
 end
 
 local module = {}
@@ -48,11 +55,11 @@ local function is_acceptable_help_target(spectating_over)
         return false
     end
     if shield_entities[ctx.my_id] ~= nil then
-        if shield_entities[ctx.my_id][1] ~= spectating_over then
+        if shield_entities[ctx.my_id][1] ~= spectating_over  then
             rpc.del_shield()
             return false
         end
-        return false
+        return GameGetFrameNum() % 300 < 10
     end
     return true
 end
@@ -77,7 +84,10 @@ end
 local last_spectate
 
 function module.on_world_update()
-    if GameHasFlagRun("ending_game_completed") then
+    if GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death then
+        if not ctx.proxy_opt.perma_death then
+            rpc.del_shield()
+        end
         return
     end
     if GameGetFrameNum() % 10 == 8 then

@@ -176,9 +176,22 @@ local function player_died()
 
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
     -- Which is, like, perfect.
+    GameAddFlagRun("ew_flag_notplayer_active")
+    if ctx.proxy_opt.perma_death then
+        local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/cessation.xml")
+        polymorph.switch_entity(ent + 1)
+        GameAddFlagRun("msg_gods_looking")
+        GameAddFlagRun("msg_gods_looking2")
+        EntityAddTag(ctx.my_player.entity, "ew_notplayer")
+        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+            if EntityGetName(child) == "cursor" then
+                EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
+            end
+        end
+        return
+    end
     local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
     ctx.my_player.entity = ent + 1
-    GameAddFlagRun("ew_flag_notplayer_active")
     do_switch_effect(false)
     EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
@@ -191,7 +204,7 @@ local function player_died()
     remove_healthbar_locally()
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
-            EntityKill(child)
+            EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
         end
     end
     inventory_helper.set_item_data(item_data, ctx.my_player)

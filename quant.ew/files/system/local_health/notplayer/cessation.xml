@@ -1,0 +1,13 @@
+<Entity>
+    <InheritTransformComponent>
+    </InheritTransformComponent>
+
+    <GameEffectComponent
+        effect="POLYMORPH_CESSATION"
+        frames="-1"
+        disable_movement="0"
+        polymorph_target="data/entities/animals/nibbana.xml"
+    >
+    </GameEffectComponent >
+
+</Entity>
