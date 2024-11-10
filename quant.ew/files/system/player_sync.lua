@@ -57,7 +57,7 @@ function module.on_world_update()
     local input_data = player_fns.serialize_inputs(ctx.my_player)
     local pos_data =  player_fns.serialize_position(ctx.my_player)
     local current_slot = player_fns.get_current_slot(ctx.my_player)
-    if input_data ~= nil and pos_data ~= nil then
+    if input_data ~= nil or pos_data ~= nil then
         local my_team
         if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 60 == 43 and ctx.proxy_opt.friendly_fire_team ~= nil then
             my_team = ctx.proxy_opt.friendly_fire_team - 1
