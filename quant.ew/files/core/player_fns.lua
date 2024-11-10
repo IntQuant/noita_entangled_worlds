@@ -476,6 +476,9 @@ function player_fns.nickname_of_peer(peer_id)
 end
 
 function player_fns.get_player_data_by_local_entity_id(entity)
+    if entity == nil then
+        return nil
+    end
     return ctx.player_data_by_local_entity[entity]
 end
 
