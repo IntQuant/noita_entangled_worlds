@@ -199,6 +199,12 @@ local function player_died()
     EntityAddTag(iron, "kill_on_revive")
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
     set_cosmetics_locally(ctx.my_id)
+
+    local inv = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+    ComponentSetValue2(inv, "mItemHolstered", false)
+    ComponentSetValue2(inv, "mActualActiveItem", 0)
+    ComponentSetValue2(inv, "mActiveItem", 0)
+
     polymorph.switch_entity(ent + 1)
 
     remove_healthbar_locally()
