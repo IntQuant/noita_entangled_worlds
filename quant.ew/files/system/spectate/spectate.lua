@@ -26,7 +26,7 @@ local redo = false
 
 local function cant_spectate(ent)
     return ((GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death)
-            and EntityHasTag(potential_target.entity, "ew_notplayer"))
+            and EntityHasTag(ent, "ew_notplayer"))
             or (EntityHasTag(ent, "polymorphed_cessation")
                 and cam_target ~= nil and cam_target.entity ~= ent)
 end
