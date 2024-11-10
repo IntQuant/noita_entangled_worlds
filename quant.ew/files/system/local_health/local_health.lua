@@ -65,7 +65,8 @@ local function end_poly_effect(ent)
         local game_effect_comp = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
         if game_effect_comp then
             local effect = ComponentGetValue2(game_effect_comp, "effect")
-            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM" or effect == "POLYMORPH_UNSTABLE" then
+            if effect == "POLYMORPH" or effect == "POLYMORPH_RANDOM"
+                    or effect == "POLYMORPH_UNSTABLE" or effect == "POLYMORPH_CESSATION" then
                 serialized = ComponentGetValue2(game_effect_comp, "mSerializedData")
                 if serialized ~= nil then
                     break

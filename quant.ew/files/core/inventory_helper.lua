@@ -97,7 +97,6 @@ function inventory_helper.serialize_single_item(item)
             sprite = ComponentGetValue2(sprite, "image_file")
         end
         local varp = EntityGetFilename(item) == "data/entities/items/wand_varpuluuta.xml"
-        GamePrint(tostring(image_inv))
         item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}, sprite, image_inv, varp}
     else
         item_data = {false, util.serialize_entity(item), x, y}
