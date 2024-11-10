@@ -26,7 +26,11 @@ use tungstenite::{accept, WebSocket};
 
 use crate::mod_manager::ModmanagerSettings;
 use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
-use crate::{bookkeeping::save_state::{SaveState, SaveStateEntry}, recorder::Recorder, DefaultSettings, GameSettings, PlayerColor};
+use crate::{
+    bookkeeping::save_state::{SaveState, SaveStateEntry},
+    recorder::Recorder,
+    DefaultSettings, GameSettings, PlayerColor,
+};
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -425,8 +429,7 @@ impl NetManager {
                         break
                     }
                     Err(err) => {
-                        error!("Error occured while reading from websocket: {}", err);
-                        error!("Likely that just means that the game has closed.");
+                        warn!("Game closed (Lost connection to noita instance: {})", err);
                         state.ws = None;
                     }
                 }
@@ -498,23 +501,75 @@ impl NetManager {
         self.friendly_fire.store(ff, atomic::Ordering::Relaxed);
         state.try_ws_write_option("friendly_fire", ff);
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
-        state.try_ws_write_option("world_sync_version", settings.world_sync_version.unwrap_or(def.world_sync_version));
-        state.try_ws_write_option("player_tether", settings.player_tether.unwrap_or(def.player_tether));
-        state.try_ws_write_option("tether_length", settings.tether_length.unwrap_or(def.tether_length));
+        state.try_ws_write_option(
+            "world_sync_version",
+            settings
+                .world_sync_version
+                .unwrap_or(def.world_sync_version),
+        );
+        state.try_ws_write_option(
+            "player_tether",
+            settings.player_tether.unwrap_or(def.player_tether),
+        );
+        state.try_ws_write_option(
+            "tether_length",
+            settings.tether_length.unwrap_or(def.tether_length),
+        );
         state.try_ws_write_option("item_dedup", settings.item_dedup.unwrap_or(def.item_dedup));
-        state.try_ws_write_option("randomize_perks", settings.randomize_perks.unwrap_or(def.randomize_perks));
-        state.try_ws_write_option("enemy_hp_scale", settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult));
-        state.try_ws_write_option("world_sync_interval", settings.world_sync_interval.unwrap_or(def.world_sync_interval));
+        state.try_ws_write_option(
+            "randomize_perks",
+            settings.randomize_perks.unwrap_or(def.randomize_perks),
+        );
+        state.try_ws_write_option(
+            "enemy_hp_scale",
+            settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult),
+        );
+        state.try_ws_write_option(
+            "world_sync_interval",
+            settings
+                .world_sync_interval
+                .unwrap_or(def.world_sync_interval),
+        );
         state.try_ws_write_option("game_mode", settings.game_mode.unwrap_or(def.game_mode));
-        state.try_ws_write_option("chunk_target", settings.chunk_target.unwrap_or(def.chunk_target));
-        state.try_ws_write_option("health_per_player", settings.health_per_player.unwrap_or(def.health_per_player));
-        state.try_ws_write_option("enemy_sync_interval", settings.enemy_sync_interval.unwrap_or(def.enemy_sync_interval));
-        state.try_ws_write_option("global_hp_loss", settings.global_hp_loss.unwrap_or(def.global_hp_loss));
-        state.try_ws_write_option("perma_death", settings.perma_death.unwrap_or(def.perma_death));
+        state.try_ws_write_option(
+            "chunk_target",
+            settings.chunk_target.unwrap_or(def.chunk_target),
+        );
+        state.try_ws_write_option(
+            "health_per_player",
+            settings.health_per_player.unwrap_or(def.health_per_player),
+        );
+        state.try_ws_write_option(
+            "enemy_sync_interval",
+            settings
+                .enemy_sync_interval
+                .unwrap_or(def.enemy_sync_interval),
+        );
+        state.try_ws_write_option(
+            "global_hp_loss",
+            settings.global_hp_loss.unwrap_or(def.global_hp_loss),
+        );
+        state.try_ws_write_option(
+            "perma_death",
+            settings.perma_death.unwrap_or(def.perma_death),
+        );
         let lst = settings.clone();
-        state.try_ws_write_option("perk_ban_list", lst.perk_ban_list.unwrap_or(def.perk_ban_list).as_str());
-        state.try_ws_write_option("no_material_damage", settings.no_material_damage.unwrap_or(def.no_material_damage));
-        state.try_ws_write_option("health_lost_on_revive", settings.health_lost_on_revive.unwrap_or(def.health_lost_on_revive));
+        state.try_ws_write_option(
+            "perk_ban_list",
+            lst.perk_ban_list.unwrap_or(def.perk_ban_list).as_str(),
+        );
+        state.try_ws_write_option(
+            "no_material_damage",
+            settings
+                .no_material_damage
+                .unwrap_or(def.no_material_damage),
+        );
+        state.try_ws_write_option(
+            "health_lost_on_revive",
+            settings
+                .health_lost_on_revive
+                .unwrap_or(def.health_lost_on_revive),
+        );
         let rgb = self.init_settings.player_color.player_main;
         state.try_ws_write_option(
             "mina_color",

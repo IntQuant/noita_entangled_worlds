@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fs, io,
     path::PathBuf,
     sync::{
         atomic::{self, AtomicBool},
@@ -61,7 +61,13 @@ impl SaveState {
     pub(crate) fn load<D: SaveStateEntry>(&self) -> Option<D> {
         let path = self.path_for_filename(D::FILENAME);
         let data = fs::read(&path)
-            .inspect_err(|err| warn!("Could not read {:?}: {err}", D::FILENAME))
+            .inspect_err(|err| {
+                if err.kind() == io::ErrorKind::NotFound {
+                    info!("No save for {}, no need to load anything", D::FILENAME)
+                } else {
+                    warn!("Could not read {:?}: {err}", D::FILENAME)
+                }
+            })
             .ok()?;
         let data = lz4_flex::decompress_size_prepended(&data)
             .inspect_err(|err| warn!("Could not decompress {:?}: {err}", D::FILENAME))
