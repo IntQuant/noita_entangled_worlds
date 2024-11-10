@@ -31,27 +31,22 @@ local EnemyDataKolmi = util.make_type({
     bool = {"enabled"},
 })
 
+local EnemyDataMom = util.make_type({
+    u32 = {"enemy_id"},
+    f32 = {"x", "y", "vx", "vy"},
+    vecbool = {"orbs"},
+})
+
 local EnemyDataFish = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
     u8 = {"r"},
 })
 
---local EnemyDataSniper = util.make_type({
---    u32 = {"enemy_id"},
---    f32 = {"x", "y", "vx", "vy"},
---    bool = {"aiming"},
---})
-
 local HpData = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"hp", "max_hp"}
 })
-
---local HpDataMom = util.make_type({
---    u32 = {"enemy_id"},
---    f32 = {"hp", "max_hp", "hp1", "hp2", "hp3", "hp4"}
---})
 
 local FULL_TURN = math.pi * 2
 
@@ -280,6 +275,23 @@ function enemy_sync.host_upload_entities()
                 vx = vx,
                 vy = vy,
                 enabled = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent", "disabled_at_start") ~= nil,
+            }
+        elseif EntityHasTag(enemy_id, "boss_wizard") then
+            local orbs = {false, false, false, false, false, false, false, false}
+            for _, child in pairs(EntityGetAllChildren(enemy_id) or {}) do
+                local var = EntityGetFirstComponentIncludingDisabled(child, "VariableStorageComponent")
+                if EntityHasTag(child, "touchmagic_immunity") and var ~= nil then
+                    local n = ComponentGetValue2(var, "value_int")
+                    orbs[n] = true
+                end
+            end
+            en_data = EnemyDataMom {
+                enemy_id = enemy_id,
+                x = x,
+                y = y,
+                vx = vx,
+                vy = vy,
+                orbs = orbs
             }
         elseif worm ~= nil then
             local tx, ty = ComponentGetValue2(worm, "mTargetVec")
@@ -593,6 +605,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         else
             EntitySetTransform(enemy_id, x, y)
         end
+        local parent = EntityGetParent(enemy_id)
+        if parent ~= nil then
+            EntitySetTransform(parent, x, y)
+        end
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
             or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
         if worm ~= nil and ffi.typeof(en_data) == EnemyDataWorm then
@@ -628,6 +644,22 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             if indexed[script] == nil then
                 EntityAddComponent(enemy_id, "LuaComponent", { script_death = script,
                             execute_every_n_frame = "-1"})
+            end
+        end
+        if ffi.typeof(en_data) == EnemyDataMom then
+            local orbs = en_data.orbs
+            for _, child in pairs(EntityGetAllChildren(enemy_id) or {}) do
+                local var = EntityGetFirstComponentIncludingDisabled(child, "VariableStorageComponent")
+                local damage_component = EntityGetFirstComponentIncludingDisabled(child, "DamageModelComponent")
+                if EntityHasTag(child, "touchmagic_immunity") and var ~= nil then
+                    local n = ComponentGetValue2(var, "value_int")
+                    if orbs[n] then
+                        ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
+                    else
+                        ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
+                        EntityKill(child)
+                    end
+                end
             end
         end
     end

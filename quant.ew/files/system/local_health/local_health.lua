@@ -205,9 +205,11 @@ local function player_died()
     set_cosmetics_locally(ctx.my_id)
 
     local inv = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
-    ComponentSetValue2(inv, "mItemHolstered", false)
-    ComponentSetValue2(inv, "mActualActiveItem", 0)
-    ComponentSetValue2(inv, "mActiveItem", 0)
+    if inv ~= nil then
+        ComponentSetValue2(inv, "mItemHolstered", false)
+        ComponentSetValue2(inv, "mActualActiveItem", 0)
+        ComponentSetValue2(inv, "mActiveItem", 0)
+    end
 
     polymorph.switch_entity(ent + 1)
 
