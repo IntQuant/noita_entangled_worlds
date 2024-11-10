@@ -211,7 +211,10 @@ local function player_died()
         return
     end
 
-    show_death_message()
+    -- Don't show "run ended" as reason of death
+    if not ctx.run_ended then
+        show_death_message()
+    end
 
     rpc.remove_homing(false)
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
