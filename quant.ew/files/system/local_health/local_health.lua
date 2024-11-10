@@ -271,29 +271,26 @@ local function do_game_over(message)
     GameRemoveFlagRun("ew_flag_notplayer_active")
     set_camera_free(true, ctx.my_player.entity)
 
+    async(function()
     if #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
         local ent = end_poly_effect(ctx.my_player.entity)
         if ent ~= nil then
             polymorph.switch_entity(ent)
-            if ctx.my_player.entity ~= nil then
-                local stat_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "GameStatsComponent")
-                if stat_component ~= nil then
-                    ComponentSetValue2(stat_component, "extra_death_msg", "")
-                    print("extra_death_msg removed")
-                end
-
-                local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-                if damage_model ~= nil then
-                    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-                    EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+                wait(1)
+                if ctx.my_player.entity ~= nil then
+                    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+                    if damage_model ~= nil then
+                        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+                        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
+                    end
                 end
             end
         end
-    end
-    GameTriggerGameOver()
-    for _, data in pairs(ctx.players) do
-        EntityKill(data.entity)
-    end
+        GameTriggerGameOver()
+        for _, data in pairs(ctx.players) do
+            EntityKill(data.entity)
+        end
+    end)
 end
 
 function module.on_local_player_spawn(my_player)
