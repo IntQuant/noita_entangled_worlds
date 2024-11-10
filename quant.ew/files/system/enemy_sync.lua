@@ -605,9 +605,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         else
             EntitySetTransform(enemy_id, x, y)
         end
-        local parent = EntityGetParent(enemy_id)
-        if parent ~= nil then
-            EntitySetTransform(parent, x, y)
+        local root = EntityGetRootEntity(enemy_id)
+        if root ~= nil and EntityHasTag(root, "ew_synced_entity") then
+            EntitySetTransform(root, x, y)
         end
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
             or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")

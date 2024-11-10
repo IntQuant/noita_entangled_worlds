@@ -336,6 +336,19 @@ impl SteamPeer {
     pub fn flush(&self) {
         self.connections.flush()
     }
+    pub fn remove(&self, peer: OmniPeerId) {
+        let mut n = -1;
+        for (i, p) in self.inner.lock().unwrap().remote_peers.iter().enumerate() {
+            if *p == Into::<SteamId>::into(peer) {
+                n = i as isize;
+                break
+            }
+        }
+        if n >= 0
+        {
+            self.inner.lock().unwrap().remote_peers.remove(n as usize);
+        }
+    }
     pub fn new_host(lobby_type: LobbyType, client: steamworks::Client, max_players: u32) -> Self {
         let (sender, events) = channel::unbounded();
 

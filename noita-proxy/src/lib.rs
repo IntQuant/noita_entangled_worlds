@@ -896,13 +896,10 @@ impl App {
         }
         {
             let mut temp = game_settings.perk_ban_list.clone().unwrap_or(def.perk_ban_list);
-            ui.horizontal(|ui| {
-                if ui.text_edit_singleline(&mut temp)
-                     .changed() {
-                    game_settings.perk_ban_list = Some(temp)
-                }
-                ui.label("perk ban list, comma seperated");
-            });
+            ui.label("perk ban list, comma seperated");
+            if ui.add_sized([ui.available_width() - 30.0, 20.0], egui::TextEdit::singleline(&mut temp)).changed() {
+                game_settings.perk_ban_list = Some(temp)
+            }
         }
         {
             let mut temp = game_settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult);

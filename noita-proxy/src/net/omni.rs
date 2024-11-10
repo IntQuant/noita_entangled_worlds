@@ -92,7 +92,14 @@ impl PeerVariant {
             }
         }
     }
-
+    
+    pub(crate) fn remove(&self, peer: OmniPeerId) {
+        match self {
+            PeerVariant::Tangled(p) => p.remove(peer.into()),
+            PeerVariant::Steam(p) => p.remove(peer),
+        }
+    }
+    
     pub(crate) fn flush(&self) {
         if let PeerVariant::Steam(p) = self {
             p.flush()
