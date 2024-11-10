@@ -52,11 +52,13 @@ if ( varcomp ~= nil ) and ( eatercomp ~= nil ) then
                 local closest
                 local p
                 for _, player in ipairs(players) do
-                    local px, py = EntityGetTransform(player)
-                    local r = px * px + py * py
-                    if closest == nil or r < closest then
-                        closest = r
-                        p = player
+                    if not EntityHasTag(player, "ew_notplayer") then
+                        local px, py = EntityGetTransform(player)
+                        local r = px * px + py * py
+                        if closest == nil or r < closest then
+                            closest = r
+                            p = player
+                        end
                     end
                 end
 

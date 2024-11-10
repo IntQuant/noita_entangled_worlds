@@ -7,11 +7,13 @@ local p = EntityGetWithTag( "ew_peer" )
 local closest
 local v
 for _, player in ipairs(p) do
-    local px, py = EntityGetTransform(player)
-    local r = px * px + py * py
-    if closest == nil or r < closest then
-        closest = r
-        v = player
+    if not EntityHasTag(player, "ew_notplayer") then
+        local px, py = EntityGetTransform(player)
+        local r = px * px + py * py
+        if closest == nil or r < closest then
+            closest = r
+            v = player
+        end
     end
 end
 local comps = EntityGetComponent( entity_id, "VariableStorageComponent" )

@@ -21,11 +21,13 @@ local targets = EntityGetInRadiusWithTag( x, y, radius, "ew_peer" )
 local closest
 local v
 for _, player in ipairs(targets) do
-    local px, py = EntityGetTransform(player)
-    local r = px * px + py * py
-    if closest == nil or r < closest then
-        closest = r
-        v = player
+    if not EntityHasTag(player, "ew_notplayer") then
+        local px, py = EntityGetTransform(player)
+        local r = px * px + py * py
+        if closest == nil or r < closest then
+            closest = r
+            v = player
+        end
     end
 end
 
