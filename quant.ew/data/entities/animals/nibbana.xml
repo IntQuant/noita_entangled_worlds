@@ -1,15 +1,10 @@
 <Entity tags="polymorphed_cessation" name="$animal_player" >
-  <PlatformShooterPlayerComponent
-    center_camera_on_this_entity="1"
-    aiming_reticle_distance_from_character="60"
-    camera_max_distance_from_character="50"
-    move_camera_with_aim="1"
-    eating_area_min.x="-6"
-    eating_area_max.x="6"
-    eating_area_min.y="-4"
-    eating_area_max.y="6"
-    eating_cells_per_frame="2"
-  ></PlatformShooterPlayerComponent>
+    <LuaComponent
+        script_source_file="mods/quant.ew/files/system/local_health/notplayer/cessation.lua"
+        execute_every_n_frame="-1"
+        execute_on_removed="1"
+        >
+    </LuaComponent>
   <ControlsComponent
     enabled="1"
     gamepad_fire_on_thumbstick_extend="0"

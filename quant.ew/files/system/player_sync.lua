@@ -75,9 +75,11 @@ function module.on_world_update()
         for peer_id, player in pairs(ctx.players) do
             local ent = player.entity
             local children = EntityGetAllChildren(ent) or {}
-            for _, child in ipairs(children) do
-                if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
-                    EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+            if ctx.my_id ~= peer_id then
+                for _, child in ipairs(children) do
+                    if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+                        EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+                    end
                 end
             end
             local x, y = EntityGetTransform(ent)

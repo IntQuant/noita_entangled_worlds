@@ -238,7 +238,9 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     net.send_welcome()
 
     local item_pick = EntityGetFirstComponentIncludingDisabled(player_entity, "ItemPickUpperComponent")
-    ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
+    if item_pick ~= nil then
+        ComponentSetValue2(item_pick, "is_immune_to_kicks", true)
+    end
 
     ctx.hook.on_local_player_spawn(my_player)
     ctx.hook.on_should_send_updates()

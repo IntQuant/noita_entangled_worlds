@@ -232,11 +232,6 @@ local function player_died()
         GameAddFlagRun("msg_gods_looking")
         GameAddFlagRun("msg_gods_looking2")
         EntityAddTag(ctx.my_player.entity, "ew_notplayer")
-        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-            if EntityGetName(child) == "cursor" then
-                EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
-            end
-        end
         return
     end
     local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
@@ -286,7 +281,7 @@ local function do_game_over(message)
                     ComponentSetValue2(stat_component, "extra_death_msg", "")
                     print("extra_death_msg removed")
                 end
-                
+
                 local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
                 if damage_model ~= nil then
                     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
@@ -303,7 +298,9 @@ end
 
 function module.on_local_player_spawn(my_player)
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
-    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    end
     ctx.my_player.status = { is_alive = true }
 
     util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {

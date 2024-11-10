@@ -580,7 +580,8 @@ end
 
 local function is_suitable_target(entity)
     return EntityGetIsAlive(entity)
-            and not EntityHasTag(entity,"ew_notplayer")
+            and not EntityHasTag(entity, "ew_notplayer")
+            and EntityHasTag(entity, "mortal")
 end
 
 local function choose_wand_actions()
