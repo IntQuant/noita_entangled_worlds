@@ -167,6 +167,10 @@ local function player_died()
     if ctx.my_player.entity == nil then
         return
     end
+    if util.is_world_state_entity_like(ctx.my_player.entity) then
+        util.log("Err: Current player is world state like.")
+        return
+    end
     rpc.remove_homing(false)
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
