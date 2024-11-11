@@ -14,3 +14,4 @@ strip = true
 [dependencies]
 libloading = "0.8.5"
 backtrace = "0.3.74"
+iced-x86 = "1.21.0"

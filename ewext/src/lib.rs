@@ -4,12 +4,15 @@ use std::{
     sync::LazyLock,
 };
 
-use lua_bindings::{lua_State, Lua51};
+use iced_x86::Mnemonic;
+use lua_bindings::{lua_State, Lua51, LUA_GLOBALSINDEX};
 use noita::{NoitaPixelRun, ParticleWorldState};
 
 mod lua_bindings;
 
 mod noita;
+
+mod addr_grabber;
 
 static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
     let lib = libloading::Library::new("./lua51.dll").expect("library to exist");
@@ -20,9 +23,15 @@ thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| ExtState::default().into());
 }
 
+struct GrabbedGlobals {
+    game_global: *const c_void,
+    world_state_entity: *const c_void,
+}
+
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
+    globals: Option<GrabbedGlobals>,
 }
 
 // const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
@@ -61,6 +70,40 @@ unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
     1
 }
 
+unsafe fn grab_addrs(lua: *mut lua_State) {
+    LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"GameGetWorldStateEntity".as_ptr());
+    let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
+    let world_state_entity =
+        addr_grabber::grab_addr_from_instruction(base, 0x007aa7ce - 0x007aa540, Mnemonic::Mov);
+    println!(
+        "World state entity addr: 0x{:x}",
+        world_state_entity as usize
+    );
+    // Pop the last element.
+    LUA.lua_settop(lua, -2);
+
+    LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"GameGetFrameNum".as_ptr());
+    let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
+    let load_game_global =
+        addr_grabber::grab_addr_from_instruction(base, 0x007bf3c9 - 0x007bf140, Mnemonic::Call); // CALL load_game_global
+    println!("Load game global addr: 0x{:x}", load_game_global as usize);
+    let game_global = addr_grabber::grab_addr_from_instruction(
+        load_game_global,
+        0x00439c17 - 0x00439bb0,
+        Mnemonic::Mov,
+    );
+    println!("Game global addr: 0x{:x}", game_global as usize);
+    // Pop the last element.
+    LUA.lua_settop(lua, -2);
+
+    STATE.with(|state| {
+        state.borrow_mut().globals = Some(GrabbedGlobals {
+            game_global,
+            world_state_entity,
+        });
+    });
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
@@ -68,6 +111,8 @@ unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
     unsafe {
+        grab_addrs(lua);
+
         LUA.lua_createtable(lua, 0, 0);
 
         LUA.lua_pushcclosure(lua, Some(init_particle_world_state), 0);
