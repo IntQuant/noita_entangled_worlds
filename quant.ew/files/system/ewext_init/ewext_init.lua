@@ -1,9 +1,13 @@
 local ffi = require("ffi")
 local world_ffi = require("noitapatcher.nsew.world_ffi")
 
+local initial_world_state_entity = nil
+
 local module = {}
 
 function module.on_world_initialized()
+    initial_world_state_entity = GameGetWorldStateEntity()
+    ewext.save_world_state()
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     grid_world = tonumber(ffi.cast("intptr_t", grid_world))
@@ -14,6 +18,14 @@ end
 
 function module.on_local_player_spawn()
        
+end
+
+function module.on_world_update()
+    if GameGetWorldStateEntity() ~= initial_world_state_entity then
+        GamePrint("Whoops WSE is different "..GameGetWorldStateEntity().." "..initial_world_state_entity)
+        -- EntityKill(GameGetWorldStateEntity())
+        ewext.load_world_state()
+    end
 end
 
 return module

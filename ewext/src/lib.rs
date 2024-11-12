@@ -20,18 +20,30 @@ static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
 });
 
 thread_local! {
-    static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| ExtState::default().into());
+    static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
+        println!("Initializing ExtState");
+        ExtState::default().into()
+    });
+}
+
+struct SavedWorldState {
+    game_global: usize,
+    world_state_entity: usize,
+    world_state_related: usize,
 }
 
 struct GrabbedGlobals {
-    game_global: *const c_void,
-    world_state_entity: *const c_void,
+    // These 3 actually point to a pointer.
+    game_global: *mut usize,
+    world_state_entity: *mut usize,
+    world_state_related: *mut usize,
 }
 
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
     globals: Option<GrabbedGlobals>,
+    saved_world_state: Option<SavedWorldState>,
 }
 
 // const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
@@ -70,11 +82,56 @@ unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
     1
 }
 
+unsafe fn save_world_state() {
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+        let game_global = state.globals.as_ref().unwrap().game_global.read();
+        let world_state_entity = state.globals.as_ref().unwrap().world_state_entity.read();
+        let world_state_related = state.globals.as_ref().unwrap().world_state_related.read();
+        state.saved_world_state = Some(SavedWorldState {
+            game_global,
+            world_state_entity,
+            world_state_related,
+        })
+    });
+}
+
+unsafe fn load_world_state() {
+    println!("Loading world state");
+    STATE.with(|state| {
+        let state = state.borrow_mut();
+        let saved_ws = state.saved_world_state.as_ref().unwrap();
+        let globals = state.globals.as_ref().unwrap();
+        globals.game_global.write(saved_ws.game_global);
+        globals
+            .world_state_entity
+            .write(saved_ws.world_state_entity);
+        globals
+            .world_state_related
+            .write(saved_ws.world_state_related);
+    });
+}
+
+unsafe extern "C" fn save_world_state_lua(lua: *mut lua_State) -> i32 {
+    if STATE.with(|state| state.borrow().globals.is_none()) {
+        grab_addrs(lua);
+    }
+
+    save_world_state();
+    0
+}
+
+unsafe extern "C" fn load_world_state_lua(_lua: *mut lua_State) -> i32 {
+    load_world_state();
+    0
+}
+
 unsafe fn grab_addrs(lua: *mut lua_State) {
     LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"GameGetWorldStateEntity".as_ptr());
     let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
     let world_state_entity =
-        addr_grabber::grab_addr_from_instruction(base, 0x007aa7ce - 0x007aa540, Mnemonic::Mov);
+        addr_grabber::grab_addr_from_instruction(base, 0x007aa7ce - 0x007aa540, Mnemonic::Mov)
+            .cast();
     println!(
         "World state entity addr: 0x{:x}",
         world_state_entity as usize
@@ -91,7 +148,8 @@ unsafe fn grab_addrs(lua: *mut lua_State) {
         load_game_global,
         0x00439c17 - 0x00439bb0,
         Mnemonic::Mov,
-    );
+    )
+    .cast();
     println!("Game global addr: 0x{:x}", game_global as usize);
     // Pop the last element.
     LUA.lua_settop(lua, -2);
@@ -100,6 +158,7 @@ unsafe fn grab_addrs(lua: *mut lua_State) {
         state.borrow_mut().globals = Some(GrabbedGlobals {
             game_global,
             world_state_entity,
+            world_state_related: (0x01202ff0 as *mut usize),
         });
     });
 }
@@ -111,14 +170,16 @@ unsafe fn grab_addrs(lua: *mut lua_State) {
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
     unsafe {
-        grab_addrs(lua);
-
         LUA.lua_createtable(lua, 0, 0);
 
         LUA.lua_pushcclosure(lua, Some(init_particle_world_state), 0);
         LUA.lua_setfield(lua, -2, c"init_particle_world_state".as_ptr());
         LUA.lua_pushcclosure(lua, Some(encode_area), 0);
         LUA.lua_setfield(lua, -2, c"encode_area".as_ptr());
+        LUA.lua_pushcclosure(lua, Some(load_world_state_lua), 0);
+        LUA.lua_setfield(lua, -2, c"load_world_state".as_ptr());
+        LUA.lua_pushcclosure(lua, Some(save_world_state_lua), 0);
+        LUA.lua_setfield(lua, -2, c"save_world_state".as_ptr());
     }
     println!("Initializing ewext - Ok");
     1
