@@ -1,12 +1,16 @@
 use std::{
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
+    mem,
     sync::LazyLock,
 };
 
 use iced_x86::Mnemonic;
 use lua_bindings::{lua_State, Lua51, LUA_GLOBALSINDEX};
-use noita::{NoitaPixelRun, ParticleWorldState};
+use noita::{
+    ntypes::{Entity, EntityManager},
+    NoitaPixelRun, ParticleWorldState,
+};
 
 mod lua_bindings;
 
@@ -29,14 +33,17 @@ thread_local! {
 struct SavedWorldState {
     game_global: usize,
     world_state_entity: usize,
-    world_state_related: usize,
 }
 
 struct GrabbedGlobals {
     // These 3 actually point to a pointer.
     game_global: *mut usize,
     world_state_entity: *mut usize,
-    world_state_related: *mut usize,
+    entity_manager: *mut EntityManager,
+}
+
+struct GrabbedFns {
+    get_entity: unsafe extern "C" fn(*const EntityManager, u32) -> *mut Entity,
 }
 
 #[derive(Default)]
@@ -44,6 +51,7 @@ struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
     globals: Option<GrabbedGlobals>,
     saved_world_state: Option<SavedWorldState>,
+    fns: Option<GrabbedFns>,
 }
 
 // const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
@@ -87,11 +95,10 @@ unsafe fn save_world_state() {
         let mut state = state.borrow_mut();
         let game_global = state.globals.as_ref().unwrap().game_global.read();
         let world_state_entity = state.globals.as_ref().unwrap().world_state_entity.read();
-        let world_state_related = state.globals.as_ref().unwrap().world_state_related.read();
+
         state.saved_world_state = Some(SavedWorldState {
             game_global,
             world_state_entity,
-            world_state_related,
         })
     });
 }
@@ -106,9 +113,6 @@ unsafe fn load_world_state() {
         globals
             .world_state_entity
             .write(saved_ws.world_state_entity);
-        globals
-            .world_state_related
-            .write(saved_ws.world_state_related);
     });
 }
 
@@ -154,13 +158,45 @@ unsafe fn grab_addrs(lua: *mut lua_State) {
     // Pop the last element.
     LUA.lua_settop(lua, -2);
 
+    LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"EntityGetFilename".as_ptr());
+    let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
+    let get_entity = mem::transmute_copy(&addr_grabber::grab_addr_from_instruction(
+        base,
+        0x0079782b - 0x00797570,
+        Mnemonic::Call,
+    ));
+    println!("get_entity addr: 0x{:x}", get_entity as usize);
+    let entity_manager =
+        addr_grabber::grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov)
+            .cast();
+    println!("entity_manager addr: 0x{:x}", entity_manager as usize);
+    // Pop the last element.
+    LUA.lua_settop(lua, -2);
+
     STATE.with(|state| {
         state.borrow_mut().globals = Some(GrabbedGlobals {
             game_global,
             world_state_entity,
-            world_state_related: (0x01202ff0 as *mut usize),
+            entity_manager,
         });
+        state.borrow_mut().fns = Some(GrabbedFns { get_entity })
     });
+}
+
+unsafe extern "C" fn make_ephemereal(lua: *mut lua_State) -> c_int {
+    unsafe {
+        let entity_id = LUA.lua_tointeger(lua, 1) as u32;
+        println!("Making {} ephemerial", entity_id);
+        STATE.with(|state| {
+            let state = state.borrow();
+            let entity = dbg!((state.fns.as_ref().unwrap().get_entity)(
+                state.globals.as_ref().unwrap().entity_manager,
+                entity_id,
+            ));
+            entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
+        })
+    }
+    0
 }
 
 /// # Safety
@@ -180,6 +216,8 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         LUA.lua_setfield(lua, -2, c"load_world_state".as_ptr());
         LUA.lua_pushcclosure(lua, Some(save_world_state_lua), 0);
         LUA.lua_setfield(lua, -2, c"save_world_state".as_ptr());
+        LUA.lua_pushcclosure(lua, Some(make_ephemereal), 0);
+        LUA.lua_setfield(lua, -2, c"make_ephemerial".as_ptr());
     }
     println!("Initializing ewext - Ok");
     1

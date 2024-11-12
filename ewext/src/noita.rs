@@ -1,6 +1,6 @@
 use std::{ffi::c_void, mem};
 
-mod ntypes;
+pub(crate) mod ntypes;
 
 #[repr(packed)]
 pub(crate) struct NoitaPixelRun {
