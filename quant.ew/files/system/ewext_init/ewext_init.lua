@@ -22,7 +22,7 @@ end
 
 function module.on_world_update()
     if GameGetWorldStateEntity() ~= initial_world_state_entity then
-        -- GamePrint("Whoops WSE is different "..GameGetWorldStateEntity().." "..initial_world_state_entity)
+        GamePrint("Whoops WSE is different "..GameGetWorldStateEntity().." "..initial_world_state_entity)
         -- EntityKill(GameGetWorldStateEntity())
         -- ewext.load_world_state()
     end
