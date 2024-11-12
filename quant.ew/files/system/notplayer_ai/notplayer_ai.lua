@@ -463,14 +463,14 @@ local function init_state()
         _tags = "aiming_reticle",
         alpha = 1,
         image_file = "data/ui_gfx/mouse_cursor.png",
-        ui_is_parent = 0,
+        ui_is_parent = false,
         offset_x = 6,
         offset_y = 35,
-        has_special_scale = 1,
+        has_special_scale = true,
         special_scale_x = 1,
         special_scale_y = 1,
         z_index = -10000,
-        emissive = 1,
+        emissive = true,
     })
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     if ctx.proxy_opt.no_material_damage then

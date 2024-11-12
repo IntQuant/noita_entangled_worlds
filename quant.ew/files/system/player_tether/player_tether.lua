@@ -187,6 +187,10 @@ local was_notplayer = false
 
 function module.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
+        local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+        if ctx.proxy_opt.perma_death and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive) then
+            return
+        end
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         if np.GetGameModeNr() ~= 2
                 and tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) == 0
@@ -215,7 +219,6 @@ function module.on_world_update()
         if ctx.my_id == ctx.host_id then
             return
         end
-        local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         if host_playerdata == nil or host_playerdata.entity == nil or not EntityGetIsAlive(host_playerdata.entity) then
             return
         end
