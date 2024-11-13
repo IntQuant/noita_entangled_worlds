@@ -63,6 +63,8 @@ local PhysDataNoMotion = util.make_type({
     u8 = {"r"}
 })
 
+local frame = 0
+
 local enemy_sync = {}
 
 local unsynced_enemys = {}
@@ -96,10 +98,10 @@ np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
 end)
 
 local function kill(entity)
-    local parent = EntityGetParent(entity)
-    if parent ~= nil then
-        EntityKill(parent)
-    end
+    --local parent = EntityGetParent(entity)
+    --if parent ~= nil then
+    --    EntityKill(parent)
+    --end
     EntityKill(entity)
 end
 
@@ -401,24 +403,13 @@ function enemy_sync.client_cleanup()
             local filename = EntityGetFilename(enemy_id)
             print("Despawning persisted "..enemy_id.." "..filename)
             kill(enemy_id)
-        else
-            local cull = EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull")
-            if cull ~= nil and ComponentGetValue2(cull, "value_int") + 120 < GameGetFrameNum() then
-                kill(enemy_id)
-            end
         end
     end
-    local frame = GameGetFrameNum()
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
-        if frame - enemy_data.frame > 60*2 then
+        if frame > enemy_data.frame then
             --print("Despawning stale "..remote_id.." "..enemy_data.id)
             kill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
-        end
-    end
-    for _, ent in ipairs(EntityGetWithTag("ew_synced_entity") or {}) do
-        if #(EntityGetAllChildren(ent) or {}) == 0 then
-            EntityKill(ent)
         end
     end
 end
@@ -440,7 +431,7 @@ function enemy_sync.on_world_update_host()
 end
 
 function enemy_sync.on_world_update_client()
-    if GameGetFrameNum() % 20 == 1 then
+    if GameGetFrameNum() % 10 == 1 then
         enemy_sync.client_cleanup()
     end
     if GameGetFrameNum() % (60*60) == 1 then
@@ -527,9 +518,6 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
                 EntityRemoveComponent(enemy_id, com)
             end
         end
-        if not dont_cull then
-            EntityAddComponent2(enemy_id, "VariableStorageComponent", {_tags="ew_cull", value_int = GameGetFrameNum()})
-        end
         EntityAddComponent2(enemy_id, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
         local damage_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
         if damage_component and damage_component ~= 0 then
@@ -570,10 +558,6 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     enemy_data_new.frame = frame
     local enemy_id = enemy_data_new.id
 
-    if not dont_cull then
-        ComponentSetValue2(EntityGetFirstComponentIncludingDisabled(enemy_id, "VariableStorageComponent", "ew_cull"), "value_int", GameGetFrameNum())
-    end
-
     for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
         local phys_info = phys_infos[i]
         if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
@@ -604,10 +588,6 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             EntitySetTransform(enemy_id, x, y, en_data.r / 255 * FULL_TURN)
         else
             EntitySetTransform(enemy_id, x, y)
-        end
-        local root = EntityGetRootEntity(enemy_id)
-        if root ~= nil and EntityHasTag(root, "ew_synced_entity") then
-            EntitySetTransform(root, x, y)
         end
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
             or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
@@ -768,6 +748,7 @@ function rpc.handle_death_data(death_data)
 end
 
 function rpc.handle_enemy_data(enemy_data)
+    frame = GameGetFrameNum()
     for _, enemy_info_raw in ipairs(enemy_data) do
         sync_enemy(enemy_info_raw, false)
     end
