@@ -1,4 +1,5 @@
 use std::{
+    arch::asm,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
     mem,
@@ -39,7 +40,7 @@ struct GrabbedGlobals {
     // These 3 actually point to a pointer.
     game_global: *mut usize,
     world_state_entity: *mut usize,
-    entity_manager: *mut EntityManager,
+    entity_manager: *const *mut EntityManager,
 }
 
 struct GrabbedFns {
@@ -186,13 +187,22 @@ unsafe fn grab_addrs(lua: *mut lua_State) {
 unsafe extern "C" fn make_ephemereal(lua: *mut lua_State) -> c_int {
     unsafe {
         let entity_id = LUA.lua_tointeger(lua, 1) as u32;
-        println!("Making {} ephemerial", entity_id);
         STATE.with(|state| {
             let state = state.borrow();
-            let entity = dbg!((state.fns.as_ref().unwrap().get_entity)(
-                state.globals.as_ref().unwrap().entity_manager,
-                entity_id,
-            ));
+            let entity_manager = state.globals.as_ref().unwrap().entity_manager.read();
+            let mut entity: *mut Entity;
+            asm!(
+                "mov ecx, {entity_manager}",
+                "push {entity_id:e}",
+                "call {get_entity}",
+                entity_manager = in(reg) entity_manager,
+                get_entity = in(reg) state.fns.as_ref().unwrap().get_entity,
+                entity_id = in(reg) entity_id,
+                clobber_abi("C"),
+                out("ecx") _,
+                out("eax") entity,
+            );
+            // let entity = (state.fns.as_ref().unwrap().get_entity)(entity_manager, entity_id);
             entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
         })
     }
