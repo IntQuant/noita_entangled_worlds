@@ -18,16 +18,29 @@ function module.on_world_initialized()
     ewext.init_particle_world_state(grid_world, chunk_map, material_list)
 end
 
+local function oh_another_world_state(entity)
+    print("Another world state: "..entity)
+    GamePrint("Another World State Entity detected")
+    GamePrint("Do a 'mods > restart with enabled mods' to avoid a crash")
+    ewext.make_ephemerial(entity)
+end
+
 function module.on_local_player_spawn()
-       
+    initial_world_state_entity = GameGetWorldStateEntity()
+    for _, ent in ipairs(EntityGetWithTag("world_state")) do
+        if ent ~= GameGetWorldStateEntity() then
+            oh_another_world_state(ent)
+        end
+    end
+    EntitySetTransform(GameGetWorldStateEntity(), 0, 0)
 end
 
 function module.on_world_update()
     if GameGetWorldStateEntity() ~= initial_world_state_entity then
-        GamePrint("Whoops WSE is different "..GameGetWorldStateEntity().." "..initial_world_state_entity)
-        ewext.make_ephemerial(GameGetWorldStateEntity())
-        -- EntityKill(GameGetWorldStateEntity())
-        ewext.load_world_state()
+        -- -- EntityKill(GameGetWorldStateEntity())
+        -- ewext.load_world_state()
+        oh_another_world_state(GameGetWorldStateEntity())
+        initial_world_state_entity = GameGetWorldStateEntity()
     end
 end
 
