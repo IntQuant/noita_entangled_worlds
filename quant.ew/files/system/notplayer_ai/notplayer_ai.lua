@@ -812,14 +812,24 @@ local function choose_movement()
 
     if ComponentGetValue2(state.damage_model, "mLiquidCount") == 0 then
         if state.dtype == 32 or material_gas > GameGetFrameNum() then
-            table.insert(state.stay_away, {my_x, my_y - 4, nil, GameGetFrameNum() + 600})
-            material_gas = GameGetFrameNum() + 30
-            if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
-                give_space = give_space + 10
+            local did_hit_down_10, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y + 10)
+            if did_hit_down_10 then
+                local did_hit_3, _, _ = RaytracePlatforms(my_x, my_y, my_x + 100, my_y)
+                if not did_hit_3 then
+                    table.insert(state.stay_away, {my_x - 8, my_y + 8, nil, GameGetFrameNum() + 1200})
+                else
+                    table.insert(state.stay_away, {my_x + 8, my_y + 8, nil, GameGetFrameNum() + 1200})
+                end
             else
-                swap_side = true
+                table.insert(state.stay_away, {my_x, my_y - 8, nil, GameGetFrameNum() + 1200})
+                material_gas = GameGetFrameNum() + 30
+                if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
+                    give_space = give_space + 10
+                else
+                    swap_side = true
+                end
+                state.control_w = false
             end
-            state.control_w = false
         else
             material_gas = -1
             if move > GameGetFrameNum() then
@@ -836,7 +846,7 @@ local function choose_movement()
             end
         end
     elseif state.dtype == 32 or state.init_timer < no_shoot_time then
-        table.insert(state.stay_away, {my_x, my_y + 4, nil, GameGetFrameNum() + 600})
+        table.insert(state.stay_away, {my_x, my_y + 8, nil, GameGetFrameNum() + 1200})
         move = GameGetFrameNum() + 120
         state.control_w = true
         if my_x > t_x then
@@ -875,6 +885,9 @@ local function choose_movement()
             state.control_w = true
             state.control_s = false
         end
+    end
+    if fly < 0.1 then
+        state.control_w = false
     end
 end
 
@@ -1442,6 +1455,8 @@ local function update()
     cycle_wands()
 
     stay_away_from()
+
+    ComponentSetValue2(var, "value_int", 0)
 end
 
 function module.on_world_update()
