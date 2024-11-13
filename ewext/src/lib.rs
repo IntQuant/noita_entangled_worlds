@@ -9,7 +9,7 @@ use std::{
 use iced_x86::Mnemonic;
 use lua_bindings::{lua_State, Lua51, LUA_GLOBALSINDEX};
 use noita::{
-    ntypes::{Entity, EntityManager},
+    ntypes::{Entity, EntityManager, ThiscallFn},
     NoitaPixelRun, ParticleWorldState,
 };
 
@@ -44,7 +44,7 @@ struct GrabbedGlobals {
 }
 
 struct GrabbedFns {
-    get_entity: unsafe extern "C" fn(*const EntityManager, u32) -> *mut Entity,
+    get_entity: *const ThiscallFn, //unsafe extern "C" fn(*const EntityManager, u32) -> *mut Entity,
 }
 
 #[derive(Default)]

@@ -78,3 +78,6 @@ pub(crate) struct EntityManager {
     _fld: c_void,
     // Unknown
 }
+
+#[repr(C)]
+pub(crate) struct ThiscallFn(c_void);
