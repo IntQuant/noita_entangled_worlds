@@ -6,11 +6,15 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-function rpc.send_money(money)
+function rpc.send_money_and_ingestion(money, ingestion_size)
     local entity = ctx.rpc_player_data.entity
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
     if wallet ~= nil then
         ComponentSetValue2(wallet, "money", money)
+    end
+    local ingestion = EntityGetFirstComponentIncludingDisabled(entity, "IngestionComponent")
+    if ingestion ~= nil then
+        ComponentSetValue2(ingestion, "ingestion_size", ingestion_size)
     end
 end
 
@@ -126,8 +130,10 @@ function module.on_world_update()
 
     if GameGetFrameNum() % 60 == 47 then
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
-        if wallet ~= nil then
-            rpc.send_money(ComponentGetValue2(wallet, "money"))
+        local ingestion = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "IngestionComponent")
+        if wallet ~= nil or ingestion ~= nil then
+            rpc.send_money_and_ingestion(wallet and ComponentGetValue2(wallet, "money"),
+                    ingestion and ComponentGetValue2(ingestion, "ingestion_size"))
         end
     end
 end
