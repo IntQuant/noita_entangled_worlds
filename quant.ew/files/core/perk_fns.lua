@@ -18,6 +18,7 @@ local perks_to_ignore = {
     FASTER_WANDS = true,
     EXTRA_MANA = true,
     TELEKINESIS = true,
+    HEARTS_MORE_EXTRA_HP = true,
 }
 
 local global_perks = {

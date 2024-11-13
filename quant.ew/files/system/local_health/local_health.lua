@@ -165,6 +165,8 @@ local function allow_notplayer_perk(perk_id)
         ESSENCE_WATER = true,
         LUKKI_MINION = true,
         CONTACT_DAMAGE = true,
+        HEARTS_MORE_EXTRA_HP = true,
+        REVENGE_RATS = true,
         FOOD_CLOCK = true, -- TODO, should carry over satiation buff
     }
     return not ignored_perks[perk_id]
@@ -250,6 +252,18 @@ local function player_died()
         ComponentSetValue2(inv, "mItemHolstered", false)
         ComponentSetValue2(inv, "mActualActiveItem", 0)
         ComponentSetValue2(inv, "mActiveItem", 0)
+        local quick
+        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+            if EntityGetName(child) == "inventory_quick" then
+                quick = child
+                break
+            end
+        end
+        for _, child in ipairs(EntityGetAllChildren(quick) or {}) do
+            EntitySetComponentsWithTagEnabled(child, "enabled_in_hand", false)
+            EntitySetComponentsWithTagEnabled(child, "enabled_in_world", false)
+            EntitySetComponentsWithTagEnabled(child, "enabled_in_inventory", true)
+        end
     end
 
     polymorph.switch_entity(ent + 1)
