@@ -167,7 +167,11 @@ local function get_sync_entities(return_all)
     table_extend(entities, EntityGetWithTag("perk_fungus_tiny"))
     table_extend(entities, EntityGetWithTag("helpless_animal"))
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
-        return constants.phys_sync_allowed[EntityGetFilename(ent)]
+        local f = EntityGetFilename(ent)
+        if f ~= nil then
+            return constants.phys_sync_allowed[f]
+        end
+        return true
     end)
 
     local entities2 = {}
@@ -400,8 +404,8 @@ function enemy_sync.client_cleanup()
             --print("Despawning unreplicated "..enemy_id.." "..filename)
             kill(enemy_id)
         elseif not spawned_by_us[enemy_id] then
-            local filename = EntityGetFilename(enemy_id)
-            print("Despawning persisted "..enemy_id.." "..filename)
+            --local filename = EntityGetFilename(enemy_id)
+            print("Despawning persisted "..enemy_id)--.." "..filename)
             kill(enemy_id)
         end
     end
@@ -482,7 +486,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local animation = enemy_info_raw[8]
     local has_died = filename == nil
 
-    local frame = GameGetFrameNum()
+    local frame_now = GameGetFrameNum()
 
     --[[if confirmed_kills[remote_enemy_id] then
         goto continue
@@ -493,7 +497,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     end
 
     if ctx.entity_by_remote_id[remote_enemy_id] == nil then
-        if filename == nil then
+        if filename == nil or filename == "" or not ModDoesFileExist(filename) then
             goto continue
         end
         times_spawned_last_minute[remote_enemy_id] = (times_spawned_last_minute[remote_enemy_id] or 0) + 1
@@ -529,7 +533,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
                 EntityRemoveComponent(enemy_id, ai_component)
             end
         end
-        ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame}
+        ctx.entity_by_remote_id[remote_enemy_id] = {id = enemy_id, frame = frame_now}
 
         for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
             if phys_component ~= nil and phys_component ~= 0 then
@@ -555,7 +559,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     end
 
     local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
-    enemy_data_new.frame = frame
+    enemy_data_new.frame = frame_now
     local enemy_id = enemy_data_new.id
 
     for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do

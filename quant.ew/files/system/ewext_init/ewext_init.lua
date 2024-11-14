@@ -22,9 +22,7 @@ local function oh_another_world_state(entity)
     print("Another world state: "..entity)
     GamePrint("Another World State Entity detected")
     GamePrint("Do a 'mods > restart with enabled mods' to avoid a crash")
-    if entity ~= nil then
-        ewext.make_ephemerial(entity)
-    end
+    util.make_ephemerial(entity)
 end
 
 function module.on_local_player_spawn()

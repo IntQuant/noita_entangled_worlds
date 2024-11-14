@@ -491,9 +491,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     end
     print("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
-    if new ~= nil then
-        ewext.make_ephemerial(new)
-    end
+    util.make_ephemerial(new)
     local inv_full = EntityCreateNew("inventory_full")
     EntityAddChild(new, inv_full)
     LoadGameEffectEntityTo(new, "mods/quant.ew/files/system/spectate/no_tinker.xml")
@@ -542,9 +540,7 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
 end
 
 function player_fns.replace_player_entity(new_entity, player_data)
-    if new_entity ~= nil then
-        ewext.make_ephemerial(new_entity)
-    end
+    util.make_ephemerial(new_entity)
     if new_entity ~= nil then
         local old_entity = player_data.entity
         player_data.entity = new_entity

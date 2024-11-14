@@ -181,6 +181,12 @@ util.load_ents_tags = util.cached_fn(function(path)
     return tags
 end)
 
+function util.make_ephemerial(ent)
+    if ent ~= nil and EntityGetIsAlive(ent) then
+        ewext.make_ephemerial(ent)
+    end
+end
+
 -- Load an entity that doesn't get saved.
 function util.load_ephemerial(path, x, y)
     --local entity = EntityCreateNew()
@@ -188,9 +194,7 @@ function util.load_ephemerial(path, x, y)
     --EntitySetTransform(entity, x, y)
     local ent_2 = EntityLoad(path, x, y)
     --EntityAddChild(entity, ent_2)
-    if ent_2 ~= nil then
-        ewext.make_ephemerial(ent_2)
-    end
+    util.make_ephemerial(ent_2)
     return ent_2
 end
 
