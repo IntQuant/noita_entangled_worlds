@@ -553,6 +553,10 @@ impl NetManager {
             "perma_death",
             settings.perma_death.unwrap_or(def.perma_death),
         );
+        state.try_ws_write_option(
+            "physics_damage",
+            settings.physics_damage.unwrap_or(def.physics_damage),
+        );
         let lst = settings.clone();
         state.try_ws_write_option(
             "perk_ban_list",

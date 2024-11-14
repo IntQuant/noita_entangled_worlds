@@ -89,6 +89,7 @@ pub struct GameSettings {
     global_hp_loss: Option<bool>,
     perk_ban_list: Option<String>,
     perma_death: Option<bool>,
+    physics_damage: Option<bool>,
 }
 
 pub struct DefaultSettings {
@@ -112,6 +113,7 @@ pub struct DefaultSettings {
     global_hp_loss: bool,
     perk_ban_list: String,
     perma_death: bool,
+    physics_damage: bool,
 }
 
 impl Default for DefaultSettings {
@@ -136,7 +138,8 @@ impl Default for DefaultSettings {
             no_material_damage: false,
             global_hp_loss: false,
             perk_ban_list: "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD,FUNGAL_DISEASE,HOMUNCULUS,LUKKI_MINION".to_string(),
-            perma_death: false
+            perma_death: false,
+            physics_damage: true,
         }
     }
 }
@@ -813,6 +816,16 @@ impl App {
                             tr("perma_death"),
                         ).changed() {
                             game_settings.perma_death = Some(temp)
+                        }
+                    }
+                    ui.add_space(1.0);
+                    {
+                        let mut temp = game_settings.physics_damage.unwrap_or(def.physics_damage);
+                        if ui.checkbox(
+                            &mut temp,
+                            tr("physics_damage"),
+                        ).changed() {
+                            game_settings.physics_damage = Some(temp)
                         }
                     }
                 }

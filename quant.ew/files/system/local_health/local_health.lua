@@ -239,6 +239,10 @@ local function player_died()
     end
     local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
     ctx.my_player.entity = ent + 1
+    if ctx.proxy_opt.physics_damage then
+        local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        ComponentSetValue2(damage, "physics_objects_damage", true)
+    end
     do_switch_effect(false)
     EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
