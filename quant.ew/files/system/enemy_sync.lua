@@ -508,11 +508,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             goto continue
         end
         local enemy_id
-        if not_ephemerial then
-            enemy_id = EntityLoad(filename, x, y)
-        else
-            enemy_id = util.load_ephemerial(filename, x, y)
-        end
+        enemy_id = EntityLoad(filename, x, y)
         spawned_by_us[enemy_id] = true
         EntityAddTag(enemy_id, "ew_replicated")
         EntityAddTag(enemy_id, "polymorphable_NOT")
@@ -555,6 +551,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "character") or {}) do
             ComponentAddTag(sprite, "ew_sprite")
             ComponentRemoveTag(sprite, "character")
+        end
+
+        if not not_ephemerial then
+            util.make_ephemerial(enemy_id)
         end
     end
 
