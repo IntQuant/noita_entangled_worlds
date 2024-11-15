@@ -400,18 +400,13 @@ function enemy_sync.client_cleanup()
     local entities = get_sync_entities(true)
     for _, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
-            --local filename = EntityGetFilename(enemy_id)
-            --print("Despawning unreplicated "..enemy_id.." "..filename)
             kill(enemy_id)
         elseif not spawned_by_us[enemy_id] then
-            --local filename = EntityGetFilename(enemy_id)
-            print("Despawning persisted "..enemy_id)--.." "..filename)
             kill(enemy_id)
         end
     end
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
         if frame > enemy_data.frame then
-            --print("Despawning stale "..remote_id.." "..enemy_data.id)
             kill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
         end
@@ -462,7 +457,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         local cdx, cdy = c_x - x, c_y - y
         if dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT and cdx * cdx + cdy * cdy > DISTANCE_LIMIT * DISTANCE_LIMIT then
             if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
-                kill(ctx.entity_by_remote_id[remote_enemy_id])
+                kill(ctx.entity_by_remote_id[remote_enemy_id].id)
                 ctx.entity_by_remote_id[remote_enemy_id] = nil
             end
             unsynced_enemys[remote_enemy_id] = enemy_info_raw
