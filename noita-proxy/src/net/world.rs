@@ -879,7 +879,7 @@ impl WorldManager {
                 if let Some(ChunkState::Listening { authority, .. }) = state {
                     *authority = source;
                 } else {
-                    info!("Got notified of new authority, but not a listener");
+                    debug!("Got notified of new authority, but not a listener");
                 }
             }
         }
