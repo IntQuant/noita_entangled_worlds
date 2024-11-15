@@ -50,7 +50,13 @@ end
 function rpc.check_gamemode(gamemode)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
-    if gamemode ~= gm then
+    local not_fine = gamemode ~= gm
+    
+    if gm == "save_slots_enabler" or gamemode == "save_slots_enabler" then
+        not_fine = not (gm == "" or gamemode == "")
+        return
+    end
+    if not_fine then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different gamemode number then you")
         GamePrint("his game mode: ".. gamemode)
         GamePrint("your game mode: ".. gm)
