@@ -68,6 +68,8 @@ launcher_no_command = 无法启动Noita：没有启动命令。
 launcher_no_command_2 = 你可以使用 --launch-cmd <command> 选项指定启动命令。
 launcher_no_command_3 = 你可以在steam的启动项中放入`noita-proxy --launch-cmd "%command%" 用于启动游戏时执行其他命令。
 launcher_start_game = 启动Noita
+launcher_end_run = 结束游戏
+launcher_end_run_confirm = 确认
 launcher_only_when_awaiting = 只能在“等待Noita连接”状态下启动游戏。
 
 connect_settings = 游戏设置
@@ -75,27 +77,33 @@ connect_settings_debug = 调试设置
 connect_settings_debug_en = 调试/作弊模式
 connect_settings_debug_fixed_seed = 使用固定种子
 connect_settings_seed = 种子：
+connect_settings_max_players = 最大联机玩家数
 connect_settings_wsv = 要使用的世界同步版本：
 connect_settings_player_tether = 启用玩家系绳
 connect_settings_player_tether_desc = 玩家系绳：如果其他玩家距离主机太远，则将其传送到主机。
 connect_settings_player_tether_length = 系绳长度
 connect_settings_item_dedup = 消除由世界生成的重复(同步)项
-connect_settings_enemy_hp_scale = 敌人血量比例
+connect_settings_enemy_hp_scale = 敌人生命值比例
 connect_settings_local = 本地设置
 connect_settings_autostart = 自动启动游戏
 
 ## Game settings
 
-connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
-Health-per-player = Health per player
+connect_settings_spacewars = 允许使用Steam网络联机，即使你没有在Steam上购买游戏，如果你有GOG版本的游戏。所有玩家都需要勾选此选项才能生效，重启noita-proxy以生效
+Health-per-player = 每个玩家的生命值
 Enable-friendly-fire = 启用队友伤害
 Have-perk-pools-be-independent-of-each-other = 启用神山独立天赋池
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = 主机一次加载的区块数量，同步的敌人和物理对象需要由主机加载才能由客户端渲染
+local_health_desc_1 = 每个玩家有自己的独立生命值，所有玩家死亡时游戏结束。
 local_health_desc_2 = 有一个复活机制：玩家死亡时变为不受控的敌对阵营，击杀后可以复活死亡的玩家。
-local_health_desc_1 = 每个玩家有自己的独立血量，所有玩家死亡时游戏结束。
-shared_health_desc_3 = 原始模式。
-shared_health_desc_2 = 调整基于百分比的伤害和完全恢复。
+Health-percent-lost-on-reviving = 复活时按比例损失最大生命值
+global_hp_loss = 全局生命值损失
+no_material_damage = notplayer不受到材料伤害
+perma_death = 玩家永久死亡
+physics_damage = notplayer受到物理伤害
 shared_health_desc_1 = 生命值共享，值会随着玩家数量变化
+shared_health_desc_2 = 调整基于百分比的伤害和完全恢复。
+shared_health_desc_3 = 原始模式。
 Local-health = 独立生命值模式
 Shared-health = 共享生命值模式
 Game-mode = 游戏模式
@@ -129,12 +137,13 @@ Shift-hue = 调整色相
 Show-debug-info = 显示debug信息
 hint_spectate = 使用[','或d-pad-left]和['.'或d-pad-right]键观看其他玩家视角。
 hint_ping = [鼠标中键或右摇杆] 会产生一个信号
-
+Show-debug-plot = 显示调试图
+Record-everything-sent-to-noita = 记录发送给noita的所有内容
 ## IP Connect
 
 ip_could_not_connect = 无法连接
 ip_wait_for_connection = 连接至IP...
 ## Info
 
-info_stress_tests = We're doing public lobbies (a.k.a stress tests) every saturday, 18:00 UTC. Join our discord for more info.
-Info = Info
+info_stress_tests = 我们将在每周六 18:00 UTC 进行公共大厅(也称为压力测试)。加入我们的discord以获取更多信息。
+Info = 资讯
