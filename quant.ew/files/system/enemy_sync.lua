@@ -97,14 +97,6 @@ np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
     table.insert(dead_entities, {enemy_id, responsible})
 end)
 
-local function kill(entity)
-    --local parent = EntityGetParent(entity)
-    --if parent ~= nil then
-    --    EntityKill(parent)
-    --end
-    EntityKill(entity)
-end
-
 local function world_exists_for(entity)
     local x, y = EntityGetFirstHitboxCenter(entity)
     local w, h = 5, 5 -- TODO
@@ -216,16 +208,13 @@ function enemy_sync.host_upload_entities()
 
         local phys_info = {}
         local phys_info_2 = {}
-        -- Some things (like physics object) don't react well to making their entities ephemerial.
-        local not_ephemerial = false
 
         for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
             if phys_component ~= nil and phys_component ~= 0 then
-                not_ephemerial = true
                 local ret, info = pcall(serialize_phys_component, phys_component)
                 if not ret then
                     GamePrint("Physics component has no body, deleting entity")
-                    kill(enemy_id)
+                    EntityKill(enemy_id)
                     goto continue
                 end
                 table.insert(phys_info, info)
@@ -234,13 +223,12 @@ function enemy_sync.host_upload_entities()
 
         for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
             if phys_component ~= nil and phys_component ~= 0 then
-                not_ephemerial = true
                 local initialized = ComponentGetValue2(phys_component, "mInitialized")
                 if initialized then
                     local ret, info = pcall(serialize_phys_component, phys_component)
                     if not ret then
                         GamePrint("Physics component has no body, deleting entity")
-                        kill(enemy_id)
+                        EntityKill(enemy_id)
                         goto continue
                     end
                     table.insert(phys_info_2, info)
@@ -358,7 +346,7 @@ function enemy_sync.host_upload_entities()
 
         local dont_cull = EntityHasTag(enemy_id, "worm") or EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
 
-        table.insert(enemy_data_list, {filename, en_data, not_ephemerial, phys_info, phys_info_2, wand, effect_data, animation, dont_cull, death_triggers})
+        table.insert(enemy_data_list, {filename, en_data, phys_info, phys_info_2, wand, effect_data, animation, dont_cull, death_triggers})
         ::continue::
     end
 
@@ -400,14 +388,14 @@ function enemy_sync.client_cleanup()
     local entities = get_sync_entities(true)
     for _, enemy_id in ipairs(entities) do
         if not EntityHasTag(enemy_id, "ew_replicated") then
-            kill(enemy_id)
+            EntityKill(enemy_id)
         elseif not spawned_by_us[enemy_id] then
-            kill(enemy_id)
+            EntityKill(enemy_id)
         end
     end
     for remote_id, enemy_data in pairs(ctx.entity_by_remote_id) do
         if frame > enemy_data.frame then
-            kill(enemy_data.id)
+            EntityKill(enemy_data.id)
             ctx.entity_by_remote_id[remote_id] = nil
         end
     end
@@ -443,8 +431,8 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     filename = constants.interned_index_to_filename[filename] or filename
 
     local en_data = enemy_info_raw[2]
-    local dont_cull = enemy_info_raw[9]
-    local death_triggers = enemy_info_raw[10]
+    local dont_cull = enemy_info_raw[8]
+    local death_triggers = enemy_info_raw[9]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
     if not force_no_cull and not dont_cull  then
@@ -457,7 +445,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         local cdx, cdy = c_x - x, c_y - y
         if dx * dx + dy * dy > DISTANCE_LIMIT * DISTANCE_LIMIT and cdx * cdx + cdy * cdy > DISTANCE_LIMIT * DISTANCE_LIMIT then
             if ctx.entity_by_remote_id[remote_enemy_id] ~= nil then
-                kill(ctx.entity_by_remote_id[remote_enemy_id].id)
+                EntityKill(ctx.entity_by_remote_id[remote_enemy_id].id)
                 ctx.entity_by_remote_id[remote_enemy_id] = nil
             end
             unsynced_enemys[remote_enemy_id] = enemy_info_raw
@@ -473,12 +461,11 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     if ffi.typeof(en_data) ~= EnemyDataNoMotion then
         vx, vy = en_data.vx, en_data.vy
     end
-    local not_ephemerial = enemy_info_raw[3]
-    local phys_infos = enemy_info_raw[4]
-    local phys_infos_2 = enemy_info_raw[5]
-    local gid = enemy_info_raw[6]
-    local effects = enemy_info_raw[7]
-    local animation = enemy_info_raw[8]
+    local phys_infos = enemy_info_raw[3]
+    local phys_infos_2 = enemy_info_raw[4]
+    local gid = enemy_info_raw[5]
+    local effects = enemy_info_raw[6]
+    local animation = enemy_info_raw[7]
     local has_died = filename == nil
 
     local frame_now = GameGetFrameNum()
@@ -548,9 +535,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             ComponentRemoveTag(sprite, "character")
         end
 
-        if not not_ephemerial then
-            util.make_ephemerial(enemy_id)
-        end
+        util.make_ephemerial(enemy_id)
     end
 
     local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
@@ -740,7 +725,7 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            kill(enemy_id)
+            EntityKill(enemy_id)
         end
         ::continue::
     end
