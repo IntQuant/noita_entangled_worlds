@@ -126,6 +126,15 @@ local function build_settings()
                     is_waiting_for_input = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
+                {
+                    id = "rebind_sspectate",
+                    ui_name = "spectate self Button",
+                    ui_description = "self.",
+                    value_default = "56",
+                    ui_fn = ui_get_input,
+                    is_waiting_for_input = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
             },
         },
     }

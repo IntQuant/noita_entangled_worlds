@@ -135,7 +135,7 @@ Shift-hue = Shift hue
 ## Connected
 
 Show-debug-info = Show debug/connection info
-hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players.
+hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players. '/' for self
 hint_ping = [Middle mouse button or right thumb stick] spawns a ping
 Show-debug-plot = Show debug plot
 Record-everything-sent-to-noita = Record EVERYTHING sent to noita.

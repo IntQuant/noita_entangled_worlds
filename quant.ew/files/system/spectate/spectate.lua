@@ -334,6 +334,9 @@ function spectate.on_world_update()
 
         has_switched = true
         re_cam = true
+    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_sspectate"))) then
+        camera_player_id, camera_player = get_me()
+        re_cam = true
     end
     set_camera_pos()
     ctx.spectating_over_peer_id = camera_player_id
@@ -346,7 +349,7 @@ function spectate.on_world_update()
         if GameGetIsGamepadConnected() then
             text = "Use d-pad-left and d-pad-right keys to spectate over other players."
         else
-            text = "Use ',' and '.' keys to spectate over other players."
+            text = "Use ',' and '.' keys to spectate over other players. '/' for self"
         end
         local tw, th = GuiGetTextDimensions(gui, text)
         GuiText(gui, w-2-tw, h-1-th, text)
