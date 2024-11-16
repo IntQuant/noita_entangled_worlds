@@ -1,6 +1,5 @@
 local module = {}
 
---TODO fix chained entities spawning repeatably on clients
 module.phys_sync_allowed = {
     -- Starting prop
     ["data/entities/props/physics_skateboard.xml"] = true,
@@ -20,18 +19,62 @@ module.phys_sync_allowed = {
     ["data/entities/props/physics_crate.xml"] = true,
 
     ["data/entities/props/physics_barrel_oil.xml"] = true,
+    ["data/entities/props/physics_barrel_water.xml"] = true,
     ["data/entities/props/physics_barrel_radioactive.xml"] = true,
     ["data/entities/props/physics_seamine.xml"] = true,
---  ["data/entities/props/suspended_tank_radioactive.xml"] = true,
---  ["data/entities/props/suspended_tank_acid.xml"] = true,
 
     ["data/entities/props/physics_box_harmless.xml"] = true,
     ["data/entities/props/physics_tubelamp.xml"] = true,
+
+    ["data/entities/props/suspended_container.xml"] = true,
+    ["data/entities/props/suspended_seamine.xml"] = true,
+    ["data/entities/props/suspended_tank_acid.xml"] = true,
+    ["data/entities/props/suspended_tank_radioactive.xml"] = true,
+
+    ["data/entities/props/physics_wheel_small.xml"] = true,
+    ["data/entities/props/physics_wheel_stand_01.xml"] = true,
+    ["data/entities/props/physics_wheel_stand_02.xml"] = true,
+    ["data/entities/props/physics_wheel_stand_03.xml"] = true,
+    ["data/entities/props/physics_wheel_tiny.xml"] = true,
+    ["data/entities/props/physics_wheel.xml"] = true,
+
+    ["data/entities/props/physics_fungus_acid_big.xml"] = true,
+    ["data/entities/props/physics_fungus_acid_hugeish.xml"] = true,
+    ["data/entities/props/physics_fungus_acid_huge.xml"] = true,
+    ["data/entities/props/physics_fungus_acid_small.xml"] = true,
+    ["data/entities/props/physics_fungus_acid.xml"] = true,
+    ["data/entities/props/physics_fungus_big.xml"] = true,
+    ["data/entities/props/physics_fungus_hugeish.xml"] = true,
+    ["data/entities/props/physics_fungus_huge.xml"] = true,
+    ["data/entities/props/physics_fungus_small.xml"] = true,
+    ["data/entities/props/physics_fungus_trap.xml"] = true,
+    ["data/entities/props/physics_fungus.xml"] = true,
 
     ["data/entities/props/physics_torch_stand.xml"] = true,
     ["data/entities/props/vault_apparatus_01.xml"] = true,
     ["data/entities/props/vault_apparatus_02.xml"] = true,
     ["data/entities/props/physics_pressure_tank.xml"] = true,
+
+    ["data/entities/props/furniture_bed.xml"] = true,
+    ["data/entities/props/furniture_bunk.xml"] = true,
+    ["data/entities/props/furniture_castle_chair.xml"] = true,
+    ["data/entities/props/furniture_castle_divan.xml"] = true,
+    ["data/entities/props/furniture_castle_statue.xml"] = true,
+    ["data/entities/props/furniture_castle_table.xml"] = true,
+    ["data/entities/props/furniture_castle_wardrobe.xml"] = true,
+    ["data/entities/props/furniture_cryopod.xml"] = true,
+    ["data/entities/props/furniture_dresser.xml"] = true,
+    ["data/entities/props/furniture_footlocker.xml"] = true,
+    ["data/entities/props/furniture_locker.xml"] = true,
+    ["data/entities/props/furniture_rocking_chair.xml"] = true,
+    ["data/entities/props/furniture_stool.xml"] = true,
+    ["data/entities/props/furniture_table.xml"] = true,
+    ["data/entities/props/furniture_tombstone_01.xml"] = true,
+    ["data/entities/props/furniture_tombstone_02.xml"] = true,
+    ["data/entities/props/furniture_tombstone_03.xml"] = true,
+    ["data/entities/props/furniture_wardrobe.xml"] = true,
+    ["data/entities/props/furniture_wood_chair.xml"] = true,
+    ["data/entities/props/furniture_wood_table.xml"] = true,
 
     ["data/entities/props/crystal_red.xml"] = true,
     ["data/entities/props/crystal_pink.xml"] = true,
@@ -39,7 +82,6 @@ module.phys_sync_allowed = {
 
     ["data/entities/props/physics_vase.xml"] = true,
     ["data/entities/props/physics_vase_longleg.xml"] = true,
-
 
     ["data/entities/props/physics_sun_rock.xml"] = true,
     ["data/entities/props/physics_darksun_rock.xml"] = true,
@@ -52,11 +94,11 @@ module.phys_sync_allowed = {
     ["data/entities/props/temple_statue_01.xml"] = true,
     ["data/entities/props/temple_statue_01_green.xml"] = true,
     ["data/entities/props/temple_statue_02.xml"] = true,
---  ["data/entities/props/physics/temple_lantern.xml"] = true,
---  ["data/entities/buildings/physics_worm_deflector_base.xml"] = true,
---  ["data/entities/buildings/physics_worm_deflector_crystal.xml"] = true,
---  ["data/entities/misc/greed_curse/greed_crystal.xml"] = true,
---  ["data/entities/props/physics/lantern_small.xml"] = true,
+    ["data/entities/props/physics/temple_lantern.xml"] = true,
+    ["data/entities/buildings/physics_worm_deflector_base.xml"] = true,
+    --["data/entities/buildings/physics_worm_deflector_crystal.xml"] = true,
+    --["data/entities/misc/greed_curse/greed_crystal.xml"] = true,
+    ["data/entities/props/physics/lantern_small.xml"] = true,
 
     -- Traps
     ["data/entities/props/physics_trap_circle_acid.xml"] = true,
