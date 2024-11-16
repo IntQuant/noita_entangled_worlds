@@ -51,7 +51,7 @@ function rpc.check_gamemode(gamemode)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
     local not_fine = gamemode ~= gm
-    
+
     if gm == "save_slots_enabler" or gamemode == "save_slots_enabler" then
         not_fine = not (gm == "" or gamemode == "")
         return
@@ -108,7 +108,7 @@ function module.on_world_update()
                     local cpe = EntityGetFirstComponentIncludingDisabled(child, "VerletPhysicsComponent")
                     local cx, cy = ComponentGetValue2(cpe, "m_position_previous")
                     local dcx, dcy = mx - cx, my - cy
-                    if dcx * dcx + dcy * dcy > 300 * 300 then
+                    if dcx * dcx + dcy * dcy > 350 * 350 then
                         EntityKill(child)
                     else
                         cape = child
@@ -116,19 +116,29 @@ function module.on_world_update()
                     break
                 end
             end
-            if dx * dx + dy * dy > 300 * 300 then
+            local light = EntityGetFirstComponentIncludingDisabled(ent, "LightComponent")
+            if dx * dx + dy * dy > 350 * 350 then
                 if cape ~= nil  then
                     EntityKill(cape)
                 end
-            elseif cape == nil then
-                local player_cape_sprite_file
-                if notplayer then
-                    player_cape_sprite_file = "mods/quant.ew/files/system/local_health/notplayer/notplayer_cape.xml"
-                else
-                    player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cape.xml"
+                if light ~= nil then
+                    EntitySetComponentIsEnabled(ent, light, false)
                 end
-                local cape2 = EntityLoad(player_cape_sprite_file, x, y)
-                EntityAddChild(ent, cape2)
+            else
+                if light ~= nil then
+                    EntitySetComponentIsEnabled(ent, light, true)
+                end
+                if cape == nil then
+                    local player_cape_sprite_file
+                    if notplayer then
+                        player_cape_sprite_file = "mods/quant.ew/files/system/local_health/notplayer/notplayer_cape.xml"
+                    else
+                        player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cape.xml"
+                    end
+                    local cape2 = EntityLoad(player_cape_sprite_file, x, y)
+                    EntityAddChild(ent, cape2)
+
+                end
             end
             ::continue::
         end

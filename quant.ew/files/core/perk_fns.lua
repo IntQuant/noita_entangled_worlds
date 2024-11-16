@@ -54,6 +54,7 @@ local function spawn_perk(perk_info, auto_pickup_entity)
     EntityAddChild(ctx.my_player.entity, icon)
 end
 
+local to_spawn = {}
 
 local function give_one_perk(entity_who_picked, perk_info, count)
     lazyload()
@@ -66,6 +67,7 @@ local function give_one_perk(entity_who_picked, perk_info, count)
     end
 
     if not perks_to_ignore[perk_info.id] then
+        GamePrint(perk_info.id)
         -- add game effect
         if perk_info.game_effect ~= nil then
             local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
@@ -103,7 +105,11 @@ local function give_one_perk(entity_who_picked, perk_info, count)
 
     if global_perks[perk_info.id]
             and perk_fns.get_my_perks()[perk_info.id] == nil then
-        spawn_perk(perk_info, true)
+        if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+            spawn_perk(perk_info, true)
+        else
+            table.insert(to_spawn, perk_info)
+        end
         global_perks[perk_info.id] = false
     end
 end
@@ -135,7 +141,6 @@ function perk_fns.update_perks(perk_data, player_data)
     util.set_ent_variable(entity, "ew_current_perks", perk_data)
 end
 
-
 function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
     lazyload()
     local current_counts = util.get_ent_variable(entity, "ew_current_perks") or {}
@@ -162,6 +167,16 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
 
     -- This is NOT done here
     -- util.set_ent_variable(entity, "ew_current_perks", perk_data)
+end
+
+function perk_fns.on_world_update()
+    if to_spawn ~= {} and GameGetFrameNum() % 60 == 40
+            and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        for _, perk_info in ipairs(to_spawn) do
+            spawn_perk(perk_info, true)
+        end
+        to_spawn = {}
+    end
 end
 
 return perk_fns

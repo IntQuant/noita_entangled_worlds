@@ -540,7 +540,9 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
 end
 
 function player_fns.replace_player_entity(new_entity, player_data)
-    util.make_ephemerial(new_entity)
+    if player_data.entity ~= ctx.my_player.entity then
+        util.make_ephemerial(new_entity)
+    end
     if new_entity ~= nil then
         local old_entity = player_data.entity
         player_data.entity = new_entity

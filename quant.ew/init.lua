@@ -347,6 +347,7 @@ local function on_world_pre_update_inner()
         end
     end
 
+    perk_fns.on_world_update()
     wake_up_waiting_threads(1)
 end
 

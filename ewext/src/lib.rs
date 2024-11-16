@@ -184,7 +184,7 @@ unsafe fn grab_addrs(lua: *mut lua_State) {
     });
 }
 
-unsafe extern "C" fn make_ephemereal(lua: *mut lua_State) -> c_int {
+unsafe extern "C" fn make_ephemerial(lua: *mut lua_State) -> c_int {
     unsafe {
         let entity_id = LUA.lua_tointeger(lua, 1) as u32;
         STATE.with(|state| {
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         LUA.lua_setfield(lua, -2, c"load_world_state".as_ptr());
         LUA.lua_pushcclosure(lua, Some(save_world_state_lua), 0);
         LUA.lua_setfield(lua, -2, c"save_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(make_ephemereal), 0);
+        LUA.lua_pushcclosure(lua, Some(make_ephemerial), 0);
         LUA.lua_setfield(lua, -2, c"make_ephemerial".as_ptr());
     }
     println!("Initializing ewext - Ok");
