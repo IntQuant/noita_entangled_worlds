@@ -1,0 +1,127 @@
+<Entity tags="prey,glue_NOT,ew_no_enemy_sync">
+
+    <PhysicsAIComponent
+        target_vec_max_len="14.0"
+        force_coeff="17.0"
+        force_balancing_coeff="0.8"
+        force_max="90"
+        torque_coeff="30"
+        torque_balancing_coeff="0.8"
+        torque_max="30.0"
+        damage_deactivation_probability="20"
+        damage_deactivation_time_min="30"
+        damage_deactivation_time_max="60" >
+    </PhysicsAIComponent>
+
+    <LightComponent
+        _enabled="1"
+        radius="200"
+        r="135"
+        g="10"
+        b="180" >
+    </LightComponent>
+
+    <Base file="data/entities/base_enemy_flying.xml" >
+        <AnimalAIComponent
+            _enabled="1"
+            preferred_job="JobDefault"
+            attack_ranged_min_distance="0"
+            attack_ranged_max_distance="50"
+            creature_detection_range_x="300"
+            creature_detection_range_y="300"
+            attack_melee_action_frame="0"
+            sense_creatures="1"
+            attack_ranged_enabled="0"
+            can_fly="1"
+            needs_food="0"
+            eye_offset_y="-5"
+            >
+        </AnimalAIComponent>
+
+        <DamageModelComponent
+            hp="6"
+            ragdoll_material="meat"
+            ragdoll_filenames_file=""
+            blood_material="plasma_fading_pink"
+            fire_probability_of_ignition="0"
+            air_needed="0"
+            blood_sprite_directional=""
+            blood_sprite_large=""
+            >
+            <damage_multipliers
+                melee="0.3"
+                projectile="0.3"
+                explosion="1.0"
+                electricity="0.1"
+                fire="0" >
+            </damage_multipliers>
+        </DamageModelComponent>
+
+        <SpriteComponent
+            image_file=""
+            offset_x="0"
+            offset_y="0">
+        </SpriteComponent>
+
+        <PathFindingGridMarkerComponent
+            marker_work_flag="16" >
+        </PathFindingGridMarkerComponent>
+
+        <PathFindingComponent
+            distance_to_reach_node_x="20"
+            distance_to_reach_node_y="20"
+            frames_to_get_stuck="120"
+            can_jump="0"
+            can_fly="1"
+            jump_speed="0"
+            >
+        </PathFindingComponent>
+
+        <GenomeDataComponent
+            herd_id="helpless"
+            food_chain_rank="15"
+            is_predator="0" >
+        </GenomeDataComponent>
+
+        <CharacterPlatformingComponent
+            jump_velocity_y="0"
+            run_velocity="24"  >
+        </CharacterPlatformingComponent>
+
+        <HitboxComponent
+            _enabled="1"
+            aabb_max_x="5"
+            aabb_max_y="0"
+            aabb_min_x="-5"
+            aabb_min_y="-12"
+            >
+        </HitboxComponent>
+
+        <CameraBoundComponent
+            max_count="30"
+            distance="160000">
+        </CameraBoundComponent>
+
+        <CharacterDataComponent
+            collision_aabb_min_x="-4"
+            collision_aabb_max_x="4"
+            collision_aabb_min_y="-6"
+            collision_aabb_max_y="2"
+            mass="1.9"
+            >
+        </CharacterDataComponent>
+
+        <SpriteStainsComponent
+            _enabled="0"
+            >
+        </SpriteStainsComponent>
+    </Base>
+
+    <ItemPickUpperComponent
+        is_in_npc="1" >
+    </ItemPickUpperComponent>
+
+    <VariableStorageComponent
+        _tags="no_gold_drop">
+    </VariableStorageComponent>
+</Entity>
