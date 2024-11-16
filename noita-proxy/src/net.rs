@@ -319,7 +319,6 @@ impl NetManager {
                     &NetMsg::PeerDisconnected { id: *peer },
                     Reliability::Reliable,
                 );
-                self.peer.remove(*peer)
             }
             to_kick.clear();
             for net_event in self.peer.recv() {
