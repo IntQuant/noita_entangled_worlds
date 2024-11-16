@@ -173,6 +173,12 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
         end
     end
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
+    for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
+        if ComponentGetValue2(lua, "script_source_file") == "data/scripts/projectiles/transmutation.lua" then
+            EntityAddComponent2(projectile_id, "VariableStorageComponent", {name = "ew_transmutation", value_int = rng})
+            break
+        end
+    end
     np.SetProjectileSpreadRNG(rng)
 end
 
