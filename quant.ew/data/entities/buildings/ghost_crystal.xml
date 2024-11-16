@@ -1,0 +1,99 @@
+<Entity
+  name="unknown"
+  tags="hittable,mortal,ew_enemy_sync_extra" >
+
+  <DamageModelComponent
+    _enabled="1"
+    air_needed="0"
+    falling_damages="0"
+    fire_damage_amount="0.2"
+    fire_probability_of_ignition="0"
+    hp="20"
+    is_on_fire="0"
+    blood_material="sand_blue"
+    materials_create_messages="0"
+    materials_damage="1"
+    materials_how_much_damage=""
+    materials_that_damage=""
+    ragdoll_material="ice_b2"
+    ragdoll_filenames_file=""
+    ragdoll_offset_y="-6" >
+  </DamageModelComponent>
+
+  <GenomeDataComponent
+    _enabled="1"
+    food_chain_rank="20"
+    herd_id="ghost"
+    is_predator="1" >
+  </GenomeDataComponent>
+
+  <HitboxComponent
+    _enabled="1"
+    aabb_max_x="6"
+    aabb_max_y="0"
+    aabb_min_x="-6"
+    aabb_min_y="-20"
+    is_enemy="0"
+    is_item="0"
+    is_player="1" >
+  </HitboxComponent>
+
+  <PathFindingGridMarkerComponent
+    _enabled="1"
+    marker_offset_x="0"
+    marker_offset_y="0"
+    marker_work_flag="16" >
+  </PathFindingGridMarkerComponent>
+
+  <SpriteComponent
+    _enabled="1"
+    alpha="1"
+    has_special_scale="0"
+    image_file="data/buildings_gfx/ghost_crystal.xml"
+    is_text_sprite="0"
+    next_rect_animation=""
+    offset_x="0"
+    offset_y="0"
+    rect_animation="stand"
+    visible="1"
+     >
+  </SpriteComponent>
+
+  <VelocityComponent />
+
+  <SimplePhysicsComponent/>
+
+    <LightComponent
+        _enabled="1"
+        radius="96"
+        fade_out_time="1.5"
+        r="230"
+        g="120"
+        b="230"
+        offset_y="-6"
+        >
+    </LightComponent>
+
+  <LuaComponent
+    _enabled="1"
+    execute_on_added="1"
+    remove_after_executed="0"
+    execute_every_n_frame="-1"
+    script_source_file="data/scripts/buildings/ghost_crystal.lua" >
+  </LuaComponent>
+
+  <LuaComponent
+    _enabled="1"
+    remove_after_executed="0"
+    execute_every_n_frame="-1"
+    script_death="data/scripts/buildings/ghost_crystal_death.lua" >
+  </LuaComponent>
+
+  <VariableStorageComponent
+    _tags="ghost_id"
+    name="ghost_id"
+    value_int="0"
+    >
+    </VariableStorageComponent>
+
+</Entity>

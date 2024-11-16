@@ -151,10 +151,7 @@ local function deserialize_phys_component(phys_component, phys_info)
 end
 
 local function get_sync_entities(return_all)
-    local entities = {}
-    table_extend_filtered(entities, EntityGetWithTag("enemy"), function (ent)
-        return not EntityHasTag(ent, "ew_no_enemy_sync")
-    end)
+    local entities = EntityGetWithTag("enemy") or {}
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
     table_extend(entities, EntityGetWithTag("plague_rat"))
     table_extend(entities, EntityGetWithTag("seed_f"))
@@ -349,7 +346,8 @@ function enemy_sync.host_upload_entities()
             animation = ComponentGetValue2(sprite, "rect_animation")
         end
 
-        local dont_cull = EntityHasTag(enemy_id, "worm") or EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
+        local dont_cull = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
+                or worm ~= nil
 
         local stains = stain_sync.get_stains(enemy_id)
 
@@ -545,6 +543,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         end
 
         util.make_ephemerial(enemy_id)
+        local ghost = EntityGetFirstComponentIncludingDisabled(enemy_id, "GhostComponent")
+        if ghost ~= nil then
+            ComponentSetValue2(ghost, "die_if_no_home", false)
+        end
     end
 
     local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
@@ -679,8 +681,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     end
 
     for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
-        ComponentSetValue2(sprite, "rect_animation", animation)
-        ComponentSetValue2(sprite, "next_rect_animation", animation)
+        if animation ~= nil then
+            ComponentSetValue2(sprite, "rect_animation", animation)
+            ComponentSetValue2(sprite, "next_rect_animation", animation)
+        end
     end
 
     ::continue::
