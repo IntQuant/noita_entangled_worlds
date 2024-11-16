@@ -89,6 +89,11 @@ function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
     if ent ~= nil and ent ~= ctx.my_player.entity then
         module.switch_entity(ent)
+        if ctx.proxy_opt.game_mode == "local_health" then
+            util.ensure_component_present(ent, "LuaComponent", "ew_player_damage", {
+                script_damage_received = "mods/quant.ew/files/system/local_health/grab_damage_message.lua"
+            })
+        end
     end
 end
 
