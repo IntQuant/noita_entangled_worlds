@@ -4,6 +4,7 @@ local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local item_sync = dofile_once("mods/quant.ew/files/system/item_sync.lua")
 local effect_sync = dofile_once("mods/quant.ew/files/system/game_effect_sync/game_effect_sync.lua")
+local stain_sync = dofile_once("mods/quant.ew/files/system/effect_data_sync/effect_data_sync.lua")
 local np = require("noitapatcher")
 
 local ffi = require("ffi")
@@ -350,7 +351,10 @@ function enemy_sync.host_upload_entities()
 
         local dont_cull = EntityHasTag(enemy_id, "worm") or EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
 
-        table.insert(enemy_data_list, {filename, en_data, phys_info, phys_info_2, wand, effect_data, animation, dont_cull, death_triggers})
+        local stains = stain_sync.get_stains(enemy_id)
+
+        table.insert(enemy_data_list, {filename, en_data, phys_info, phys_info_2, wand,
+                                       effect_data, animation, dont_cull, death_triggers, stains})
         ::continue::
     end
 
@@ -437,6 +441,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local en_data = enemy_info_raw[2]
     local dont_cull = enemy_info_raw[8]
     local death_triggers = enemy_info_raw[9]
+    local stains = enemy_info_raw[10]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
     if not force_no_cull and not dont_cull  then
@@ -630,6 +635,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
                 end
             end
         end
+        effect_sync.apply_effects(effects, enemy_id, true)
+        if stains ~= nil then
+            stain_sync.sync_stains(stains, enemy_id)
+        end
     end
 
     local inv = EntityGetFirstComponentIncludingDisabled(enemy_id, "Inventory2Component")
@@ -668,8 +677,6 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             item_sync.rpc.request_send_again(gid)
         end
     end
-
-    effect_sync.apply_effects(effects, enemy_id, true)
 
     for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
         ComponentSetValue2(sprite, "rect_animation", animation)

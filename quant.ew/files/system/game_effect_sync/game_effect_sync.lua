@@ -72,7 +72,7 @@ function effect_sync.get_sync_data(entity, perks)
 end
 
 function effect_sync.on_world_update()
-    if GameGetFrameNum() % 30 == 9 then
+    if GameGetFrameNum() % 15 == 9 then
         local sync_data = effect_sync.get_sync_data(ctx.my_player.entity, false)
         rpc.send_effects(sync_data, false)
     end

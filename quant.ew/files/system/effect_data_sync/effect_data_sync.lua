@@ -13,26 +13,7 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-function rpc.send_present_stains(present_stains)
-    local entity = ctx.rpc_player_data.entity
-    local effect_data = EntityGetFirstComponent(entity, "StatusEffectDataComponent")
-    if effect_data == nil or effect_data == 0 then
-        return
-    end
-    local current_stains = ComponentGetValue2(effect_data, "stain_effects")
-
-    for index, is_present in ipairs(present_stains) do
-        if not is_present and current_stains[index+1] ~= nil and current_stains[index+1] >= 0.15 then
-            EntityRemoveStainStatusEffect(entity, effect_by_index[index])
-        end
-    end
-end
-
-function module.on_world_update()
-    if GameGetFrameNum() % 30 ~= 13 then
-        return
-    end
-    local entity = ctx.my_player.entity
+function module.get_stains(entity)
     local effect_data = EntityGetFirstComponent(entity, "StatusEffectDataComponent")
     if effect_data == nil or effect_data == 0 then
         return
@@ -42,9 +23,41 @@ function module.on_world_update()
     local present_stains = {}
     -- For some reason whatever value is at index 1 isn't used?
     for i=2, #stains do
-        table.insert(present_stains, stains[i] >= 0.15)
+        if stains[i] >= 0.15 then
+            present_stains[i] = true
+        end
     end
-    rpc.send_present_stains(present_stains)
+    return present_stains
+end
+
+function module.sync_stains(present_stains, entity)
+    local effect_data = EntityGetFirstComponent(entity, "StatusEffectDataComponent")
+    if effect_data == nil or effect_data == 0 then
+        return
+    end
+    local current_stains = ComponentGetValue2(effect_data, "stain_effects")
+
+    for i=2, #current_stains do
+        if current_stains[i] >= 0.15 and not present_stains[i] then
+            EntityRemoveStainStatusEffect(entity, effect_by_index[i - 1])
+        end
+    end
+end
+
+function rpc.send_present_stains(present_stains)
+    module.sync_stains(present_stains, ctx.rpc_player_data.entity)
+end
+
+
+
+function module.on_world_update()
+    if GameGetFrameNum() % 15 ~= 8 then
+        return
+    end
+    local present = module.get_stains(ctx.my_player.entity)
+    if present ~= nil then
+        rpc.send_present_stains(present)
+    end
 end
 
 return module
