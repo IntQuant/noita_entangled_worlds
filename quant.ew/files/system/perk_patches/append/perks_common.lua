@@ -15,6 +15,14 @@ end
 hide_perk("ABILITY_ACTIONS_MATERIALIZED")
 hide_perk("HOMUNCULUS")
 
+local ff = false
+if CrossCall ~= nil then
+    ff = CrossCall("ew_ff")
+end
+if ff then
+    hide_perk("REVENGE_RATS")
+end
+
 patch_perk_2("SHIELD", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     GlobalsSetValue("PERK_SHIELD_COUNT", tostring(pickup_count-1))
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)

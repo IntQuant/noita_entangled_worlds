@@ -45,6 +45,10 @@ end
 
 np.CrossCallAdd("ew_perks_modify_max_hp", rpc.modify_max_hp)
 
+np.CrossCallAdd("ew_ff", function()
+    return ctx.proxy_opt.friendly_fire
+end)
+
 np.CrossCallAdd("ew_perk_ban_list", function()
     return ctx.proxy_opt.perk_ban_list
 end)
