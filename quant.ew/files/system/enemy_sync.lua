@@ -503,7 +503,11 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         EntityAddTag(enemy_id, "polymorphable_NOT")
         for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
             local script = ComponentGetValue2(com, "script_damage_received")
-            if script ~= nil and (script == "data/scripts/animals/leader_damage.lua" or script == "data/scripts/animals/giantshooter_death.lua" or script == "data/scripts/animals/blob_damage.lua") then
+            if (script ~= nil
+                    and (script == "data/scripts/animals/leader_damage.lua"
+                    or script == "data/scripts/animals/giantshooter_death.lua"
+                    or script == "data/scripts/animals/blob_damage.lua"))
+                    or ComponentGetValue2(com, "script_source_file") == "data/scripts/props/suspended_container_physics_objects.lua" then
                 EntityRemoveComponent(enemy_id, com)
             end
         end
@@ -542,11 +546,11 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             ComponentRemoveTag(sprite, "character")
         end
 
-        util.make_ephemerial(enemy_id)
         local ghost = EntityGetFirstComponentIncludingDisabled(enemy_id, "GhostComponent")
         if ghost ~= nil then
             ComponentSetValue2(ghost, "die_if_no_home", false)
         end
+        util.make_ephemerial(enemy_id)
     end
 
     local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
