@@ -67,7 +67,6 @@ local function give_one_perk(entity_who_picked, perk_info, count)
     end
 
     if not perks_to_ignore[perk_info.id] then
-        GamePrint(perk_info.id)
         -- add game effect
         if perk_info.game_effect ~= nil then
             local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
