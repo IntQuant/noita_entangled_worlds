@@ -1,3 +1,10 @@
+#![windows_subsystem = "windows"]
+
+use std::{
+    fs::File,
+    io::{self, BufWriter},
+};
+
 use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
@@ -9,13 +16,31 @@ use tracing_subscriber::EnvFilter;
 #[allow(clippy::needless_return)]
 #[tokio::main(worker_threads = 2)]
 async fn main() {
+    let log_to_file = cfg!(windows);
+    let writer = {
+        if log_to_file {
+            let file = File::create("ew_log.txt");
+            println!("Creating a log file");
+            match file {
+                Ok(file) => Box::new(BufWriter::new(file)) as Box<dyn io::Write + Send>,
+                Err(_) => Box::new(std::io::stdout()) as Box<dyn io::Write + Send>,
+            }
+        } else {
+            Box::new(std::io::stdout()) as Box<dyn io::Write + Send>
+        }
+    };
+
+    let (non_blocking_writer, _guard) = tracing_appender::non_blocking(writer);
+
     let my_subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
             EnvFilter::builder()
                 .with_default_directive(LevelFilter::INFO.into())
                 .from_env_lossy(),
         )
+        .with_writer(non_blocking_writer)
         .finish();
+
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
 
     let args: Args = argh::from_env();
