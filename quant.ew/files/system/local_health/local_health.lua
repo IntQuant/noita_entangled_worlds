@@ -281,6 +281,8 @@ local function player_died()
     inventory_helper.set_item_data(item_data, ctx.my_player)
     remove_inventory_tags()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
+    util.set_ent_health_cap(ctx.my_player.entity, max_hp)
+    util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
     rpc.add_nickname_change_cursor()
 end
 
