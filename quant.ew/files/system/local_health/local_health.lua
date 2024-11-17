@@ -225,6 +225,7 @@ local function player_died()
     remove_inventory()
     local perk_data = perk_fns.get_my_perks()
     local _, max_hp = util.get_ent_health(ctx.my_player.entity)
+    local cap = util.get_ent_health_cap(ctx.my_player.entity)
 
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
     -- Which is, like, perfect.
@@ -246,6 +247,7 @@ local function player_died()
     do_switch_effect(false)
     EntitySetName(ctx.my_player.entity, ctx.my_id.."?")
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
+    util.set_ent_health_cap(ctx.my_player.entity, cap)
     local iron = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml")
     EntityAddTag(iron, "kill_on_revive")
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
@@ -281,8 +283,8 @@ local function player_died()
     inventory_helper.set_item_data(item_data, ctx.my_player)
     remove_inventory_tags()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
-    util.set_ent_health_cap(ctx.my_player.entity, max_hp)
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
+    util.set_ent_health_cap(ctx.my_player.entity, cap)
     rpc.add_nickname_change_cursor()
 end
 
