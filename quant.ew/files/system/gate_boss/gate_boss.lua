@@ -19,7 +19,7 @@ function rpc.spawn_gate()
     end
 end
 
-np.CrossCallAdd("ew_spawn_gate", function()
+util.add_cross_call("ew_spawn_gate", function()
     rpc.spawn_gate()
 end)
 

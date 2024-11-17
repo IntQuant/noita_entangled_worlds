@@ -12,6 +12,6 @@ function EwHasPersistentFlag(flag)
     return has_flag(flag)
 end
 
-np.CrossCallAdd("ew_has_flag", has_flag)
+util.add_cross_call("ew_has_flag", has_flag)
 
 return {}

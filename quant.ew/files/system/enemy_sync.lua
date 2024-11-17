@@ -87,7 +87,7 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
     -- util.replace_text_in(filename, 'kill_entity_after_initialized="1"', 'kill_entity_after_initialized="0"')
 end
 
-np.CrossCallAdd("ew_es_death_notify", function(enemy_id, responsible_id)
+util.add_cross_call("ew_es_death_notify", function(enemy_id, responsible_id)
     local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
     local responsible
     if player_data ~= nil then

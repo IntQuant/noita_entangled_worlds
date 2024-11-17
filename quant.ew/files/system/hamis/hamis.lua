@@ -54,7 +54,7 @@ function rpc.pet(entity_who_interacted, entity_interacted, num, hx, hy)
     GameEntityPlaySound( entity_who_interacted, "pet" )
 end
 
-np.CrossCallAdd("ew_pet_hamis", function(x, y)
+util.add_cross_call("ew_pet_hamis", function(x, y)
     local hx, hy = EntityGetTransform(y)
     local ent = y
     for a, b in pairs(ctx.entity_by_remote_id) do

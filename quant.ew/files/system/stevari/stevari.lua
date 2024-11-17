@@ -25,7 +25,7 @@ function rpc.spawn_stevari(pos_x, pos_y)
     end
 end
 
-np.CrossCallAdd("ew_spawn_stevari", function(x, y)
+util.add_cross_call("ew_spawn_stevari", function(x, y)
     rpc.spawn_stevari(x, y)
 end)
 

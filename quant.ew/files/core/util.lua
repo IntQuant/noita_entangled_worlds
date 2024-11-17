@@ -324,10 +324,29 @@ function util.deserialize_entity(ent_data, x, y)
         np.DeserializeEntity(ent, ent_data, x, y)
     end
     if EntityGetFirstComponentIncludingDisabled(ent, "WorldStateComponent") ~= nil then
-        error("Tried to deserialize WorldStateEntity. The world is screwed.")
+        print("Tried to deserialize WorldStateEntity. The world is screwed.")
         EntityKill(ent)
     end
     return ent
 end
+
+local cross_calls = {}
+
+function util.add_cross_call(name, fn)
+    np.CrossCallAdd(name, fn)
+    cross_calls[name] = fn
+end
+
+function CrossCall(name, ...)
+    cross_calls[name](...)
+end
+
+util.add_cross_call("ew_host_frame_num", function()
+    if ctx.my_id == ctx.host_id then
+        return GameGetFrameNum()
+    else
+        return ctx.host_frame_num
+    end
+end)
 
 return util

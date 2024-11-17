@@ -1,7 +1,7 @@
 local ffi = require("ffi")
 local world_ffi = require("noitapatcher.nsew.world_ffi")
 
--- np.CrossCallAdd("make_ephemerial", ewext.make_ephemerial)
+-- util.add_cross_call("make_ephemerial", ewext.make_ephemerial)
 
 local initial_world_state_entity = nil
 

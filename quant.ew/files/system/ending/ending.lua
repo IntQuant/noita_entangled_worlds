@@ -49,7 +49,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     end)
 end
 
-np.CrossCallAdd("ew_ending_sequence", function(sx, sy, sampo_ent)
+util.add_cross_call("ew_ending_sequence", function(sx, sy, sampo_ent)
     EntityKill(sampo_ent)
     local x, y = EntityGetTransform(ctx.my_player.entity)
     rpc.gather_and_do_ending(x, y, sx, sy)

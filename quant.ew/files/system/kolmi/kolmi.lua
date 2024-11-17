@@ -82,7 +82,7 @@ function rpc.kolmi_shield(is_on, orbcount)
 end
 
 
-np.CrossCallAdd("ew_sampo_spawned", function()
+util.add_cross_call("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
     if sampo_ent == nil or sampo_ent == 0 then
         -- In case sampo wasn't actually spawned.
@@ -99,11 +99,11 @@ np.CrossCallAdd("ew_sampo_spawned", function()
     end
 end)
 
-np.CrossCallAdd("ew_kolmi_spawn_portal", rpc.spawn_portal)
+util.add_cross_call("ew_kolmi_spawn_portal", rpc.spawn_portal)
 
-np.CrossCallAdd("ew_kolmi_anim", rpc.kolmi_anim)
+util.add_cross_call("ew_kolmi_anim", rpc.kolmi_anim)
 
-np.CrossCallAdd("ew_kolmi_shield", rpc.kolmi_shield)
+util.add_cross_call("ew_kolmi_shield", rpc.kolmi_shield)
 
 local function is_in_box(x1, x2, y1, y2, x, y)
     return x1 < x and x < x2 and y1 < y and y < y2

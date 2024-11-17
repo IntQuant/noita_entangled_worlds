@@ -22,11 +22,11 @@ function rpc.got_thrown(peer_id, vx, vy)
     end
 end
 
-np.CrossCallAdd("ew_potion_mimic_throw", function(item, vx, vy)
+util.add_cross_call("ew_potion_mimic_throw", function(item, vx, vy)
     rpc.got_thrown(player_fns.get_player_data_by_local_entity_id(item).peer_id, vx, vy)
 end)
 
-np.CrossCallAdd("ew_potion_mimic_pickup", function()
+util.add_cross_call("ew_potion_mimic_pickup", function()
     local inventory_state = player_fns.serialize_items(ctx.my_player)
     if inventory_state ~= nil then
         net.send_player_inventory(inventory_state)

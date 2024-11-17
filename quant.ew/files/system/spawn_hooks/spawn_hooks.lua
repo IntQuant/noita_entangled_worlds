@@ -39,7 +39,7 @@ local function is_sync_item(ent_path)
     return false
 end
 
-np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
+util.add_cross_call("ew_spawn_hook_pre", function(ent_path, x, y)
     if ctx.is_host then
         if is_sync_item(ent_path) then
             local ent_id = EntityLoad(ent_path, x, y)
@@ -57,17 +57,17 @@ np.CrossCallAdd("ew_spawn_hook_pre", function(ent_path, x, y)
     end
 end)
 
-np.CrossCallAdd("ew_action_spawn_hook_pre", function()
+util.add_cross_call("ew_action_spawn_hook_pre", function()
     return (not ctx.proxy_opt.item_dedup) or ctx.is_host
 end)
 
-np.CrossCallAdd("ew_action_spawn_hook", function(eid)
+util.add_cross_call("ew_action_spawn_hook", function(eid)
     ctx.cap.item_sync.globalize(eid, false)
 end)
 
 -- Called after entity was loaded.
 -- Might be useless in some cases, as entity was already despawned/serialized due to CameraBoundComponent.
-np.CrossCallAdd("ew_spawn_hook_post", function(ent_path, ent)
+util.add_cross_call("ew_spawn_hook_post", function(ent_path, ent)
 
 end)
 

@@ -8,7 +8,7 @@ function rpc.charm(gid)
         EntityAddComponent2(item, "LuaComponent", {script_source_file = "mods/quant.ew/files/system/wand_charm/charm.lua", remove_after_executed = true})
     end
 end
-np.CrossCallAdd("ew_charm_sync", function(id)
+util.add_cross_call("ew_charm_sync", function(id)
     local gid = EntityGetFirstComponentIncludingDisabled(id, "VariableStorageComponent", "ew_global_item_id")
     rpc.charm(ComponentGetValue2(gid, "value_string"))
 end)

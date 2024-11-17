@@ -20,7 +20,7 @@ local module = {}
 
 local last_damage_info = {0, "unknown", 1}
 
-np.CrossCallAdd("ew_damage_message", function(message, entity_thats_responsible)
+util.add_cross_call("ew_damage_message", function(message, entity_thats_responsible)
     last_damage_info = {GameGetFrameNum(), message, entity_thats_responsible}
 end)
 
@@ -524,7 +524,7 @@ function rpc.melee_damage_client(target_peer, damage, message)
         EntityInflictDamage(ctx.my_player.entity, damage, "DAMAGE_MELEE", message, "NONE", 0, 0, 0)
     end
 end
-np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
+util.add_cross_call("ew_ds_client_damaged", rpc.melee_damage_client)
 
 rpc.opts_everywhere()
 function rpc.send_status(status)

@@ -28,6 +28,6 @@ function rpc.remote_run_event(id)
     end
 end
 
-np.CrossCallAdd("ew_run_streaming_event", rpc.remote_run_event)
+util.add_cross_call("ew_run_streaming_event", rpc.remote_run_event)
 
 return module

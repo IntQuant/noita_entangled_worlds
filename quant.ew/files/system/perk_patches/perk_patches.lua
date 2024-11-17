@@ -43,17 +43,17 @@ function rpc.modify_max_hp(percent_amount, do_heal)
     end
 end
 
-np.CrossCallAdd("ew_perks_modify_max_hp", rpc.modify_max_hp)
+util.add_cross_call("ew_perks_modify_max_hp", rpc.modify_max_hp)
 
-np.CrossCallAdd("ew_ff", function()
+util.add_cross_call("ew_ff", function()
     return ctx.proxy_opt.friendly_fire
 end)
 
-np.CrossCallAdd("ew_perk_ban_list", function()
+util.add_cross_call("ew_perk_ban_list", function()
     return ctx.proxy_opt.perk_ban_list
 end)
 
-np.CrossCallAdd("ew_randomize_perks", function()
+util.add_cross_call("ew_randomize_perks", function()
     return ctx.proxy_opt.randomize_perks
 end)
 

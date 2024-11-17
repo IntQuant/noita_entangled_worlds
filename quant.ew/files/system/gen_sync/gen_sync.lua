@@ -66,7 +66,7 @@ function rpc.remote_run_spawn_fn(fn_name, x, y, ...)
     run_spawn_fn(fn_name, x, y, ...)
 end
 
-np.CrossCallAdd("ew_sync_gen", function(fn_name, x, y, ...)
+util.add_cross_call("ew_sync_gen", function(fn_name, x, y, ...)
     if ctx.is_host then
         run_spawn_fn(fn_name, x, y, ...)
     else

@@ -80,11 +80,11 @@ end
 
 local conversions = {}
 
-np.CrossCallAdd("ew_fungal_shift_conversion", function(from_mat, to_mat)
+util.add_cross_call("ew_fungal_shift_conversion", function(from_mat, to_mat)
     table.insert(conversions, {from_mat, to_mat})
 end)
 
-np.CrossCallAdd("ew_fungal_shift", function(iter, from_material_name)
+util.add_cross_call("ew_fungal_shift", function(iter, from_material_name)
     rpc.fungal_shift(conversions, iter, from_material_name)
     conversions = {}
 end)

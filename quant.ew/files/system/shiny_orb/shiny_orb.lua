@@ -29,7 +29,7 @@ function rpc.kicked_orb(gid, rx, ry, greed)
     drop()
 end
 
-np.CrossCallAdd("ew_kicked_orb", function(entity, entity_who_kicked, greed)
+util.add_cross_call("ew_kicked_orb", function(entity, entity_who_kicked, greed)
     if entity_who_kicked ~= ctx.my_player.entity then
         return
     end

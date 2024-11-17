@@ -37,7 +37,7 @@ local function damage_received(damage, message, entity_id, add_healing_effect)
     end
 end
 
-np.CrossCallAdd("ew_ds_damaged", damage_received)
+util.add_cross_call("ew_ds_damaged", damage_received)
 
 local function do_game_over(message)
     net.proxy_notify_game_over()
@@ -215,7 +215,7 @@ function rpc.effect_hearty(applied)
     GlobalsSetValue("ew_effect_hearty", tostring(hearty_applied_count))
 end
 
-np.CrossCallAdd("ew_ds_effect_hearty", rpc.effect_hearty)
+util.add_cross_call("ew_ds_effect_hearty", rpc.effect_hearty)
 
 rpc.opts_reliable()
 function rpc.melee_damage_client(target_peer, damage, message)
@@ -223,6 +223,6 @@ function rpc.melee_damage_client(target_peer, damage, message)
         EntityInflictDamage(ctx.my_player.entity, damage, "DAMAGE_MELEE", message, "NONE", 0, 0, 0)
     end
 end
-np.CrossCallAdd("ew_ds_client_damaged", rpc.melee_damage_client)
+util.add_cross_call("ew_ds_client_damaged", rpc.melee_damage_client)
 
 return module

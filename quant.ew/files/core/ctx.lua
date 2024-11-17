@@ -27,14 +27,6 @@ ctx.init = function()
     ctx.host_frame_num = 0
 end
 
-np.CrossCallAdd("ew_host_frame_num", function()
-    if ctx.my_id == ctx.host_id then
-        return GameGetFrameNum()
-    else
-        return ctx.host_frame_num
-    end
-end)
-
 local function is_measure_perf_enabled()
     -- return ctx.proxy_opt.debug
     return false
