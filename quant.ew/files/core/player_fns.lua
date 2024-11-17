@@ -483,13 +483,12 @@ function player_fns.deserialize_position(message, phys_infos, phys_infos_2, play
 
     ComponentSetValue2(velocity_comp, "gravity_y", 0)
 
-    ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
-
-    EntityApplyTransform(entity, message.x, message.y)
+    local had_phys = false
     for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
         local phys_info = phys_infos[i]
         if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
             deserialize_phys_component(phys_component, phys_info)
+            had_phys = true
         end
     end
     for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
@@ -499,8 +498,13 @@ function player_fns.deserialize_position(message, phys_infos, phys_infos_2, play
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
                 deserialize_phys_component(phys_component, phys_info)
+                had_phys = true
             end
         end
+    end
+    if not had_phys then
+        ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
+        EntityApplyTransform(entity, message.x, message.y)
     end
 end
 

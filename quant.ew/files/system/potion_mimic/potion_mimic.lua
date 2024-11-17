@@ -1,21 +1,26 @@
 local rpc = net.new_rpc_namespace()
 local potion = {}
 
-function rpc.got_thrown(peer_id)
+function rpc.got_thrown(peer_id, vx, vy)
     local item = ctx.players[peer_id].entity
     for _, com in ipairs(EntityGetAllComponents(item) or {}) do
         EntitySetComponentIsEnabled(item, com, true)
     end
-    EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent", "enable_in_hand"), false)
+    EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent", "enabled_in_hand"), false)
     EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "ItemChestComponent"), false)
     EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "ItemComponent"), false)
     if EntityGetParent(item) ~= 0 then
         EntityRemoveFromParent(item)
     end
+    if peer_id == ctx.my_player.peer_id then
+        local phys_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PhysicsBodyComponent")
+        local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
+        np.PhysBodySetTransform(phys_component, px, py, pr, pvx + vx, pvy + vy, pvr)
+    end
 end
 
-np.CrossCallAdd("ew_potion_mimic_throw", function(item)
-    rpc.got_thrown(player_fns.get_player_data_by_local_entity_id(item).peer_id)
+np.CrossCallAdd("ew_potion_mimic_throw", function(item, vx, vy)
+    rpc.got_thrown(player_fns.get_player_data_by_local_entity_id(item).peer_id, vx, vy)
 end)
 
 np.CrossCallAdd("ew_potion_mimic_pickup", function()

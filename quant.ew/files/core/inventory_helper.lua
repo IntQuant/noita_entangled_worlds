@@ -285,6 +285,9 @@ local function pickup_item(entity, item)
     if entity_children ~= nil then
         for _, child in pairs( entity_children ) do
             if EntityGetName( child ) == "inventory_quick" then
+                if EntityGetParent(item) ~= 0 then
+                    EntityRemoveFromParent(item)
+                end
                 EntityAddChild( child, item)
             end
         end
