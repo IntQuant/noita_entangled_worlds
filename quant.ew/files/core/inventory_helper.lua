@@ -230,14 +230,17 @@ function inventory_helper.get_item_data(player_data, fresh)
                         active = (mActiveItem == item)
                     })
         else
-            local peer_id = player_fns.get_player_data_by_local_entity_id(item).peer_id
-            table.insert(wandData,
-                    {
-                        peer_id = peer_id,
-                        slot_x = slot_x,
-                        slot_y = slot_y,
-                        active = (mActiveItem == item)
-                    })
+            local data = player_fns.get_player_data_by_local_entity_id(item)
+            if data ~= nil then
+                local peer_id = data.peer_id
+                table.insert(wandData,
+                        {
+                            peer_id = peer_id,
+                            slot_x = slot_x,
+                            slot_y = slot_y,
+                            active = (mActiveItem == item)
+                        })
+            end
         end
     end
 
@@ -289,6 +292,7 @@ local function pickup_item(entity, item)
                     EntityRemoveFromParent(item)
                 end
                 EntityAddChild( child, item)
+                break
             end
         end
     end
@@ -424,8 +428,10 @@ function inventory_helper.has_inventory_changed(player_data)
     end
     for _, item in ipairs(GameGetAllInventoryItems(player_data.entity) or {}) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
-        inventory_hash = (inventory_hash*19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
+        if item_comp ~= nil then
+            local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
+            inventory_hash = (inventory_hash*19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
+        end
     end
     player_data.prev_inventory_hash = inventory_hash
     return inventory_hash ~= prev_inventory

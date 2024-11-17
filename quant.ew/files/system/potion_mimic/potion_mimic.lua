@@ -33,6 +33,29 @@ np.CrossCallAdd("ew_potion_mimic_pickup", function()
     end
 end)
 
+function rpc.ensure_held(peer_id)
+    if peer_id == ctx.my_player.peer_id then
+        local ent = ctx.my_player.entity
+        local inv
+        for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
+            if EntityGetName( child ) == "inventory_quick" then
+                inv = child
+                break
+            end
+        end
+        local has_player = false
+        for _, child in ipairs(EntityGetAllChildren(inv) or {}) do
+            local player = player_fns.get_player_data_by_local_entity_id(child)
+            if player ~= nil and player.peer_id == ctx.rpc_player_data.peer_id then
+                has_player = true
+            end
+        end
+        if not has_player then
+            EntityAddChild(inv, ctx.rpc_player_data.entity)
+        end
+    end
+end
+
 function potion.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "mimic_potion") then
         local effect
@@ -47,8 +70,12 @@ function potion.on_world_update()
                 end
             end
         end
+        local root = EntityGetRootEntity(ctx.my_player.entity)
         if effect ~= nil then
-            EntitySetComponentIsEnabled(ctx.my_player.entity, effect, EntityGetParent(ctx.my_player.entity) == 0)
+            EntitySetComponentIsEnabled(ctx.my_player.entity, effect, root == ctx.my_player.entity)
+        end
+        if GameGetFrameNum() % 60 == 53 and root ~= ctx.my_player.entity then
+            rpc.ensure_held(player_fns.get_player_data_by_local_entity_id(root).peer_id)
         end
     end
     --if InputIsKeyJustDown(16) then --when "m" is pressed

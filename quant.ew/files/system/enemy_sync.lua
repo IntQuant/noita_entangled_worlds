@@ -274,7 +274,7 @@ function enemy_sync.host_upload_entities()
             }
         elseif EntityHasTag(enemy_id, "boss_wizard") then
             local orbs = {false, false, false, false, false, false, false, false}
-            for _, child in pairs(EntityGetAllChildren(enemy_id) or {}) do
+            for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
                 local var = EntityGetFirstComponentIncludingDisabled(child, "VariableStorageComponent")
                 if EntityHasTag(child, "touchmagic_immunity") and var ~= nil then
                     local n = ComponentGetValue2(var, "value_int")
@@ -627,7 +627,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         end
         if ffi.typeof(en_data) == EnemyDataMom then
             local orbs = en_data.orbs
-            for _, child in pairs(EntityGetAllChildren(enemy_id) or {}) do
+            for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
                 local var = EntityGetFirstComponentIncludingDisabled(child, "VariableStorageComponent")
                 local damage_component = EntityGetFirstComponentIncludingDisabled(child, "DamageModelComponent")
                 if EntityHasTag(child, "touchmagic_immunity") and var ~= nil then
