@@ -103,8 +103,8 @@ function module.on_world_update_post()
             end
             if effect ~= nil then
                 local frames = ComponentGetValue2(effect, "frames")
-                if frames < 1000 and frames > 0 then
-                    ComponentSetValue2(effect, "frames", 1000)
+                if frames < 1200 and frames > 0 then
+                    ComponentSetValue2(effect, "frames", 1200)
                 end
             end
 

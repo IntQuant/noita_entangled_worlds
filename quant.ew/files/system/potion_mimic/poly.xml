@@ -4,7 +4,7 @@
 
     <GameEffectComponent
         effect="POLYMORPH"
-        frames="1000"
+        frames="1200"
         disable_movement="0"
         polymorph_target="data/entities/animals/mimic_potion.xml"
     >
