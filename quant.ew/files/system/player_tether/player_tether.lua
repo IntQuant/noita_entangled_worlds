@@ -7,6 +7,8 @@ local tether_length_2 = tether_length + 128
 
 local module = {}
 
+local ignore_tower = false
+
 function is_in_box(x1, x2, y1, y2, x, y)
     return x1 < x and x < x2 and y1 < y and y < y2
 end
@@ -167,6 +169,9 @@ local function float()
 end
 
 function rpc.teleport_to_tower()
+    if ignore_tower then
+        return
+    end
     local x2, y2 = EntityGetTransform(ctx.my_player.entity)
     if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
         return
@@ -192,6 +197,9 @@ function module.on_world_update()
             return
         end
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
+        if is_in_box(9200, 11000, 4000, 8300, x2, y2) then
+            ignore_tower = true
+        end
         if np.GetGameModeNr() ~= 2
                 and tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) == 0
                 and is_in_box(9200, 11000, 8300, 9800, x2, y2) then
