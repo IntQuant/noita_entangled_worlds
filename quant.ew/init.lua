@@ -125,6 +125,7 @@ local function load_modules()
     ctx.load_system("hamis")
     ctx.load_system("spell_refresh")
     ctx.load_system("shiny_orb")
+    ctx.load_system("potion_mimic")
 end
 
 local function load_extra_modules()

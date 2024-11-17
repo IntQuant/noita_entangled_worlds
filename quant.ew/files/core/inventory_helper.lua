@@ -213,22 +213,31 @@ function inventory_helper.get_item_data(player_data, fresh)
 
         if(entity_is_wand(item))then
             table.insert(wandData,
-                {
-                    data = inventory_helper.serialize_single_item(item),
-                    slot_x = slot_x,
-                    slot_y = slot_y,
-                    active = (mActiveItem == item),
-                    is_wand = true,
-                    old_id = item
-                })
-        else
+                    {
+                        data = inventory_helper.serialize_single_item(item),
+                        slot_x = slot_x,
+                        slot_y = slot_y,
+                        active = (mActiveItem == item),
+                        is_wand = true,
+                        old_id = item
+                    })
+        elseif not EntityHasTag(item, "polymorphed_player") then
             table.insert(wandData,
-                {
-                    data = inventory_helper.serialize_single_item(item),
-                    slot_x = slot_x,
-                    slot_y = slot_y,
-                    active = (mActiveItem == item)
-                })
+                    {
+                        data = inventory_helper.serialize_single_item(item),
+                        slot_x = slot_x,
+                        slot_y = slot_y,
+                        active = (mActiveItem == item)
+                    })
+        else
+            local peer_id = player_fns.get_player_data_by_local_entity_id(item).peer_id
+            table.insert(wandData,
+                    {
+                        peer_id = peer_id,
+                        slot_x = slot_x,
+                        slot_y = slot_y,
+                        active = (mActiveItem == item)
+                    })
         end
     end
 
@@ -315,9 +324,12 @@ function inventory_helper.set_item_data(item_data, player_data)
             local inv = EntityGetAllChildren(child)
             if inv ~= nil then
                 for _, item in pairs(inv) do
-                    EntityKill(item)
+                    if not EntityHasTag(item, "polymorphed_player") then
+                        EntityKill(item)
+                    end
                 end
             end
+            break
         end
     end
 
@@ -333,6 +345,8 @@ function inventory_helper.set_item_data(item_data, player_data)
                 item = inventory_helper.deserialize_single_item(itemInfo.data)
                 remove_non_send(item)
                 item = EZWand(item)
+            elseif itemInfo.peer_id ~= nil then
+                item = ctx.players[itemInfo.peer_id].entity
             else
                 item = inventory_helper.deserialize_single_item(itemInfo.data)
                 remove_non_send(item)
@@ -345,25 +359,22 @@ function inventory_helper.set_item_data(item_data, player_data)
             if(itemInfo.is_wand)then
                 EntityAddTag(item.entity_id, "ew_client_item")
                 item:PickUp(player)
-                local itemComp = EntityGetFirstComponentIncludingDisabled(item.entity_id, "ItemComponent")
-                if (itemComp ~= nil) then
-                    ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
-                end
                 item_entity = item.entity_id
-                if (itemInfo.active) then
-                    active_item_entity = item.entity_id
-                end
+            elseif itemInfo.peer_id ~= nil then
+                pickup_item(player, item)
+                item_entity = item
+                np.SetActiveHeldEntity(player, item, false, false)
             else
                 EntityAddTag(item, "ew_client_item")
                 pickup_item(player, item)
-                local itemComp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-                if (itemComp ~= nil) then
-                    ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
-                end
                 item_entity = item
-                if (itemInfo.active) then
-                    active_item_entity = item
-                end
+            end
+            local itemComp = EntityGetFirstComponentIncludingDisabled(item_entity, "ItemComponent")
+            if (itemComp ~= nil) then
+                ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
+            end
+            if (itemInfo.active) then
+                active_item_entity = item_entity
             end
 
             --print("Deserialized wand #"..tostring(k).." - Active? "..tostring(wandInfo.active))

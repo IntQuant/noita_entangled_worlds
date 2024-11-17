@@ -88,6 +88,31 @@ end
 function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
     if ent ~= nil and ent ~= ctx.my_player.entity then
+        if EntityHasTag(ent, "mimic_potion") then
+            local effect
+            for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+                local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+                if com ~= nil then
+                    local effect_name = ComponentGetValue2(com, "effect")
+                    if effect_name == "POLYMORPH" or effect_name == "POLYMORPH_RANDOM"
+                            or effect_name == "POLYMORPH_CESSATION" or effect_name == "POLYMORPH_UNSTABLE" then
+                        effect = com
+                        break
+                    end
+                end
+            end
+            if effect ~= nil then
+                local frames = ComponentGetValue2(effect, "frames")
+                if frames < 1000 and frames > 0 then
+                    ComponentSetValue2(effect, "frames", 1000)
+                end
+            end
+
+            EntityAddComponent2(ent, "LuaComponent", {
+                script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+                script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+            })
+        end
         module.switch_entity(ent)
         if ctx.proxy_opt.game_mode == "local_health" then
             util.ensure_component_present(ent, "LuaComponent", "ew_player_damage", {

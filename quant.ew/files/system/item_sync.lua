@@ -27,7 +27,9 @@ end
 local function mark_in_inventory(my_player)
     local items = inventory_helper.get_all_inventory_items(my_player)
     for _, ent in pairs(items) do
-        item_sync.ensure_notify_component(ent)
+        if not EntityHasTag(ent, "polymorphed_player") then
+            item_sync.ensure_notify_component(ent)
+        end
     end
 end
 
@@ -103,6 +105,7 @@ function item_sync.remove_item_with_id_now(gid)
                 end
             end
             EntityKill(item)
+            break
         end
     end
 end
@@ -267,12 +270,7 @@ function item_sync.on_world_update()
     end
     if GameGetFrameNum() % 5 == 2 then
         for _, ent in ipairs(EntityGetWithTag("mimic_potion")) do
-            if EntityHasTag(ent, "polymorphed_player") then
-                local com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
-                if com ~= nil then
-                    EntityRemoveComponent(ent, com)
-                end
-            elseif ctx.is_host then
+            if ctx.is_host and not EntityHasTag(ent, "polymorphed_player") then
                 if not EntityHasTag(ent, "ew_global_item") then
                     item_sync.make_item_global(ent)
                 end

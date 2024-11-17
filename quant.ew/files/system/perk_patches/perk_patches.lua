@@ -21,7 +21,7 @@ else
 end
 
 if not ctx.is_host or not ctx.proxy_opt.randomize_perks then
-    print("Hiding telekinesis")
+    --print("Hiding telekinesis")
     ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_no_telekinesis.lua")
 end
 
