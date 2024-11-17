@@ -1,17 +1,20 @@
 local rpc = net.new_rpc_namespace()
 local potion = {}
 
-function rpc.got_thrown(peer_id, vx, vy)
-    local item = ctx.players[peer_id].entity
+function potion.enable_in_world(item)
     for _, com in ipairs(EntityGetAllComponents(item) or {}) do
         EntitySetComponentIsEnabled(item, com, true)
     end
     EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent", "enabled_in_hand"), false)
     EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "ItemChestComponent"), false)
-    EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "ItemComponent"), false)
     if EntityGetParent(item) ~= 0 then
         EntityRemoveFromParent(item)
     end
+end
+
+function rpc.got_thrown(peer_id, vx, vy)
+    local item = ctx.players[peer_id].entity
+    potion.enable_in_world(item)
     if peer_id == ctx.my_player.peer_id then
         local phys_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PhysicsBodyComponent")
         local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)

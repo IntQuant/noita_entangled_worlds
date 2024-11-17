@@ -2,6 +2,7 @@ local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
+local potion = dofile_once("mods/quant.ew/files/system/potion_mimic/potion_mimic.lua")
 local np = require("noitapatcher")
 
 local rpc = net.new_rpc_namespace()
@@ -90,7 +91,7 @@ function module.on_world_update_post()
     if ent ~= nil and ent ~= ctx.my_player.entity then
         if EntityHasTag(ent, "mimic_potion") then
             local effect
-            for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+            for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
                 local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
                 if com ~= nil then
                     local effect_name = ComponentGetValue2(com, "effect")
@@ -107,6 +108,9 @@ function module.on_world_update_post()
                     ComponentSetValue2(effect, "frames", 1200)
                 end
             end
+            local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+            ComponentRemoveTag(item, "enabled_if_charmed")
+            EntitySetComponentIsEnabled(ent, item, true)
 
             EntityAddComponent2(ent, "LuaComponent", {
                 script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
@@ -145,6 +149,10 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
 end
 
 local function apply_seri_ent(player_data, seri_ent)
+    if EntityGetRootEntity(ctx.my_player.entity) == player_data.entity
+            and player_data.peer_id ~= ctx.my_player.peer_id then
+        potion.enable_in_world(ctx.my_player.entity)
+    end
     if seri_ent ~= nil then
         local ent = util.deserialize_entity(seri_ent.data)
         EntityAddTag(ent, "ew_no_enemy_sync")
