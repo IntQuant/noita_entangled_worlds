@@ -89,7 +89,7 @@ end
 function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
     if ent ~= nil and ent ~= ctx.my_player.entity then
-        if EntityHasTag(ent, "mimic_potion") then
+        if EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent") ~= nil then
             local effect
             for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
                 local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
@@ -108,9 +108,12 @@ function module.on_world_update_post()
                     ComponentSetValue2(effect, "frames", 1200)
                 end
             end
-            local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
-            ComponentRemoveTag(item, "enabled_if_charmed")
-            EntitySetComponentIsEnabled(ent, item, true)
+
+            if EntityHasTag(ent, "mimic_potion") then
+                local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+                ComponentRemoveTag(item, "enabled_if_charmed")
+                EntitySetComponentIsEnabled(ent, item, true)
+            end
 
             EntityAddComponent2(ent, "LuaComponent", {
                 script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",

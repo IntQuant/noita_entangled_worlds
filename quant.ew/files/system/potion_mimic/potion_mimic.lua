@@ -2,11 +2,9 @@ local rpc = net.new_rpc_namespace()
 local potion = {}
 
 function potion.enable_in_world(item)
-    for _, com in ipairs(EntityGetAllComponents(item) or {}) do
-        EntitySetComponentIsEnabled(item, com, true)
-    end
-    EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent", "enabled_in_hand"), false)
-    EntitySetComponentIsEnabled(item, EntityGetFirstComponentIncludingDisabled(item, "ItemChestComponent"), false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_hand", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_inventory", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_world", true)
     if EntityGetParent(item) ~= 0 then
         EntityRemoveFromParent(item)
     end
@@ -57,7 +55,7 @@ function rpc.ensure_held(peer_id)
 end
 
 function potion.on_world_update()
-    if EntityHasTag(ctx.my_player.entity, "mimic_potion") then
+    if EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ItemComponent") ~= nil then
         local effect
         for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
             local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")

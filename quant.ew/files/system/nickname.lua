@@ -73,7 +73,9 @@ function nickname.calculate_textwidth(text, font)
 end
 
 function nickname.add_label(player_entity, text, font_filename, scale, alpha)
-    if not EntityGetIsAlive(player_entity) or EntityHasTag(player_entity, "polymorphed_cessation") then
+    if not EntityGetIsAlive(player_entity)
+            or EntityHasTag(player_entity, "polymorphed_cessation")
+            or EntityHasTag(player_entity, "polymorphed_player") then
         return
     end
     local prev_nickname = EntityGetFirstComponentIncludingDisabled(player_entity, "SpriteComponent", "ew_nickname")
