@@ -3,6 +3,10 @@ local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local net = dofile_once("mods/quant.ew/files/core/net.lua")
 
+ModLuaFileAppend("data/scripts/items/utility_box.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/items/chest_random.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/items/chest_random_super.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+
 dofile_once("data/scripts/lib/coroutines.lua")
 
 local rpc = net.new_rpc_namespace()
@@ -13,6 +17,37 @@ local pending_remove = {}
 local pickup_handlers = {}
 
 local dead_entities = {}
+
+function rpc.open_chest(gid)
+    local ent = item_sync.find_by_gid(gid)
+    if ent ~= nil then
+        local name = EntityGetFilename(ent)
+        local file
+        if name == "data/entities/items/pickup/utility_box.xml" then
+            file = "data/scripts/items/utility_box.lua"
+        end
+        if name == "data/entities/items/pickup/chest_random_super.xml" then
+            file = "data/scripts/items/chest_random_super.lua"
+        end
+        if name == "data/entities/items/pickup/chest_random.xml" then
+            file = "data/scripts/items/chest_random.lua"
+        end
+        if file ~= nil then
+            EntityAddComponent2(ent, "LuaComponent", {
+                script_source_file = file,
+                execute_on_added = true,
+                call_init_function = true,
+            })
+        end
+    end
+end
+
+util.add_cross_call("ew_chest_opened", function(chest_id)
+    local gid = item_sync.get_global_item_id(chest_id)
+    if gid ~= "unknown" then
+        rpc.open_chest(gid)
+    end
+end)
 
 util.add_cross_call("ew_item_death_notify", function(enemy_id, responsible_id)
     local player_data = player_fns.get_player_data_by_local_entity_id(responsible_id)
@@ -177,13 +212,22 @@ function item_sync.make_item_global(item, instant, give_authority_to)
         --if vel then
         --    local vx, vy = ComponentGetValue2(vel, "mVelocity")
         --end
+
         local item_data = inventory_helper.serialize_single_item(item)
         item_data.gid = gid
+
         local hp, max_hp, has_hp = util.get_ent_health(item)
         if has_hp then
             util.ensure_component_present(item, "LuaComponent", "ew_item_death_notify", {
                 script_death = "mods/quant.ew/files/resource/cbs/item_death_notify.lua"
             })
+        end
+
+        local name = EntityGetName(item)
+        if name == "$item_utility_box"
+                or name == "$item_chest_treasure"
+                or name == "$item_chest_treasure_super" then
+
         end
 
         ctx.item_prevent_localize[gid] = false
