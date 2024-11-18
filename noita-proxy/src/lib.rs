@@ -831,7 +831,7 @@ impl App {
                     filled_group(ui, |ui| {
                         ui.set_min_size(ui.available_size());
                         ScrollArea::both().auto_shrink(false).show(ui, |ui| {
-                            self.show_all_settings(ui, true);
+                            self.show_local_settings(ui);
                         });
                     });
                 },
@@ -952,18 +952,6 @@ impl App {
                 }
             }
         });
-    }
-
-    fn show_all_settings(&mut self, ui: &mut Ui, show_local: bool) {
-        self.show_game_settings(ui);
-        if show_local {
-            self.show_local_settings(ui);
-        }
-    }
-
-    fn show_game_settings(&mut self, ui: &mut Ui) {
-        heading_with_underline(ui, tr("connect_settings"));
-        self.app_saved_state.game_settings.show_editor(ui);
     }
 
     fn show_local_settings(&mut self, ui: &mut Ui) {
