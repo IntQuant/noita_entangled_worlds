@@ -1145,12 +1145,14 @@ impl App {
                     for peer in netman.peer.iter_peer_ids() {
                         ui.label(peer.to_string());
                         if netman.peer.is_host() && peer != netman.peer.my_id() {
-                            if ui.button("kick").clicked() {
-                                netman.kick_list.lock().unwrap().push(peer)
-                            }
-                            if ui.button("ban").clicked() {
-                                netman.ban_list.lock().unwrap().push(peer)
-                            }
+                            ui.horizontal(|ui| {
+                                if ui.button("kick").clicked() {
+                                    netman.kick_list.lock().unwrap().push(peer)
+                                }
+                                if ui.button("ban").clicked() {
+                                    netman.ban_list.lock().unwrap().push(peer)
+                                }
+                            });
                         }
                     }
                 }
@@ -1234,7 +1236,12 @@ impl App {
                     if netman.peer.is_host() {
                         ui.add_space(15.0);
                         ui.horizontal(|ui| {
-                            if !self.end_run_confirmation && ui.button(tr("launcher_end_run")).clicked()
+                            let dirty = netman.dirty.load(Ordering::Relaxed);
+                            let button = Button::new(tr("launcher_end_run"))
+                                .small()
+                                .fill(Color32::LIGHT_RED);
+                            if !self.end_run_confirmation
+                                && if dirty { ui.add(button).clicked() } else { ui.button(tr("launcher_end_run")).clicked() }
                             {
                                 self.end_run_confirmation = true
                             } else if self.end_run_confirmation
@@ -1243,7 +1250,7 @@ impl App {
                                 self.end_run_confirmation = false;
                                 netman.end_run.store(true, Ordering::Relaxed);
                             };
-                            if netman.dirty.load(Ordering::Relaxed) {
+                            if dirty {
                                 ui.label("PENDING SETTINGS NOT SET UNTIL RUN ENDS");
                             }
                         });
@@ -1277,8 +1284,6 @@ impl App {
                         ui.label("what team number you are on, 0 means no team, -1 means friendly");
                         ui.add_space(15.0);
                     }
-                    ui.label(tr("hint_ping"));
-                    ui.label(tr("hint_spectate"));
                 }
                 ConnectedMenu::Settings => {
                     self.app_saved_state.game_settings.show_editor(ui);
