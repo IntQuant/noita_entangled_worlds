@@ -349,4 +349,107 @@ util.add_cross_call("ew_host_frame_num", function()
     end
 end)
 
+local FULL_TURN = math.pi * 2
+
+local PhysData = util.make_type({
+    f32 = {"x", "y", "vx", "vy", "vr"},
+    -- We should be able to cram rotation into 1 byte.
+    u8 = {"r"}
+})
+
+-- Variant of PhysData for when we don't have any motion.
+local PhysDataNoMotion = util.make_type({
+    f32 = {"x", "y"},
+    -- We should be able to cram rotation into 1 byte.
+    u8 = {"r"}
+})
+
+local function serialize_phys_component(phys_component)
+    local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
+    px, py = PhysicsPosToGamePos(px, py)
+    if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
+        return PhysDataNoMotion {
+            x = px,
+            y = py,
+            r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
+        }
+    else
+        return PhysData {
+            x = px,
+            y = py,
+            r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
+            vx = pvx,
+            vy = pvy,
+            vr = pvr,
+        }
+    end
+end
+
+local function deserialize_phys_component(phys_component, phys_info)
+    local x, y = GamePosToPhysicsPos(phys_info.x, phys_info.y)
+    if ffi.typeof(phys_info) == PhysDataNoMotion then
+        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
+    else
+        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+    end
+end
+
+function util.get_phys_info(entity, kill)
+    local phys_info = {}
+    local phys_info_2 = {}
+    for _, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
+        if phys_component ~= nil and phys_component ~= 0 then
+            local ret, info = pcall(serialize_phys_component, phys_component)
+            if not ret and kill then
+                GamePrint("Physics component has no body, deleting entity")
+                EntityKill(entity)
+                return nil
+            end
+            table.insert(phys_info, info)
+        end
+    end
+
+    for _, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
+        if phys_component ~= nil and phys_component ~= 0 then
+            local initialized = ComponentGetValue2(phys_component, "mInitialized")
+            if initialized then
+                local ret, info = pcall(serialize_phys_component, phys_component)
+                if not ret and kill then
+                    GamePrint("Physics component has no body, deleting entity")
+                    EntityKill(entity)
+                    return nil
+                end
+                table.insert(phys_info_2, info)
+            else
+                table.insert(phys_info_2, nil)
+            end
+        end
+    end
+    return {phys_info, phys_info_2}
+end
+
+function util.set_phys_info(entity, data)
+    local phys_infos, phys_infos_2 = data[1], data[2]
+    local has_set = false
+    for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
+        local phys_info = phys_infos[i]
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+            deserialize_phys_component(phys_component, phys_info)
+            has_set = true
+        end
+    end
+    for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
+        local phys_info = phys_infos_2[i]
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+            -- A physics body doesn't exist otherwise, causing a crash
+            local initialized = ComponentGetValue2(phys_component, "mInitialized")
+            if initialized then
+                deserialize_phys_component(phys_component, phys_info)
+                has_set = true
+            end
+        end
+    end
+    return has_set
+end
+
 return util

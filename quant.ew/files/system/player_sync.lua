@@ -18,7 +18,7 @@ function rpc.send_money_and_ingestion(money, ingestion_size)
     end
 end
 
-function rpc.player_update(input_data, pos_data, phys_info, phys_info_2, current_slot, team)
+function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     local peer_id = ctx.rpc_peer_id
 
     if not player_fns.peer_has_player(peer_id) then
@@ -40,7 +40,7 @@ function rpc.player_update(input_data, pos_data, phys_info, phys_info_2, current
         player_fns.deserialize_inputs(input_data, player_data)
     end
     if pos_data ~= nil then
-        player_fns.deserialize_position(pos_data, phys_info, phys_info_2, player_data)
+        player_fns.deserialize_position(pos_data, phys_info, player_data)
     end
     if current_slot ~= nil then
         player_fns.set_current_slot(current_slot, player_data)
@@ -65,7 +65,7 @@ end
 
 function module.on_world_update()
     local input_data = player_fns.serialize_inputs(ctx.my_player)
-    local pos_data, phys_info, phys_info_2 =  player_fns.serialize_position(ctx.my_player)
+    local pos_data, phys_info =  player_fns.serialize_position(ctx.my_player)
     local current_slot = player_fns.get_current_slot(ctx.my_player)
     if input_data ~= nil or pos_data ~= nil then
         local my_team
@@ -73,7 +73,7 @@ function module.on_world_update()
             my_team = ctx.proxy_opt.friendly_fire_team - 1
         end
 
-        rpc.player_update(input_data, pos_data, phys_info, phys_info_2, current_slot, my_team)
+        rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
         if GameGetFrameNum() % 120 == 0 then
             local n = np.GetGameModeNr()
             rpc.check_gamemode(np.GetGameModeName(n))

@@ -389,28 +389,6 @@ local player_fns = {
     end,
 }
 
-local PhysData = util.make_type({
-    f32 = {"x", "y", "vx", "vy", "vr", "r"}
-})
-
-local function deserialize_phys_component(phys_component, phys_info)
-    local x, y = GamePosToPhysicsPos(phys_info.x, phys_info.y)
-    np.PhysBodySetTransform(phys_component, x, y, phys_info.r, phys_info.vx, phys_info.vy, phys_info.vr)
-end
-
-local function serialize_phys_component(phys_component)
-    local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
-    px, py = PhysicsPosToGamePos(px, py)
-    return PhysData {
-        x = px,
-        y = py,
-        r = pr,
-        vx = pvx,
-        vy = pvy,
-        vr = pvr,
-    }
-end
-
 function player_fns.serialize_position(player_data)
     local entity = player_data.entity
     if not EntityGetIsAlive(entity) then
@@ -428,26 +406,6 @@ function player_fns.serialize_position(player_data)
     player_data.pos_x = x
     player_data.pos_y = y
 
-    local phys_info = {}
-    local phys_info_2 = {}
-    for _, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
-        if phys_component ~= nil and phys_component ~= 0 then
-            local _, info = pcall(serialize_phys_component, phys_component)
-            table.insert(phys_info, info)
-        end
-    end
-
-    for _, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
-        if phys_component ~= nil and phys_component ~= 0 then
-            local initialized = ComponentGetValue2(phys_component, "mInitialized")
-            if initialized then
-                local _, info = pcall(serialize_phys_component, phys_component)
-                table.insert(phys_info_2, info)
-            else
-                table.insert(phys_info_2, nil)
-            end
-        end
-    end
     local c = CharacterPos{
         frames_in_air = ComponentGetValue2(character_platforming_comp, "mFramesInAirCounter"),
         x = x,
@@ -457,10 +415,10 @@ function player_fns.serialize_position(player_data)
         is_on_ground = ComponentGetValue2(character_data, "is_on_ground"),
         is_on_slippery_ground = ComponentGetValue2(character_data, "is_on_slippery_ground"),
     }
-    return c, phys_info, phys_info_2
+    return c, util.get_phys_info(entity, false)
 end
 
-function player_fns.deserialize_position(message, phys_infos, phys_infos_2, player_data)
+function player_fns.deserialize_position(message, phys_infos, player_data)
     player_data.pos_x = message.x
     player_data.pos_y = message.y
 
@@ -483,26 +441,7 @@ function player_fns.deserialize_position(message, phys_infos, phys_infos_2, play
 
     ComponentSetValue2(velocity_comp, "gravity_y", 0)
 
-    local had_phys = false
-    for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
-        local phys_info = phys_infos[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            deserialize_phys_component(phys_component, phys_info)
-            had_phys = true
-        end
-    end
-    for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
-        local phys_info = phys_infos_2[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            -- A physics body doesn't exist otherwise, causing a crash
-            local initialized = ComponentGetValue2(phys_component, "mInitialized")
-            if initialized then
-                deserialize_phys_component(phys_component, phys_info)
-                had_phys = true
-            end
-        end
-    end
-    if not had_phys then
+    if not util.set_phys_info(entity, phys_infos) then
         ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
         EntityApplyTransform(entity, message.x, message.y)
     end

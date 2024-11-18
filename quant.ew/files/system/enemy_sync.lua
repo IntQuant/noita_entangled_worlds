@@ -51,19 +51,6 @@ local HpData = util.make_type({
 
 local FULL_TURN = math.pi * 2
 
-local PhysData = util.make_type({
-    f32 = {"x", "y", "vx", "vy", "vr"},
-    -- We should be able to cram rotation into 1 byte.
-    u8 = {"r"}
-})
-
--- Variant of PhysData for when we don't have any motion.
-local PhysDataNoMotion = util.make_type({
-    f32 = {"x", "y"},
-    -- We should be able to cram rotation into 1 byte.
-    u8 = {"r"}
-})
-
 local frame = 0
 
 local enemy_sync = {}
@@ -120,36 +107,6 @@ local function table_extend_filtered(to, from, filter)
     end
 end
 
-local function serialize_phys_component(phys_component)
-    local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
-    px, py = PhysicsPosToGamePos(px, py)
-    if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
-        return PhysDataNoMotion {
-            x = px,
-            y = py,
-            r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
-        }
-    else
-        return PhysData {
-            x = px,
-            y = py,
-            r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
-            vx = pvx,
-            vy = pvy,
-            vr = pvr,
-        }
-    end
-end
-
-local function deserialize_phys_component(phys_component, phys_info)
-    local x, y = GamePosToPhysicsPos(phys_info.x, phys_info.y)
-    if ffi.typeof(phys_info) == PhysDataNoMotion then
-        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
-    else
-        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
-    end
-end
-
 local function get_sync_entities(return_all)
     local entities = EntityGetWithTag("enemy") or {}
     table_extend(entities, EntityGetWithTag("ew_enemy_sync_extra"))
@@ -179,6 +136,7 @@ local function get_sync_entities(return_all)
             local has_anyone = EntityHasTag(ent, "worm")
                     or EntityGetFirstComponent(ent, "BossHealthBarComponent") ~= nil
                     or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
+                    or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0
             return has_anyone and not EntityHasTag(ent, "ew_no_enemy_sync")
         end)
     end
@@ -208,36 +166,9 @@ function enemy_sync.host_upload_entities()
         end
         local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
 
-        local phys_info = {}
-        local phys_info_2 = {}
-
-        for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
-            if phys_component ~= nil and phys_component ~= 0 then
-                local ret, info = pcall(serialize_phys_component, phys_component)
-                if not ret then
-                    GamePrint("Physics component has no body, deleting entity")
-                    EntityKill(enemy_id)
-                    goto continue
-                end
-                table.insert(phys_info, info)
-            end
-        end
-
-        for _, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
-            if phys_component ~= nil and phys_component ~= 0 then
-                local initialized = ComponentGetValue2(phys_component, "mInitialized")
-                if initialized then
-                    local ret, info = pcall(serialize_phys_component, phys_component)
-                    if not ret then
-                        GamePrint("Physics component has no body, deleting entity")
-                        EntityKill(enemy_id)
-                        goto continue
-                    end
-                    table.insert(phys_info_2, info)
-                else
-                    table.insert(phys_info_2, nil)
-                end
-            end
+        local phys_info = util.get_phys_info(enemy_id, true)
+        if phys_info == nil then
+            goto continue
         end
 
         if has_hp then
@@ -351,7 +282,7 @@ function enemy_sync.host_upload_entities()
 
         local stains = stain_sync.get_stains(enemy_id)
 
-        table.insert(enemy_data_list, {filename, en_data, phys_info, phys_info_2, wand,
+        table.insert(enemy_data_list, {filename, en_data, phys_info, wand,
                                        effect_data, animation, dont_cull, death_triggers, stains})
         ::continue::
     end
@@ -437,9 +368,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     filename = constants.interned_index_to_filename[filename] or filename
 
     local en_data = enemy_info_raw[2]
-    local dont_cull = enemy_info_raw[8]
-    local death_triggers = enemy_info_raw[9]
-    local stains = enemy_info_raw[10]
+    local dont_cull = enemy_info_raw[7]
+    local death_triggers = enemy_info_raw[8]
+    local stains = enemy_info_raw[9]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
     if not force_no_cull and not dont_cull  then
@@ -469,10 +400,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         vx, vy = en_data.vx, en_data.vy
     end
     local phys_infos = enemy_info_raw[3]
-    local phys_infos_2 = enemy_info_raw[4]
-    local gid = enemy_info_raw[5]
-    local effects = enemy_info_raw[6]
-    local animation = enemy_info_raw[7]
+    local gid = enemy_info_raw[4]
+    local effects = enemy_info_raw[5]
+    local animation = enemy_info_raw[6]
     local has_died = filename == nil
 
     local frame_now = GameGetFrameNum()
@@ -557,36 +487,21 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     enemy_data_new.frame = frame_now
     local enemy_id = enemy_data_new.id
 
-    for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBodyComponent") or {}) do
-        local phys_info = phys_infos[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            deserialize_phys_component(phys_component, phys_info)
-        end
-    end
-    for i, phys_component in ipairs(EntityGetComponent(enemy_id, "PhysicsBody2Component") or {}) do
-        local phys_info = phys_infos_2[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            -- A physics body doesn't exist otherwise, causing a crash
-            local initialized = ComponentGetValue2(phys_component, "mInitialized")
-            if initialized then
-                deserialize_phys_component(phys_component, phys_info)
-            end
-        end
-    end
-
     if not has_died then
-        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
-        if character_data ~= nil then
-            ComponentSetValue2(character_data, "mVelocity", vx, vy)
-        end
-        local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
-        if velocity_data ~= nil then
-            ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
-        end
-        if ffi.typeof(en_data) == EnemyDataFish then
-            EntitySetTransform(enemy_id, x, y, en_data.r / 255 * FULL_TURN)
-        else
-            EntitySetTransform(enemy_id, x, y)
+        if not util.set_phys_info(enemy_id, phys_infos) then
+            local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
+            if character_data ~= nil then
+                ComponentSetValue2(character_data, "mVelocity", vx, vy)
+            end
+            local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+            if velocity_data ~= nil then
+                ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
+            end
+            if ffi.typeof(en_data) == EnemyDataFish then
+                EntitySetTransform(enemy_id, x, y, en_data.r / 255 * FULL_TURN)
+            else
+                EntitySetTransform(enemy_id, x, y)
+            end
         end
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
             or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
