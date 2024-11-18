@@ -489,6 +489,7 @@ pub struct App {
     end_run_confirmation: bool,
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
+    show_host_settings: bool,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -625,6 +626,7 @@ impl App {
             end_run_confirmation: false,
             appearance,
             connected_menu: ConnectedMenu::Normal,
+            show_host_settings: false,
         }
     }
 
@@ -832,6 +834,12 @@ impl App {
                         ui.set_min_size(ui.available_size());
                         ScrollArea::both().auto_shrink(false).show(ui, |ui| {
                             self.show_local_settings(ui);
+                            if ui.button("Show host settings").clicked() {
+                                self.show_host_settings = !self.show_host_settings
+                            }
+                            if self.show_host_settings {
+                                self.app_saved_state.game_settings.show_editor(ui)
+                            }
                         });
                     });
                 },
