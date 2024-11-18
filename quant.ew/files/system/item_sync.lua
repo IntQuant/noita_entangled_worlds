@@ -20,25 +20,20 @@ local dead_entities = {}
 
 function rpc.open_chest(gid)
     local ent = item_sync.find_by_gid(gid)
-    if ent ~= nil then
-        local name = EntityGetFilename(ent)
-        local file
-        if name == "data/entities/items/pickup/utility_box.xml" then
-            file = "data/scripts/items/utility_box.lua"
+    local file
+    for _, com in ipairs(EntityGetComponent(ent, "LuaComponent")) do
+        local f = ComponentGetValue2(com, "script_item_picked_up")
+        if f ~= nil then
+            file = f
+            break
         end
-        if name == "data/entities/items/pickup/chest_random_super.xml" then
-            file = "data/scripts/items/chest_random_super.lua"
-        end
-        if name == "data/entities/items/pickup/chest_random.xml" then
-            file = "data/scripts/items/chest_random.lua"
-        end
-        if file ~= nil then
-            EntityAddComponent2(ent, "LuaComponent", {
-                script_source_file = file,
-                execute_on_added = true,
-                call_init_function = true,
-            })
-        end
+    end
+    if file ~= nil then
+        EntityAddComponent2(ent, "LuaComponent", {
+            script_source_file = file,
+            execute_on_added = true,
+            call_init_function = true,
+        })
     end
 end
 
@@ -221,13 +216,6 @@ function item_sync.make_item_global(item, instant, give_authority_to)
             util.ensure_component_present(item, "LuaComponent", "ew_item_death_notify", {
                 script_death = "mods/quant.ew/files/resource/cbs/item_death_notify.lua"
             })
-        end
-
-        local name = EntityGetName(item)
-        if name == "$item_utility_box"
-                or name == "$item_chest_treasure"
-                or name == "$item_chest_treasure_super" then
-
         end
 
         ctx.item_prevent_localize[gid] = false
