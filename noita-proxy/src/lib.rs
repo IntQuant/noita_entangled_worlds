@@ -1114,6 +1114,7 @@ impl App {
         else {
             panic!("Called in incorrect state");
         };
+        let mut goto_menu = false;
         let stopped = netman.stopped.load(Ordering::Relaxed);
         let accept_local = netman.accept_local.load(Ordering::Relaxed);
         let local_connected = netman.local_connected.load(Ordering::Relaxed);
@@ -1177,6 +1178,10 @@ impl App {
                     old_settings.progress.clear();
                     old_settings.seed = new_settings.seed;
                     netman.dirty.store(old_settings != new_settings, Ordering::Relaxed)
+                }
+                ui.add_space(ui.available_width() - 56.0);
+                if ui.button("Back out").clicked() {
+                    goto_menu = true
                 }
             });
             ui.separator();
@@ -1337,6 +1342,9 @@ impl App {
         netman
             .enable_recorder
             .store(self.app_saved_state.record_all, Ordering::Relaxed);
+        if goto_menu {
+            self.state = AppState::ModManager;
+        }
     }
 }
 

@@ -5,19 +5,16 @@ use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicI32, Ordering};
 use std::{
     env,
     fmt::Display,
     io::{self, Write},
     net::{SocketAddr, TcpListener, TcpStream},
-    sync::{
-        atomic::{self, AtomicBool},
-        Arc, Mutex,
-    },
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::{Arc, Mutex};
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -247,29 +244,29 @@ impl NetManager {
             self.is_host(),
         );
         let mut timer = Instant::now();
-        while self.continue_running.load(atomic::Ordering::Relaxed) {
+        while self.continue_running.load(Ordering::Relaxed) {
             if cli {
                 if let Some(n) = self.peer.lobby_id() {
                     println!("Lobby ID: {}", n.raw());
                     cli = false
                 }
             }
-            if self.friendly_fire.load(atomic::Ordering::Relaxed) && timer.elapsed().as_secs() > 4 {
-                let team = self.friendly_fire_team.load(atomic::Ordering::Relaxed);
+            if self.friendly_fire.load(Ordering::Relaxed) && timer.elapsed().as_secs() > 4 {
+                let team = self.friendly_fire_team.load(Ordering::Relaxed);
                 state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
                 timer = Instant::now()
             }
-            if self.end_run.load(atomic::Ordering::Relaxed) {
+            if self.end_run.load(Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {
                     self.send(id, &NetMsg::EndRun, Reliability::Reliable);
                 }
                 state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().to_string()));
                 self.end_run(&mut state);
-                self.end_run.store(false, atomic::Ordering::Relaxed);
+                self.end_run.store(false, Ordering::Relaxed);
             }
             self.local_connected
-                .store(state.ws.is_some(), atomic::Ordering::Relaxed);
-            if state.ws.is_none() && self.accept_local.load(atomic::Ordering::SeqCst) {
+                .store(state.ws.is_some(), Ordering::Relaxed);
+            if state.ws.is_none() && self.accept_local.load(Ordering::SeqCst) {
                 thread::sleep(Duration::from_millis(10));
                 if let Ok((stream, addr)) = local_server.accept() {
                     info!("New stream incoming from {}", addr);
@@ -279,7 +276,7 @@ impl NetManager {
                         .inspect_err(|e| error!("Could not init websocket: {}", e))
                         .ok();
                     if state.ws.is_some() {
-                        if self.enable_recorder.load(atomic::Ordering::Relaxed) {
+                        if self.enable_recorder.load(Ordering::Relaxed) {
                             state.recorder = Some(Recorder::default());
                         }
                         self.on_ws_connection(&mut state);
@@ -385,7 +382,7 @@ impl NetManager {
                             NetMsg::StartGame { settings } => {
                                 *self.settings.lock().unwrap() = settings;
                                 info!("Settings updated");
-                                self.accept_local.store(true, atomic::Ordering::SeqCst);
+                                self.accept_local.store(true, Ordering::SeqCst);
                                 state.world.reset();
                             }
                             NetMsg::ModRaw { data } => {
@@ -499,7 +496,7 @@ impl NetManager {
             info!("No nickname chosen");
         }
         let ff = settings.friendly_fire.unwrap_or(def.friendly_fire);
-        self.friendly_fire.store(ff, atomic::Ordering::Relaxed);
+        self.friendly_fire.store(ff, Ordering::Relaxed);
         state.try_ws_write_option("friendly_fire", ff);
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
         state.try_ws_write_option(
@@ -628,7 +625,7 @@ impl NetManager {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);
             }
-            self.stopped.store(true, atomic::Ordering::Relaxed);
+            self.stopped.store(true, Ordering::Relaxed);
         })
     }
 
