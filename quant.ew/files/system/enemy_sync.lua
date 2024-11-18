@@ -164,13 +164,13 @@ function enemy_sync.host_upload_entities()
         if ai_component ~= 0 and ai_component ~= nil then
             ComponentSetValue2(ai_component, "max_distance_to_cam_to_start_hunting", math.pow(2, 29))
         end
-        local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
 
         local phys_info = util.get_phys_info(enemy_id, true)
         if phys_info == nil then
             goto continue
         end
 
+        local hp, max_hp, has_hp = util.get_ent_health(enemy_id)
         if has_hp then
             util.ensure_component_present(enemy_id, "LuaComponent", "ew_death_notify", {
                 script_death = "mods/quant.ew/files/resource/cbs/death_notify.lua"
