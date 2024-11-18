@@ -35,11 +35,12 @@ impl LangDesc {
     }
 }
 
-pub static LANGS: [LangDesc; 4] = [
+pub static LANGS: [LangDesc; 5] = [
     LangDesc::new("English", langid!("en-US")),
     LangDesc::new("Русский", langid!("ru-RU")),
     LangDesc::new("日本語", langid!("ja-JP")),
     LangDesc::new("简体中文", langid!("zh-CN")),
+    LangDesc::new("Português", langid!("pt-BR")),
 ];
 
 pub fn set_current_locale(lang_id: LanguageIdentifier) {
