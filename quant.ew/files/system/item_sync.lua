@@ -440,6 +440,9 @@ function rpc.item_globalize(item_data)
     if is_safe_to_remove() then
         item_sync.remove_item_with_id_now(item_data.gid)
     end
+    if item_sync.find_by_gid(item_data.gid) ~= nil then
+        return
+    end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
     local coms = EntityGetComponent(item, "VariableStorageComponent")
