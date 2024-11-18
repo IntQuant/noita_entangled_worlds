@@ -135,6 +135,7 @@ pub struct NetManager {
     pub kick_list: Mutex<Vec<OmniPeerId>>,
     pub no_more_players: AtomicBool,
     dont_kick: Mutex<Vec<OmniPeerId>>,
+    pub dirty: AtomicBool,
 }
 
 impl NetManager {
@@ -159,6 +160,7 @@ impl NetManager {
             kick_list: Default::default(),
             no_more_players: AtomicBool::new(false),
             dont_kick: Default::default(),
+            dirty: AtomicBool::new(false),
         }
         .into()
     }
@@ -721,7 +723,8 @@ impl NetManager {
                 .get_progress()
                 .unwrap_or_default();
             *self.settings.lock().unwrap() = settings;
-            state.world.reset()
+            state.world.reset();
+            self.dirty.store(false, Ordering::Relaxed);
         }
         self.resend_game_settings();
     }

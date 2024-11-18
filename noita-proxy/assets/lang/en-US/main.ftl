@@ -53,6 +53,7 @@ noita_connected = Local Noita instance connected.
 netman_save_lobby = Save lobby id to clipboard
 netman_show_settings = Show settings screen
 netman_apply_settings = Apply settings to be used in the next run
+apply_default_settings = Resets settings to default
 
 ip_note = Note: steam networking is more reliable. Use it, if possible.
 ip_connect = Connect to IP

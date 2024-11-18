@@ -102,16 +102,14 @@ impl GameSettings {
                 .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
                 .changed()
                 || ui
-                    .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
-                    .changed()
+                .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
+                .changed()
             {
                 game_settings.game_mode = Some(temp)
             }
         }
-
         ui.scope(|ui| {
             ui.set_height(100.0);
-
             match game_settings.game_mode.unwrap_or(def.game_mode) {
                 GameMode::SharedHealth => {
                     ui.label(tr("shared_health_desc_1"));
@@ -184,7 +182,6 @@ impl GameSettings {
             }
         }
         ui.add_space(10.0);
-
         ui.label("World generation");
         ui.horizontal(|ui| {
             ui.checkbox(
@@ -207,7 +204,6 @@ impl GameSettings {
             }
         }
         ui.add_space(10.0);
-
         ui.label("Player settings");
         ui.horizontal(|ui| {
             ui.label(tr("connect_settings_max_players"));
@@ -242,7 +238,6 @@ impl GameSettings {
                 game_settings.tether_length = Some(temp)
             }
         });
-
         ui.label(tr("Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients"));
         {
             let mut temp = game_settings.chunk_target.unwrap_or(def.chunk_target);
@@ -251,7 +246,6 @@ impl GameSettings {
             }
         }
         ui.add_space(10.0);
-
         ui.label("Perks");
         {
             let mut temp = game_settings.randomize_perks.unwrap_or(def.randomize_perks);
@@ -294,9 +288,11 @@ impl GameSettings {
                 game_settings.enemy_hp_mult = Some(temp)
             }
         }
+        if ui.button(tr("apply_default_settings")).clicked() {
+            *game_settings = GameSettings::default()
+        }
     }
 }
-
 pub struct DefaultSettings {
     debug_mode: bool,
     world_sync_version: u32,
@@ -1164,6 +1160,7 @@ impl App {
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
+                let last = self.connected_menu;
                 ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Normal, "Lobby");
                 if netman.peer.is_host() {
                     ui.selectable_value(
@@ -1177,8 +1174,15 @@ impl App {
                     ConnectedMenu::ConnectionInfo,
                     "Connection Info",
                 );
+                if last == ConnectedMenu::Settings && last != self.connected_menu {
+                    let new_settings = self.app_saved_state.game_settings.clone();
+                    *netman.pending_settings.lock().unwrap() = new_settings.clone();
+                    let mut old_settings = netman.settings.lock().unwrap().clone();
+                    old_settings.progress.clear();
+                    old_settings.seed = new_settings.seed;
+                    netman.dirty.store(old_settings != new_settings, Ordering::Relaxed)
+                }
             });
-
             ui.separator();
 
             if stopped {
@@ -1228,15 +1232,20 @@ impl App {
 
                     if netman.peer.is_host() {
                         ui.add_space(15.0);
-                        if !self.end_run_confirmation && ui.button(tr("launcher_end_run")).clicked()
-                        {
-                            self.end_run_confirmation = true
-                        } else if self.end_run_confirmation
-                            && ui.button(tr("launcher_end_run_confirm")).clicked()
-                        {
-                            self.end_run_confirmation = false;
-                            netman.end_run.store(true, Ordering::Relaxed)
-                        }
+                        ui.horizontal(|ui| {
+                            if !self.end_run_confirmation && ui.button(tr("launcher_end_run")).clicked()
+                            {
+                                self.end_run_confirmation = true
+                            } else if self.end_run_confirmation
+                                && ui.button(tr("launcher_end_run_confirm")).clicked()
+                            {
+                                self.end_run_confirmation = false;
+                                netman.end_run.store(true, Ordering::Relaxed);
+                            };
+                            if netman.dirty.load(Ordering::Relaxed) {
+                                ui.label("PENDING SETTINGS NOT SET UNTIL RUN ENDS");
+                            }
+                        });
                         ui.add_space(15.0);
                         let mut temp = netman.no_more_players.load(Ordering::Relaxed);
                         if ui
@@ -1272,10 +1281,6 @@ impl App {
                 }
                 ConnectedMenu::Settings => {
                     self.app_saved_state.game_settings.show_editor(ui);
-                    if ui.button(tr("netman_apply_settings")).clicked() {
-                        *netman.pending_settings.lock().unwrap() =
-                            self.app_saved_state.game_settings.clone();
-                    }
                 }
                 ConnectedMenu::ConnectionInfo => match &netman.peer {
                     PeerVariant::Tangled(_) => {
