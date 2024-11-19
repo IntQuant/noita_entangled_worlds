@@ -20,20 +20,23 @@ local dead_entities = {}
 
 function rpc.open_chest(gid)
     local ent = item_sync.find_by_gid(gid)
-    local file
-    for _, com in ipairs(EntityGetComponent(ent, "LuaComponent")) do
-        local f = ComponentGetValue2(com, "script_item_picked_up")
-        if f ~= nil then
-            file = f
-            break
+    if ent ~= nil then
+        local file
+        local name = EntityGetFilename(ent)
+        if name == "data/entities/items/pickup/utility_box.xml" then
+            file = "data/scripts/items/utility_box.lua"
+        elseif name == "data/entities/items/pickup/chest_random_super.xml" then
+            file = "data/scripts/items/chest_random_super.lua"
+        elseif name == "data/entities/items/pickup/chest_random.xml" then
+            file = "data/scripts/items/chest_random.lua"
         end
-    end
-    if file ~= nil then
-        EntityAddComponent2(ent, "LuaComponent", {
-            script_source_file = file,
-            execute_on_added = true,
-            call_init_function = true,
-        })
+        if file ~= nil then
+            EntityAddComponent2(ent, "LuaComponent", {
+                script_source_file = file,
+                execute_on_added = true,
+                call_init_function = true,
+            })
+        end
     end
 end
 
@@ -218,6 +221,14 @@ function item_sync.make_item_global(item, instant, give_authority_to)
             })
         end
 
+        if give_authority_to ~= nil then
+            local itemcom = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+            if ComponentGetValue2(itemcom, "play_hover_animation") then
+                ComponentSetValue2(itemcom, "play_hover_animation", false)
+                ComponentSetValue2(itemcom, "play_spinning_animation", false)
+            end
+        end
+
         ctx.item_prevent_localize[gid] = false
         rpc.item_globalize(item_data)
     end)
@@ -307,7 +318,7 @@ local function send_item_positions()
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
         if is_my_item(gid) and is_item_on_ground(item) then
-            local x, y = EntityGetTransform(item)
+            local x, y, r = EntityGetTransform(item)
             local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
             local cost = 0
             if costcom ~= nil then
@@ -319,7 +330,7 @@ local function send_item_positions()
             end
             local phys_info = util.get_phys_info(item, true)
             if phys_info ~= nil then
-                position_data[gid] = {x, y, phys_info, cost}
+                position_data[gid] = {x, y, r, phys_info, cost}
             end
         end
     end
@@ -484,6 +495,13 @@ function rpc.item_globalize(item_data)
         end
     end
     EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+    if not is_my_item(item_data.gid) then
+        local itemcom = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+        if ComponentGetValue2(itemcom, "play_hover_animation") then
+            ComponentSetValue2(itemcom, "play_hover_animation", false)
+            ComponentSetValue2(itemcom, "play_spinning_animation", false)
+        end
+    end
 end
 
 rpc.opts_reliable()
@@ -511,14 +529,14 @@ function rpc.update_positions(position_data)
     local LIMIT = 128 * 3
     local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
-        local x, y = el[1], el[2]
-        local phys_info = el[3]
-        local price = el[4]
+        local x, y, r = el[1], el[2], el[3]
+        local phys_info = el[4]
+        local price = el[5]
         if math.abs(x - cx) < LIMIT and math.abs(y - cy) < LIMIT then
             local item = item_sync.find_by_gid(gid)
             if item ~= nil then
                 if not util.set_phys_info(item, phys_info) then
-                    EntitySetTransform(item, x, y)
+                    EntitySetTransform(item, x, y, r)
                 end
                 local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
                 if costcom ~= nil then

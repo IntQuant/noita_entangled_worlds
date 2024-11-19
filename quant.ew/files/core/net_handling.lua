@@ -43,7 +43,9 @@ function net_handling.proxy.proxy_opt(_, key, value)
 end
 
 function net_handling.proxy.proxy_opt_num(_, key, value)
-    print("Proxy opt [num]: "..key.." = "..value)
+    if key ~= "friendly_fire_team" then
+        print("Proxy opt [num]: "..key.." = "..value)
+    end
     ctx.proxy_opt[key] = tonumber(value)
 end
 
