@@ -123,8 +123,12 @@ end
 
 local find_by_gid_cache = {}
 function item_sync.find_by_gid(gid)
-    if find_by_gid_cache[gid] ~= nil and EntityGetIsAlive(find_by_gid_cache[gid]) then
-        return find_by_gid_cache[gid]
+    if find_by_gid_cache[gid] ~= nil then
+        if EntityGetIsAlive(find_by_gid_cache[gid]) and EntityHasTag(find_by_gid_cache[gid], "ew_global_item") then
+            return find_by_gid_cache[gid]
+        else
+            find_by_gid_cache[gid] = nil
+        end
     end
 
     --print("find_by_gid: searching")
@@ -483,7 +487,8 @@ function rpc.item_globalize(item_data)
     if is_safe_to_remove() then
         item_sync.remove_item_with_id_now(item_data.gid)
     end
-    if item_sync.find_by_gid(item_data.gid) ~= nil then
+    local n = item_sync.find_by_gid(item_data.gid)
+    if n ~= nil and EntityGetRootEntity(n) == n then
         return
     end
     local item = inventory_helper.deserialize_single_item(item_data)
