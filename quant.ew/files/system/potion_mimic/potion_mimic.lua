@@ -17,6 +17,11 @@ function rpc.got_thrown(peer_id, vx, vy)
         local phys_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PhysicsBodyComponent")
         local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
         np.PhysBodySetTransform(phys_component, px, py, pr, pvx + vx, pvy + vy, pvr)
+    else
+        local immortal = EntityGetFirstComponentIncludingDisabled(item, "LuaComponent", "ew_immortal")
+        if immortal == 0 then
+            EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        end
     end
 end
 

@@ -161,7 +161,7 @@ local function apply_seri_ent(player_data, seri_ent)
         EntityAddTag(ent, "ew_no_enemy_sync")
         EntityAddTag(ent, "ew_client")
 
-        EntityAddComponent2(ent, "LuaComponent", {script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        EntityAddComponent2(ent, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
 
         -- Remove all poly-like effects to prevent spawn of another player character when it runs out
         remove_all_effects(ent)

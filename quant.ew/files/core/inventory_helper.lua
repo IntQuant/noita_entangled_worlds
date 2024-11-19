@@ -209,6 +209,11 @@ function inventory_helper.get_item_data(player_data, fresh)
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
         local item_x, item_y = EntityGetTransform(item)
 
+        local immortal = EntityGetFirstComponentIncludingDisabled(item, "LuaComponent", "ew_immortal")
+        if immortal ~= 0 then
+            EntityRemoveComponent(item, immortal)
+        end
+
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
 
         if(entity_is_wand(item))then
