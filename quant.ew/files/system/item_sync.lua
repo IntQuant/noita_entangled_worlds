@@ -499,7 +499,11 @@ function rpc.item_globalize(item_data)
             ComponentSetValue2(com, "value_int", GameGetFrameNum())
         end
     end
-    EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+    local damage_component = EntityGetFirstComponentIncludingDisabled(item, "DamageModelComponent")
+    if damage_component and damage_component ~= 0 then
+        ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
+        EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+    end
     if not is_my_item(item_data.gid) then
         local itemcom = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         if ComponentGetValue2(itemcom, "play_hover_animation") then

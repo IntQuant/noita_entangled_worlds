@@ -213,6 +213,10 @@ function inventory_helper.get_item_data(player_data, fresh)
         if immortal ~= 0 then
             EntityRemoveComponent(item, immortal)
         end
+        local damage_component = EntityGetFirstComponentIncludingDisabled(item, "DamageModelComponent")
+        if damage_component and damage_component ~= 0 then
+            ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
+        end
 
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
 
@@ -254,6 +258,16 @@ function inventory_helper.get_item_data(player_data, fresh)
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
         local item_x, item_y = EntityGetTransform(item)
 
+        local immortal = EntityGetFirstComponentIncludingDisabled(item, "LuaComponent", "ew_immortal")
+        if immortal ~= 0 then
+            EntityRemoveComponent(item, immortal)
+        end
+        local damage_component = EntityGetFirstComponentIncludingDisabled(item, "DamageModelComponent")
+        if damage_component and damage_component ~= 0 then
+            ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
+        end
+
+
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
 
         -- local item_id = entity.GetVariable(item, "arena_entity_id")
@@ -261,23 +275,23 @@ function inventory_helper.get_item_data(player_data, fresh)
         -- GlobalsSetValue(tostring(item) .. "_item", tostring(k))
         if(entity_is_wand(item))then
             table.insert(spellData,
-                {
-                    data = inventory_helper.serialize_single_item(item),
-                    -- id = item_id or (item + Random(1, 10000000)),
-                    slot_x = slot_x,
-                    slot_y = slot_y,
-                    active = (mActiveItem == item),
-                    is_wand = true
-                })
+                    {
+                        data = inventory_helper.serialize_single_item(item),
+                        -- id = item_id or (item + Random(1, 10000000)),
+                        slot_x = slot_x,
+                        slot_y = slot_y,
+                        active = (mActiveItem == item),
+                        is_wand = true
+                    })
         else
             table.insert(spellData,
-                {
-                    data = inventory_helper.serialize_single_item(item),
-                    -- id = item_id or (item + Random(1, 10000000)),
-                    slot_x = slot_x,
-                    slot_y = slot_y,
-                    active = (mActiveItem == item)
-                })
+                    {
+                        data = inventory_helper.serialize_single_item(item),
+                        -- id = item_id or (item + Random(1, 10000000)),
+                        slot_x = slot_x,
+                        slot_y = slot_y,
+                        active = (mActiveItem == item)
+                    })
         end
     end
 
