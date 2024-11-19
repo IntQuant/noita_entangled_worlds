@@ -474,6 +474,38 @@ enum PlayerPicker {
     PlayerForearm,
 }
 
+#[derive(Default)]
+struct EndRunButton {
+    end_run_confirmation: bool,
+}
+impl EndRunButton {
+    fn show(&mut self, ui: &mut Ui, netman: &mut NetManStopOnDrop) {
+        ui.horizontal(|ui| {
+            let dirty = netman.dirty.load(Ordering::Relaxed);
+            let button = Button::new(tr("launcher_end_run"))
+                .small()
+                .fill(Color32::LIGHT_RED);
+            if !self.end_run_confirmation
+                && if dirty {
+                    ui.add(button).clicked()
+                } else {
+                    ui.button(tr("launcher_end_run")).clicked()
+                }
+            {
+                self.end_run_confirmation = true
+            } else if self.end_run_confirmation
+                && ui.button(tr("launcher_end_run_confirm")).clicked()
+            {
+                self.end_run_confirmation = false;
+                netman.end_run.store(true, Ordering::Relaxed);
+            };
+            if dirty {
+                ui.label("PENDING SETTINGS NOT SET UNTIL RUN ENDS");
+            }
+        });
+    }
+}
+
 pub struct App {
     state: AppState,
     modmanager: Modmanager,
@@ -488,7 +520,7 @@ pub struct App {
     /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
     player_image: RgbaImage,
-    end_run_confirmation: bool,
+    end_run_button: EndRunButton,
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
@@ -625,7 +657,7 @@ impl App {
             can_start_automatically: false,
             run_save_state,
             player_image,
-            end_run_confirmation: false,
+            end_run_button: EndRunButton::default(),
             appearance,
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
@@ -1252,29 +1284,9 @@ impl App {
 
                     if netman.peer.is_host() {
                         ui.add_space(15.0);
-                        ui.horizontal(|ui| {
-                            let dirty = netman.dirty.load(Ordering::Relaxed);
-                            let button = Button::new(tr("launcher_end_run"))
-                                .small()
-                                .fill(Color32::LIGHT_RED);
-                            if !self.end_run_confirmation
-                                && if dirty {
-                                    ui.add(button).clicked()
-                                } else {
-                                    ui.button(tr("launcher_end_run")).clicked()
-                                }
-                            {
-                                self.end_run_confirmation = true
-                            } else if self.end_run_confirmation
-                                && ui.button(tr("launcher_end_run_confirm")).clicked()
-                            {
-                                self.end_run_confirmation = false;
-                                netman.end_run.store(true, Ordering::Relaxed);
-                            };
-                            if dirty {
-                                ui.label("PENDING SETTINGS NOT SET UNTIL RUN ENDS");
-                            }
-                        });
+
+                        self.end_run_button.show(ui, netman);
+
                         ui.add_space(15.0);
                         let mut temp = netman.no_more_players.load(Ordering::Relaxed);
                         if ui
@@ -1308,6 +1320,7 @@ impl App {
                 }
                 ConnectedMenu::Settings => {
                     self.app_saved_state.game_settings.show_editor(ui);
+                    self.end_run_button.show(ui, netman);
                 }
                 ConnectedMenu::ConnectionInfo => match &netman.peer {
                     PeerVariant::Tangled(_) => {
