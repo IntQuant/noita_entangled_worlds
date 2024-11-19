@@ -3,30 +3,6 @@ local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfind
 dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
 local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
---TODO voice chat
-
---TODO add plasma to stay_away
-
---TODO ability action materialized
-
---TODO black hole cuts through storage and others clients
-
---TODO never skip leg day upgrade
-
---TODO globalize physics objects from chests
-
---TODO allow notplayer to poly
-
---TODO detect AC on wands for notplayer
-
---TODO use teleport wands
-
---TODO allow picking chunk target and tether in proxy ui
-
---TODO fix boss_limbs drops
-
---TODO dont spawn chained entity when chain broke
-
 local MAX_RADIUS = 128*5
 
 local INVIS_RANGE = 64
