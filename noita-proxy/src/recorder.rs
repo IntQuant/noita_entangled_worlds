@@ -210,7 +210,7 @@ pub fn replay_file(path: PathBuf) {
 
     let loop_thread = thread::spawn(|| replay_loop(path));
 
-    token.start_game();
+    token.start_game(21251);
 
     loop_thread.join().unwrap();
 }

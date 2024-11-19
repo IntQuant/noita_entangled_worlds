@@ -149,3 +149,6 @@ ip_wait_for_connection = Conectando ao ip...
 
 info_stress_tests = Estamos fazendo lobbies públicos (vulgo testes de estresse) todo sábado, 18:00 UTC. Entre em nosso discord para mais informação.
 Info = Informação
+## Local settings
+
+connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.

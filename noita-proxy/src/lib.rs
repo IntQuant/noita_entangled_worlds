@@ -102,8 +102,8 @@ impl GameSettings {
                 .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
                 .changed()
                 || ui
-                .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
-                .changed()
+                    .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
+                    .changed()
             {
                 game_settings.game_mode = Some(temp)
             }
@@ -421,6 +421,7 @@ struct AppSavedState {
     #[serde(default)]
     record_all: bool,
     spacewars: bool,
+    random_ports: bool,
 }
 
 impl Default for AppSavedState {
@@ -435,6 +436,7 @@ impl Default for AppSavedState {
             show_extra_debug_stuff: false,
             record_all: false,
             spacewars: false,
+            random_ports: false,
         }
     }
 }
@@ -662,6 +664,12 @@ impl App {
                 cosmetics.2 = false
             }
         }
+        let noita_port = if self.app_saved_state.random_ports {
+            0
+        } else {
+            21251
+        };
+
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
@@ -674,6 +682,7 @@ impl App {
                 cosmetics: cosmetics.into(),
                 colors: self.appearance.player_color,
             },
+            noita_port,
         }
     }
 
@@ -972,6 +981,10 @@ impl App {
             &mut self.app_saved_state.spacewars,
             tr("connect_settings_spacewars"),
         );
+        ui.checkbox(
+            &mut self.app_saved_state.random_ports,
+            tr("connect_settings_random_ports"),
+        );
         ui.add_space(20.0);
         if self.player_image.width() == 1 {
             self.player_image = image::open(player_path(self.modmanager_settings.mod_path()))
@@ -1179,7 +1192,9 @@ impl App {
                     let mut old_settings = netman.settings.lock().unwrap().clone();
                     old_settings.progress.clear();
                     old_settings.seed = new_settings.seed;
-                    netman.dirty.store(old_settings != new_settings, Ordering::Relaxed)
+                    netman
+                        .dirty
+                        .store(old_settings != new_settings, Ordering::Relaxed)
                 }
                 ui.add_space(ui.available_width() - 56.0);
                 if ui.button("Back out").clicked() {
@@ -1216,7 +1231,9 @@ impl App {
                                     && self.app_saved_state.start_game_automatically;
                                 if start_auto || ui.button(tr("launcher_start_game")).clicked() {
                                     info!("Starting the game now");
-                                    token.start_game();
+                                    token.start_game(
+                                        netman.actual_noita_port.load(Ordering::Relaxed),
+                                    );
                                     self.can_start_automatically = false;
                                 }
                             }
@@ -1241,7 +1258,11 @@ impl App {
                                 .small()
                                 .fill(Color32::LIGHT_RED);
                             if !self.end_run_confirmation
-                                && if dirty { ui.add(button).clicked() } else { ui.button(tr("launcher_end_run")).clicked() }
+                                && if dirty {
+                                    ui.add(button).clicked()
+                                } else {
+                                    ui.button(tr("launcher_end_run")).clicked()
+                                }
                             {
                                 self.end_run_confirmation = true
                             } else if self.end_run_confirmation
@@ -1637,6 +1658,7 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
             cosmetics: cosmetics.into(),
             colors: PlayerColor::default(),
         },
+        noita_port: 21251,
     };
     (state, netmaninit)
 }

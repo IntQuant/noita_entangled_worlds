@@ -5,6 +5,8 @@ use proxy_opt::ProxyOpt;
 use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, Ordering};
+use std::sync::{Arc, Mutex};
 use std::{
     env,
     fmt::Display,
@@ -13,8 +15,6 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
-use std::sync::{Arc, Mutex};
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
@@ -110,6 +110,7 @@ pub struct NetManagerInit {
     pub player_path: PathBuf,
     pub modmanager_settings: ModmanagerSettings,
     pub player_png_desc: PlayerPngDesc,
+    pub noita_port: u16,
 }
 
 pub struct NetManager {
@@ -133,6 +134,7 @@ pub struct NetManager {
     pub no_more_players: AtomicBool,
     dont_kick: Mutex<Vec<OmniPeerId>>,
     pub dirty: AtomicBool,
+    pub actual_noita_port: AtomicU16,
 }
 
 impl NetManager {
@@ -158,6 +160,7 @@ impl NetManager {
             no_more_players: AtomicBool::new(false),
             dont_kick: Default::default(),
             dirty: AtomicBool::new(false),
+            actual_noita_port: AtomicU16::new(0),
         }
         .into()
     }
@@ -215,12 +218,19 @@ impl NetManager {
         let address: SocketAddr = env::var("NP_NOITA_ADDR")
             .ok()
             .and_then(|x| x.parse().ok())
-            .unwrap_or_else(|| "127.0.0.1:21251".parse().unwrap());
+            .unwrap_or_else(|| {
+                SocketAddr::new("127.0.0.1".parse().unwrap(), self.init_settings.noita_port)
+            });
         info!("Listening for noita connection on {}", address);
         let address = address.into();
         socket.bind(&address)?;
         socket.listen(1)?;
         socket.set_nonblocking(true)?;
+
+        let actual_port = socket.local_addr()?.as_socket().unwrap().port();
+        self.actual_noita_port.store(actual_port, Ordering::Relaxed);
+        info!("Actual Noita port: {actual_port}");
+
         let local_server: TcpListener = socket.into();
 
         let is_host = self.is_host();

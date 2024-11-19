@@ -197,7 +197,8 @@ fn steam_intall_path(steamapps_path: &Path) -> Option<PathBuf> {
 }
 
 impl LaunchToken<'_> {
-    pub fn start_game(&mut self) {
+    pub fn start_game(&mut self, port: u16) {
+        let addr_env = format!("127.0.0.1:{port}");
         let start_cmd = self.0.start_args.as_ref().unwrap();
         let child = if let Some(game_path) = &start_cmd.noita_install {
             let steam_install = start_cmd.steam_install.clone().unwrap();
@@ -211,11 +212,13 @@ impl LaunchToken<'_> {
             Command::new(&start_cmd.executable)
                 .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", steam_install)
                 .env("STEAM_COMPAT_DATA_PATH", compat_data)
+                .env("NP_NOITA_ADDR", &addr_env)
                 .current_dir(&self.0.game_dir_path)
                 .args(&start_cmd.args)
                 .spawn()
         } else {
             Command::new(&start_cmd.executable)
+                .env("NP_NOITA_ADDR", &addr_env)
                 .current_dir(&self.0.game_dir_path)
                 .args(&start_cmd.args)
                 .spawn()

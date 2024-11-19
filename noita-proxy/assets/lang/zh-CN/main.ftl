@@ -147,3 +147,6 @@ ip_wait_for_connection = 连接至IP...
 
 info_stress_tests = 我们将在每周六 18:00 UTC 进行公共大厅(也称为压力测试)。加入我们的discord以获取更多信息。
 Info = 资讯
+## Local settings
+
+connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
