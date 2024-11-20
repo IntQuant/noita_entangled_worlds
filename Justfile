@@ -49,3 +49,7 @@ run3: add_dylib_debug build_ext
 
 release: build_ext
     python scripts/prepare_release.py
+
+make_release_assets:
+    python scripts/make_release_assets.py
+
