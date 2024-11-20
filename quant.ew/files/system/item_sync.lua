@@ -184,6 +184,8 @@ function item_sync.host_localize_item(gid, peer_id)
     rpc.item_localize(peer_id, gid)
 end
 
+local wait_for_gid = {}
+
 function item_sync.make_item_global(item, instant, give_authority_to)
     EntityAddTag(item, "ew_global_item")
     async(function()
@@ -484,6 +486,7 @@ end
 
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
+    wait_for_gid[item_data.gid] = nil
     if is_safe_to_remove() then
         item_sync.remove_item_with_id_now(item_data.gid)
     end
@@ -559,7 +562,10 @@ function rpc.update_positions(position_data)
                 end
             else
                 util.log("Requesting again "..gid)
-                rpc.request_send_again(gid)
+                if wait_for_gid[gid] == nil then
+                    rpc.request_send_again(gid)
+                    wait_for_gid[gid] = true
+                end
             end
         end
     end
