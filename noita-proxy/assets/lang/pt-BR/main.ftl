@@ -151,4 +151,4 @@ info_stress_tests = Estamos fazendo lobbies públicos (vulgo testes de estresse)
 Info = Informação
 ## Local settings
 
-connect_settings_random_ports = Não use uma porta predeterminada. Faz coisas um pouco mais robustas e permite multiplos proxies para serem iniciados no mesmo computador, mas Noita terá que ser iniciado via proxy.
+connect_settings_random_ports = Não usar uma porta predeterminada. Faz coisas serem um pouco mais robustas e permite multiplos proxies para serem iniciados no mesmo computador, mas Noita terá que ser iniciado via proxy.
