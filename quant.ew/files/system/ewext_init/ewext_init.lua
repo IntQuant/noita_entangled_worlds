@@ -10,7 +10,6 @@ local module = {}
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()
     ewext.on_world_initialized()
-    ewext.save_world_state()
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     grid_world = tonumber(ffi.cast("intptr_t", grid_world))
@@ -38,8 +37,6 @@ end
 
 function module.on_world_update()
     if GameGetWorldStateEntity() ~= initial_world_state_entity then
-        -- -- EntityKill(GameGetWorldStateEntity())
-        -- ewext.load_world_state()
         oh_another_world_state(GameGetWorldStateEntity())
         initial_world_state_entity = GameGetWorldStateEntity()
     end

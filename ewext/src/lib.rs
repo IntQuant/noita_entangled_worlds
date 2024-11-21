@@ -30,15 +30,9 @@ thread_local! {
     });
 }
 
-struct SavedWorldState {
-    game_global: usize,
-    world_state_entity: usize,
-}
-
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
-    saved_world_state: Option<SavedWorldState>,
 }
 
 fn init_particle_world_state(lua: LuaState) -> c_int {
@@ -74,40 +68,6 @@ fn encode_area(lua: LuaState) -> c_int {
         unsafe { LUA.lua_pushinteger(lua, runs as isize) };
     });
     1
-}
-
-unsafe fn save_world_state() {
-    let game_global = grabbed_globals().game_global.read();
-    let world_state_entity = grabbed_globals().world_state_entity.read();
-    STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        state.saved_world_state = Some(SavedWorldState {
-            game_global,
-            world_state_entity,
-        })
-    });
-}
-
-unsafe fn load_world_state() {
-    println!("Loading world state");
-    STATE.with(|state| {
-        let state = state.borrow_mut();
-        let saved_ws = state.saved_world_state.as_ref().unwrap();
-        grabbed_globals().game_global.write(saved_ws.game_global);
-        grabbed_globals()
-            .world_state_entity
-            .write(saved_ws.world_state_entity);
-    });
-}
-
-unsafe extern "C" fn save_world_state_lua(_lua: *mut lua_State) -> i32 {
-    save_world_state();
-    0
-}
-
-unsafe extern "C" fn load_world_state_lua(_lua: *mut lua_State) -> i32 {
-    load_world_state();
-    0
 }
 
 fn make_ephemerial(lua: LuaState) -> c_int {
@@ -150,10 +110,6 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
 
         add_lua_fn!(init_particle_world_state);
         add_lua_fn!(encode_area);
-        LUA.lua_pushcclosure(lua, Some(load_world_state_lua), 0);
-        LUA.lua_setfield(lua, -2, c"load_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(save_world_state_lua), 0);
-        LUA.lua_setfield(lua, -2, c"save_world_state".as_ptr());
         add_lua_fn!(make_ephemerial);
         add_lua_fn!(on_world_initialized);
     }

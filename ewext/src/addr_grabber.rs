@@ -44,8 +44,8 @@ unsafe impl Send for Grabbed {}
 
 pub(crate) struct GrabbedGlobals {
     // These 3 actually point to a pointer.
-    pub(crate) game_global: *mut usize,
-    pub(crate) world_state_entity: *mut usize,
+    pub(crate) _game_global: *mut usize,
+    pub(crate) _world_state_entity: *mut usize,
     pub(crate) entity_manager: *const *mut EntityManager,
 }
 
@@ -93,8 +93,8 @@ pub(crate) fn grab_addrs(lua: LuaState) {
     GRABBED
         .set(Grabbed {
             globals: GrabbedGlobals {
-                game_global,
-                world_state_entity,
+                _game_global: game_global,
+                _world_state_entity: world_state_entity,
                 entity_manager,
             },
             fns: GrabbedFns { get_entity },
