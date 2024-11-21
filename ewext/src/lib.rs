@@ -9,6 +9,7 @@ use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use lua_bindings::{lua_State, Lua51};
 use lua_state::LuaState;
 use noita::{ntypes::Entity, NoitaPixelRun, ParticleWorldState};
+use noita_api_macro::add_lua_fn;
 
 mod lua_bindings;
 mod lua_state;
@@ -40,13 +41,11 @@ struct ExtState {
     saved_world_state: Option<SavedWorldState>,
 }
 
-// const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
-
-unsafe extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
+fn init_particle_world_state(lua: LuaState) -> c_int {
     println!("\nInitializing particle world state");
-    let world_pointer = unsafe { LUA.lua_tointeger(lua, 1) };
-    let chunk_map_pointer = unsafe { LUA.lua_tointeger(lua, 2) };
-    let material_list_pointer = unsafe { LUA.lua_tointeger(lua, 3) };
+    let world_pointer = lua.to_integer(1);
+    let chunk_map_pointer = lua.to_integer(2);
+    let material_list_pointer = lua.to_integer(3);
     println!("pws stuff: {world_pointer:?} {chunk_map_pointer:?}");
 
     STATE.with(|state| {
@@ -60,7 +59,8 @@ unsafe extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
     0
 }
 
-unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
+fn encode_area(lua: LuaState) -> c_int {
+    let lua = lua.raw();
     let start_x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
     let start_y = unsafe { LUA.lua_tointeger(lua, 2) } as i32;
     let end_x = unsafe { LUA.lua_tointeger(lua, 3) } as i32;
@@ -110,10 +110,9 @@ unsafe extern "C" fn load_world_state_lua(_lua: *mut lua_State) -> i32 {
     0
 }
 
-unsafe extern "C" fn make_ephemerial(lua: *mut lua_State) -> c_int {
-    let lua_state = LuaState::new(lua);
+fn make_ephemerial(lua: LuaState) -> c_int {
     unsafe {
-        let entity_id = lua_state.to_integer(1) as u32;
+        let entity_id = lua.to_integer(1) as u32;
 
         let entity_manager = grabbed_globals().entity_manager.read();
         let mut entity: *mut Entity;
@@ -128,13 +127,14 @@ unsafe extern "C" fn make_ephemerial(lua: *mut lua_State) -> c_int {
             out("ecx") _,
             out("eax") entity,
         );
-        // let entity = (state.fns.as_ref().unwrap().get_entity)(entity_manager, entity_id);
-        entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
+        if !entity.is_null() {
+            entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
+        }
     }
     0
 }
 
-unsafe extern "C" fn on_world_initialized(lua: *mut lua_State) -> c_int {
+fn on_world_initialized(lua: LuaState) -> i32 {
     grab_addrs(lua);
     0
 }
@@ -148,18 +148,14 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
 
-        LUA.lua_pushcclosure(lua, Some(init_particle_world_state), 0);
-        LUA.lua_setfield(lua, -2, c"init_particle_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(encode_area), 0);
-        LUA.lua_setfield(lua, -2, c"encode_area".as_ptr());
+        add_lua_fn!(init_particle_world_state);
+        add_lua_fn!(encode_area);
         LUA.lua_pushcclosure(lua, Some(load_world_state_lua), 0);
         LUA.lua_setfield(lua, -2, c"load_world_state".as_ptr());
         LUA.lua_pushcclosure(lua, Some(save_world_state_lua), 0);
         LUA.lua_setfield(lua, -2, c"save_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(make_ephemerial), 0);
-        LUA.lua_setfield(lua, -2, c"make_ephemerial".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(on_world_initialized), 0);
-        LUA.lua_setfield(lua, -2, c"on_world_initialized".as_ptr());
+        add_lua_fn!(make_ephemerial);
+        add_lua_fn!(on_world_initialized);
     }
     println!("Initializing ewext - Ok");
     1

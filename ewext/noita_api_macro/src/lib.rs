@@ -1,3 +1,5 @@
+use std::ffi::CString;
+
 use heck::ToSnekCase;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -93,4 +95,23 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
             #(#impls)*
         }
     }
+}
+
+#[proc_macro]
+pub fn add_lua_fn(item: TokenStream) -> TokenStream {
+    let mut tokens = item.into_iter();
+
+    let fn_name = tokens.next().unwrap().to_string();
+    let fn_name_ident = format_ident!("{fn_name}");
+    let bridge_fn_name = format_ident!("{fn_name}_lua_bridge");
+    let fn_name_c = proc_macro2::Literal::c_string(CString::new(fn_name).unwrap().as_c_str());
+    quote! {
+        unsafe extern "C" fn #bridge_fn_name(lua: *mut lua_State) -> c_int {
+            #fn_name_ident(LuaState::new(lua)) as c_int
+        }
+
+        LUA.lua_pushcclosure(lua, Some(#bridge_fn_name), 0);
+        LUA.lua_setfield(lua, -2, #fn_name_c.as_ptr());
+    }
+    .into()
 }
