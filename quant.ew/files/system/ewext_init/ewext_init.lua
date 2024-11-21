@@ -9,6 +9,7 @@ local module = {}
 
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()
+    ewext.on_world_initialized()
     ewext.save_world_state()
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
