@@ -167,54 +167,56 @@ end
 
 local wait_for_gid = {}
 
+local function make_global(item, give_authority_to)
+    if not EntityGetIsAlive(item) then
+        print("Thrown item vanished before we could send it")
+        return
+    end
+    item_sync.ensure_notify_component(item)
+    local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent",
+            "ew_global_item_id")
+    local gid
+    if gid_component == nil then
+        gid = allocate_global_id()
+        if give_authority_to ~= nil then
+            gid = give_authority_to..":"..gid
+        end
+        EntityAddComponent2(item, "VariableStorageComponent", {
+            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
+            value_string = gid,
+        })
+    else
+        gid = ComponentGetValue2(gid_component, "value_string")
+    end
+    --local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+    --if vel then
+    --    local vx, vy = ComponentGetValue2(vel, "mVelocity")
+    --end
+
+    local item_data = inventory_helper.serialize_single_item(item)
+    item_data.gid = gid
+
+    local _, _, has_hp = util.get_ent_health(item)
+    if has_hp then
+        util.ensure_component_present(item, "LuaComponent", "ew_item_death_notify", {
+            script_death = "mods/quant.ew/files/resource/cbs/item_death_notify.lua"
+        })
+    end
+
+    ctx.item_prevent_localize[gid] = false
+    rpc.item_globalize(item_data)
+end
+
 function item_sync.make_item_global(item, instant, give_authority_to)
     EntityAddTag(item, "ew_global_item")
-    async(function()
-        if not instant then
+    if instant then
+        make_global(item, give_authority_to)
+    else
+        async(function()
             wait(1) -- Wait 1 frame so that game sets proper velocity.
-        end
-        if not EntityGetIsAlive(item) then
-            print("Thrown item vanished before we could send it")
-            return
-        end
-        item_sync.ensure_notify_component(item)
-        local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent",
-                "ew_global_item_id")
-        local gid
-        if gid_component == nil then
-            gid = allocate_global_id()
-            if give_authority_to ~= nil then
-                gid = give_authority_to..":"..gid
-            end
-            EntityAddComponent2(item, "VariableStorageComponent", {
-                _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
-                value_string = gid,
-            })
-        else
-            gid = ComponentGetValue2(gid_component, "value_string")
-        end
-        --local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
-        --if vel then
-        --    local vx, vy = ComponentGetValue2(vel, "mVelocity")
-        --end
-
-        local item_data = inventory_helper.serialize_single_item(item)
-        item_data.gid = gid
-
-        local hp, max_hp, has_hp = util.get_ent_health(item)
-        if has_hp then
-            util.ensure_component_present(item, "LuaComponent", "ew_item_death_notify", {
-                script_death = "mods/quant.ew/files/resource/cbs/item_death_notify.lua"
-            })
-        end
-
-        if give_authority_to ~= nil then
-            local itemcom = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        end
-
-        ctx.item_prevent_localize[gid] = false
-        rpc.item_globalize(item_data)
-    end)
+            make_global(item, give_authority_to)
+        end)
+    end
 end
 
 local function get_global_ent(key)
@@ -356,7 +358,7 @@ function item_sync.on_world_update_client()
         mark_in_inventory(my_player)
     end
     local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil and not EntityHasTag(thrown_item, "ew_client_item") then
+    if thrown_item ~= nil then
         item_sync.make_item_global(thrown_item)
     end
 
@@ -398,6 +400,13 @@ function item_sync.on_world_update()
         send_item_positions(true)
     elseif GameGetFrameNum() % 5 == 3 then
         send_item_positions(false)
+    end
+    if GameGetFrameNum() % 30 == 23 then
+        for gid, num in pairs(wait_for_gid) do
+            if num < GameGetFrameNum() then
+                wait_for_gid[gid] = nil
+            end
+        end
     end
 end
 
@@ -566,7 +575,7 @@ function rpc.update_positions(position_data, all)
                 util.log("Requesting again "..gid)
                 if wait_for_gid[gid] == nil then
                     rpc.request_send_again(gid)
-                    wait_for_gid[gid] = true
+                    wait_for_gid[gid] = GameGetFrameNum() + 120
                 end
             end
         end

@@ -401,7 +401,6 @@ function util.get_phys_info(entity, kill)
         if phys_component ~= nil and phys_component ~= 0 then
             local ret, info = pcall(serialize_phys_component, phys_component)
             if not ret and kill then
-                GamePrint("Physics component has no body, deleting entity")
                 EntityKill(entity)
                 return nil
             end
@@ -415,7 +414,6 @@ function util.get_phys_info(entity, kill)
             if initialized then
                 local ret, info = pcall(serialize_phys_component, phys_component)
                 if not ret and kill then
-                    GamePrint("Physics component has no body, deleting entity")
                     EntityKill(entity)
                     return nil
                 end

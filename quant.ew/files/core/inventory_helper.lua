@@ -355,9 +355,6 @@ end
 function inventory_helper.set_item_data(item_data, player_data)
     local player = player_data.entity
     if player == nil or not EntityGetIsAlive(player) then
-        if player ~= nil then
-            GamePrint("Skip set_item_data, player ".. player_data.name .. " " .. player_data.entity .. " is dead")
-        end
         return
     end
 
@@ -419,7 +416,13 @@ function inventory_helper.set_item_data(item_data, player_data)
             if (itemInfo.active) then
                 active_item_entity = item_entity
             end
-
+            EntityAddComponent(item_entity, "LuaComponent", {
+                script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
+            })
+            local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
+            if notify ~= nil then
+                EntityRemoveComponent(item_entity, notify)
+            end
             --print("Deserialized wand #"..tostring(k).." - Active? "..tostring(wandInfo.active))
 
             -- entity.SetVariable(item_entity, "arena_entity_id", itemInfo.id)
