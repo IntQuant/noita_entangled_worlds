@@ -92,12 +92,21 @@ function inventory_helper.serialize_single_item(item)
         if vel and vel ~= 0 then
             vx, vy = ComponentGetValue2(vel, "mVelocity")
         end
-        local sprite = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
-        if sprite ~= nil then
-            sprite = ComponentGetValue2(sprite, "image_file")
+        local sprite_com = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
+        local animation
+        local sprite
+        if sprite_com ~= nil and sprite_com ~= 0 then
+            sprite = ComponentGetValue2(sprite_com, "image_file")
+            animation = ComponentGetValue2(sprite_com, "rect_animation")
+        end
+        local shoot_pos = {}
+        local hotspot = EntityGetFirstComponentIncludingDisabled(item, "HotspotComponent")
+        if hotspot ~= nil and hotspot ~= 0 then
+            shoot_pos[1], shoot_pos[2] = ComponentGetValue2(hotspot, "offset")
         end
         local varp = EntityGetFilename(item) == "data/entities/items/wand_varpuluuta.xml"
-        item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy}, sprite, image_inv, varp}
+        item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy},
+                     sprite, image_inv, varp, shoot_pos, animation}
     else
         item_data = {false, util.serialize_entity(item), x, y}
     end
@@ -121,9 +130,17 @@ function inventory_helper.deserialize_single_item(item_data)
         local vx, vy = item_data[7][1], item_data[7][2]
         local image = item_data[8]
         local image_inv = item_data[9]
+        local shoot_pos = item_data[11]
+        local animation = item_data[12]
         local sprite = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
         if sprite ~= nil then
             ComponentSetValue2(sprite, "image_file", image)
+            ComponentSetValue2(sprite, "rect_animation", animation)
+            ComponentSetValue2(sprite, "next_rect_animation", animation)
+        end
+        local hotspot = EntityGetFirstComponentIncludingDisabled(item, "HotspotComponent")
+        if hotspot ~= nil then
+            ComponentSetValue2(hotspot, "offset", shoot_pos[1], shoot_pos[2])
         end
         if item_data[10] then
             local varp = EntityCreateNew()

@@ -26,7 +26,8 @@ constants = dofile_once("mods/quant.ew/files/core/constants.lua")
 
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
-local version = dofile_once("mods/quant.ew/files/version.lua") or "unknown (dev build)"
+local version = ModDoesFileExist("mods/quant.ew/files/version.lua") and dofile_once("mods/quant.ew/files/version.lua")
+        or "unknown (dev build)"
 print("Noita EW version: "..version)
 
 dofile_once("data/scripts/lib/coroutines.lua")

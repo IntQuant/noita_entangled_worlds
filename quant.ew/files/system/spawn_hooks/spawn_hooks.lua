@@ -27,6 +27,10 @@ local function is_sync_item(ent_path)
     if exclude[ent_path] then
         return false
     end
+    local good = "data/entities/items/wands/wand_good"
+    if string.sub(ent_path, 1, #good) == good then
+        return false
+    end
     local start = "data/entities/items/"
     if string.sub(ent_path, 1, #start) == start then
         return true

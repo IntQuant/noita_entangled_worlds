@@ -117,6 +117,9 @@ local function get_sync_entities(return_all)
     table_extend(entities, EntityGetWithTag("seed_c"))
     table_extend(entities, EntityGetWithTag("perk_fungus_tiny"))
     table_extend(entities, EntityGetWithTag("helpless_animal"))
+    table_extend_filtered(entities, EntityGetWithTag("touchmagic_immunity"), function(ent)
+        return EntityGetName(ent) == "$animal_fish_giga"
+    end)
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
         local f = EntityGetFilename(ent)
         if f ~= nil then
@@ -659,7 +662,10 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            EntityKill(enemy_id)
+            async(function()
+                wait(1)
+                EntityKill(enemy_id)
+            end)
         end
         ::continue::
     end

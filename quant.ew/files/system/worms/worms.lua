@@ -4,7 +4,7 @@ local function get_closest_alive(x, y)
     local min_dist
     local min_ent
     for _, player in pairs(ctx.players) do
-        if player.status.is_alive then
+        if not EntityHasTag(player.entity, "ew_notplayer") then
             local tx, ty = EntityGetTransform(player.entity)
             local dx, dy = tx - x, ty - y
             local dist = dx * dx + dy * dy
