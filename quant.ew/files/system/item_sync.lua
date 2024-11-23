@@ -18,6 +18,10 @@ local pickup_handlers = {}
 
 local dead_entities = {}
 
+local frame = {}
+
+local gid_last_frame_updated = {}
+
 function rpc.open_chest(gid)
     local ent = item_sync.find_by_gid(gid)
     if ent ~= nil then
@@ -87,25 +91,7 @@ end
 
 -- Try to guess if the item is in world.
 local function is_item_on_ground(item)
-    local has_physics = EntityGetComponent(item, "SimplePhysicsComponent") ~= nil or EntityGetComponent(item, "PhysicsBodyComponent") ~= nil
-    if has_physics then
-        -- Has at least one of phys components enabled, definitely in world.
-        return true, "has physics"
-    end
-    -- What if it's a new wand?
-    local spec = EntityGetFirstComponent(item, "SpriteParticleEmitterComponent")
-    if spec == nil then
-        -- All disabled, certainly not in world.
-        return false, "no spec component"
-    end
-    -- Ones in starter wands don't have any tags, ukko rock and co do.
-    if ComponentHasTag(spec, "enabled_in_hand") then
-        return false, "spec tags enabled_in_hand"
-    end
-    if ComponentHasTag(spec, "enabled_in_inventory") then
-        return false, "spec tags enabled_in_inventory"
-    end
-    return true, "other "..spec
+    return EntityGetRootEntity(item) == item
 end
 
 function item_sync.get_global_item_id(item)
@@ -144,19 +130,14 @@ function item_sync.find_by_gid(gid)
 end
 
 function item_sync.remove_item_with_id_now(gid)
-    local global_items = EntityGetWithTag("ew_global_item")
-    for _, item in ipairs(global_items) do
-        local i_gid = item_sync.get_global_item_id(item)
-        if i_gid == gid then
-             --TODO properly note when actually was from a peer picking up a potion maybe
-            for _, audio in ipairs(EntityGetComponent(item, "AudioComponent") or {}) do
-                if string.sub(ComponentGetValue2(audio, "event_root"), 1, 10) == "collision/" then
-                    EntitySetComponentIsEnabled(item, audio, false)
-                end
+    local item = item_sync.find_by_gid(gid)
+    if item ~= nil and is_item_on_ground(item) then
+        for _, audio in ipairs(EntityGetComponent(item, "AudioComponent") or {}) do
+            if string.sub(ComponentGetValue2(audio, "event_root"), 1, 10) == "collision/" then
+                EntitySetComponentIsEnabled(item, audio, false)
             end
-            EntityKill(item)
-            break
         end
+        EntityKill(item)
     end
 end
 
@@ -229,10 +210,6 @@ function item_sync.make_item_global(item, instant, give_authority_to)
 
         if give_authority_to ~= nil then
             local itemcom = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-            if ComponentGetValue2(itemcom, "play_hover_animation") then
-                ComponentSetValue2(itemcom, "play_hover_animation", false)
-                ComponentSetValue2(itemcom, "play_spinning_animation", false)
-            end
         end
 
         ctx.item_prevent_localize[gid] = false
@@ -312,35 +289,43 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            EntityKill(enemy_id)
+            async(function()
+                wait(1)
+                EntityKill(enemy_id)
+            end)
         end
         ::continue::
     end
 end
 
-local function send_item_positions()
+local DISTANCE_LIMIT = 128 * 4
+
+local function send_item_positions(all)
     local position_data = {}
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
         if is_my_item(gid) and is_item_on_ground(item) then
-            local x, y, r = EntityGetTransform(item)
-            local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
-            local cost = 0
-            if costcom ~= nil then
-                cost = ComponentGetValue2(costcom, "cost")
-                local mx, my = GameGetCameraPos()
-                if math.abs(mx - x) < 1024 and math.abs(my - y) < 1024 and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
-                    ComponentSetValue2(costcom, "stealable", true)
-                end
-            end
             local phys_info = util.get_phys_info(item, true)
-            if phys_info ~= nil then
-                position_data[gid] = {x, y, r, phys_info, cost}
+            local x, y = EntityGetTransform(item)
+            if (phys_info[1][1] ~= nil or phys_info[2][1] ~= nil or all)
+                    and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
+                    or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0) then
+                local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
+                local cost = 0
+                if costcom ~= nil then
+                    cost = ComponentGetValue2(costcom, "cost")
+                    local mx, my = GameGetCameraPos()
+                    if math.abs(mx - x) < 1024 and math.abs(my - y) < 1024
+                            and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
+                        ComponentSetValue2(costcom, "stealable", true)
+                    end
+                end
+                position_data[gid] = {x, y, phys_info, cost}
             end
         end
     end
-    rpc.update_positions(position_data)
+    rpc.update_positions(position_data, all)
     if #dead_entities > 0 then
         rpc.handle_death_data(dead_entities)
     end
@@ -396,17 +381,23 @@ function item_sync.on_world_update()
             item_sync.remove_item_with_id_now(gid)
         end
     end
-    if GameGetFrameNum() % 5 == 2 then
+    if GameGetFrameNum() % 60 == 35 then
         for _, ent in ipairs(EntityGetWithTag("mimic_potion")) do
-            if ctx.is_host and not EntityHasTag(ent, "polymorphed_player") then
+            if not EntityHasTag(ent, "polymorphed_player") and is_item_on_ground(ent) then
                 if not EntityHasTag(ent, "ew_global_item") then
-                    item_sync.make_item_global(ent)
+                    if ctx.is_host then
+                        item_sync.make_item_global(ent)
+                    else
+                        EntityKill(ent)
+                    end
                 end
             end
         end
     end
-    if GameGetFrameNum() % 5 == 3 then
-        send_item_positions()
+    if GameGetFrameNum() % 60 == 3 then
+        send_item_positions(true)
+    elseif GameGetFrameNum() % 5 == 3 then
+        send_item_positions(false)
     end
 end
 
@@ -507,13 +498,6 @@ function rpc.item_globalize(item_data)
         ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
         EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
     end
-    if not is_my_item(item_data.gid) then
-        local itemcom = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        if ComponentGetValue2(itemcom, "play_hover_animation") then
-            ComponentSetValue2(itemcom, "play_hover_animation", false)
-            ComponentSetValue2(itemcom, "play_spinning_animation", false)
-        end
-    end
 end
 
 rpc.opts_reliable()
@@ -537,18 +521,36 @@ function rpc.item_localize_req(gid)
     item_sync.host_localize_item(gid, ctx.rpc_peer_id)
 end
 
-function rpc.update_positions(position_data)
-    local LIMIT = 128 * 3
+local function cleanup(peer)
+    for gid, num in pairs(gid_last_frame_updated[peer]) do
+        if frame[peer] > num then
+            local item = item_sync.find_by_gid(gid)
+            if is_item_on_ground(item) then
+                EntityKill(item)
+            end
+        end
+    end
+    gid_last_frame_updated[peer] = {}
+end
+
+function rpc.update_positions(position_data, all)
+    if frame[ctx.rpc_peer_id] == nil or all then
+        frame[ctx.rpc_peer_id] = GameGetFrameNum()
+        if gid_last_frame_updated[ctx.rpc_peer_id] == nil then
+            gid_last_frame_updated[ctx.rpc_peer_id] = {}
+        end
+    end
     local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
-        local x, y, r = el[1], el[2], el[3]
-        local phys_info = el[4]
-        local price = el[5]
-        if math.abs(x - cx) < LIMIT and math.abs(y - cy) < LIMIT then
+        local x, y = el[1], el[2]
+        if math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT then
+            gid_last_frame_updated[ctx.rpc_peer_id][gid] = frame[ctx.rpc_peer_id]
+            local phys_info = el[3]
+            local price = el[4]
             local item = item_sync.find_by_gid(gid)
             if item ~= nil then
                 if not util.set_phys_info(item, phys_info) then
-                    EntitySetTransform(item, x, y, r)
+                    EntitySetTransform(item, x, y)
                 end
                 local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
                 if costcom ~= nil then
@@ -568,6 +570,12 @@ function rpc.update_positions(position_data)
                 end
             end
         end
+    end
+    if all then
+        async(function()
+            wait(1)
+            cleanup(ctx.rpc_peer_id)
+        end)
     end
 end
 
