@@ -280,7 +280,7 @@ local function player_died()
             EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
         end
     end
-    inventory_helper.set_item_data(item_data, ctx.my_player)
+    inventory_helper.set_item_data(item_data, ctx.my_player, true)
     remove_inventory_tags()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
@@ -471,7 +471,7 @@ ctx.cap.health = {
                 ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
                 ComponentSetValue2(damage_model, "air_in_lungs", ComponentGetValue2(damage_model, "air_in_lungs_max"))
             end
-            inventory_helper.set_item_data(item_data, ctx.my_player)
+            inventory_helper.set_item_data(item_data, ctx.my_player, true)
             remove_inventory_tags()
             local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
             if controls ~= nil then

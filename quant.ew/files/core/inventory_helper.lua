@@ -352,7 +352,7 @@ local function remove_non_send(item)
     end
 end
 
-function inventory_helper.set_item_data(item_data, player_data)
+function inventory_helper.set_item_data(item_data, player_data, local_ent)
     local player = player_data.entity
     if player == nil or not EntityGetIsAlive(player) then
         return
@@ -416,9 +416,11 @@ function inventory_helper.set_item_data(item_data, player_data)
             if (itemInfo.active) then
                 active_item_entity = item_entity
             end
-            EntityAddComponent(item_entity, "LuaComponent", {
-                script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
-            })
+            if not local_ent then
+                EntityAddComponent(item_entity, "LuaComponent", {
+                    script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
+                })
+            end
             local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
             if notify ~= nil then
                 EntityRemoveComponent(item_entity, notify)
