@@ -33,7 +33,31 @@ function module.on_local_player_spawn()
         end
     end
     EntitySetTransform(GameGetWorldStateEntity(), 0, 0)
-    
+end
+
+local function fw_button(label)
+    return imgui.Button(label, imgui.GetWindowWidth() - 15, 20)
+end
+
+local function test_fn_lua()
+    local start = GameGetRealWorldTimeSinceStarted()
+    for i=1,10000 do
+        local player = EntityGetClosestWithTag(0, 0, "player_unit")
+        EntitySetTransform(player, 0, 0, 0, 1, 1)
+    end
+    local elapsed = GameGetRealWorldTimeSinceStarted() - start
+    GamePrint(elapsed*1000000)
+end
+
+function module.on_draw_debug_window(imgui)
+    if imgui.CollapsingHeader("ewext") then
+        if fw_button("test_fn") then
+            ewext.test_fn()
+        end
+        if fw_button("test_fn_lua") then
+            test_fn_lua()
+        end
+    end
 end
 
 function module.on_world_update()
@@ -41,7 +65,6 @@ function module.on_world_update()
         oh_another_world_state(GameGetWorldStateEntity())
         initial_world_state_entity = GameGetWorldStateEntity()
     end
-    ewext.test_fn()
 end
 
 return module

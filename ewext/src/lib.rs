@@ -3,6 +3,7 @@ use std::{
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
     sync::LazyLock,
+    time::Instant,
 };
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
@@ -100,10 +101,22 @@ fn on_world_initialized(lua: LuaState) {
 }
 
 fn test_fn(_lua: LuaState) -> eyre::Result<()> {
-    let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
-    noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
+    let start = Instant::now();
+    let iters = 10000;
+    for _ in 0..iters {
+        let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
+        noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
+    }
+    let elapsed = start.elapsed();
 
-    // noita::api::raw::game_print("Test game print".into())?;
+    noita::api::raw::game_print(
+        format!(
+            "Took {}us to test, {}ns per call",
+            elapsed.as_micros(),
+            elapsed.as_nanos() / iters
+        )
+        .into(),
+    )?;
 
     Ok(())
 }
