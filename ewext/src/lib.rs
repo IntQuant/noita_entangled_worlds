@@ -9,7 +9,7 @@ use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use eyre::bail;
 use lua_bindings::{lua_State, Lua51};
 use lua_state::{LuaState, ValuesOnStack};
-use noita::{ntypes::Entity, NoitaPixelRun, ParticleWorldState};
+use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api_macro::add_lua_fn;
 
 mod lua_bindings;

@@ -1,87 +1,10 @@
 use std::{ffi::c_void, mem};
 
 pub(crate) mod ntypes;
+pub(crate) mod pixel;
+
 mod api {
     noita_api_macro::generate_components!();
-}
-
-#[repr(packed)]
-pub(crate) struct NoitaPixelRun {
-    length: u16,
-    material: u16,
-    flags: u8,
-}
-
-/// Copied from proxy.
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub(crate) struct RawPixel {
-    pub material: u16,
-    pub flags: u8,
-}
-
-/// Copied from proxy.
-/// Stores a run of pixels.
-/// Not specific to Noita side - length is an actual length
-#[derive(Debug)]
-struct PixelRun<Pixel> {
-    pub length: u32,
-    pub data: Pixel,
-}
-
-/// Copied from proxy.
-/// Converts a normal sequence of pixels to a run-length-encoded one.
-pub(crate) struct PixelRunner<Pixel> {
-    current_pixel: Option<Pixel>,
-    current_run_len: u32,
-    runs: Vec<PixelRun<Pixel>>,
-}
-
-impl<Pixel: Eq + Copy> Default for PixelRunner<Pixel> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<Pixel: Eq + Copy> PixelRunner<Pixel> {
-    fn new() -> Self {
-        Self {
-            current_pixel: None,
-            current_run_len: 0,
-            runs: Vec::new(),
-        }
-    }
-    fn put_pixel(&mut self, pixel: Pixel) {
-        if let Some(current) = self.current_pixel {
-            if pixel != current {
-                self.runs.push(PixelRun {
-                    length: self.current_run_len,
-                    data: current,
-                });
-                self.current_pixel = Some(pixel);
-                self.current_run_len = 1;
-            } else {
-                self.current_run_len += 1;
-            }
-        } else {
-            self.current_pixel = Some(pixel);
-            self.current_run_len = 1;
-        }
-    }
-    fn build(&mut self) -> &[PixelRun<Pixel>] {
-        if self.current_run_len > 0 {
-            self.runs.push(PixelRun {
-                length: self.current_run_len,
-                data: self.current_pixel.expect("has current pixel"),
-            });
-        }
-        &mut self.runs
-    }
-
-    fn clear(&mut self) {
-        self.current_pixel = None;
-        self.current_run_len = 0;
-        self.runs.clear();
-    }
 }
 
 pub(crate) struct ParticleWorldState {
@@ -89,7 +12,7 @@ pub(crate) struct ParticleWorldState {
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
 
-    pub(crate) runner: PixelRunner<RawPixel>,
+    pub(crate) runner: pixel::PixelRunner<pixel::RawPixel>,
 }
 
 impl ParticleWorldState {
@@ -130,7 +53,7 @@ impl ParticleWorldState {
         start_y: i32,
         end_x: i32,
         end_y: i32,
-        mut pixel_runs: *mut NoitaPixelRun,
+        mut pixel_runs: *mut pixel::NoitaPixelRun,
     ) -> usize {
         // Allow compiler to generate better code.
         assert_eq!(start_x % 128, 0);
@@ -140,7 +63,7 @@ impl ParticleWorldState {
 
         for y in start_y..end_y {
             for x in start_x..end_x {
-                let mut raw_pixel = RawPixel {
+                let mut raw_pixel = pixel::RawPixel {
                     material: 0,
                     flags: 0,
                 };

@@ -38,6 +38,14 @@ impl Typ {
 }
 
 #[derive(Deserialize)]
+enum Typ2 {
+    #[serde(rename = "int")]
+    Int,
+    #[serde(other)]
+    Other,
+}
+
+#[derive(Deserialize)]
 struct Field {
     field: String,
     typ: Typ,
@@ -49,6 +57,21 @@ struct Component {
     name: String,
     fields: Vec<Field>,
 }
+
+#[derive(Deserialize)]
+struct FnArg {
+    name: String,
+    typ: Typ2, // TODO
+    default: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ApiFn {
+    fn_name: String,
+    desc: String,
+    args: Vec<FnArg>,
+}
+
 #[proc_macro]
 pub fn generate_components(_item: TokenStream) -> TokenStream {
     let components: Vec<Component> = serde_json::from_str(include_str!("components.json")).unwrap();
@@ -95,6 +118,23 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
             #(#impls)*
         }
     }
+}
+
+fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
+    let fn_name = format_ident!("{}", api_fn.fn_name.to_snek_case());
+    quote! {
+        pub(crate) fn #fn_name() {
+
+        }
+    }
+}
+
+#[proc_macro]
+pub fn generate_api(_item: TokenStream) -> TokenStream {
+    let api_fns: Vec<ApiFn> = serde_json::from_str(include_str!("lua_api.json")).unwrap();
+
+    let res = api_fns.into_iter().map(generate_code_for_api_fn);
+    quote! {#(#res)*}.into()
 }
 
 #[proc_macro]
