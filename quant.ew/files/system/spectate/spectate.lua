@@ -161,11 +161,11 @@ local function target()
     end
     if GameGetIsGamepadConnected() then
         mx, my = InputGetJoystickAnalogStick(0, 1)
-        mx, my = mx * 256 + to_x, my * 256 + to_y
+        mx, my = mx * 200 + to_x, my * 200 + to_y
     else
         mx, my = DEBUG_GetMouseWorld()
     end
-    local t_x, t_y = to_x + (mx - to_x) / 3 , to_y + (my - to_y) / 3
+    local t_x, t_y = to_x + (mx - to_x) / 5 , to_y + (my - to_y) / 5
     local dx, dy = t_x - my_x, t_y - my_y
     local di = dx * dx + dy * dy
     if di > 512 * 512 then
@@ -336,6 +336,13 @@ function spectate.on_world_update()
         re_cam = true
     elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_sspectate"))) then
         camera_player_id, camera_player = get_me()
+        re_cam = true
+    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_mspectate"))) then
+        local mx, my = DEBUG_GetMouseWorld()
+        local ent = EntityGetClosestWithTag(mx, my, "ew_peer")
+        camera_player = player_fns.get_player_data_by_local_entity_id(ent)
+        camera_player_id = camera_player.peer_id
+        update_i()
         re_cam = true
     end
     set_camera_pos()

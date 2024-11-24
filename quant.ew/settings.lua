@@ -135,6 +135,15 @@ local function build_settings()
                     is_waiting_for_input = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
+                {
+                    id = "rebind_mspectate",
+                    ui_name = "spectate near Button",
+                    ui_description = "self.",
+                    value_default = "52",
+                    ui_fn = ui_get_input,
+                    is_waiting_for_input = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
             },
         },
     }
