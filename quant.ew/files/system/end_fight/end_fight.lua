@@ -156,9 +156,13 @@ function end_fight.on_world_update()
                 end
             end
             if init == -1 then
-                local x, y = EntityGetTransform(ctx.my_player.entity)
-                if is_in_box(5632, 7168, 14336, 15872, x, y) then
+                ModTextFileSetContent("data/entities/misc/loose_chunks.xml", "<Entity/>")
+                ModTextFileSetContent("data/entities/misc/loose_chunks_huge.xml", "<Entity/>")
+                ModTextFileSetContent("data/entities/projectiles/deck/crumbling_earth_effect.xml", "<Entity/>")
+                local _, y = EntityGetTransform(ctx.my_player.entity)
+                if y < 10414 then
                     stop_fully = true
+                    return
                 end
                 np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
                 if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then

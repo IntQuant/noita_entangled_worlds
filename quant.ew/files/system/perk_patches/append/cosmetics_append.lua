@@ -36,7 +36,7 @@ function add_funginess_level(entity_who_picked)
     if peer_id ~= "DEBUG_NAME:player" then
         return
     end
-    local funginess = tonumber( GlobalsGetValue( "PLAYER_FUNGAL_LEVEL" .. peer_id, "0" ) )
+    local funginess = tonumber( GlobalsGetValue( "PLAYER_FUNGAL_LEVEL", "0" ) )
     funginess = funginess + 1
     GlobalsSetValue( "PLAYER_FUNGAL_LEVEL", tostring( funginess ) )
 
