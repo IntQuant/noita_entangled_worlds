@@ -6,8 +6,9 @@ use std::{
 };
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
+use eyre::bail;
 use lua_bindings::{lua_State, Lua51};
-use lua_state::LuaState;
+use lua_state::{LuaState, ValuesOnStack};
 use noita::{ntypes::Entity, NoitaPixelRun, ParticleWorldState};
 use noita_api_macro::add_lua_fn;
 
@@ -35,7 +36,7 @@ struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
 }
 
-fn init_particle_world_state(lua: LuaState) -> c_int {
+fn init_particle_world_state(lua: LuaState) {
     println!("\nInitializing particle world state");
     let world_pointer = lua.to_integer(1);
     let chunk_map_pointer = lua.to_integer(2);
@@ -50,10 +51,9 @@ fn init_particle_world_state(lua: LuaState) -> c_int {
             runner: Default::default(),
         });
     });
-    0
 }
 
-fn encode_area(lua: LuaState) -> c_int {
+fn encode_area(lua: LuaState) -> ValuesOnStack {
     let lua = lua.raw();
     let start_x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
     let start_y = unsafe { LUA.lua_tointeger(lua, 2) } as i32;
@@ -67,10 +67,10 @@ fn encode_area(lua: LuaState) -> c_int {
         let runs = unsafe { pws.encode_area(start_x, start_y, end_x, end_y, encoded_buffer) };
         unsafe { LUA.lua_pushinteger(lua, runs as isize) };
     });
-    1
+    lua_state::ValuesOnStack(1)
 }
 
-fn make_ephemerial(lua: LuaState) -> c_int {
+fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
     unsafe {
         let entity_id = lua.to_integer(1) as u32;
 
@@ -87,16 +87,16 @@ fn make_ephemerial(lua: LuaState) -> c_int {
             out("ecx") _,
             out("eax") entity,
         );
-        if !entity.is_null() {
-            entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
+        if entity.is_null() {
+            bail!("Entity {} not found", entity_id);
         }
+        entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
     }
-    0
+    Ok(())
 }
 
-fn on_world_initialized(lua: LuaState) -> i32 {
+fn on_world_initialized(lua: LuaState) {
     grab_addrs(lua);
-    0
 }
 
 /// # Safety

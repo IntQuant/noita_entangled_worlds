@@ -107,7 +107,9 @@ pub fn add_lua_fn(item: TokenStream) -> TokenStream {
     let fn_name_c = proc_macro2::Literal::c_string(CString::new(fn_name).unwrap().as_c_str());
     quote! {
         unsafe extern "C" fn #bridge_fn_name(lua: *mut lua_State) -> c_int {
-            #fn_name_ident(LuaState::new(lua)) as c_int
+            let lua_state = LuaState::new(lua);
+            lua_state.make_current();
+            crate::lua_state::LuaFnRet::do_return(#fn_name_ident(lua_state), lua_state)
         }
 
         LUA.lua_pushcclosure(lua, Some(#bridge_fn_name), 0);
