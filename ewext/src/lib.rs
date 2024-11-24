@@ -1,3 +1,4 @@
+use crate::noita::api::DamageModelComponent;
 use std::{
     arch::asm,
     cell::{LazyCell, RefCell},
@@ -14,9 +15,9 @@ use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api_macro::add_lua_fn;
 
 mod lua_bindings;
-mod lua_state;
+pub mod lua_state;
 
-mod noita;
+pub mod noita;
 
 mod addr_grabber;
 
@@ -100,12 +101,12 @@ fn on_world_initialized(lua: LuaState) {
     grab_addrs(lua);
 }
 
-fn test_fn(_lua: LuaState) -> eyre::Result<()> {
+fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     let start = Instant::now();
     let iters = 10000;
     for _ in 0..iters {
         let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
-        noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
+        noita::api::raw::entity_set_transform(player, 0.0, Some(0.0), None, None, None)?;
     }
     let elapsed = start.elapsed();
 
@@ -117,6 +118,24 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
         )
         .into(),
     )?;
+
+    Ok(())
+}
+
+fn test_fn(_lua: LuaState) -> eyre::Result<()> {
+    let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
+    let damage_model = DamageModelComponent(noita::api::raw::entity_get_first_component(
+        player,
+        "DamageModelComponent".into(),
+        None,
+    )?);
+    let hp = damage_model.hp()?;
+
+    noita::api::raw::game_print(
+        format!("Component: {:?}, Hp: {}", damage_model.0, hp * 25.0).into(),
+    )?;
+
+    // noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
 
     Ok(())
 }
@@ -135,6 +154,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(make_ephemerial);
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);
+        add_lua_fn!(bench_fn);
     }
     println!("Initializing ewext - Ok");
     1

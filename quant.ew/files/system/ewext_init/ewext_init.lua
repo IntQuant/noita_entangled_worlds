@@ -39,7 +39,7 @@ local function fw_button(label)
     return imgui.Button(label, imgui.GetWindowWidth() - 15, 20)
 end
 
-local function test_fn_lua()
+local function bench_fn_lua()
     local start = GameGetRealWorldTimeSinceStarted()
     for i=1,10000 do
         local player = EntityGetClosestWithTag(0, 0, "player_unit")
@@ -54,8 +54,9 @@ function module.on_draw_debug_window(imgui)
         if fw_button("test_fn") then
             ewext.test_fn()
         end
-        if fw_button("test_fn_lua") then
-            test_fn_lua()
+        if fw_button("bench") then
+            ewext.bench_fn()
+            bench_fn_lua()
         end
     end
 end

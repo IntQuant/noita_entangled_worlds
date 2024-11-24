@@ -16,24 +16,23 @@ thread_local! {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct LuaState {
+pub struct LuaState {
     lua: *mut lua_State,
 }
 
-#[expect(dead_code)]
 impl LuaState {
-    pub(crate) fn new(lua: *mut lua_State) -> Self {
+    pub fn new(lua: *mut lua_State) -> Self {
         Self { lua }
     }
 
     /// Returns a lua state that is considered "current". Usually set when we get called from noita.
-    pub(crate) fn current() -> eyre::Result<Self> {
+    pub fn current() -> eyre::Result<Self> {
         CURRENT_LUA_STATE
             .get()
             .ok_or_eyre("No current lua state available")
     }
 
-    pub(crate) fn make_current(self) {
+    pub fn make_current(self) {
         CURRENT_LUA_STATE.set(Some(self));
     }
 
@@ -41,19 +40,19 @@ impl LuaState {
         self.lua
     }
 
-    pub(crate) fn to_integer(&self, index: i32) -> isize {
+    pub fn to_integer(&self, index: i32) -> isize {
         unsafe { LUA.lua_tointeger(self.lua, index) }
     }
 
-    pub(crate) fn to_number(&self, index: i32) -> f64 {
+    pub fn to_number(&self, index: i32) -> f64 {
         unsafe { LUA.lua_tonumber(self.lua, index) }
     }
 
-    pub(crate) fn to_bool(&self, index: i32) -> bool {
+    pub fn to_bool(&self, index: i32) -> bool {
         unsafe { LUA.lua_toboolean(self.lua, index) > 0 }
     }
 
-    pub(crate) fn to_string(&self, index: i32) -> eyre::Result<String> {
+    pub fn to_string(&self, index: i32) -> eyre::Result<String> {
         let mut size = 0;
         let buf = unsafe { LUA.lua_tolstring(self.lua, index, &mut size) };
         if buf.is_null() {
@@ -65,38 +64,45 @@ impl LuaState {
             .context("Attempting to get lua string, expecting it to be utf-8")?)
     }
 
-    pub(crate) fn to_cfunction(&self, index: i32) -> lua_CFunction {
+    pub fn to_cfunction(&self, index: i32) -> lua_CFunction {
         unsafe { LUA.lua_tocfunction(self.lua, index) }
     }
 
-    pub(crate) fn push_number(&self, val: f64) {
+    pub fn push_number(&self, val: f64) {
         unsafe { LUA.lua_pushnumber(self.lua, val) };
     }
 
-    pub(crate) fn push_integer(&self, val: isize) {
+    pub fn push_integer(&self, val: isize) {
         unsafe { LUA.lua_pushinteger(self.lua, val) };
     }
 
-    pub(crate) fn push_bool(&self, val: bool) {
+    pub fn push_bool(&self, val: bool) {
         unsafe { LUA.lua_pushboolean(self.lua, val as i32) };
     }
 
-    pub(crate) fn push_string(&self, s: &str) {
+    pub fn push_string(&self, s: &str) {
         unsafe {
             LUA.lua_pushlstring(self.lua, s.as_bytes().as_ptr() as *const c_char, s.len());
         }
     }
 
-    pub(crate) fn call(&self, nargs: i32, nresults: i32) {
+    pub fn push_nil(&self) {
+        unsafe { LUA.lua_pushnil(self.lua) }
+    }
+
+    pub fn call(&self, nargs: i32, nresults: i32) {
         unsafe { LUA.lua_call(self.lua, nargs, nresults) };
     }
 
-    pub(crate) fn get_global(&self, name: &CStr) {
+    pub fn get_global(&self, name: &CStr) {
         unsafe { LUA.lua_getfield(self.lua, LUA_GLOBALSINDEX, name.as_ptr()) };
     }
 
-    pub(crate) fn pop_last(&self) {
+    pub fn pop_last(&self) {
         unsafe { LUA.lua_settop(self.lua, -2) };
+    }
+    pub fn pop_last_n(&self, n: i32) {
+        unsafe { LUA.lua_settop(self.lua, -1 - (n)) };
     }
 
     /// Raise an error with message `s`

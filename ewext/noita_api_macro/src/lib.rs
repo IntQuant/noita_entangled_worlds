@@ -14,6 +14,8 @@ enum Typ {
     UInt,
     #[serde(rename = "float")]
     Float,
+    #[serde(rename = "double")]
+    Double,
     #[serde(rename = "bool")]
     Bool,
     #[serde(rename = "std::string")]
@@ -29,8 +31,20 @@ impl Typ {
         match self {
             Typ::Int => quote!(i32),
             Typ::UInt => quote!(u32),
-            Typ::Float => quote!(f32),
+            Typ::Float => quote!(f64),
+            Typ::Double => quote!(f64),
             Typ::Bool => quote!(bool),
+            Typ::StdString => todo!(),
+            Typ::Vec2 => todo!(),
+            Typ::Other => todo!(),
+        }
+    }
+
+    fn as_lua_type(&self) -> &'static str {
+        match self {
+            Typ::Int | Typ::UInt => "integer",
+            Typ::Float | Typ::Double => "number",
+            Typ::Bool => "bool",
             Typ::StdString => todo!(),
             Typ::Vec2 => todo!(),
             Typ::Other => todo!(),
@@ -123,7 +137,7 @@ struct Component {
 struct FnArg {
     name: String,
     typ: Typ2,
-    // default: Option<String>,
+    default: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -163,17 +177,22 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
     let component_name = format_ident!("{}", com.name);
 
     let impls = com.fields.iter().filter_map(|field| {
-        let field_name = format_ident!("{}", convert_field_name(&field.field));
+        let field_name_s = convert_field_name(&field.field);
+        let field_name = format_ident!("{}", field_name_s);
         let field_doc = &field.desc;
+        let set_method_name = format_ident!("set_{}", field_name);
         match field.typ {
-            Typ::Int | Typ::UInt | Typ::Float | Typ::Bool => {
+            Typ::Int | Typ::UInt | Typ::Float | Typ::Double | Typ::Bool => {
                 let field_type = field.typ.as_rust_type();
-                let set_method_name = format_ident!("set_{}", field_name);
+                let getter_fn = format_ident!("component_get_value_{}", field.typ.as_lua_type());
                 Some(quote! {
                     #[doc = #field_doc]
-                    fn #field_name(self) -> #field_type { todo!() }
+                    pub fn #field_name(self) -> eyre::Result<#field_type> {
+                        // This trasmute is used to reinterpret i32 as u32 in one case.
+                        unsafe { std::mem::transmute(raw::#getter_fn(self.0, #field_name_s)) }
+                     }
                     #[doc = #field_doc]
-                    fn #set_method_name(self, value: #field_type) { todo!() }
+                    pub fn #set_method_name(self, value: #field_type) -> eyre::Result<()> { todo!() }
                 })
             }
             _ => None,
@@ -182,7 +201,7 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
 
     quote! {
         #[derive(Clone, Copy, PartialEq, Eq)]
-        struct #component_name(u32);
+        pub struct #component_name(pub(crate) ComponentID);
 
         impl #component_name {
             #(#impls)*
@@ -197,14 +216,32 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
     let args = api_fn.args.iter().map(|arg| {
         let arg_name = format_ident!("{}", arg.name);
         let arg_type = arg.typ.as_rust_type();
-        quote! {
-            #arg_name: #arg_type
+        let optional = arg.default.is_some();
+        if optional {
+            quote! {
+                #arg_name: Option<#arg_type>
+            }
+        } else {
+            quote! {
+                #arg_name: #arg_type
+            }
         }
     });
 
     let put_args = api_fn.args.iter().map(|arg| {
+        let optional = arg.default.is_some();
         let arg_name = format_ident!("{}", arg.name);
-        arg.typ.generate_lua_push(arg_name)
+        let arg_push = arg.typ.generate_lua_push(arg_name.clone());
+        if optional {
+            quote! {
+                match #arg_name {
+                    Some(#arg_name) => #arg_push,
+                    None => lua.push_nil(),
+                }
+            }
+        } else {
+            arg_push
+        }
     });
 
     let ret_type = if api_fn.rets.is_empty() {
@@ -242,7 +279,9 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
 
             lua.call(#arg_count, #ret_count);
 
-            Ok(#ret_expr)
+            let ret = Ok(#ret_expr);
+            lua.pop_last_n(#ret_count);
+            ret
         }
     }
 }
