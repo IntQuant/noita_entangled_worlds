@@ -41,8 +41,37 @@ impl Typ {
 enum Typ2 {
     #[serde(rename = "int")]
     Int,
-    #[serde(other)]
-    Other,
+    #[serde(rename = "number")]
+    Number,
+    #[serde(rename = "string")]
+    String,
+    #[serde(rename = "bool")]
+    Bool,
+    #[serde(rename = "entity_id")]
+    EntityId,
+    #[serde(rename = "component_id")]
+    ComponentId,
+    #[serde(rename = "obj")]
+    Obj,
+    #[serde(rename = "color")]
+    Color,
+    // #[serde(other)]
+    // Other,
+}
+
+impl Typ2 {
+    fn as_rust_type(&self) -> proc_macro2::TokenStream {
+        match self {
+            Typ2::Int => quote! {i32},
+            Typ2::Number => quote! {f64},
+            Typ2::String => quote! {String},
+            Typ2::Bool => quote! {bool},
+            Typ2::EntityId => quote! {EntityID},
+            Typ2::ComponentId => quote!(ComponentID),
+            Typ2::Obj => quote! {Obj},
+            Typ2::Color => quote!(Color),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -103,6 +132,7 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
                 Some(quote! {
                     #[doc = #field_doc]
                     fn #field_name(self) -> #field_type { todo!() }
+                    #[doc = #field_doc]
                     fn #set_method_name(self, value: #field_type) { todo!() }
                 })
             }
@@ -122,8 +152,19 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
 
 fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
     let fn_name = format_ident!("{}", api_fn.fn_name.to_snek_case());
+    let fn_doc = api_fn.desc;
+
+    let args = api_fn.args.iter().map(|arg| {
+        let arg_name = format_ident!("{}", arg.name);
+        let arg_type = arg.typ.as_rust_type();
+        quote! {
+            #arg_name: #arg_type
+        }
+    });
+
     quote! {
-        pub(crate) fn #fn_name() {
+        #[doc = #fn_doc]
+        pub(crate) fn #fn_name(#(#args,)*) {
 
         }
     }

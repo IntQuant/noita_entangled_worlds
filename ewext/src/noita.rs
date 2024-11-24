@@ -4,7 +4,20 @@ pub(crate) mod ntypes;
 pub(crate) mod pixel;
 
 mod api {
+    struct EntityID(u32);
+    struct ComponentID(u32);
+
+    struct Obj(usize);
+
+    struct Color(u32);
+
     noita_api_macro::generate_components!();
+
+    mod raw {
+        use super::{Color, ComponentID, EntityID, Obj};
+
+        noita_api_macro::generate_api!();
+    }
 }
 
 pub(crate) struct ParticleWorldState {
