@@ -99,6 +99,15 @@ fn on_world_initialized(lua: LuaState) {
     grab_addrs(lua);
 }
 
+fn test_fn(_lua: LuaState) -> eyre::Result<()> {
+    let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
+    noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
+
+    // noita::api::raw::game_print("Test game print".into())?;
+
+    Ok(())
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
@@ -112,6 +121,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(encode_area);
         add_lua_fn!(make_ephemerial);
         add_lua_fn!(on_world_initialized);
+        add_lua_fn!(test_fn);
     }
     println!("Initializing ewext - Ok");
     1

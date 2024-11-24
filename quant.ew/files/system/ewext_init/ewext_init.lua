@@ -33,6 +33,7 @@ function module.on_local_player_spawn()
         end
     end
     EntitySetTransform(GameGetWorldStateEntity(), 0, 0)
+    
 end
 
 function module.on_world_update()
@@ -40,6 +41,7 @@ function module.on_world_update()
         oh_another_world_state(GameGetWorldStateEntity())
         initial_world_state_entity = GameGetWorldStateEntity()
     end
+    ewext.test_fn()
 end
 
 return module

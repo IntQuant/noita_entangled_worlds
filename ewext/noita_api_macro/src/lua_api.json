@@ -738,34 +738,6 @@
     ]
   },
   {
-    "fn_name": "ComponentObjectGetValue2",
-    "args": [
-      {
-        "name": "component_id",
-        "typ": "component_id",
-        "default": null
-      },
-      {
-        "name": "object_name",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "field_name",
-        "typ": "string",
-        "default": null
-      }
-    ],
-    "desc": "Returns one or many values matching the type or subtypes of the requested field in a component subobject. Reports error and returns nil if the field type is not supported or 'object_name' is not a metaobject.",
-    "rets": [
-      {
-        "name": null,
-        "typ": "multiple types",
-        "optional": true
-      }
-    ]
-  },
-  {
     "fn_name": "ComponentGetVectorSize",
     "args": [
       {
@@ -1129,34 +1101,6 @@
     "rets": []
   },
   {
-    "fn_name": "GetParallelWorldPosition",
-    "args": [
-      {
-        "name": "world_pos_x",
-        "typ": "number",
-        "default": null
-      },
-      {
-        "name": "world_pos_y",
-        "typ": "number",
-        "default": null
-      }
-    ],
-    "desc": "x = 0 normal world, -1 is first west world, +1 is first east world, if y < 0 it is sky, if y > 0 it is hell",
-    "rets": [
-      {
-        "name": null,
-        "typ": "x",
-        "optional": false
-      },
-      {
-        "name": null,
-        "typ": " y",
-        "optional": false
-      }
-    ]
-  },
-  {
     "fn_name": "BiomeMapLoad_KeepPlayer",
     "args": [
       {
@@ -1172,57 +1116,6 @@
     ],
     "desc": "Nolla forgot to include a description :(",
     "rets": []
-  },
-  {
-    "fn_name": "BiomeGetValue",
-    "args": [
-      {
-        "name": "filename",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "field_name",
-        "typ": "string",
-        "default": null
-      }
-    ],
-    "desc": "Can be used to read biome configs. Returns one or many values matching the type or subtypes of the requested field. Reports error and returns nil if the field type is not supported or field was not found.",
-    "rets": [
-      {
-        "name": null,
-        "typ": "multiple types",
-        "optional": true
-      }
-    ]
-  },
-  {
-    "fn_name": "BiomeMaterialGetValue",
-    "args": [
-      {
-        "name": "filename",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "material_name",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "field_name",
-        "typ": "string",
-        "default": null
-      }
-    ],
-    "desc": "Can be used to read biome config MaterialComponents during initialization. Returns the given value in the first found MaterialComponent with matching material_name. See biome_modifiers.lua for an usage example.",
-    "rets": [
-      {
-        "name": null,
-        "typ": "multiple types",
-        "optional": true
-      }
-    ]
   },
   {
     "fn_name": "GameIsIntroPlaying",
@@ -1661,8 +1554,8 @@
     "rets": [
       {
         "name": null,
-        "typ": "bool -",
-        "optional": false
+        "typ": "bool",
+        "optional": true
       }
     ]
   },
@@ -2412,29 +2305,6 @@
         "name": null,
         "typ": "color",
         "optional": false
-      }
-    ]
-  },
-  {
-    "fn_name": "EntityGetFirstHitboxCenter",
-    "args": [
-      {
-        "name": "entity_id",
-        "typ": "entity_id",
-        "default": null
-      }
-    ],
-    "desc": "Returns the centroid of first enabled HitboxComponent found in entity, the position of the entity if no hitbox is found, or nil if the entity does not exist. All returned positions are in world coordinates.",
-    "rets": [
-      {
-        "name": "(x",
-        "typ": "number",
-        "optional": false
-      },
-      {
-        "name": "y",
-        "typ": "number)",
-        "optional": true
       }
     ]
   },
@@ -3332,34 +3202,6 @@
     ]
   },
   {
-    "fn_name": "InputGetJoystickAnalogStick",
-    "args": [
-      {
-        "name": "joystick_index",
-        "typ": "int",
-        "default": null
-      },
-      {
-        "name": "stick_id",
-        "typ": "int",
-        "default": "0"
-      }
-    ],
-    "desc": "Debugish function - returns analog stick positions (-1, +1). stick_id 0 = left,  1 = right,  Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
-    "rets": [
-      {
-        "name": null,
-        "typ": "float x",
-        "optional": false
-      },
-      {
-        "name": null,
-        "typ": " float y",
-        "optional": false
-      }
-    ]
-  },
-  {
     "fn_name": "IsPlayer",
     "args": [
       {
@@ -4030,7 +3872,7 @@
     "rets": [
       {
         "name": null,
-        "typ": "name",
+        "typ": "string",
         "optional": false
       }
     ]
@@ -4213,64 +4055,6 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
-      }
-    ]
-  },
-  {
-    "fn_name": "PhysicsAddBodyImage",
-    "args": [
-      {
-        "name": "entity_id",
-        "typ": "entity_id",
-        "default": null
-      },
-      {
-        "name": "image_file",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "material",
-        "typ": "string",
-        "default": "\"\""
-      },
-      {
-        "name": "offset_x",
-        "typ": "number",
-        "default": "0"
-      },
-      {
-        "name": "offset_y",
-        "typ": "number",
-        "default": "0"
-      },
-      {
-        "name": "centered",
-        "typ": "bool",
-        "default": "false"
-      },
-      {
-        "name": "is_circle",
-        "typ": "bool",
-        "default": "false"
-      },
-      {
-        "name": "material_image_file",
-        "typ": "string",
-        "default": "\"\""
-      },
-      {
-        "name": "use_image_as_colors",
-        "typ": "bool",
-        "default": "true"
-      }
-    ],
-    "desc": "Does not work with PhysicsBody2Component. Returns the id of the created physics body.",
-    "rets": [
-      {
-        "name": null,
-        "typ": "int_body_id",
         "optional": false
       }
     ]
@@ -4834,24 +4618,6 @@
     "rets": []
   },
   {
-    "fn_name": "PhysicsBodyIDGetBodyAABB",
-    "args": [
-      {
-        "name": "physics_body_id",
-        "typ": "int",
-        "default": null
-      }
-    ],
-    "desc": "Nolla forgot to include a description :(",
-    "rets": [
-      {
-        "name": null,
-        "typ": "nil",
-        "optional": false
-      }
-    ]
-  },
-  {
     "fn_name": "PhysicsBody2InitFromComponents",
     "args": [
       {
@@ -5074,7 +4840,7 @@
     "rets": [
       {
         "name": null,
-        "typ": "bool_is_new",
+        "typ": "bool",
         "optional": false
       }
     ]
@@ -6042,59 +5808,6 @@
     ]
   },
   {
-    "fn_name": "GuiTextInput",
-    "args": [
-      {
-        "name": "gui",
-        "typ": "obj",
-        "default": null
-      },
-      {
-        "name": "id",
-        "typ": "int",
-        "default": null
-      },
-      {
-        "name": "x",
-        "typ": "number",
-        "default": null
-      },
-      {
-        "name": "y",
-        "typ": "number",
-        "default": null
-      },
-      {
-        "name": "text",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "width",
-        "typ": "number",
-        "default": null
-      },
-      {
-        "name": "max_length",
-        "typ": "int",
-        "default": null
-      },
-      {
-        "name": "allowed_characters",
-        "typ": "string",
-        "default": "\"\""
-      }
-    ],
-    "desc": "'allowed_characters' should consist only of ASCII characters. This is not intended to be outside mod settings menu, and might bug elsewhere.",
-    "rets": [
-      {
-        "name": null,
-        "typ": "new_text",
-        "optional": false
-      }
-    ]
-  },
-  {
     "fn_name": "GuiBeginAutoBox",
     "args": [
       {
@@ -6826,7 +6539,7 @@
     "rets": [
       {
         "name": null,
-        "typ": "boolean",
+        "typ": "bool",
         "optional": false
       }
     ]

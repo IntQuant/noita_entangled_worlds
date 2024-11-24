@@ -1,10 +1,10 @@
 use std::{
     cell::Cell,
     ffi::{c_char, c_int, CStr},
-    mem,
+    mem, slice,
 };
 
-use eyre::OptionExt;
+use eyre::{bail, Context, OptionExt};
 
 use crate::{
     lua_bindings::{lua_CFunction, lua_State, LUA_GLOBALSINDEX},
@@ -20,6 +20,7 @@ pub(crate) struct LuaState {
     lua: *mut lua_State,
 }
 
+#[expect(dead_code)]
 impl LuaState {
     pub(crate) fn new(lua: *mut lua_State) -> Self {
         Self { lua }
@@ -44,14 +45,50 @@ impl LuaState {
         unsafe { LUA.lua_tointeger(self.lua, index) }
     }
 
+    pub(crate) fn to_number(&self, index: i32) -> f64 {
+        unsafe { LUA.lua_tonumber(self.lua, index) }
+    }
+
+    pub(crate) fn to_bool(&self, index: i32) -> bool {
+        unsafe { LUA.lua_toboolean(self.lua, index) > 0 }
+    }
+
+    pub(crate) fn to_string(&self, index: i32) -> eyre::Result<String> {
+        let mut size = 0;
+        let buf = unsafe { LUA.lua_tolstring(self.lua, index, &mut size) };
+        if buf.is_null() {
+            bail!("Expected a string, but got a null pointer");
+        }
+        let slice = unsafe { slice::from_raw_parts(buf as *const u8, size) };
+
+        Ok(String::from_utf8(slice.to_owned())
+            .context("Attempting to get lua string, expecting it to be utf-8")?)
+    }
+
     pub(crate) fn to_cfunction(&self, index: i32) -> lua_CFunction {
         unsafe { LUA.lua_tocfunction(self.lua, index) }
     }
 
+    pub(crate) fn push_number(&self, val: f64) {
+        unsafe { LUA.lua_pushnumber(self.lua, val) };
+    }
+
+    pub(crate) fn push_integer(&self, val: isize) {
+        unsafe { LUA.lua_pushinteger(self.lua, val) };
+    }
+
+    pub(crate) fn push_bool(&self, val: bool) {
+        unsafe { LUA.lua_pushboolean(self.lua, val as i32) };
+    }
+
     pub(crate) fn push_string(&self, s: &str) {
         unsafe {
-            LUA.lua_pushstring(self.lua, s.as_bytes().as_ptr() as *const c_char);
+            LUA.lua_pushlstring(self.lua, s.as_bytes().as_ptr() as *const c_char, s.len());
         }
+    }
+
+    pub(crate) fn call(&self, nargs: i32, nresults: i32) {
+        unsafe { LUA.lua_call(self.lua, nargs, nresults) };
     }
 
     pub(crate) fn get_global(&self, name: &CStr) {

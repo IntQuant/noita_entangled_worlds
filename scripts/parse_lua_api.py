@@ -9,6 +9,8 @@ lines_iter = iter(lines)
 parsed = []
 
 def maybe_map_types(name, typ):
+    if typ == "multiple types":
+        raise ValueError("no 'multiple types' either")
     if name == "entity_id":
         typ = "entity_id"
     if name == "component_id":
@@ -19,6 +21,12 @@ def maybe_map_types(name, typ):
         typ = "color"
     if typ == "uint32":
         typ = "color"
+    if typ == "name":
+        typ = "string"
+    if typ == "bool_is_new":
+        typ = "bool"
+    if typ == "boolean":
+        typ = "bool"
     return typ
 
 def parse_arg(arg_s):
@@ -63,6 +71,10 @@ def parse_ret(ret_s):
     if ":" in ret_s:
         name, typ = ret_s.split(":", maxsplit=1)
 
+    if typ.endswith(" -"):
+        optional = True
+        typ = typ.removesuffix(" -")
+
     typ = maybe_map_types(name, typ)
 
     return {
@@ -73,8 +85,15 @@ def parse_ret(ret_s):
     
 
 ignore = {
+    # Those have some specifics that make generic way of handling things not work on them
     "PhysicsApplyForceOnArea",
     "GetRandomActionWithType",
+    "GetParallelWorldPosition",
+    "EntityGetFirstHitboxCenter",
+    "InputGetJoystickAnalogStick",
+    "PhysicsAddBodyImage",
+    "PhysicsBodyIDGetBodyAABB",
+    "GuiTextInput",
 }
 skipped = 0
 deprecated = 0

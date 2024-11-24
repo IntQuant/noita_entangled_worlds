@@ -3,18 +3,21 @@ use std::{ffi::c_void, mem};
 pub(crate) mod ntypes;
 pub(crate) mod pixel;
 
-mod api {
-    struct EntityID(u32);
-    struct ComponentID(u32);
+pub(crate) mod api {
+    pub(crate) struct EntityID(isize);
+    pub(crate) struct ComponentID(isize);
 
-    struct Obj(usize);
+    pub(crate) struct Obj(usize);
 
-    struct Color(u32);
+    pub(crate) struct Color(u32);
 
     noita_api_macro::generate_components!();
 
-    mod raw {
+    pub(crate) mod raw {
         use super::{Color, ComponentID, EntityID, Obj};
+        use std::borrow::Cow;
+
+        use crate::LuaState;
 
         noita_api_macro::generate_api!();
     }
