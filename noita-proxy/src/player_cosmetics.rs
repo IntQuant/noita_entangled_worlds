@@ -5,7 +5,7 @@ use bitcode::{Decode, Encode};
 use eframe::egui;
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
 use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
-use image::{Rgba, RgbaImage};
+use image::{Pixel, Rgba, RgbaImage};
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::Write;
@@ -16,7 +16,7 @@ pub fn player_path(path: PathBuf) -> PathBuf {
     path.join("files/system/player/unmodified.png")
 }
 
-pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf) {
+pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf, PathBuf) {
     let parent = path.parent().unwrap();
     let p = parent.join("player_arrows");
     let o = parent.join("player_ping");
@@ -24,7 +24,7 @@ pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf) {
         p.join("arrow_host.png")
     } else {
         p.join("arrow.png")
-    }, o.join("arrow.png"))
+    }, o.join("arrow.png"), parent.join("map/icon.png"))
 }
 
 pub fn cursor_path(path: PathBuf) -> PathBuf {
@@ -35,17 +35,27 @@ pub fn cursor_path(path: PathBuf) -> PathBuf {
         .join("resource/sprites/cursor.png")
 }
 
+pub fn compare_rgb(a: Rgba<u8>, b: Rgba<u8>) -> bool {
+    a.channels()[0..3] == b.channels()[0..3]
+}
+
+pub fn set_rgb(a: &mut Rgba<u8>, b: Rgba<u8>) {
+    for i in 0..3 {
+        a.channels_mut()[i] = b.channels()[i];
+    }
+}
+
 pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
     let target_main = Rgba::from([155, 111, 154, 255]);
     let target_alt = Rgba::from([127, 84, 118, 255]);
     let target_arm = Rgba::from([89, 67, 84, 255]);
     for pixel in image.pixels_mut() {
-        if *pixel == target_main {
-            *pixel = main;
-        } else if *pixel == target_alt {
-            *pixel = alt
-        } else if *pixel == target_arm {
-            *pixel = arm
+        if compare_rgb(*pixel, target_main) {
+            set_rgb(pixel, main);
+        } else if compare_rgb(*pixel, target_alt) {
+            set_rgb(pixel, alt);
+        } else if compare_rgb(*pixel, target_arm) {
+            set_rgb(pixel, arm);
         }
     }
 }
@@ -304,11 +314,19 @@ pub fn create_player_png(
     let cosmetics = rgb.cosmetics;
     let rgb = rgb.colors;
     let tmp_path = player_path.parent().unwrap();
-    let (arrows_path, ping_path) = arrows_path(tmp_path.into(), is_host);
+    let (arrows_path, ping_path, map_icon) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
     let mut img = image::open(player_path).unwrap().into_rgba8();
     replace_color(
         &mut img,
+        Rgba::from(to_u8(rgb.player_main)),
+        Rgba::from(to_u8(rgb.player_alt)),
+        Rgba::from(to_u8(rgb.player_arm)),
+    );
+    let player_lukki = player_path.parent().unwrap().join("unmodified_lukki.png");
+    let mut img_lukki = image::open(player_lukki).unwrap().into_rgba8();
+    replace_color(
+        &mut img_lukki,
         Rgba::from(to_u8(rgb.player_main)),
         Rgba::from(to_u8(rgb.player_alt)),
         Rgba::from(to_u8(rgb.player_arm)),
@@ -334,14 +352,25 @@ pub fn create_player_png(
         Rgba::from(to_u8(rgb.player_alt)),
         Rgba::from(to_u8(rgb.player_arm)),
     );
+    let mut img_map_icon = image::open(map_icon).unwrap().into_rgba8();
+    replace_color(
+        &mut img_map_icon,
+        Rgba::from(to_u8(rgb.player_main)),
+        Rgba::from(to_u8(rgb.player_alt)),
+        Rgba::from(to_u8(rgb.player_arm)),
+    );
     let path = tmp_path.join(format!("tmp/{}.png", id));
     img.save(path).unwrap();
+    let path = tmp_path.join(format!("tmp/{}_lukki.png", id));
+    img_lukki.save(path).unwrap();
     let path = tmp_path.join(format!("tmp/{}_arrow.png", id));
     img_arrow.save(path).unwrap();
     let path = tmp_path.join(format!("tmp/{}_ping.png", id));
     img_ping.save(path).unwrap();
     let path = tmp_path.join(format!("tmp/{}_cursor.png", id));
     img_cursor.save(path).unwrap();
+    let path = tmp_path.join(format!("tmp/{}_map.png", id));
+    img_map_icon.save(path).unwrap();
     let img = create_arm(Rgba::from(to_u8(rgb.player_forearm)));
     let path = tmp_path.join(format!("tmp/{}_arm.png", id));
     img.save(path).unwrap();
@@ -368,6 +397,15 @@ pub fn create_player_png(
             id
         )],
     );
+    edit_by_replacing(
+        tmp_path.join("unmodified_lukki.xml"),
+        tmp_path.join("tmp/".to_owned() + &id.clone() + "_lukki.xml"),
+        &[
+            (
+                "MARKER_LUKKI_PNG",
+                format!("mods/quant.ew/files/system/player/tmp/{}_lukki.png", id),
+            ),
+        ]);
     edit_by_replacing(
         tmp_path.join("unmodified_base.xml"),
         tmp_path.join("tmp/".to_owned() + &id.clone() + "_base.xml"),
@@ -402,6 +440,10 @@ pub fn create_player_png(
             (
                 "MARKER_MAIN_SPRITE",
                 format!("mods/quant.ew/files/system/player/tmp/{}.xml", id),
+            ),
+            (
+                "MARKER_LUKKI_SPRITE",
+                format!("mods/quant.ew/files/system/player/tmp/{}_lukki.xml", id),
             ),
             (
                 "MARKER_ARM_SPRITE",

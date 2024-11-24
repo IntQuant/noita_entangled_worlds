@@ -101,6 +101,11 @@ local function become_fungus(entity_who_picked)
 end
 
 local function become_luuki(entity_who_picked)
+    EntitySetComponentsWithTagEnabled( entity_who_picked, "lukki_enable", true )
+    local comp = EntityGetFirstComponent( entity_who_picked, "SpriteComponent", "lukki_disable" )
+    if ( comp ~= nil ) then
+        ComponentSetValue2( comp, "alpha", 0.0 )
+    end
     local platformingcomponents = EntityGetComponent( entity_who_picked, "CharacterPlatformingComponent" )
     if( platformingcomponents ~= nil ) then
         for i,component in ipairs(platformingcomponents) do

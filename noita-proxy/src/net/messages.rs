@@ -27,7 +27,7 @@ pub(crate) enum NetMsg {
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
     WorldMessage(WorldNetMessage),
-    PlayerColor(PlayerPngDesc, bool),
+    PlayerColor(PlayerPngDesc, bool, Option<OmniPeerId>),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

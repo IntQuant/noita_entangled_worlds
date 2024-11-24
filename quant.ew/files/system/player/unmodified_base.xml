@@ -213,7 +213,7 @@
     _tags="character,lukki_enable"
     _enabled="0"
     alpha="1"
-    image_file="data/enemies_gfx/player_lukky.xml"
+    image_file="MARKER_LUKKI_SPRITE"
     next_rect_animation=""
     offset_x="6"
     offset_y="14"

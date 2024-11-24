@@ -20,6 +20,7 @@ local perks_to_ignore = {
     TELEKINESIS = true,
     HEARTS_MORE_EXTRA_HP = true,
     MAP = true,
+    ADVENTURER = true,
 }
 
 local global_perks = {

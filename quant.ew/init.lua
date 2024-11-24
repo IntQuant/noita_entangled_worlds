@@ -274,6 +274,14 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     end
     local controls_component = EntityGetFirstComponentIncludingDisabled(player_entity, "ControlsComponent")
     ComponentSetValue2(controls_component, "enabled", true)
+    for _, child in ipairs(EntityGetAllChildren(player_entity) or {}) do
+        local com = EntityGetFirstComponentIncludingDisabled(child, "LuaComponent")
+        if com ~= nil and ComponentGetValue2(com, "script_source_file") == "data/scripts/perks/map.lua" then
+            EntityRemoveComponent(child, com)
+            EntityAddComponent2(child, "LuaComponent", {script_source_file = "data/scripts/perks/map.lua"})
+            return
+        end
+    end
 end
 
 local function change_homing(x, y)

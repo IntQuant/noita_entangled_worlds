@@ -353,7 +353,7 @@ impl NetManager {
                                 &self.init_settings.mod_path,
                                 &self.init_settings.player_path,
                                 &PlayerPngDesc::default(),
-                                self.is_host(),
+                                id == self.peer.host_id(),
                             );
                             info!("Sending PlayerColor to {id}");
                             self.send(
@@ -361,6 +361,7 @@ impl NetManager {
                                 &NetMsg::PlayerColor(
                                     self.init_settings.player_png_desc,
                                     self.is_host(),
+                                    Some(self.peer.my_id())
                                 ),
                                 Reliability::Reliable,
                             );
@@ -405,7 +406,7 @@ impl NetManager {
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
-                            NetMsg::PlayerColor(rgb, host) => {
+                            NetMsg::PlayerColor(rgb, host, pong) => {
                                 info!("Player appearance created for {}", src);
                                 // Create proper appearance files for new player.
                                 create_player_png(
@@ -415,6 +416,17 @@ impl NetManager {
                                     &rgb,
                                     host,
                                 );
+                                if let Some(id) = pong {
+                                    self.send(
+                                        id,
+                                        &NetMsg::PlayerColor(
+                                            self.init_settings.player_png_desc,
+                                            self.is_host(),
+                                            None
+                                        ),
+                                        Reliability::Reliable,
+                                    );
+                                }
                             }
                             NetMsg::Kick => std::process::exit(0),
                         }

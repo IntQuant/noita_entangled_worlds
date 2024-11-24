@@ -310,7 +310,9 @@ local function send_item_positions(all)
         if is_my_item(gid) and is_item_on_ground(item) then
             local phys_info = util.get_phys_info(item, true)
             local x, y = EntityGetTransform(item)
-            if (phys_info[1][1] ~= nil or phys_info[2][1] ~= nil or all)
+            if ((phys_info[1] ~= nil and phys_info[1][1] ~= nil)
+                    or (phys_info[2] ~= nil and phys_info[2][1] ~= nil)
+                    or all)
                     and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
                     or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0) then
                 local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")

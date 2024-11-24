@@ -98,13 +98,13 @@ function add_lukkiness_level(entity_who_picked)
     GlobalsSetValue( "PLAYER_LUKKINESS_LEVEL", tostring( lochness ) )
 
     if ( lochness == 3 ) then
-        --EntitySetComponentsWithTagEnabled( entity_who_picked, "lukki_enable", true )
+        EntitySetComponentsWithTagEnabled( entity_who_picked, "lukki_enable", true )
         AddFlagPersistent( "player_status_lukky" )
 
-        --local comp = EntityGetFirstComponent( entity_who_picked, "SpriteComponent", "lukki_disable" )
-        --if ( comp ~= nil ) then
-        --    ComponentSetValue2( comp, "alpha", 0.0 )
-        --end
+        local comp = EntityGetFirstComponent( entity_who_picked, "SpriteComponent", "lukki_disable" )
+        if ( comp ~= nil ) then
+            ComponentSetValue2( comp, "alpha", 0.0 )
+        end
 
         local platformingcomponents = EntityGetComponent( entity_who_picked, "CharacterPlatformingComponent" )
         if( platformingcomponents ~= nil ) then

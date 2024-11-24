@@ -20,12 +20,15 @@ function player_color(player_entity)
     end
 
     local player_sprite_component = EntityGetFirstComponent( player_entity, "SpriteComponent" )
+    local player_sprite_component_lukki = EntityGetFirstComponent( player_entity, "SpriteComponent", "lukki_enable" )
     local player_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. ".xml"
+    local player_sprite_file_lukki = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. ".xml"
     local player_arm_sprite_component = EntityGetFirstComponent( player_arm, "SpriteComponent" )
     if player_sprite_component == nil or player_arm_sprite_component == nil then
         return
     end
     ComponentSetValue( player_sprite_component, "image_file", player_sprite_file )
+    ComponentSetValue( player_sprite_component_lukki, "image_file", player_sprite_file_lukki )
 
     local player_arm_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_arm.xml"
     ComponentSetValue( player_arm_sprite_component, "image_file", player_arm_sprite_file )
