@@ -1345,7 +1345,11 @@ local function stay_away_from()
         for _, proj in ipairs(EntityGetInRadiusWithTag(mx, my, 256, "projectile")) do
             if not table.contains(state.ignore, proj) then
                 local com = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
-                if EntityGetFilename(proj) == "data/entities/projectiles/deck/regeneration_field.xml"
+                local name = EntityGetFilename(proj)
+                if name == "data/entities/projectiles/deck/regeneration_field.xml"
+                    or name == "data/entities/projectiles/deck/shield_field.xml"
+                    or name == "data/entities/projectiles/deck/temporary_wall.xml"
+                    or name == "data/entities/projectiles/deck/temporary_platform.xml"
                         or (com ~= nil and ComponentGetValue2(com, "mShooterHerdId") == state.herd_id
                             and (ComponentGetValue2(com, "friendly_fire")
                                 or (ComponentGetValue2(com, "collide_with_shooter_frames") == -1
