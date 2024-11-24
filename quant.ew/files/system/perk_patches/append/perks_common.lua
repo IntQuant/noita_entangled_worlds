@@ -28,6 +28,20 @@ patch_perk_2("SHIELD", function(entity_perk_item, entity_who_picked, item_name, 
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
 end)
 
+patch_perk_2("FOOD_CLOCK", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
+    if entity_who_picked ~= EntityGetWithTag("player_unit")[1] then
+        function EntityLoad()  end
+    end
+    orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
+end)
+
+patch_perk_2("VOMIT_RATS", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
+    if entity_who_picked ~= EntityGetWithTag("player_unit")[1] then
+        function EntityLoad()  end
+    end
+    orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
+end)
+
 patch_perk_2("ATTACK_FOOT", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     if pickup_count ~= 1 then
         GameHasFlagRun("ATTACK_FOOT_CLIMBER")
