@@ -156,9 +156,6 @@ function end_fight.on_world_update()
                 end
             end
             if init == -1 then
-                ModTextFileSetContent("data/entities/misc/loose_chunks.xml", "<Entity/>")
-                ModTextFileSetContent("data/entities/misc/loose_chunks_huge.xml", "<Entity/>")
-                ModTextFileSetContent("data/entities/projectiles/deck/crumbling_earth_effect.xml", "<Entity/>")
                 local _, y = EntityGetTransform(ctx.my_player.entity)
                 if y < 10414 then
                     stop_fully = true

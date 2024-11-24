@@ -49,6 +49,12 @@ util.add_cross_call("ew_spectator", function()
     end
 end)
 
+if GameHasFlagRun("ending_game_completed") then
+    ModTextFileSetContent("data/entities/misc/loose_chunks.xml", "<Entity/>")
+    ModTextFileSetContent("data/entities/misc/loose_chunks_huge.xml", "<Entity/>")
+    ModTextFileSetContent("data/entities/projectiles/deck/crumbling_earth_effect.xml", "<Entity/>")
+end
+
 local function load_modules()
     ctx.load_system("ewext_init")
 
