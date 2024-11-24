@@ -644,7 +644,7 @@ function player_fns.set_current_slot(slot_data, player_data)
                     if (mActiveItem ~= item) then
                         np.SetActiveHeldEntity(player_data.entity, item, false, false)
                     end
-                    return
+                    return true
                 end
             else
                 print("something in inventory that is not an item")

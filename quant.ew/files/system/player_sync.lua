@@ -18,6 +18,22 @@ function rpc.send_money_and_ingestion(money, ingestion_size)
     end
 end
 
+local wait_on_send = 0
+
+function rpc.request_items(peer_id)
+    if ctx.my_id == peer_id
+                and wait_on_send < GameGetFrameNum() then
+        wait_on_send = GameGetFrameNum() + 240
+        inventory_helper.has_inventory_changed(ctx.my_player)
+        local inventory_state = player_fns.serialize_items(ctx.my_player)
+        if inventory_state ~= nil then
+            net.send_player_inventory(inventory_state)
+        end
+    end
+end
+
+local wait_on_requst = {}
+
 function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     local peer_id = ctx.rpc_peer_id
 
@@ -43,7 +59,12 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
         player_fns.deserialize_position(pos_data, phys_info, player_data)
     end
     if current_slot ~= nil then
-        player_fns.set_current_slot(current_slot, player_data)
+        if not player_fns.set_current_slot(current_slot, player_data)
+                and (wait_on_requst[player_data.peer_id] == nil or wait_on_requst[player_data.peer_id] < GameGetFrameNum()) then
+            print("slot empty, requesting items")
+            wait_on_requst[player_data.peer_id] = GameGetFrameNum() + 300
+            rpc.request_items(player_data.peer_id)
+        end
     end
 end
 

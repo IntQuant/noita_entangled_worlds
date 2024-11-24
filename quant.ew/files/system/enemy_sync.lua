@@ -49,8 +49,6 @@ local HpData = util.make_type({
     f32 = {"hp", "max_hp"}
 })
 
-local wait_1_frame = false
-
 local FULL_TURN = math.pi * 2
 
 local frame = 0
@@ -361,14 +359,7 @@ end
 
 function enemy_sync.on_world_update_client()
     if GameGetFrameNum() % 12 == 1 then
-        if wait_1_frame then
-            async(function()
-                wait(1)
-                enemy_sync.client_cleanup()
-            end)
-        else
-            enemy_sync.client_cleanup()
-        end
+        enemy_sync.client_cleanup()
     end
     if GameGetFrameNum() % (60*60) == 1 then
         times_spawned_last_minute = {}
@@ -674,10 +665,7 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            async(function()
-                wait(1)
-                EntityKill(enemy_id)
-            end)
+            EntityKill(enemy_id)
         end
         ::continue::
     end
@@ -688,7 +676,6 @@ function rpc.handle_enemy_data(enemy_data)
     for _, enemy_info_raw in ipairs(enemy_data) do
         sync_enemy(enemy_info_raw, false)
     end
-    wait_1_frame = true
 end
 
 function rpc.handle_enemy_health(enemy_health_data)

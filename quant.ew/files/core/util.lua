@@ -402,7 +402,7 @@ function util.get_phys_info(entity, kill)
             local ret, info = pcall(serialize_phys_component, phys_component)
             if not ret and kill then
                 EntityKill(entity)
-                return nil
+                return {{}, {}}
             end
             table.insert(phys_info, info)
         end
@@ -415,7 +415,7 @@ function util.get_phys_info(entity, kill)
                 local ret, info = pcall(serialize_phys_component, phys_component)
                 if not ret and kill then
                     EntityKill(entity)
-                    return nil
+                    return {{}, {}}
                 end
                 table.insert(phys_info_2, info)
             else

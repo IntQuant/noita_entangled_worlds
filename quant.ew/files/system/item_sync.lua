@@ -22,6 +22,8 @@ local frame = {}
 
 local gid_last_frame_updated = {}
 
+local wait_on_send = {}
+
 function rpc.open_chest(gid)
     local ent = item_sync.find_by_gid(gid)
     if ent ~= nil then
@@ -46,7 +48,7 @@ end
 
 util.add_cross_call("ew_chest_opened", function(chest_id)
     local gid = item_sync.get_global_item_id(chest_id)
-    if gid ~= "unknown" then
+    if gid ~= nil then
         rpc.open_chest(gid)
     end
 end)
@@ -97,10 +99,10 @@ end
 function item_sync.get_global_item_id(item)
     local gid = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     if gid == nil then
-        return "unknown"
+        return nil
     end
     local ret = ComponentGetValue2(gid, "value_string")
-    return ret or "unknown"
+    return ret
 end
 
 function item_sync.remove_item_with_id(gid)
@@ -110,7 +112,8 @@ end
 local find_by_gid_cache = {}
 function item_sync.find_by_gid(gid)
     if find_by_gid_cache[gid] ~= nil then
-        if EntityGetIsAlive(find_by_gid_cache[gid]) and EntityHasTag(find_by_gid_cache[gid], "ew_global_item") then
+        if EntityGetIsAlive(find_by_gid_cache[gid])
+                and EntityHasTag(find_by_gid_cache[gid], "ew_global_item") and is_item_on_ground(find_by_gid_cache[gid]) then
             return find_by_gid_cache[gid]
         else
             find_by_gid_cache[gid] = nil
@@ -119,14 +122,19 @@ function item_sync.find_by_gid(gid)
 
     --print("find_by_gid: searching")
 
-    local global_items = EntityGetWithTag("ew_global_item")
-    for _, item in ipairs(global_items) do
+    local candidate
+    for _, item in ipairs(EntityGetWithTag("ew_global_item") or {}) do
         local i_gid = item_sync.get_global_item_id(item)
         find_by_gid_cache[i_gid] = item
         if i_gid == gid then
-            return item
+            if is_item_on_ground(item) then
+                return item
+            else
+                candidate = item
+            end
         end
     end
+    return candidate
 end
 
 function item_sync.remove_item_with_id_now(gid)
@@ -163,6 +171,11 @@ function item_sync.host_localize_item(gid, peer_id)
         item_sync.remove_item_with_id(gid)
     end
     rpc.item_localize(peer_id, gid)
+    if peer_id == ctx.my_id then
+        item_sync.take_authority(gid)
+    else
+        rpc.hand_authority_over_to(peer_id, gid)
+    end
 end
 
 local wait_for_gid = {}
@@ -205,6 +218,7 @@ local function make_global(item, give_authority_to)
 
     ctx.item_prevent_localize[gid] = false
     rpc.item_globalize(item_data)
+    wait_on_send[gid] = nil
 end
 
 function item_sync.make_item_global(item, instant, give_authority_to)
@@ -238,6 +252,10 @@ local function remove_client_items_from_world()
     end
 end
 
+local function is_peers_item(gid, peer)
+    return string.sub(gid, 1, 16) == peer
+end
+
 local function is_my_item(gid)
     return string.sub(gid, 1, 16) == ctx.my_id
 end
@@ -253,7 +271,9 @@ rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.give_authority_to(gid, new_id)
     local item = item_sync.find_by_gid(gid)
+    find_by_gid_cache[gid] = nil
     if item ~= nil then
+        find_by_gid_cache[new_id] = item
         local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
         ComponentSetValue2(var, "value_string", new_id)
     end
@@ -316,10 +336,7 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            async(function()
-                wait(1)
-                EntityKill(enemy_id)
-            end)
+            EntityKill(enemy_id)
         end
         ::continue::
     end
@@ -327,16 +344,18 @@ end
 
 local DISTANCE_LIMIT = 128 * 4
 
+local ignore = {}
+
 local function send_item_positions(all)
     local position_data = {}
     local cx, cy = EntityGetTransform(ctx.my_player.entity)
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
-        if is_my_item(gid) and is_item_on_ground(item) then
+        if gid ~= nil and is_my_item(gid) and is_item_on_ground(item) then
             local x, y = EntityGetTransform(item)
             local dx, dy = x - cx, y - cy
-            if dx * dx + dy * dy > 1024 * 1024 then
+            if (ignore[gid] == nil or ignore[gid] < GameGetFrameNum()) and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT then
                 local ent = EntityGetClosestWithTag(x, y, "ew_peer")
                 local nx, ny
                 local ndx, ndy
@@ -351,6 +370,7 @@ local function send_item_positions(all)
                         ndx, ndy = x - nx, y - ny
                     end
                     if ent == 0 or ndx * ndx + ndy * ndy > DISTANCE_LIMIT * DISTANCE_LIMIT then
+                        ignore[gid] = GameGetFrameNum() + 60
                         goto continue
                     end
                 end
@@ -358,11 +378,14 @@ local function send_item_positions(all)
                 if data ~= nil then
                     local peer = data.peer_id
                     rpc.hand_authority_over_to(peer, gid)
+                    ignore[gid] = nil
+                else
+                    ignore[gid] = GameGetFrameNum() + 60
                 end
             else
                 local phys_info = util.get_phys_info(item, true)
-                if ((phys_info[1] ~= nil and phys_info[1][1] ~= nil)
-                        or (phys_info[2] ~= nil and phys_info[2][1] ~= nil)
+                if (phys_info[1][1] ~= nil
+                        or phys_info[2][1] ~= nil
                         or all)
                         and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
                         or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0) then
@@ -371,7 +394,7 @@ local function send_item_positions(all)
                     if costcom ~= nil then
                         cost = ComponentGetValue2(costcom, "cost")
                         local mx, my = GameGetCameraPos()
-                        if math.abs(mx - x) < 1024 and math.abs(my - y) < 1024
+                        if math.abs(mx - x) < DISTANCE_LIMIT * 2 and math.abs(my - y) < DISTANCE_LIMIT * 2
                                 and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
                             ComponentSetValue2(costcom, "stealable", true)
                         end
@@ -399,11 +422,9 @@ function item_sync.on_world_update_host()
         item_sync.make_item_global(thrown_item)
     end
     local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item")
-            and EntityHasTag(EntityGetRootEntity(picked_item), "ew_peer") then
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
         item_sync.host_localize_item(gid, ctx.my_id)
-        item_sync.take_authority(gid)
     end
     remove_client_items_from_world()
 end
@@ -419,11 +440,9 @@ function item_sync.on_world_update_client()
     end
 
     local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item")
-            and EntityHasTag(EntityGetRootEntity(picked_item), "ew_peer") then
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
         rpc.item_localize_req(gid)
-        item_sync.take_authority(gid)
     end
     remove_client_items_from_world()
 end
@@ -471,9 +490,8 @@ function item_sync.on_should_send_updates()
     if not ctx.is_host then
         return
     end
-    local global_items = EntityGetWithTag("ew_global_item")
     local item_list = {}
-    for _, item in ipairs(global_items) do
+    for _, item in ipairs(EntityGetWithTag("ew_global_item") or {}) do
         if is_item_on_ground(item) and not EntityHasTag(item, "mimic_potion") then
             local item_data = inventory_helper.serialize_single_item(item)
             local gid = item_sync.get_global_item_id(item)
@@ -548,7 +566,7 @@ function rpc.item_globalize(item_data)
         item_sync.remove_item_with_id_now(item_data.gid)
     end
     local n = item_sync.find_by_gid(item_data.gid)
-    if n ~= nil and EntityGetRootEntity(n) == n then
+    if n ~= nil then
         return
     end
     local item = inventory_helper.deserialize_single_item(item_data)
@@ -593,10 +611,24 @@ local function cleanup(peer)
             local item = item_sync.find_by_gid(gid)
             if is_item_on_ground(item) then
                 EntityKill(item)
+                gid_last_frame_updated[peer][gid] = nil
             end
         end
     end
-    gid_last_frame_updated[peer] = {}
+    local is_duplicate = {}
+    for _, item in ipairs(EntityGetWithTag("ew_global_item") or {}) do
+        local gid = item_sync.get_global_item_id(item)
+        if gid ~= nil and is_peers_item(gid, peer) then
+            if (gid_last_frame_updated[peer] == nil or is_duplicate[gid]) and is_item_on_ground(item) then
+                EntityKill(item)
+            else
+                if is_duplicate[gid] then
+                    EntityKill(is_duplicate[gid])
+                end
+                is_duplicate[gid] = item
+            end
+        end
+    end
 end
 
 function rpc.update_positions(position_data, all)
@@ -628,20 +660,15 @@ function rpc.update_positions(position_data, all)
                         ComponentSetValue2(costcom, "cost", price)
                     end
                 end
-            else
+            elseif wait_for_gid[gid] == nil then
                 util.log("Requesting again "..gid)
-                if wait_for_gid[gid] == nil then
-                    rpc.request_send_again(gid)
-                    wait_for_gid[gid] = GameGetFrameNum() + 300
-                end
+                rpc.request_send_again(gid)
+                wait_for_gid[gid] = GameGetFrameNum() + 300
             end
         end
     end
     if all then
-        async(function()
-            wait(1)
-            cleanup(ctx.rpc_peer_id)
-        end)
+        cleanup(ctx.rpc_peer_id)
     end
 end
 
@@ -654,7 +681,10 @@ function rpc.request_send_again(gid)
         util.log("Requested to send item again, but this item wasn't found: "..gid)
         return
     end
-    item_sync.make_item_global(item)
+    if wait_on_send[gid] == nil or wait_on_send[gid] < GameGetFrameNum() then
+        wait_on_send[gid] = GameGetFrameNum() + 240
+        item_sync.make_item_global(item)
+    end
 end
 
 ctx.cap.item_sync = {

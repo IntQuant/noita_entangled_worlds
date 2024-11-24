@@ -420,10 +420,10 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent)
                 EntityAddComponent(item_entity, "LuaComponent", {
                     script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
                 })
-            end
-            local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
-            if notify ~= nil then
-                EntityRemoveComponent(item_entity, notify)
+                local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
+                if notify ~= nil then
+                    EntityRemoveComponent(item_entity, notify)
+                end
             end
             --print("Deserialized wand #"..tostring(k).." - Active? "..tostring(wandInfo.active))
 

@@ -205,6 +205,22 @@ local function show_death_message()
     end
 end
 
+local function reset_cast_state_if_has_any_other_item(player_data)
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
+    if inventory2Comp == nil then
+        return
+    end
+    local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+
+    for k, item in ipairs(inventory_helper.get_inventory_items(player_data, "inventory_quick") or {}) do
+        if item ~= mActiveItem then
+            np.SetActiveHeldEntity(player_data.entity, item)
+            np.SetActiveHeldEntity(player_data.entity, mActiveItem)
+            break
+        end
+    end
+end
+
 local function player_died()
     if ctx.my_player.entity == nil then
         return
@@ -275,12 +291,13 @@ local function player_died()
     polymorph.switch_entity(ent + 1)
 
     remove_healthbar_locally()
+    inventory_helper.set_item_data(item_data, ctx.my_player, true)
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
             EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
         end
     end
-    inventory_helper.set_item_data(item_data, ctx.my_player, true)
+    reset_cast_state_if_has_any_other_item(ctx.my_player)
     remove_inventory_tags()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
