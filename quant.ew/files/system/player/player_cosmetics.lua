@@ -28,7 +28,9 @@ function player_color(player_entity)
         return
     end
     ComponentSetValue( player_sprite_component, "image_file", player_sprite_file )
-    ComponentSetValue( player_sprite_component_lukki, "image_file", player_sprite_file_lukki )
+    if player_sprite_component_lukki ~= nil then
+        ComponentSetValue( player_sprite_component_lukki, "image_file", player_sprite_file_lukki )
+    end
 
     local player_arm_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_arm.xml"
     ComponentSetValue( player_arm_sprite_component, "image_file", player_arm_sprite_file )

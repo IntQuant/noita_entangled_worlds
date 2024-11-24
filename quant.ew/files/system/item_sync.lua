@@ -86,7 +86,7 @@ end
 local function allocate_global_id()
     local current = tonumber(GlobalsGetValue("ew_global_item_id", "1"))
     GlobalsSetValue("ew_global_item_id", tostring(current + 1))
-    return ctx.my_player.peer_id .. ":" .. current
+    return ctx.my_id .. ":" .. current
 end
 
 -- Try to guess if the item is in world.
@@ -242,6 +242,31 @@ local function is_my_item(gid)
     return string.sub(gid, 1, 16) == ctx.my_id
 end
 
+function item_sync.take_authority(gid)
+    if not is_my_item(gid) then
+        local new_id = allocate_global_id()
+        rpc.give_authority_to(gid, new_id)
+    end
+end
+
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.give_authority_to(gid, new_id)
+    local item = item_sync.find_by_gid(gid)
+    if item ~= nil then
+        local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
+        ComponentSetValue2(var, "value_string", new_id)
+    end
+end
+
+rpc.opts_reliable()
+function rpc.hand_authority_over_to(peer_id, gid)
+    if peer_id == ctx.my_id then
+        item_sync.take_authority(gid)
+    end
+end
+
+
 rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
@@ -304,30 +329,58 @@ local DISTANCE_LIMIT = 128 * 4
 
 local function send_item_positions(all)
     local position_data = {}
+    local cx, cy = EntityGetTransform(ctx.my_player.entity)
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
         if is_my_item(gid) and is_item_on_ground(item) then
-            local phys_info = util.get_phys_info(item, true)
             local x, y = EntityGetTransform(item)
-            if ((phys_info[1] ~= nil and phys_info[1][1] ~= nil)
-                    or (phys_info[2] ~= nil and phys_info[2][1] ~= nil)
-                    or all)
-                    and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
-                    or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0) then
-                local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
-                local cost = 0
-                if costcom ~= nil then
-                    cost = ComponentGetValue2(costcom, "cost")
-                    local mx, my = GameGetCameraPos()
-                    if math.abs(mx - x) < 1024 and math.abs(my - y) < 1024
-                            and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
-                        ComponentSetValue2(costcom, "stealable", true)
+            local dx, dy = x - cx, y - cy
+            if dx * dx + dy * dy > 1024 * 1024 then
+                local ent = EntityGetClosestWithTag(x, y, "ew_peer")
+                local nx, ny
+                local ndx, ndy
+                if ent ~= 0 then
+                    nx, ny = EntityGetTransform(ent)
+                    ndx, ndy = x - nx, y - ny
+                end
+                if ent == 0 or ndx * ndx + ndy * ndy > DISTANCE_LIMIT * DISTANCE_LIMIT then
+                    ent = EntityGetClosestWithTag(x, y, "polymorphed_player")
+                    if ent ~= 0 then
+                        nx, ny = EntityGetTransform(ent)
+                        ndx, ndy = x - nx, y - ny
+                    end
+                    if ent == 0 or ndx * ndx + ndy * ndy > DISTANCE_LIMIT * DISTANCE_LIMIT then
+                        goto continue
                     end
                 end
-                position_data[gid] = {x, y, phys_info, cost}
+                local data = player_fns.get_player_data_by_local_entity_id(ent)
+                if data ~= nil then
+                    local peer = data.peer_id
+                    rpc.hand_authority_over_to(peer, gid)
+                end
+            else
+                local phys_info = util.get_phys_info(item, true)
+                if ((phys_info[1] ~= nil and phys_info[1][1] ~= nil)
+                        or (phys_info[2] ~= nil and phys_info[2][1] ~= nil)
+                        or all)
+                        and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
+                        or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0) then
+                    local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
+                    local cost = 0
+                    if costcom ~= nil then
+                        cost = ComponentGetValue2(costcom, "cost")
+                        local mx, my = GameGetCameraPos()
+                        if math.abs(mx - x) < 1024 and math.abs(my - y) < 1024
+                                and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
+                            ComponentSetValue2(costcom, "stealable", true)
+                        end
+                    end
+                    position_data[gid] = {x, y, phys_info, cost}
+                end
             end
         end
+        ::continue::
     end
     rpc.update_positions(position_data, all)
     if #dead_entities > 0 then
@@ -350,6 +403,7 @@ function item_sync.on_world_update_host()
             and EntityHasTag(EntityGetRootEntity(picked_item), "ew_peer") then
         local gid = item_sync.get_global_item_id(picked_item)
         item_sync.host_localize_item(gid, ctx.my_id)
+        item_sync.take_authority(gid)
     end
     remove_client_items_from_world()
 end
@@ -369,6 +423,7 @@ function item_sync.on_world_update_client()
             and EntityHasTag(EntityGetRootEntity(picked_item), "ew_peer") then
         local gid = item_sync.get_global_item_id(picked_item)
         rpc.item_localize_req(gid)
+        item_sync.take_authority(gid)
     end
     remove_client_items_from_world()
 end
@@ -577,7 +632,7 @@ function rpc.update_positions(position_data, all)
                 util.log("Requesting again "..gid)
                 if wait_for_gid[gid] == nil then
                     rpc.request_send_again(gid)
-                    wait_for_gid[gid] = GameGetFrameNum() + 120
+                    wait_for_gid[gid] = GameGetFrameNum() + 300
                 end
             end
         end
