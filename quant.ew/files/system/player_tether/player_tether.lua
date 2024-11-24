@@ -1,3 +1,4 @@
+dofile_once("data/scripts/lib/utilities.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local rpc = net.new_rpc_namespace()
@@ -250,6 +251,11 @@ function module.on_world_update()
                 tether_enable(false, host_playerdata.entity)
                 no_tether = true
             end
+            return
+        end
+        local host_pw = check_parallel_pos(x1)
+        local my_pw = check_parallel_pos(x2)
+        if host_pw ~= my_pw then
             return
         end
         local dx = x1-x2

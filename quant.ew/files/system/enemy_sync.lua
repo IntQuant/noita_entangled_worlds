@@ -49,6 +49,10 @@ local HpData = util.make_type({
     f32 = {"hp", "max_hp"}
 })
 
+local should_wait = {}
+
+local first = true
+
 local FULL_TURN = math.pi * 2
 
 local frame = 0
@@ -268,6 +272,9 @@ function enemy_sync.host_upload_entities()
                     item_sync.make_item_global(item)
                 else
                     wand = item_sync.get_global_item_id(item)
+                    if not item_sync.is_my_item(wand) then
+                        EntityAddTag(item, "ew_client_item")
+                    end
                 end
             end
         end
@@ -290,7 +297,8 @@ function enemy_sync.host_upload_entities()
         ::continue::
     end
 
-    rpc.handle_enemy_data(enemy_data_list)
+    rpc.handle_enemy_data(enemy_data_list, first)
+    first = false
     if #dead_entities > 0 then
         rpc.handle_death_data(dead_entities)
     end
@@ -576,7 +584,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     if gid ~= nil and (item == nil or item == 0 or not EntityGetIsAlive(item)) then
         local wand = item_sync.find_by_gid(gid)
         if wand ~= nil then
-            EntityAddTag(wand, "ew_client_item")
+            if not item_sync.is_my_item(gid) then
+                EntityAddTag(wand, "ew_client_item")
+            end
             local found = false
             for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
                 if EntityGetName(child) == "inventory_quick" then
@@ -601,7 +611,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
             np.SetActiveHeldEntity(enemy_id, wand, false, false)
         else
-            item_sync.rpc.request_send_again(gid)
+            if should_wait[gid] == nil or should_wait[gid] < GameGetFrameNum() then
+                item_sync.rpc.request_send_again(gid)
+                should_wait[gid] = GameGetFrameNum() + 15
+            end
         end
     end
 
@@ -671,7 +684,10 @@ function rpc.handle_death_data(death_data)
     end
 end
 
-function rpc.handle_enemy_data(enemy_data)
+function rpc.handle_enemy_data(enemy_data, first)
+    if first then
+        ctx.entity_by_remote_id = {}
+    end
     frame = GameGetFrameNum()
     for _, enemy_info_raw in ipairs(enemy_data) do
         sync_enemy(enemy_info_raw, false)

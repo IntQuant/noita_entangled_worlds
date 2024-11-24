@@ -61,7 +61,10 @@ util.add_cross_call("ew_item_death_notify", function(enemy_id, responsible_id)
     else
         responsible = responsible_id
     end
-    table.insert(dead_entities, {item_sync.get_global_item_id(enemy_id), responsible})
+    local gid = item_sync.get_global_item_id(enemy_id)
+    if gid ~= nil then
+        table.insert(dead_entities, {gid, responsible})
+    end
 end)
 
 function item_sync.ensure_notify_component(ent)
@@ -125,12 +128,14 @@ function item_sync.find_by_gid(gid)
     local candidate
     for _, item in ipairs(EntityGetWithTag("ew_global_item") or {}) do
         local i_gid = item_sync.get_global_item_id(item)
-        find_by_gid_cache[i_gid] = item
-        if i_gid == gid then
-            if is_item_on_ground(item) then
-                return item
-            else
-                candidate = item
+        if i_gid ~= nil then
+            find_by_gid_cache[i_gid] = item
+            if i_gid == gid then
+                if is_item_on_ground(item) then
+                    return item
+                else
+                    candidate = item
+                end
             end
         end
     end
@@ -260,6 +265,10 @@ local function is_my_item(gid)
     return string.sub(gid, 1, 16) == ctx.my_id
 end
 
+function item_sync.is_my_item(gid)
+    is_my_item(gid)
+end
+
 function item_sync.take_authority(gid)
     if not is_my_item(gid) then
         local new_id = allocate_global_id()
@@ -272,6 +281,15 @@ rpc.opts_reliable()
 function rpc.give_authority_to(gid, new_id)
     local item = item_sync.find_by_gid(gid)
     find_by_gid_cache[gid] = nil
+    if table.contains(pending_remove, gid) then
+        for i, id in ipairs(pending_remove) do
+            if id == gid then
+                table.remove(pending_remove, i)
+                break
+            end
+        end
+        table.insert(pending_remove, new_id)
+    end
     if item ~= nil then
         find_by_gid_cache[new_id] = item
         local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
@@ -424,7 +442,9 @@ function item_sync.on_world_update_host()
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
-        item_sync.host_localize_item(gid, ctx.my_id)
+        if gid ~= nil then
+            item_sync.host_localize_item(gid, ctx.my_id)
+        end
     end
     remove_client_items_from_world()
 end
@@ -435,14 +455,16 @@ function item_sync.on_world_update_client()
         mark_in_inventory(my_player)
     end
     local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil then
+    if thrown_item ~= nil and is_my_item(item_sync.get_global_item_id(thrown_item)) then
         item_sync.make_item_global(thrown_item)
     end
 
     local picked_item = get_global_ent("ew_picked")
     if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
         local gid = item_sync.get_global_item_id(picked_item)
-        rpc.item_localize_req(gid)
+        if gid ~= nil then
+            rpc.item_localize_req(gid)
+        end
     end
     remove_client_items_from_world()
 end
@@ -495,8 +517,10 @@ function item_sync.on_should_send_updates()
         if is_item_on_ground(item) and not EntityHasTag(item, "mimic_potion") then
             local item_data = inventory_helper.serialize_single_item(item)
             local gid = item_sync.get_global_item_id(item)
-            item_data.gid = gid
-            table.insert(item_list, item_data)
+            if gid ~= nil then
+                item_data.gid = gid
+                table.insert(item_list, item_data)
+            end
         end
     end
     rpc.initial_items(item_list)
