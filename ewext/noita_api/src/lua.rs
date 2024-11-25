@@ -1,6 +1,7 @@
 pub mod lua_bindings;
 
 use std::{
+    borrow::Cow,
     cell::Cell,
     ffi::{c_char, c_int, CStr},
     mem, slice,
@@ -9,6 +10,8 @@ use std::{
 
 use eyre::{bail, Context, OptionExt};
 use lua_bindings::{lua_CFunction, lua_State, Lua51, LUA_GLOBALSINDEX};
+
+use crate::{Color, ComponentID, EntityID, Obj};
 
 thread_local! {
     static CURRENT_LUA_STATE: Cell<Option<LuaState>> = Cell::default();
@@ -121,6 +124,7 @@ impl LuaState {
     }
 }
 
+/// Used for types that can be returned from functions that were defined in rust to lua.
 pub trait LuaFnRet {
     fn do_return(self, lua: LuaState) -> c_int;
 }
@@ -147,6 +151,96 @@ impl<R: LuaFnRet> LuaFnRet for eyre::Result<R> {
             Err(err) => unsafe {
                 lua.raise_error(format!("Error in rust call: {:?}", err));
             },
+        }
+    }
+}
+
+/// Trait for arguments that can be put on lua stack.
+pub(crate) trait LuaPutValue {
+    fn put(&self, lua: LuaState);
+    fn is_non_empty(&self) -> bool {
+        true
+    }
+}
+
+impl LuaPutValue for i32 {
+    fn put(&self, lua: LuaState) {
+        lua.push_integer(*self as isize);
+    }
+}
+
+impl LuaPutValue for isize {
+    fn put(&self, lua: LuaState) {
+        lua.push_integer(*self);
+    }
+}
+
+impl LuaPutValue for u32 {
+    fn put(&self, lua: LuaState) {
+        lua.push_integer(unsafe { mem::transmute::<_, i32>(*self) as isize });
+    }
+}
+
+impl LuaPutValue for f64 {
+    fn put(&self, lua: LuaState) {
+        lua.push_number(*self);
+    }
+}
+
+impl LuaPutValue for bool {
+    fn put(&self, lua: LuaState) {
+        lua.push_bool(*self);
+    }
+}
+
+impl LuaPutValue for Cow<'_, str> {
+    fn put(&self, lua: LuaState) {
+        lua.push_string(self.as_ref());
+    }
+}
+
+impl LuaPutValue for str {
+    fn put(&self, lua: LuaState) {
+        lua.push_string(self);
+    }
+}
+
+impl LuaPutValue for EntityID {
+    fn put(&self, lua: LuaState) {
+        self.0.put(lua);
+    }
+}
+
+impl LuaPutValue for ComponentID {
+    fn put(&self, lua: LuaState) {
+        self.0.put(lua);
+    }
+}
+
+impl LuaPutValue for Color {
+    fn put(&self, _lua: LuaState) {
+        todo!()
+    }
+}
+
+impl LuaPutValue for Obj {
+    fn put(&self, _lua: LuaState) {
+        todo!()
+    }
+}
+
+impl<T: LuaPutValue> LuaPutValue for Option<T> {
+    fn put(&self, lua: LuaState) {
+        match self {
+            Some(val) => val.put(lua),
+            None => lua.push_nil(),
+        }
+    }
+
+    fn is_non_empty(&self) -> bool {
+        match self {
+            Some(val) => val.is_non_empty(),
+            None => false,
         }
     }
 }

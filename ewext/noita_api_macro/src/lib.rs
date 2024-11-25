@@ -228,19 +228,23 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
         }
     });
 
-    let put_args = api_fn.args.iter().map(|arg| {
-        let optional = arg.default.is_some();
+    let put_args_pre = api_fn.args.iter().enumerate().map(|(i, arg)| {
         let arg_name = format_ident!("{}", arg.name);
-        let arg_push = arg.typ.generate_lua_push(arg_name.clone());
-        if optional {
-            quote! {
-                match #arg_name {
-                    Some(#arg_name) => #arg_push,
-                    None => lua.push_nil(),
-                }
+        let i = i as i32;
+        quote! {
+            if LuaPutValue::is_non_empty(&#arg_name) {
+                last_non_empty = #i;
             }
-        } else {
-            arg_push
+        }
+    });
+
+    let put_args = api_fn.args.iter().enumerate().map(|(i, arg)| {
+        let arg_name = format_ident!("{}", arg.name);
+        let i = i as i32;
+        quote! {
+            if #i <= last_non_empty {
+                LuaPutValue::put(&#arg_name, lua);
+            }
         }
     });
 
@@ -266,7 +270,6 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
 
     let fn_name_c = name_to_c_literal(api_fn.fn_name);
 
-    let arg_count = api_fn.args.len() as i32;
     let ret_count = api_fn.rets.len() as i32;
 
     quote! {
@@ -275,9 +278,12 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
             let lua = LuaState::current()?;
 
             lua.get_global(#fn_name_c);
-            #(#put_args;)*
 
-            lua.call(#arg_count, #ret_count);
+            let mut last_non_empty: i32 = -1;
+            #(#put_args_pre)*
+            #(#put_args)*
+
+            lua.call(last_non_empty+1, #ret_count);
 
             let ret = Ok(#ret_expr);
             lua.pop_last_n(#ret_count);

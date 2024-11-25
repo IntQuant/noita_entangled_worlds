@@ -14,6 +14,7 @@ noita_api_macro::generate_components!();
 
 pub mod raw {
     use super::{Color, ComponentID, EntityID, Obj};
+    use crate::lua::LuaPutValue;
     use std::borrow::Cow;
 
     use crate::lua::LuaState;
