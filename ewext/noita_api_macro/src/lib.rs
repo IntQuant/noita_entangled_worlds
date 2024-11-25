@@ -164,9 +164,21 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
         }
     });
 
+    let com_name = com.name;
+
     quote! {
         #[derive(Clone, Copy, PartialEq, Eq)]
         pub struct #component_name(pub ComponentID);
+
+        impl Component for #component_name {
+            const NAME_STR: &'static str = #com_name;
+        }
+
+        impl From<ComponentID> for #component_name {
+            fn from(com: ComponentID) -> Self {
+                #component_name(com)
+            }
+        }
 
         impl #component_name {
             #(#impls)*

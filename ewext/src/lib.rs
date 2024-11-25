@@ -9,7 +9,10 @@ use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use eyre::{bail, OptionExt};
 
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
-use noita_api::lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA};
+use noita_api::{
+    lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA},
+    DamageModelComponent,
+};
 use noita_api_macro::add_lua_fn;
 
 pub mod noita;
@@ -116,10 +119,7 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
 fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
         .ok_or_eyre("Entity not found")?;
-    let damage_model = noita_api::DamageModelComponent(
-        noita_api::raw::entity_get_first_component(player, "DamageModelComponent".into(), None)?
-            .ok_or_eyre("Could not find damage model")?,
-    );
+    let damage_model: DamageModelComponent = player.get_first_component(None)?;
     let hp = damage_model.hp()?;
     damage_model.set_hp(hp - 1.0)?;
 

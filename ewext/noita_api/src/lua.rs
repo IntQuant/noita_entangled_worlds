@@ -68,7 +68,7 @@ impl LuaState {
         let slice = unsafe { slice::from_raw_parts(buf as *const u8, size) };
 
         Ok(String::from_utf8(slice.to_owned())
-            .context("Attempting to get lua string, expecting it to be utf-8")?)
+            .wrap_err("Attempting to get lua string, expecting it to be utf-8")?)
     }
 
     pub fn to_cfunction(&self, index: i32) -> lua_CFunction {
