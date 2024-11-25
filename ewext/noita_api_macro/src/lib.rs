@@ -30,21 +30,10 @@ impl Typ {
         match self {
             Typ::Int => quote!(i32),
             Typ::UInt => quote!(u32),
-            Typ::Float => quote!(f64),
+            Typ::Float => quote!(f32),
             Typ::Double => quote!(f64),
             Typ::Bool => quote!(bool),
-            Typ::StdString => todo!(),
-            Typ::Vec2 => todo!(),
-            Typ::Other => todo!(),
-        }
-    }
-
-    fn as_lua_type(&self) -> &'static str {
-        match self {
-            Typ::Int | Typ::UInt => "integer",
-            Typ::Float | Typ::Double => "number",
-            Typ::Bool => "bool",
-            Typ::StdString => todo!(),
+            Typ::StdString => quote!(Cow<'_, str>),
             Typ::Vec2 => todo!(),
             Typ::Other => todo!(),
         }
@@ -159,15 +148,16 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
         match field.typ {
             Typ::Int | Typ::UInt | Typ::Float | Typ::Double | Typ::Bool => {
                 let field_type = field.typ.as_rust_type();
-                let getter_fn = format_ident!("component_get_value_{}", field.typ.as_lua_type());
                 Some(quote! {
                     #[doc = #field_doc]
                     pub fn #field_name(self) -> eyre::Result<#field_type> {
                         // This trasmute is used to reinterpret i32 as u32 in one case.
-                        unsafe { std::mem::transmute(raw::#getter_fn(self.0, #field_name_s)) }
+                        raw::component_get_value(self.0, #field_name_s)
                      }
                     #[doc = #field_doc]
-                    pub fn #set_method_name(self, value: #field_type) -> eyre::Result<()> { todo!() }
+                    pub fn #set_method_name(self, value: #field_type) -> eyre::Result<()> {
+                        raw::component_set_value(self.0, #field_name_s, value)
+                     }
                 })
             }
             _ => None,

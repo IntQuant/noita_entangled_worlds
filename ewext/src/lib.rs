@@ -121,6 +121,7 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
             .ok_or_eyre("Could not find damage model")?,
     );
     let hp = damage_model.hp()?;
+    damage_model.set_hp(hp - 1.0)?;
 
     let transform = noita_api::raw::entity_get_transform(player)?;
 

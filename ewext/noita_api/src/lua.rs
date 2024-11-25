@@ -161,6 +161,9 @@ pub(crate) trait LuaPutValue {
     fn is_non_empty(&self) -> bool {
         true
     }
+    fn size_on_stack() -> i32 {
+        1
+    }
 }
 
 impl LuaPutValue for i32 {
@@ -178,6 +181,12 @@ impl LuaPutValue for isize {
 impl LuaPutValue for u32 {
     fn put(&self, lua: LuaState) {
         lua.push_integer(unsafe { mem::transmute::<_, i32>(*self) as isize });
+    }
+}
+
+impl LuaPutValue for f32 {
+    fn put(&self, lua: LuaState) {
+        lua.push_number(*self as f64);
     }
 }
 
@@ -250,7 +259,7 @@ pub(crate) trait LuaGetValue {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
     where
         Self: Sized;
-    fn size() -> i32 {
+    fn size_on_stack() -> i32 {
         1
     }
 }
@@ -342,11 +351,14 @@ impl<T0: LuaGetValue, T1: LuaGetValue> LuaGetValue for (T0, T1) {
     where
         Self: Sized,
     {
-        Ok((T0::get(lua, index - T1::size())?, T1::get(lua, index)?))
+        Ok((
+            T0::get(lua, index - T1::size_on_stack())?,
+            T1::get(lua, index)?,
+        ))
     }
 
-    fn size() -> i32 {
-        T0::size() + T1::size()
+    fn size_on_stack() -> i32 {
+        T0::size_on_stack() + T1::size_on_stack()
     }
 }
 
@@ -356,14 +368,14 @@ impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue> LuaGetValue for (T0, T1,
         Self: Sized,
     {
         Ok((
-            T0::get(lua, index - T1::size() - T2::size())?,
-            T1::get(lua, index - T2::size())?,
+            T0::get(lua, index - T1::size_on_stack() - T2::size_on_stack())?,
+            T1::get(lua, index - T2::size_on_stack())?,
             T2::get(lua, index)?,
         ))
     }
 
-    fn size() -> i32 {
-        T0::size() + T1::size() + T2::size()
+    fn size_on_stack() -> i32 {
+        T0::size_on_stack() + T1::size_on_stack() + T2::size_on_stack()
     }
 }
 
@@ -375,15 +387,18 @@ impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue, T3: LuaGetValue> LuaGetV
         Self: Sized,
     {
         Ok((
-            T0::get(lua, index - T1::size() - T2::size() - T3::size())?,
-            T1::get(lua, index - T2::size() - T3::size())?,
-            T2::get(lua, index - T3::size())?,
+            T0::get(
+                lua,
+                index - T1::size_on_stack() - T2::size_on_stack() - T3::size_on_stack(),
+            )?,
+            T1::get(lua, index - T2::size_on_stack() - T3::size_on_stack())?,
+            T2::get(lua, index - T3::size_on_stack())?,
             T3::get(lua, index)?,
         ))
     }
 
-    fn size() -> i32 {
-        T0::size() + T1::size() + T2::size() + T3::size()
+    fn size_on_stack() -> i32 {
+        T0::size_on_stack() + T1::size_on_stack() + T2::size_on_stack() + T3::size_on_stack()
     }
 }
 
@@ -394,12 +409,12 @@ impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue, T3: LuaGetValue, T4: Lua
     where
         Self: Sized,
     {
-        let prev = <(T0, T1, T2, T3)>::get(lua, index - T4::size())?;
+        let prev = <(T0, T1, T2, T3)>::get(lua, index - T4::size_on_stack())?;
         Ok((prev.0, prev.1, prev.2, prev.3, T4::get(lua, index)?))
     }
 
-    fn size() -> i32 {
-        <(T0, T1, T2, T3)>::size() + T4::size()
+    fn size_on_stack() -> i32 {
+        <(T0, T1, T2, T3)>::size_on_stack() + T4::size_on_stack()
     }
 }
 
@@ -416,12 +431,12 @@ impl<
     where
         Self: Sized,
     {
-        let prev = <(T0, T1, T2, T3, T4)>::get(lua, index - T5::size())?;
+        let prev = <(T0, T1, T2, T3, T4)>::get(lua, index - T5::size_on_stack())?;
         Ok((prev.0, prev.1, prev.2, prev.3, prev.4, T5::get(lua, index)?))
     }
 
-    fn size() -> i32 {
-        <(T0, T1, T2, T3, T4)>::size() + T5::size()
+    fn size_on_stack() -> i32 {
+        <(T0, T1, T2, T3, T4)>::size_on_stack() + T5::size_on_stack()
     }
 }
 
@@ -442,7 +457,7 @@ impl LuaGetValue for (bool, bool, bool, f64, f64, f64, f64, f64, f64, f64, f64) 
         ))
     }
 
-    fn size() -> i32 {
+    fn size_on_stack() -> i32 {
         11
     }
 }
