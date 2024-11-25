@@ -2,7 +2,6 @@ use std::ffi::CString;
 
 use heck::ToSnekCase;
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
 use quote::{format_ident, quote};
 use serde::Deserialize;
 
@@ -89,33 +88,9 @@ impl Typ2 {
     fn as_rust_type_return(&self) -> proc_macro2::TokenStream {
         match self {
             Typ2::String => quote! {Cow<'static, str>},
+            Typ2::EntityID => quote! {Option<EntityID>},
+            Typ2::ComponentID => quote!(Option<ComponentID>),
             _ => self.as_rust_type(),
-        }
-    }
-
-    fn generate_lua_push(&self, arg_name: Ident) -> proc_macro2::TokenStream {
-        match self {
-            Typ2::Int => quote! {lua.push_integer(#arg_name as isize)},
-            Typ2::Number => quote! {lua.push_number(#arg_name)},
-            Typ2::String => quote! {lua.push_string(&#arg_name)},
-            Typ2::Bool => quote! {lua.push_bool(#arg_name)},
-            Typ2::EntityID => quote! {lua.push_integer(#arg_name.0 as isize)},
-            Typ2::ComponentID => quote! {lua.push_integer(#arg_name.0 as isize)},
-            Typ2::Obj => quote! { todo!() },
-            Typ2::Color => quote! { todo!() },
-        }
-    }
-
-    fn generate_lua_get(&self, index: i32) -> proc_macro2::TokenStream {
-        match self {
-            Typ2::Int => quote! {lua.to_integer(#index) as i32},
-            Typ2::Number => quote! {lua.to_number(#index)},
-            Typ2::String => quote! { lua.to_string(#index)?.into() },
-            Typ2::Bool => quote! {lua.to_bool(#index)},
-            Typ2::EntityID => quote! {EntityID(lua.to_integer(#index))},
-            Typ2::ComponentID => quote! {ComponentID(lua.to_integer(#index))},
-            Typ2::Obj => quote! { todo!() },
-            Typ2::Color => quote! { todo!() },
         }
     }
 }
@@ -260,14 +235,6 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
         // }
     };
 
-    let ret_expr = if api_fn.rets.is_empty() {
-        quote! { () }
-    } else {
-        // TODO support for more than one return value.
-        let ret = api_fn.rets.first().unwrap();
-        ret.typ.generate_lua_get(1)
-    };
-
     let fn_name_c = name_to_c_literal(api_fn.fn_name);
 
     let ret_count = api_fn.rets.len() as i32;
@@ -285,7 +252,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
 
             lua.call(last_non_empty+1, #ret_count);
 
-            let ret = Ok(#ret_expr);
+            let ret = LuaGetValue::get(lua, -1);
             lua.pop_last_n(#ret_count);
             ret
         }

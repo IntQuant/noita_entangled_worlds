@@ -207,13 +207,13 @@ impl LuaPutValue for str {
 
 impl LuaPutValue for EntityID {
     fn put(&self, lua: LuaState) {
-        self.0.put(lua);
+        isize::from(self.0).put(lua);
     }
 }
 
 impl LuaPutValue for ComponentID {
     fn put(&self, lua: LuaState) {
-        self.0.put(lua);
+        isize::from(self.0).put(lua);
     }
 }
 
@@ -242,5 +242,97 @@ impl<T: LuaPutValue> LuaPutValue for Option<T> {
             Some(val) => val.is_non_empty(),
             None => false,
         }
+    }
+}
+
+/// Trait for arguments that can be retrieved from the lua stack.
+pub(crate) trait LuaGetValue {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized;
+    fn size() -> i32 {
+        1
+    }
+}
+
+impl LuaGetValue for i32 {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(lua.to_integer(index) as Self)
+    }
+}
+
+impl LuaGetValue for isize {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(lua.to_integer(index) as Self)
+    }
+}
+
+impl LuaGetValue for u32 {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(unsafe { mem::transmute(lua.to_integer(index) as i32) })
+    }
+}
+
+impl LuaGetValue for f32 {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(lua.to_number(index) as f32)
+    }
+}
+
+impl LuaGetValue for f64 {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(lua.to_number(index))
+    }
+}
+
+impl LuaGetValue for bool {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(lua.to_bool(index))
+    }
+}
+
+impl LuaGetValue for Option<EntityID> {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        let ent = lua.to_integer(index);
+        Ok(if ent == 0 {
+            None
+        } else {
+            Some(EntityID(ent.try_into().unwrap()))
+        })
+    }
+}
+
+impl LuaGetValue for Option<ComponentID> {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        let com = lua.to_integer(index);
+        Ok(if com == 0 {
+            None
+        } else {
+            Some(ComponentID(com.try_into().unwrap()))
+        })
+    }
+}
+
+impl LuaGetValue for Cow<'static, str> {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(lua.to_string(index)?.into())
+    }
+}
+
+impl LuaGetValue for () {
+    fn get(_lua: LuaState, _index: i32) -> eyre::Result<Self> {
+        Ok(())
+    }
+}
+
+impl LuaGetValue for Obj {
+    fn get(_lua: LuaState, _index: i32) -> eyre::Result<Self> {
+        todo!()
+    }
+}
+
+impl LuaGetValue for Color {
+    fn get(_lua: LuaState, _index: i32) -> eyre::Result<Self> {
+        todo!()
     }
 }

@@ -6,7 +6,7 @@ use std::{
 };
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
-use eyre::bail;
+use eyre::{bail, OptionExt};
 
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA};
@@ -95,7 +95,8 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     let start = Instant::now();
     let iters = 10000;
     for _ in 0..iters {
-        let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
+        let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
+            .ok_or_eyre("Entity not found")?;
         noita_api::raw::entity_set_transform(player, 0.0, Some(0.0), None, None, None)?;
     }
     let elapsed = start.elapsed();
@@ -113,12 +114,12 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn test_fn(_lua: LuaState) -> eyre::Result<()> {
-    let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
-    let damage_model = noita_api::DamageModelComponent(noita_api::raw::entity_get_first_component(
-        player,
-        "DamageModelComponent".into(),
-        None,
-    )?);
+    let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
+        .ok_or_eyre("Entity not found")?;
+    let damage_model = noita_api::DamageModelComponent(
+        noita_api::raw::entity_get_first_component(player, "DamageModelComponent".into(), None)?
+            .ok_or_eyre("Could not find damage model")?,
+    );
     let hp = damage_model.hp()?;
 
     noita_api::raw::game_print(

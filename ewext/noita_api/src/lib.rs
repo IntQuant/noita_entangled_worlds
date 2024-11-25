@@ -1,10 +1,12 @@
+use std::num::NonZero;
+
 pub mod lua;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct EntityID(pub isize);
+pub struct EntityID(pub NonZero<isize>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ComponentID(pub isize);
+pub struct ComponentID(pub NonZero<isize>);
 
 pub struct Obj(pub usize);
 
@@ -14,6 +16,7 @@ noita_api_macro::generate_components!();
 
 pub mod raw {
     use super::{Color, ComponentID, EntityID, Obj};
+    use crate::lua::LuaGetValue;
     use crate::lua::LuaPutValue;
     use std::borrow::Cow;
 
@@ -28,7 +31,7 @@ pub mod raw {
     ) -> eyre::Result<()> {
         let lua = LuaState::current()?;
         lua.get_global(c"ComponentGetValue2");
-        lua.push_integer(component.0);
+        lua.push_integer(component.0.into());
         lua.push_string(field);
         lua.call(2, expected_results);
         Ok(())
