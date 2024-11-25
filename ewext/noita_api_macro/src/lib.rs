@@ -226,13 +226,13 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
     let ret_type = if api_fn.rets.is_empty() {
         quote! { () }
     } else {
-        // TODO support for more than one return value.
-        // if api_fn.rets.len() == 1 {
-        let ret = api_fn.rets.first().unwrap();
-        ret.typ.as_rust_type_return()
-        // } else {
-        //     quote! { ( /* todo */) }
-        // }
+        if api_fn.rets.len() == 1 {
+            let ret = api_fn.rets.first().unwrap();
+            ret.typ.as_rust_type_return()
+        } else {
+            let ret_types = api_fn.rets.iter().map(|ret| ret.typ.as_rust_type_return());
+            quote! { ( #(#ret_types),* ) }
+        }
     };
 
     let fn_name_c = name_to_c_literal(api_fn.fn_name);

@@ -122,8 +122,16 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     );
     let hp = damage_model.hp()?;
 
+    let transform = noita_api::raw::entity_get_transform(player)?;
+
     noita_api::raw::game_print(
-        format!("Component: {:?}, Hp: {}", damage_model.0, hp * 25.0).into(),
+        format!(
+            "Component: {:?}, Hp: {}, tranform: {:?}",
+            damage_model.0,
+            hp * 25.0,
+            transform
+        )
+        .into(),
     )?;
 
     // noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;

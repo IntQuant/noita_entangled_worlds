@@ -336,3 +336,113 @@ impl LuaGetValue for Color {
         todo!()
     }
 }
+
+impl<T0: LuaGetValue, T1: LuaGetValue> LuaGetValue for (T0, T1) {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok((T0::get(lua, index - T1::size())?, T1::get(lua, index)?))
+    }
+
+    fn size() -> i32 {
+        T0::size() + T1::size()
+    }
+}
+
+impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue> LuaGetValue for (T0, T1, T2) {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok((
+            T0::get(lua, index - T1::size() - T2::size())?,
+            T1::get(lua, index - T2::size())?,
+            T2::get(lua, index)?,
+        ))
+    }
+
+    fn size() -> i32 {
+        T0::size() + T1::size() + T2::size()
+    }
+}
+
+impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue, T3: LuaGetValue> LuaGetValue
+    for (T0, T1, T2, T3)
+{
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok((
+            T0::get(lua, index - T1::size() - T2::size() - T3::size())?,
+            T1::get(lua, index - T2::size() - T3::size())?,
+            T2::get(lua, index - T3::size())?,
+            T3::get(lua, index)?,
+        ))
+    }
+
+    fn size() -> i32 {
+        T0::size() + T1::size() + T2::size() + T3::size()
+    }
+}
+
+impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue, T3: LuaGetValue, T4: LuaGetValue>
+    LuaGetValue for (T0, T1, T2, T3, T4)
+{
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        let prev = <(T0, T1, T2, T3)>::get(lua, index - T4::size())?;
+        Ok((prev.0, prev.1, prev.2, prev.3, T4::get(lua, index)?))
+    }
+
+    fn size() -> i32 {
+        <(T0, T1, T2, T3)>::size() + T4::size()
+    }
+}
+
+impl<
+        T0: LuaGetValue,
+        T1: LuaGetValue,
+        T2: LuaGetValue,
+        T3: LuaGetValue,
+        T4: LuaGetValue,
+        T5: LuaGetValue,
+    > LuaGetValue for (T0, T1, T2, T3, T4, T5)
+{
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        let prev = <(T0, T1, T2, T3, T4)>::get(lua, index - T5::size())?;
+        Ok((prev.0, prev.1, prev.2, prev.3, prev.4, T5::get(lua, index)?))
+    }
+
+    fn size() -> i32 {
+        <(T0, T1, T2, T3, T4)>::size() + T5::size()
+    }
+}
+
+impl LuaGetValue for (bool, bool, bool, f64, f64, f64, f64, f64, f64, f64, f64) {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok((
+            bool::get(lua, index - 10)?,
+            bool::get(lua, index - 9)?,
+            bool::get(lua, index - 8)?,
+            f64::get(lua, index - 7)?,
+            f64::get(lua, index - 6)?,
+            f64::get(lua, index - 5)?,
+            f64::get(lua, index - 4)?,
+            f64::get(lua, index - 3)?,
+            f64::get(lua, index - 2)?,
+            f64::get(lua, index - 1)?,
+            f64::get(lua, index)?,
+        ))
+    }
+
+    fn size() -> i32 {
+        11
+    }
+}
