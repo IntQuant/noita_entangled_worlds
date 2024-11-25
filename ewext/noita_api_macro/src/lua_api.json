@@ -23,7 +23,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -51,7 +52,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -125,7 +127,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -155,7 +158,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -175,6 +179,54 @@
     ],
     "desc": "Nolla forgot to include a description :(",
     "rets": []
+  },
+  {
+    "fn_name": "EntityGetAllComponents",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns a table of component ids.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetComponent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_type_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "component_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
   },
   {
     "fn_name": "EntityGetFirstComponent",
@@ -200,7 +252,37 @@
       {
         "name": null,
         "typ": "component_id",
-        "optional": true
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetComponentIncludingDisabled",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_type_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "component_id",
+        "optional": true,
+        "is_vec": true
       }
     ]
   },
@@ -228,7 +310,8 @@
       {
         "name": null,
         "typ": "component_id",
-        "optional": true
+        "optional": true,
+        "is_vec": false
       }
     ]
   },
@@ -320,27 +403,32 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "rotation",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "scale_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "scale_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -362,6 +450,30 @@
     "rets": []
   },
   {
+    "fn_name": "EntityGetAllChildren",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "If passed the optional 'tag' parameter, will return only child entities that have that tag (If 'tag' isn't a valid tag name, will return no entities). If no entities are returned, might return either an empty table or nil.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
+  },
+  {
     "fn_name": "EntityGetParent",
     "args": [
       {
@@ -375,7 +487,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -393,7 +506,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -467,7 +581,8 @@
       {
         "name": "name",
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -502,7 +617,90 @@
       {
         "name": null,
         "typ": "string",
-        "optional": true
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetWithTag",
+    "args": [
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns all entities with 'tag'.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetInRadius",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Returns all entities in 'radius' distance from 'x','y'.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetInRadiusWithTag",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "entity_tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns all entities in 'radius' distance from 'x','y'.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": true
       }
     ]
   },
@@ -525,7 +723,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -553,7 +752,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -571,7 +771,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -628,7 +829,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -646,7 +848,8 @@
       {
         "name": "full_path",
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -658,7 +861,8 @@
       {
         "name": "entity_max_id",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -710,7 +914,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": true
+        "optional": true,
+        "is_vec": false
       }
     ]
   },
@@ -733,7 +938,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -761,7 +967,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -779,7 +986,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -797,7 +1005,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -815,7 +1024,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -827,7 +1037,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -839,7 +1050,8 @@
       {
         "name": "component_id",
         "typ": "component_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -933,7 +1145,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -966,12 +1179,14 @@
       {
         "name": "spawn_state_id",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1050,7 +1265,8 @@
       {
         "name": "material_type",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1125,7 +1341,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1137,7 +1354,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1149,7 +1367,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1161,7 +1380,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1173,7 +1393,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1185,7 +1406,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1203,7 +1425,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1221,7 +1444,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1239,7 +1463,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1257,7 +1482,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1275,7 +1501,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1293,7 +1520,171 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllLiquids",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllSands",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllGases",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllFires",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllSolids",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetTags",
+    "args": [
+      {
+        "name": "material_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_HasTag",
+    "args": [
+      {
+        "name": "material_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": true
       }
     ]
   },
@@ -1305,12 +1696,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1351,22 +1744,26 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "w",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "h",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1446,6 +1843,25 @@
     "rets": []
   },
   {
+    "fn_name": "GameGetAllInventoryItems",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns all the inventory items that entity_id has.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "entity_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
+  },
+  {
     "fn_name": "GameDropAllItems",
     "args": [
       {
@@ -1489,7 +1905,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -1530,34 +1947,6 @@
     ],
     "desc": "Nolla forgot to include a description :(",
     "rets": []
-  },
-  {
-    "fn_name": "RemovePixelSceneBackgroundSprite",
-    "args": [
-      {
-        "name": "background_file",
-        "typ": "string",
-        "default": null
-      },
-      {
-        "name": "x",
-        "typ": "number",
-        "default": null
-      },
-      {
-        "name": "y",
-        "typ": "number",
-        "default": null
-      }
-    ],
-    "desc": "NOTE! Removes the pixel scene sprite if the name and position match. Will return true if manages the find and destroy the background sprite",
-    "rets": [
-      {
-        "name": null,
-        "typ": "bool",
-        "optional": true
-      }
-    ]
   },
   {
     "fn_name": "RemovePixelSceneBackgroundSprites",
@@ -2012,7 +2401,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2045,12 +2435,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2100,12 +2492,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2128,7 +2522,8 @@
       {
         "name": "component_id",
         "typ": "component_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2151,7 +2546,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2174,7 +2570,8 @@
       {
         "name": "effect_entity_id",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2202,12 +2599,14 @@
       {
         "name": "effect_component_id",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "effect_entity_id",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2254,6 +2653,19 @@
     ],
     "desc": "Removes the entity from the polymorph random table",
     "rets": []
+  },
+  {
+    "fn_name": "PolymorphTableGet",
+    "args": [],
+    "desc": "Returns a list of all the entities in the polymorph random table",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
   },
   {
     "fn_name": "PolymorphTableSet",
@@ -2304,7 +2716,8 @@
       {
         "name": null,
         "typ": "color",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2337,17 +2750,20 @@
       {
         "name": "did_hit",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2380,17 +2796,20 @@
       {
         "name": "did_hit",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2423,17 +2842,20 @@
       {
         "name": "did_hit",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2466,17 +2888,20 @@
       {
         "name": "did_hit",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hit_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2514,12 +2939,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2552,22 +2979,26 @@
       {
         "name": "found_normal",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "normal_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "normal_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "approximate_distance_from_surface",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2590,7 +3021,8 @@
       {
         "name": "sky",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2613,7 +3045,8 @@
       {
         "name": "fog_of_war",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2636,7 +3069,8 @@
       {
         "name": "fog_of_war",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2664,7 +3098,8 @@
       {
         "name": "pos_valid",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2697,7 +3132,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2715,7 +3151,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2733,7 +3170,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2756,7 +3194,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2779,7 +3218,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2802,7 +3242,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2825,17 +3266,20 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " pos_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " pos_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2858,22 +3302,26 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " pos_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " pos_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " radius",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2919,12 +3367,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2973,7 +3423,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -2985,7 +3436,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3003,7 +3455,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3021,7 +3474,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3039,7 +3493,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3051,12 +3506,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3074,7 +3531,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3092,7 +3550,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3110,7 +3569,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3133,7 +3593,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3156,7 +3617,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3179,7 +3641,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3197,7 +3660,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3215,7 +3679,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3233,7 +3698,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3245,7 +3711,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3257,7 +3724,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3269,7 +3737,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3321,7 +3790,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3351,7 +3821,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3398,7 +3869,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": true
+        "optional": true,
+        "is_vec": false
       }
     ]
   },
@@ -3416,7 +3888,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3434,7 +3907,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3480,7 +3954,8 @@
       {
         "name": "entity_id",
         "typ": "entity_id",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3513,7 +3988,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3525,32 +4001,38 @@
       {
         "name": "year",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "month",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "day",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hour",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "minute",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "second",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3562,32 +4044,38 @@
       {
         "name": "ear",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "month",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "day",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "hour",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "minute",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "second",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3695,12 +4183,14 @@
       {
         "name": "width",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "height",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3745,7 +4235,8 @@
       {
         "name": "color",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3763,7 +4254,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3850,7 +4342,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3873,7 +4366,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3913,7 +4407,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3951,7 +4446,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -3989,7 +4485,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4022,7 +4519,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4055,7 +4553,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4103,7 +4602,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": true
+        "optional": true,
+        "is_vec": false
       }
     ]
   },
@@ -4146,7 +4646,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": true
+        "optional": true,
+        "is_vec": false
       }
     ]
   },
@@ -4274,12 +4775,14 @@
       {
         "name": "vel_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "vel_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4302,7 +4805,8 @@
       {
         "name": "vel",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4320,32 +4824,38 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " angle",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " vel_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " vel_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " angular_vel",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4528,12 +5038,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4551,12 +5063,14 @@
       {
         "name": "linear_damping",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " angular_damping",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4596,7 +5110,8 @@
       {
         "name": "gravity_scale",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4648,12 +5163,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4676,12 +5193,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4704,12 +5223,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4732,12 +5253,14 @@
       {
         "name": "x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4841,7 +5364,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4871,7 +5395,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -4913,7 +5438,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -5141,7 +5667,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -5174,7 +5701,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -5186,7 +5714,8 @@
       {
         "name": "gui",
         "typ": "obj",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -5677,12 +6206,14 @@
       {
         "name": "clicked",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "right_clicked",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -5725,12 +6256,14 @@
       {
         "name": "clicked",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "right_clicked",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -5803,7 +6336,8 @@
       {
         "name": "new_value",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6110,12 +6644,14 @@
       {
         "name": "width",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "height",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6158,12 +6694,14 @@
       {
         "name": "width",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "height",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6191,12 +6729,14 @@
       {
         "name": "width",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "height",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6214,57 +6754,68 @@
       {
         "name": "clicked",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " right_clicked",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " hovered",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " width",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " height",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " draw_x",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " draw_y",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " draw_width",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": " draw_height",
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6276,7 +6827,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6288,7 +6840,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6306,7 +6859,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6335,7 +6889,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6492,7 +7047,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6510,7 +7066,21 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModGetActiveModIDs",
+    "args": [],
+    "desc": "Returns a table filled with the IDs of currently active mods.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
       }
     ]
   },
@@ -6522,7 +7092,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6540,7 +7111,21 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModMaterialFilesGet",
+    "args": [],
+    "desc": "Returns a list of filenames from which materials were loaded.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
       }
     ]
   },
@@ -6558,7 +7143,8 @@
       {
         "name": "was_removed",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6570,7 +7156,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6582,7 +7169,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6594,7 +7182,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6606,7 +7195,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6618,7 +7208,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6630,7 +7221,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6687,6 +7279,25 @@
     "rets": []
   },
   {
+    "fn_name": "ModLuaFileGetAppends",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns the paths of files that have been appended to 'filename' using ModLuaFileAppend(). Unlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
     "fn_name": "ModLuaFileSetAppends",
     "args": [
       {
@@ -6712,7 +7323,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6747,7 +7359,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6775,17 +7388,20 @@
       {
         "name": "id",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "w",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "h",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6803,17 +7419,20 @@
       {
         "name": "id",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "w",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       },
       {
         "name": "h",
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6841,7 +7460,8 @@
       {
         "name": null,
         "typ": "color",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6886,7 +7506,8 @@
       {
         "name": null,
         "typ": "string",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -6904,7 +7525,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -7082,7 +7704,8 @@
       {
         "name": "uses_remaining_reduced",
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -7176,7 +7799,8 @@
       {
         "name": null,
         "typ": "number",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -7216,7 +7840,8 @@
       {
         "name": null,
         "typ": "int",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   },
@@ -7256,7 +7881,8 @@
       {
         "name": null,
         "typ": "bool",
-        "optional": false
+        "optional": false,
+        "is_vec": false
       }
     ]
   }

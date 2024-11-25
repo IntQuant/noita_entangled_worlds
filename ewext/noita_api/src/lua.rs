@@ -105,6 +105,19 @@ impl LuaState {
         unsafe { LUA.lua_getfield(self.lua, LUA_GLOBALSINDEX, name.as_ptr()) };
     }
 
+    pub fn objlen(&self, index: i32) -> usize {
+        unsafe { LUA.lua_objlen(self.lua, index) }
+    }
+
+    pub fn index_table(&self, table_index: i32, index_in_table: usize) {
+        self.push_integer(index_in_table as isize);
+        if table_index < 0 {
+            unsafe { LUA.lua_gettable(self.lua, table_index - 1) };
+        } else {
+            unsafe { LUA.lua_gettable(self.lua, table_index) };
+        }
+    }
+
     pub fn pop_last(&self) {
         unsafe { LUA.lua_settop(self.lua, -2) };
     }
@@ -121,6 +134,10 @@ impl LuaState {
         unsafe { LUA.lua_error(self.lua) };
         // lua_error does not return.
         unreachable!()
+    }
+
+    fn is_nil_or_none(&self, index: i32) -> bool {
+        (unsafe { LUA.lua_type(self.lua, index) }) <= 0
     }
 }
 
@@ -343,6 +360,33 @@ impl LuaGetValue for Obj {
 impl LuaGetValue for Color {
     fn get(_lua: LuaState, _index: i32) -> eyre::Result<Self> {
         todo!()
+    }
+}
+
+impl<T: LuaGetValue> LuaGetValue for Option<T> {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(if lua.is_nil_or_none(index) {
+            None
+        } else {
+            Some(T::get(lua, index)?)
+        })
+    }
+}
+
+impl<T: LuaGetValue> LuaGetValue for Vec<T> {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        if T::size_on_stack() != 1 {
+            bail!("Encountered Vec<T> where T needs more than 1 slot on the stack. This isn't supported");
+        }
+        let len = lua.objlen(index);
+        let mut res = Vec::with_capacity(len);
+        for i in 1..=len {
+            lua.index_table(index, dbg!(i));
+            let get = T::get(lua, -1);
+            lua.pop_last();
+            res.push(get?);
+        }
+        Ok(res)
     }
 }
 

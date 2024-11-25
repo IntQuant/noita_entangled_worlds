@@ -123,17 +123,14 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     let hp = damage_model.hp()?;
     damage_model.set_hp(hp - 1.0)?;
 
-    let transform = noita_api::raw::entity_get_transform(player)?;
+    let (x, y, _, _, _) = noita_api::raw::entity_get_transform(player)?;
 
     noita_api::raw::game_print(
-        format!(
-            "Component: {:?}, Hp: {}, tranform: {:?}",
-            damage_model.0,
-            hp * 25.0,
-            transform
-        )
-        .into(),
+        format!("Component: {:?}, Hp: {}", damage_model.0, hp * 25.0,).into(),
     )?;
+
+    let entities = noita_api::raw::entity_get_in_radius_with_tag(x, y, 300.0, "enemy".into())?;
+    noita_api::raw::game_print(format!("{:?}", entities).into())?;
 
     // noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
 

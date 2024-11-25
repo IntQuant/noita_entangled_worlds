@@ -27,6 +27,10 @@ def maybe_map_types(name, typ):
         typ = "bool"
     if typ == "boolean":
         typ = "bool"
+    if typ == "item_entity_id":
+        typ = "entity_id"
+    if typ == "physics_body_id":
+        raise ValueError(f"{typ} not supported")
     return typ
 
 def parse_arg(arg_s):
@@ -61,10 +65,15 @@ def parse_ret(ret_s):
     
     if "|" in ret_s:
         raise ValueError("multiple return types not supported")
-    if "{" in ret_s:
-        raise ValueError("tables in returns not supported")
     if "multiple_types" in ret_s:
         raise ValueError("no 'multiple_types' either")
+
+    returns_vec = False
+    if ret_s.startswith("{"):
+        ret_s = ret_s.removeprefix("{").removesuffix("}")
+        returns_vec = True
+    if "-" in ret_s:
+        raise ValueError("No support for key-value tables in returns")
     
     typ = ret_s
     name = None
@@ -80,7 +89,8 @@ def parse_ret(ret_s):
     return {
         "name": name,
         "typ": typ,
-        "optional": optional
+        "optional": optional,
+        "is_vec": returns_vec,
     }
     
 

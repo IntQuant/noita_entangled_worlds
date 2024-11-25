@@ -108,7 +108,24 @@ struct FnArg {
 struct FnRet {
     // name: String,
     typ: Typ2,
-    // optional: bool,
+    optional: bool,
+    is_vec: bool,
+}
+impl FnRet {
+    fn as_rust_type_return(&self) -> proc_macro2::TokenStream {
+        let mut ret = self.typ.as_rust_type_return();
+        if self.is_vec {
+            ret = quote! {
+                Vec<#ret>
+            };
+        }
+        if self.optional {
+            ret = quote! {
+                Option<#ret>
+            };
+        }
+        ret
+    }
 }
 
 #[derive(Deserialize)]
@@ -230,9 +247,9 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
     } else {
         if api_fn.rets.len() == 1 {
             let ret = api_fn.rets.first().unwrap();
-            ret.typ.as_rust_type_return()
+            ret.as_rust_type_return()
         } else {
-            let ret_types = api_fn.rets.iter().map(|ret| ret.typ.as_rust_type_return());
+            let ret_types = api_fn.rets.iter().map(|ret| ret.as_rust_type_return());
             quote! { ( #(#ret_types),* ) }
         }
     };

@@ -26,7 +26,7 @@ impl EntityID {
         tag: Option<Cow<'_, str>>,
     ) -> eyre::Result<Option<C>> {
         raw::entity_get_first_component(self, C::NAME_STR.into(), tag)
-            .map(|x| x.map(Into::into))
+            .map(|x| x.flatten().map(Into::into))
             .wrap_err_with(|| eyre!("Failed to get first component {} for {self:?}", C::NAME_STR))
     }
     pub fn get_first_component<C: Component>(self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
