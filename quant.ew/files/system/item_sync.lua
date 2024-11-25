@@ -261,16 +261,12 @@ local function is_peers_item(gid, peer)
     return string.sub(gid, 1, 16) == peer
 end
 
-local function is_my_item(gid)
+function item_sync.is_my_item(gid)
     return string.sub(gid, 1, 16) == ctx.my_id
 end
 
-function item_sync.is_my_item(gid)
-    is_my_item(gid)
-end
-
 function item_sync.take_authority(gid)
-    if not is_my_item(gid) then
+    if gid ~= nil and not item_sync.is_my_item(gid) then
         local new_id = allocate_global_id()
         rpc.give_authority_to(gid, new_id)
     end
@@ -370,7 +366,7 @@ local function send_item_positions(all)
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
-        if gid ~= nil and is_my_item(gid) and is_item_on_ground(item) then
+        if gid ~= nil and item_sync.is_my_item(gid) and is_item_on_ground(item) then
             local x, y = EntityGetTransform(item)
             local dx, dy = x - cx, y - cy
             if (ignore[gid] == nil or ignore[gid] < GameGetFrameNum()) and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT then
@@ -430,45 +426,6 @@ local function send_item_positions(all)
     dead_entities = {}
 end
 
-function item_sync.on_world_update_host()
-    local my_player = ctx.my_player
-    if GameGetFrameNum() % 5 == 4 then
-        mark_in_inventory(my_player)
-    end
-    local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil then
-        item_sync.make_item_global(thrown_item)
-    end
-    local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
-        local gid = item_sync.get_global_item_id(picked_item)
-        if gid ~= nil then
-            item_sync.host_localize_item(gid, ctx.my_id)
-        end
-    end
-    remove_client_items_from_world()
-end
-
-function item_sync.on_world_update_client()
-    local my_player = ctx.my_player
-    if GameGetFrameNum() % 5 == 4 then
-        mark_in_inventory(my_player)
-    end
-    local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil and is_my_item(item_sync.get_global_item_id(thrown_item)) then
-        item_sync.make_item_global(thrown_item)
-    end
-
-    local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
-        local gid = item_sync.get_global_item_id(picked_item)
-        if gid ~= nil then
-            rpc.item_localize_req(gid)
-        end
-    end
-    remove_client_items_from_world()
-end
-
 local function is_safe_to_remove()
     return not ctx.is_wand_pickup
 end
@@ -506,6 +463,27 @@ function item_sync.on_world_update()
             end
         end
     end
+
+    if GameGetFrameNum() % 5 == 4 then
+        mark_in_inventory(ctx.my_player)
+    end
+    local thrown_item = get_global_ent("ew_thrown")
+    if thrown_item ~= nil and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(item_sync.get_global_item_id(thrown_item))) then
+        item_sync.make_item_global(thrown_item)
+    end
+
+    local picked_item = get_global_ent("ew_picked")
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
+        local gid = item_sync.get_global_item_id(picked_item)
+        if gid ~= nil then
+            if ctx.is_host then
+                item_sync.host_localize_item(gid, ctx.my_id)
+            else
+                rpc.item_localize_req(gid)
+            end
+        end
+    end
+    remove_client_items_from_world()
 end
 
 function item_sync.on_should_send_updates()
@@ -697,7 +675,7 @@ function rpc.update_positions(position_data, all)
 end
 
 function rpc.request_send_again(gid)
-    if not is_my_item(gid) then
+    if gid ~= nil and not item_sync.is_my_item(gid) then
         return
     end
     local item = item_sync.find_by_gid(gid)
