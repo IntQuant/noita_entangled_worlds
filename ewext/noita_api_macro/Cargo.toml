@@ -1,3 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["noita_api", "noita_api_macro"]
+
 [package]
 name = "noita_api_macro"
 version = "0.1.0"

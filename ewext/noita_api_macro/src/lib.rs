@@ -201,7 +201,7 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
 
     quote! {
         #[derive(Clone, Copy, PartialEq, Eq)]
-        pub struct #component_name(pub(crate) ComponentID);
+        pub struct #component_name(pub ComponentID);
 
         impl #component_name {
             #(#impls)*
@@ -271,7 +271,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
 
     quote! {
         #[doc = #fn_doc]
-        pub(crate) fn #fn_name(#(#args,)*) -> eyre::Result<#ret_type> {
+        pub fn #fn_name(#(#args,)*) -> eyre::Result<#ret_type> {
             let lua = LuaState::current()?;
 
             lua.get_global(#fn_name_c);
@@ -304,9 +304,9 @@ pub fn add_lua_fn(item: TokenStream) -> TokenStream {
     let fn_name_c = name_to_c_literal(fn_name);
     quote! {
         unsafe extern "C" fn #bridge_fn_name(lua: *mut lua_State) -> c_int {
-            let lua_state = LuaState::new(lua);
+            let lua_state = noita_api::lua::LuaState::new(lua);
             lua_state.make_current();
-            crate::lua_state::LuaFnRet::do_return(#fn_name_ident(lua_state), lua_state)
+            noita_api::lua::LuaFnRet::do_return(#fn_name_ident(lua_state), lua_state)
         }
 
         LUA.lua_pushcclosure(lua, Some(#bridge_fn_name), 0);

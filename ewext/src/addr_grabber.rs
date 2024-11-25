@@ -1,11 +1,9 @@
 use std::{mem, os::raw::c_void, ptr, sync::OnceLock};
 
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
+use noita_api::lua::LuaState;
 
-use crate::{
-    lua_state::LuaState,
-    noita::ntypes::{EntityManager, ThiscallFn},
-};
+use crate::noita::ntypes::{EntityManager, ThiscallFn};
 
 static GRABBED: OnceLock<Grabbed> = OnceLock::new();
 

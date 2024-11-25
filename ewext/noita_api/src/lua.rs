@@ -1,19 +1,23 @@
+pub mod lua_bindings;
+
 use std::{
     cell::Cell,
     ffi::{c_char, c_int, CStr},
     mem, slice,
+    sync::LazyLock,
 };
 
 use eyre::{bail, Context, OptionExt};
-
-use crate::{
-    lua_bindings::{lua_CFunction, lua_State, LUA_GLOBALSINDEX},
-    LUA,
-};
+use lua_bindings::{lua_CFunction, lua_State, Lua51, LUA_GLOBALSINDEX};
 
 thread_local! {
     static CURRENT_LUA_STATE: Cell<Option<LuaState>> = Cell::default();
 }
+
+pub static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
+    let lib = libloading::Library::new("./lua51.dll").expect("library to exist");
+    Lua51::from_library(lib).expect("library to be lua")
+});
 
 #[derive(Clone, Copy)]
 pub struct LuaState {
@@ -36,7 +40,7 @@ impl LuaState {
         CURRENT_LUA_STATE.set(Some(self));
     }
 
-    pub(crate) fn raw(&self) -> *mut lua_State {
+    pub fn raw(&self) -> *mut lua_State {
         self.lua
     }
 
@@ -117,12 +121,12 @@ impl LuaState {
     }
 }
 
-pub(crate) trait LuaFnRet {
+pub trait LuaFnRet {
     fn do_return(self, lua: LuaState) -> c_int;
 }
 
 /// Function intends to return several values that it has on stack.
-pub(crate) struct ValuesOnStack(pub(crate) c_int);
+pub struct ValuesOnStack(pub c_int);
 
 impl LuaFnRet for ValuesOnStack {
     fn do_return(self, _lua: LuaState) -> c_int {
@@ -141,7 +145,7 @@ impl<R: LuaFnRet> LuaFnRet for eyre::Result<R> {
         match self {
             Ok(ok) => ok.do_return(lua),
             Err(err) => unsafe {
-                lua.raise_error(format!("Error in ewext call: {:?}", err));
+                lua.raise_error(format!("Error in rust call: {:?}", err));
             },
         }
     }

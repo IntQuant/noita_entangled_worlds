@@ -1,30 +1,20 @@
-use crate::noita::api::DamageModelComponent;
 use std::{
     arch::asm,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
-    sync::LazyLock,
     time::Instant,
 };
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use eyre::bail;
-use lua_bindings::{lua_State, Lua51};
-use lua_state::{LuaState, ValuesOnStack};
-use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
-use noita_api_macro::add_lua_fn;
 
-mod lua_bindings;
-pub mod lua_state;
+use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
+use noita_api::lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA};
+use noita_api_macro::add_lua_fn;
 
 pub mod noita;
 
 mod addr_grabber;
-
-static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
-    let lib = libloading::Library::new("./lua51.dll").expect("library to exist");
-    Lua51::from_library(lib).expect("library to be lua")
-});
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
@@ -69,7 +59,7 @@ fn encode_area(lua: LuaState) -> ValuesOnStack {
         let runs = unsafe { pws.encode_area(start_x, start_y, end_x, end_y, encoded_buffer) };
         unsafe { LUA.lua_pushinteger(lua, runs as isize) };
     });
-    lua_state::ValuesOnStack(1)
+    ValuesOnStack(1)
 }
 
 fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
@@ -105,12 +95,12 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     let start = Instant::now();
     let iters = 10000;
     for _ in 0..iters {
-        let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
-        noita::api::raw::entity_set_transform(player, 0.0, Some(0.0), None, None, None)?;
+        let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
+        noita_api::raw::entity_set_transform(player, 0.0, Some(0.0), None, None, None)?;
     }
     let elapsed = start.elapsed();
 
-    noita::api::raw::game_print(
+    noita_api::raw::game_print(
         format!(
             "Took {}us to test, {}ns per call",
             elapsed.as_micros(),
@@ -123,15 +113,15 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn test_fn(_lua: LuaState) -> eyre::Result<()> {
-    let player = noita::api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
-    let damage_model = DamageModelComponent(noita::api::raw::entity_get_first_component(
+    let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?;
+    let damage_model = noita_api::DamageModelComponent(noita_api::raw::entity_get_first_component(
         player,
         "DamageModelComponent".into(),
         None,
     )?);
     let hp = damage_model.hp()?;
 
-    noita::api::raw::game_print(
+    noita_api::raw::game_print(
         format!("Component: {:?}, Hp: {}", damage_model.0, hp * 25.0).into(),
     )?;
 
