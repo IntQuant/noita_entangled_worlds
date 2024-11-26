@@ -1,0 +1,7889 @@
+[
+  {
+    "fn_name": "EntityLoad",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityLoadEndGameItem",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityLoadCameraBound",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityLoadToEntity",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Loads components from 'filename' to 'entity'. Does not load tags and other stuff.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntitySave",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Note: works only in dev builds.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityCreateNew",
+    "args": [
+      {
+        "name": "name",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityKill",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetIsAlive",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityRemoveComponent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetAllComponents",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns a table of component ids.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetComponent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_type_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "component_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetFirstComponent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_type_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "component_id",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetComponentIncludingDisabled",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_type_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "component_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetFirstComponentIncludingDisabled",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_type_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "component_id",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntitySetTransform",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "rotation",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "scale_x",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "scale_y",
+        "typ": "number",
+        "default": "1"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityApplyTransform",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "rotation",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "scale_x",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "scale_y",
+        "typ": "number",
+        "default": "1"
+      }
+    ],
+    "desc": "Sets the transform and tries to immediately refresh components that calculate values based on an entity's transform.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetTransform",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "rotation",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "scale_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "scale_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityAddChild",
+    "args": [
+      {
+        "name": "parent_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "child_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetAllChildren",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "If passed the optional 'tag' parameter, will return only child entities that have that tag (If 'tag' isn't a valid tag name, will return no entities). If no entities are returned, might return either an empty table or nil.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetParent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetRootEntity",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns the given entity if it has no parent, otherwise walks up the parent hierarchy to the topmost parent and returns it.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityRemoveFromParent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntitySetComponentsWithTagEnabled",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "enabled",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntitySetComponentIsEnabled",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "is_enabled",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetName",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "name",
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntitySetName",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetTags",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns a string where the tags are comma-separated, or nil if 'entity_id' doesn't point to a valid entity.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetWithTag",
+    "args": [
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns all entities with 'tag'.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetInRadius",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Returns all entities in 'radius' distance from 'x','y'.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetInRadiusWithTag",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "entity_tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns all entities in 'radius' distance from 'x','y'.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetClosest",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetClosestWithTag",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetWithName",
+    "args": [
+      {
+        "name": "name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityAddTag",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityRemoveTag",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityHasTag",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetFilename",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Return value example: 'data/entities/items/flute.xml'. Incorrect value is returned if the entity has passed through the world streaming system.",
+    "rets": [
+      {
+        "name": "full_path",
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntitiesGetMaxID",
+    "args": [],
+    "desc": "Returns the max entity ID currently in use. Entity IDs are increased linearly.",
+    "rets": [
+      {
+        "name": "entity_max_id",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ComponentAddTag",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "ComponentRemoveTag",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "ComponentGetTags",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns a string where the tags are comma-separated, or nil if can't find 'component_id' component.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ComponentHasTag",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ComponentGetVectorSize",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "array_member_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "type_stored_in_vector",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "'type_stored_in_vector' should be \"int\", \"float\" or \"string\".",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ComponentGetIsEnabled",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns true if the given component exists and is enabled, else false.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ComponentGetEntity",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns the id of the entity that owns a component, or 0.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ComponentGetTypeName",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GetUpdatedEntityID",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GetUpdatedComponentID",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SetTimeOut",
+    "args": [
+      {
+        "name": "time_to_execute",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "file_to_execute",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "function_to_call",
+        "typ": "string",
+        "default": "nil"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "RegisterSpawnFunction",
+    "args": [
+      {
+        "name": "color",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "function_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "SpawnActionItem",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "level",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "SpawnStash",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "level",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "action_count",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SpawnApparition",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "level",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "spawn_now",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "spawn_state_id",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "LoadEntityToStash",
+    "args": [
+      {
+        "name": "entity_file",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "stash_entity_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "AddMaterialInventoryMaterial",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "count",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "RemoveMaterialInventoryMaterial",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "If material_name is empty, all materials will be removed.",
+    "rets": []
+  },
+  {
+    "fn_name": "GetMaterialInventoryMainMaterial",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "ignore_box2d_materials",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Returns the id of the material taking the largest part of the first MaterialInventoryComponent in 'entity_id', or 0 if nothing is found.",
+    "rets": [
+      {
+        "name": "material_type",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameScreenshake",
+    "args": [
+      {
+        "name": "strength",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": "camera_x"
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "camera_y"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameOnCompleted",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGiveAchievement",
+    "args": [
+      {
+        "name": "id",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameDoEnding2",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "BiomeMapLoad_KeepPlayer",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "pixel_scenes",
+        "typ": "string",
+        "default": "\"data/biome/_pixel_scenes.xml\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameIsIntroPlaying",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetIsGamepadConnected",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetWorldStateEntity",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetPlayerStatsEntity",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetOrbCountAllTime",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetOrbCountThisRun",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetOrbCollectedThisRun",
+    "args": [
+      {
+        "name": "orb_id_zero_based",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetOrbCollectedAllTime",
+    "args": [
+      {
+        "name": "orb_id_zero_based",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameClearOrbsFoundThisRun",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetOrbCountTotal",
+    "args": [],
+    "desc": "Returns the number of orbs, picked or not.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetName",
+    "args": [
+      {
+        "name": "material_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Converts a numeric material id to the material's strings id.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetType",
+    "args": [
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns the id of a material.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetUIName",
+    "args": [
+      {
+        "name": "material_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Returns the displayed name of a material, or an empty string if 'material_id' is not valid. Might return a text key.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllLiquids",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllSands",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllGases",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllFires",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetAllSolids",
+    "args": [
+      {
+        "name": "include_statics",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "include_particle_fx_materials",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_GetTags",
+    "args": [
+      {
+        "name": "material_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "CellFactory_HasTag",
+    "args": [
+      {
+        "name": "material_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "tag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetCameraPos",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameSetCameraPos",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameSetCameraFree",
+    "args": [
+      {
+        "name": "is_free",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetCameraBounds",
+    "args": [],
+    "desc": "Returns the camera rectangle. This may not be 100% pixel perfect with regards to what you see on the screen. 'x','y' = top left corner of the rectangle.",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "w",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "h",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameRegenItemAction",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameRegenItemActionsInContainer",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameRegenItemActionsInPlayer",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameKillInventoryItem",
+    "args": [
+      {
+        "name": "inventory_owner_entity_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "item_entity_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GamePickUpInventoryItem",
+    "args": [
+      {
+        "name": "who_picks_up_entity_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "item_entity_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "do_pick_up_effects",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetAllInventoryItems",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Returns all the inventory items that entity_id has.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "entity_id",
+        "optional": true,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "GameDropAllItems",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameDropPlayerInventoryItems",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameDestroyInventoryItems",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameIsInventoryOpen",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameTriggerGameOver",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "LoadBackgroundSprite",
+    "args": [
+      {
+        "name": "background_file",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "background_z_index",
+        "typ": "number",
+        "default": "40.0"
+      },
+      {
+        "name": "check_biome_corners",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "RemovePixelSceneBackgroundSprites",
+    "args": [
+      {
+        "name": "x_min",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y_min",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "x_max",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y_max",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "NOTE! Removes pixel scene background sprites inside the given area.",
+    "rets": []
+  },
+  {
+    "fn_name": "GameCreateCosmeticParticle",
+    "args": [
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "how_many",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "xvel",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "yvel",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "color",
+        "typ": "color",
+        "default": "0"
+      },
+      {
+        "name": "lifetime_min",
+        "typ": "number",
+        "default": "5.0"
+      },
+      {
+        "name": "lifetime_max",
+        "typ": "number",
+        "default": "10"
+      },
+      {
+        "name": "force_create",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "draw_front",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "collide_with_grid",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "randomize_velocity",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "gravity_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "gravity_y",
+        "typ": "number",
+        "default": "100.0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameCreateParticle",
+    "args": [
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "how_many",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "xvel",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "yvel",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "just_visual",
+        "typ": "bool",
+        "default": null
+      },
+      {
+        "name": "draw_as_long",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "randomize_velocity",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameCreateSpriteForXFrames",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "centered",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "sprite_offset_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "sprite_offset_y",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "frames",
+        "typ": "int",
+        "default": "1"
+      },
+      {
+        "name": "emissive",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameShootProjectile",
+    "args": [
+      {
+        "name": "shooter_entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "target_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "target_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "projectile_entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "send_message",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "verlet_parent_entity",
+        "typ": "int",
+        "default": "0"
+      }
+    ],
+    "desc": "'shooter_entity' can be 0. Warning: If 'projectile_entity' has PhysicsBodyComponent and ItemComponent, components without the \"enabled_in_world\" tag will be disabled, as if the entity was thrown by player.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityInflictDamage",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "amount",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "damage_type",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "description",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "ragdoll_fx",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "impulse_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "impulse_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "entity_who_is_responsible",
+        "typ": "int",
+        "default": "0"
+      },
+      {
+        "name": "world_pos_x",
+        "typ": "number",
+        "default": "entity_x"
+      },
+      {
+        "name": "world_pos_y",
+        "typ": "number",
+        "default": "entity_y"
+      },
+      {
+        "name": "knockback_force",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityIngestMaterial",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "material_type",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "amount",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Has the same effects that would occur if 'entity' eats 'amount' number of cells of 'material_type' from the game world. Use this instead of directly modifying IngestionComponent values, if possible. Might not work with non-player entities. Use CellFactory_GetType() to convert a material name to material type.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityRemoveIngestionStatusEffect",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "status_type_id",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityRemoveStainStatusEffect",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "status_type_id",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "status_cooldown",
+        "typ": "int",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityAddRandomStains",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "material_type",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "amount",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Adds random visible stains of 'material_type' to entity. 'amount' controls the number of stain cells added. Does nothing if 'entity' doesn't have a SpriteStainsComponent. Use CellFactory_GetType() to convert a material name to material type.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntitySetDamageFromMaterial",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "damage",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Modifies DamageModelComponents materials_that_damage and materials_how_much_damage variables (and their parsed out data structures)",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityRefreshSprite",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "sprite_component",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Immediately refreshes the given SpriteComponent. Might be useful with text sprites if you want them to update more often than once a second.",
+    "rets": []
+  },
+  {
+    "fn_name": "EntityGetWandCapacity",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Returns the capacity of a wand entity, or 0 if 'entity' doesnt exist.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetHotspot",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "hotspot_tag",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "transformed",
+        "typ": "bool",
+        "default": null
+      },
+      {
+        "name": "include_disabled_components",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Returns the position of a hot spot defined by a HotspotComponent. If 'transformed' is true, will return the position in world coordinates, transformed using the entity's transform.",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GamePlayAnimation",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "priority",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "followup_name",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "followup_priority",
+        "typ": "int",
+        "default": "0"
+      }
+    ],
+    "desc": "Plays animation. Follow up animation ('followup_name') is applied only if 'followup_priority' is given.",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetVelocityCompVelocity",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetGameEffect",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "game_effect_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetGameEffectCount",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "game_effect_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "LoadGameEffectEntityTo",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "game_effect_entity_file",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "effect_entity_id",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GetGameEffectLoadTo",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "game_effect_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "always_load_new",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "effect_component_id",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "effect_entity_id",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PolymorphTableAddEntity",
+    "args": [
+      {
+        "name": "entity_xml",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "is_rare",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "add_only_one_copy",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Adds the entity to the polymorph random table",
+    "rets": []
+  },
+  {
+    "fn_name": "PolymorphTableRemoveEntity",
+    "args": [
+      {
+        "name": "entity_xml",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "from_common_table",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "from_rare_table",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Removes the entity from the polymorph random table",
+    "rets": []
+  },
+  {
+    "fn_name": "PolymorphTableGet",
+    "args": [],
+    "desc": "Returns a list of all the entities in the polymorph random table",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "PolymorphTableSet",
+    "args": [],
+    "desc": "Set a list of all entities sas the polymorph random table",
+    "rets": []
+  },
+  {
+    "fn_name": "SetPlayerSpawnLocation",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "UnlockItem",
+    "args": [
+      {
+        "name": "action_id",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetPotionColorUint",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "color",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "Raytrace",
+    "args": [
+      {
+        "name": "x1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "x2",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y2",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Does a raytrace that stops on any cell it hits.",
+    "rets": [
+      {
+        "name": "did_hit",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "RaytraceSurfaces",
+    "args": [
+      {
+        "name": "x1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "x2",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y2",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Does a raytrace that stops on any cell that is not fluid, gas (yes, technically gas is a fluid), or fire.",
+    "rets": [
+      {
+        "name": "did_hit",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "RaytraceSurfacesAndLiquiform",
+    "args": [
+      {
+        "name": "x1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "x2",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y2",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Does a raytrace that stops on any cell that is not gas or fire.",
+    "rets": [
+      {
+        "name": "did_hit",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "RaytracePlatforms",
+    "args": [
+      {
+        "name": "x1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y1",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "x2",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y2",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Does a raytrace that stops on any cell a character can stand on.",
+    "rets": [
+      {
+        "name": "did_hit",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hit_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "FindFreePositionForBody",
+    "args": [
+      {
+        "name": "ideal_pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "idea_pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "velocity_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "velocity_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "body_radius",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GetSurfaceNormal",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "ray_length",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "ray_count",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "found_normal",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "normal_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "normal_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "approximate_distance_from_surface",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetSkyVisibility",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Returns the approximate sky visibility (sky ambient level) at a point as a number between 0 and 1. The value is not affected by weather or time of day. This value is used by the post fx shader after some temporal and spatial smoothing.",
+    "rets": [
+      {
+        "name": "sky",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetFogOfWar",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Returns an integer between 0 and 255. Larger value means more coverage. Returns -1 if query is outside the bounds of the fog of war grid. For performance reasons consider using the components that manipulate fog of war.",
+    "rets": [
+      {
+        "name": "fog_of_war",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetFogOfWarBilinear",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Returns an integer between 0 and 255. Larger value means more coverage. Returns -1 if query is outside the bounds of the fog of war grid. The value is bilinearly filtered using four samples around 'pos'. For performance reasons consider using the components that manipulate fog of war.",
+    "rets": [
+      {
+        "name": "fog_of_war",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameSetFogOfWar",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "fog_of_war",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "'fog_of_war' should be between 0 and 255 (but will be clamped to the correct range with a int32->uint8 cast). Larger value means more coverage. Returns a boolean indicating whether or not the position was inside the bounds of the fog of war grid. For performance reasons consider using the components that manipulate fog of war.",
+    "rets": [
+      {
+        "name": "pos_valid",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "DoesWorldExistAt",
+    "args": [
+      {
+        "name": "min_x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "min_y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "max_x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "max_y",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StringToHerdId",
+    "args": [
+      {
+        "name": "herd_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "HerdIdToString",
+    "args": [
+      {
+        "name": "herd_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GetHerdRelation",
+    "args": [
+      {
+        "name": "herd_id_a",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "herd_id_b",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetHerdRelation",
+    "args": [
+      {
+        "name": "entity_a",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "entity_b",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetHerdRelationSafe",
+    "args": [
+      {
+        "name": "entity_a",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "entity_b",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "does not spam errors, but returns 0 if anything fails",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetClosestWormAttractor",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "NOTE: entity_id might be NULL, but pos_x and pos_y could still be valid.",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " pos_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " pos_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityGetClosestWormDetractor",
+    "args": [
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "NOTE: entity_id might be NULL, but pos_x and pos_y could still be valid",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " pos_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " pos_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " radius",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GamePrint",
+    "args": [
+      {
+        "name": "log_line",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GamePrintImportant",
+    "args": [
+      {
+        "name": "title",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "description",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "ui_custom_decoration_file",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "DEBUG_GetMouseWorld",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "DEBUG_MARK",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "message",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "color_r",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "color_g",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "color_b",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetFrameNum",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetRealWorldTimeSinceStarted",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsKeyDown",
+    "args": [
+      {
+        "name": "key_code",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if a key is down,  does not depend on state. E.g. player could be in menus or inputting text. See data/scripts/debug/keycodes.lua for the constants).",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsKeyJustDown",
+    "args": [
+      {
+        "name": "key_code",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if a key is down this frame,  does not depend on state. E.g. player could be in menus or inputting text. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsKeyJustUp",
+    "args": [
+      {
+        "name": "key_code",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if a key is up this frame,  does not depend on state. E.g. player could be in menus or inputting text. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputGetMousePosOnScreen",
+    "args": [],
+    "desc": "Debugish function - returns raw x,  y coordinates of the mouse on screen",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsMouseButtonDown",
+    "args": [
+      {
+        "name": "mouse_button",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if mouse button is down. Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsMouseButtonJustDown",
+    "args": [
+      {
+        "name": "mouse_button",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if mouse button is down. Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsMouseButtonJustUp",
+    "args": [
+      {
+        "name": "mouse_button",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if mouse button is down. Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsJoystickButtonDown",
+    "args": [
+      {
+        "name": "joystick_index",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "joystick_button",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if 'joystick' button is down. Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsJoystickButtonJustDown",
+    "args": [
+      {
+        "name": "joystick_index",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "joystick_button",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns if 'joystick' button is just down. Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputGetJoystickAnalogButton",
+    "args": [
+      {
+        "name": "joystick_index",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "analog_button_index",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns analog 'joystick' button value (0-1). analog_button_index 0 = left trigger,  1 = right trigger Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "InputIsJoystickConnected",
+    "args": [
+      {
+        "name": "joystick_index",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Debugish function - returns true if 'joystick' at that index is connected. Does not depend on state. E.g. player could be in menus. See data/scripts/debug/keycodes.lua for the constants",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "IsPlayer",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "IsInvisible",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameIsDailyRun",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameIsDailyRunOrDailyPracticeRun",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameIsModeFullyDeterministic",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GlobalsSetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "value",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GlobalsGetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "default_value",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "MagicNumbersGetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SetWorldSeed",
+    "args": [
+      {
+        "name": "new_seed",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "SessionNumbersGetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SessionNumbersSetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "value",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "SessionNumbersSave",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "AutosaveDisable",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "StatsGetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StatsGlobalGetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StatsBiomeGetValue",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StatsBiomeReset",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "StatsLogPlayerKill",
+    "args": [
+      {
+        "name": "killed_entity_id",
+        "typ": "int",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "CreateItemActionEntity",
+    "args": [
+      {
+        "name": "action_id",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GetRandomAction",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "max_level",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "i",
+        "typ": "int",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetDateAndTimeUTC",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "year",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "month",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "day",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hour",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "minute",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "second",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameGetDateAndTimeLocal",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "ear",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "month",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "day",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "hour",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "minute",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "second",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameEmitRainParticles",
+    "args": [
+      {
+        "name": "num_particles",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "width_outside_camera",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "material_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "velocity_min",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "velocity_max",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "gravity",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "droplets_bounce",
+        "typ": "bool",
+        "default": null
+      },
+      {
+        "name": "draw_as_long",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameCutThroughWorldVertical",
+    "args": [
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y_min",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y_max",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "edge_darkening_width",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Each beam adds a little overhead to things like chunk creation, so please call this sparingly.",
+    "rets": []
+  },
+  {
+    "fn_name": "BiomeMapSetSize",
+    "args": [
+      {
+        "name": "width",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "height",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "This is available if BIOME_MAP in magic_numbers.xml points to a lua file, in the context of that file.",
+    "rets": []
+  },
+  {
+    "fn_name": "BiomeMapGetSize",
+    "args": [],
+    "desc": "if BIOME_MAP in magic_numbers.xml points to a lua file returns that context, if not will return the biome_map size",
+    "rets": [
+      {
+        "name": "width",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "height",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "BiomeMapSetPixel",
+    "args": [
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "color_int",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "This is available if BIOME_MAP in magic_numbers.xml points to a lua file, in the context of that file.",
+    "rets": []
+  },
+  {
+    "fn_name": "BiomeMapGetPixel",
+    "args": [
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "This is available if BIOME_MAP in magic_numbers.xml points to a lua file, in the context of that file.",
+    "rets": [
+      {
+        "name": "color",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "BiomeMapConvertPixelFromUintToInt",
+    "args": [
+      {
+        "name": "color",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Swaps red and blue channels of 'color'. This can be used make sense of the BiomeMapGetPixel() return values. E.g. if( BiomeMapGetPixel( x, y ) == BiomeMapConvertPixelFromUintToInt( 0xFF36D517 ) ) then print('hills') end",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "BiomeMapLoadImage",
+    "args": [
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "image_filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "This is available if BIOME_MAP in magic_numbers.xml points to a lua file, in the context of that file.",
+    "rets": []
+  },
+  {
+    "fn_name": "BiomeMapLoadImageCropped",
+    "args": [
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "image_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "image_x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "image_y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "image_w",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "image_h",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "This is available if BIOME_MAP in magic_numbers.xml points to a lua file, in the context of that file.",
+    "rets": []
+  },
+  {
+    "fn_name": "BiomeMapGetVerticalPositionInsideBiome",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "BiomeMapGetName",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": "camera_x"
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "camera_y"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SetRandomSeed",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "Randomf",
+    "args": [
+      {
+        "name": "min",
+        "typ": "number",
+        "default": "optional"
+      },
+      {
+        "name": "max",
+        "typ": "number",
+        "default": "optional"
+      }
+    ],
+    "desc": "This is kinda messy. If given 0 arguments, returns number between 0.0 and 1.0. If given 1 arguments, returns number between 0.0 and 'a'. If given 2 arguments returns number between 'a' and 'b'.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "RandomDistribution",
+    "args": [
+      {
+        "name": "min",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "max",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "mean",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "sharpness",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "baseline",
+        "typ": "number",
+        "default": "0.005"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "RandomDistributionf",
+    "args": [
+      {
+        "name": "min",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "max",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "mean",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "sharpness",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "baseline",
+        "typ": "number",
+        "default": "0.005"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ProceduralRandomf",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "a",
+        "typ": "number",
+        "default": "optional"
+      },
+      {
+        "name": "b",
+        "typ": "number",
+        "default": "optional"
+      }
+    ],
+    "desc": "This is kinda messy. If given 2 arguments, returns number between 0.0 and 1.0. If given 3 arguments, returns a number between 0 and 'a'. If given 4 arguments returns a number between 'a' and 'b'.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ProceduralRandomi",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "a",
+        "typ": "int",
+        "default": "optional"
+      },
+      {
+        "name": "b",
+        "typ": "int",
+        "default": "optional"
+      }
+    ],
+    "desc": "This is kinda messy. If given 2 arguments, returns 0 or 1. If given 3 arguments, returns an int between 0 and 'a'. If given 4 arguments returns an int between 'a' and 'b'.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsAddBodyCreateBox",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "material",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "offset_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "offset_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "width",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "height",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "centered",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Does not work with PhysicsBody2Component. Returns the id of the created physics body.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsAddJoint",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "body_id0",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "body_id1",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "offset_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "offset_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "joint_type",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Does not work with PhysicsBody2Component. Returns the id of the created joint.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": true,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsApplyForce",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "force_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "force_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsApplyTorque",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "torque",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsApplyTorqueToComponent",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "torque",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsRemoveJoints",
+    "args": [
+      {
+        "name": "world_pos_min_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_min_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_max_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_max_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsSetStatic",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "is_static",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsGetComponentVelocity",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "vel_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "vel_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsGetComponentAngularVelocity",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "vel",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsComponentGetTransform",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      }
+    ],
+    "desc": "NOTE! results are Box2D units. Velocities need to converted with PhysicsVecToGameVec.",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " angle",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " vel_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " vel_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " angular_vel",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsComponentSetTransform",
+    "args": [
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "angle",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "vel_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "vel_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "angular_vel",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBodyIDSetTransform",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "angle",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "vel_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "vel_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "angular_vel",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Requires min 3 first parameters.",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBodyIDApplyForce",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "force_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "force_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_x",
+        "typ": "number",
+        "default": "nil"
+      },
+      {
+        "name": "world_pos_y",
+        "typ": "number",
+        "default": "nil"
+      }
+    ],
+    "desc": "NOTE! force is in box2d units. world_pos_ is game world coordinates. If world_pos is not given will use the objects center as the position of where the force will be applied.",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBodyIDApplyLinearImpulse",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "force_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "force_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_x",
+        "typ": "number",
+        "default": "nil"
+      },
+      {
+        "name": "world_pos_y",
+        "typ": "number",
+        "default": "nil"
+      }
+    ],
+    "desc": "NOTE! impulse is in box2d units. world_pos_ is game world coordinates. If world_pos is not given will use the objects center as the position of where the force will be applied.",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBodyIDApplyTorque",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "torque",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBodyIDGetWorldCenter",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "NOTE! returns nil, if body was not found. Results are Box2D units.",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsBodyIDGetDamping",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "NOTE! returns nil, if body was not found. Results are 0-1.",
+    "rets": [
+      {
+        "name": "linear_damping",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " angular_damping",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsBodyIDSetDamping",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "linear_damping",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "angular_damping",
+        "typ": "number",
+        "default": "nil"
+      }
+    ],
+    "desc": "NOTE! if angular_damping is given will set it as well.",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBodyIDGetGravityScale",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "NOTE! returns nil, if body was not found.",
+    "rets": [
+      {
+        "name": "gravity_scale",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsBodyIDSetGravityScale",
+    "args": [
+      {
+        "name": "physics_body_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "gravity_scale",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsBody2InitFromComponents",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "PhysicsPosToGamePos",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GamePosToPhysicsPos",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsVecToGameVec",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameVecToPhysicsVec",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "LooseChunk",
+    "args": [
+      {
+        "name": "world_pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "image_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "max_durability",
+        "typ": "int",
+        "default": "2147483647"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "VerletApplyCircularForce",
+    "args": [
+      {
+        "name": "world_pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "force",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "VerletApplyDirectionalForce",
+    "args": [
+      {
+        "name": "world_pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "radius",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "force_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "force_y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "AddFlagPersistent",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "RemoveFlagPersistent",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "HasFlagPersistent",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameAddFlagRun",
+    "args": [
+      {
+        "name": "flag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameRemoveFlagRun",
+    "args": [
+      {
+        "name": "flag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameHasFlagRun",
+    "args": [
+      {
+        "name": "flag",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameTriggerMusicEvent",
+    "args": [
+      {
+        "name": "event_path",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "can_be_faded",
+        "typ": "bool",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameTriggerMusicCue",
+    "args": [
+      {
+        "name": "name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameTriggerMusicFadeOutAndDequeueAll",
+    "args": [
+      {
+        "name": "relative_fade_speed",
+        "typ": "number",
+        "default": "1"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GamePlaySound",
+    "args": [
+      {
+        "name": "bank_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "event_path",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameEntityPlaySound",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "event_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Plays a sound through all AudioComponents with matching sound in 'entity_id'.",
+    "rets": []
+  },
+  {
+    "fn_name": "GameEntityPlaySoundLoop",
+    "args": [
+      {
+        "name": "entity",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "component_tag",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "intensity",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "intensity2",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Plays a sound loop through an AudioLoopComponent tagged with 'component_tag' in 'entity'. 'intensity' & 'intensity2' affect the intensity parameters passed to the audio event. Must be called every frame when the sound should play.",
+    "rets": []
+  },
+  {
+    "fn_name": "GameSetPostFxParameter",
+    "args": [
+      {
+        "name": "parameter_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "z",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "w",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Can be used to pass custom parameters to the post_final shader, or override values set by the game code. The shader uniform called 'parameter_name' will be set to the latest given values on this and following frames.",
+    "rets": []
+  },
+  {
+    "fn_name": "GameUnsetPostFxParameter",
+    "args": [
+      {
+        "name": "parameter_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Will remove a post_final shader parameter value binding set via game GameSetPostFxParameter().",
+    "rets": []
+  },
+  {
+    "fn_name": "GameSetPostFxTextureParameter",
+    "args": [
+      {
+        "name": "parameter_name",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "texture_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "filtering_mode",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "wrapping_mode",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "update_texture",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Can be used to pass 2D textures to the post_final shader. The shader uniform called 'parameter_name' will be set to the latest given value on this and following frames. 'texture_filename' can either point to a file, or a virtual file created using the ModImage API.\n\nIf 'update_texture' is true, the texture will be re-uploaded to the GPU (could be useful with dynamic textures, but will incur a heavy performance hit with textures that are loaded from the disk).\n\nAccepted values for 'filtering_mode' and 'wrapping_mode' can be found in 'data/libs/utilities.lua'. Each call with a unique 'parameter_name' will create a separate texture while the parameter is in use, so this should be used with some care. While it's possible to change 'texture_filename' on the fly, if texture size changed, this causes destruction of the old texture and allocating a new one, which can be quite slow.",
+    "rets": []
+  },
+  {
+    "fn_name": "GameUnsetPostFxTextureParameter",
+    "args": [
+      {
+        "name": "name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Will remove a post_final shader parameter value binding set via game GameSetPostFxTextureParameter().",
+    "rets": []
+  },
+  {
+    "fn_name": "GameTextGetTranslatedOrNot",
+    "args": [
+      {
+        "name": "text_or_key",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameTextGet",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "param0",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "param1",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "param2",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiCreate",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiDestroy",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiStartFrame",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiOptionsAdd",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "option",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Sets the options that apply to widgets during this frame. For 'option' use the values in the GUI_OPTION table in \"data/scripts/lib/utilities.lua\". Values from consecutive calls will be combined. For example calling this with the values GUI_OPTION.Align_Left and GUI_OPTION.GamepadDefaultWidget will set both options for the next widget. The options will be cleared on next call to GuiStartFrame().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiOptionsRemove",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "option",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Sets the options that apply to widgets during this frame. For 'option' use the values in the GUI_OPTION table in \"data/scripts/lib/utilities.lua\". Values from consecutive calls will be combined. For example calling this with the values GUI_OPTION.Align_Left and GUI_OPTION.GamepadDefaultWidget will set both options for the next widget. The options will be cleared on next call to GuiStartFrame().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiOptionsClear",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Clears the options that apply to widgets during this frame.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiOptionsAddForNextWidget",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "option",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiColorSetForNextWidget",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "red",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "green",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "blue",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "alpha",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Sets the color of the next widget during this frame. Color components should be in the 0-1 range.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiZSet",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "z",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Sets the rendering depth ('z') of the widgets following this call. Larger z = deeper. The z will be set to 0 on the next call to GuiStartFrame().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiZSetForNextWidget",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "z",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiIdPush",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Can be used to solve ID conflicts. All ids given to Gui* functions will be hashed with the ids stacked (and hashed together) using GuiIdPush() and GuiIdPop(). The id stack has a max size of 1024, and calls to the function will do nothing if the size is exceeded.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiIdPushString",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "str",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Pushes the hash of 'str' as a gui id. See GuiIdPush().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiIdPop",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "See GuiIdPush().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiAnimateBegin",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Starts a scope where animations initiated using GuiAnimateAlphaFadeIn() etc. will be applied to all widgets.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiAnimateEnd",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Ends a scope where animations initiated using GuiAnimateAlphaFadeIn() etc. will be applied to all widgets.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiAnimateAlphaFadeIn",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "speed",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "step",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "reset",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Does an alpha tween animation for all widgets inside a scope set using GuiAnimateBegin() and GuiAnimateEnd().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiAnimateScaleIn",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "acceleration",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "reset",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Does a scale tween animation for all widgets inside a scope set using GuiAnimateBegin() and GuiAnimateEnd().",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiText",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "text",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "scale",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "font",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "font_is_pixel_font",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiImage",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "sprite_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "alpha",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "scale",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "scale_y",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "rotation",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "rect_animation_playback_type",
+        "typ": "int",
+        "default": "GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide"
+      },
+      {
+        "name": "rect_animation_name",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "'scale' will be used for 'scale_y' if 'scale_y' equals 0.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiImageNinePiece",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "width",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "height",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "alpha",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "sprite_filename",
+        "typ": "string",
+        "default": "\"data/ui_gfx/decorations/9piece0_gray.png\""
+      },
+      {
+        "name": "sprite_highlight_filename",
+        "typ": "string",
+        "default": "\"data/ui_gfx/decorations/9piece0_gray.png\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiButton",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "text",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "scale",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "font",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "font_is_pixel_font",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "The old parameter order where 'id' is the last parameter is still supported. The function dynamically picks the correct order based on the type of the 4th parameter.",
+    "rets": [
+      {
+        "name": "clicked",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "right_clicked",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiImageButton",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "text",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "sprite_filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "clicked",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "right_clicked",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiSlider",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "text",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "value",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "value_min",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "value_max",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "value_default",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "value_display_multiplier",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "value_formatting",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "width",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "This is not intended to be outside mod settings menu, and might bug elsewhere.",
+    "rets": [
+      {
+        "name": "new_value",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiBeginAutoBox",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiEndAutoBoxNinePiece",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "margin",
+        "typ": "number",
+        "default": "5"
+      },
+      {
+        "name": "size_min_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "size_min_y",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "mirrorize_over_x_axis",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "x_axis",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "sprite_filename",
+        "typ": "string",
+        "default": "\"data/ui_gfx/decorations/9piece0_gray.png\""
+      },
+      {
+        "name": "sprite_highlight_filename",
+        "typ": "string",
+        "default": "\"data/ui_gfx/decorations/9piece0_gray.png\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiTooltip",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "text",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "description",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiBeginScrollContainer",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "width",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "height",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "scrollbar_gamepad_focusable",
+        "typ": "bool",
+        "default": "true"
+      },
+      {
+        "name": "margin_x",
+        "typ": "number",
+        "default": "2"
+      },
+      {
+        "name": "margin_y",
+        "typ": "number",
+        "default": "2"
+      }
+    ],
+    "desc": "This can be used to create a container with a vertical scroll bar. Widgets between GuiBeginScrollContainer() and GuiEndScrollContainer() will be positioned relative to the container.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiEndScrollContainer",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutBeginHorizontal",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "position_in_ui_scale",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "margin_x",
+        "typ": "number",
+        "default": "2"
+      },
+      {
+        "name": "margin_y",
+        "typ": "number",
+        "default": "2"
+      }
+    ],
+    "desc": "If 'position_in_ui_scale' is 1, x and y will be in the same scale as other gui positions, otherwise x and y are given as a percentage (0-100) of the gui screen size.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutBeginVertical",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "position_in_ui_scale",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "margin_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "margin_y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "If 'position_in_ui_scale' is 1, x and y will be in the same scale as other gui positions, otherwise x and y are given as a percentage (0-100) of the gui screen size.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutAddHorizontalSpacing",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "amount",
+        "typ": "number",
+        "default": "optional"
+      }
+    ],
+    "desc": "Will use the horizontal margin from current layout if amount is not set.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutAddVerticalSpacing",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "amount",
+        "typ": "number",
+        "default": "optional"
+      }
+    ],
+    "desc": "Will use the vertical margin from current layout if amount is not set.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutEnd",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutBeginLayer",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Puts following things to a new layout layer. Can be used to create non-layouted widgets inside a layout.",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiLayoutEndLayer",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GuiGetScreenDimensions",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Returns dimensions of viewport in the gui coordinate system (which is equal to the coordinates of the screen bottom right corner in gui coordinates). The values returned may change depending on the game resolution because the UI is scaled for pixel-perfect text rendering.",
+    "rets": [
+      {
+        "name": "width",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "height",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiGetTextDimensions",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "text",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "scale",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "line_spacing",
+        "typ": "number",
+        "default": "2"
+      },
+      {
+        "name": "font",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "font_is_pixel_font",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Returns size of the given text in the gui coordinate system.",
+    "rets": [
+      {
+        "name": "width",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "height",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiGetImageDimensions",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      },
+      {
+        "name": "image_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "scale",
+        "typ": "number",
+        "default": "1"
+      }
+    ],
+    "desc": "Returns size of the given image in the gui coordinate system.",
+    "rets": [
+      {
+        "name": "width",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "height",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GuiGetPreviousWidgetInfo",
+    "args": [
+      {
+        "name": "gui",
+        "typ": "obj",
+        "default": null
+      }
+    ],
+    "desc": "Returns the final position, size etc calculated for a widget. Some values aren't supported by all widgets.",
+    "rets": [
+      {
+        "name": "clicked",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " right_clicked",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " hovered",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " width",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " height",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " draw_x",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " draw_y",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " draw_width",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": " draw_height",
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "GameIsBetaBuild",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "DebugGetIsDevBuild",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "DebugEnableTrailerMode",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GameGetIsTrailerModeEnabled",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "Debug_SaveTestPlayer",
+    "args": [],
+    "desc": "This doesn't do anything at the moment.",
+    "rets": []
+  },
+  {
+    "fn_name": "DebugBiomeMapGetFilename",
+    "args": [
+      {
+        "name": "x",
+        "typ": "number",
+        "default": "camera_x"
+      },
+      {
+        "name": "y",
+        "typ": "number",
+        "default": "camera_y"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "EntityConvertToMaterial",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "material",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "use_material_colors",
+        "typ": "bool",
+        "default": "true"
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "ConvertEverythingToGold",
+    "args": [
+      {
+        "name": "material_dynamic",
+        "typ": "string",
+        "default": "\"\""
+      },
+      {
+        "name": "material_static",
+        "typ": "string",
+        "default": "\"\""
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "ConvertMaterialEverywhere",
+    "args": [
+      {
+        "name": "material_from_type",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "material_to_type",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Converts 'material_from' to 'material_to' everwhere in the game world, replaces 'material_from_type' to 'material_to_type' in the material (CellData) global table, and marks 'material_from' as a \"Transformed\" material. Every call will add a new entry to WorldStateComponent which serializes these changes, so please call sparingly. The material conversion will be spread over multiple frames. 'material_from' will still retain the original name id and wang color. Use CellFactory_GetType() to convert a material name to material type.",
+    "rets": []
+  },
+  {
+    "fn_name": "ConvertMaterialOnAreaInstantly",
+    "args": [
+      {
+        "name": "area_x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "area_y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "area_w",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "area_h",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "material_from_type",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "material_to_type",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "trim_box2d",
+        "typ": "bool",
+        "default": null
+      },
+      {
+        "name": "update_edge_graphics_dummy",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Converts cells of 'material_from_type' to 'material_to_type' in the given area. If 'box2d_trim' is true, will attempt to trim the created cells where they might otherwise cause physics glitching. 'update_edge_graphics_dummy' is not yet supported.",
+    "rets": []
+  },
+  {
+    "fn_name": "LoadRagdoll",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "pos_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "pos_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "material",
+        "typ": "string",
+        "default": "\"meat\""
+      },
+      {
+        "name": "scale_x",
+        "typ": "number",
+        "default": "1"
+      },
+      {
+        "name": "impulse_x",
+        "typ": "number",
+        "default": "0"
+      },
+      {
+        "name": "impulse_y",
+        "typ": "number",
+        "default": "0"
+      }
+    ],
+    "desc": "Loads a given .txt file as a ragdoll into the game, made of the material given in material.",
+    "rets": []
+  },
+  {
+    "fn_name": "GetDailyPracticeRunSeed",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModIsEnabled",
+    "args": [
+      {
+        "name": "mod_id",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns true if a mod with the id 'mod_id' is currently active. For example mod_id = \"nightmare\".",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModGetActiveModIDs",
+    "args": [],
+    "desc": "Returns a table filled with the IDs of currently active mods.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "ModGetAPIVersion",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModDoesFileExist",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns true if the file exists.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModMaterialFilesGet",
+    "args": [],
+    "desc": "Returns a list of filenames from which materials were loaded.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "ModSettingRemove",
+    "args": [
+      {
+        "name": "id",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "was_removed",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModSettingGetCount",
+    "args": [],
+    "desc": "Returns the number of mod settings defined. Use ModSettingGetAtIndex to enumerate the settings.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StreamingGetIsConnected",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StreamingGetConnectedChannelName",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StreamingGetVotingCycleDurationFrames",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StreamingGetRandomViewerName",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StreamingGetSettingsGhostsNamedAfterViewers",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "StreamingSetCustomPhaseDurations",
+    "args": [
+      {
+        "name": "time_between_votes_seconds",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "time_voting_seconds",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Sets the duration of the next wait and voting phases. Use -1 for default duration.",
+    "rets": []
+  },
+  {
+    "fn_name": "StreamingForceNewVoting",
+    "args": [],
+    "desc": "Cancels whatever is currently going on, and starts a new voting. _streaming_on_vote_start() and _streaming_get_event_for_vote() will be called as usually.",
+    "rets": []
+  },
+  {
+    "fn_name": "StreamingSetVotingEnabled",
+    "args": [
+      {
+        "name": "enabled",
+        "typ": "bool",
+        "default": null
+      }
+    ],
+    "desc": "Turns the voting UI on or off.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModLuaFileAppend",
+    "args": [
+      {
+        "name": "to_filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "from_filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Basically calls dofile(from_filename) at the end of 'to_filename'. Available only in init.lua. Should not be called after OnMostPostInit(should be avoided after that because changes might not propagate, or could work in non-deterministic manner).",
+    "rets": []
+  },
+  {
+    "fn_name": "ModLuaFileGetAppends",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns the paths of files that have been appended to 'filename' using ModLuaFileAppend(). Unlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "ModLuaFileSetAppends",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Replaces the appends list (see ModLuaFileAppend) of a file with the given table. Available only in init.lua. Should not be called after OnMostPostInit(should be avoided after that because changes might not propagate, or could work in non-deterministic manner).",
+    "rets": []
+  },
+  {
+    "fn_name": "ModTextFileGetContent",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns the current (modded or not) content of the data file 'filename'. Allows access only to data files and files from enabled mods. \"mods/mod/data/file.xml\" and \"data/file.xml\" point to the same file. Unlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModTextFileSetContent",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "new_content",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Sets the content the game sees for the file 'filename'. Allows access only to mod and data files. \"mods/mod/data/file.xml\" and \"data/file.xml\" point to the same file. Available only in init.lua. Should not be called after OnMostPostInit (should be avoided after that because changes might not propagate, or could work in non-deterministic manner). ModTextFileWhoSetContent might also return incorrect values if this is used after OnMostPostInit.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModTextFileWhoSetContent",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns the id of the last mod that called ModTextFileSetContent with 'filename', or \"\". Unlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModImageMakeEditable",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "width",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "height",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Makes an image available for in-memory editing through ModImageGetPixel() and ModImageSetPixel(). \n\nReturns an id that can be used to access the image, and the dimensions of the image. \n\nIf an image file with the name wasn't found, an in-memory image of the given size will be created, filled with empty pixels (0x0), and added to the virtual filesystem under 'filename'. \n\nIf an image with the given name has been previously created through ModImageMakeEditable, the id of that image will be returned. In case memory allocation failed, or if this is called outside mod init using a filename that wasn't succesfully used with this function during the init, 0 will be returned as the id. \n\nThe game will apply further processing to some images, so the final binary data might end up different. For example, R and B channels are sometimes swapped, and on some textures the colors will be extended by one pixel outside areas where A>0. \n\nIf game code has already loaded the image (for example this could be the case with some UI textures), the changes will probably not be applied. \n\nThe changes done using the ModImage* API will need to be done again on each game restart/new game. It's possible that some images will be cached over restarts, and changes will not be visible in the game until a full executable restart - you will have to figure out where that applies. \n\nAllows access to data files and files from enabled mods. \"mods/mod/data/file.png\" and \"data/file.png\" point to the same file. Available only in init.lua during mod init.",
+    "rets": [
+      {
+        "name": "id",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "w",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "h",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModImageIdFromFilename",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns an id that can be used with ModImageGetPixel and ModImageSetPixel, and the dimensions of the image. \n\n If a previous successful call to ModImageMakeEditable hasn't been made with the given filename, 0 will be returned as 'id', 'w' and 'h'. \n\nUnlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": "id",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "w",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      },
+      {
+        "name": "h",
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModImageGetPixel",
+    "args": [
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Returns the color of a pixel in ABGR format (0xABGR). 'x' and 'y' are zero-based. \n\nUse ModImageMakeEditable to create an id that can be used with this function. \n\n While it's possible to edit images after mod init, it's not guaranteed that game systems will see the changes, as the system might already have loaded the image at that point. \n\nThe function will silently fail nad return 0 if 'id' isn't valid. \n\nUnlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "color",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModImageSetPixel",
+    "args": [
+      {
+        "name": "id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "x",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "y",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "color",
+        "typ": "color",
+        "default": null
+      }
+    ],
+    "desc": "Sets the color of a pixel in ABGR format (0xABGR). 'x' and 'y' are zero-based. \n\nUse ModImageMakeEditable to create an id that can be used with this function. \n\n The function will silently fail if 'id' isn't valid. \n\nUnlike most Mod* functions, this one is available everywhere.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModImageWhoSetContent",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns the id of the last mod that called ModImageMakeEditable with 'filename', or \"\". Unlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "string",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModImageDoesExist",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Returns true if a file or virtual image exists for the given filename. Unlike most Mod* functions, this one is available everywhere.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ModMagicNumbersFileAdd",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Available only during mod initialization in init.lua.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModMaterialsFileAdd",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Available only during mod initialization in init.lua.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModRegisterAudioEventMappings",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Registers custom fmod events. Needs to be called to make the game find events in mods' audio banks. Event mapping (GUID) files can be generated using FMOD Studio. Available only during mod initialization in init.lua.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModRegisterMusicBank",
+    "args": [
+      {
+        "name": "filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Registers a custom bank in the music system. After that the tracks can be configured to play through Biome xml, or using GameTriggerMusicEvent. ModRegisterAudioEventMappings also needs to be called to make the game recognize the events in the bank. Available only during mod initialization in init.lua.",
+    "rets": []
+  },
+  {
+    "fn_name": "ModDevGenerateSpriteUVsForDirectory",
+    "args": [
+      {
+        "name": "directory_path",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "override_existing",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "Please supply a path starting with \"mods/YOUR_MOD_HERE/\" or \"data/\". If override_existing is true, will always generate new maps, overriding existing files. UV maps are generated when you start or continue a game with your mod enabled. Available only during mod initialization in init.lua via noita_dev.exe",
+    "rets": []
+  },
+  {
+    "fn_name": "RegisterProjectile",
+    "args": [
+      {
+        "name": "entity_filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "RegisterGunAction",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "RegisterGunShotEffects",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "BeginProjectile",
+    "args": [
+      {
+        "name": "entity_filename",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EndProjectile",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "BeginTriggerTimer",
+    "args": [
+      {
+        "name": "timeout_frames",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "BeginTriggerHitWorld",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "BeginTriggerDeath",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "EndTrigger",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "SetProjectileConfigs",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "StartReload",
+    "args": [
+      {
+        "name": "reload_time",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "ActionUsesRemainingChanged",
+    "args": [
+      {
+        "name": "inventoryitem_id",
+        "typ": "int",
+        "default": null
+      },
+      {
+        "name": "uses_remaining",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": "uses_remaining_reduced",
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "ActionUsed",
+    "args": [
+      {
+        "name": "inventoryitem_id",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "LogAction",
+    "args": [
+      {
+        "name": "action_name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "OnActionPlayed",
+    "args": [
+      {
+        "name": "action_id",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "OnNotEnoughManaForAction",
+    "args": [],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "BaabInstruction",
+    "args": [
+      {
+        "name": "name",
+        "typ": "string",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "SetValueNumber",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "value",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GetValueNumber",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "default_value",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "number",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SetValueInteger",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "value",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GetValueInteger",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "default_value",
+        "typ": "int",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "int",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  },
+  {
+    "fn_name": "SetValueBool",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "value",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": []
+  },
+  {
+    "fn_name": "GetValueBool",
+    "args": [
+      {
+        "name": "key",
+        "typ": "string",
+        "default": null
+      },
+      {
+        "name": "default_value",
+        "typ": "number",
+        "default": null
+      }
+    ],
+    "desc": "Nolla forgot to include a description :(",
+    "rets": [
+      {
+        "name": null,
+        "typ": "bool",
+        "optional": false,
+        "is_vec": false
+      }
+    ]
+  }
+]

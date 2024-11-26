@@ -1,6 +1,6 @@
 [package]
 name = "ewext"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
@@ -15,3 +15,6 @@ strip = true
 libloading = "0.8.5"
 backtrace = "0.3.74"
 iced-x86 = "1.21.0"
+noita_api_macro = {path = "noita_api_macro"}
+eyre = "0.6.12"
+noita_api = {path = "noita_api"}

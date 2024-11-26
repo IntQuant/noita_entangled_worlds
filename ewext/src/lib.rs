@@ -2,27 +2,22 @@ use std::{
     arch::asm,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
-    mem,
-    sync::LazyLock,
+    time::Instant,
 };
 
-use iced_x86::Mnemonic;
-use lua_bindings::{lua_State, Lua51, LUA_GLOBALSINDEX};
-use noita::{
-    ntypes::{Entity, EntityManager, ThiscallFn},
-    NoitaPixelRun, ParticleWorldState,
+use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
+use eyre::{bail, OptionExt};
+
+use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
+use noita_api::{
+    lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA},
+    DamageModelComponent,
 };
+use noita_api_macro::add_lua_fn;
 
-mod lua_bindings;
-
-mod noita;
+pub mod noita;
 
 mod addr_grabber;
-
-static LUA: LazyLock<Lua51> = LazyLock::new(|| unsafe {
-    let lib = libloading::Library::new("./lua51.dll").expect("library to exist");
-    Lua51::from_library(lib).expect("library to be lua")
-});
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
@@ -31,37 +26,16 @@ thread_local! {
     });
 }
 
-struct SavedWorldState {
-    game_global: usize,
-    world_state_entity: usize,
-}
-
-struct GrabbedGlobals {
-    // These 3 actually point to a pointer.
-    game_global: *mut usize,
-    world_state_entity: *mut usize,
-    entity_manager: *const *mut EntityManager,
-}
-
-struct GrabbedFns {
-    get_entity: *const ThiscallFn, //unsafe extern "C" fn(*const EntityManager, u32) -> *mut Entity,
-}
-
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
-    globals: Option<GrabbedGlobals>,
-    saved_world_state: Option<SavedWorldState>,
-    fns: Option<GrabbedFns>,
 }
 
-// const EWEXT: [(&'static str, Function); 1] = [("testfn", None)];
-
-unsafe extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
+fn init_particle_world_state(lua: LuaState) {
     println!("\nInitializing particle world state");
-    let world_pointer = unsafe { LUA.lua_tointeger(lua, 1) };
-    let chunk_map_pointer = unsafe { LUA.lua_tointeger(lua, 2) };
-    let material_list_pointer = unsafe { LUA.lua_tointeger(lua, 3) };
+    let world_pointer = lua.to_integer(1);
+    let chunk_map_pointer = lua.to_integer(2);
+    let material_list_pointer = lua.to_integer(3);
     println!("pws stuff: {world_pointer:?} {chunk_map_pointer:?}");
 
     STATE.with(|state| {
@@ -72,10 +46,10 @@ unsafe extern "C" fn init_particle_world_state(lua: *mut lua_State) -> c_int {
             runner: Default::default(),
         });
     });
-    0
 }
 
-unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
+fn encode_area(lua: LuaState) -> ValuesOnStack {
+    let lua = lua.raw();
     let start_x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
     let start_y = unsafe { LUA.lua_tointeger(lua, 2) } as i32;
     let end_x = unsafe { LUA.lua_tointeger(lua, 3) } as i32;
@@ -88,125 +62,79 @@ unsafe extern "C" fn encode_area(lua: *mut lua_State) -> c_int {
         let runs = unsafe { pws.encode_area(start_x, start_y, end_x, end_y, encoded_buffer) };
         unsafe { LUA.lua_pushinteger(lua, runs as isize) };
     });
-    1
+    ValuesOnStack(1)
 }
 
-unsafe fn save_world_state() {
-    STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        let game_global = state.globals.as_ref().unwrap().game_global.read();
-        let world_state_entity = state.globals.as_ref().unwrap().world_state_entity.read();
-
-        state.saved_world_state = Some(SavedWorldState {
-            game_global,
-            world_state_entity,
-        })
-    });
-}
-
-unsafe fn load_world_state() {
-    println!("Loading world state");
-    STATE.with(|state| {
-        let state = state.borrow_mut();
-        let saved_ws = state.saved_world_state.as_ref().unwrap();
-        let globals = state.globals.as_ref().unwrap();
-        globals.game_global.write(saved_ws.game_global);
-        globals
-            .world_state_entity
-            .write(saved_ws.world_state_entity);
-    });
-}
-
-unsafe extern "C" fn save_world_state_lua(lua: *mut lua_State) -> i32 {
-    if STATE.with(|state| state.borrow().globals.is_none()) {
-        grab_addrs(lua);
-    }
-
-    save_world_state();
-    0
-}
-
-unsafe extern "C" fn load_world_state_lua(_lua: *mut lua_State) -> i32 {
-    load_world_state();
-    0
-}
-
-unsafe fn grab_addrs(lua: *mut lua_State) {
-    LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"GameGetWorldStateEntity".as_ptr());
-    let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
-    let world_state_entity =
-        addr_grabber::grab_addr_from_instruction(base, 0x007aa7ce - 0x007aa540, Mnemonic::Mov)
-            .cast();
-    println!(
-        "World state entity addr: 0x{:x}",
-        world_state_entity as usize
-    );
-    // Pop the last element.
-    LUA.lua_settop(lua, -2);
-
-    LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"GameGetFrameNum".as_ptr());
-    let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
-    let load_game_global =
-        addr_grabber::grab_addr_from_instruction(base, 0x007bf3c9 - 0x007bf140, Mnemonic::Call); // CALL load_game_global
-    println!("Load game global addr: 0x{:x}", load_game_global as usize);
-    let game_global = addr_grabber::grab_addr_from_instruction(
-        load_game_global,
-        0x00439c17 - 0x00439bb0,
-        Mnemonic::Mov,
-    )
-    .cast();
-    println!("Game global addr: 0x{:x}", game_global as usize);
-    // Pop the last element.
-    LUA.lua_settop(lua, -2);
-
-    LUA.lua_getfield(lua, LUA_GLOBALSINDEX, c"EntityGetFilename".as_ptr());
-    let base = LUA.lua_tocfunction(lua, -1).unwrap() as *const c_void;
-    let get_entity = mem::transmute_copy(&addr_grabber::grab_addr_from_instruction(
-        base,
-        0x0079782b - 0x00797570,
-        Mnemonic::Call,
-    ));
-    println!("get_entity addr: 0x{:x}", get_entity as usize);
-    let entity_manager =
-        addr_grabber::grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov)
-            .cast();
-    println!("entity_manager addr: 0x{:x}", entity_manager as usize);
-    // Pop the last element.
-    LUA.lua_settop(lua, -2);
-
-    STATE.with(|state| {
-        state.borrow_mut().globals = Some(GrabbedGlobals {
-            game_global,
-            world_state_entity,
-            entity_manager,
-        });
-        state.borrow_mut().fns = Some(GrabbedFns { get_entity })
-    });
-}
-
-unsafe extern "C" fn make_ephemerial(lua: *mut lua_State) -> c_int {
+fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
     unsafe {
-        let entity_id = LUA.lua_tointeger(lua, 1) as u32;
-        STATE.with(|state| {
-            let state = state.borrow();
-            let entity_manager = state.globals.as_ref().unwrap().entity_manager.read();
-            let mut entity: *mut Entity;
-            asm!(
-                "mov ecx, {entity_manager}",
-                "push {entity_id:e}",
-                "call {get_entity}",
-                entity_manager = in(reg) entity_manager,
-                get_entity = in(reg) state.fns.as_ref().unwrap().get_entity,
-                entity_id = in(reg) entity_id,
-                clobber_abi("C"),
-                out("ecx") _,
-                out("eax") entity,
-            );
-            // let entity = (state.fns.as_ref().unwrap().get_entity)(entity_manager, entity_id);
-            entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
-        })
+        let entity_id = lua.to_integer(1) as u32;
+
+        let entity_manager = grabbed_globals().entity_manager.read();
+        let mut entity: *mut Entity;
+        asm!(
+            "mov ecx, {entity_manager}",
+            "push {entity_id:e}",
+            "call {get_entity}",
+            entity_manager = in(reg) entity_manager,
+            get_entity = in(reg) grabbed_fns().get_entity,
+            entity_id = in(reg) entity_id,
+            clobber_abi("C"),
+            out("ecx") _,
+            out("eax") entity,
+        );
+        if entity.is_null() {
+            bail!("Entity {} not found", entity_id);
+        }
+        entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
     }
-    0
+    Ok(())
+}
+
+fn on_world_initialized(lua: LuaState) {
+    grab_addrs(lua);
+}
+
+fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
+    let start = Instant::now();
+    let iters = 10000;
+    for _ in 0..iters {
+        let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
+            .ok_or_eyre("Entity not found")?;
+        noita_api::raw::entity_set_transform(player, 0.0, Some(0.0), None, None, None)?;
+    }
+    let elapsed = start.elapsed();
+
+    noita_api::raw::game_print(
+        format!(
+            "Took {}us to test, {}ns per call",
+            elapsed.as_micros(),
+            elapsed.as_nanos() / iters
+        )
+        .into(),
+    )?;
+
+    Ok(())
+}
+
+fn test_fn(_lua: LuaState) -> eyre::Result<()> {
+    let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
+        .ok_or_eyre("Entity not found")?;
+    let damage_model: DamageModelComponent = player.get_first_component(None)?;
+    let hp = damage_model.hp()?;
+    damage_model.set_hp(hp - 1.0)?;
+
+    let (x, y, _, _, _) = noita_api::raw::entity_get_transform(player)?;
+
+    noita_api::raw::game_print(
+        format!("Component: {:?}, Hp: {}", damage_model.0, hp * 25.0,).into(),
+    )?;
+
+    let entities = noita_api::raw::entity_get_in_radius_with_tag(x, y, 300.0, "enemy".into())?;
+    noita_api::raw::game_print(format!("{:?}", entities).into())?;
+
+    // noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
+
+    Ok(())
 }
 
 /// # Safety
@@ -218,16 +146,12 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
 
-        LUA.lua_pushcclosure(lua, Some(init_particle_world_state), 0);
-        LUA.lua_setfield(lua, -2, c"init_particle_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(encode_area), 0);
-        LUA.lua_setfield(lua, -2, c"encode_area".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(load_world_state_lua), 0);
-        LUA.lua_setfield(lua, -2, c"load_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(save_world_state_lua), 0);
-        LUA.lua_setfield(lua, -2, c"save_world_state".as_ptr());
-        LUA.lua_pushcclosure(lua, Some(make_ephemerial), 0);
-        LUA.lua_setfield(lua, -2, c"make_ephemerial".as_ptr());
+        add_lua_fn!(init_particle_world_state);
+        add_lua_fn!(encode_area);
+        add_lua_fn!(make_ephemerial);
+        add_lua_fn!(on_world_initialized);
+        add_lua_fn!(test_fn);
+        add_lua_fn!(bench_fn);
     }
     println!("Initializing ewext - Ok");
     1

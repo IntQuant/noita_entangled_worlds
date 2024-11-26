@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["noita_api", "noita_api_macro"]
+
+[package]
+name = "noita_api_macro"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+heck = "0.5.0"
+proc-macro2 = "1.0.89"
+quote = "1.0.37"
+serde = { version = "1.0.214", features = ["derive"] }
+serde_json = "1.0.132"
