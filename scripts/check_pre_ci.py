@@ -50,7 +50,7 @@ def main():
     notes_path = generate_notes(tag)
     
     subprocess.check_call(["git", "tag", "-a", "-F", notes_path, tag ])
-    subprocess.check_call(["git", "push", "master", "--tags"])
+    subprocess.check_call(["git", "push", "--tags"])
 
 
 if __name__ == "__main__":
