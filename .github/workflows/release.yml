@@ -100,10 +100,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-      - name: List artifacts
-        run: ls -R
       - name: Get tag message
         run: git tag -l --format='%(contents)' $(git describe --tags) > release_body.md
+      - name: Print release body
+        run: cat release_body.md
       - uses: ncipollo/release-action@v1
         with:
           draft: true
