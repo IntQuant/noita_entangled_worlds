@@ -1,6 +1,11 @@
 from prepare_release import *
 
 def generate_notes(tag):
+    last_release = get_last_release()
+    print("Last release is:", last_release["name"])
+
+    pull_requests = get_pull_requests_from(last_release["publishedAt"])
+
     notes = ReleaseNotes()
 
     notes.title("Noita Entangled Worlds "+tag)
@@ -41,12 +46,6 @@ def main():
 
     subprocess.run(["git", "pull"])
     subprocess.run(["git", "commit", "-am", "Automated commit: "+tag])
-    
-    
-    last_release = get_last_release()
-    print("Last release is:", last_release["name"])
-
-    pull_requests = get_pull_requests_from(last_release["publishedAt"])
 
     notes_path = generate_notes(tag)
     
