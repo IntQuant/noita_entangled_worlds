@@ -16,7 +16,9 @@ jobs:
         with:
           targets: i686-pc-windows-gnu, x86_64-pc-windows-gnu
       - name: Install extra deps
-        run: sudo apt-get install gcc-mingw-w64-i686 gcc-mingw-w64
+        run: sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
+      
+      - uses: Swatinem/rust-cache@v2
       
       - name: Build ewext
         run: cargo build --release --target i686-pc-windows-gnu

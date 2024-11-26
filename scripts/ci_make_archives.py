@@ -1,3 +1,10 @@
+import tomllib
+import os
+from zipfile import ZipFile, ZIP_DEFLATED as COMPRESS_TYPE
+import shutil
+
+COMPRESS_LEVEL = 9
+
 cargo_manifest = tomllib.load(open("noita-proxy/Cargo.toml", "rb"))
 version = cargo_manifest["package"]["version"]
 
