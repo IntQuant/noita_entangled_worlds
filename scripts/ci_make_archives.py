@@ -1,32 +1,35 @@
 import os
+import sys
 from zipfile import ZipFile, ZIP_DEFLATED as COMPRESS_TYPE
 import shutil
-import re
+
+from ci_version import version
 
 COMPRESS_LEVEL = 9
 
-cargo_manifest = open("noita-proxy/Cargo.toml", "r").read()
-version = re.findall('version = "(.*?)"', cargo_manifest)[0]
-
-print("Version:", version)
-
-assert version is not None
-
 os.makedirs("target", exist_ok=True)
 
-with ZipFile("target/noita-proxy-win.zip", "w") as release:
-    release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-    release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+mode = sys.argv[1]
 
-print("Writing linux release...")
+if mode == "windows":
+    print("Writing windows release...")
 
-with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-    release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-    release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    with ZipFile("target/noita-proxy-win.zip", "w") as release:
+        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+elif mode == "linux":
+    print("Writing linux release...")
 
-print("Writing mod release...")
+    with ZipFile("target/noita-proxy-linux.zip", "w") as release:
+        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+elif mode == "mod":
+    print("Writing mod release...")
 
-shutil.make_archive("target/quant.ew", "zip", "quant.ew")
+    shutil.make_archive("target/quant.ew", "zip", "quant.ew")
 
-with ZipFile("target/quant.ew.zip", "a") as release:
-    release.writestr("files/version.lua", f'return "{version}"')
+    with ZipFile("target/quant.ew.zip", "a") as release:
+        release.writestr("files/version.lua", f'return "{version}"')
+else:
+    exit(-1)
+
