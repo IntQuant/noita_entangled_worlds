@@ -1,12 +1,16 @@
-import tomllib
 import os
 from zipfile import ZipFile, ZIP_DEFLATED as COMPRESS_TYPE
 import shutil
+import re
 
 COMPRESS_LEVEL = 9
 
-cargo_manifest = tomllib.load(open("noita-proxy/Cargo.toml", "rb"))
-version = cargo_manifest["package"]["version"]
+cargo_manifest = open("noita-proxy/Cargo.toml", "r").read()
+version = re.findall('version = "(.*?)"', cargo_manifest)[0]
+
+print("Version:", version)
+
+assert version is not None
 
 os.makedirs("target", exist_ok=True)
 
