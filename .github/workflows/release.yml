@@ -2,11 +2,6 @@ name: release
 
 on: [push]
 
-# on:
-#   push:
-#     tags:
-#       - v**
-
 jobs:
   build-mod:
     runs-on: ubuntu-22.04
@@ -88,20 +83,25 @@ jobs:
       
       - uses: actions/upload-artifact@v4
         with:
-          name: noita-proxy-windows.zip
-          path: target/noita-proxy-windows.zip
+          name: noita-proxy-win.zip
+          path: target/noita-proxy-win.zip
 
   release:
     name: Release
-    runs-on: ubuntu-22.04
-    needs: [build-mod, build-proxy-linux, build-proxy-windows]
     if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    needs: [build-mod, build-proxy-linux, build-proxy-windows]
 
     steps:
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v4
-      - run: ls
-
-        
-      
-
+        with:
+          merge-multiple: true
+      - name: List artifacts
+        run: ls -R
+      - uses: ncipollo/release-action@v1
+        with:
+          draft: true
+          artifacts: "*.zip"
