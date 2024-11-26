@@ -16,7 +16,7 @@ jobs:
         with:
           targets: i686-pc-windows-gnu, x86_64-pc-windows-gnu
       - name: Install extra deps
-        run: apt-get install gcc-mingw-w64-i686 gcc-mingw-w64-x86_64
+        run: sudo apt-get install gcc-mingw-w64-i686 gcc-mingw-w64-x86_64
       
       - name: Build ewext
         run: cargo build --release --target i686-pc-windows-gnu
