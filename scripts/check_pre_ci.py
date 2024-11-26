@@ -39,8 +39,8 @@ def main():
         print("Release already exists, exiting")
         exit(1)
 
-    subprocess.check_call(["git", "pull"])
-    subprocess.check_call(["git", "commit", "-am", "Automated commit: "+tag])
+    subprocess.run(["git", "pull"])
+    subprocess.run(["git", "commit", "-am", "Automated commit: "+tag])
     
     
     last_release = get_last_release()
