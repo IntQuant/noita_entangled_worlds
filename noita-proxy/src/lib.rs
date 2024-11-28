@@ -395,19 +395,19 @@ struct PlayerAppearance {
     cosmetics: (bool, bool, bool),
 }
 
-#[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone, Default)]
 #[serde(default)]
 pub struct UXSettings {
-    ping_lifetime: u32,
-    ping_scale: f32,
+    ping_lifetime: Option<u32>,
+    ping_scale: Option<f32>,
 }
 
-impl Default for UXSettings {
-    fn default() -> Self {
-        Self {
-            ping_lifetime: 5,
-            ping_scale: 0.5,
-        }
+impl UXSettings {
+    fn ping_lifetime(&self) -> u32 {
+        self.ping_lifetime.unwrap_or(5)
+    }
+    fn ping_scale(&self) -> f32 {
+        self.ping_scale.unwrap_or(0.5)
     }
 }
 
@@ -1113,22 +1113,36 @@ impl App {
         ui.add_space(10.0);
         ui.label(tr("ping-note"));
         ui.add_space(10.0);
-        ui.add(
-            egui::Slider::new(&mut self.ux_settings.ping_lifetime, 1..=60)
-                .text(tr("ping-lifetime"))
-                .min_decimals(0)
-                .max_decimals(0)
-                .step_by(1.0),
-        )
-        .on_hover_text(tr("ping-lifetime-tooltip"));
-        ui.add(
-            egui::Slider::new(&mut self.ux_settings.ping_scale, 0.0..=1.5)
-                .text(tr("ping-scale"))
-                .min_decimals(0)
-                .max_decimals(1)
-                .step_by(0.1),
-        )
-        .on_hover_text(tr("ping-scale-tooltip"));
+
+        let mut tmp = self.ux_settings.ping_lifetime();
+        if ui
+            .add(
+                egui::Slider::new(&mut tmp, 1..=60)
+                    .text(tr("ping-lifetime"))
+                    .min_decimals(0)
+                    .max_decimals(0)
+                    .step_by(1.0),
+            )
+            .on_hover_text(tr("ping-lifetime-tooltip"))
+            .changed()
+        {
+            self.ux_settings.ping_lifetime = Some(tmp);
+        }
+
+        let mut tmp = self.ux_settings.ping_scale();
+        if ui
+            .add(
+                egui::Slider::new(&mut tmp, 0.0..=1.5)
+                    .text(tr("ping-scale"))
+                    .min_decimals(0)
+                    .max_decimals(1)
+                    .step_by(0.1),
+            )
+            .on_hover_text(tr("ping-scale-tooltip"))
+            .changed()
+        {
+            self.ux_settings.ping_scale = Some(tmp);
+        }
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
