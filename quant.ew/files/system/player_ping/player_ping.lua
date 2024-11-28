@@ -63,11 +63,15 @@ function module.on_world_update()
     end
 
     local i = 1
+    --ternary operators ahead
+    local lifetime = (ctx.proxy_opt.ping_lifetime ~= nil and {ctx.proxy_opt.ping_lifetime} or {900})[1]*60  
+    local custom_scale = (ctx.proxy_opt.ping_scale ~= nil and {ctx.proxy_opt.ping_scale} or {0.5})[1]
     while i <= #pings do
         local pos = pings[i]
         local frame = pos[3]
         local peer_id = pos[4]
-        if frame + 300 < GameGetFrameNum() then
+        local alpha = 1 - ((GameGetFrameNum() - frame) / lifetime)
+        if frame + lifetime < GameGetFrameNum() then
             table.remove(pings, i)
             goto continue
         end
@@ -107,12 +111,12 @@ function module.on_world_update()
 
         local img_path = "mods/quant.ew/files/system/player/tmp/".. peer_id .."_ping.png"
         if outside then
-            local scale = math.max(1 / 6, 0.75 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi)
+            local scale = math.max(1 / 6, 0.75 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi) + custom_scale
             local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
-            GuiImage(gui, gui_id, x, y, img_path, 1, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
+            GuiImage(gui, gui_id, x, y, img_path, alpha, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
         else
             local x, y = world2gui(pos[1], pos[2])
-            GuiImage(gui, gui_id, x, y, img_path, 1, 0.75, 0, math.pi)
+            GuiImage(gui, gui_id, x, y, img_path, alpha, 0.75 + custom_scale, 0, math.pi)
         end
         gui_id = gui_id + 1
         i = i + 1

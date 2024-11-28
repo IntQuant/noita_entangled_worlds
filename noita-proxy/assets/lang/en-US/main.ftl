@@ -152,3 +152,11 @@ Info = Info
 ## Local settings
 
 connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
+
+##Arrow UX settings
+
+ping-note = Ping arrow parameters
+ping-lifetime = Ping arrow lifetime in seconds.
+ping-scale = Ping arrow size.
+ping-lifetime-tooltip = This parameter changes how much frames (seconds*60, since game is supposed to run 60 fps?) ping arrow lives. Range: 0-60 seconds.
+ping-scale-tooltip = This parameter changes size of ping arrow. I dont know which units it is, but range is 0-1.5 units.
