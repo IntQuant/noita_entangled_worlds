@@ -66,6 +66,7 @@ function module.on_world_update()
         oh_another_world_state(GameGetWorldStateEntity())
         initial_world_state_entity = GameGetWorldStateEntity()
     end
+    ewext.module_on_world_update()
 end
 
 return module

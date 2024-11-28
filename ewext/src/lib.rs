@@ -8,6 +8,7 @@ use std::{
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use eyre::{bail, OptionExt};
 
+use modules::{entity_sync::EntitySync, Module};
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::{
     lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA},
@@ -16,6 +17,8 @@ use noita_api::{
 use noita_api_macro::add_lua_fn;
 
 pub mod noita;
+
+mod modules;
 
 mod addr_grabber;
 
@@ -29,6 +32,7 @@ thread_local! {
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
+    modules: Vec<Box<dyn Module>>,
 }
 
 fn init_particle_world_state(lua: LuaState) {
@@ -92,6 +96,34 @@ fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
 
 fn on_world_initialized(lua: LuaState) {
     grab_addrs(lua);
+
+    STATE.with(|state| {
+        let modules = &mut state.borrow_mut().modules;
+        modules.push(Box::new(EntitySync::default()));
+    })
+}
+
+fn with_every_module(f: impl Fn(&mut dyn Module) -> eyre::Result<()>) -> eyre::Result<()> {
+    STATE.with(|state| {
+        let modules = &mut state.borrow_mut().modules;
+        let mut errs = Vec::new();
+        for module in modules {
+            if let Err(e) = f(module.as_mut()) {
+                errs.push(e);
+            }
+        }
+        if errs.len() == 1 {
+            return Err(errs.remove(0));
+        }
+        if errs.len() > 1 {
+            bail!("Multiple errors while running ewext modules:\n{:?}", errs)
+        }
+        Ok(())
+    })
+}
+
+fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
+    with_every_module(|module| module.on_world_update())
 }
 
 fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
@@ -143,6 +175,8 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
 #[no_mangle]
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
+    STATE.with(|state| state.take());
+
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
 
@@ -152,6 +186,8 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);
         add_lua_fn!(bench_fn);
+
+        add_lua_fn!(module_on_world_update);
     }
     println!("Initializing ewext - Ok");
     1
