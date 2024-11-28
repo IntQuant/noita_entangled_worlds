@@ -395,6 +395,21 @@ struct PlayerAppearance {
     cosmetics: (bool, bool, bool),
 }
 
+#[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
+pub struct UXSettings {
+    ping_lifetime: u32,
+    ping_scale: f32,
+}
+
+impl Default for UXSettings {
+    fn default() -> Self {
+        Self {
+            ping_lifetime: 5,
+            ping_scale: 0.5,
+        }
+    }
+}
+
 impl Default for PlayerAppearance {
     fn default() -> Self {
         Self {
@@ -524,6 +539,7 @@ pub struct App {
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
+    ux_settings: UXSettings
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -563,6 +579,7 @@ pub struct Settings {
     color: PlayerAppearance,
     app: AppSavedState,
     modmanager: ModmanagerSettings,
+    ux: UXSettings,
 }
 
 fn settings_get() -> Settings {
@@ -580,12 +597,13 @@ fn settings_get() -> Settings {
     }
 }
 
-fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: ModmanagerSettings) {
+fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: ModmanagerSettings, ux: UXSettings) {
     if let Ok(s) = std::env::current_exe() {
         let settings = Settings {
             app,
             color,
             modmanager,
+            ux
         };
         let file = s.parent().unwrap().join("proxy.ron");
         let settings = ron::to_string(&settings).unwrap();
@@ -603,6 +621,7 @@ impl App {
         let mut saved_state: AppSavedState = settings.app;
         let modmanager_settings: ModmanagerSettings = settings.modmanager;
         let appearance: PlayerAppearance = settings.color;
+        let ux_settings: UXSettings = settings.ux;
         saved_state.times_started += 1;
 
         info!("Setting fonts...");
@@ -661,6 +680,7 @@ impl App {
             appearance,
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
+            ux_settings,
         }
     }
 
@@ -669,6 +689,7 @@ impl App {
             self.app_saved_state.clone(),
             self.appearance.clone(),
             self.modmanager_settings.clone(),
+            self.ux_settings.clone(),
         )
     }
 
@@ -706,6 +727,7 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.appearance.player_color,
+            ux_settings: self.ux_settings.clone(),
             cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
@@ -1081,6 +1103,17 @@ impl App {
             self.appearance.cosmetics = old.cosmetics;
             self.appearance.player_picker = old.player_picker;
         }
+        ui.add_space(10.0);
+        ui.label(tr("ping-note"));
+        ui.add_space(10.0);
+        ui.add(egui::Slider::new(&mut self.ux_settings.ping_lifetime, 1..=60).text(tr("ping-lifetime"))
+            .min_decimals(0)
+            .max_decimals(0)
+            .step_by(1.0)).on_hover_text(tr("ping-lifetime-tooltip"));
+        ui.add(egui::Slider::new(&mut self.ux_settings.ping_scale, 0.0..=1.5).text(tr("ping-scale"))
+            .min_decimals(0)
+            .max_decimals(1)
+            .step_by(0.1)).on_hover_text(tr("ping-scale-tooltip"));
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -1663,6 +1696,7 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
         my_nickname,
         save_state: run_save_state,
         player_color: PlayerColor::default(),
+        ux_settings: UXSettings::default(),
         cosmetics,
         mod_path: mod_manager.mod_path(),
         player_path,

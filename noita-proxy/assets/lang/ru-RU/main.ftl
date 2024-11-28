@@ -150,3 +150,19 @@ Info = Info
 ## Local settings
 
 connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
+
+##Arrow UX settings
+
+ping-note = Параметры стрелочки-пинга
+ping-lifetime = Время жизни стрелки в секундах.
+ping-scale = Размер стрелки в юнитах.
+ping-lifetime-tooltip = Этот параметр изменяет время жизни стрелочки (секунды*60, т.к. игра должна работать в 60 фпс?). Диапазон: 0-60 секунд.
+ping-scale-tooltip = Этот параметр изменяет размер стрелочки. Не знаю какая единица измерения, но диапазон 0-1.5 юнита.
+
+
+
+
+
+
+
+

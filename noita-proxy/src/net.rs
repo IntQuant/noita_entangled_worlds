@@ -26,7 +26,7 @@ use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
     recorder::Recorder,
-    DefaultSettings, GameSettings, PlayerColor,
+    DefaultSettings, GameSettings, PlayerColor, UXSettings,
 };
 pub mod messages;
 mod proxy_opt;
@@ -105,6 +105,7 @@ pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
     pub player_color: PlayerColor,
+    pub ux_settings: UXSettings,
     pub cosmetics: (bool, bool, bool),
     pub mod_path: PathBuf,
     pub player_path: PathBuf,
@@ -599,6 +600,10 @@ impl NetManager {
             "mina_color",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
         );
+
+        state.try_ws_write_option("ping_lifetime", self.init_settings.ux_settings.ping_lifetime);
+        state.try_ws_write_option("ping_scale", self.init_settings.ux_settings.ping_scale);
+
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
