@@ -396,6 +396,7 @@ struct PlayerAppearance {
 }
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
+#[serde(default)]
 pub struct UXSettings {
     ping_lifetime: u32,
     ping_scale: f32,
@@ -575,6 +576,7 @@ fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct Settings {
     color: PlayerAppearance,
     app: AppSavedState,
@@ -694,7 +696,7 @@ impl App {
             self.app_saved_state.clone(),
             self.appearance.clone(),
             self.modmanager_settings.clone(),
-            self.ux_settings.clone(),
+            self.ux_settings,
         )
     }
 
@@ -732,7 +734,7 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.appearance.player_color,
-            ux_settings: self.ux_settings.clone(),
+            ux_settings: self.ux_settings,
             cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
