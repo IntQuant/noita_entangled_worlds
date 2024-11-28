@@ -362,7 +362,7 @@ impl NetManager {
                                 &NetMsg::PlayerColor(
                                     self.init_settings.player_png_desc,
                                     self.is_host(),
-                                    Some(self.peer.my_id())
+                                    Some(self.peer.my_id()),
                                 ),
                                 Reliability::Reliable,
                             );
@@ -423,7 +423,7 @@ impl NetManager {
                                         &NetMsg::PlayerColor(
                                             self.init_settings.player_png_desc,
                                             self.is_host(),
-                                            None
+                                            None,
                                         ),
                                         Reliability::Reliable,
                                     );
@@ -601,7 +601,10 @@ impl NetManager {
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
         );
 
-        state.try_ws_write_option("ping_lifetime", self.init_settings.ux_settings.ping_lifetime);
+        state.try_ws_write_option(
+            "ping_lifetime",
+            self.init_settings.ux_settings.ping_lifetime,
+        );
         state.try_ws_write_option("ping_scale", self.init_settings.ux_settings.ping_scale);
 
         let progress = settings.progress.join(",");

@@ -49,7 +49,7 @@ impl Peer {
         connection_manager.start()?;
         Ok(Peer { shared })
     }
-    
+
     pub fn remove(&self, peer: PeerId) {
         self.shared.remote_peers.remove(&peer);
     }

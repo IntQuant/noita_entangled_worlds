@@ -39,7 +39,8 @@ impl SteamState {
         }
         let app_id = env::var("NP_APPID").ok().and_then(|x| x.parse().ok());
         info!("Initializing steam client...");
-        let (client, single) = steamworks::Client::init_app(app_id.unwrap_or(if spacewars {480} else {881100}))?;
+        let (client, single) =
+            steamworks::Client::init_app(app_id.unwrap_or(if spacewars { 480 } else { 881100 }))?;
         info!("Initializing relay network accesss...");
         client.networking_utils().init_relay_network_access();
         if let Err(err) = client.networking_sockets().init_authentication() {

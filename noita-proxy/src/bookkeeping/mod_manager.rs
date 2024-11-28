@@ -450,12 +450,15 @@ impl Mods {
             self.mod_entries.insert(0, entry);
             &mut self.mod_entries[0]
         } else {
-            self.mod_entries.insert(0, ModEntry {
-                enabled: 0,
-                name: name.to_owned(),
-                settings_fold_open: 0,
-                workshop_item_id: 0,
-            });
+            self.mod_entries.insert(
+                0,
+                ModEntry {
+                    enabled: 0,
+                    name: name.to_owned(),
+                    settings_fold_open: 0,
+                    workshop_item_id: 0,
+                },
+            );
             &mut self.mod_entries[0]
         }
     }

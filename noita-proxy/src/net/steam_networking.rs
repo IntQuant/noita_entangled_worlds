@@ -341,11 +341,10 @@ impl SteamPeer {
         for (i, p) in self.inner.lock().unwrap().remote_peers.iter().enumerate() {
             if *p == Into::<SteamId>::into(peer) {
                 n = i as isize;
-                break
+                break;
             }
         }
-        if n >= 0
-        {
+        if n >= 0 {
             self.inner.lock().unwrap().remote_peers.remove(n as usize);
         }
     }

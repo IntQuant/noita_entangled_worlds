@@ -20,11 +20,15 @@ pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf, PathBuf) 
     let parent = path.parent().unwrap();
     let p = parent.join("player_arrows");
     let o = parent.join("player_ping");
-    (if is_host {
-        p.join("arrow_host.png")
-    } else {
-        p.join("arrow.png")
-    }, o.join("arrow.png"), parent.join("map/icon.png"))
+    (
+        if is_host {
+            p.join("arrow_host.png")
+        } else {
+            p.join("arrow.png")
+        },
+        o.join("arrow.png"),
+        parent.join("map/icon.png"),
+    )
 }
 
 pub fn cursor_path(path: PathBuf) -> PathBuf {
@@ -136,16 +140,22 @@ pub fn get_lch(color: [f64; 4]) -> (f64, f64, f64) {
 }
 
 pub fn rgb_to_oklch(color: &mut [f64; 4]) {
-    let mut l = 0.4122214694707629 * color[0] + 0.5363325372617349 * color[1] + 0.0514459932675022 * color[2];
-    let mut m = 0.2119034958178251 * color[0] + 0.6806995506452344 * color[1] + 0.1073969535369405 * color[2];
-    let mut s = 0.0883024591900564 * color[0] + 0.2817188391361215 * color[1] + 0.6299787016738222 * color[2];
+    let mut l = 0.4122214694707629 * color[0]
+        + 0.5363325372617349 * color[1]
+        + 0.0514459932675022 * color[2];
+    let mut m = 0.2119034958178251 * color[0]
+        + 0.6806995506452344 * color[1]
+        + 0.1073969535369405 * color[2];
+    let mut s = 0.0883024591900564 * color[0]
+        + 0.2817188391361215 * color[1]
+        + 0.6299787016738222 * color[2];
 
     l = l.cbrt();
     m = m.cbrt();
     s = s.cbrt();
 
-    color[0] = 0.210454268309314  * l + 0.7936177747023054 * m - 0.0040720430116193 * s;
-    color[1] = 1.9779985324311684 * l - 2.42859224204858   * m + 0.450593709617411  * s;
+    color[0] = 0.210454268309314 * l + 0.7936177747023054 * m - 0.0040720430116193 * s;
+    color[1] = 1.9779985324311684 * l - 2.42859224204858 * m + 0.450593709617411 * s;
     color[2] = 0.0259040424655478 * l + 0.7827717124575296 * m - 0.8086757549230774 * s;
 }
 
@@ -158,7 +168,7 @@ fn oklch_to_rgb(color: &mut [f64; 4]) {
     m = m.powi(3);
     s = s.powi(3);
 
-    color[0] =  4.07674163607596   * l - 3.3077115392580635 * m + 0.2309699031821046 * s;
+    color[0] = 4.07674163607596 * l - 3.3077115392580635 * m + 0.2309699031821046 * s;
     color[1] = -1.2684379732850317 * l + 2.6097573492876887 * m - 0.3413193760026572 * s;
     color[2] = -0.0041960761386754 * l - 0.7034186179359363 * m + 1.7076146940746116 * s;
 }
@@ -400,12 +410,11 @@ pub fn create_player_png(
     edit_by_replacing(
         tmp_path.join("unmodified_lukki.xml"),
         tmp_path.join("tmp/".to_owned() + &id.clone() + "_lukki.xml"),
-        &[
-            (
-                "MARKER_LUKKI_PNG",
-                format!("mods/quant.ew/files/system/player/tmp/{}_lukki.png", id),
-            ),
-        ]);
+        &[(
+            "MARKER_LUKKI_PNG",
+            format!("mods/quant.ew/files/system/player/tmp/{}_lukki.png", id),
+        )],
+    );
     edit_by_replacing(
         tmp_path.join("unmodified_base.xml"),
         tmp_path.join("tmp/".to_owned() + &id.clone() + "_base.xml"),
