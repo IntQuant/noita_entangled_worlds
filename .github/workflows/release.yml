@@ -96,16 +96,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: last_release_notes.md
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-      - name: Get tag message
-        run: git tag -l --format='%(contents)' $(git describe --tags) > release_body.md
-      - name: Print release body
-        run: cat release_body.md
       - uses: ncipollo/release-action@v1
         with:
           draft: true
           artifacts: "*.zip"
-          bodyFile: release_body.md
+          bodyFile: last_release_notes.md
+  
