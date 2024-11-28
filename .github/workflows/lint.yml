@@ -1,0 +1,31 @@
+name: lint
+
+on: [push, pull_request]
+
+jobs:
+  build-mod:
+    runs-on: ubuntu-22.04
+    name: Check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ewext -> target
+                      noita-proxy -> target
+      
+      - name: Check ewext for formatting
+        run: cargo fmt --check
+        working-directory: ./ewext
+      - name: Check proxy for formatting
+        run: cargo fmt --check
+        working-directory: ./noita-proxy
+      - name: Ask clippy for approval (ewext)
+        run: cargo clippy -- -D clippy::all
+        working-directory: ./ewext
+      - name: Ask clippy for approval (proxy)
+        run: cargo clippy -- -D clippy::all
+        working-directory: ./noita-proxy
