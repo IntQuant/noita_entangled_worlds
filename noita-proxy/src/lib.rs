@@ -539,7 +539,7 @@ pub struct App {
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
-    ux_settings: UXSettings
+    ux_settings: UXSettings,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -597,13 +597,18 @@ fn settings_get() -> Settings {
     }
 }
 
-fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: ModmanagerSettings, ux: UXSettings) {
+fn settings_set(
+    app: AppSavedState,
+    color: PlayerAppearance,
+    modmanager: ModmanagerSettings,
+    ux: UXSettings,
+) {
     if let Ok(s) = std::env::current_exe() {
         let settings = Settings {
             app,
             color,
             modmanager,
-            ux
+            ux,
         };
         let file = s.parent().unwrap().join("proxy.ron");
         let settings = ron::to_string(&settings).unwrap();
@@ -1106,14 +1111,22 @@ impl App {
         ui.add_space(10.0);
         ui.label(tr("ping-note"));
         ui.add_space(10.0);
-        ui.add(egui::Slider::new(&mut self.ux_settings.ping_lifetime, 1..=60).text(tr("ping-lifetime"))
-            .min_decimals(0)
-            .max_decimals(0)
-            .step_by(1.0)).on_hover_text(tr("ping-lifetime-tooltip"));
-        ui.add(egui::Slider::new(&mut self.ux_settings.ping_scale, 0.0..=1.5).text(tr("ping-scale"))
-            .min_decimals(0)
-            .max_decimals(1)
-            .step_by(0.1)).on_hover_text(tr("ping-scale-tooltip"));
+        ui.add(
+            egui::Slider::new(&mut self.ux_settings.ping_lifetime, 1..=60)
+                .text(tr("ping-lifetime"))
+                .min_decimals(0)
+                .max_decimals(0)
+                .step_by(1.0),
+        )
+        .on_hover_text(tr("ping-lifetime-tooltip"));
+        ui.add(
+            egui::Slider::new(&mut self.ux_settings.ping_scale, 0.0..=1.5)
+                .text(tr("ping-scale"))
+                .min_decimals(0)
+                .max_decimals(1)
+                .step_by(0.1),
+        )
+        .on_hover_text(tr("ping-scale-tooltip"));
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {

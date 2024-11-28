@@ -4,6 +4,15 @@ local base64 = dofile_once("mods/quant.ew/files/resource/base64.lua")
 
 local util = {}
 
+local entity_load_orig = EntityLoad
+
+function EntityLoad(path, ...)
+    if path == "??SAV/world_state.xml" then
+        error("Attempted to EntityLoad WSE")
+    end
+    return entity_load_orig(path, ...)
+end
+
 function util.string_split( s, splitter )
     local words = {};
     if s == nil or splitter == nil then
