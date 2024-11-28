@@ -153,7 +153,7 @@ Info = Info
 
 connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
 
-##Arrow UX settings
+## Arrow UX settings
 
 ping-note = Ping arrow parameters
 ping-lifetime = Ping arrow lifetime in seconds.
