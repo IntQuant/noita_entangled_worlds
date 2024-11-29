@@ -2,6 +2,7 @@ use std::{
     arch::asm,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
+    sync::{LazyLock, Mutex},
     time::Instant,
 };
 
@@ -9,18 +10,19 @@ use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use eyre::{bail, OptionExt};
 
 use modules::{entity_sync::EntitySync, Module};
+use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::{
-    lua::{lua_bindings::lua_State, LuaState, ValuesOnStack, LUA},
+    lua::{lua_bindings::lua_State, LuaFnRet, LuaState, RawString, ValuesOnStack, LUA},
     DamageModelComponent,
 };
 use noita_api_macro::add_lua_fn;
-
-pub mod noita;
-
-mod modules;
+use shared::{NoitaInbound, ProxyKV};
 
 mod addr_grabber;
+mod modules;
+mod net;
+pub mod noita;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
@@ -28,6 +30,8 @@ thread_local! {
         ExtState::default().into()
     });
 }
+
+static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(|| Default::default());
 
 #[derive(Default)]
 struct ExtState {
@@ -92,6 +96,77 @@ fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
         entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
     }
     Ok(())
+}
+
+struct InitKV {
+    key: String,
+    value: String,
+}
+
+impl From<ProxyKV> for InitKV {
+    fn from(value: ProxyKV) -> Self {
+        InitKV {
+            key: value.key,
+            value: value.value,
+        }
+    }
+}
+
+fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
+    println!("Connecting to proxy...");
+    let mut netman = NetManager::new()?;
+
+    let mut kvs = Vec::new();
+
+    loop {
+        match netman
+            .recv()?
+            .ok_or_eyre("Expected to be in non-blocking mode")?
+        {
+            // shared::NoitaInbound::ProxyKV(proxy_kv) => kvs.push(proxy_kv.into()),
+            NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
+            NoitaInbound::Ready => break,
+            // _ => bail!("Received an unexpected message type during init"),
+        }
+    }
+
+    netman.switch_to_non_blocking()?;
+
+    *NETMANAGER.lock().unwrap() = Some(netman);
+    println!("Ok!");
+    Ok(kvs)
+}
+
+fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
+    let mut binding = NETMANAGER.lock().unwrap();
+    let netmanager = binding.as_mut().unwrap();
+    Ok(match netmanager.recv()? {
+        Some(NoitaInbound::RawMessage(msg)) => Some(msg.into()),
+        Some(NoitaInbound::Ready) => {
+            bail!("Unexpected Ready message")
+        }
+        None => None,
+    })
+}
+
+fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
+    let arg = lua.to_raw_string(1)?;
+    let mut binding = NETMANAGER.lock().unwrap();
+    let netmanager = binding.as_mut().unwrap();
+    netmanager.send(&shared::NoitaOutbound::Raw(arg))?;
+
+    Ok(())
+}
+
+impl LuaFnRet for InitKV {
+    fn do_return(self, lua: LuaState) -> c_int {
+        lua.create_table(2, 0);
+        lua.push_string(&self.key);
+        lua.rawset_table(-2, 1);
+        lua.push_string(&self.value);
+        lua.rawset_table(-2, 2);
+        1
+    }
 }
 
 fn on_world_initialized(lua: LuaState) {
@@ -175,7 +250,10 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
 #[no_mangle]
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
+
+    // Reset some stuff
     STATE.with(|state| state.take());
+    NETMANAGER.lock().unwrap().take();
 
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
@@ -186,6 +264,10 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);
         add_lua_fn!(bench_fn);
+
+        add_lua_fn!(netmanager_connect);
+        add_lua_fn!(netmanager_recv);
+        add_lua_fn!(netmanager_send);
 
         add_lua_fn!(module_on_world_update);
     }

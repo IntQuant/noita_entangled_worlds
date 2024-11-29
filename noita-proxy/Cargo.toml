@@ -23,7 +23,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
 tangled = { path = "tangled" }
 serde = { version = "1.0.207", features = ["serde_derive", "derive"] }
-bitcode = "0.6.0"
+bitcode = "0.6.3"
 lz4_flex = { version = "0.11.3", default-features = false, features = ["std"]}
 rand = "0.8.5"
 steamworks = { git = "https://github.com/IntQuant/steamworks-rs", branch = "avatar-fix" }
@@ -50,6 +50,7 @@ dashmap = "6.0.1"
 eyre = "0.6.12"
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 tracing-appender = "0.2.3"
+shared = {path = "../shared"}
 
 [build-dependencies]
 winresource = "0.1.17"

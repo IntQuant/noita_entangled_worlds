@@ -7,6 +7,18 @@ use tangled::{PeerId, Reliability};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct OmniPeerId(pub u64);
 
+impl From<shared::PeerId> for OmniPeerId {
+    fn from(value: shared::PeerId) -> Self {
+        OmniPeerId(value.0)
+    }
+}
+
+impl From<OmniPeerId> for shared::PeerId {
+    fn from(value: OmniPeerId) -> Self {
+        shared::PeerId(value.0)
+    }
+}
+
 impl From<PeerId> for OmniPeerId {
     fn from(value: PeerId) -> Self {
         Self(value.0.into())

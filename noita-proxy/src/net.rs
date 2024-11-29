@@ -2,15 +2,17 @@ use bitcode::{Decode, Encode};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
+use shared::{NoitaInbound, NoitaOutbound};
 use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{
     env,
     fmt::Display,
-    io::{self, Write},
+    io::{self},
     net::{SocketAddr, TcpListener, TcpStream},
     thread::{self, JoinHandle},
     time::{Duration, Instant},
@@ -33,11 +35,15 @@ mod proxy_opt;
 pub mod steam_networking;
 pub mod world;
 
+fn ws_bitcode(proxy_kv: &NoitaInbound) -> tungstenite::Message {
+    tungstenite::Message::Binary(bitcode::encode(proxy_kv))
+}
+
 pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
     let mut buf = Vec::new();
     buf.push(2);
     write!(buf, "{} {}", key, value).unwrap();
-    tungstenite::Message::Binary(buf)
+    ws_bitcode(&NoitaInbound::RawMessage(buf))
 }
 
 pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
@@ -45,7 +51,7 @@ pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
     buf.push(3);
     buf.push(key);
     buf.extend(data);
-    tungstenite::Message::Binary(buf)
+    ws_bitcode(&NoitaInbound::RawMessage(buf))
 }
 
 pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Message {
@@ -53,8 +59,29 @@ pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Messa
     buf.push(1u8);
     buf.extend_from_slice(&peer.0.to_le_bytes());
     buf.extend_from_slice(data);
-    tungstenite::Message::Binary(buf)
+    ws_bitcode(&NoitaInbound::RawMessage(buf))
 }
+
+// pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
+//     ws_bitcode(&NoitaInbound::ProxyKV(ProxyKV {
+//         key: key.to_owned(),
+//         value: value.to_string(),
+//     }))
+// }
+
+// pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
+//     ws_bitcode(&NoitaInbound::ProxyKVBin(ProxyKVBin {
+//         key,
+//         value: data.to_owned(),
+//     }))
+// }
+
+// pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Message {
+//     ws_bitcode(&NoitaInbound::ModMessage(ModMessage {
+//         peer: peer.into(),
+//         value: data.to_owned(),
+//     }))
+// }
 
 pub struct DebugMarker {
     pub x: f64,
@@ -94,7 +121,7 @@ impl NetInnerState {
         let mut buf = Vec::new();
         buf.push(2);
         value.write_opt(&mut buf, key);
-        let message = tungstenite::Message::Binary(buf);
+        let message = ws_bitcode(&NoitaInbound::RawMessage(buf));
         self.try_ws_write(message);
     }
 }
@@ -440,7 +467,9 @@ impl NetManager {
                 match msg {
                     Ok(msg) => {
                         if let tungstenite::Message::Binary(msg) = msg {
-                            self.handle_mod_message_2(msg, &mut state);
+                            if let Ok(msg) = bitcode::decode(&msg) {
+                                self.handle_mod_message_2(msg, &mut state);
+                            }
                         }
                     }
                     Err(tungstenite::Error::Io(io_err))
@@ -610,7 +639,7 @@ impl NetManager {
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
-        state.try_ws_write(ws_encode_proxy("ready", ""));
+        state.try_ws_write(ws_bitcode(&NoitaInbound::Ready));
         // TODO? those are currently ignored by mod
         for id in self.peer.iter_peer_ids() {
             state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
@@ -618,31 +647,35 @@ impl NetManager {
         info!("Settings sent")
     }
 
-    fn handle_mod_message_2(&self, msg: Vec<u8>, state: &mut NetInnerState) {
-        match msg[0] & 0b11 {
-            // Message to proxy
-            1 => {
-                self.handle_message_to_proxy(&msg[1..], state);
-            }
-            // Broadcast
-            2 => {
-                let msg_to_send = NetMsg::ModRaw {
-                    data: msg[1..].to_owned(),
-                };
-                let reliable = msg[0] & 4 > 0;
-                self.broadcast(
-                    &msg_to_send,
-                    if reliable {
-                        Reliability::Reliable
-                    } else {
-                        Reliability::Unreliable
-                    },
-                );
-            }
-            // Binary message to proxy
-            3 => self.handle_bin_message_to_proxy(&msg[1..], state),
-            msg_variant => {
-                error!("Unknown msg variant from mod: {}", msg_variant)
+    fn handle_mod_message_2(&self, msg: NoitaOutbound, state: &mut NetInnerState) {
+        match msg {
+            NoitaOutbound::Raw(raw_msg) => {
+                match raw_msg[0] & 0b11 {
+                    // Message to proxy
+                    1 => {
+                        self.handle_message_to_proxy(&raw_msg[1..], state);
+                    }
+                    // Broadcast
+                    2 => {
+                        let msg_to_send = NetMsg::ModRaw {
+                            data: raw_msg[1..].to_owned(),
+                        };
+                        let reliable = raw_msg[0] & 4 > 0;
+                        self.broadcast(
+                            &msg_to_send,
+                            if reliable {
+                                Reliability::Reliable
+                            } else {
+                                Reliability::Unreliable
+                            },
+                        );
+                    }
+                    // Binary message to proxy
+                    3 => self.handle_bin_message_to_proxy(&raw_msg[1..], state),
+                    msg_variant => {
+                        error!("Unknown msg variant from mod: {}", msg_variant)
+                    }
+                }
             }
         }
     }

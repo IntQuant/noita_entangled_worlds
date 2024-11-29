@@ -1,20 +1,13 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
-local pollnet = dofile_once("mods/quant.ew/files/lib/pollnet.lua")
 local hex_table = dofile_once("mods/quant.ew/files/lib/hex.lua")
 local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
-local reactor = pollnet.Reactor()
-
 local net_handling = dofile_once("mods/quant.ew/files/core/net_handling.lua")
 local net = {}
 
 net.net_handling = net_handling
-
-function net.update()
-    reactor:update()
-end
 
 local string_split = util.string_split
 
@@ -111,81 +104,76 @@ function net.new_rpc_namespace_with_id(id)
   return ret
 end
 
-function net.init()
-    local ready = false
-    local addr = os.getenv("NP_NOITA_ADDR") or "127.0.0.1:21251"
-    net.sock = pollnet.open_ws("ws://"..addr)
-    reactor:run(function()
-        local sock = net.sock
-        while true do
-          local msg_decoded
-            local msg = sock:await()
-          if string.byte(msg, 1, 1) == 2 then
-            local msg_l = string.sub(msg, 2)
-            local res = string_split(msg_l, " ")
-            if res[1] == "ready" then
-              ready = true
-            else
-              msg_decoded = {
-                kind = "proxy",
-                key = res[1],
-                value = res[2],
-                value2 = res[3],
-              }
-            end
-          elseif string.byte(msg, 1, 1) == 1 then
-            local peer_id_b = {string.byte(msg, 2, 2+8-1)}
-            -- local mult = 1
-            -- local peer_id = 0
-            -- for _, b in ipairs(peer_id_b) do
-            --   peer_id = peer_id + b * mult
-            --   mult = mult * 256
-            -- end
-            local peer_id = ""
-            for _, b in ipairs(peer_id_b) do
-              peer_id = hex_table[b+1] .. peer_id
-            end
-
-            local msg_l = string.sub(msg, 2+8)
-            local success, item = pcall(bitser.loads, msg_l)
-            if success then
-              msg_decoded = {
-                kind = "mod",
-                peer_id = peer_id,
-                key = item.key,
-                value = item.value,
-              }
-            else
-              print("Could not deserialize: "..item)
-            end
-          elseif string.byte(msg, 1, 1) == 3 then
-            msg_decoded = {
-              kind = "proxy",
-              peer_id = nil,
-              key = string.byte(msg, 2, 2),
-              value = string.sub(msg, 3),
-            }
-          else
-            print("Unknown msg")
-          end
-          if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
-            if ctx.ready or msg_decoded.kind ~= "mod" then
-                util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value, msg_decoded.value2)
-            end
-          end
-        end
-    end)
-    while not ready do
-        reactor:update()
-        pollnet.sleep_ms(100)
-        local status = net.sock:status()
-        if status == "error" or status == "closed" then
-          net.connect_failed = true
-          return
-        end
-        --print("Waiting for connection...")
+local function handle_message(msg)
+  local msg_decoded
+  if string.byte(msg, 1, 1) == 2 then
+    local msg_l = string.sub(msg, 2)
+    local res = string_split(msg_l, " ")
+    if res[1] == "ready" then
+      ready = true
+    else
+      msg_decoded = {
+        kind = "proxy",
+        key = res[1],
+        value = res[2],
+        value2 = res[3],
+      }
+    end
+  elseif string.byte(msg, 1, 1) == 1 then
+    local peer_id_b = {string.byte(msg, 2, 2+8-1)}
+    local peer_id = ""
+    for _, b in ipairs(peer_id_b) do
+      peer_id = hex_table[b+1] .. peer_id
     end
 
+    local msg_l = string.sub(msg, 2+8)
+    local success, item = pcall(bitser.loads, msg_l)
+    if success then
+      msg_decoded = {
+        kind = "mod",
+        peer_id = peer_id,
+        key = item.key,
+        value = item.value,
+      }
+    else
+      print("Could not deserialize: "..item)
+    end
+  elseif string.byte(msg, 1, 1) == 3 then
+    msg_decoded = {
+      kind = "proxy",
+      peer_id = nil,
+      key = string.byte(msg, 2, 2),
+      value = string.sub(msg, 3),
+    }
+  else
+    print("Unknown msg")
+  end
+  if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
+    if ctx.ready or msg_decoded.kind ~= "mod" then
+        util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value, msg_decoded.value2)
+    end
+  end
+end
+
+function net.update()
+  while true do
+    local msg = ewext.netmanager_recv()
+    if msg == nil then
+      break
+    end
+    handle_message(msg)
+  end
+end
+
+function net.init()
+  local ok, res = util.tpcall(ewext.netmanager_connect)
+  if not ok then
+    net.connect_failed = true
+    return
+  end
+  for _, opt in ipairs(res) do
+    handle_message(opt)
+  end
 end
 
 local DEST_PROXY = 1
@@ -198,7 +186,7 @@ function net.send_internal(msg, dest, reliable)
   if reliable then
     dest = dest + MOD_RELIABLE
   end
-  net.sock:send_binary(string.char(dest)..msg)
+  ewext.netmanager_send(string.char(dest)..msg)
 end
 
 function net.send(key, value, reliable)
@@ -226,7 +214,7 @@ function net.proxy_send(key, value)
 end
 
 function net.proxy_bin_send(key, value)
-  net.sock:send_binary(string.char(DEST_PROXY_BIN, key)..value)
+  ewext.netmanager_send(string.char(DEST_PROXY_BIN, key)..value)
 end
 
 function net.proxy_notify_game_over()

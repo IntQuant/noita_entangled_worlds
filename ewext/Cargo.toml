@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 [profile.release]
 lto = true
 strip = true
+panic = "abort"
 
 [dependencies]
 libloading = "0.8.5"
@@ -18,3 +19,6 @@ iced-x86 = "1.21.0"
 noita_api_macro = {path = "noita_api_macro"}
 eyre = "0.6.12"
 noita_api = {path = "noita_api"}
+tungstenite = "0.24.0"
+bitcode = "0.6.3"
+shared = {path = "../shared"}

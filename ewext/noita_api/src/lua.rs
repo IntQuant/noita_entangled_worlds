@@ -71,6 +71,17 @@ impl LuaState {
             .wrap_err("Attempting to get lua string, expecting it to be utf-8")?)
     }
 
+    pub fn to_raw_string(&self, index: i32) -> eyre::Result<Vec<u8>> {
+        let mut size = 0;
+        let buf = unsafe { LUA.lua_tolstring(self.lua, index, &mut size) };
+        if buf.is_null() {
+            bail!("Expected a string, but got a null pointer");
+        }
+        let slice = unsafe { slice::from_raw_parts(buf as *const u8, size) };
+
+        Ok(slice.to_owned())
+    }
+
     pub fn to_cfunction(&self, index: i32) -> lua_CFunction {
         unsafe { LUA.lua_tocfunction(self.lua, index) }
     }
@@ -90,6 +101,12 @@ impl LuaState {
     pub fn push_string(&self, s: &str) {
         unsafe {
             LUA.lua_pushlstring(self.lua, s.as_bytes().as_ptr() as *const c_char, s.len());
+        }
+    }
+
+    pub fn push_raw_string(&self, s: &[u8]) {
+        unsafe {
+            LUA.lua_pushlstring(self.lua, s.as_ptr() as *const c_char, s.len());
         }
     }
 
@@ -139,6 +156,22 @@ impl LuaState {
     fn is_nil_or_none(&self, index: i32) -> bool {
         (unsafe { LUA.lua_type(self.lua, index) }) <= 0
     }
+
+    pub fn create_table(&self, narr: c_int, nrec: c_int) {
+        unsafe { LUA.lua_createtable(self.lua, narr, nrec) };
+    }
+
+    pub fn rawset_table(&self, table_index: i32, index_in_table: i32) {
+        unsafe { LUA.lua_rawseti(self.lua, table_index, index_in_table) };
+    }
+}
+
+pub struct RawString(Vec<u8>);
+
+impl From<Vec<u8>> for RawString {
+    fn from(value: Vec<u8>) -> Self {
+        Self(value)
+    }
 }
 
 /// Used for types that can be returned from functions that were defined in rust to lua.
@@ -169,6 +202,37 @@ impl<R: LuaFnRet> LuaFnRet for eyre::Result<R> {
                 lua.raise_error(format!("Error in rust call: {:?}", err));
             },
         }
+    }
+}
+
+impl<T: LuaFnRet> LuaFnRet for Option<T> {
+    fn do_return(self, lua: LuaState) -> c_int {
+        match self {
+            Some(val) => val.do_return(lua),
+            None => {
+                lua.push_nil();
+                1
+            }
+        }
+    }
+}
+
+impl<T: LuaFnRet> LuaFnRet for Vec<T> {
+    fn do_return(self, lua: LuaState) -> c_int {
+        lua.create_table(self.len() as c_int, 0);
+        for (i, el) in self.into_iter().enumerate() {
+            let elements = el.do_return(lua);
+            assert_eq!(elements, 1, "Vec<T>'s T should only put one value on stack");
+            lua.rawset_table(-2, (i + 1) as i32);
+        }
+        1
+    }
+}
+
+impl LuaFnRet for RawString {
+    fn do_return(self, lua: LuaState) -> c_int {
+        lua.push_raw_string(&self.0);
+        1
     }
 }
 
