@@ -62,27 +62,6 @@ pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Messa
     ws_bitcode(&NoitaInbound::RawMessage(buf))
 }
 
-// pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
-//     ws_bitcode(&NoitaInbound::ProxyKV(ProxyKV {
-//         key: key.to_owned(),
-//         value: value.to_string(),
-//     }))
-// }
-
-// pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
-//     ws_bitcode(&NoitaInbound::ProxyKVBin(ProxyKVBin {
-//         key,
-//         value: data.to_owned(),
-//     }))
-// }
-
-// pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Message {
-//     ws_bitcode(&NoitaInbound::ModMessage(ModMessage {
-//         peer: peer.into(),
-//         value: data.to_owned(),
-//     }))
-// }
-
 pub struct DebugMarker {
     pub x: f64,
     pub y: f64,

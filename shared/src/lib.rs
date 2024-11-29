@@ -23,15 +23,11 @@ pub struct ModMessage {
 
 #[derive(Encode, Decode)]
 pub enum NoitaInbound {
-    // ProxyKV(ProxyKV),
-    // ProxyKVBin(ProxyKVBin),
-    // ModMessage(ModMessage),
     RawMessage(Vec<u8>),
     Ready,
 }
 
 #[derive(Encode, Decode)]
 pub enum NoitaOutbound {
-    // ModMessage(ModMessage),
     Raw(Vec<u8>),
 }

@@ -127,10 +127,8 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
             .recv()?
             .ok_or_eyre("Expected to be in non-blocking mode")?
         {
-            // shared::NoitaInbound::ProxyKV(proxy_kv) => kvs.push(proxy_kv.into()),
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
             NoitaInbound::Ready => break,
-            // _ => bail!("Received an unexpected message type during init"),
         }
     }
 
