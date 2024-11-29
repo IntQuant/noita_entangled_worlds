@@ -35,7 +35,7 @@ thread_local! {
     });
 }
 
-static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(|| Default::default());
+static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(Default::default);
 
 #[derive(Default)]
 struct ExtState {
@@ -122,6 +122,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 
     let mut kvs = Vec::new();
 
+    #[expect(clippy::while_let_loop)] // Will probably get more variants in the future
     loop {
         match netman
             .recv()?
