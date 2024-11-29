@@ -22,6 +22,7 @@ impl NetManager {
         let request = format!("ws://{address}");
 
         let tcp = TcpStream::connect_timeout(&address, Duration::from_secs(2))?;
+        tcp.set_read_timeout(Some(Duration::from_secs(2)))?;
         tcp.set_nodelay(true)?;
         let (ws, _) = client(request, tcp)?;
 
@@ -29,6 +30,7 @@ impl NetManager {
     }
 
     pub(crate) fn switch_to_non_blocking(&mut self) -> eyre::Result<()> {
+        self.ws.get_mut().set_read_timeout(None)?;
         self.ws.get_mut().set_nonblocking(true)?;
         Ok(())
     }

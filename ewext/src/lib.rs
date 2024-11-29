@@ -3,6 +3,7 @@ use std::{
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
     sync::{LazyLock, Mutex},
+    thread,
     time::Instant,
 };
 
@@ -13,7 +14,10 @@ use modules::{entity_sync::EntitySync, Module};
 use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::{
-    lua::{lua_bindings::lua_State, LuaFnRet, LuaState, RawString, ValuesOnStack, LUA},
+    lua::{
+        lua_bindings::{lua_State, LUA_REGISTRYINDEX},
+        LuaFnRet, LuaState, RawString, ValuesOnStack, LUA,
+    },
     DamageModelComponent,
 };
 use noita_api_macro::add_lua_fn;
@@ -170,6 +174,10 @@ impl LuaFnRet for InitKV {
 }
 
 fn on_world_initialized(lua: LuaState) {
+    println!(
+        "ewext on_world_initialized in thread {:?}",
+        thread::current().id()
+    );
     grab_addrs(lua);
 
     STATE.with(|state| {
@@ -244,6 +252,13 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     Ok(())
 }
 
+fn __gc(_lua: LuaState) {
+    println!("ewext collected in thread {:?}", thread::current().id());
+    NETMANAGER.lock().unwrap().take();
+    // TODO this doesn't actually work because it's a thread local
+    STATE.with(|state| state.take());
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
@@ -251,12 +266,18 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
 
-    // Reset some stuff
-    STATE.with(|state| state.take());
-    NETMANAGER.lock().unwrap().take();
-
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
+
+        LUA.lua_createtable(lua, 0, 0);
+        LUA.lua_setmetatable(lua, -2);
+
+        // Detect module unload. Adapted from NoitaPatcher.
+        LUA.lua_newuserdata(lua, 0);
+        LUA.lua_createtable(lua, 0, 0);
+        add_lua_fn!(__gc);
+        LUA.lua_setmetatable(lua, -2);
+        LUA.lua_setfield(lua, LUA_REGISTRYINDEX, c"luaclose_ewext".as_ptr());
 
         add_lua_fn!(init_particle_world_state);
         add_lua_fn!(encode_area);
