@@ -144,7 +144,7 @@ end
 
 function item_sync.remove_item_with_id_now(gid)
     local item = item_sync.find_by_gid(gid)
-    if item ~= nil and is_item_on_ground(item) then
+    if item ~= nil then
         for _, audio in ipairs(EntityGetComponent(item, "AudioComponent") or {}) do
             if string.sub(ComponentGetValue2(audio, "event_root"), 1, 10) == "collision/" then
                 EntitySetComponentIsEnabled(item, audio, false)
@@ -254,7 +254,7 @@ local function remove_client_items_from_world()
     end
     for _, item in ipairs(EntityGetWithTag("ew_client_item")) do
         if is_item_on_ground(item) then
-            EntityKill(item)
+            item_sync.remove_item_with_id(item_sync.get_global_item_id(item))
         end
     end
 end
@@ -616,7 +616,7 @@ local function cleanup(peer)
         if frame[peer] > num then
             local item = item_sync.find_by_gid(gid)
             if is_item_on_ground(item) then
-                EntityKill(item)
+                item_sync.remove_item_with_id(gid)
                 gid_last_frame_updated[peer][gid] = nil
             end
         end
@@ -626,12 +626,12 @@ local function cleanup(peer)
         local gid = item_sync.get_global_item_id(item)
         if gid ~= nil and is_peers_item(gid, peer) then
             if (gid_last_frame_updated[peer] == nil or is_duplicate[gid]) and is_item_on_ground(item) then
-                EntityKill(item)
+                item_sync.remove_item_with_id(gid)
             else
                 if is_duplicate[gid] then
-                    EntityKill(is_duplicate[gid])
+                    item_sync.remove_item_with_id(gid)
                 end
-                is_duplicate[gid] = item
+                is_duplicate[gid] = true
             end
         end
     end
