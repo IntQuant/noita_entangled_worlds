@@ -1,5 +1,5 @@
 use std::{env, f32::consts::PI, mem, time::Instant};
-
+use std::collections::HashMap;
 use bitcode::{Decode, Encode};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
@@ -89,6 +89,9 @@ pub(crate) enum WorldNetMessage {
         delta: ChunkDelta,
         priority: u8,
         take_auth: bool,
+    },
+    ChunkPacket {
+        chunkpacket: Vec<(ChunkDelta, u8)>
     },
     ListenAuthorityRelinquished {
         chunk: ChunkCoord,
@@ -213,13 +216,37 @@ impl WorldManager {
             .copied()
             .collect::<Vec<_>>();
         self.current_update += 1;
-        for chunk in updated_chunks {
-            self.chunk_updated_locally(chunk, priority, pos);
+        let mut chunks_to_send = Vec::new();
+        for chunk in updated_chunks.clone() {
+            chunks_to_send.push(self.chunk_updated_locally(chunk, priority, pos));
+        }
+        let mut chunk_packet: HashMap<OmniPeerId, Vec<(ChunkDelta, u8)>> = HashMap::new();
+        for (chunk, who_sending) in updated_chunks.iter().zip(chunks_to_send.iter()) {
+            let Some(delta) = self.outbound_model.get_chunk_delta(*chunk, false) else {
+                continue
+            };
+            for (peer, pri) in who_sending {
+                chunk_packet.entry(*peer)
+                            .or_default()
+                            .push((delta.clone(), *pri));
+            }
+        }
+        let mut emit_queue = Vec::new();
+        for (peer, chunkpacket) in chunk_packet {
+            emit_queue.push((
+                Destination::Peer(peer),
+                WorldNetMessage::ChunkPacket {
+                    chunkpacket
+                },
+            ));
+        }
+        for (dst, msg) in emit_queue {
+            self.emit_msg(dst, msg)
         }
         self.outbound_model.reset_change_tracking();
     }
 
-    fn chunk_updated_locally(&mut self, chunk: ChunkCoord, priority: u8, pos: Option<&[i32]>) {
+    fn chunk_updated_locally(&mut self, chunk: ChunkCoord, priority: u8, pos: Option<&[i32]>) -> Vec<(OmniPeerId, u8)>{
         if let Some(data) = pos {
             self.my_pos = (data[0], data[1]);
             self.cam_pos = (data[2], data[3]);
@@ -234,6 +261,7 @@ impl WorldManager {
         });
         let mut emit_queue = Vec::new();
         self.chunk_last_update.insert(chunk, self.current_update);
+        let mut chunks_to_send = Vec::new();
         match entry {
             ChunkState::Listening {
                 authority,
@@ -288,7 +316,7 @@ impl WorldManager {
                 stop_sending,
             } => {
                 let Some(delta) = self.outbound_model.get_chunk_delta(chunk, false) else {
-                    return;
+                    return Vec::new();
                 };
                 if *pri != priority {
                     *pri = priority;
@@ -315,14 +343,19 @@ impl WorldManager {
                         if take_auth {
                             new_auth_got = true
                         }
-                        emit_queue.push((
-                            Destination::Peer(listener),
-                            WorldNetMessage::ListenUpdate {
-                                delta: delta.clone(),
-                                priority,
-                                take_auth,
-                            },
-                        ));
+                        if take_auth {
+                            emit_queue.push((
+                                Destination::Peer(listener),
+                                WorldNetMessage::ListenUpdate {
+                                    delta: delta.clone(),
+                                    priority,
+                                    take_auth,
+                                },
+                            ));
+                            chunks_to_send = Vec::new()
+                        } else {
+                            chunks_to_send.push((listener, priority));
+                        }
                     }
                 }
                 if new_auth_got && new_auth.is_some() {
@@ -334,6 +367,7 @@ impl WorldManager {
         for (dst, msg) in emit_queue {
             self.emit_msg(dst, msg)
         }
+        chunks_to_send
     }
 
     pub(crate) fn update(&mut self) {
@@ -781,6 +815,32 @@ impl WorldManager {
                     _ => return,
                 }
                 self.inbound_model.apply_chunk_delta(&delta);
+            }
+            WorldNetMessage::ChunkPacket {
+                chunkpacket
+            } => {
+                for (delta, priority) in chunkpacket {
+                    match self.chunk_state.get_mut(&delta.chunk_coord) {
+                        Some(ChunkState::Listening { priority: pri, .. }) => {
+                            *pri = priority;
+                        }
+                        Some(ChunkState::WantToGetAuth {
+                                 authority,
+                                 my_priority,
+                                 ..
+                             }) => {
+                            if priority <= *my_priority {
+                                let cs = ChunkState::Listening {
+                                    authority: *authority,
+                                    priority,
+                                };
+                                self.chunk_state.insert(delta.chunk_coord, cs);
+                            }
+                        }
+                        _ => return,
+                    }
+                    self.inbound_model.apply_chunk_delta(&delta);
+                }
             }
             WorldNetMessage::ListenAuthorityRelinquished { chunk } => {
                 self.chunk_state.insert(chunk, ChunkState::UnloadPending);
