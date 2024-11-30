@@ -64,8 +64,8 @@ function module.on_world_update()
 
     local i = 1
     --ternary operators ahead
-    local lifetime = (ctx.proxy_opt.ping_lifetime ~= nil and {ctx.proxy_opt.ping_lifetime} or {900})[1]*60  
-    local custom_scale = (ctx.proxy_opt.ping_scale ~= nil and {ctx.proxy_opt.ping_scale} or {0.5})[1]
+    local lifetime = (ctx.proxy_opt.ping_lifetime ~= nil and {ctx.proxy_opt.ping_lifetime} or {5})[1]*60
+    local custom_scale = (ctx.proxy_opt.ping_scale ~= nil and {ctx.proxy_opt.ping_scale} or {0})[1]
     while i <= #pings do
         local pos = pings[i]
         local frame = pos[3]

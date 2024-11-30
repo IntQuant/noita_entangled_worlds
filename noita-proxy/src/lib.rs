@@ -408,7 +408,7 @@ impl UXSettings {
         self.ping_lifetime.unwrap_or(5)
     }
     fn ping_scale(&self) -> f32 {
-        self.ping_scale.unwrap_or(0.5)
+        self.ping_scale.unwrap_or(0.0)
     }
     fn hide_cursors(self) -> bool {
         self.hide_cursors.unwrap_or(false)

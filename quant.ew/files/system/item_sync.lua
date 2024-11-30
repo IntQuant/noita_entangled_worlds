@@ -223,7 +223,9 @@ local function make_global(item, give_authority_to)
 
     ctx.item_prevent_localize[gid] = false
     rpc.item_globalize(item_data)
-    wait_on_send[gid] = nil
+    if wait_on_send[gid] ~= nil then
+        wait_on_send[gid] = GameGetFrameNum() + 30
+    end
 end
 
 function item_sync.make_item_global(item, instant, give_authority_to)
@@ -563,7 +565,9 @@ end
 
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
-    wait_for_gid[item_data.gid] = nil
+    if wait_for_gid[item_data.gid] ~= nil then
+        wait_for_gid[item_data.gid] = GameGetFrameNum() + 30
+    end
     if is_safe_to_remove() then
         item_sync.remove_item_with_id_now(item_data.gid)
     end
