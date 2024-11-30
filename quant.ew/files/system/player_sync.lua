@@ -108,14 +108,16 @@ function module.on_world_update()
             local children = EntityGetAllChildren(ent) or {}
             if ctx.my_id ~= peer_id then
                 for _, child in ipairs(children) do
-                    if EntityGetName(child) == "cursor" and ctx.proxy_opt.hide_cursors == true then
-                        local sprite = EntityGetFirstComponent(child, "SpriteComponent")
-                        if sprite ~= nil and sprite ~= 0 then
-                            EntitySetComponentIsEnabled(child, sprite, false)
+                    if EntityGetName(child) == "cursor" then
+                        if ctx.proxy_opt.hide_cursors then
+                            local sprite = EntityGetFirstComponent(child, "SpriteComponent")
+                            if sprite ~= nil and sprite ~= 0 then
+                                EntitySetComponentIsEnabled(child, sprite, false)
+                            end
+                        else
+                            EntitySetComponentIsEnabled(child,
+                                    EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
                         end
-                    else
-                        EntitySetComponentIsEnabled(child,
-                            EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
                     end
                     if EntityGetName(child) == "notcursor" then
                         EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
