@@ -614,7 +614,10 @@ impl NetManager {
             self.init_settings.ux_settings.ping_lifetime(),
         );
         state.try_ws_write_option("ping_scale", self.init_settings.ux_settings.ping_scale());
-
+        state.try_ws_write_option(
+            "hide_cursors",
+            self.init_settings.ux_settings.hide_cursors(),
+        );
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
