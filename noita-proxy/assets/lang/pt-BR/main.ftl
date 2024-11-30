@@ -152,3 +152,14 @@ Info = Informação
 ## Local settings
 
 connect_settings_random_ports = Não usar uma porta predeterminada. Faz coisas serem um pouco mais robustas e permite multiplos proxies para serem iniciados no mesmo computador, mas Noita terá que ser iniciado via proxy.
+
+## UX settings
+
+ping-note = Parâmetros de seta de sinalização
+ping-lifetime = Tempo de vida em segundos de seta de sinalização.
+ping-scale = Tamanho da seta de sinalização.
+ping-lifetime-tooltip = Esse parâmetro muda quantos frames (segundos*60, já que o jogo é suposto a rodar em 60fps?) a seta de sinalização vive. Intervalo: 0-60 segundos.
+ping-scale-tooltip = Esse parâmentro muda o tamanho da seta de sinalização. Eu não sei quantas unidades que é, mas o intervalo é 0-1.5 unidades.
+
+hide-cursors-checkbox = Desativar cursor dos outros
+hide-cursors-checkbox-tooltip = De vez em quando você pode confundir o cursor de seus amigos com o seu. Nesse caso, você pode desativa-los totalmente com essa caixa de seleção.
