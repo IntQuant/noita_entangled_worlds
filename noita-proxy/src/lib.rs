@@ -400,6 +400,7 @@ struct PlayerAppearance {
 pub struct UXSettings {
     ping_lifetime: Option<u32>,
     ping_scale: Option<f32>,
+    hide_cursors: Option<bool>,
 }
 
 impl UXSettings {
@@ -408,6 +409,9 @@ impl UXSettings {
     }
     fn ping_scale(&self) -> f32 {
         self.ping_scale.unwrap_or(0.5)
+    }
+    fn hide_cursors(self) -> bool {
+        self.hide_cursors.unwrap_or(false)
     }
 }
 
@@ -1142,6 +1146,15 @@ impl App {
             .changed()
         {
             self.ux_settings.ping_scale = Some(tmp);
+        }
+
+        let mut tmp = self.ux_settings.hide_cursors();
+        if ui
+            .add(egui::Checkbox::new(&mut tmp, tr("hide-cursors-checkbox")))
+            .on_hover_text(tr("hide-cursors-checkbox-tooltip"))
+            .changed()
+        {
+            self.ux_settings.hide_cursors = Some(tmp);
         }
     }
 

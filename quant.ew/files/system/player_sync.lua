@@ -108,7 +108,13 @@ function module.on_world_update()
             local children = EntityGetAllChildren(ent) or {}
             if ctx.my_id ~= peer_id then
                 for _, child in ipairs(children) do
-                    if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+                    if EntityGetName(child) == "cursor" and ctx.proxy_opt.hide_cursors == true then
+                        EntitySetComponentIsEnabled(child, EntityGetFirstComponent(child, "SpriteComponent"), false)
+                    else
+                        EntitySetComponentIsEnabled(child,
+                            EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+                    end
+                    if EntityGetName(child) == "notcursor" then
                         EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
                     end
                 end
