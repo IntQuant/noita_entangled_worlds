@@ -20,4 +20,7 @@ pub struct Args {
     /// host either steam or ip.
     #[argh(option)]
     pub host: Option<String>,
+    /// noita.exe path
+    #[argh(option)]
+    pub exe_path: Option<PathBuf>,
 }

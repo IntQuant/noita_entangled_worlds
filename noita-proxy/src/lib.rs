@@ -1501,6 +1501,7 @@ impl eframe::App for App {
                             ui,
                             &mut self.modmanager_settings,
                             self.steam_state.as_mut().ok(),
+                            &self.args,
                         )
                     });
                 if self.modmanager.is_done() {
