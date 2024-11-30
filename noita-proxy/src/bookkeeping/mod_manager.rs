@@ -21,6 +21,8 @@ use crate::{
     steam_helper::SteamState,
 };
 
+use crate::util::args::Args;
+
 #[derive(Default)]
 enum State {
     #[default]
@@ -150,9 +152,16 @@ impl Modmanager {
         ui: &mut Ui,
         settings: &mut ModmanagerSettings,
         steam_state: Option<&mut SteamState>,
+        args: &Args,
     ) {
         if let State::JustStarted = self.state {
-            if check_path_valid(&settings.game_exe_path) {
+            if let Some(path) = &args.exe_path {
+                if check_path_valid(path) {
+                    settings.game_exe_path = path.to_path_buf();
+                    info!("Path from command line is valid, checking mod now");
+                    self.state = State::PreCheckMod;
+                }
+            } else if check_path_valid(&settings.game_exe_path) {
                 info!("Path is valid, checking mod now");
                 self.state = State::PreCheckMod;
             } else {
