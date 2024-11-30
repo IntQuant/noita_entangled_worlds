@@ -251,6 +251,14 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     Ok(())
 }
 
+fn probe(_lua: LuaState) {
+    backtrace::trace(|frame| {
+        let ip = frame.ip() as usize;
+        println!("Probe: 0x{ip:x}");
+        false
+    });
+}
+
 fn __gc(_lua: LuaState) {
     println!("ewext collected in thread {:?}", thread::current().id());
     NETMANAGER.lock().unwrap().take();
@@ -264,6 +272,15 @@ fn __gc(_lua: LuaState) {
 #[no_mangle]
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
+
+    println!(
+        "lua_call: 0x{:x}",
+        (*LUA.lua_call.as_ref().unwrap()) as usize
+    );
+    println!(
+        "lua_pcall: 0x{:x}",
+        (*LUA.lua_pcall.as_ref().unwrap()) as usize
+    );
 
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
@@ -284,6 +301,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);
         add_lua_fn!(bench_fn);
+        add_lua_fn!(probe);
 
         add_lua_fn!(netmanager_connect);
         add_lua_fn!(netmanager_recv);
