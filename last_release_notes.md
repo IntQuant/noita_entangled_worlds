@@ -1,12 +1,21 @@
-## Noita Entangled Worlds v0.30.8
+## Noita Entangled Worlds v0.30.9
 
-- An option to disable other player's cursor by @kcalbxof.
-- Also some internal changes.
+**Warn**: might still have that issue with connection (sadly I haven't found a way to reproduce it locally to make sure it's gone). Please notify me if you encounter it.
+
+- maybe fix that random issue with the connection.
+- Make alpha of player ping nonlinear.
+- Have karl yellow trail copy your player color.
+- Add chunk gathering to use less data on networking.
+- Surely fix item sync.
+- Fix player sync error from player cursor change.
+- Change default player arrow size to 0, since idk why it should be this large by default.
+- Update portuguese translation
+
 
 ## Accepted pull requests
 
-- add option to disable other players' cursors by @kcalbxof in #238
-- add cmd arg for noita exe path by @kcalbxof in #237
+- update portuguese translation by @ZXb125 in #242
+
 ## Installation
 
 

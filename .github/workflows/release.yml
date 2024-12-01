@@ -104,7 +104,7 @@ jobs:
           merge-multiple: true
       - uses: ncipollo/release-action@v1
         with:
-          draft: true
+          #draft: true
           artifacts: "*.zip"
           bodyFile: last_release_notes.md
   
