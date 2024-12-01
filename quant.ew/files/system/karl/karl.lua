@@ -18,7 +18,7 @@ function rpc.kill_karl()
     end
 end
 
-function rpc.send_karl(x, y, vx, vy, t, jet, rgb)
+function rpc.send_karl(x, y, vx, vy, t, jet, rgb1, rgb2)
     local players_karl
     for _, entity in ipairs(EntityGetWithTag("racing_cart")) do
         local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
@@ -41,9 +41,11 @@ function rpc.send_karl(x, y, vx, vy, t, jet, rgb)
                 EntityRemoveComponent(players_karl, com)
             end
         end
-        local particle = EntityGetFirstComponentIncludingDisabled(players_karl, "ParticleEmitterComponent")
-        local rgbc = rgb + 128 * 2^24
-        ComponentSetValue2(particle, "color", rgbc)
+        local particle = EntityGetComponentIncludingDisabled(players_karl, "ParticleEmitterComponent")
+        local rgbc = rgb2 + 128 * 2^24
+        ComponentSetValue2(particle[1], "color", rgbc)
+        rgbc = rgb1 + 128 * 2^24
+        ComponentSetValue2(particle[2], "color", rgbc)
     else
         EntitySetTransform(players_karl, x, y, t)
     end
@@ -77,9 +79,11 @@ function karl.on_world_update()
                 local com = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_karl")
                 if com == nil then
                     my_karl = entity
-                    local particle = EntityGetFirstComponentIncludingDisabled(my_karl, "ParticleEmitterComponent")
-                    local rgbc = ctx.proxy_opt.mina_color + 128 * 2^24
-                    ComponentSetValue2(particle, "color", rgbc)
+                    local particle = EntityGetComponentIncludingDisabled(my_karl, "ParticleEmitterComponent")
+                    local rgbc = ctx.proxy_opt.mina_color_alt + 128 * 2^24
+                    ComponentSetValue2(particle[1], "color", rgbc)
+                    rgbc = ctx.proxy_opt.mina_color + 128 * 2^24
+                    ComponentSetValue2(particle[2], "color", rgbc)
                     break
                 end
             end
@@ -89,7 +93,7 @@ function karl.on_world_update()
         local vel = EntityGetFirstComponentIncludingDisabled(my_karl, "VelocityComponent")
         local vx, vy = ComponentGetValue2(vel, "mVelocity")
         local jet = ComponentGetIsEnabled(EntityGetFirstComponentIncludingDisabled(my_karl, "SpriteParticleEmitterComponent"))
-        rpc.send_karl(x, y, vx, vy, t, jet, ctx.proxy_opt.mina_color)
+        rpc.send_karl(x, y, vx, vy, t, jet, ctx.proxy_opt.mina_color, ctx.proxy_opt.mina_color_alt)
 
         local stopwatch_best = EntityGetClosestWithTag(x, y, "stopwatch_best_lap")
         local com = EntityGetFirstComponentIncludingDisabled(stopwatch_best, "VariableStorageComponent")

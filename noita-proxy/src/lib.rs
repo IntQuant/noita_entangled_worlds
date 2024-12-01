@@ -405,7 +405,7 @@ pub struct UXSettings {
 
 impl UXSettings {
     fn ping_lifetime(&self) -> u32 {
-        self.ping_lifetime.unwrap_or(5)
+        self.ping_lifetime.unwrap_or(6)
     }
     fn ping_scale(&self) -> f32 {
         self.ping_scale.unwrap_or(0.0)

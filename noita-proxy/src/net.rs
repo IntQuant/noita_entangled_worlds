@@ -609,6 +609,12 @@ impl NetManager {
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
         );
 
+        let rgb = self.init_settings.player_color.player_alt;
+        state.try_ws_write_option(
+            "mina_color_alt",
+            rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
+        );
+
         state.try_ws_write_option(
             "ping_lifetime",
             self.init_settings.ux_settings.ping_lifetime(),

@@ -70,7 +70,7 @@ function module.on_world_update()
         local pos = pings[i]
         local frame = pos[3]
         local peer_id = pos[4]
-        local alpha = 1 - ((GameGetFrameNum() - frame) / lifetime)
+        local alpha = math.sqrt(1 - (GameGetFrameNum() - frame) / lifetime)
         if frame + lifetime < GameGetFrameNum() then
             table.remove(pings, i)
             goto continue
