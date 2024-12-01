@@ -30,14 +30,17 @@ impl NetManager {
     }
 
     pub(crate) fn switch_to_non_blocking(&mut self) -> eyre::Result<()> {
-        self.ws.get_mut().set_read_timeout(None)?;
-        self.ws.get_mut().set_nonblocking(true)?;
+        let stream_ref = self.ws.get_mut();
+        stream_ref.set_nonblocking(true)?;
+        stream_ref.set_read_timeout(Some(Duration::from_millis(1)))?;
+        // Set write timeout to a somewhat high value just in case.
+        stream_ref.set_write_timeout(Some(Duration::from_secs(5)))?;
         Ok(())
     }
 
     pub(crate) fn send(&mut self, msg: &NoitaOutbound) -> eyre::Result<()> {
         self.ws
-            .send(tungstenite::Message::Binary(bitcode::encode(msg)))?;
+            .write(tungstenite::Message::Binary(bitcode::encode(msg)))?;
         Ok(())
     }
 
@@ -53,6 +56,18 @@ impl NetManager {
                 }
                 Err(err) => break Err(err.into()),
             }
+        }
+    }
+
+    pub(crate) fn flush(&mut self) -> eyre::Result<()> {
+        match self.ws.flush() {
+            Ok(()) => Ok(()),
+            Err(tungstenite::Error::Io(err))
+                if err.kind() == ErrorKind::WouldBlock || err.kind() == ErrorKind::TimedOut =>
+            {
+                Ok(())
+            }
+            Err(err) => Err(err.into()),
         }
     }
 }

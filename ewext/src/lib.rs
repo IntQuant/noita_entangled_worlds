@@ -161,6 +161,12 @@ fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
     Ok(())
 }
 
+fn netmanager_flush(_lua: LuaState) -> eyre::Result<()> {
+    let mut binding = NETMANAGER.lock().unwrap();
+    let netmanager = binding.as_mut().unwrap();
+    netmanager.flush()
+}
+
 impl LuaFnRet for InitKV {
     fn do_return(self, lua: LuaState) -> c_int {
         lua.create_table(2, 0);
@@ -306,6 +312,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(netmanager_connect);
         add_lua_fn!(netmanager_recv);
         add_lua_fn!(netmanager_send);
+        add_lua_fn!(netmanager_flush);
 
         add_lua_fn!(module_on_world_update);
     }

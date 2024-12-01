@@ -163,6 +163,7 @@ function net.update()
     end
     handle_message(msg)
   end
+  ewext.netmanager_flush()
 end
 
 function net.init()
