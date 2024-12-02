@@ -7,7 +7,7 @@ connect_steam_connect_invalid_lobby_id = Área de transferência não contém um
 
 connect_ip = Conectar usando ip
 
-lang_picker = Escolha uma linguagem
+lang_picker = Escolha um idioma
 
 button_confirm = Confirmar
 button_continue = Continuar
@@ -15,7 +15,7 @@ button_retry = Tentar novamente
 button_select_again = Selecione novamente
 button_back = Voltar
 
-button_set_lang = Selecionar linguagem
+button_set_lang = Selecionar idioma
 button_open_discord = Servidor discord
 
 modman = Gerenciador de mods
