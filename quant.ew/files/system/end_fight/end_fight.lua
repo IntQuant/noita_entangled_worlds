@@ -85,6 +85,8 @@ local function teleport_random()
     EntitySetTransform(ctx.my_player.entity, x, y)
 end
 
+local winner
+
 rpc.opts_everywhere()
 function rpc.try_kill(x, y)
     EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
@@ -101,6 +103,7 @@ function rpc.try_kill(x, y)
         end
     end)
     GamePrintImportant(ctx.rpc_player_data.name .. " wins")
+    winner = ctx.rpc_peer_id
 end
 
 local function remove_fire(entity)
@@ -140,6 +143,8 @@ local function remove_game_effects()
 end
 
 local stop_fully = false
+
+local first_death = {}
 
 function end_fight.on_world_update()
     if stop_fully then
@@ -199,7 +204,7 @@ function end_fight.on_world_update()
         if GameGetFrameNum() % 3 ~= 0 then
             return
         end
-        for _, player_data in pairs(ctx.players) do
+        for peer_id, player_data in pairs(ctx.players) do
             local entity = player_data.entity
             if not EntityGetIsAlive(entity) then
                 goto continue
@@ -208,6 +213,11 @@ function end_fight.on_world_update()
             EntitySetComponentsWithTagEnabled(entity, "health_bar_back", false)
             if EntityHasTag(entity, "ew_notplayer") then
                 remove_stuff(entity)
+                if first_death[peer_id] == nil and winner ~= ctx.my_id then
+                    first_death[peer_id] = true
+                    local x, y = EntityGetTransform(entity)
+                    LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. peer_id .."_ragdoll.txt", x, y)
+                end
             end
             ::continue::
         end
