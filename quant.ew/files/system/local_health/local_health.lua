@@ -193,7 +193,7 @@ local function show_death_message()
     -- Check if message is recent enough
     if current_frame - last_damage_info[1] < 60 then
         local message = last_damage_info[2]
-        local source = nil
+        local source
         local source_ent = last_damage_info[3]
         local maybe_player = player_fns.get_player_data_by_local_entity_id(source_ent)
         if maybe_player ~= nil then

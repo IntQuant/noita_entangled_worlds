@@ -5,14 +5,14 @@ local x, y, a = EntityGetTransform( entity_id )
 
 local p = EntityGetWithTag( "ew_peer" )
 local closest
-local v
+local vs
 for _, player in ipairs(p) do
     if not EntityHasTag(player, "ew_notplayer") then
         local px, py = EntityGetTransform(player)
         local r = px * px + py * py
         if closest == nil or r < closest then
             closest = r
-            v = player
+            vs = player
         end
     end
 end
@@ -36,8 +36,8 @@ if ( homing == nil ) then
     length = 500
 end
 
-if ( v ~= nil ) and ( #proj > 0 ) then
-    local px,py = EntityGetTransform( v )
+if ( vs ~= nil ) and ( #proj > 0 ) then
+    local px,py = EntityGetTransform( vs )
     local dir = 0 - math.atan2( py - y, px - x )
 
     local vel_x = math.cos( dir ) * length * mult

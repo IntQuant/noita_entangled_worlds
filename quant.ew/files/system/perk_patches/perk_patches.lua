@@ -168,7 +168,7 @@ end
 local function gain_halo(entity_who_picked, angle)
     local damagemodels = EntityGetComponent( entity_who_picked, "DamageModelComponent" )
     -- spawn decoration
-    local child_id = nil
+    local child_id
     if angle then
         child_id = EntityLoad( "data/entities/misc/perks/player_halo_light.xml", x, y )
     else

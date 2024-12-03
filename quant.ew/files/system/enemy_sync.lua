@@ -684,8 +684,8 @@ function rpc.handle_death_data(death_data)
     end
 end
 
-function rpc.handle_enemy_data(enemy_data, first)
-    if first then
+function rpc.handle_enemy_data(enemy_data, is_first)
+    if is_first then
         ctx.entity_by_remote_id = {}
     end
     frame = GameGetFrameNum()

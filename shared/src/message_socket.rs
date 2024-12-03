@@ -11,7 +11,7 @@ use bitcode::{DecodeOwned, Encode};
 use eyre::{bail, Context};
 use tracing::info;
 
-fn read_one<T: bitcode::DecodeOwned>(mut buf: impl Read) -> eyre::Result<T> {
+fn read_one<T: DecodeOwned>(mut buf: impl Read) -> eyre::Result<T> {
     let mut len_buf = [0u8; 4];
     buf.read_exact(&mut len_buf)
         .wrap_err("Couldn't receive the length from stream")?;

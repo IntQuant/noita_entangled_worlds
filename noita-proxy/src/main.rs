@@ -23,10 +23,10 @@ async fn main() {
             println!("Creating a log file");
             match file {
                 Ok(file) => Box::new(BufWriter::new(file)) as Box<dyn io::Write + Send>,
-                Err(_) => Box::new(std::io::stdout()) as Box<dyn io::Write + Send>,
+                Err(_) => Box::new(io::stdout()) as Box<dyn io::Write + Send>,
             }
         } else {
-            Box::new(std::io::stdout()) as Box<dyn io::Write + Send>
+            Box::new(io::stdout()) as Box<dyn io::Write + Send>
         }
     };
 
@@ -48,7 +48,7 @@ async fn main() {
     info!("{:?}", args.launch_cmd);
 
     if let Some(host) = args.host {
-        let port = if host.to_ascii_lowercase() == "steam" {
+        let port = if host.eq_ignore_ascii_case("steam") {
             0
         } else {
             host.parse::<u16>().unwrap_or(5123)
