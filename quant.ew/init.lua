@@ -145,6 +145,23 @@ end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
+    if shooter_id == ctx.my_player.entity then
+        local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+        if inventory_component == nil then
+            return
+        end
+        local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
+        local switched_now = last_switch == GameGetFrameNum()
+
+        local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
+        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
+        if fire_data ~= nil then
+            if switched_now then
+                fire_data.switched_now = true
+            end
+            net.send_fire(fire_data)
+        end
+    end
     ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
@@ -247,10 +264,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.my_player = my_player
 
     EntityAddTag(player_entity, "ew_peer")
-
-    if not GameHasFlagRun("ew_flag_notplayer_active") then
-        EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
-    end
 
     net.send_welcome()
 
@@ -405,25 +418,6 @@ local function on_world_post_update_inner()
         ctx.hook.on_world_update_post()
     end
 
-    local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
-    GlobalsSetValue("ew_wand_fired", "0")
-    if times_wand_fired > 0 then
-        local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
-        if inventory_component == nil then
-            return
-        end
-        local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
-        local switched_now = last_switch == GameGetFrameNum()
-
-        local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
-        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
-        if fire_data ~= nil then
-            if switched_now then
-                fire_data.switched_now = true
-            end
-            net.send_fire(fire_data)
-        end
-    end
 end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
