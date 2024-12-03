@@ -672,7 +672,6 @@ impl App {
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
-            player_color: self.appearance.player_color,
             cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
@@ -1576,12 +1575,13 @@ fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> Stri
 }
 
 fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
+    let settings = settings_get();
+    let saved_state: AppSavedState = settings.app;
+    let mut mod_manager: ModmanagerSettings = settings.modmanager;
+    let appearance: PlayerAppearance = settings.color;
     let mut state = steam_helper::SteamState::new(false).unwrap();
-    let my_nickname = Some(state.get_user_name(state.get_my_id()));
-    let mut mod_manager = ModmanagerSettings {
-        game_exe_path: PathBuf::new(),
-        game_save_path: Some(PathBuf::new()),
-    };
+    let my_nickname = saved_state.nickname;
+;
     mod_manager.try_find_game_path(Some(&mut state));
     mod_manager.try_find_save_path();
     let run_save_state = if let Ok(path) = std::env::current_exe() {
@@ -1609,14 +1609,13 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
     let netmaninit = NetManagerInit {
         my_nickname,
         save_state: run_save_state,
-        player_color: PlayerColor::default(),
         cosmetics,
         mod_path: mod_manager.mod_path(),
         player_path,
         modmanager_settings: mod_manager,
         player_png_desc: PlayerPngDesc {
             cosmetics: cosmetics.into(),
-            colors: PlayerColor::default(),
+            colors: appearance.player_color,
         },
         noita_port: 21251,
     };

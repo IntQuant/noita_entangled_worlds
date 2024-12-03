@@ -100,7 +100,6 @@ pub mod omni;
 pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
-    pub player_color: PlayerColor,
     pub cosmetics: (bool, bool, bool),
     pub mod_path: PathBuf,
     pub player_path: PathBuf,
@@ -547,13 +546,13 @@ impl NetManager {
                 .health_lost_on_revive
                 .unwrap_or(def.health_lost_on_revive),
         );
-        let rgb = self.init_settings.player_color.player_main;
+        let rgb = self.init_settings.player_png_desc.colors.player_main;
         state.try_ws_write_option(
             "mina_color",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
         );
 
-        let rgb = self.init_settings.player_color.player_alt;
+        let rgb = self.init_settings.player_png_desc.colors.player_alt;
         state.try_ws_write_option(
             "mina_color_alt",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
