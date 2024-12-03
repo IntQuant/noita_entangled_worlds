@@ -7,7 +7,7 @@ use eframe::egui::color_picker::{color_picker_color32, Alpha};
 use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
 use image::{Pixel, Rgba, RgbaImage};
 use std::ffi::OsString;
-use std::fs::{self, File};
+use std::fs::{self, remove_file, File};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -313,6 +313,17 @@ pub struct PlayerPngDesc {
     pub(crate) colors: PlayerColor,
 }
 
+fn replace_colors(path: PathBuf, save: PathBuf, rgb: &PlayerColor) {
+    let mut img = image::open(path).unwrap().into_rgba8();
+    replace_color(
+        &mut img,
+        Rgba::from(to_u8(rgb.player_main)),
+        Rgba::from(to_u8(rgb.player_alt)),
+        Rgba::from(to_u8(rgb.player_arm)),
+    );
+    img.save(save).unwrap();
+}
+
 pub fn create_player_png(
     peer: OmniPeerId,
     mod_path: &Path,
@@ -326,61 +337,26 @@ pub fn create_player_png(
     let tmp_path = player_path.parent().unwrap();
     let (arrows_path, ping_path, map_icon) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
-    let mut img = image::open(player_path).unwrap().into_rgba8();
-    replace_color(
-        &mut img,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
-    );
-    let player_lukki = player_path.parent().unwrap().join("unmodified_lukki.png");
-    let mut img_lukki = image::open(player_lukki).unwrap().into_rgba8();
-    replace_color(
-        &mut img_lukki,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
-    );
-    let mut img_arrow = image::open(arrows_path).unwrap().into_rgba8();
-    replace_color(
-        &mut img_arrow,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
-    );
-    let mut img_ping = image::open(ping_path).unwrap().into_rgba8();
-    replace_color(
-        &mut img_ping,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
-    );
-    let mut img_cursor = image::open(cursor_path).unwrap().into_rgba8();
-    replace_color(
-        &mut img_cursor,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
-    );
-    let mut img_map_icon = image::open(map_icon).unwrap().into_rgba8();
-    replace_color(
-        &mut img_map_icon,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
-    );
-    let path = tmp_path.join(format!("tmp/{}.png", id));
-    img.save(path).unwrap();
-    let path = tmp_path.join(format!("tmp/{}_lukki.png", id));
-    img_lukki.save(path).unwrap();
-    let path = tmp_path.join(format!("tmp/{}_arrow.png", id));
-    img_arrow.save(path).unwrap();
-    let path = tmp_path.join(format!("tmp/{}_ping.png", id));
-    img_ping.save(path).unwrap();
-    let path = tmp_path.join(format!("tmp/{}_cursor.png", id));
-    img_cursor.save(path).unwrap();
-    let path = tmp_path.join(format!("tmp/{}_map.png", id));
-    img_map_icon.save(path).unwrap();
+    let player_lukki = tmp_path.join("unmodified_lukki.png");
+    replace_colors(player_path.into(), tmp_path.join(format!("tmp/{}.png", id)), &rgb);
+    replace_colors(player_lukki, tmp_path.join(format!("tmp/{}_lukki.png", id)), &rgb);
+    replace_colors(arrows_path, tmp_path.join(format!("tmp/{}_arrow.png", id)), &rgb);
+    replace_colors(ping_path, tmp_path.join(format!("tmp/{}_ping.png", id)), &rgb);
+    replace_colors(cursor_path, tmp_path.join(format!("tmp/{}_cursor.png", id)), &rgb);
+    replace_colors(map_icon, tmp_path.join(format!("tmp/{}_map.png", id)), &rgb);
+    let ragdoll_path = tmp_path.join(format!("tmp/{}_ragdoll.txt", id));
+    if ragdoll_path.exists() {
+        remove_file(ragdoll_path.clone()).unwrap()
+    }
+    let mut ragdoll = File::create_new(ragdoll_path).unwrap();
+    let mut files = String::new();
+    for s in ["head.png", "left_hand.png", "left_arm.png", "left_thigh.png",
+                "right_hand.png", "right_arm.png", "right_thigh.png", "torso.png"].iter().rev() {
+        let f = tmp_path.join(s);
+        replace_colors(f, tmp_path.join(format!("tmp/{}_ragdoll_{}", id, s)), &rgb);
+        files = format!("{}mods/quant.ew/files/system/player/tmp/{}_ragdoll_{}\n", files, id, s);
+    }
+    ragdoll.write_all(files.as_bytes()).unwrap();
     let img = create_arm(Rgba::from(to_u8(rgb.player_forearm)));
     let path = tmp_path.join(format!("tmp/{}_arm.png", id));
     img.save(path).unwrap();
@@ -461,6 +437,10 @@ pub fn create_player_png(
             (
                 "MARKER_CAPE",
                 format!("mods/quant.ew/files/system/player/tmp/{}_cape.xml", id),
+            ),
+            (
+                "RAGDOLL_MARKER",
+                format!("mods/quant.ew/files/system/player/tmp/{}_ragdoll.txt", id),
             ),
         ],
     );

@@ -310,6 +310,13 @@ local function do_game_over(message)
     GameRemoveFlagRun("ew_flag_notplayer_active")
     set_camera_free(true, ctx.my_player.entity)
 
+    for _, data in pairs(ctx.players) do
+        if data.peer_id ~= ctx.my_id
+                and #(EntityGetAllChildren(data.entity) or {}) ~= 0 then
+            local x, y = EntityGetTransform(data.entity)
+            LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. data.peer_id .."_ragdoll.txt", x, y)
+        end
+    end
     async(function()
         print("Performing do_game_over...")
         if #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
@@ -317,8 +324,8 @@ local function do_game_over(message)
             if ent ~= nil then
                 polymorph.switch_entity(ent)
                 wait(1)
-                if ctx.my_player.entity ~= nil then
-                    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+                if ctx.my_player.entity ~= nil and EntityGetIsAlive(ctx.my_player.entity) then
+                    local damage_model = EntityGetFirstComponent(ctx.my_player.entity, "DamageModelComponent")
                     if damage_model ~= nil then
                         ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
                         EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())

@@ -5,6 +5,12 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
+local tether_length
+
+local tether_length_2
+
+local tether_length_3
+
 local ignore_tower = false
 
 function is_in_box(x1, x2, y1, y2, x, y)
@@ -118,17 +124,6 @@ end
 
 local no_tether = false
 
-function module.on_client_spawned(peer_id, new_playerdata)
-    local is_host = peer_id == ctx.host_id
-    if is_host then
-        local zone_ent = EntityLoad("mods/quant.ew/files/system/player_tether/zone_entity.xml")
-        EntityAddChild(new_playerdata.entity, zone_ent)
-        local particle_component = EntityGetFirstComponentIncludingDisabled(zone_ent, "ParticleEmitterComponent")
-        ComponentSetValue2(particle_component, "area_circle_radius", tether_length, tether_length + 2)
-        EntitySetComponentIsEnabled(zone_ent, particle_component, not no_tether)
-    end
-end
-
 local function is_suitable_target(entity)
     return EntityGetIsAlive(entity) and not EntityHasTag(entity,"polymorphed")
 end
@@ -183,12 +178,6 @@ function rpc.teleport_to_tower()
         float()
     end)
 end
-
-local tether_length
-
-local tether_length_2
-
-local tether_length_3
 
 local was_not_hm = false
 
