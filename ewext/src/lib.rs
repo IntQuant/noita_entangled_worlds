@@ -124,16 +124,11 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 
     #[expect(clippy::while_let_loop)] // Will probably get more variants in the future
     loop {
-        match netman
-            .recv()?
-            .ok_or_eyre("Expected to be in non-blocking mode")?
-        {
+        match netman.recv()? {
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
             NoitaInbound::Ready => break,
         }
     }
-
-    netman.switch_to_non_blocking()?;
 
     *NETMANAGER.lock().unwrap() = Some(netman);
     println!("Ok!");
@@ -143,7 +138,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
     let mut binding = NETMANAGER.lock().unwrap();
     let netmanager = binding.as_mut().unwrap();
-    Ok(match netmanager.recv()? {
+    Ok(match netmanager.try_recv()? {
         Some(NoitaInbound::RawMessage(msg)) => Some(msg.into()),
         Some(NoitaInbound::Ready) => {
             bail!("Unexpected Ready message")

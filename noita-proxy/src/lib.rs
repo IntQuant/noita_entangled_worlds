@@ -52,7 +52,6 @@ use crate::player_cosmetics::{
 pub use bookkeeping::{mod_manager, releases, self_update};
 pub mod net;
 mod player_cosmetics;
-pub mod recorder;
 
 const DEFAULT_PORT: u16 = 5123;
 

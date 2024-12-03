@@ -9,7 +9,7 @@ use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
 };
-use noita_proxy::{args::Args, connect_cli, host_cli, recorder::replay_file, App};
+use noita_proxy::{args::Args, connect_cli, host_cli, App};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -47,9 +47,7 @@ async fn main() {
 
     info!("{:?}", args.launch_cmd);
 
-    if let Some(replay) = args.replay_folder {
-        replay_file(replay)
-    } else if let Some(host) = args.host {
+    if let Some(host) = args.host {
         let port = if host.to_ascii_lowercase() == "steam" {
             0
         } else {

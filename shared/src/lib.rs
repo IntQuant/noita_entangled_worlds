@@ -1,5 +1,7 @@
 use bitcode::{Decode, Encode};
 
+pub mod message_socket;
+
 #[derive(Encode, Decode)]
 pub struct PeerId(pub u64);
 

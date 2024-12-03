@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 bitcode = "0.6.3"
+eyre = "0.6.12"
+tracing = "0.1.41"

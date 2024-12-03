@@ -2,6 +2,7 @@ use bitcode::{Decode, Encode};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
+use shared::message_socket::MessageSocket;
 use shared::{NoitaInbound, NoitaOutbound};
 use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
@@ -13,7 +14,7 @@ use std::{
     env,
     fmt::Display,
     io::{self},
-    net::{SocketAddr, TcpListener, TcpStream},
+    net::{SocketAddr, TcpListener},
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
@@ -21,13 +22,11 @@ use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
 use tangled::Reliability;
 use tracing::{error, info, warn};
-use tungstenite::{accept, WebSocket};
 
 use crate::mod_manager::ModmanagerSettings;
 use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
-    recorder::Recorder,
     DefaultSettings, GameSettings, PlayerColor, UXSettings,
 };
 pub mod messages;
@@ -35,31 +34,27 @@ mod proxy_opt;
 pub mod steam_networking;
 pub mod world;
 
-fn ws_bitcode(proxy_kv: &NoitaInbound) -> tungstenite::Message {
-    tungstenite::Message::Binary(bitcode::encode(proxy_kv))
-}
-
-pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> tungstenite::Message {
+pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> NoitaInbound {
     let mut buf = Vec::new();
     buf.push(2);
     write!(buf, "{} {}", key, value).unwrap();
-    ws_bitcode(&NoitaInbound::RawMessage(buf))
+    NoitaInbound::RawMessage(buf)
 }
 
-pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> tungstenite::Message {
+pub fn ws_encode_proxy_bin(key: u8, data: &[u8]) -> NoitaInbound {
     let mut buf = Vec::new();
     buf.push(3);
     buf.push(key);
     buf.extend(data);
-    ws_bitcode(&NoitaInbound::RawMessage(buf))
+    NoitaInbound::RawMessage(buf)
 }
 
-pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> tungstenite::Message {
+pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> NoitaInbound {
     let mut buf = Vec::new();
     buf.push(1u8);
     buf.extend_from_slice(&peer.0.to_le_bytes());
     buf.extend_from_slice(data);
-    ws_bitcode(&NoitaInbound::RawMessage(buf))
+    NoitaInbound::RawMessage(buf)
 }
 
 pub struct DebugMarker {
@@ -78,21 +73,16 @@ impl SaveStateEntry for RunInfo {
 }
 
 pub(crate) struct NetInnerState {
-    pub(crate) ws: Option<WebSocket<TcpStream>>,
+    pub(crate) ms: Option<MessageSocket<NoitaOutbound, NoitaInbound>>,
     world: WorldManager,
-    recorder: Option<Recorder>,
 }
 
 impl NetInnerState {
-    pub(crate) fn try_ws_write(&mut self, data: tungstenite::Message) {
-        if let Some(ws) = &mut self.ws {
-            if let Some(recorder) = &mut self.recorder {
-                recorder.record_msg(&data);
-            }
+    pub(crate) fn try_ms_write(&mut self, data: &NoitaInbound) {
+        if let Some(ws) = &mut self.ms {
             if let Err(err) = ws.write(data) {
                 error!("Error occured while sending to websocket: {}", err);
-                self.ws = None;
-                self.recorder = None;
+                self.ms = None;
             };
         }
     }
@@ -100,8 +90,8 @@ impl NetInnerState {
         let mut buf = Vec::new();
         buf.push(2);
         value.write_opt(&mut buf, key);
-        let message = ws_bitcode(&NoitaInbound::RawMessage(buf));
-        self.try_ws_write(message);
+        let message = NoitaInbound::RawMessage(buf);
+        self.try_ms_write(&message);
     }
 }
 
@@ -243,8 +233,7 @@ impl NetManager {
         let is_host = self.is_host();
         info!("Is host: {is_host}");
         let mut state = NetInnerState {
-            ws: None,
-            recorder: None,
+            ms: None,
             world: WorldManager::new(
                 is_host,
                 self.peer.my_id(),
@@ -277,30 +266,27 @@ impl NetManager {
                 for id in self.peer.iter_peer_ids() {
                     self.send(id, &NetMsg::EndRun, Reliability::Reliable);
                 }
-                state.try_ws_write(ws_encode_proxy("end_run", self.peer.my_id().to_string()));
+                state.try_ms_write(&ws_encode_proxy("end_run", self.peer.my_id().to_string()));
                 self.end_run(&mut state);
                 self.end_run.store(false, Ordering::Relaxed);
             }
             self.local_connected
-                .store(state.ws.is_some(), Ordering::Relaxed);
-            if state.ws.is_none() && self.accept_local.load(Ordering::SeqCst) {
+                .store(state.ms.is_some(), Ordering::Relaxed);
+            if state.ms.is_none() && self.accept_local.load(Ordering::SeqCst) {
                 thread::sleep(Duration::from_millis(10));
                 if let Ok((stream, addr)) = local_server.accept() {
                     info!("New stream incoming from {}", addr);
                     stream.set_nodelay(true).ok();
                     stream.set_nonblocking(false).ok();
-                    state.ws = accept(stream)
-                        .inspect_err(|e| error!("Could not init websocket: {}", e))
+                    state.ms = MessageSocket::new(stream)
+                        .inspect_err(|e| error!("Could not init websocket: {:?}", e))
                         .ok();
-                    if state.ws.is_some() {
-                        if self.enable_recorder.load(Ordering::Relaxed) {
-                            state.recorder = Some(Recorder::default());
-                        }
-                        self.on_ws_connection(&mut state);
+                    if state.ms.is_some() {
+                        self.on_ms_connection(&mut state);
                     }
                 }
             }
-            if let Some(ws) = &mut state.ws {
+            if let Some(ws) = &mut state.ms {
                 if let Err(err) = ws.flush() {
                     warn!("Websocket flush not ok: {err}");
                 }
@@ -328,7 +314,7 @@ impl NetManager {
             }
             for peer in to_kick.iter() {
                 info!("player kicked: {}", peer);
-                state.try_ws_write(ws_encode_proxy("leave", peer.as_hex()));
+                state.try_ms_write(&ws_encode_proxy("leave", peer.as_hex()));
                 state.world.handle_peer_left(*peer);
                 self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
                 self.broadcast(
@@ -373,10 +359,10 @@ impl NetManager {
                                 Reliability::Reliable,
                             );
                         }
-                        state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
+                        state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
                     }
                     omni::OmniNetworkEvent::PeerDisconnected(id) => {
-                        state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
+                        state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
                         state.world.handle_peer_left(id);
                     }
                     omni::OmniNetworkEvent::Message { src, data } => {
@@ -390,10 +376,10 @@ impl NetManager {
                             NetMsg::Welcome => {}
                             NetMsg::PeerDisconnected { id } => {
                                 info!("player kicked: {}", id);
-                                state.try_ws_write(ws_encode_proxy("leave", id.as_hex()));
+                                state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
                                 state.world.handle_peer_left(id);
                             }
-                            NetMsg::EndRun => state.try_ws_write(ws_encode_proxy(
+                            NetMsg::EndRun => state.try_ms_write(&ws_encode_proxy(
                                 "end_run",
                                 self.peer.my_id().to_string(),
                             )),
@@ -404,12 +390,12 @@ impl NetManager {
                                 state.world.reset();
                             }
                             NetMsg::ModRaw { data } => {
-                                state.try_ws_write(ws_encode_mod(src, &data));
+                                state.try_ms_write(&ws_encode_mod(src, &data));
                             }
                             NetMsg::ModCompressed { data } => {
                                 if let Ok(decompressed) = lz4_flex::decompress_size_prepended(&data)
                                 {
-                                    state.try_ws_write(ws_encode_mod(src, &decompressed));
+                                    state.try_ms_write(&ws_encode_mod(src, &decompressed));
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
@@ -441,25 +427,16 @@ impl NetManager {
                 }
             }
             // Handle all available messages from Noita.
-            while let Some(ws) = &mut state.ws {
-                let msg = ws.read();
+            while let Some(ws) = &mut state.ms {
+                let msg = ws.try_read();
                 match msg {
-                    Ok(msg) => {
-                        if let tungstenite::Message::Binary(msg) = msg {
-                            if let Ok(msg) = bitcode::decode(&msg) {
-                                self.handle_mod_message_2(msg, &mut state);
-                            }
-                        }
+                    Ok(Some(msg)) => {
+                        self.handle_mod_message_2(msg, &mut state);
                     }
-                    Err(tungstenite::Error::Io(io_err))
-                        if io_err.kind() == io::ErrorKind::WouldBlock
-                            || io_err.kind() == io::ErrorKind::TimedOut =>
-                    {
-                        break
-                    }
+                    Ok(None) => break,
                     Err(err) => {
                         warn!("Game closed (Lost connection to noita instance: {})", err);
-                        state.ws = None;
+                        state.ms = None;
                     }
                 }
             }
@@ -472,7 +449,7 @@ impl NetManager {
 
             let updates = state.world.get_noita_updates();
             for update in updates {
-                state.try_ws_write(ws_encode_proxy_bin(0, &update));
+                state.try_ms_write(&ws_encode_proxy_bin(0, &update));
             }
             // Don't do excessive busy-waiting;
             let min_update_time = Duration::from_millis(1);
@@ -498,25 +475,16 @@ impl NetManager {
         }
     }
 
-    fn on_ws_connection(self: &Arc<NetManager>, state: &mut NetInnerState) {
+    fn on_ms_connection(self: &Arc<NetManager>, state: &mut NetInnerState) {
         self.init_settings.save_state.mark_game_started();
         info!("New stream connected");
-        let stream_ref = &state.ws.as_ref().unwrap().get_ref();
-        stream_ref.set_nonblocking(true).ok();
-        stream_ref
-            .set_read_timeout(Some(Duration::from_millis(1)))
-            .expect("can set read timeout");
-        // Set write timeout to a somewhat high value just in case.
-        stream_ref
-            .set_write_timeout(Some(Duration::from_secs(5)))
-            .expect("can set write timeout");
 
         let settings = self.settings.lock().unwrap();
         let def = DefaultSettings::default();
-        state.try_ws_write(ws_encode_proxy("seed", settings.seed));
+        state.try_ms_write(&ws_encode_proxy("seed", settings.seed));
         let my_id = self.peer.my_id();
-        state.try_ws_write(ws_encode_proxy("peer_id", format!("{:016x}", my_id.0)));
-        state.try_ws_write(ws_encode_proxy(
+        state.try_ms_write(&ws_encode_proxy("peer_id", format!("{:016x}", my_id.0)));
+        state.try_ms_write(&ws_encode_proxy(
             "host_id",
             format!("{:016x}", self.peer.host_id().0),
         ));
@@ -627,10 +595,10 @@ impl NetManager {
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
-        state.try_ws_write(ws_bitcode(&NoitaInbound::Ready));
+        state.try_ms_write(&NoitaInbound::Ready);
         // TODO? those are currently ignored by mod
         for id in self.peer.iter_peer_ids() {
-            state.try_ws_write(ws_encode_proxy("join", id.as_hex()));
+            state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
         }
         info!("Settings sent")
     }

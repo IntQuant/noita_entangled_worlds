@@ -18,7 +18,6 @@ egui_plot = "0.29.0"
 image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 
 ron = "0.8.1"
-tungstenite = "0.24.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
 tangled = { path = "tangled" }
