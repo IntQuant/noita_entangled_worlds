@@ -162,6 +162,7 @@ function end_fight.on_world_update()
                     return
                 end
                 np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
+                np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", 1)
                 if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                     remove_game_effects()
                     EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())

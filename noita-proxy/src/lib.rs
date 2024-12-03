@@ -68,16 +68,12 @@ pub struct GameSettings {
     seed: u64,
     debug_mode: Option<bool>,
     world_sync_version: Option<u32>,
-    player_tether: Option<bool>,
-    tether_length: Option<u32>,
     use_constant_seed: bool,
     item_dedup: Option<bool>,
     enemy_hp_mult: Option<f32>,
     world_sync_interval: Option<u32>,
     game_mode: Option<GameMode>,
     friendly_fire: Option<bool>,
-    friendly_fire_team: Option<i32>,
-    chunk_target: Option<u32>,
     enemy_sync_interval: Option<u32>,
     randomize_perks: Option<bool>,
     progress: Vec<String>,
@@ -217,33 +213,6 @@ impl GameSettings {
                 game_settings.friendly_fire = Some(temp)
             }
         }
-        {
-            let mut temp = game_settings.player_tether.unwrap_or(def.player_tether);
-            if ui
-                .checkbox(
-                    &mut temp,
-                    format!("{}❓", tr("connect_settings_player_tether")),
-                )
-                .on_hover_text(tr("connect_settings_player_tether_desc"))
-                .changed()
-            {
-                game_settings.player_tether = Some(temp)
-            }
-        }
-        ui.horizontal(|ui| {
-            ui.label(tr("connect_settings_player_tether_length"));
-            let mut temp = game_settings.tether_length.unwrap_or(def.tether_length);
-            if ui.add(Slider::new(&mut temp, 10..=5000)).changed() {
-                game_settings.tether_length = Some(temp)
-            }
-        });
-        ui.label(tr("Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients"));
-        {
-            let mut temp = game_settings.chunk_target.unwrap_or(def.chunk_target);
-            if ui.add(Slider::new(&mut temp, 12..=64)).changed() {
-                game_settings.chunk_target = Some(temp)
-            }
-        }
         ui.add_space(10.0);
         ui.label("Perks");
         {
@@ -295,15 +264,11 @@ impl GameSettings {
 pub struct DefaultSettings {
     debug_mode: bool,
     world_sync_version: u32,
-    player_tether: bool,
-    tether_length: u32,
     item_dedup: bool,
     enemy_hp_mult: f32,
     world_sync_interval: u32,
     game_mode: GameMode,
     friendly_fire: bool,
-    friendly_fire_team: i32,
-    chunk_target: u32,
     enemy_sync_interval: u32,
     randomize_perks: bool,
     max_players: u32,
@@ -321,16 +286,12 @@ impl Default for DefaultSettings {
         DefaultSettings {
             debug_mode: false,
             world_sync_version: 2,
-            player_tether: true,
-            tether_length: 2048,
             item_dedup: true,
             randomize_perks: true,
             enemy_hp_mult: 1.0,
             world_sync_interval: 3,
             game_mode: GameMode::LocalHealth,
             friendly_fire: false,
-            friendly_fire_team: 0,
-            chunk_target: 24,
             enemy_sync_interval: 3,
             max_players: 250,
             health_per_player: 100,
@@ -392,26 +353,6 @@ struct PlayerAppearance {
     player_picker: PlayerPicker,
     hue: f64,
     cosmetics: (bool, bool, bool),
-}
-
-#[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone, Default)]
-#[serde(default)]
-pub struct UXSettings {
-    ping_lifetime: Option<u32>,
-    ping_scale: Option<f32>,
-    hide_cursors: Option<bool>,
-}
-
-impl UXSettings {
-    fn ping_lifetime(&self) -> u32 {
-        self.ping_lifetime.unwrap_or(6)
-    }
-    fn ping_scale(&self) -> f32 {
-        self.ping_scale.unwrap_or(0.0)
-    }
-    fn hide_cursors(self) -> bool {
-        self.hide_cursors.unwrap_or(false)
-    }
 }
 
 impl Default for PlayerAppearance {
@@ -543,7 +484,6 @@ pub struct App {
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
-    ux_settings: UXSettings,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -584,7 +524,6 @@ pub struct Settings {
     color: PlayerAppearance,
     app: AppSavedState,
     modmanager: ModmanagerSettings,
-    ux: UXSettings,
 }
 
 fn settings_get() -> Settings {
@@ -606,14 +545,12 @@ fn settings_set(
     app: AppSavedState,
     color: PlayerAppearance,
     modmanager: ModmanagerSettings,
-    ux: UXSettings,
 ) {
     if let Ok(s) = std::env::current_exe() {
         let settings = Settings {
             app,
             color,
             modmanager,
-            ux,
         };
         let file = s.parent().unwrap().join("proxy.ron");
         let settings = ron::to_string(&settings).unwrap();
@@ -631,7 +568,6 @@ impl App {
         let mut saved_state: AppSavedState = settings.app;
         let modmanager_settings: ModmanagerSettings = settings.modmanager;
         let appearance: PlayerAppearance = settings.color;
-        let ux_settings: UXSettings = settings.ux;
         saved_state.times_started += 1;
 
         info!("Setting fonts...");
@@ -690,7 +626,6 @@ impl App {
             appearance,
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
-            ux_settings,
         }
     }
 
@@ -699,7 +634,6 @@ impl App {
             self.app_saved_state.clone(),
             self.appearance.clone(),
             self.modmanager_settings.clone(),
-            self.ux_settings,
         )
     }
 
@@ -737,7 +671,6 @@ impl App {
             my_nickname,
             save_state: self.run_save_state.clone(),
             player_color: self.appearance.player_color,
-            ux_settings: self.ux_settings,
             cosmetics,
             mod_path,
             player_path: player_path(self.modmanager_settings.mod_path()),
@@ -1113,48 +1046,6 @@ impl App {
             self.appearance.cosmetics = old.cosmetics;
             self.appearance.player_picker = old.player_picker;
         }
-        ui.add_space(10.0);
-        ui.label(tr("ping-note"));
-        ui.add_space(10.0);
-
-        let mut tmp = self.ux_settings.ping_lifetime();
-        if ui
-            .add(
-                egui::Slider::new(&mut tmp, 1..=60)
-                    .text(tr("ping-lifetime"))
-                    .min_decimals(0)
-                    .max_decimals(0)
-                    .step_by(1.0),
-            )
-            .on_hover_text(tr("ping-lifetime-tooltip"))
-            .changed()
-        {
-            self.ux_settings.ping_lifetime = Some(tmp);
-        }
-
-        let mut tmp = self.ux_settings.ping_scale();
-        if ui
-            .add(
-                egui::Slider::new(&mut tmp, 0.0..=1.5)
-                    .text(tr("ping-scale"))
-                    .min_decimals(0)
-                    .max_decimals(1)
-                    .step_by(0.1),
-            )
-            .on_hover_text(tr("ping-scale-tooltip"))
-            .changed()
-        {
-            self.ux_settings.ping_scale = Some(tmp);
-        }
-
-        let mut tmp = self.ux_settings.hide_cursors();
-        if ui
-            .add(egui::Checkbox::new(&mut tmp, tr("hide-cursors-checkbox")))
-            .on_hover_text(tr("hide-cursors-checkbox-tooltip"))
-            .changed()
-        {
-            self.ux_settings.hide_cursors = Some(tmp);
-        }
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -1369,27 +1260,6 @@ impl App {
                         {
                             netman.no_more_players.store(temp, Ordering::Relaxed);
                         }
-                    }
-                    ui.add_space(15.0);
-
-                    if netman.friendly_fire.load(Ordering::Relaxed) {
-                        let last = self.app_saved_state.game_settings.friendly_fire_team;
-                        let def = DefaultSettings::default();
-                        let mut temp = self
-                            .app_saved_state
-                            .game_settings
-                            .friendly_fire_team
-                            .unwrap_or(def.friendly_fire_team);
-                        if ui.add(Slider::new(&mut temp, -1..=16)).changed() {
-                            self.app_saved_state.game_settings.friendly_fire_team = Some(temp);
-                        }
-                        if last != self.app_saved_state.game_settings.friendly_fire_team
-                            || netman.friendly_fire_team.load(Ordering::Relaxed) == -2
-                        {
-                            netman.friendly_fire_team.store(temp, Ordering::Relaxed);
-                        }
-                        ui.label("what team number you are on, 0 means no team, -1 means friendly");
-                        ui.add_space(15.0);
                     }
                 }
                 ConnectedMenu::Settings => {
@@ -1738,7 +1608,6 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
         my_nickname,
         save_state: run_save_state,
         player_color: PlayerColor::default(),
-        ux_settings: UXSettings::default(),
         cosmetics,
         mod_path: mod_manager.mod_path(),
         player_path,

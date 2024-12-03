@@ -16,9 +16,7 @@ name = "chat"
 crossbeam = "0.8.2"
 tracing = "0.1.36"
 dashmap = "6.0.1"
-serde = {features = ["derive"], version = "1.0.142"}
 quinn = "0.11.5"
-num-bigint = "0.4.6"
 rcgen = "0.13.1"
 thiserror = "2.0.3"
 tokio = { version = "1.40.0", features = ["macros", "io-util", "sync"] }

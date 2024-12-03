@@ -92,7 +92,7 @@ connect_settings_autostart = Start the game automatically
 
 connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
 Health-per-player = Health per player
-Enable-friendly-fire = Enable friendly fire, allows picking teams in lobby
+Enable-friendly-fire = Enable friendly fire, allows picking teams in game settings
 Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
 local_health_desc_1 = Every player has their own health, run ends when all player are dead.

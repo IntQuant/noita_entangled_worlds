@@ -42,8 +42,8 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
 
-    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "polymorphed") and ctx.proxy_opt.friendly_fire_team ~= nil then
-        local my_team = ctx.proxy_opt.friendly_fire_team - 1
+    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "polymorphed") then
+        local my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         if my_team ~= -1 and team ~= -1 and (team == 0 or my_team == 0 or team ~= my_team) then
             GenomeSetHerdId(player_data.entity, "player_pvp")
         else
@@ -90,8 +90,8 @@ function module.on_world_update()
     local current_slot = player_fns.get_current_slot(ctx.my_player)
     if input_data ~= nil or pos_data ~= nil then
         local my_team
-        if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 60 == 43 and ctx.proxy_opt.friendly_fire_team ~= nil then
-            my_team = ctx.proxy_opt.friendly_fire_team - 1
+        if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 10 == 7 then
+            my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         end
 
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
@@ -109,7 +109,7 @@ function module.on_world_update()
             if ctx.my_id ~= peer_id then
                 for _, child in ipairs(children) do
                     if EntityGetName(child) == "cursor" then
-                        if ctx.proxy_opt.hide_cursors then
+                        if ModSettingGet("quant.ew.disable_cursors") then
                             local sprite = EntityGetFirstComponent(child, "SpriteComponent")
                             if sprite ~= nil and sprite ~= 0 then
                                 EntitySetComponentIsEnabled(child, sprite, false)

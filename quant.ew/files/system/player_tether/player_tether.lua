@@ -3,9 +3,6 @@ local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local rpc = net.new_rpc_namespace()
 
-local tether_length = ctx.proxy_opt.tether_length
-local tether_length_2 = tether_length + 128
-
 local module = {}
 
 local ignore_tower = false
@@ -159,6 +156,8 @@ local function set_tether_length(length, entity)
         if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
             local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
             ComponentSetValue2(emmiter, "area_circle_radius", length, length + 2)
+            ComponentSetValue2(emmiter, "count_min", length * 256 / (2048 + 128))
+            ComponentSetValue2(emmiter, "count_max", length * 512 / (2048 + 128))
             break
         end
     end
@@ -185,14 +184,49 @@ function rpc.teleport_to_tower()
     end)
 end
 
-local tether_length_3 = tether_length_2
+local tether_length
+
+local tether_length_2
+
+local tether_length_3
 
 local was_not_hm = false
 
 local was_notplayer = false
 
+function rpc.give_new_length(new_range)
+    tether_length = new_range
+    tether_length_2 = new_range + 128
+    tether_length_3 = math.max(tether_length_3 or 0, tether_length_2)
+    local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+    if new_range == 0 then
+        tether_enable(false, host_playerdata.entity)
+    else
+        tether_enable(true, host_playerdata.entity)
+        set_tether_length(tether_length_3, host_playerdata.entity)
+    end
+end
+
+function rpc.request_tether()
+    rpc.give_new_length(tether_length)
+end
+
 function module.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
+        if ctx.is_host then
+            local new_range = tonumber(ModSettingGet("quant.ew.tether_range")) or 0
+            if tether_length ~= new_range then
+                tether_length = new_range
+                rpc.give_new_length(new_range)
+            end
+        end
+        if tether_length == 0 then
+            return
+        end
+        if tether_length == nil then
+            rpc.request_tether()
+            return
+        end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         if ctx.proxy_opt.perma_death and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive) then
             return
@@ -266,7 +300,7 @@ function module.on_world_update()
         local host_mx, host_my = host_playerdata.mouse_x, host_playerdata.mouse_y
         local dxm, dym = host_mx - x2, host_my - y2
         if x1 ~= nil and x2 ~= nil and (not_hm or (not not_actual_hm and y1 < y2)) and i_not_in_hm
-                and dxm * dxm + dym * dym > tether_length * tether_length / 2 then
+                and (tether_length > 512 and dxm * dxm + dym * dym > tether_length * tether_length / 2) then
             if no_tether then
                 tether_enable(true, host_playerdata.entity)
                 no_tether = false
@@ -283,9 +317,11 @@ function module.on_world_update()
                 end
                 async(function()
                     EntitySetTransform(ctx.my_player.entity, x, y)
-                    wait(40)
-                    EntitySetTransform(ctx.my_player.entity, x, y)
-                    float()
+                    if tether_length_3 > 1024 then
+                        wait(40)
+                        EntitySetTransform(ctx.my_player.entity, x, y)
+                        float()
+                    end
                 end)
             elseif tether_length_3 > tether_length_2 then
                 tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)

@@ -94,9 +94,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
     ctx.load_system("perk_patches")
 
-    if ctx.proxy_opt.player_tether then
-        ctx.load_system("player_tether")
-    end
+    ctx.load_system("player_tether")
 
     ctx.load_system("kolmi")
     ctx.load_system("ending")
@@ -228,7 +226,9 @@ function OnWorldInitialized() -- This is called once the game world is initializ
     ctx.hook.on_world_initialized()
 end
 
+local last_chunk
 
+local last_flex
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
     print("Initial player entity: "..player_entity)
@@ -276,8 +276,11 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         GameAddFlagRun("ew_kill_player")
     end
     if ctx.host_id == ctx.my_id then
-        np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", ctx.proxy_opt.chunk_target)
+        last_chunk = tonumber(ModSettingGet("quant.ew.chunk_target")) or 24
+        np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)
     end
+    last_flex = tonumber(ModSettingGet("quant.ew.flex")) or 0
+    np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", last_flex)
     local controls_component = EntityGetFirstComponentIncludingDisabled(player_entity, "ControlsComponent")
     ComponentSetValue2(controls_component, "enabled", true)
     for _, child in ipairs(EntityGetAllChildren(player_entity) or {}) do
@@ -324,6 +327,18 @@ local function on_world_pre_update_inner()
     end
 
     if GameGetFrameNum() % 120 == 0 and not ctx.run_ended then
+        if ctx.host_id == ctx.my_id then
+            local new_chunk = tonumber(ModSettingGet("quant.ew.chunk_target")) or 24
+            if last_chunk ~= new_chunk then
+                last_chunk = new_chunk
+                np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)
+            end
+        end
+        local new_flex = tonumber(ModSettingGet("quant.ew.flex")) or 0
+        if new_flex ~= last_flex then
+            last_flex = new_flex
+            np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", last_flex)
+        end
         player_fns.respawn_if_necessary()
     end
 

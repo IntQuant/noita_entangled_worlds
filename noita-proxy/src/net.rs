@@ -8,7 +8,7 @@ use socket2::{Domain, Socket, Type};
 use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{
     env,
@@ -27,7 +27,7 @@ use crate::mod_manager::ModmanagerSettings;
 use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
-    DefaultSettings, GameSettings, PlayerColor, UXSettings,
+    DefaultSettings, GameSettings, PlayerColor,
 };
 pub mod messages;
 mod proxy_opt;
@@ -101,7 +101,6 @@ pub struct NetManagerInit {
     pub my_nickname: Option<String>,
     pub save_state: SaveState,
     pub player_color: PlayerColor,
-    pub ux_settings: UXSettings,
     pub cosmetics: (bool, bool, bool),
     pub mod_path: PathBuf,
     pub player_path: PathBuf,
@@ -124,8 +123,6 @@ pub struct NetManager {
     pub enable_recorder: AtomicBool,
     pub end_run: AtomicBool,
     pub debug_markers: Mutex<Vec<DebugMarker>>,
-    pub friendly_fire_team: AtomicI32,
-    pub friendly_fire: AtomicBool,
     pub ban_list: Mutex<Vec<OmniPeerId>>,
     pub kick_list: Mutex<Vec<OmniPeerId>>,
     pub no_more_players: AtomicBool,
@@ -150,8 +147,6 @@ impl NetManager {
             enable_recorder: AtomicBool::new(false),
             end_run: AtomicBool::new(false),
             debug_markers: Default::default(),
-            friendly_fire_team: AtomicI32::new(-2),
-            friendly_fire: AtomicBool::new(false),
             ban_list: Default::default(),
             kick_list: Default::default(),
             no_more_players: AtomicBool::new(false),
@@ -249,18 +244,12 @@ impl NetManager {
             &self.init_settings.player_png_desc,
             self.is_host(),
         );
-        let mut timer = Instant::now();
         while self.continue_running.load(Ordering::Relaxed) {
             if cli {
                 if let Some(n) = self.peer.lobby_id() {
                     println!("Lobby ID: {}", n.raw());
                     cli = false
                 }
-            }
-            if self.friendly_fire.load(Ordering::Relaxed) && timer.elapsed().as_secs() > 4 {
-                let team = self.friendly_fire_team.load(Ordering::Relaxed);
-                state.try_ws_write_option("friendly_fire_team", (team + 1) as u32);
-                timer = Instant::now()
             }
             if self.end_run.load(Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {
@@ -495,7 +484,6 @@ impl NetManager {
             info!("No nickname chosen");
         }
         let ff = settings.friendly_fire.unwrap_or(def.friendly_fire);
-        self.friendly_fire.store(ff, Ordering::Relaxed);
         state.try_ws_write_option("friendly_fire", ff);
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
         state.try_ws_write_option(
@@ -503,14 +491,6 @@ impl NetManager {
             settings
                 .world_sync_version
                 .unwrap_or(def.world_sync_version),
-        );
-        state.try_ws_write_option(
-            "player_tether",
-            settings.player_tether.unwrap_or(def.player_tether),
-        );
-        state.try_ws_write_option(
-            "tether_length",
-            settings.tether_length.unwrap_or(def.tether_length),
         );
         state.try_ws_write_option("item_dedup", settings.item_dedup.unwrap_or(def.item_dedup));
         state.try_ws_write_option(
@@ -528,10 +508,6 @@ impl NetManager {
                 .unwrap_or(def.world_sync_interval),
         );
         state.try_ws_write_option("game_mode", settings.game_mode.unwrap_or(def.game_mode));
-        state.try_ws_write_option(
-            "chunk_target",
-            settings.chunk_target.unwrap_or(def.chunk_target),
-        );
         state.try_ws_write_option(
             "health_per_player",
             settings.health_per_player.unwrap_or(def.health_per_player),
@@ -583,15 +559,6 @@ impl NetManager {
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
         );
 
-        state.try_ws_write_option(
-            "ping_lifetime",
-            self.init_settings.ux_settings.ping_lifetime(),
-        );
-        state.try_ws_write_option("ping_scale", self.init_settings.ux_settings.ping_scale());
-        state.try_ws_write_option(
-            "hide_cursors",
-            self.init_settings.ux_settings.hide_cursors(),
-        );
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
