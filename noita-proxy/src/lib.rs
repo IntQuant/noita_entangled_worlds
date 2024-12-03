@@ -87,178 +87,180 @@ pub struct GameSettings {
     physics_damage: Option<bool>,
 }
 impl GameSettings {
-    fn show_editor(&mut self, ui: &mut Ui) {
-        let def = DefaultSettings::default();
-        let game_settings = self;
-        {
-            let mut temp = game_settings.game_mode.unwrap_or(def.game_mode);
-            ui.label(tr("Game-mode"));
-            if ui
-                .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
-                .changed()
-                || ui
+    fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
+        ui.add_enabled_ui(enabled, |ui| {
+            let def = DefaultSettings::default();
+            let game_settings = self;
+            {
+                let mut temp = game_settings.game_mode.unwrap_or(def.game_mode);
+                ui.label(tr("Game-mode"));
+                if ui
+                    .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
+                    .changed()
+                    || ui
                     .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
                     .changed()
-            {
-                game_settings.game_mode = Some(temp)
-            }
-        }
-        ui.scope(|ui| {
-            ui.set_height(100.0);
-            match game_settings.game_mode.unwrap_or(def.game_mode) {
-                GameMode::SharedHealth => {
-                    ui.label(tr("shared_health_desc_1"));
-                    ui.label(tr("shared_health_desc_2"));
-                    ui.label(tr("shared_health_desc_3"));
-                    ui.add_space(5.0);
-                    ui.label(tr("Health-per-player"));
-                    let mut temp = game_settings
-                        .health_per_player
-                        .unwrap_or(def.health_per_player);
-                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                        game_settings.health_per_player = Some(temp)
-                    }
+                {
+                    game_settings.game_mode = Some(temp)
                 }
-                GameMode::LocalHealth => {
-                    ui.label(tr("local_health_desc_1"));
-                    ui.label(tr("local_health_desc_2"));
-                    ui.add_space(5.0);
-                    ui.label(tr("Health-percent-lost-on-reviving"));
-                    {
+            }
+            ui.scope(|ui| {
+                ui.set_height(100.0);
+                match game_settings.game_mode.unwrap_or(def.game_mode) {
+                    GameMode::SharedHealth => {
+                        ui.label(tr("shared_health_desc_1"));
+                        ui.label(tr("shared_health_desc_2"));
+                        ui.label(tr("shared_health_desc_3"));
+                        ui.add_space(5.0);
+                        ui.label(tr("Health-per-player"));
                         let mut temp = game_settings
-                            .health_lost_on_revive
-                            .unwrap_or(def.health_lost_on_revive);
+                            .health_per_player
+                            .unwrap_or(def.health_per_player);
                         if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                            game_settings.health_lost_on_revive = Some(temp)
+                            game_settings.health_per_player = Some(temp)
                         }
                     }
-                    {
-                        let mut temp = game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
-                        if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
-                            game_settings.global_hp_loss = Some(temp)
+                    GameMode::LocalHealth => {
+                        ui.label(tr("local_health_desc_1"));
+                        ui.label(tr("local_health_desc_2"));
+                        ui.add_space(5.0);
+                        ui.label(tr("Health-percent-lost-on-reviving"));
+                        {
+                            let mut temp = game_settings
+                                .health_lost_on_revive
+                                .unwrap_or(def.health_lost_on_revive);
+                            if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                game_settings.health_lost_on_revive = Some(temp)
+                            }
                         }
-                    }
-                    {
-                        let mut temp = game_settings
-                            .no_material_damage
-                            .unwrap_or(def.no_material_damage);
-                        if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
-                            game_settings.no_material_damage = Some(temp)
+                        {
+                            let mut temp = game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                            if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                game_settings.global_hp_loss = Some(temp)
+                            }
                         }
-                    }
-                    ui.add_space(1.0);
-                    {
-                        let mut temp = game_settings.perma_death.unwrap_or(def.perma_death);
-                        if ui.checkbox(&mut temp, tr("perma_death")).changed() {
-                            game_settings.perma_death = Some(temp)
+                        {
+                            let mut temp = game_settings
+                                .no_material_damage
+                                .unwrap_or(def.no_material_damage);
+                            if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
+                                game_settings.no_material_damage = Some(temp)
+                            }
                         }
-                    }
-                    ui.add_space(1.0);
-                    {
-                        let mut temp = game_settings.physics_damage.unwrap_or(def.physics_damage);
-                        if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
-                            game_settings.physics_damage = Some(temp)
+                        ui.add_space(1.0);
+                        {
+                            let mut temp = game_settings.perma_death.unwrap_or(def.perma_death);
+                            if ui.checkbox(&mut temp, tr("perma_death")).changed() {
+                                game_settings.perma_death = Some(temp)
+                            }
+                        }
+                        ui.add_space(1.0);
+                        {
+                            let mut temp = game_settings.physics_damage.unwrap_or(def.physics_damage);
+                            if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
+                                game_settings.physics_damage = Some(temp)
+                            }
                         }
                     }
                 }
+            });
+            ui.add_space(10.0);
+            if cfg!(debug_assertions) {
+                ui.label(tr("connect_settings_debug"));
+                {
+                    let mut temp = game_settings.debug_mode.unwrap_or(def.debug_mode);
+                    if ui
+                        .checkbox(&mut temp, tr("connect_settings_debug_en"))
+                        .changed()
+                    {
+                        game_settings.debug_mode = Some(temp)
+                    }
+                }
             }
-        });
-        ui.add_space(10.0);
-        if cfg!(debug_assertions) {
-            ui.label(tr("connect_settings_debug"));
+            ui.add_space(10.0);
+            ui.label("World generation");
+            ui.horizontal(|ui| {
+                ui.checkbox(
+                    &mut game_settings.use_constant_seed,
+                    tr("connect_settings_debug_fixed_seed"),
+                );
+                ui.add_space(10.0);
+                if game_settings.use_constant_seed {
+                    ui.label(tr("connect_settings_seed"));
+                    ui.add(DragValue::new(&mut game_settings.seed));
+                }
+            });
             {
-                let mut temp = game_settings.debug_mode.unwrap_or(def.debug_mode);
+                let mut temp = game_settings.item_dedup.unwrap_or(def.item_dedup);
                 if ui
-                    .checkbox(&mut temp, tr("connect_settings_debug_en"))
+                    .checkbox(&mut temp, tr("connect_settings_item_dedup"))
                     .changed()
                 {
-                    game_settings.debug_mode = Some(temp)
+                    game_settings.item_dedup = Some(temp)
                 }
             }
-        }
-        ui.add_space(10.0);
-        ui.label("World generation");
-        ui.horizontal(|ui| {
-            ui.checkbox(
-                &mut game_settings.use_constant_seed,
-                tr("connect_settings_debug_fixed_seed"),
-            );
             ui.add_space(10.0);
-            if game_settings.use_constant_seed {
-                ui.label(tr("connect_settings_seed"));
-                ui.add(DragValue::new(&mut game_settings.seed));
+            ui.label("Player settings");
+            ui.horizontal(|ui| {
+                ui.label(tr("connect_settings_max_players"));
+                let mut temp = game_settings.max_players.unwrap_or(def.max_players);
+                if ui.add(Slider::new(&mut temp, 2..=250)).changed() {
+                    game_settings.max_players = Some(temp)
+                }
+            });
+            {
+                let mut temp = game_settings.friendly_fire.unwrap_or(def.friendly_fire);
+                if ui.checkbox(&mut temp, tr("Enable-friendly-fire")).changed() {
+                    game_settings.friendly_fire = Some(temp)
+                }
+            }
+            ui.add_space(10.0);
+            ui.label("Perks");
+            {
+                let mut temp = game_settings.randomize_perks.unwrap_or(def.randomize_perks);
+                if ui
+                    .checkbox(
+                        &mut temp,
+                        tr("Have-perk-pools-be-independent-of-each-other"),
+                    )
+                    .changed()
+                {
+                    game_settings.randomize_perks = Some(temp)
+                }
+            }
+            {
+                let mut temp = game_settings
+                    .perk_ban_list
+                    .clone()
+                    .unwrap_or(def.perk_ban_list);
+                ui.label("perk ban list, comma seperated");
+                if ui
+                    .add_sized(
+                        [ui.available_width() - 30.0, 20.0],
+                        egui::TextEdit::singleline(&mut temp),
+                    )
+                    .changed()
+                {
+                    game_settings.perk_ban_list = Some(temp)
+                }
+            }
+            {
+                let mut temp = game_settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult);
+                if ui
+                    .add(
+                        Slider::new(&mut temp, 1.0..=1000.0)
+                            .logarithmic(true)
+                            .text(tr("connect_settings_enemy_hp_scale")),
+                    )
+                    .changed()
+                {
+                    game_settings.enemy_hp_mult = Some(temp)
+                }
+            }
+            if ui.button(tr("apply_default_settings")).clicked() {
+                *game_settings = GameSettings::default()
             }
         });
-        {
-            let mut temp = game_settings.item_dedup.unwrap_or(def.item_dedup);
-            if ui
-                .checkbox(&mut temp, tr("connect_settings_item_dedup"))
-                .changed()
-            {
-                game_settings.item_dedup = Some(temp)
-            }
-        }
-        ui.add_space(10.0);
-        ui.label("Player settings");
-        ui.horizontal(|ui| {
-            ui.label(tr("connect_settings_max_players"));
-            let mut temp = game_settings.max_players.unwrap_or(def.max_players);
-            if ui.add(Slider::new(&mut temp, 2..=250)).changed() {
-                game_settings.max_players = Some(temp)
-            }
-        });
-        {
-            let mut temp = game_settings.friendly_fire.unwrap_or(def.friendly_fire);
-            if ui.checkbox(&mut temp, tr("Enable-friendly-fire")).changed() {
-                game_settings.friendly_fire = Some(temp)
-            }
-        }
-        ui.add_space(10.0);
-        ui.label("Perks");
-        {
-            let mut temp = game_settings.randomize_perks.unwrap_or(def.randomize_perks);
-            if ui
-                .checkbox(
-                    &mut temp,
-                    tr("Have-perk-pools-be-independent-of-each-other"),
-                )
-                .changed()
-            {
-                game_settings.randomize_perks = Some(temp)
-            }
-        }
-        {
-            let mut temp = game_settings
-                .perk_ban_list
-                .clone()
-                .unwrap_or(def.perk_ban_list);
-            ui.label("perk ban list, comma seperated");
-            if ui
-                .add_sized(
-                    [ui.available_width() - 30.0, 20.0],
-                    egui::TextEdit::singleline(&mut temp),
-                )
-                .changed()
-            {
-                game_settings.perk_ban_list = Some(temp)
-            }
-        }
-        {
-            let mut temp = game_settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult);
-            if ui
-                .add(
-                    Slider::new(&mut temp, 1.0..=1000.0)
-                        .logarithmic(true)
-                        .text(tr("connect_settings_enemy_hp_scale")),
-                )
-                .changed()
-            {
-                game_settings.enemy_hp_mult = Some(temp)
-            }
-        }
-        if ui.button(tr("apply_default_settings")).clicked() {
-            *game_settings = GameSettings::default()
-        }
     }
 }
 pub struct DefaultSettings {
@@ -844,7 +846,7 @@ impl App {
                                 self.show_host_settings = !self.show_host_settings
                             }
                             if self.show_host_settings {
-                                self.app_saved_state.game_settings.show_editor(ui)
+                                self.app_saved_state.game_settings.show_editor(ui, true)
                             }
                         });
                     });
@@ -1171,13 +1173,11 @@ impl App {
             ui.horizontal(|ui| {
                 let last = self.connected_menu;
                 ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Normal, "Lobby");
-                if netman.peer.is_host() {
-                    ui.selectable_value(
-                        &mut self.connected_menu,
-                        ConnectedMenu::Settings,
-                        "Game Settings",
-                    );
-                }
+                ui.selectable_value(
+                    &mut self.connected_menu,
+                    ConnectedMenu::Settings,
+                    "Game Settings",
+                );
                 ui.selectable_value(
                     &mut self.connected_menu,
                     ConnectedMenu::ConnectionInfo,
@@ -1263,8 +1263,10 @@ impl App {
                     }
                 }
                 ConnectedMenu::Settings => {
-                    self.app_saved_state.game_settings.show_editor(ui);
-                    self.end_run_button.show(ui, netman);
+                    self.app_saved_state.game_settings.show_editor(ui, netman.peer.is_host());
+                    if netman.peer.is_host() {
+                        self.end_run_button.show(ui, netman);
+                    }
                 }
                 ConnectedMenu::ConnectionInfo => match &netman.peer {
                     PeerVariant::Tangled(_) => {
