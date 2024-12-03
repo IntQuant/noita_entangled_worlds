@@ -68,10 +68,11 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     end
 end
 
-function rpc.check_gamemode(gamemode)
+function rpc.check_gamemode(gamemode, seed)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
     local not_fine = gamemode ~= gm
+    local my_seed = MagicNumbersGetValue("WORLD_SEED")
 
     if gm == "save_slots_enabler" or gamemode == "save_slots_enabler" then
         not_fine = not (gm == "" or gamemode == "")
@@ -81,6 +82,11 @@ function rpc.check_gamemode(gamemode)
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different gamemode number then you")
         GamePrint("his game mode: ".. gamemode)
         GamePrint("your game mode: ".. gm)
+    end
+    if my_seed ~= seed then
+        GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different seed then you")
+        GamePrint("his seed: ".. seed)
+        GamePrint("your seed: ".. my_seed)
     end
 end
 
@@ -97,7 +103,7 @@ function module.on_world_update()
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
         if GameGetFrameNum() % 120 == 0 then
             local n = np.GetGameModeNr()
-            rpc.check_gamemode(np.GetGameModeName(n))
+            rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"))
         end
     end
 
