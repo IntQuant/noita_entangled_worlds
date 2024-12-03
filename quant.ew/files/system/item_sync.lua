@@ -625,12 +625,9 @@ local function cleanup(peer)
     for _, item in ipairs(EntityGetWithTag("ew_global_item") or {}) do
         local gid = item_sync.get_global_item_id(item)
         if gid ~= nil and is_peers_item(gid, peer) then
-            if (gid_last_frame_updated[peer] == nil or is_duplicate[gid]) and is_item_on_ground(item) then
+            if is_duplicate[gid] then
                 item_sync.remove_item_with_id(gid)
             else
-                if is_duplicate[gid] then
-                    item_sync.remove_item_with_id(gid)
-                end
                 is_duplicate[gid] = true
             end
         end

@@ -74,10 +74,8 @@ function inventory_helper.serialize_single_item(item)
         local wand = EZWand(item)
         local extra = {}
         local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
-        if ability and ability ~= 0 then
-            for i, field in ipairs(ability_component_extra_fields) do
-                extra[i] = ComponentGetValue2(ability, field)
-            end
+        for i, field in ipairs(ability_component_extra_fields) do
+            extra[i] = ComponentGetValue2(ability, field)
         end
         local is_new = true
         local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
