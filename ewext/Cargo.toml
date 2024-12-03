@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
-strip = false
+strip = true # Not having that causes wine debugger to crash.
 panic = "abort"
 
 [dependencies]

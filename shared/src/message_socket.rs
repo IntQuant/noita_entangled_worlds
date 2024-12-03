@@ -3,7 +3,7 @@ use std::{
     marker::PhantomData,
     net::{SocketAddr, TcpStream},
     sync::mpsc::{self, RecvError, TryRecvError},
-    thread,
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
@@ -25,6 +25,7 @@ fn read_one<T: bitcode::DecodeOwned>(mut buf: impl Read) -> eyre::Result<T> {
 pub struct MessageSocket<Inbound, Outbound> {
     socket: BufWriter<TcpStream>,
     recv_messages: mpsc::Receiver<eyre::Result<Inbound>>,
+    reader_thread: Option<JoinHandle<()>>,
     _phantom: PhantomData<fn() -> Outbound>,
 }
 
@@ -33,7 +34,7 @@ impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbo
         socket.set_nodelay(true)?;
         socket.set_write_timeout(Some(Duration::from_secs(3)))?;
         let (sender, recv_messages) = mpsc::channel();
-        thread::spawn({
+        let reader_thread = Some(thread::spawn({
             let socket = socket.try_clone()?;
             move || {
                 let mut socket = BufReader::new(socket);
@@ -41,20 +42,19 @@ impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbo
                     let res = read_one(&mut socket);
                     let res_was_error = res.is_err();
                     if let Err(_) = sender.send(res) {
-                        info!("Failed to send Inbound message to channel, stopping thread");
                         break;
                     }
                     if res_was_error {
-                        info!("Last receive was an error, stopping thread");
                         break;
                     }
                 }
             }
-        });
+        }));
 
         Ok(Self {
             socket: BufWriter::new(socket),
             recv_messages,
+            reader_thread,
             _phantom: PhantomData,
         })
     }
@@ -105,6 +105,9 @@ impl<Inbound, Outbound> Drop for MessageSocket<Inbound, Outbound> {
             .get_mut()
             .shutdown(std::net::Shutdown::Both)
             .ok();
+        if let Some(handle) = self.reader_thread.take() {
+            handle.join().ok();
+        }
         info!("Message socket dropped");
     }
 }
