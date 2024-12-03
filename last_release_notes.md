@@ -1,21 +1,20 @@
-## Noita Entangled Worlds v0.30.9
+## Noita Entangled Worlds v0.30.10
 
-**Warn**: might still have that issue with connection (sadly I haven't found a way to reproduce it locally to make sure it's gone). Please notify me if you encounter it.
+- fix game over
 
-- maybe fix that random issue with the connection.
-- Make alpha of player ping nonlinear.
-- Have karl yellow trail copy your player color.
-- Add chunk gathering to use less data on networking.
-- Surely fix item sync.
-- Fix player sync error from player cursor change.
-- Change default player arrow size to 0, since idk why it should be this large by default.
-- Update portuguese translation
+- rewrite proxy communication hopefully fixing local network dropping out
 
+- move some settings to in game settings, add chunk flex option
+
+- color ragdolls, spawn ragdolls of friends when everyone dies in local health
+
+- allow clients seeing hosts settings
+
+- complain when seeds are different
 
 ## Accepted pull requests
 
-- update portuguese translation by @ZXb125 in #242
-
+- just some smol translation change by @ZXb125 in #248
 ## Installation
 
 
