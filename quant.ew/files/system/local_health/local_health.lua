@@ -291,7 +291,7 @@ local function player_died()
     polymorph.switch_entity(ent + 1)
 
     remove_healthbar_locally()
-    inventory_helper.set_item_data(item_data, ctx.my_player, true)
+    inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
             EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
@@ -500,7 +500,7 @@ ctx.cap.health = {
                 ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
                 ComponentSetValue2(damage_model, "air_in_lungs", ComponentGetValue2(damage_model, "air_in_lungs_max"))
             end
-            inventory_helper.set_item_data(item_data, ctx.my_player, true)
+            inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
             remove_inventory_tags()
             local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
             if controls ~= nil then

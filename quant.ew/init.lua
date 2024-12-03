@@ -344,9 +344,9 @@ local function on_world_pre_update_inner()
 
     local sha_check = GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or sha_check then
-        local inventory_state = player_fns.serialize_items(ctx.my_player)
+        local inventory_state, spells = player_fns.serialize_items(ctx.my_player)
         if inventory_state ~= nil then
-            net.send_player_inventory(inventory_state)
+            net.send_player_inventory(inventory_state, spells)
         end
     end
 

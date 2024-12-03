@@ -318,18 +318,10 @@ local function pickup_item(entity, item)
     if item_component then
       ComponentSetValue2(item_component, "has_been_picked_by_player", true)
     end
-    local entity_children = EntityGetAllChildren(entity)
-    if entity_children ~= nil then
-        for _, child in pairs( entity_children ) do
-            if EntityGetName( child ) == "inventory_quick" then
                 if EntityGetParent(item) ~= 0 then
                     EntityRemoveFromParent(item)
                 end
-                EntityAddChild( child, item)
-                break
-            end
-        end
-    end
+                EntityAddChild(entity, item)
 
     EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
     EntitySetComponentsWithTagEnabled( item, "enabled_in_hand", false )
@@ -350,15 +342,74 @@ local function remove_non_send(item)
     end
 end
 
-function inventory_helper.set_item_data(item_data, player_data, local_ent)
+local function get_item(itemInfo, inv, player, local_ent)
+    --local x, y = EntityGetTransform(player)
+    local item_entity
+    local item
+    if(itemInfo.is_wand)then
+        item = inventory_helper.deserialize_single_item(itemInfo.data)
+        remove_non_send(item)
+        item = EZWand(item)
+    elseif itemInfo.peer_id ~= nil then
+        item = ctx.players[itemInfo.peer_id].entity
+    else
+        item = inventory_helper.deserialize_single_item(itemInfo.data)
+        remove_non_send(item)
+    end
+
+    if (item == nil) then
+        return
+    end
+
+    if(itemInfo.is_wand)then
+        EntityAddTag(item.entity_id, "ew_client_item")
+        item:PickUp(player)
+        item_entity = item.entity_id
+    elseif itemInfo.peer_id ~= nil then
+        pickup_item(inv, item)
+        item_entity = item
+        np.SetActiveHeldEntity(player, item, false, false)
+    else
+        EntityAddTag(item, "ew_client_item")
+        pickup_item(inv, item)
+        item_entity = item
+    end
+    local itemComp = EntityGetFirstComponentIncludingDisabled(item_entity, "ItemComponent")
+    if (itemComp ~= nil) then
+        ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
+    end
+    if (itemInfo.active) then
+        active_item_entity = item_entity
+    end
+    if not local_ent then
+        EntityAddComponent(item_entity, "LuaComponent", {
+            script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
+        })
+        local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
+        if notify ~= nil then
+            EntityRemoveComponent(item_entity, notify)
+        end
+    end
+end
+
+function inventory_helper.set_item_data(item_data, player_data, local_ent, has_spells)
+    local spells
+    if has_spells then
+        spells = item_data[2]
+        item_data = item_data[1]
+    end
     local player = player_data.entity
     if player == nil or not EntityGetIsAlive(player) then
         return
     end
 
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
+    local inv_quick
+    local inv_full
     local children = EntityGetAllChildren(player) or {}
     for _, child in pairs(children) do
         if EntityGetName(child) == "inventory_quick" then
+            inv_quick = child
             local inv = EntityGetAllChildren(child)
             if inv ~= nil then
                 for _, item in pairs(inv) do
@@ -367,8 +418,20 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent)
                     end
                 end
             end
-            break
+        elseif EntityGetName(child) == "inventory_full" and spells ~= nil then
+            inv_full = child
+            local inv = EntityGetAllChildren(child)
+            if inv ~= nil then
+                for _, item in pairs(inv) do
+                    if not EntityHasTag(item, "polymorphed_player") then
+                        EntityKill(item)
+                    end
+                end
+            end
         end
+    end
+    if inv_quick == nil or (inv_full == nil and spells ~= nil) then
+        return
     end
 
 
@@ -376,74 +439,19 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent)
         local active_item_entity
 
         for _, itemInfo in ipairs(item_data) do
-            --local x, y = EntityGetTransform(player)
-            local item_entity
-            local item
-            if(itemInfo.is_wand)then
-                item = inventory_helper.deserialize_single_item(itemInfo.data)
-                remove_non_send(item)
-                item = EZWand(item)
-            elseif itemInfo.peer_id ~= nil then
-                item = ctx.players[itemInfo.peer_id].entity
-            else
-                item = inventory_helper.deserialize_single_item(itemInfo.data)
-                remove_non_send(item)
-            end
+            get_item(itemInfo, inv_quick, player, local_ent)
+        end
 
-            if (item == nil) then
-                return
-            end
-
-            if(itemInfo.is_wand)then
-                EntityAddTag(item.entity_id, "ew_client_item")
-                item:PickUp(player)
-                item_entity = item.entity_id
-            elseif itemInfo.peer_id ~= nil then
-                pickup_item(player, item)
-                item_entity = item
-                np.SetActiveHeldEntity(player, item, false, false)
-            else
-                EntityAddTag(item, "ew_client_item")
-                pickup_item(player, item)
-                item_entity = item
-            end
-            local itemComp = EntityGetFirstComponentIncludingDisabled(item_entity, "ItemComponent")
-            if (itemComp ~= nil) then
-                ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
-            end
-            if (itemInfo.active) then
-                active_item_entity = item_entity
-            end
-            if not local_ent then
-                EntityAddComponent(item_entity, "LuaComponent", {
-                    script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
-                })
-                local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
-                if notify ~= nil then
-                    EntityRemoveComponent(item_entity, notify)
+        if spells ~= nil then
+            for _, itemInfo in ipairs(spells) do
+                if itemInfo.slot_x > ComponentGetValue2(inventory2Comp, "full_inventory_slots_x") then
+                    ComponentSetValue2(inventory2Comp, "full_inventory_slots_x", itemInfo.slot_x)
                 end
+                if itemInfo.slot_y > ComponentGetValue2(inventory2Comp, "full_inventory_slots_y") then
+                    ComponentSetValue2(inventory2Comp, "full_inventory_slots_y", itemInfo.slot_y)
+                end
+                get_item(itemInfo, inv_full, player, local_ent)
             end
-            --print("Deserialized wand #"..tostring(k).." - Active? "..tostring(wandInfo.active))
-
-            -- entity.SetVariable(item_entity, "arena_entity_id", itemInfo.id)
-
-            -- local lua_comps = EntityGetComponentIncludingDisabled(item_entity, "LuaComponent") or {}
-            -- local has_pickup_script = false
-            -- for i, lua_comp in ipairs(lua_comps) do
-            --     if (ComponentGetValue2(lua_comp, "script_item_picked_up") == "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua") then
-            --         has_pickup_script = true
-            --     end
-            -- end
-
-            -- if (not has_pickup_script) then
-            --     EntityAddTag(item_entity, "does_physics_update")
-            --     EntityAddComponent(item_entity, "LuaComponent", {
-            --         _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory",
-            --         -- script_item_picked_up = "mods/evaisa.arena/files/scripts/gamemode/misc/item_pickup.lua",
-            --         -- script_kick = "mods/evaisa.arena/files/scripts/gamemode/misc/item_kick.lua",
-            --         -- script_throw_item = "mods/evaisa.arena/files/scripts/gamemode/misc/item_throw.lua",
-            --     })
-            -- end
         end
 
         if (active_item_entity ~= nil) then
