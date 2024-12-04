@@ -65,49 +65,9 @@ function inventory_helper.get_inventory_items(player_data, inventory_name)
     return items
 end
 
-local ability_component_extra_fields = {"stat_times_player_has_shot", "stat_times_player_has_edited", "gun_level"}
-
 function inventory_helper.serialize_single_item(item)
-    local item_data
     local x, y = EntityGetTransform(item)
-    if(entity_is_wand(item))then
-        local wand = EZWand(item)
-        local extra = {}
-        local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
-        for i, field in ipairs(ability_component_extra_fields) do
-            extra[i] = ComponentGetValue2(ability, field)
-        end
-        local is_new = true
-        local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        local image_inv
-        if item_component and item_component ~= 0 then
-            image_inv = ComponentGetValue2(item_component, "ui_sprite")
-            is_new = ComponentGetValue2(item_component, "play_hover_animation")
-        end
-        local vx = 0
-        local vy = 0
-        local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
-        if vel and vel ~= 0 then
-            vx, vy = ComponentGetValue2(vel, "mVelocity")
-        end
-        local sprite_com = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
-        local animation
-        local sprite
-        if sprite_com ~= nil and sprite_com ~= 0 then
-            sprite = ComponentGetValue2(sprite_com, "image_file")
-            animation = ComponentGetValue2(sprite_com, "rect_animation")
-        end
-        local shoot_pos = {}
-        local hotspot = EntityGetFirstComponentIncludingDisabled(item, "HotspotComponent")
-        if hotspot ~= nil and hotspot ~= 0 then
-            shoot_pos[1], shoot_pos[2] = ComponentGetValue2(hotspot, "offset")
-        end
-        local varp = EntityGetFilename(item) == "data/entities/items/wand_varpuluuta.xml"
-        item_data = {true, wand:Serialize(true, true), x, y, extra, is_new, {vx, vy},
-                     sprite, image_inv, varp, shoot_pos, animation}
-    else
-        item_data = {false, util.serialize_entity(item), x, y}
-    end
+    local item_data = {util.serialize_entity(item), x, y}
     local item_cost_component = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
     if item_cost_component and item_cost_component ~= 0 then
         local cost = ComponentGetValue2(item_cost_component, "cost")
@@ -119,60 +79,8 @@ function inventory_helper.serialize_single_item(item)
 end
 
 function inventory_helper.deserialize_single_item(item_data)
-    local item
-    local x, y = item_data[3], item_data[4]
-    if item_data[1] then
-        item = EZWand(item_data[2], x, y, false).entity_id
-        local extra = item_data[5]
-        local is_new = item_data[6]
-        local vx, vy = item_data[7][1], item_data[7][2]
-        local image = item_data[8]
-        local image_inv = item_data[9]
-        local shoot_pos = item_data[11]
-        local animation = item_data[12]
-        local sprite = EntityGetFirstComponentIncludingDisabled(item, "SpriteComponent")
-        if sprite ~= nil then
-            ComponentSetValue2(sprite, "image_file", image)
-            ComponentSetValue2(sprite, "rect_animation", animation)
-            ComponentSetValue2(sprite, "next_rect_animation", animation)
-        end
-        local hotspot = EntityGetFirstComponentIncludingDisabled(item, "HotspotComponent")
-        if hotspot ~= nil then
-            ComponentSetValue2(hotspot, "offset", shoot_pos[1], shoot_pos[2])
-        end
-        if item_data[10] then
-            local varp = EntityCreateNew()
-            EntityAddComponent2(varp, "InheritTransformComponent", {_tags="enabled_in_world,enabled_in_hand", only_position=true, parent_hotspot_tag="shoot_pos"})
-            EntityAddComponent2(varp, "CellEaterComponent", {_tags="enabled_in_world,enabled_in_hand", radius=20, eat_probability=10, only_stain=true})
-            EntityAddChild(item, varp)
-        end
-        local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
-        local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        if item_component ~= nil then
-            ComponentSetValue2(item_component, "ui_sprite", image_inv)
-        end
-        if ability ~= nil and extra ~= nil then
-            for i, field in ipairs(ability_component_extra_fields) do
-                if extra[i] ~= nil then
-                    ComponentSetValue2(ability, field, extra[i])
-                end
-            end
-        end
-        if not is_new then
-            ComponentSetValue2(item_component, "play_hover_animation", false)
-            local phys = EntityGetFirstComponentIncludingDisabled(item, "SimplePhysicsComponent")
-            EntitySetComponentIsEnabled(item, phys, true)
-            local part = EntityGetFirstComponentIncludingDisabled(item, "SpriteParticleEmitterComponent")
-            EntitySetComponentIsEnabled(item, part, false)
-            local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
-            if vel and vel ~= 0 then
-                ComponentSetValue2(vel, "mVelocity", vx, vy)
-            end
-        end
-        -- EntityAddTag(item, "does_physics_update")
-    else
-        item = util.deserialize_entity(item_data[2], x, y)
-    end
+    local x, y = item_data[2], item_data[3]
+    local item = util.deserialize_entity(item_data[1], x, y)
 
     if item_data.shop_info ~= nil then
         local item_cost_component = util.get_or_create_component(item, "ItemCostComponent")
