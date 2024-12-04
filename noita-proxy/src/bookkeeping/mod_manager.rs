@@ -5,10 +5,11 @@ use std::{
     io::BufReader,
     mem,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
-use eframe::egui::{Align2, Context, Ui};
-use egui_file_dialog::{DialogState, FileDialog};
+use eframe::egui::{Context, Ui};
+use eyre::eyre;
 use eyre::Context as _;
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
@@ -28,7 +29,8 @@ enum State {
     #[default]
     JustStarted,
     IsAutomaticPathOk,
-    SelectPath,
+    PreSelectPath,
+    SelectPath(Promise<Result<PathBuf, ReleasesError>>),
     PreCheckMod,
     InvalidPath,
     CheckMod,
@@ -40,20 +42,9 @@ enum State {
     UnpackDone,
 }
 
+#[derive(Default)]
 pub struct Modmanager {
     state: State,
-    file_dialog: FileDialog,
-}
-
-impl Default for Modmanager {
-    fn default() -> Self {
-        Self {
-            state: Default::default(),
-            file_dialog: FileDialog::default()
-                .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                .title(&tr("modman_path_to_exe")),
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -185,21 +176,29 @@ impl Modmanager {
                     ctx.request_repaint();
                 }
                 if ui.button(tr("modman_select_manually")).clicked() {
-                    self.select_noita_file();
+                    self.state = State::PreSelectPath;
                 }
             }
-            State::SelectPath => {
-                if let Some(path) = self.file_dialog.update(ctx).selected() {
-                    settings.game_exe_path = path.to_path_buf();
-                    if !check_path_valid(&settings.game_exe_path) {
-                        self.state = State::InvalidPath;
-                    } else {
-                        self.state = State::PreCheckMod;
+
+            State::PreSelectPath => {
+                self.select_noita_file();
+            }
+            State::SelectPath(promise) => {
+                match promise.ready() {
+                    Some(Ok(path)) => {
+                        settings.game_exe_path = path.to_path_buf();
+                        if !check_path_valid(&settings.game_exe_path) {
+                            self.state = State::InvalidPath;
+                        } else {
+                            self.state = State::PreCheckMod;
+                        }
                     }
+                    Some(Err(_)) => {
+                        self.state = State::PreSelectPath;
+                    }
+                    None => {}
                 }
-                if self.file_dialog.state() == DialogState::Cancelled {
-                    self.state = State::JustStarted
-                }
+                ui.ctx().request_repaint_after(Duration::from_millis(200));
             }
             State::InvalidPath => {
                 ui.label(tr("modman_invalid_path"));
@@ -340,8 +339,18 @@ impl Modmanager {
     }
 
     fn select_noita_file(&mut self) {
-        self.state = State::SelectPath;
-        self.file_dialog.select_file();
+        let promise = Promise::spawn_thread("select-path", move || {
+            let file = rfd::FileDialog::new()
+                .add_filter("executable", &["exe"])
+                .set_title(tr("modman_path_to_exe"))
+                .pick_file();
+            if let Some(path) = file {
+                Ok(path)
+            } else {
+                Err(eyre!("Dialog cancelled"))
+            }
+        });
+        self.state = State::SelectPath(promise);
     }
 
     pub fn is_done(&self) -> bool {
