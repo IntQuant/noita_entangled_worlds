@@ -12,8 +12,6 @@ local function hide_perk(perk_id)
     perk_data.not_in_default_perk_pool = true
 end
 
-hide_perk("HOMUNCULUS")
-
 local ff = false
 if CrossCall ~= nil then
     ff = CrossCall("ew_ff")

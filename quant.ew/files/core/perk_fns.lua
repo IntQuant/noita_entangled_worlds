@@ -21,6 +21,8 @@ local perks_to_ignore = {
     HEARTS_MORE_EXTRA_HP = true,
     MAP = true,
     ADVENTURER = true,
+    HOMUNCULUS = true,
+    LUKKI_MINION = true,
 }
 
 local global_perks = {
