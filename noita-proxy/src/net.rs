@@ -296,10 +296,12 @@ impl NetManager {
             } else {
                 dont_kick.clear()
             }
-            let list = self.ban_list.lock().unwrap();
-            for peer in list.iter() {
-                if self.peer.iter_peer_ids().contains(peer) {
-                    to_kick.push(*peer)
+            {
+                let list = self.ban_list.lock().unwrap();
+                for peer in list.iter() {
+                    if self.peer.iter_peer_ids().contains(peer) {
+                        to_kick.push(*peer)
+                    }
                 }
             }
             for peer in to_kick.iter() {
