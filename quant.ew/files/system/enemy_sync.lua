@@ -278,8 +278,8 @@ function enemy_sync.host_upload_entities()
                     if not item_sync.is_my_item(wand) then
                         item_sync.take_authority(wand)
                     end
+                    was_held[wand] = true
                 end
-                was_held[wand] = true
             end
         end
 
