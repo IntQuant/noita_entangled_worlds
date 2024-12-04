@@ -548,6 +548,10 @@ impl NetManager {
             "physics_damage",
             settings.physics_damage.unwrap_or(def.physics_damage),
         );
+        state.try_ws_write_option(
+            "no_notplayer",
+            settings.no_notplayer.unwrap_or(def.no_notplayer),
+        );
         let lst = settings.clone();
         state.try_ws_write_option(
             "perk_ban_list",

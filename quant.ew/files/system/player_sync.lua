@@ -149,6 +149,7 @@ function module.on_world_update()
             local x, y = EntityGetTransform(ent)
             local notplayer = EntityHasTag(ent, "ew_notplayer")
                     and not ctx.proxy_opt.perma_death
+                    and not ctx.proxy_opt.no_notplayer
             if notplayer and GameHasFlagRun("ending_game_completed") then
                 goto continue
             end

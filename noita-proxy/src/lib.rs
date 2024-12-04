@@ -87,6 +87,7 @@ pub struct GameSettings {
     perma_death: Option<bool>,
     physics_damage: Option<bool>,
     share_gold: Option<bool>,
+    no_notplayer: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -163,6 +164,14 @@ impl GameSettings {
                                 game_settings.physics_damage.unwrap_or(def.physics_damage);
                             if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
                                 game_settings.physics_damage = Some(temp)
+                            }
+                        }
+                        ui.add_space(1.0);
+                        {
+                            let mut temp =
+                                game_settings.no_notplayer.unwrap_or(def.no_notplayer);
+                            if ui.checkbox(&mut temp, "no minua").changed() {
+                                game_settings.no_notplayer = Some(temp)
                             }
                         }
                     }
@@ -292,6 +301,7 @@ pub struct DefaultSettings {
     perma_death: bool,
     physics_damage: bool,
     share_gold: bool,
+    no_notplayer: bool,
 }
 
 impl Default for DefaultSettings {
@@ -315,6 +325,7 @@ impl Default for DefaultSettings {
             perma_death: false,
             physics_damage: true,
             share_gold: false,
+            no_notplayer: false,
         }
     }
 }

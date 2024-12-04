@@ -506,7 +506,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         if ghost ~= nil then
             ComponentSetValue2(ghost, "die_if_no_home", false)
         end
-        util.make_ephemerial(enemy_id)
+        if not EntityHasTag(enemy_id, "effectable_prop") then
+            util.make_ephemerial(enemy_id)
+        end
     end
 
     local enemy_data_new = ctx.entity_by_remote_id[remote_enemy_id]
