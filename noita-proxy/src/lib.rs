@@ -320,7 +320,7 @@ impl Default for DefaultSettings {
             health_lost_on_revive: 0,
             no_material_damage: false,
             global_hp_loss: false,
-            perk_ban_list: "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD,FUNGAL_DISEASE,HOMUNCULUS,LUKKI_MINION".to_string(),
+            perk_ban_list: "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD".to_string(),
             perma_death: false,
             physics_damage: true,
             share_gold: false,
