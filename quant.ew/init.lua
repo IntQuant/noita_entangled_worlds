@@ -135,6 +135,7 @@ local function load_modules()
     ctx.load_system("potion_mimic")
     ctx.load_system("map")
     ctx.load_system("homunculus")
+    ctx.load_system("text")
 end
 
 local function load_extra_modules()
