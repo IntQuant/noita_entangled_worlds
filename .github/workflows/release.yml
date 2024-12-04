@@ -11,10 +11,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-pc-windows-gnu
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: gcc-mingw-w64-i686
-          version: 1.0
+      - name: Install extra deps
+        run: sudo apt-get install -y gcc-mingw-w64-i686
       
       - uses: Swatinem/rust-cache@v2
         with:
@@ -42,10 +40,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-gnu
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
-          version: 1.0
+      - name: Install extra deps
+        run: sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
       
       - uses: Swatinem/rust-cache@v2
         with:
@@ -71,10 +67,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-gnu
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
-          version: 1.0
+      - name: Install extra deps
+        run: sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
+      
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
