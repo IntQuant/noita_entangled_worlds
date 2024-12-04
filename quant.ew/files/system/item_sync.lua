@@ -451,7 +451,7 @@ function item_sync.on_world_update()
             item_sync.remove_item_with_id_now(gid)
         end
     end
-    if GameGetFrameNum() % 60 == 35 then
+    if GameGetFrameNum() % 120 == 35 then
         for _, ent in ipairs(EntityGetWithTag("mimic_potion")) do
             if not EntityHasTag(ent, "polymorphed_player") and is_item_on_ground(ent) then
                 if not EntityHasTag(ent, "ew_global_item") then
@@ -461,6 +461,12 @@ function item_sync.on_world_update()
                         EntityKill(ent)
                     end
                 end
+            end
+        end
+        for _, wand in ipairs(EntityGetWithTag("wand")) do
+            local com = EntityGetFirstComponentIncludingDisabled(wand, "ItemComponent")
+            if com ~= nil then
+                ComponentSetValue2(com, "item_pickup_radius", 256)
             end
         end
     end
