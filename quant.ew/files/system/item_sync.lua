@@ -151,6 +151,7 @@ function item_sync.remove_item_with_id_now(gid)
             end
         end
         EntityKill(item)
+        return item
     end
 end
 
@@ -307,11 +308,6 @@ rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
         local remote_id = remote_data[1]
-        --[[if confirmed_kills[remote_id] then
-            GamePrint("Remote id has been killed already..?")
-            goto continue
-        end
-        confirmed_kills[remote_id] = true]]
         local responsible_entity = 0
         local peer_data = player_fns.peer_get_player_data(remote_data[2], true)
         if peer_data ~= nil then
@@ -320,9 +316,6 @@ function rpc.handle_death_data(death_data)
             responsible_entity = ctx.entity_by_remote_id[remote_data[2]]
         end
 
-        --if unsynced_enemys[remote_id] ~= nil then
-            --sync_enemy(unsynced_enemys[remote_id], true)
-        --end
         local enemy_id = item_sync.find_by_gid(remote_id)
         if enemy_id ~= nil and EntityGetIsAlive(enemy_id) then
             local immortal = EntityGetFirstComponentIncludingDisabled(enemy_id, "LuaComponent", "ew_immortal")
@@ -534,7 +527,6 @@ end
 local function add_stuff_to_globalized_item(item, gid)
     EntityAddTag(item, "ew_global_item")
     item_sync.ensure_notify_component(item)
-    -- GamePrint("Got global item: "..item)
     local gid_c = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     if gid_c == nil then
         EntityAddComponent2(item, "VariableStorageComponent", {
@@ -568,11 +560,12 @@ function rpc.item_globalize(item_data)
     if wait_for_gid[item_data.gid] ~= nil then
         wait_for_gid[item_data.gid] = GameGetFrameNum() + 30
     end
+    local k
     if is_safe_to_remove() then
-        item_sync.remove_item_with_id_now(item_data.gid)
+        k = item_sync.remove_item_with_id_now(item_data.gid)
     end
     local n = item_sync.find_by_gid(item_data.gid)
-    if n ~= nil then
+    if n ~= nil and k ~= n then
         return
     end
     local item = inventory_helper.deserialize_single_item(item_data)

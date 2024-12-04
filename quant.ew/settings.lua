@@ -186,7 +186,7 @@ local function build_settings()
                     id = "flex",
                     ui_name = "flexible updates",
                     ui_description = "some esotaric chunk thing, may help performance, buggy",
-                    value_default = "0",
+                    value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
