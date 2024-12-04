@@ -586,7 +586,7 @@ function player_fns.is_inventory_open()
     return ComponentGetValue2(inventory_gui_comp, "mActive")
 end
 
-local function get_active_held_item(player_entity)
+function player_fns.get_active_held_item(player_entity)
     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_entity, "Inventory2Component")
     if inventory2Comp and inventory2Comp ~= 0 then
         local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
@@ -597,7 +597,7 @@ local function get_active_held_item(player_entity)
 end
 
 function player_fns.get_current_slot(player_data)
-    local held_item = get_active_held_item(player_data.entity)
+    local held_item = player_fns.get_active_held_item(player_data.entity)
     if (held_item ~= nil and held_item ~= 0) then
         local item_comp = EntityGetFirstComponentIncludingDisabled(held_item, "ItemComponent")
 
@@ -653,7 +653,7 @@ end
 
 function player_fns.make_fire_data(special_seed, player_data)
     local player = player_data.entity
-    local wand = get_active_held_item(player)
+    local wand = player_fns.get_active_held_item(player)
 
     if (wand ~= nil) then
         local x, y, r = EntityGetTransform(wand)
