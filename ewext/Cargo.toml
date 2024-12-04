@@ -22,3 +22,9 @@ noita_api = {path = "noita_api"}
 tungstenite = "0.24.0"
 bitcode = "0.6.3"
 shared = {path = "../shared"}
+
+[features]
+#enables cross-compilation on older systems (for example, when compiling on ubuntu 20.04)
+#due to unresolved bug in rust toolchain
+#https://github.com/rust-lang/rust/issues/79609
+pre2204 = []

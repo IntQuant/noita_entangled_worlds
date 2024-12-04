@@ -1,3 +1,4 @@
+#[cfg(feature = "pre2204")]
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() {}
 
