@@ -318,7 +318,7 @@ function spectate.on_world_update()
         return
     end
 
-    if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_lspectate"))) or InputIsJoystickButtonJustDown(0, 13) then
+    if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_lspectate"))) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 13)) then
         camera_player = camera_player - 1
         if camera_player < 1 then
             camera_player = last_len
@@ -326,7 +326,7 @@ function spectate.on_world_update()
 
         has_switched = true
         re_cam = true
-    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_rspectate"))) or InputIsJoystickButtonJustDown(0, 14) then
+    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_rspectate"))) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 14)) then
         camera_player = camera_player + 1
         if camera_player > last_len then
             camera_player = 1
@@ -366,7 +366,7 @@ function spectate.on_world_update()
         local inv_me = EntityGetFirstComponent(ctx.my_player.entity, "InventoryGuiComponent")
         if inv_spec ~= nil then
             if inv_me == nil then
-                if InputIsKeyJustDown(43) or InputIsJoystickButtonJustDown(0, 16) then
+                if InputIsKeyJustDown(43) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 16)) then
                     attached = not ComponentGetValue2(inv_spec, "mActive")
                     ComponentSetValue2(inv_spec, "mActive", attached)
                 end

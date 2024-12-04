@@ -45,7 +45,7 @@ function module.on_world_update()
             and (
             ((rebind == 42 and InputIsMouseButtonJustDown(3))
                     or (rebind ~= 42 and InputIsKeyJustDown(rebind)))
-                        or InputIsJoystickButtonJustDown(0, 18)) then
+                        or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 18))) then
         local x,y
         if GameGetIsGamepadConnected() then
             local tx, ty

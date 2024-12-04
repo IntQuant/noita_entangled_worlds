@@ -196,6 +196,13 @@ local function build_settings()
                     value_default = "0",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
+                {
+                    id = "no_gamepad",
+                    ui_name = "dont add keybinds for gamepad",
+                    ui_description = ":(",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
             },
         },
     }
