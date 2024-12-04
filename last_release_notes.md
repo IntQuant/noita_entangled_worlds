@@ -1,20 +1,30 @@
-## Noita Entangled Worlds v0.30.10
+## Noita Entangled Worlds v0.31.0 - UI changes, fix item sync, fix/sync some perks
 
-- fix game over
+- allow peaking at peers mod list
 
-- rewrite proxy communication hopefully fixing local network dropping out
+- allow unbanning players
 
-- move some settings to in game settings, add chunk flex option
+- fix item sync removing and respawning items
 
-- color ragdolls, spawn ragdolls of friends when everyone dies in local health
+- fix enemies not dropping wands sometimes
 
-- allow clients seeing hosts settings
+- allow seeing spells of other players while spectating
 
-- complain when seeds are different
+- fix ability action materialized
+
+- fix homunculus
+
+- sync position of homunculus and lukki minion
+
+- allow disabling controller binds in the in game settings menu
+
+- allow cli to use proxy ron
 
 ## Accepted pull requests
 
-- just some smol translation change by @ZXb125 in #248
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
