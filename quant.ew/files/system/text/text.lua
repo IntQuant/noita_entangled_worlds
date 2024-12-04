@@ -6,6 +6,8 @@ local text = ""
 
 local enabled = false
 
+rpc.opts_everywhere()
+rpc.opts_reliable()
 function rpc.text(msg)
     if not ModSettingGet("quant.ew.notext") then
         GamePrint(ctx.rpc_player_data.name .. ": " ..msg)
