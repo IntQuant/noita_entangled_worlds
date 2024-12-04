@@ -23,7 +23,7 @@ use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 use tangled::Reliability;
 use tracing::{error, info, warn};
 
-use crate::mod_manager::ModmanagerSettings;
+use crate::mod_manager::{get_mods, ModmanagerSettings};
 use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
@@ -128,6 +128,7 @@ pub struct NetManager {
     dont_kick: Mutex<Vec<OmniPeerId>>,
     pub dirty: AtomicBool,
     pub actual_noita_port: AtomicU16,
+    pub active_mods: Mutex<Vec<String>>,
 }
 
 impl NetManager {
@@ -152,6 +153,7 @@ impl NetManager {
             dont_kick: Default::default(),
             dirty: AtomicBool::new(false),
             actual_noita_port: AtomicU16::new(0),
+            active_mods: Default::default(),
         }
         .into()
     }
@@ -361,6 +363,21 @@ impl NetManager {
                             continue;
                         };
                         match net_msg {
+                            NetMsg::RequestMods => {
+                                if let Some(n) =
+                                    &self.init_settings.modmanager_settings.game_save_path
+                                {
+                                    let res = get_mods(&n);
+                                    if let Ok(mods) = res {
+                                        self.send(
+                                            src,
+                                            &NetMsg::Mods { mods },
+                                            Reliability::Reliable,
+                                        )
+                                    }
+                                }
+                            }
+                            NetMsg::Mods { mods } => *self.active_mods.lock().unwrap() = mods,
                             NetMsg::Welcome => {}
                             NetMsg::PeerDisconnected { id } => {
                                 info!("player kicked: {}", id);

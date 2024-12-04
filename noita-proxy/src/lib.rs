@@ -36,7 +36,7 @@ use std::{
 };
 use std::{net::IpAddr, path::PathBuf};
 use steamworks::{LobbyId, SteamAPIInitError};
-use tangled::Peer;
+use tangled::{Peer, Reliability};
 use tracing::info;
 use unic_langid::LanguageIdentifier;
 
@@ -45,6 +45,7 @@ use util::args::Args;
 pub use util::{args, lang, steam_helper};
 
 mod bookkeeping;
+use crate::net::messages::NetMsg;
 use crate::player_cosmetics::{
     display_player_skin, player_path, player_select_current_color_slot,
     player_skin_display_color_picker, shift_hue,
@@ -348,6 +349,8 @@ enum AppState {
 enum ConnectedMenu {
     Normal,
     Settings,
+    Mods,
+    BanList,
     ConnectionInfo,
 }
 
@@ -1153,16 +1156,21 @@ impl App {
                 } else {
                     for peer in netman.peer.iter_peer_ids() {
                         ui.label(peer.to_string());
-                        if netman.peer.is_host() && peer != netman.peer.my_id() {
-                            ui.horizontal(|ui| {
-                                if ui.button("kick").clicked() {
-                                    netman.kick_list.lock().unwrap().push(peer)
+                        ui.horizontal(|ui| {
+                            if peer != netman.peer.my_id() {
+                                if netman.peer.is_host() {
+                                    if ui.button("kick").clicked() {
+                                        netman.kick_list.lock().unwrap().push(peer)
+                                    }
+                                    if ui.button("ban").clicked() {
+                                        netman.ban_list.lock().unwrap().push(peer)
+                                    }
                                 }
-                                if ui.button("ban").clicked() {
-                                    netman.ban_list.lock().unwrap().push(peer)
+                                if ui.button("mods").clicked() {
+                                    netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
                                 }
-                            });
-                        }
+                            }
+                        });
                     }
                 }
             });
@@ -1180,6 +1188,16 @@ impl App {
                     ConnectedMenu::ConnectionInfo,
                     "Connection Info",
                 );
+                if !netman.ban_list.lock().unwrap().is_empty() {
+                    ui.selectable_value(
+                        &mut self.connected_menu,
+                        ConnectedMenu::BanList,
+                        "Ban List",
+                    );
+                }
+                if !netman.active_mods.lock().unwrap().is_empty() {
+                    ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Mods, "Mod List");
+                }
                 if last == ConnectedMenu::Settings && last != self.connected_menu {
                     let new_settings = self.app_saved_state.game_settings.clone();
                     *netman.pending_settings.lock().unwrap() = new_settings.clone();
@@ -1257,6 +1275,28 @@ impl App {
                         {
                             netman.no_more_players.store(temp, Ordering::Relaxed);
                         }
+                    }
+                }
+                ConnectedMenu::Mods => {
+                    let mods_list = netman.active_mods.lock().unwrap();
+                    for mods in mods_list.iter() {
+                        ui.label(mods);
+                    }
+                    if mods_list.is_empty() {
+                        self.connected_menu = ConnectedMenu::Normal
+                    }
+                }
+                ConnectedMenu::BanList => {
+                    let mut ban_list = netman.ban_list.lock().unwrap();
+                    let mut i = ban_list.len();
+                    while i != 0 {
+                        i -= 1;
+                        if ui.button(format!("unban {}", ban_list[i])).clicked() {
+                            ban_list.remove(i);
+                        }
+                    }
+                    if ban_list.is_empty() {
+                        self.connected_menu = ConnectedMenu::Normal
                     }
                 }
                 ConnectedMenu::Settings => {
@@ -1484,24 +1524,28 @@ fn show_player_list_steam(
                 } else {
                     ui.label(&username);
                 }
-                if netman.peer.is_host() && peer != netman.peer.my_id() {
-                    if avatar.is_some() {
-                        ui.add_space(5.0);
+                ui.horizontal(|ui| {
+                    if peer != netman.peer.my_id() {
+                        if avatar.is_some() {
+                            ui.add_space(5.0);
+                        }
+                        if netman.peer.is_host() {
+                            if ui.button("Kick").clicked() {
+                                netman.kick_list.lock().unwrap().push(peer)
+                            }
+                            if ui.button("Ban").clicked() {
+                                netman.ban_list.lock().unwrap().push(peer)
+                            }
+                        }
+                        if ui.button("mods").clicked() {
+                            netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
+                        }
                     }
-                    ui.horizontal(|ui| {
-                        if ui.button("Kick").clicked() {
-                            netman.kick_list.lock().unwrap().push(peer)
-                        }
-                        if ui.button("Ban").clicked() {
-                            netman.ban_list.lock().unwrap().push(peer)
-                        }
-                    });
-                }
+                });
             });
         }
     });
 }
-
 fn add_per_status_ui(
     report: &net::steam_networking::ConnectionStatusReport,
     steam: &steam_helper::SteamState,

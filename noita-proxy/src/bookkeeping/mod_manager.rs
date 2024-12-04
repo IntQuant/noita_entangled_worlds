@@ -473,6 +473,18 @@ impl Mods {
     }
 }
 
+pub fn get_mods(saves_path: &Path) -> Result<Vec<String>, Box<dyn Error>> {
+    let mod_config_path = saves_path.join("save00/mod_config.xml");
+    let data: Mods = quick_xml::de::from_reader(BufReader::new(File::open(&mod_config_path)?))?;
+    let mut res = Vec::new();
+    for m in data.mod_entries {
+        if m.enabled == 1 {
+            res.push(m.name)
+        }
+    }
+    Ok(res)
+}
+
 fn enable_mod(saves_path: &Path) -> Result<(), Box<dyn Error>> {
     let shared_config_path = saves_path.join("save_shared/config.xml");
     // Certainly not the cleanest solution, but parsing that config properly is _hard_.
