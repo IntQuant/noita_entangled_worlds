@@ -367,7 +367,7 @@ impl NetManager {
                                 if let Some(n) =
                                     &self.init_settings.modmanager_settings.game_save_path
                                 {
-                                    let res = get_mods(&n);
+                                    let res = get_mods(n);
                                     if let Ok(mods) = res {
                                         self.send(
                                             src,

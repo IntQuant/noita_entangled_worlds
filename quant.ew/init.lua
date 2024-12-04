@@ -146,7 +146,7 @@ end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
-    if shooter_id == ctx.my_player.entity then
+    if shooter_id == ctx.my_player.entity and EntityHasTag(shooter_id, "player_unit") then
         local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
         if inventory_component == nil then
             return

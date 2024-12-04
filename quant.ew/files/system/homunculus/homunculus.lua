@@ -9,10 +9,12 @@ local function get_entities(entity)
     end
     local luuki = {}
     for _, child in ipairs(EntityGetWithTag("lukki") or {}) do
-        local var = EntityGetComponent(child, "VariableStorageComponent")[2]
-        if var ~= nil then
-            if ComponentGetValue2(var, "value_int") == entity then
-                table.insert(luuki, child)
+        if EntityHasTag(child, "perk_entity") then
+            local var = EntityGetComponent(child, "VariableStorageComponent")[2]
+            if var ~= nil then
+                if ComponentGetValue2(var, "value_int") == entity then
+                    table.insert(luuki, child)
+                end
             end
         end
     end
@@ -44,6 +46,7 @@ function rpc.send_positions(ho, lu)
                         value_int = ctx.rpc_player_data.entity,
                     })
             EntityRemoveComponent(n, EntityGetFirstComponent(n, "LuaComponent"))
+            EntityAddTag(n, "perk_entity")
             util.make_ephemerial(n)
         end
     end
