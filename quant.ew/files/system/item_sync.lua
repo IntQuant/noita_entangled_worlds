@@ -108,15 +108,36 @@ function item_sync.get_global_item_id(item)
     return ret
 end
 
+local function is_wand(ent)
+    if ent == nil or ent == 0 then return false end
+    local ability = ComponentGetValue2(ent, "AbilityComponent")
+    if ability == nil then
+        return false
+    end
+    return ComponentGetValue2(ability, "use_gun_script") == true
+end
+
+local function is_safe_to_remove()
+    return not ctx.is_wand_pickup
+end
+
 function item_sync.remove_item_with_id(gid)
-    table.insert(pending_remove, gid)
+    if is_safe_to_remove() or not is_wand(a) then
+        item_sync.remove_item_with_id_now(gid)
+    else
+        table.insert(pending_remove, gid)
+        local item_ent_id = item_sync.find_by_gid(gid)
+        EntitySetTransform(item_ent_id, 0, 0)
+        util.make_ephemerial(item_ent_id)
+    end
 end
 
 local find_by_gid_cache = {}
 function item_sync.find_by_gid(gid)
     if find_by_gid_cache[gid] ~= nil then
         if EntityGetIsAlive(find_by_gid_cache[gid])
-                and EntityHasTag(find_by_gid_cache[gid], "ew_global_item") and is_item_on_ground(find_by_gid_cache[gid]) then
+                and EntityHasTag(find_by_gid_cache[gid], "ew_global_item")
+                and is_item_on_ground(find_by_gid_cache[gid]) then
             return find_by_gid_cache[gid]
         else
             find_by_gid_cache[gid] = nil
@@ -145,6 +166,7 @@ end
 function item_sync.remove_item_with_id_now(gid)
     local item = item_sync.find_by_gid(gid)
     if item ~= nil then
+        find_by_gid_cache[gid] = nil
         for _, audio in ipairs(EntityGetComponent(item, "AudioComponent") or {}) do
             if string.sub(ComponentGetValue2(audio, "event_root"), 1, 10) == "collision/" then
                 EntitySetComponentIsEnabled(item, audio, false)
@@ -421,10 +443,6 @@ local function send_item_positions(all)
     dead_entities = {}
 end
 
-local function is_safe_to_remove()
-    return not ctx.is_wand_pickup
-end
-
 function item_sync.on_world_update()
     -- TODO check that we not removing item we are going to pick now, instead of checking if picker gui is open.
     if is_safe_to_remove() then
@@ -560,13 +578,18 @@ function rpc.item_globalize(item_data)
     if wait_for_gid[item_data.gid] ~= nil then
         wait_for_gid[item_data.gid] = GameGetFrameNum() + 30
     end
-    local k
-    if is_safe_to_remove() then
-        k = item_sync.remove_item_with_id_now(item_data.gid)
-    end
-    local n = item_sync.find_by_gid(item_data.gid)
-    if n ~= nil and k ~= n then
-        return
+    local a = item_sync.find_by_gid(item_data.gid)
+    if is_safe_to_remove() or not is_wand(a) then
+        local k = item_sync.remove_item_with_id_now(item_data.gid)
+        local n = item_sync.find_by_gid(item_data.gid)
+        if n ~= nil and k ~= n then
+            return
+        end
+    else
+        local n = item_sync.find_by_gid(item_data.gid)
+        if n ~= nil then
+            return
+        end
     end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
@@ -636,6 +659,9 @@ function rpc.update_positions(position_data, all)
     end
     local cx, cy = GameGetCameraPos()
     for gid, el in pairs(position_data) do
+        if table.contains(pending_remove, gid) then
+            goto continue
+        end
         local x, y = el[1], el[2]
         if math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT then
             gid_last_frame_updated[ctx.rpc_peer_id][gid] = frame[ctx.rpc_peer_id]
@@ -662,6 +688,7 @@ function rpc.update_positions(position_data, all)
                 wait_for_gid[gid] = GameGetFrameNum() + 300
             end
         end
+        ::continue::
     end
     if all then
         cleanup(ctx.rpc_peer_id)
