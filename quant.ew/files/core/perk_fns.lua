@@ -23,6 +23,7 @@ local perks_to_ignore = {
     ADVENTURER = true,
     HOMUNCULUS = true,
     LUKKI_MINION = true,
+    EDIT_WANDS_EVERYWHERE = true
 }
 
 local global_perks = {

@@ -1,0 +1,12 @@
+<Entity>
+    <InheritTransformComponent>
+    </InheritTransformComponent>
+
+    <GameEffectComponent
+        effect="POLYMORPH"
+        frames="9999999"
+        disable_movement="0"
+        polymorph_target="mods/quant.ew/files/system/local_health/mimic_potion.xml"
+    >
+    </GameEffectComponent >
+</Entity>

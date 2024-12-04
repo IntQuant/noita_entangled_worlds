@@ -296,10 +296,12 @@ impl NetManager {
             } else {
                 dont_kick.clear()
             }
-            let list = self.ban_list.lock().unwrap();
-            for peer in list.iter() {
-                if self.peer.iter_peer_ids().contains(peer) {
-                    to_kick.push(*peer)
+            {
+                let list = self.ban_list.lock().unwrap();
+                for peer in list.iter() {
+                    if self.peer.iter_peer_ids().contains(peer) {
+                        to_kick.push(*peer)
+                    }
                 }
             }
             for peer in to_kick.iter() {
@@ -499,8 +501,11 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
-        let ff = settings.friendly_fire.unwrap_or(def.friendly_fire);
-        state.try_ws_write_option("friendly_fire", ff);
+        state.try_ws_write_option(
+            "friendly_fire",
+            settings.friendly_fire.unwrap_or(def.friendly_fire),
+        );
+        state.try_ws_write_option("share_gold", settings.share_gold.unwrap_or(def.share_gold));
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
         state.try_ws_write_option(
             "world_sync_version",
@@ -545,6 +550,10 @@ impl NetManager {
         state.try_ws_write_option(
             "physics_damage",
             settings.physics_damage.unwrap_or(def.physics_damage),
+        );
+        state.try_ws_write_option(
+            "no_notplayer",
+            settings.no_notplayer.unwrap_or(def.no_notplayer),
         );
         let lst = settings.clone();
         state.try_ws_write_option(

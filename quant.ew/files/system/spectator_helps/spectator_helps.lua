@@ -84,8 +84,8 @@ end
 local last_spectate
 
 function module.on_world_update()
-    if GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death then
-        if not ctx.proxy_opt.perma_death then
+    if GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death or ctx.proxy_opt.no_notplayer then
+        if not ctx.proxy_opt.perma_death and not ctx.proxy_opt.no_notplayer then
             rpc.del_shield()
         end
         return

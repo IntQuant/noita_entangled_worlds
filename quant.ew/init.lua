@@ -135,6 +135,7 @@ local function load_modules()
     ctx.load_system("potion_mimic")
     ctx.load_system("map")
     ctx.load_system("homunculus")
+    ctx.load_system("text")
 end
 
 local function load_extra_modules()
@@ -144,16 +145,11 @@ local function load_extra_modules()
     end
 end
 
-function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
-    unknown1, multicast_index, unknown3)
-    if shooter_id == ctx.my_player.entity and EntityHasTag(shooter_id, "player_unit") then
-        local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
-        if inventory_component == nil then
-            return
-        end
+local function fire()
+    local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+    if inventory_component ~= nil then
         local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
         local switched_now = last_switch == GameGetFrameNum()
-
         local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
         local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
         if fire_data ~= nil then
@@ -163,6 +159,10 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             net.send_fire(fire_data)
         end
     end
+end
+
+function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
+    unknown1, multicast_index, unknown3)
     ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
@@ -265,6 +265,10 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.my_player = my_player
 
     EntityAddTag(player_entity, "ew_peer")
+
+    if not GameHasFlagRun("ew_flag_notplayer_active") then
+        EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
+    end
 
     net.send_welcome()
 
@@ -419,6 +423,17 @@ local function on_world_post_update_inner()
         ctx.hook.on_world_update_post()
     end
 
+    local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
+    GlobalsSetValue("ew_wand_fired", "0")
+    local wand = player_fns.get_active_held_item(ctx.my_player.entity)
+    local ability
+    if wand ~= nil and EntityHasTag(wand, "card_action") then
+        ability = EntityGetFirstComponentIncludingDisabled(wand, "AbilityComponent")
+    end
+    if times_wand_fired > 0
+            or (ability ~= nil and ComponentGetValue2(ability, "mCastDelayStartFrame") == GameGetFrameNum()) then
+        fire()
+    end
 end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world

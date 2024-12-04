@@ -6,10 +6,26 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-function rpc.send_money_and_ingestion(money, ingestion_size)
+local last_money
+
+function rpc.send_money_and_ingestion(money, delta, ingestion_size)
     local entity = ctx.rpc_player_data.entity
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
-    if wallet ~= nil then
+    if wallet ~= nil and money ~= nil then
+        if ctx.proxy_opt.share_gold then
+            local my_wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+            local cm = ComponentGetValue2(my_wallet, "money")
+            if ctx.is_host then
+                ComponentSetValue2(my_wallet, "money", cm + delta)
+            elseif ctx.rpc_peer_id == ctx.host_id then
+                local my_delta = 0
+                if cm ~= last_money then
+                    my_delta = cm - last_money
+                end
+                last_money = money
+                ComponentSetValue2(my_wallet, "money", money + my_delta)
+            end
+        end
         ComponentSetValue2(wallet, "money", money)
     end
     local ingestion = EntityGetFirstComponentIncludingDisabled(entity, "IngestionComponent")
@@ -133,6 +149,7 @@ function module.on_world_update()
             local x, y = EntityGetTransform(ent)
             local notplayer = EntityHasTag(ent, "ew_notplayer")
                     and not ctx.proxy_opt.perma_death
+                    and not ctx.proxy_opt.no_notplayer
             if notplayer and GameHasFlagRun("ending_game_completed") then
                 goto continue
             end
@@ -186,7 +203,14 @@ function module.on_world_update()
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
         local ingestion = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "IngestionComponent")
         if wallet ~= nil or ingestion ~= nil then
-            rpc.send_money_and_ingestion(wallet and ComponentGetValue2(wallet, "money"),
+            local delta = 0
+            if wallet ~= nil then
+                if last_money ~= nil then
+                    delta = ComponentGetValue2(wallet, "money") - last_money
+                end
+                last_money = ComponentGetValue2(wallet, "money")
+            end
+            rpc.send_money_and_ingestion(last_money, delta,
                     ingestion and ComponentGetValue2(ingestion, "ingestion_size"))
         end
     end

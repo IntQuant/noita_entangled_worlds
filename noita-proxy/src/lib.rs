@@ -86,6 +86,8 @@ pub struct GameSettings {
     perk_ban_list: Option<String>,
     perma_death: Option<bool>,
     physics_damage: Option<bool>,
+    share_gold: Option<bool>,
+    no_notplayer: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -164,6 +166,13 @@ impl GameSettings {
                                 game_settings.physics_damage = Some(temp)
                             }
                         }
+                        ui.add_space(1.0);
+                        {
+                            let mut temp = game_settings.no_notplayer.unwrap_or(def.no_notplayer);
+                            if ui.checkbox(&mut temp, "no minua").changed() {
+                                game_settings.no_notplayer = Some(temp)
+                            }
+                        }
                     }
                 }
             });
@@ -215,6 +224,12 @@ impl GameSettings {
                 let mut temp = game_settings.friendly_fire.unwrap_or(def.friendly_fire);
                 if ui.checkbox(&mut temp, tr("Enable-friendly-fire")).changed() {
                     game_settings.friendly_fire = Some(temp)
+                }
+            }
+            {
+                let mut temp = game_settings.share_gold.unwrap_or(def.share_gold);
+                if ui.checkbox(&mut temp, "Share Gold").changed() {
+                    game_settings.share_gold = Some(temp)
                 }
             }
             ui.add_space(10.0);
@@ -284,6 +299,8 @@ pub struct DefaultSettings {
     perk_ban_list: String,
     perma_death: bool,
     physics_damage: bool,
+    share_gold: bool,
+    no_notplayer: bool,
 }
 
 impl Default for DefaultSettings {
@@ -306,6 +323,8 @@ impl Default for DefaultSettings {
             perk_ban_list: "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD,FUNGAL_DISEASE,HOMUNCULUS,LUKKI_MINION".to_string(),
             perma_death: false,
             physics_damage: true,
+            share_gold: false,
+            no_notplayer: false,
         }
     }
 }

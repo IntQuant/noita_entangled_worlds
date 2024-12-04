@@ -1466,6 +1466,7 @@ end
 function module.on_world_update()
     local active = GameHasFlagRun("ew_flag_notplayer_active")
             and not ctx.proxy_opt.perma_death
+            and not ctx.proxy_opt.no_notplayer
     if active and EntityGetIsAlive(ctx.my_player.entity) and EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         if state == nil then
             init_state()

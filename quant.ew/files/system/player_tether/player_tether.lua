@@ -217,7 +217,7 @@ function module.on_world_update()
             return
         end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-        if ctx.proxy_opt.perma_death and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive) then
+        if (ctx.proxy_opt.perma_death or ctx.proxy_opt.no_notplayer) and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive) then
             return
         end
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)

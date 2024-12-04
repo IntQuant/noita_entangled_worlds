@@ -1,30 +1,25 @@
-## Noita Entangled Worlds v0.31.0 - UI changes, fix item sync, fix/sync some perks
+## Noita Entangled Worlds v0.31.1
 
-- allow peaking at peers mod list
+- add in game chat system, enter to start/end
 
-- allow unbanning players
+- fix projectiles duplicating from bombs materialized fix
 
-- fix item sync removing and respawning items
+- fix enemies duping when host/player restarts
 
-- fix enemies not dropping wands sometimes
+- teleport wands if grabbed sometimes since we cant remove them due to a crash, remove items faster when safe
 
-- allow seeing spells of other players while spectating
+- allow picking up wands from greater distances
 
-- fix ability action materialized
+- add share gold option(prob buggy)
 
-- fix homunculus
-
-- sync position of homunculus and lukki minion
-
-- allow disabling controller binds in the in game settings menu
-
-- allow cli to use proxy ron
+- add no notplayer option(has issues i prob wont fix)
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- Revert "Add apt caching to release workflow" by @bgkillas in #258
+- Add apt caching to release workflow by @kcalbxof in #255
+- Changed file dialog to native via rfd by @kcalbxof in #254
+- make ewext compileable on old systems UPD: added as feature flag by @kcalbxof in #236
 ## Installation
 
 

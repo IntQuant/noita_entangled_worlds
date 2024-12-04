@@ -49,6 +49,34 @@ function rpc.remove_homing(clear_area)
     end
 end
 
+local function remove_stuff()
+    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+        if not EntityHasTag(child, "perk_entity") then
+            local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+            local comt = EntityGetFirstComponentIncludingDisabled(child, "LifetimeComponent")
+            if (com ~= nil and ComponentGetValue2(com, "frames") ~= -1 and ComponentGetValue2(com, "frames") < 60 * 60 * 60)
+                    or (comt ~= nil and ComponentGetValue2(comt, "lifetime") ~= -1 and ComponentGetValue2(comt, "lifetime") < 60 * 60 * 60)
+                    or EntityHasTag(child, "projectile") then
+                EntityKill(child)
+            end
+        end
+    end
+    if EntityGetFirstComponent(ctx.my_player.entity, "StatusEffectDataComponent") ~= nil then
+        for _, effect in pairs(status_effects) do
+            if EntityGetIsAlive(ctx.my_player.entity) then
+                EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
+                EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+            end
+        end
+    end
+    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "mFireProbability", 0)
+        ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
+        ComponentSetValue2(damage_model, "air_in_lungs", ComponentGetValue2(damage_model, "air_in_lungs_max"))
+    end
+end
+
 local function set_camera_free(enable, entity, dont)
     local cam = EntityGetFirstComponentIncludingDisabled(entity, "PlatformShooterPlayerComponent")
     if cam ~= nil then
@@ -172,6 +200,17 @@ local function allow_notplayer_perk(perk_id)
     return not ignored_perks[perk_id]
 end
 
+local function reduce_hp()
+    local p = 100 - ctx.proxy_opt.health_lost_on_revive
+    if p ~= 100 then
+        if ctx.proxy_opt.global_hp_loss then
+            rpc.loss_hp()
+        end
+        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+        util.set_ent_health(ctx.my_player.entity, {(hp * p) / 100, (max_hp * p) / 100})
+    end
+end
+
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.show_death_message(untranslated_message, source_player)
@@ -235,6 +274,41 @@ local function player_died()
         show_death_message()
     end
 
+    -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
+    -- Which is, like, perfect.
+    GameAddFlagRun("ew_flag_notplayer_active")
+    if ctx.proxy_opt.no_notplayer then
+        local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/poly.xml")
+        EntityAddTag(ent + 1, "ew_notplayer")
+
+        EntityAddComponent2(ent + 1, "LuaComponent", {
+            script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+            script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+        })
+
+        for _, com in ipairs(EntityGetComponent(ent + 1, "LuaComponent")) do
+            if ComponentGetValue2(com, "script_death") == "data/scripts/items/potion_glass_break.lua" then
+                EntityRemoveComponent(ent + 1, com)
+                break
+            end
+        end
+        for _, com in ipairs(EntityGetComponent(ent + 1, "DamageModelComponent")) do
+            EntityRemoveComponent(ent + 1, com)
+        end
+
+        polymorph.switch_entity(ent + 1)
+        return
+    end
+    if ctx.proxy_opt.perma_death then
+        remove_inventory()
+        local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/cessation.xml")
+        EntityAddTag(ent + 1, "ew_notplayer")
+        polymorph.switch_entity(ent + 1)
+        GameAddFlagRun("msg_gods_looking")
+        GameAddFlagRun("msg_gods_looking2")
+        return
+    end
+
     rpc.remove_homing(false)
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
     local item_data = inventory_helper.get_item_data(ctx.my_player)
@@ -243,17 +317,6 @@ local function player_died()
     local _, max_hp = util.get_ent_health(ctx.my_player.entity)
     local cap = util.get_ent_health_cap(ctx.my_player.entity)
 
-    -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
-    -- Which is, like, perfect.
-    GameAddFlagRun("ew_flag_notplayer_active")
-    if ctx.proxy_opt.perma_death then
-        local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/cessation.xml")
-        polymorph.switch_entity(ent + 1)
-        GameAddFlagRun("msg_gods_looking")
-        GameAddFlagRun("msg_gods_looking2")
-        EntityAddTag(ctx.my_player.entity, "ew_notplayer")
-        return
-    end
     local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml")
     ctx.my_player.entity = ent + 1
     if ctx.proxy_opt.physics_damage then
@@ -379,13 +442,21 @@ function module.on_world_update()
         end
     end
 
-    --if notplayer_active then
-    --    local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-    --end
-end
-
-function module.on_world_update_client()
-
+    if ctx.proxy_opt.no_notplayer and notplayer_active then
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 8, "drillable")) do
+            if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
+                GameRemoveFlagRun("ew_flag_notplayer_active")
+                EntityKill(ent)
+                ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
+                remove_stuff()
+                polymorph.switch_entity(ctx.my_player.entity)
+                spectate.disable_throwing(false, ctx.my_player.entity)
+                reduce_hp()
+                break
+            end
+        end
+    end
 end
 
 -- Do not lose the game if there aren't any players alive from the start. (If alive players haven't connected yet)
@@ -445,17 +516,6 @@ function rpc.loss_hp()
     util.set_ent_health(ctx.my_player.entity, {(hp * p) / 100, (max_hp * p) / 100})
 end
 
-local function reduce_hp()
-    local p = 100 - ctx.proxy_opt.health_lost_on_revive
-    if p ~= 100 then
-        if ctx.proxy_opt.global_hp_loss then
-            rpc.loss_hp()
-        end
-        local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
-        util.set_ent_health(ctx.my_player.entity, {(hp * p) / 100, (max_hp * p) / 100})
-    end
-end
-
 -- Provides health capability
 ctx.cap.health = {
     health = module.health,
@@ -467,7 +527,7 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
-            if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") then
+            if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") or ctx.proxy_opt.no_notplayer then
                 return
             end
             rpc.remove_homing(true)
@@ -475,31 +535,7 @@ ctx.cap.health = {
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
             ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
-            for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-                if not EntityHasTag(child, "perk_entity") then
-                    local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-                    local comt = EntityGetFirstComponentIncludingDisabled(child, "LifetimeComponent")
-                    if (com ~= nil and ComponentGetValue2(com, "frames") ~= -1 and ComponentGetValue2(com, "frames") < 60 * 60 * 60)
-                            or (comt ~= nil and ComponentGetValue2(comt, "lifetime") ~= -1 and ComponentGetValue2(comt, "lifetime") < 60 * 60 * 60)
-                            or EntityHasTag(child, "projectile") then
-                        EntityKill(child)
-                    end
-                end
-            end
-            if EntityGetFirstComponent(ctx.my_player.entity, "StatusEffectDataComponent") ~= nil then
-                for _, effect in pairs(status_effects) do
-                    if EntityGetIsAlive(ctx.my_player.entity) then
-                        EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
-                        EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
-                    end
-                end
-            end
-            local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-            if damage_model ~= nil then
-                ComponentSetValue2(damage_model, "mFireProbability", 0)
-                ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
-                ComponentSetValue2(damage_model, "air_in_lungs", ComponentGetValue2(damage_model, "air_in_lungs_max"))
-            end
+            remove_stuff()
             inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
             remove_inventory_tags()
             local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
