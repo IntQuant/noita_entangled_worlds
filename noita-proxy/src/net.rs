@@ -499,8 +499,8 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
-        let ff = settings.friendly_fire.unwrap_or(def.friendly_fire);
-        state.try_ws_write_option("friendly_fire", ff);
+        state.try_ws_write_option("friendly_fire", settings.friendly_fire.unwrap_or(def.friendly_fire));
+        state.try_ws_write_option("share_gold", settings.share_gold.unwrap_or(def.share_gold));
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
         state.try_ws_write_option(
             "world_sync_version",
