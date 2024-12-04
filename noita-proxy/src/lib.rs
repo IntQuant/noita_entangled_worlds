@@ -168,8 +168,7 @@ impl GameSettings {
                         }
                         ui.add_space(1.0);
                         {
-                            let mut temp =
-                                game_settings.no_notplayer.unwrap_or(def.no_notplayer);
+                            let mut temp = game_settings.no_notplayer.unwrap_or(def.no_notplayer);
                             if ui.checkbox(&mut temp, "no minua").changed() {
                                 game_settings.no_notplayer = Some(temp)
                             }
