@@ -20,4 +20,7 @@ pub struct Args {
     /// noita.exe path
     #[argh(option)]
     pub exe_path: Option<PathBuf>,
+    /// language for gui
+    #[argh(option)]
+    pub language: Option<String>,
 }
