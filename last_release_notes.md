@@ -1,25 +1,14 @@
-## Noita Entangled Worlds v0.31.1
+## Noita Entangled Worlds v0.31.2
 
-- add in game chat system, enter to start/end
+- fix wand errors
 
-- fix projectiles duplicating from bombs materialized fix
-
-- fix enemies duping when host/player restarts
-
-- teleport wands if grabbed sometimes since we cant remove them due to a crash, remove items faster when safe
-
-- allow picking up wands from greater distances
-
-- add share gold option(prob buggy)
-
-- add no notplayer option(has issues i prob wont fix)
+- see own messages with in game chat
 
 ## Accepted pull requests
 
-- Revert "Add apt caching to release workflow" by @bgkillas in #258
-- Add apt caching to release workflow by @kcalbxof in #255
-- Changed file dialog to native via rfd by @kcalbxof in #254
-- make ewext compileable on old systems UPD: added as feature flag by @kcalbxof in #236
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
