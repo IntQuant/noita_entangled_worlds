@@ -21,6 +21,8 @@ use crate::{
     steam_helper::SteamState,
 };
 
+use crate::util::args::Args;
+
 #[derive(Default)]
 enum State {
     #[default]
@@ -150,9 +152,16 @@ impl Modmanager {
         ui: &mut Ui,
         settings: &mut ModmanagerSettings,
         steam_state: Option<&mut SteamState>,
+        args: &Args,
     ) {
         if let State::JustStarted = self.state {
-            if check_path_valid(&settings.game_exe_path) {
+            if let Some(path) = &args.exe_path {
+                if check_path_valid(path) {
+                    settings.game_exe_path = path.to_path_buf();
+                    info!("Path from command line is valid, checking mod now");
+                    self.state = State::PreCheckMod;
+                }
+            } else if check_path_valid(&settings.game_exe_path) {
                 info!("Path is valid, checking mod now");
                 self.state = State::PreCheckMod;
             } else {
@@ -462,6 +471,18 @@ impl Mods {
             &mut self.mod_entries[0]
         }
     }
+}
+
+pub fn get_mods(saves_path: &Path) -> Result<Vec<String>, Box<dyn Error>> {
+    let mod_config_path = saves_path.join("save00/mod_config.xml");
+    let data: Mods = quick_xml::de::from_reader(BufReader::new(File::open(&mod_config_path)?))?;
+    let mut res = Vec::new();
+    for m in data.mod_entries {
+        if m.enabled == 1 {
+            res.push(m.name)
+        }
+    }
+    Ok(res)
 }
 
 fn enable_mod(saves_path: &Path) -> Result<(), Box<dyn Error>> {

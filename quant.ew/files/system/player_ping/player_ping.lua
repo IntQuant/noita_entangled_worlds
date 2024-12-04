@@ -45,7 +45,7 @@ function module.on_world_update()
             and (
             ((rebind == 42 and InputIsMouseButtonJustDown(3))
                     or (rebind ~= 42 and InputIsKeyJustDown(rebind)))
-                        or InputIsJoystickButtonJustDown(0, 18)) then
+                        or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 18))) then
         local x,y
         if GameGetIsGamepadConnected() then
             local tx, ty
@@ -64,13 +64,13 @@ function module.on_world_update()
 
     local i = 1
     --ternary operators ahead
-    local lifetime = (ctx.proxy_opt.ping_lifetime ~= nil and {ctx.proxy_opt.ping_lifetime} or {900})[1]*60  
-    local custom_scale = (ctx.proxy_opt.ping_scale ~= nil and {ctx.proxy_opt.ping_scale} or {0.5})[1]
+    local lifetime = (tonumber(ModSettingGet("quant.ew.ping_life")) or 6) * 60
+    local custom_scale = tonumber(ModSettingGet("quant.ew.ping_size")) or 0
     while i <= #pings do
         local pos = pings[i]
         local frame = pos[3]
         local peer_id = pos[4]
-        local alpha = 1 - ((GameGetFrameNum() - frame) / lifetime)
+        local alpha = math.sqrt(1 - (GameGetFrameNum() - frame) / lifetime)
         if frame + lifetime < GameGetFrameNum() then
             table.remove(pings, i)
             goto continue
@@ -116,6 +116,8 @@ function module.on_world_update()
             GuiImage(gui, gui_id, x, y, img_path, alpha, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
         else
             local x, y = world2gui(pos[1], pos[2])
+            x = x + (0.75 + custom_scale) * 7
+            y = y + (0.75 + custom_scale) * 2
             GuiImage(gui, gui_id, x, y, img_path, alpha, 0.75 + custom_scale, 0, math.pi)
         end
         gui_id = gui_id + 1

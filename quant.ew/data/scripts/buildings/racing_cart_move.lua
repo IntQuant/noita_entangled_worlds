@@ -58,7 +58,7 @@ edit_component( entity_id, "VelocityComponent", function(comp,vars)
     local controls_comp = EntityGetFirstComponent(player, "ControlsComponent")
     local is_dead = EntityHasTag(player, "ew_notplayer")
     local is_thrusting = (not is_dead and controls_comp ~= nil and ComponentGetValue2( controls_comp, "mButtonDownFly"))
-            or (is_dead and (InputIsKeyDown(44) or InputIsJoystickButtonDown(0, 23)))
+            or (is_dead and (InputIsKeyDown(44) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonDown(0, 23))))
     if is_thrusting then
         vx = speed
         vx, vy = vec_rotate(vx, vy, dir)

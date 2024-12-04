@@ -450,11 +450,11 @@ end
 
 function player_fns.serialize_items(player_data)
     local item_data, spell_data = inventory_helper.get_item_data(player_data)
-    return item_data
+    return item_data, spell_data
 end
 
-function player_fns.deserialize_items(inventory_state, player_data)
-    inventory_helper.set_item_data(inventory_state, player_data)
+function player_fns.deserialize_items(inventory_state, player_data, has_spells)
+    inventory_helper.set_item_data(inventory_state, player_data, false, has_spells)
     util.set_ent_firing_blocked(player_data.entity, true)
 end
 
@@ -493,8 +493,6 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     print("Spawning player for "..peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
     util.make_ephemerial(new)
-    local inv_full = EntityCreateNew("inventory_full")
-    EntityAddChild(new, inv_full)
     LoadGameEffectEntityTo(new, "mods/quant.ew/files/system/spectate/no_tinker.xml")
 
     for _, child in ipairs(EntityGetAllChildren(new) or {}) do
@@ -556,7 +554,7 @@ function player_fns.replace_player_entity(new_entity, player_data)
         player_fns.spawn_player_for(player_data.peer_id, 0, 0, player_data)
         local latest_inventory = player_data.latest_inventory
         if latest_inventory ~= nil then
-            player_fns.deserialize_items(latest_inventory, player_data)
+            player_fns.deserialize_items(latest_inventory, player_data, false)
         end
     end
 end
@@ -575,7 +573,7 @@ function player_fns.respawn_if_necessary()
             local latest_inventory = player_data.latest_inventory
             if latest_inventory ~= nil then
                 print("Recovering inventory")
-                player_fns.deserialize_items(latest_inventory, player_data)
+                player_fns.deserialize_items(latest_inventory, player_data, false)
             end
         end
     end

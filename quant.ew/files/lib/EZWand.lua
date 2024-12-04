@@ -1,5 +1,5 @@
 -- #########################################
--- #######   EZWand version v2.0.0   #######
+-- #######       EZWand v2.2.2       #######
 -- #########################################
 
 dofile_once("data/scripts/gun/procedural/gun_action_utils.lua")
@@ -11,8 +11,19 @@ dofile_once("data/scripts/gun/procedural/wands.lua")
 -- ####       UTILS      ####
 -- ##########################
 
+if not spell_lookup then
+  spell_lookup = {}
+  dofile_once("data/scripts/gun/gun_actions.lua")
+  for i, action in ipairs(actions) do
+    spell_lookup[action.id] = {
+      icon = action.sprite,
+      type = action.type
+    }
+  end
+end
+
 -- Removes spells from a table whose ID is not found in the gun_actions table
-local function filter_spells(spells, uses_remaining)
+local function filter_spells(spells)
   dofile_once("data/scripts/gun/gun_actions.lua")
   if not spell_exist_lookup then
     spell_exist_lookup = {}
@@ -21,16 +32,12 @@ local function filter_spells(spells, uses_remaining)
     end
   end
   local out = {}
-  local out_uses = {}
   for i, spell in ipairs(spells) do
     if spell == "" or spell_exist_lookup[spell] then
       table.insert(out, spell)
-      if uses_remaining then
-        table.insert(out_uses, uses_remaining[i])
-      end
     end
   end
-  return out, out_uses
+  return out
 end
 
 local function string_split(inputstr, sep)
@@ -121,7 +128,7 @@ wand_props = {
     validate = function(val)
       return test_conditionals{
         { type(val) == "number", "manaMax must be a number" },
-        { val >= 0, "manaMax must be a number >= 0" },
+        { val >= 0, "manaMax must be a number > 0" },
       }
     end,
     default = 500,
@@ -130,7 +137,7 @@ wand_props = {
     validate = function(val)
       return test_conditionals{
         { type(val) == "number", "mana must be a number" },
-        { val >= 0, "mana must be a number >= 0" },
+        { val >= 0, "mana must be a number > 0" },
       }
     end,
     default = 500,
@@ -231,7 +238,7 @@ local function ends_with(str, ending)
 end
 
 -- Parses a serialized wand string into a table with it's properties
---[[local function deserialize_v1(str)
+local function deserialize_v1(str)
   local values = string_split(str, ";")
   if #values ~= 18 then
     error("Wrong wand import string format")
@@ -267,12 +274,12 @@ end
   end
 
   return out
-end]]
+end
 
 -- Parses a serialized wand string into a table with it's properties
-local function deserialize(str)
+local function deserialize_v2(str)
   local values = string_split(str, ";")
-  if #values ~= 21 then
+  if #values ~= 20 then
     error("Wrong wand import string format")
   end
 
@@ -290,25 +297,19 @@ local function deserialize(str)
       speedMultiplier = tonumber(values[11])
     },
     spells = string_split(values[12] == "-" and "" or values[12], ","),
-    spells_uses_remaining = string_split(values[13] == "-" and "" or values[13], ","),
-    always_cast_spells = string_split(values[14] == "-" and "" or values[14], ","),
-    sprite_image_file = values[15],
-    offset_x = tonumber(values[16]),
-    offset_y = tonumber(values[17]),
-    tip_x = tonumber(values[18]),
-    tip_y = tonumber(values[19]),
-    name = values[20],
-    show_name_in_ui = (tonumber(values[21]) == 1) or false,
+    always_cast_spells = string_split(values[13] == "-" and "" or values[13], ","),
+    sprite_image_file = values[14],
+    offset_x = tonumber(values[15]),
+    offset_y = tonumber(values[16]),
+    tip_x = tonumber(values[17]),
+    tip_y = tonumber(values[18]),
+    name = values[19],
+    show_name_in_ui = (tonumber(values[20]) == 1) or false,
   }
 
   if #out.spells == 1 and out.spells[1] == "" then
     out.spells = {}
   end
-
-  if #out.spells_uses_remaining == 1 and out.spells_uses_remaining[1] == "" then
-    out.spells_uses_remaining = {}
-  end
-
   if #out.always_cast_spells == 1 and out.always_cast_spells[1] == "" then
     out.always_cast_spells = {}
   end
@@ -317,18 +318,20 @@ local function deserialize(str)
 end
 
 -- Parses a serialized wand string into a table with it's properties
-local function deserialize_wand(str)
-    if not starts_with(str, "EZW") then
-        error("Wrong wand import string format")
-    end
-    local this_version = 2
-    local serialized_version = tonumber(str:match("EZWv(%d+)"))
-    if serialized_version > this_version then
-        return "Serialized wand was made with newer version of EZWand"
-    end
-
-    return deserialize(str)
-
+local function deserialize(str)
+  if not starts_with(str, "EZW") then
+    error("Wrong wand import string format")
+  end
+  local this_version = 2
+  local serialized_version = tonumber(str:match("EZWv(%d+)"))
+  if serialized_version > this_version then
+    return "Serialized wand was made with newer version of EZWand"
+  end
+  if serialized_version == 1 then
+    return deserialize_v1(str)
+  elseif serialized_version == 2 then
+    return deserialize_v2(str)
+  end
 end
 
 
@@ -374,7 +377,8 @@ end
 -- }
 -- To get this easily you can use EZWand.Deserialize(EZWand(wand):Serialize())
 -- Better cache it though, it's not super expensive but...
-local function render_tooltip(origin_x, origin_y, wand, gui_)
+local function render_tooltip(origin_x, origin_y, wand, gui_, z)
+  z = tonumber(z) or 0
   origin_x = tonumber(origin_x)
   if not origin_x then
     error("RenderTooltip: Argument x is required and must be a number", 2)
@@ -389,17 +393,6 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
     GuiStartFrame(gui)
   end
   GuiIdPushString(gui, "EZWand_tooltip")
-  -- GuiOptionsAdd(gui, GUI_OPTION.NonInteractive)
-  if not spell_lookup then
-    spell_lookup = {}
-    dofile_once("data/scripts/gun/gun_actions.lua")
-    for i, action in ipairs(actions) do
-      spell_lookup[action.id] = {
-        icon = action.sprite,
-        type = action.type
-      }
-    end
-  end
 
   local margin = -3
   local wand_name = "WAND"
@@ -424,25 +417,36 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
   GuiLayoutBeginHorizontal(gui, origin_x, origin_y, true)
   GuiLayoutBeginVertical(gui, 0, 0)
   local text_lightness = 0.82
-  local function gui_text_with_shadow(gui, x, y, text, lightness)
+  local function gui_text_with_shadow(gui, x, y, text, lightness, z)
+    z = z or 0
     lightness = lightness or text_lightness
     GuiColorSetForNextWidget(gui, lightness, lightness, lightness, 1)
+    GuiZSetForNextWidget(gui, z - 1)
     GuiText(gui, x, y, text)
-    GuiZSetForNextWidget(gui, 8)
+    GuiZSetForNextWidget(gui, z)
     GuiOptionsAddForNextWidget(gui, GUI_OPTION.Layout_NoLayouting)
     GuiColorSetForNextWidget(gui, 0, 0, 0, 0.83)
     local _, _, _, x, y = GuiGetPreviousWidgetInfo(gui)
     GuiText(gui, x, y + 1, text)
   end
   GuiColorSetForNextWidget(gui, text_lightness, text_lightness, text_lightness, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiText(gui, 0, 0, wand_name)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 4, "data/ui_gfx/inventory/icon_gun_shuffle.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_gun_actions_per_round.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_fire_rate_wait.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_gun_reload_time.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_mana_max.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_mana_charge_speed.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_gun_capacity.png", 1, 1, 1)
+  GuiZSetForNextWidget(gui, z - 1)
   GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_spread_degrees.png", 1, 1, 1)
    -- Saves the position and width of the spread icon so we can draw the spells below it
   local _, _, _, last_icon_x, last_icon_y, last_icon_width, last_icon_height = GuiGetPreviousWidgetInfo(gui)
@@ -450,14 +454,14 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
   local wand_name_width = GuiGetTextDimensions(gui, wand_name)
   GuiLayoutBeginVertical(gui, 12 - wand_name_width, -3, true)
   GuiText(gui, 0, 0, " ")
-  gui_text_with_shadow(gui, 0, 5, GameTextGetTranslatedOrNot("$inventory_shuffle"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_actionspercast"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_castdelay"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_rechargetime"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_manamax"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_manachargespeed"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_capacity"))
-  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_spread"))
+  gui_text_with_shadow(gui, 0, 5, GameTextGetTranslatedOrNot("$inventory_shuffle"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_actionspercast"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_castdelay"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_rechargetime"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_manamax"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_manachargespeed"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_capacity"), nil, z - 1)
+  gui_text_with_shadow(gui, 0, margin, GameTextGetTranslatedOrNot("$inventory_spread"), nil, z - 1)
   GuiLayoutEnd(gui)
   GuiLayoutBeginVertical(gui, -6, -3, true)
   GuiText(gui, 0, 0, " ")
@@ -473,22 +477,22 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
     end
     return (pattern):format(input) .. " s"
   end
-  gui_text_with_shadow(gui, 0, 5, GameTextGetTranslatedOrNot(wand.props.shuffle and "$menu_yes" or "$menu_no"), 1)
+  gui_text_with_shadow(gui, 0, 5, GameTextGetTranslatedOrNot(wand.props.shuffle and "$menu_yes" or "$menu_no"), 1, z - 1)
   local _, _, _, _, no_text_y = GuiGetPreviousWidgetInfo(gui)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.spellsPerCast), 1)
+  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.spellsPerCast), 1, z - 1)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, format_cast_delay_and_recharge_time(wand.props.castDelay / 60), 1)
+  gui_text_with_shadow(gui, 0, margin, format_cast_delay_and_recharge_time(wand.props.castDelay / 60), 1, z - 1)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, format_cast_delay_and_recharge_time(wand.props.rechargeTime / 60), 1)
+  gui_text_with_shadow(gui, 0, margin, format_cast_delay_and_recharge_time(wand.props.rechargeTime / 60), 1, z - 1)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.manaMax), 1)
+  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.manaMax), 1, z - 1)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.manaChargeSpeed), 1)
+  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.manaChargeSpeed), 1, z - 1)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.capacity), 1)
+  gui_text_with_shadow(gui, 0, margin, ("%.0f"):format(wand.props.capacity), 1, z - 1)
   update_most_right_text_x()
-  gui_text_with_shadow(gui, 0, margin, ("%.1f DEG"):format(wand.props.spread), 1)
+  gui_text_with_shadow(gui, 0, margin, ("%.1f DEG"):format(wand.props.spread), 1, z - 1)
   update_most_right_text_x()
   update_bounds()
   local _, _, _, spread_text_x, spread_text_y, spread_text_width, spread_text_height = GuiGetPreviousWidgetInfo(gui)
@@ -501,9 +505,10 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
     add_some = 3
     local background_scale = 0.768
     GuiLayoutBeginHorizontal(gui, last_icon_x, last_icon_y + last_icon_height + 8, true)
+    GuiZSetForNextWidget(gui, z - 1)
     GuiImage(gui, new_id(), 0, 1, "data/ui_gfx/inventory/icon_gun_permanent_actions.png", 1, 1, 1)
     _, _, _, last_icon_x, last_icon_y, last_icon_width, last_icon_height = GuiGetPreviousWidgetInfo(gui)
-    gui_text_with_shadow(gui, 3, 0, GameTextGetTranslatedOrNot("$inventory_alwayscasts"))
+    gui_text_with_shadow(gui, 3, 0, GameTextGetTranslatedOrNot("$inventory_alwayscasts"), 1, z - 1)
     local _, _, _, ac_icon_x, ac_icon_y, ac_icon_width, ac_icon_height = GuiGetPreviousWidgetInfo(gui)
     local last_ac_x, last_ac_y, last_ac_width, last_ac_height
     for i, spell in ipairs(wand.always_cast_spells) do
@@ -518,7 +523,7 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
       else
         x, y = math.floor(last_ac_x + (last_ac_width - 2)) + 1, last_ac_y
       end
-      GuiZSetForNextWidget(gui, 9)
+      GuiZSetForNextWidget(gui, z - 1)
       GuiOptionsAddForNextWidget(gui, GUI_OPTION.Layout_NoLayouting)
       -- Background / Spell type border
       GuiImage(gui, new_id(), x, y, item_bg_icon, 1, background_scale, background_scale)
@@ -526,6 +531,7 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
       local _, _, _, x, y, w, h = GuiGetPreviousWidgetInfo(gui)
       GuiOptionsAddForNextWidget(gui, GUI_OPTION.Layout_NoLayouting)
       -- Spell icon
+      GuiZSetForNextWidget(gui, z - 1)
       GuiImage(gui, new_id(), x + 2, y + 2, (spell_lookup[spell] and spell_lookup[spell].icon) or "data/ui_gfx/gun_actions/unidentified.png", 1, always_cast_spell_icon_scale, always_cast_spell_icon_scale)
     end
     GuiLayoutEnd(gui)
@@ -537,14 +543,14 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
   GuiLayoutBeginHorizontal(gui, last_icon_x, last_icon_y + last_icon_height + 7 + add_some + 0.05, true)
   local row = 0
   for i=1, wand.props.capacity do
-    GuiZSetForNextWidget(gui, 9)
+    GuiZSetForNextWidget(gui, z - 1)
     GuiImage(gui, new_id(), -0.3, -0.4, "data/ui_gfx/inventory/inventory_box.png", 0.95, background_scale, background_scale)
     update_bounds()
     local _, _, _, x, y = GuiGetPreviousWidgetInfo(gui)
     x = x + 0.32479339599609
     y = y + 0.4
     local item_bg_icon = get_spell_bg(wand.spells[i])
-    GuiZSetForNextWidget(gui, 8.5)
+    GuiZSetForNextWidget(gui, z - 1.5)
     GuiOptionsAddForNextWidget(gui, GUI_OPTION.Layout_NoLayouting)
     if not wand.spells[i] or wand.spells[i] == "" then
       -- Render an invisible (alpha = 0.0001) item just so it counts for the auto-layout
@@ -552,7 +558,7 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
     else
       -- Background / Spell type border
       GuiImage(gui, new_id(), x - 2, y - 2, item_bg_icon, 0.75, background_scale, background_scale)
-      GuiZSetForNextWidget(gui, 8)
+      GuiZSetForNextWidget(gui, z - 2)
       GuiOptionsAddForNextWidget(gui, GUI_OPTION.Layout_NoLayouting)
       GuiImage(gui, new_id(), x + 0.11, y, (spell_lookup[wand.spells[i]] and spell_lookup[wand.spells[i]].icon) or "data/ui_gfx/gun_actions/unidentified.png", 0.8, spell_icon_scale, spell_icon_scale)
     end
@@ -577,28 +583,27 @@ local function render_tooltip(origin_x, origin_y, wand, gui_)
     local wand_sprite_place_center_y = no_text_y + vertical_space / 2
     local wand_sprite_x = wand_sprite_place_center_x - wand_sprite_height / 2
     local wand_sprite_y = wand_sprite_place_center_y + wand_sprite_width / 2
+    GuiZSetForNextWidget(gui, z - 1)
     GuiImage(gui, new_id(), wand_sprite_x, wand_sprite_y, wand.sprite_image_file, 1, 2, 2, -math.rad(90))
     update_bounds(-90)
   end
 
-  GuiZSetForNextWidget(gui, 10)
+  GuiZSetForNextWidget(gui, z)
   GuiImageNinePiece(gui, new_id(), origin_x - 5, origin_y - 5, right - (origin_x - 5) + 5,  bottom - (origin_y - 5) + 5)
   GuiIdPop(gui)
 end
 
 local function refresh_wand_if_in_inventory(wand_id)
-  -- Refresh the wand if it's being held by the player
+  -- Refresh the wand if it's being held by something
   local parent = EntityGetRootEntity(wand_id)
-  if EntityHasTag(parent, "player_unit") then
-    local inventory2_comp = EntityGetFirstComponentIncludingDisabled(parent, "Inventory2Component")
-    if inventory2_comp then
-      ComponentSetValue2(inventory2_comp, "mForceRefresh", true)
-      ComponentSetValue2(inventory2_comp, "mActualActiveItem", 0)
-    end
+  local inventory2_comp = EntityGetFirstComponentIncludingDisabled(parent, "Inventory2Component")
+  if inventory2_comp then
+    ComponentSetValue2(inventory2_comp, "mForceRefresh", true)
+    ComponentSetValue2(inventory2_comp, "mActualActiveItem", 0)
   end
 end
 
-local function add_spell_at_pos(wand, action_id, pos, uses_remaining)
+local function add_spell_at_pos(wand, action_id, pos)
   local spells_on_wand = wand:GetSpells()
   -- Check if there's space for one more spell
   if wand.capacity == #spells_on_wand then
@@ -615,11 +620,6 @@ local function add_spell_at_pos(wand, action_id, pos, uses_remaining)
   EntitySetComponentsWithTagEnabled(action_entity_id, "enabled_in_world", false)
   local item_component = EntityGetFirstComponentIncludingDisabled(action_entity_id, "ItemComponent")
   ComponentSetValue2(item_component, "inventory_slot", pos-1, 0)
-
-  if(uses_remaining) then
-    ComponentSetValue2(item_component, "uses_remaining", tonumber(uses_remaining))
-  end
-
   return true
 end
 
@@ -646,72 +646,66 @@ wand.__index = function(table, key)
   return table:GetProperties({ key })[key]
 end
 
-function wand:new(from, rng_seed_x, rng_seed_y, refresh)
-    refresh = refresh or false
-
-    -- 'protected' should not be accessed by end users!
-    local protected = {}
-    local o = {
-        _protected = protected
-    }
-    setmetatable(o, self)
-    if type(from) == "table" or from == nil then
-        -- Just load some existing wand that we alter later instead of creating one from scratch
-        protected.entity_id = EntityLoad("data/entities/items/wand_level_04.xml", rng_seed_x or 0, rng_seed_y or 0)
-        protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
-        protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
-        -- Copy all validated props over or initialize with defaults
-        local props = from or {}
-        validate_wand_properties(props)
-        o:SetProperties(props)
-        o:RemoveSpells()
-        o:DetachSpells()
-    elseif tonumber(from) or type(from) == "number" then
-        -- Wrap an existing wand
-        protected.entity_id = from
-        protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
-        protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
+function wand:new(from, rng_seed_x, rng_seed_y)
+  -- 'protected' should not be accessed by end users!
+  local protected = {}
+  local o = {
+    _protected = protected
+  }
+  setmetatable(o, self)
+  if type(from) == "table" or from == nil then
+    -- Just load some existing wand that we alter later instead of creating one from scratch
+    protected.entity_id = EntityLoad("data/entities/items/wand_level_04.xml", rng_seed_x or 0, rng_seed_y or 0)
+    protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
+    protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
+    -- Copy all validated props over or initialize with defaults
+    local props = from or {}
+    validate_wand_properties(props)
+    o:SetProperties(props)
+    o:RemoveSpells()
+    o:DetachSpells()
+  elseif tonumber(from) or type(from) == "number" then
+    -- Wrap an existing wand
+    protected.entity_id = from
+    protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
+    protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
+  else
+    if starts_with(from, "EZW") then
+      local values = deserialize(from)
+      protected.entity_id = EntityLoad("data/entities/items/wand_level_04.xml", rng_seed_x or 0, rng_seed_y or 0)
+      protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
+      protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
+      validate_wand_properties(values.props)
+      o:SetProperties(values.props)
+      o:RemoveSpells()
+      o:DetachSpells()
+      -- Filter spells whose ID no longer exist (for instance when a modded spellpack was disabled)
+      values.spells = filter_spells(values.spells)
+      values.always_cast_spells = filter_spells(values.always_cast_spells)
+      for i, action_id in ipairs(values.spells) do
+        if action_id ~= "" then
+          add_spell_at_pos(o, action_id, i)
+        end
+      end
+      o:AttachSpells(values.always_cast_spells)
+      o:SetSprite(values.sprite_image_file, values.offset_x, values.offset_y, values.tip_x, values.tip_y)
+      o:SetName(values.name, values.show_name_in_ui)
+    -- Load a wand by xml
+    elseif ends_with(from, ".xml") then
+      local x, y = GameGetCameraPos()
+      protected.entity_id = EntityLoad(from, rng_seed_x or x, rng_seed_y or y)
+      protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
+      protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
     else
-        if starts_with(from, "EZW") then
-        local values = deserialize_wand(from)
-        protected.entity_id = EntityLoad("data/entities/items/wand_level_04.xml", rng_seed_x or 0, rng_seed_y or 0)
-        protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
-        protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
-        validate_wand_properties(values.props)
-        o:SetProperties(values.props)
-        o:RemoveSpells()
-        o:DetachSpells()
-        -- Filter spells whose ID no longer exist (for instance when a modded spellpack was disabled)
-        values.spells, values.spells_uses_remaining = filter_spells(values.spells, values.spells_uses_remaining)
-        values.always_cast_spells = filter_spells(values.always_cast_spells)
-        for i, action_id in ipairs(values.spells) do
-            if action_id ~= "" then
-                local remaining = nil
-                if(not refresh)then
-                  remaining = values.spells_uses_remaining[i]
-                end
-                add_spell_at_pos(o, action_id, i, remaining)
-            end
-        end
-        o:AttachSpells(values.always_cast_spells)
-        o:SetSprite(values.sprite_image_file, values.offset_x, values.offset_y, values.tip_x, values.tip_y)
-        o:SetName(values.name, values.show_name_in_ui)
-        -- Load a wand by xml
-        elseif ends_with(from, ".xml") then
-        local x, y = GameGetCameraPos()
-        protected.entity_id = EntityLoad(from, rng_seed_x or x, rng_seed_y or y)
-        protected.ability_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "AbilityComponent")
-        protected.item_component = EntityGetFirstComponentIncludingDisabled(protected.entity_id, "ItemComponent")
-        else
-        error("Wrong format for wand creation.", 2)
-        end
+      error("Wrong format for wand creation.", 2)
     end
+  end
 
-    if not entity_is_wand(protected.entity_id) then
-        error("Loaded entity is not a wand.", 2)
-    end
+  if not entity_is_wand(protected.entity_id) then
+    error("Loaded entity is not a wand.", 2)
+  end
 
-    return o
+  return o
 end
 
 local variable_mappings = {
@@ -934,7 +928,6 @@ function wand:GetSpells()
     for _, spell in ipairs(children) do
         local action_id = nil
         local permanent = false
-    local uses_remaining = -1
     local item_action_component = EntityGetFirstComponentIncludingDisabled(spell, "ItemActionComponent")
     if item_action_component then
       action_id = ComponentGetValue2(item_action_component, "action_id")
@@ -944,13 +937,12 @@ function wand:GetSpells()
     if item_component then
       permanent = ComponentGetValue2(item_component, "permanently_attached")
       inventory_x, inventory_y = ComponentGetValue2(item_component, "inventory_slot")
-      uses_remaining = ComponentGetValue2(item_component, "uses_remaining")
     end
     if action_id then
             if permanent == true then
                 table.insert(always_cast_spells, { action_id = action_id, entity_id = spell, inventory_x = inventory_x, inventory_y = inventory_y })
             else
-                table.insert(spells, { action_id = action_id, entity_id = spell, uses_remaining = uses_remaining, inventory_x = inventory_x, inventory_y = inventory_y })
+                table.insert(spells, { action_id = action_id, entity_id = spell, inventory_x = inventory_x, inventory_y = inventory_y })
             end
         end
   end
@@ -1272,68 +1264,54 @@ end
 -- Output string looks like:
 -- EZWv(version);shuffle[1|0];spellsPerCast;castDelay;rechargeTime;manaMax;mana;manaChargeSpeed;capacity;spread;speedMultiplier;
 -- SPELL_ONE,SPELL_TWO;ALWAYS_CAST_ONE,ALWAYS_CAST_TWO;sprite.png;offset_x;offset_y;tip_x;tip_y;name;show_name
-function wand:Serialize(include_mana, include_offsets)
-    include_mana = include_mana or false
-    include_offsets = include_offsets or false
-    local spells_string = ""
-    local spells_uses_string = ""
-    local always_casts_string = ""
-    local spells, always_casts = self:GetSpells()
-    local slots = {}
-    for i, spell in ipairs(spells) do
-        slots[spell.inventory_x+1] = spell
-    end
-    for i=1, self.capacity do
-        spells_string = spells_string .. (i == 1 and "" or ",") .. (slots[i] and slots[i].action_id or "")
+function wand:Serialize()
+  local spells_string = ""
+  local always_casts_string = ""
+  local spells, always_casts = self:GetSpells()
+  local slots = {}
+  for i, spell in ipairs(spells) do
+    slots[spell.inventory_x+1] = spell
+  end
+  for i=1, self.capacity do
+    spells_string = spells_string .. (i == 1 and "" or ",") .. (slots[i] and slots[i].action_id or "")
+  end
+  for i, spell in ipairs(always_casts) do
+    always_casts_string = always_casts_string .. (i == 1 and "" or ",") .. spell.action_id
+  end
 
-        if(slots[i])then
-            local uses_remaining = slots[i].uses_remaining
-            if uses_remaining == nil then
-                uses_remaining = -1
-            end
-            spells_uses_string = spells_uses_string .. (i == 1 and "" or ",") .. tostring(uses_remaining)
-        else
-            spells_uses_string = spells_uses_string .. (i == 1 and "" or ",") .. "0"
-        end
-    end
-    for i, spell in ipairs(always_casts) do
-        always_casts_string = always_casts_string .. (i == 1 and "" or ",") .. spell.action_id
-    end
+  local sprite_image_file, offset_x, offset_y, tip_x, tip_y = self:GetSprite()
 
-    local sprite_image_file, offset_x, offset_y, tip_x, tip_y = self:GetSprite()
+  -- Add a workaround for the starter wands which are the only ones with an xml sprite
+  -- Modded wands which use xmls won't work sadly
+  if sprite_image_file == "data/items_gfx/handgun.xml" then
+    sprite_image_file = "data/items_gfx/handgun.png"
+    offset_x = 4
+    offset_y = 3.5
+  end
+  if sprite_image_file == "data/items_gfx/bomb_wand.xml" then
+    sprite_image_file = "data/items_gfx/bomb_wand.png"
+    offset_x = 4
+    offset_y = 3.5
+  end
 
-    -- Add a workaround for the starter wands which are the only ones with an xml sprite
-    -- Modded wands which use xmls won't work sadly
-    if sprite_image_file == "data/items_gfx/handgun.xml" then
-        sprite_image_file = "data/items_gfx/handgun.png"
-        offset_x = 4
-        offset_y = 3.5
-    end
-    if sprite_image_file == "data/items_gfx/bomb_wand.xml" then
-        sprite_image_file = "data/items_gfx/bomb_wand.png"
-        offset_x = 4
-        offset_y = 3.5
-    end
-
-    local name, show_name = self:GetName()
-    local serialize_version = "2"
-    return ("EZWv%s;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%s;%s;%s;%s;%d;%d;%d;%d;%s;%d"):format(
-        serialize_version,
-        self.shuffle and 1 or 0,
-        self.spellsPerCast,
-        self.castDelay,
-        self.rechargeTime,
-        self.manaMax,
-        include_mana and self.mana or self.manaMax,
-        self.manaChargeSpeed,
-        self.capacity,
-        self.spread,
-        self.speedMultiplier,
-        spells_string == "" and "-" or spells_string,
-        spells_uses_string == "" and "-" or spells_uses_string,
-        always_casts_string == "" and "-" or always_casts_string,
-        sprite_image_file, include_offsets and offset_x or 0, include_offsets and offset_y or 0, include_offsets and tip_x or 0, include_offsets and tip_y or 0, name, show_name and 1 or 0
-    )
+  local name, show_name = self:GetName()
+  local serialize_version = "2"
+  return ("EZWv%s;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%s;%s;%s;%d;%d;%d;%d;%s;%d"):format(
+    serialize_version,
+    self.shuffle and 1 or 0,
+    self.spellsPerCast,
+    self.castDelay,
+    self.rechargeTime,
+    self.manaMax,
+    self.mana,
+    self.manaChargeSpeed,
+    self.capacity,
+    self.spread,
+    self.speedMultiplier,
+    spells_string == "" and "-" or spells_string,
+    always_casts_string == "" and "-" or always_casts_string,
+    sprite_image_file, offset_x, offset_y, tip_x, tip_y, name, show_name and 1 or 0
+  )
 end
 
 local function get_held_wand()
@@ -1345,41 +1323,356 @@ local function get_held_wand()
   end
 end
 
-function wand:RenderTooltip(origin_x, origin_y, gui_)
-  local success, error_msg = pcall(render_tooltip, origin_x, origin_y, deserialize_wand(self:Serialize()), gui_)
+function wand:RenderTooltip(origin_x, origin_y, gui_, z)
+  local success, error_msg = pcall(render_tooltip, origin_x, origin_y, deserialize(self:Serialize()), gui_, z)
   if not success then
     error(error_msg, 2)
   end
 end
 
-local function get_all_wands()
-    local wands = {}
-      local player = EntityGetWithTag("player_unit")
-    if player and player[1] then
-      local items = GameGetAllInventoryItems(player[1]) or {}
-      for i, item in ipairs(items) do
-        if(entity_is_wand(item))then
-          table.insert(wands, wand:new(item))
+local virtual_wand = {}
+local virtual_wand_privates = setmetatable({}, { __mode = "k" })
+local virtual_wand_props = {
+  visible = {
+    get = function(self)
+      return virtual_wand_privates[self].visible
+    end,
+    set = function(self, value)
+      if type(value) ~= "boolean" then
+        error("visible must be a boolean", 100)
+      end
+      local entity_id = self.wand.entity_id
+      for i, comp in ipairs(EntityGetComponentIncludingDisabled(entity_id, "SpriteComponent") or {}) do
+        -- This makes the inventory component enable/disable the component, can't use EntitySetComponentIsEnabled
+        -- because that gets immediately overridden by the inventory system
+        if value then
+          ComponentAddTag(comp, "enabled_in_hand")
+        else
+          ComponentRemoveTag(comp, "enabled_in_hand")
         end
       end
+      if self.hotspot_comp then
+        ComponentSetValue2(self.hotspot_comp, "offset", value and self.shoot_offset_x or 0, value and self.shoot_offset_y or 0)
+      end
+      virtual_wand_privates[self].visible = value
     end
-    return wands
+  },
+  rotation = {
+    get = function(self)
+      return select(3, EntityGetTransform(self.wand.entity_id))
+    end,
+    set = function(self, value)
+      if type(value) ~= "number" then
+        error("rotation must be a number", 100)
+      end
+      local x, y = EntityGetTransform(self.entity_id)
+      local vx = math.cos(value) * 50
+      local vy = math.sin(value) * 50
+      ComponentSetValue2(self.controls_comp, "mAimingVector", vx, vy)
+      ComponentSetValue2(self.controls_comp, "mMousePosition", x + vx, y + vy)
+    end
+  },
+  herd = {
+    get = function(self)
+      local genome_data_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "GenomeDataComponent")
+      if genome_data_comp then
+        return HerdIdToString(ComponentGetValue2(genome_data_comp, "herd_id"))
+      end
+    end,
+    set = function(self, value)
+      if value == nil then
+        return
+      end
+      if type(value) ~= "string" then
+        error("herd must be a string", 100)
+      end
+      local genome_data_comp = EntityGetFirstComponentIncludingDisabled(self.entity_id, "GenomeDataComponent")
+      if not genome_data_comp then
+        genome_data_comp = EntityAddComponent2(self.entity_id, "GenomeDataComponent")
+      end
+      ComponentSetValue2(genome_data_comp, "herd_id", StringToHerdId(value))
+    end
+  },
+  exists = {
+    get = function(self)
+      return EntityGetIsAlive(self.entity_id)
+    end
+  }
+}
+
+function virtual_wand:__index(key)
+  if rawget(self, "_protected")[key] ~= nil then
+    return rawget(self, "_protected")[key]
+  elseif rawget(virtual_wand, key) ~= nil then
+    return rawget(virtual_wand, key)
+  elseif virtual_wand_props[key] then
+    return virtual_wand_props[key].get(self)
+  else -- Pass on all accesses to the underlying EZWand object
+    if type(self.wand[key]) == "function" then
+      return function(...)
+        return self.wand[key](self.wand, select(2, ...))
+      end
+    else
+      return self.wand[key]
+    end
+  end
+end
+
+function virtual_wand:__newindex(key, value)
+  if rawget(self, "_protected")[key] ~= nil then
+    error("Cannot set protected property '" .. key .. "'", 2)
+  elseif virtual_wand_props[key] then
+    if virtual_wand_props[key].set then
+      virtual_wand_props[key].set(self, value)
+    else
+      error("'" .. key .. "' is read only.", 100)
+    end
+  else -- Pass on all accesses to the underlying EZWand object
+    self.wand[key] = value
+  end
+end
+
+function virtual_wand:SetPosition(x, y)
+  EntitySetTransform(self.entity_id, x, y)
+end
+
+function virtual_wand:AimAt(target_x, target_y)
+  if self.controls_comp then
+    local x, y = EntityGetTransform(self.entity_id)
+    local aim_x, aim_y = target_x - x, target_y - y
+    ComponentSetValue2(self.controls_comp, "mAimingVector", aim_x, aim_y)
+    ComponentSetValue2(self.controls_comp, "mMousePosition", target_x, target_y)
+  end
+end
+
+function virtual_wand:Shoot(a)
+  if a ~= nil then
+    error("Shoot() doesn't require parameters, did you mean ShootAt(x, y)?", 100)
+  end
+  if self.platform_shooter_player_comp then
+    ComponentSetValue2(self.platform_shooter_player_comp, "mForceFireOnNextUpdate", true)
+  end
+end
+
+function virtual_wand:ShootAt(target_x, target_y)
+  self:AimAt(target_x, target_y)
+  self:Shoot()
+end
+
+-- Have to override this function because we need to add 0.5 to y offset so it doesn't jump when turning
+function virtual_wand:SetSprite(sprite_image_file, offset_x, offset_y, tip_x, tip_y)
+  self.wand:SetSprite(sprite_image_file, offset_x, offset_y + 0.5, tip_x, tip_y)
+end
+
+function virtual_wand:UpdateSprite()
+  self.wand:UpdateSprite()
+  self:SetSprite(self:GetSprite())
+end
+
+-- Takes a wand and removes it from an inventory if it is in one
+-- and if it was removed, also updates the inventory active item
+local function uninventorify(wand_entity_id)
+  -- Use for just to avoid a while loop which could lead to an infinite loop
+  local parent = EntityGetParent(wand_entity_id)
+  for i=1, 20 do
+    if parent > 0 then
+      local inv_comp = EntityGetFirstComponentIncludingDisabled(parent, "Inventory2Component")
+      if inv_comp then
+        ComponentSetValue2(inv_comp, "mActualActiveItem", 0)
+        ComponentSetValue2(inv_comp, "mActiveItem", 0)
+        ComponentSetValue2(inv_comp, "mForceRefresh", true)
+        break
+      end
+    end
+    parent = EntityGetParent(parent)
+  end
+  if EntityGetParent(wand_entity_id) > 0 then
+    EntityRemoveFromParent(wand_entity_id)
+  end
+end
+
+local function give_wand_to_entity(wand_entity_id, entity_id)
+  local inv_quick
+  for i, child in ipairs(EntityGetAllChildren(entity_id) or {}) do
+    if EntityGetName(child) == "inventory_quick" then
+      inv_quick = child
+      break
+    end
+  end
+  if not inv_quick then
+    inv_quick = EntityCreateNew("inventory_quick")
+    EntityAddChild(entity_id, inv_quick)
+  end
+  uninventorify(wand_entity_id)
+  EntityAddChild(inv_quick, wand_entity_id)
+  local x, y = EntityGetTransform(entity_id)
+  EntitySetTransform(wand_entity_id, x, y)
+  local ability_comp = EntityGetFirstComponentIncludingDisabled(wand_entity_id, "AbilityComponent")
+  if ability_comp then
+    -- Make the wand able to be aimed straight up
+    ComponentSetValue2(ability_comp, "rotate_in_hand_amount", 1)
+  end
+  local required_comps = {
+    ControlsComponent = { enabled = false },
+    CharacterDataComponent = {},
+    SpriteAnimatorComponent = {},
+    CharacterPlatformingComponent = {
+      mouse_look = false,
+    },
+    Inventory2Component = {
+      quick_inventory_slots = 10,
+    },
+    GunComponent = {},
+    -- PlatformShooterPlayerComponent = {},
+    GenomeDataComponent = {
+      herd_id = StringToHerdId("zombie"),
+            food_chain_rank = 0,
+            is_predator = true
+    },
+    AnimalAIComponent = {
+      preferred_job="JobDefault",
+      attack_ranged_min_distance=0,
+      attack_ranged_max_distance=100,
+      creature_detection_range_x=300,
+      creature_detection_range_y=300,
+    },
+    -- Not required but makes wands drop from enemies when killed
+    ItemPickUpperComponent = {
+      is_in_npc = true,
+      is_immune_to_kicks = false,
+      drop_items_on_death = true,
+    }
+  }
+  for comp_type, properties in pairs(required_comps) do
+    local comp = EntityGetFirstComponentIncludingDisabled(entity_id, comp_type)
+    if not comp then
+      EntityAddComponent2(entity_id, comp_type, properties)
+    end
+  end
+  local hand_hotspot_comp = EntityGetFirstComponentIncludingDisabled(entity_id, "HotspotComponent", "hand")
+  if not hand_hotspot_comp then
+    hand_hotspot_comp = EntityAddComponent2(entity_id, "HotspotComponent", { _tags = "hand" })
+    local hx, hy = EntityGetFirstHitboxCenter(entity_id)
+    local dx, dy = hx - x, hy - y
+    ComponentSetValue2(hand_hotspot_comp, "offset", dx + 1, dy - 2)
+  end
+  local item_comp = EntityGetFirstComponentIncludingDisabled(wand_entity_id, "ItemComponent")
+  if item_comp then
+    ComponentSetValue2(item_comp, "play_hover_animation", false)
+  end
+end
+
+function wand:GiveTo(entity_id)
+  give_wand_to_entity(self.entity_id, entity_id)
+end
+
+local function create_holder_entity()
+  -- Need to use EntityLoad because entities created with EntityCreateNew don't get saved
+  local entity_id = EntityLoad("data/entities/buildings/coop_respawn.xml")
+  EntitySetName(entity_id, "EZWand_virtual_wand")
+  EntityRemoveTag(entity_id, "coop_respawn")
+  -- local entity_id = EntityCreateNew("EZWand_virtual_wand")
+  local inv_quick = EntityCreateNew("inventory_quick")
+  EntityAddChild(entity_id, inv_quick)
+  -- Set scale_x to a tiny number to prevent a 1 pixel x swap on direction swapping
+  -- Thanks to @dextercd on Discord for this tip
+  EntitySetTransform(entity_id, 0, 0, 0, 0.000001)
+  EntityAddComponent2(entity_id, "CharacterDataComponent", {})
+  EntityAddComponent2(entity_id, "SpriteAnimatorComponent", {})
+  EntityAddComponent2(entity_id, "Inventory2Component", {})
+  EntityAddComponent2(entity_id, "GunComponent", {})
+  local controls_comp = EntityAddComponent2(entity_id, "ControlsComponent", {
+    enabled = false,
+  })
+  local character_platforming_component = EntityAddComponent2(entity_id, "CharacterPlatformingComponent", {})
+  local platform_shooter_player_comp = EntityAddComponent2(entity_id, "PlatformShooterPlayerComponent", {})
+  return entity_id, inv_quick, controls_comp, character_platforming_component, platform_shooter_player_comp
+end
+
+local function create_virtual_wand(from, rng_seed_x, rng_seed_y)
+  local wand = wand:new(from, rng_seed_x, rng_seed_y)
+  -- Still not sure how best to implement read only properties
+  local protected = { wand = wand }
+  local o = setmetatable({ _protected = protected }, virtual_wand)
+  virtual_wand_privates[o] = { visible = true }
+  SetRandomSeed(rng_seed_x, rng_seed_y)
+  -- Update the sprite to add the 0.5 offset
+  o:SetSprite(o:GetSprite())
+  local wand_entity_id = wand.entity_id
+  protected.hotspot_comp = EntityGetFirstComponentIncludingDisabled(wand_entity_id, "HotspotComponent", "shoot_pos")
+  if protected.hotspot_comp then
+    protected.shoot_offset_x, protected.shoot_offset_y = ComponentGetValue2(protected.hotspot_comp, "offset")
+  end
+  local holder_entity, inv_quick, controls_comp, character_platforming_component, platform_shooter_player_comp = create_holder_entity()
+  protected.entity_id = holder_entity
+  uninventorify(wand_entity_id)
+  EntityAddChild(inv_quick, wand_entity_id)
+  EntityApplyTransform(holder_entity, rng_seed_x, rng_seed_y)
+  EntityApplyTransform(wand_entity_id, rng_seed_x, rng_seed_y)
+  protected.controls_comp = controls_comp
+  protected.character_platforming_component = character_platforming_component
+  protected.platform_shooter_player_comp = platform_shooter_player_comp
+  return o
+end
+
+function wand:Deploy(x, y)
+  local root = EntityGetRootEntity(self.entity_id)
+  if EntityGetName(root) ~= "EZWand_virtual_wand" then
+    return create_virtual_wand(self.entity_id, x, y)
+  else
+    local protected = { wand = self }
+    local o = setmetatable({ _protected = protected }, virtual_wand)
+    virtual_wand_privates[o] = { visible = true }
+    SetRandomSeed(x, y)
+    -- Update the sprite to add the 0.5 offset
+    o:SetSprite(o:GetSprite())
+    local wand_entity_id = self.entity_id
+    protected.hotspot_comp = EntityGetFirstComponentIncludingDisabled(wand_entity_id, "HotspotComponent", "shoot_pos")
+    if protected.hotspot_comp then
+      protected.shoot_offset_x, protected.shoot_offset_y = ComponentGetValue2(protected.hotspot_comp, "offset")
+    end
+    protected.entity_id = root
+    local holder_entity = protected.entity_id
+    EntityApplyTransform(holder_entity, x, y)
+    protected.controls_comp = EntityGetFirstComponentIncludingDisabled(holder_entity, "ControlsComponent")
+    protected.character_platforming_component = EntityGetFirstComponentIncludingDisabled(holder_entity, "CharacterPlatformingComponent")
+    protected.platform_shooter_player_comp = EntityGetFirstComponentIncludingDisabled(holder_entity, "PlatformShooterPlayerComponent")
+    return o
+  end
+end
+
+local function shoot_spell_sequence(sequence, from_x, from_y, target_x, target_y, herd)
+  local wand = create_virtual_wand({
+    shuffle = false,
+    spellsPerCast = 1,
+    castDelay = 0,
+    rechargeTime = 0,
+    manaMax = 10000,
+    manaChargeSpeed = 100,
+    capacity = #sequence,
+    spread = -100
+  }, from_x, from_y)
+  wand.herd = herd
+  wand.visible = false
+  wand:AddSpells(sequence)
+  wand:ShootAt(target_x, target_y)
+  EntityAddComponent2(wand.entity_id, "LifetimeComponent", { lifetime = 1 })
 end
 
 return setmetatable({}, {
-  __call = function(self, from, rng_seed_x, rng_seed_y, refresh)
-    return wand:new(from, rng_seed_x, rng_seed_y, refresh)
+  __call = function(self, from, rng_seed_x, rng_seed_y)
+    return wand:new(from, rng_seed_x, rng_seed_y)
   end,
   __newindex = function(self)
     error("Can't assign to this object.", 2)
   end,
   __index = function(self, key)
     return ({
-      Deserialize = deserialize_wand,
+      Deserialize = deserialize,
       RenderTooltip = render_tooltip,
       IsWand = entity_is_wand,
       GetHeldWand = get_held_wand,
-      GetAllWands = get_all_wands,
+      ShootSpellSequence = shoot_spell_sequence
     })[key]
   end
 })

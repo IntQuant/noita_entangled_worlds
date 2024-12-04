@@ -128,16 +128,11 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 
     #[expect(clippy::while_let_loop)] // Will probably get more variants in the future
     loop {
-        match netman
-            .recv()?
-            .ok_or_eyre("Expected to be in non-blocking mode")?
-        {
+        match netman.recv()? {
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
             NoitaInbound::Ready => break,
         }
     }
-
-    netman.switch_to_non_blocking()?;
 
     *NETMANAGER.lock().unwrap() = Some(netman);
     println!("Ok!");
@@ -147,7 +142,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
     let mut binding = NETMANAGER.lock().unwrap();
     let netmanager = binding.as_mut().unwrap();
-    Ok(match netmanager.recv()? {
+    Ok(match netmanager.try_recv()? {
         Some(NoitaInbound::RawMessage(msg)) => Some(msg.into()),
         Some(NoitaInbound::Ready) => {
             bail!("Unexpected Ready message")
@@ -163,6 +158,12 @@ fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
     netmanager.send(&shared::NoitaOutbound::Raw(arg))?;
 
     Ok(())
+}
+
+fn netmanager_flush(_lua: LuaState) -> eyre::Result<()> {
+    let mut binding = NETMANAGER.lock().unwrap();
+    let netmanager = binding.as_mut().unwrap();
+    netmanager.flush()
 }
 
 impl LuaFnRet for InitKV {
@@ -255,6 +256,14 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     Ok(())
 }
 
+fn probe(_lua: LuaState) {
+    backtrace::trace(|frame| {
+        let ip = frame.ip() as usize;
+        println!("Probe: 0x{ip:x}");
+        false
+    });
+}
+
 fn __gc(_lua: LuaState) {
     println!("ewext collected in thread {:?}", thread::current().id());
     NETMANAGER.lock().unwrap().take();
@@ -268,6 +277,15 @@ fn __gc(_lua: LuaState) {
 #[no_mangle]
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
+
+    println!(
+        "lua_call: 0x{:x}",
+        (*LUA.lua_call.as_ref().unwrap()) as usize
+    );
+    println!(
+        "lua_pcall: 0x{:x}",
+        (*LUA.lua_pcall.as_ref().unwrap()) as usize
+    );
 
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
@@ -288,10 +306,12 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);
         add_lua_fn!(bench_fn);
+        add_lua_fn!(probe);
 
         add_lua_fn!(netmanager_connect);
         add_lua_fn!(netmanager_recv);
         add_lua_fn!(netmanager_send);
+        add_lua_fn!(netmanager_flush);
 
         add_lua_fn!(module_on_world_update);
     }

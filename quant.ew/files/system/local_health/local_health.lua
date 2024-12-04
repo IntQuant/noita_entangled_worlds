@@ -193,7 +193,7 @@ local function show_death_message()
     -- Check if message is recent enough
     if current_frame - last_damage_info[1] < 60 then
         local message = last_damage_info[2]
-        local source = nil
+        local source
         local source_ent = last_damage_info[3]
         local maybe_player = player_fns.get_player_data_by_local_entity_id(source_ent)
         if maybe_player ~= nil then
@@ -291,7 +291,7 @@ local function player_died()
     polymorph.switch_entity(ent + 1)
 
     remove_healthbar_locally()
-    inventory_helper.set_item_data(item_data, ctx.my_player, true)
+    inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
             EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), false)
@@ -307,18 +307,27 @@ end
 
 local function do_game_over(message)
     net.proxy_notify_game_over()
-    ctx.run_ended = true
     GameRemoveFlagRun("ew_flag_notplayer_active")
     set_camera_free(true, ctx.my_player.entity)
 
+    if not GameHasFlagRun("ending_game_completed") then
+        for peer_id, data in pairs(ctx.players) do
+            if peer_id ~= ctx.my_id
+                    and #(EntityGetAllChildren(data.entity) or {}) ~= 0 then
+                local x, y = EntityGetTransform(data.entity)
+                LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. peer_id .."_ragdoll.txt", x, y)
+            end
+        end
+    end
     async(function()
-    if #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
-        local ent = end_poly_effect(ctx.my_player.entity)
-        if ent ~= nil then
-            polymorph.switch_entity(ent)
+        print("Performing do_game_over...")
+        if #(EntityGetAllChildren(ctx.my_player.entity) or {}) ~= 0 then
+            local ent = end_poly_effect(ctx.my_player.entity)
+            if ent ~= nil then
+                polymorph.switch_entity(ent)
                 wait(1)
-                if ctx.my_player.entity ~= nil then
-                    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+                if ctx.my_player.entity ~= nil and EntityGetIsAlive(ctx.my_player.entity) then
+                    local damage_model = EntityGetFirstComponent(ctx.my_player.entity, "DamageModelComponent")
                     if damage_model ~= nil then
                         ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
                         EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
@@ -326,6 +335,8 @@ local function do_game_over(message)
                 end
             end
         end
+        ctx.run_ended = true
+        print("Running - GameTriggerGameOver")
         GameTriggerGameOver()
         for _, data in pairs(ctx.players) do
             EntityKill(data.entity)
@@ -391,6 +402,7 @@ function module.on_world_update_host()
             end
         end
         if gameover_primed and not any_player_alive then
+            print("Triggering a game over")
             rpc.trigger_game_over("No players are alive")
         end
     end
@@ -488,7 +500,7 @@ ctx.cap.health = {
                 ComponentSetValue2(damage_model, "mFireFramesLeft", 0)
                 ComponentSetValue2(damage_model, "air_in_lungs", ComponentGetValue2(damage_model, "air_in_lungs_max"))
             end
-            inventory_helper.set_item_data(item_data, ctx.my_player, true)
+            inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
             remove_inventory_tags()
             local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
             if controls ~= nil then

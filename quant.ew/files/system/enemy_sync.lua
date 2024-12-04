@@ -5,6 +5,7 @@ local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local item_sync = dofile_once("mods/quant.ew/files/system/item_sync.lua")
 local effect_sync = dofile_once("mods/quant.ew/files/system/game_effect_sync/game_effect_sync.lua")
 local stain_sync = dofile_once("mods/quant.ew/files/system/effect_data_sync/effect_data_sync.lua")
+local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
 local np = require("noitapatcher")
 
 local ffi = require("ffi")
@@ -151,6 +152,8 @@ local function get_sync_entities(return_all)
     return entities2
 end
 
+local was_held = {}
+
 function enemy_sync.host_upload_entities()
     local entities = get_sync_entities()
     local enemy_data_list = {}
@@ -273,8 +276,9 @@ function enemy_sync.host_upload_entities()
                 else
                     wand = item_sync.get_global_item_id(item)
                     if not item_sync.is_my_item(wand) then
-                        EntityAddTag(item, "ew_client_item")
+                        item_sync.take_authority(wand)
                     end
+                    was_held[wand] = true
                 end
             end
         end
@@ -362,6 +366,14 @@ function enemy_sync.on_world_update_host()
     end
     if GameGetFrameNum() % 10 == 5 then
         host_upload_health()
+    end
+    for wand, _ in pairs(was_held) do
+        if EntityGetRootEntity(wand) == wand then
+            was_held[wand] = nil
+            if item_sync.is_my_item(item_sync.get_global_item_id(wand)) then
+                item_sync.make_item_global(wand)
+            end
+        end
     end
 end
 
@@ -584,31 +596,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     if gid ~= nil and (item == nil or item == 0 or not EntityGetIsAlive(item)) then
         local wand = item_sync.find_by_gid(gid)
         if wand ~= nil then
-            if not item_sync.is_my_item(gid) then
-                EntityAddTag(wand, "ew_client_item")
-            end
-            local found = false
-            for _, child in ipairs(EntityGetAllChildren(enemy_id) or {}) do
-                if EntityGetName(child) == "inventory_quick" then
-                    if EntityGetParent(wand) ~= nil then
-                        EntityRemoveFromParent(wand)
-                    end
-                    EntityAddChild(child, wand)
-                    found = true
-                    break
-                end
-            end
-            if not found then
-                local inv_quick = EntityCreateNew("inventory_quick")
-                EntityAddChild(enemy_id, inv_quick)
-                EntityAddChild(inv_quick, wand)
-            end
-            if EntityGetFirstComponent(enemy_id, "Inventory2Component") == nil then
-                EntityAddComponent2(enemy_id, "Inventory2Component")
-            end
-            EntitySetComponentsWithTagEnabled(wand, "enabled_in_world", false)
-            EntitySetComponentsWithTagEnabled(wand, "enabled_in_hand", true)
-            EntitySetComponentsWithTagEnabled(wand, "enabled_in_inventory", false)
+            EntityAddTag(wand, "ew_client_item")
+            local ezwand = EZWand(wand)
+            ezwand:GiveTo(enemy_id)
             np.SetActiveHeldEntity(enemy_id, wand, false, false)
         else
             if should_wait[gid] == nil or should_wait[gid] < GameGetFrameNum() then
@@ -684,8 +674,8 @@ function rpc.handle_death_data(death_data)
     end
 end
 
-function rpc.handle_enemy_data(enemy_data, first)
-    if first then
+function rpc.handle_enemy_data(enemy_data, is_first)
+    if is_first then
         ctx.entity_by_remote_id = {}
     end
     frame = GameGetFrameNum()

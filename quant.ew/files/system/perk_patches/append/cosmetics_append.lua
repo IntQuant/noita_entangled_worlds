@@ -180,7 +180,7 @@ function add_halo_level(entity_who_picked, amount, set_to_this_value)
         end
     elseif halo_gained then
         -- spawn decoration
-        local child_id = nil
+        local child_id
         if lvl >= 3 then
             child_id = EntityLoad( "data/entities/misc/perks/player_halo_light.xml", x, y )
         elseif lvl <= -3 then

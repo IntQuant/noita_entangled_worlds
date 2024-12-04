@@ -144,13 +144,14 @@ end
 
 function item_sync.remove_item_with_id_now(gid)
     local item = item_sync.find_by_gid(gid)
-    if item ~= nil and is_item_on_ground(item) then
+    if item ~= nil then
         for _, audio in ipairs(EntityGetComponent(item, "AudioComponent") or {}) do
             if string.sub(ComponentGetValue2(audio, "event_root"), 1, 10) == "collision/" then
                 EntitySetComponentIsEnabled(item, audio, false)
             end
         end
         EntityKill(item)
+        return item
     end
 end
 
@@ -223,7 +224,9 @@ local function make_global(item, give_authority_to)
 
     ctx.item_prevent_localize[gid] = false
     rpc.item_globalize(item_data)
-    wait_on_send[gid] = nil
+    if wait_on_send[gid] ~= nil then
+        wait_on_send[gid] = GameGetFrameNum() + 30
+    end
 end
 
 function item_sync.make_item_global(item, instant, give_authority_to)
@@ -252,7 +255,7 @@ local function remove_client_items_from_world()
     end
     for _, item in ipairs(EntityGetWithTag("ew_client_item")) do
         if is_item_on_ground(item) then
-            EntityKill(item)
+            item_sync.remove_item_with_id(item_sync.get_global_item_id(item))
         end
     end
 end
@@ -305,11 +308,6 @@ rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
         local remote_id = remote_data[1]
-        --[[if confirmed_kills[remote_id] then
-            GamePrint("Remote id has been killed already..?")
-            goto continue
-        end
-        confirmed_kills[remote_id] = true]]
         local responsible_entity = 0
         local peer_data = player_fns.peer_get_player_data(remote_data[2], true)
         if peer_data ~= nil then
@@ -318,9 +316,6 @@ function rpc.handle_death_data(death_data)
             responsible_entity = ctx.entity_by_remote_id[remote_data[2]]
         end
 
-        --if unsynced_enemys[remote_id] ~= nil then
-            --sync_enemy(unsynced_enemys[remote_id], true)
-        --end
         local enemy_id = item_sync.find_by_gid(remote_id)
         if enemy_id ~= nil and EntityGetIsAlive(enemy_id) then
             local immortal = EntityGetFirstComponentIncludingDisabled(enemy_id, "LuaComponent", "ew_immortal")
@@ -532,7 +527,6 @@ end
 local function add_stuff_to_globalized_item(item, gid)
     EntityAddTag(item, "ew_global_item")
     item_sync.ensure_notify_component(item)
-    -- GamePrint("Got global item: "..item)
     local gid_c = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     if gid_c == nil then
         EntityAddComponent2(item, "VariableStorageComponent", {
@@ -563,12 +557,15 @@ end
 
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
-    wait_for_gid[item_data.gid] = nil
+    if wait_for_gid[item_data.gid] ~= nil then
+        wait_for_gid[item_data.gid] = GameGetFrameNum() + 30
+    end
+    local k
     if is_safe_to_remove() then
-        item_sync.remove_item_with_id_now(item_data.gid)
+        k = item_sync.remove_item_with_id_now(item_data.gid)
     end
     local n = item_sync.find_by_gid(item_data.gid)
-    if n ~= nil then
+    if n ~= nil and k ~= n then
         return
     end
     local item = inventory_helper.deserialize_single_item(item_data)
@@ -612,7 +609,7 @@ local function cleanup(peer)
         if frame[peer] > num then
             local item = item_sync.find_by_gid(gid)
             if is_item_on_ground(item) then
-                EntityKill(item)
+                item_sync.remove_item_with_id(gid)
                 gid_last_frame_updated[peer][gid] = nil
             end
         end
@@ -621,13 +618,10 @@ local function cleanup(peer)
     for _, item in ipairs(EntityGetWithTag("ew_global_item") or {}) do
         local gid = item_sync.get_global_item_id(item)
         if gid ~= nil and is_peers_item(gid, peer) then
-            if (gid_last_frame_updated[peer] == nil or is_duplicate[gid]) and is_item_on_ground(item) then
-                EntityKill(item)
+            if is_duplicate[gid] then
+                item_sync.remove_item_with_id(gid)
             else
-                if is_duplicate[gid] then
-                    EntityKill(is_duplicate[gid])
-                end
-                is_duplicate[gid] = item
+                is_duplicate[gid] = true
             end
         end
     end

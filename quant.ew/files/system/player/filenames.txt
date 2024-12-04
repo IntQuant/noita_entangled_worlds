@@ -1,0 +1,8 @@
+data/ragdolls/player/torso.png
+data/ragdolls/player/right_thigh.png
+data/ragdolls/player/right_arm.png
+data/ragdolls/player/right_hand.png
+data/ragdolls/player/left_thigh.png
+data/ragdolls/player/left_arm.png
+data/ragdolls/player/left_hand.png
+data/ragdolls/player/head.png

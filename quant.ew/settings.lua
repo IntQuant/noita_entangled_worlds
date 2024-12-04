@@ -87,6 +87,9 @@ local function ui_get_input(_, gui, _, im_id, setting)
             setting.is_waiting_for_input = false
         end
     end
+    if keycodes[current] == "BACKSPACE" then
+        current_key = "[RIGHT CLICK]"
+    end
     GuiText(gui, 0, 0, current_key)
 
     GuiLayoutEnd(gui)
@@ -102,7 +105,7 @@ local function build_settings()
                 {
                     id = "rebind_ping",
                     ui_name = "Ping button",
-                    ui_description = "ping. backspace uses middle mouse button instead.",
+                    ui_description = "ping",
                     value_default = "42",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
@@ -111,7 +114,7 @@ local function build_settings()
                 {
                     id = "rebind_lspectate",
                     ui_name = "spectate left Button",
-                    ui_description = "left.",
+                    ui_description = "left",
                     value_default = "54",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
@@ -120,7 +123,7 @@ local function build_settings()
                 {
                     id = "rebind_rspectate",
                     ui_name = "spectate right Button",
-                    ui_description = "right.",
+                    ui_description = "right",
                     value_default = "55",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
@@ -129,7 +132,7 @@ local function build_settings()
                 {
                     id = "rebind_sspectate",
                     ui_name = "spectate self Button",
-                    ui_description = "self.",
+                    ui_description = "self",
                     value_default = "56",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
@@ -138,10 +141,66 @@ local function build_settings()
                 {
                     id = "rebind_mspectate",
                     ui_name = "spectate near Button",
-                    ui_description = "self.",
+                    ui_description = "near",
                     value_default = "52",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "ping_life",
+                    ui_name = "ping lifetime",
+                    ui_description = "in seconds",
+                    value_default = "6.0",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "ping_size",
+                    ui_name = "ping extra size",
+                    ui_description = "in pixels",
+                    value_default = "0.0",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "disable_cursors",
+                    ui_name = "disable others cursors",
+                    ui_description = "bool",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "tether_range",
+                    ui_name = "tether range",
+                    ui_description = "radius in pixels, 0 for disabled",
+                    value_default = "2048",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "chunk_target",
+                    ui_name = "chunk target",
+                    ui_description = "attempts to keep this many chunks loaded, host only, vanilla default is 12",
+                    value_default = "24",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "flex",
+                    ui_name = "flexible updates",
+                    ui_description = "some esotaric chunk thing, may help performance, buggy",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "team",
+                    ui_name = "friendly fire team",
+                    ui_description = "team for friendly fire, 0 no team, -1 friendly",
+                    value_default = "0",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "no_gamepad",
+                    ui_name = "dont add keybinds for gamepad",
+                    ui_description = ":(",
+                    value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
             },

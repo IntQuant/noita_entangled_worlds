@@ -163,6 +163,7 @@ function net.update()
     end
     handle_message(msg)
   end
+  ewext.netmanager_flush()
 end
 
 function net.init()
@@ -221,8 +222,8 @@ function net.proxy_notify_game_over()
   net.proxy_send("game_over", 1)
 end
 
-function net.send_player_inventory(inventory_state)
-  net.send("inventory", inventory_state, true)
+function net.send_player_inventory(inventory_state, spells)
+  net.send("inventory", {inventory_state, spells}, true)
 end
 
 function net.send_player_perks(perk_data)

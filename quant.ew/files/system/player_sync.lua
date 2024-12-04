@@ -42,8 +42,8 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
 
-    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "polymorphed") and ctx.proxy_opt.friendly_fire_team ~= nil then
-        local my_team = ctx.proxy_opt.friendly_fire_team - 1
+    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "polymorphed") then
+        local my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         if my_team ~= -1 and team ~= -1 and (team == 0 or my_team == 0 or team ~= my_team) then
             GenomeSetHerdId(player_data.entity, "player_pvp")
         else
@@ -68,10 +68,11 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     end
 end
 
-function rpc.check_gamemode(gamemode)
+function rpc.check_gamemode(gamemode, seed)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
     local not_fine = gamemode ~= gm
+    local my_seed = MagicNumbersGetValue("WORLD_SEED")
 
     if gm == "save_slots_enabler" or gamemode == "save_slots_enabler" then
         not_fine = not (gm == "" or gamemode == "")
@@ -82,6 +83,11 @@ function rpc.check_gamemode(gamemode)
         GamePrint("his game mode: ".. gamemode)
         GamePrint("your game mode: ".. gm)
     end
+    if my_seed ~= seed then
+        GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different seed then you")
+        GamePrint("his seed: ".. seed)
+        GamePrint("your seed: ".. my_seed)
+    end
 end
 
 function module.on_world_update()
@@ -90,14 +96,14 @@ function module.on_world_update()
     local current_slot = player_fns.get_current_slot(ctx.my_player)
     if input_data ~= nil or pos_data ~= nil then
         local my_team
-        if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 60 == 43 and ctx.proxy_opt.friendly_fire_team ~= nil then
-            my_team = ctx.proxy_opt.friendly_fire_team - 1
+        if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 10 == 7 then
+            my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         end
 
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
         if GameGetFrameNum() % 120 == 0 then
             local n = np.GetGameModeNr()
-            rpc.check_gamemode(np.GetGameModeName(n))
+            rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"))
         end
     end
 
@@ -108,7 +114,18 @@ function module.on_world_update()
             local children = EntityGetAllChildren(ent) or {}
             if ctx.my_id ~= peer_id then
                 for _, child in ipairs(children) do
-                    if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+                    if EntityGetName(child) == "cursor" then
+                        if ModSettingGet("quant.ew.disable_cursors") then
+                            local sprite = EntityGetFirstComponent(child, "SpriteComponent")
+                            if sprite ~= nil and sprite ~= 0 then
+                                EntitySetComponentIsEnabled(child, sprite, false)
+                            end
+                        else
+                            EntitySetComponentIsEnabled(child,
+                                    EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+                        end
+                    end
+                    if EntityGetName(child) == "notcursor" then
                         EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
                     end
                 end

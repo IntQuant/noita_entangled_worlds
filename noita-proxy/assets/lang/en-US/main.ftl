@@ -92,7 +92,7 @@ connect_settings_autostart = Start the game automatically
 
 connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
 Health-per-player = Health per player
-Enable-friendly-fire = Enable friendly fire, allows picking teams in lobby
+Enable-friendly-fire = Enable friendly fire, allows picking teams in game settings
 Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
 local_health_desc_1 = Every player has their own health, run ends when all player are dead.
@@ -153,10 +153,13 @@ Info = Info
 
 connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
 
-## Arrow UX settings
+## UX settings
 
 ping-note = Ping arrow parameters
 ping-lifetime = Ping arrow lifetime in seconds.
 ping-scale = Ping arrow size.
 ping-lifetime-tooltip = This parameter changes how much frames (seconds*60, since game is supposed to run 60 fps?) ping arrow lives. Range: 0-60 seconds.
 ping-scale-tooltip = This parameter changes size of ping arrow. I dont know which units it is, but range is 0-1.5 units.
+
+hide-cursors-checkbox = Disable others' cursors
+hide-cursors-checkbox-tooltip = Sometimes you can confuse your friends' cursors with yours. In that case, you can disable them altogether with this checkbox.

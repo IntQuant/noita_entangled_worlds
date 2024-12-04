@@ -29,6 +29,10 @@ if ( comps ~= nil ) then
             end
         elseif ( name == "owner_id" ) then
             owner_id = ComponentGetValue2( v, "value_int" )
+            if not EntityHasTag(owner_id, "ew_peer") then
+                owner_id = EntityGetWithTag("player_unit")[1]
+                ComponentSetValue2( v, "value_int", owner_id )
+            end
             px,py = EntityGetTransform( owner_id )
 
             if ( px == nil ) or ( py == nil ) then

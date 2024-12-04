@@ -147,7 +147,7 @@ impl LuaState {
     /// This takes String so that it gets deallocated properly, as this functions doesn't return.
     unsafe fn raise_error(&self, s: String) -> ! {
         self.push_string(&s);
-        mem::drop(s);
+        drop(s);
         unsafe { LUA.lua_error(self.lua) };
         // lua_error does not return.
         unreachable!()
@@ -353,7 +353,7 @@ impl LuaGetValue for i32 {
 
 impl LuaGetValue for isize {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
-        Ok(lua.to_integer(index) as Self)
+        Ok(lua.to_integer(index))
     }
 }
 
@@ -387,7 +387,7 @@ impl LuaGetValue for Option<EntityID> {
         Ok(if ent == 0 {
             None
         } else {
-            Some(EntityID(ent.try_into().unwrap()))
+            Some(EntityID(ent.try_into()?))
         })
     }
 }
@@ -398,7 +398,7 @@ impl LuaGetValue for Option<ComponentID> {
         Ok(if com == 0 {
             None
         } else {
-            Some(ComponentID(com.try_into().unwrap()))
+            Some(ComponentID(com.try_into()?))
         })
     }
 }

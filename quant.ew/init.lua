@@ -94,9 +94,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
     ctx.load_system("perk_patches")
 
-    if ctx.proxy_opt.player_tether then
-        ctx.load_system("player_tether")
-    end
+    ctx.load_system("player_tether")
 
     ctx.load_system("kolmi")
     ctx.load_system("ending")
@@ -136,6 +134,7 @@ local function load_modules()
     ctx.load_system("shiny_orb")
     ctx.load_system("potion_mimic")
     ctx.load_system("map")
+    ctx.load_system("homunculus")
 end
 
 local function load_extra_modules()
@@ -147,6 +146,23 @@ end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
     unknown1, multicast_index, unknown3)
+    if shooter_id == ctx.my_player.entity and EntityHasTag(shooter_id, "player_unit") then
+        local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+        if inventory_component == nil then
+            return
+        end
+        local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
+        local switched_now = last_switch == GameGetFrameNum()
+
+        local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
+        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
+        if fire_data ~= nil then
+            if switched_now then
+                fire_data.switched_now = true
+            end
+            net.send_fire(fire_data)
+        end
+    end
     ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
@@ -228,7 +244,9 @@ function OnWorldInitialized() -- This is called once the game world is initializ
     ctx.hook.on_world_initialized()
 end
 
+local last_chunk
 
+local last_flex
 
 function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
     print("Initial player entity: "..player_entity)
@@ -247,10 +265,6 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.my_player = my_player
 
     EntityAddTag(player_entity, "ew_peer")
-
-    if not GameHasFlagRun("ew_flag_notplayer_active") then
-        EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
-    end
 
     net.send_welcome()
 
@@ -276,8 +290,11 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         GameAddFlagRun("ew_kill_player")
     end
     if ctx.host_id == ctx.my_id then
-        np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", ctx.proxy_opt.chunk_target)
+        last_chunk = tonumber(ModSettingGet("quant.ew.chunk_target")) or 24
+        np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)
     end
+    last_flex = ModSettingGet("quant.ew.flex")
+    np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", last_flex)
     local controls_component = EntityGetFirstComponentIncludingDisabled(player_entity, "ControlsComponent")
     ComponentSetValue2(controls_component, "enabled", true)
     for _, child in ipairs(EntityGetAllChildren(player_entity) or {}) do
@@ -324,14 +341,26 @@ local function on_world_pre_update_inner()
     end
 
     if GameGetFrameNum() % 120 == 0 and not ctx.run_ended then
+        if ctx.host_id == ctx.my_id then
+            local new_chunk = tonumber(ModSettingGet("quant.ew.chunk_target")) or 24
+            if last_chunk ~= new_chunk then
+                last_chunk = new_chunk
+                np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)
+            end
+        end
+        local new_flex = ModSettingGet("quant.ew.flex")
+        if new_flex ~= last_flex then
+            last_flex = new_flex
+            np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", last_flex)
+        end
         player_fns.respawn_if_necessary()
     end
 
     local sha_check = GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)
     if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or sha_check then
-        local inventory_state = player_fns.serialize_items(ctx.my_player)
+        local inventory_state, spells = player_fns.serialize_items(ctx.my_player)
         if inventory_state ~= nil then
-            net.send_player_inventory(inventory_state)
+            net.send_player_inventory(inventory_state, spells)
         end
     end
 
@@ -390,25 +419,6 @@ local function on_world_post_update_inner()
         ctx.hook.on_world_update_post()
     end
 
-    local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
-    GlobalsSetValue("ew_wand_fired", "0")
-    if times_wand_fired > 0 then
-        local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
-        if inventory_component == nil then
-            return
-        end
-        local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
-        local switched_now = last_switch == GameGetFrameNum()
-
-        local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
-        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
-        if fire_data ~= nil then
-            if switched_now then
-                fire_data.switched_now = true
-            end
-            net.send_fire(fire_data)
-        end
-    end
 end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world

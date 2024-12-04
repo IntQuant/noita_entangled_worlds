@@ -43,9 +43,6 @@ function net_handling.proxy.proxy_opt(_, key, value)
 end
 
 function net_handling.proxy.proxy_opt_num(_, key, value)
-    if key ~= "friendly_fire_team" then
-        print("Proxy opt [num]: "..key.." = "..value)
-    end
     ctx.proxy_opt[key] = tonumber(value)
 end
 
@@ -70,8 +67,8 @@ function net_handling.mod.inventory(peer_id, inventory_state)
         return
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
-    player_data.latest_inventory = inventory_state
-    player_fns.deserialize_items(inventory_state, player_data)
+    player_data.latest_inventory = inventory_state[1]
+    player_fns.deserialize_items(inventory_state, player_data, true)
 end
 
 function net_handling.mod.perks(peer_id, perk_data)

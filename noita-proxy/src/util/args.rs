@@ -11,13 +11,13 @@ pub struct Args {
     /// adjust ui scale; default is 1.0.
     #[argh(option)]
     pub ui_zoom_factor: Option<f32>,
-    /// path to crashcatcher's replay folder.
-    #[argh(option)]
-    pub replay_folder: Option<PathBuf>,
     /// steam lobby code.
     #[argh(option)]
     pub lobby: Option<String>,
     /// host either steam or ip.
     #[argh(option)]
     pub host: Option<String>,
+    /// noita.exe path
+    #[argh(option)]
+    pub exe_path: Option<PathBuf>,
 }

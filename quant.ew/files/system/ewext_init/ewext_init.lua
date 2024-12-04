@@ -3,7 +3,7 @@ local world_ffi = require("noitapatcher.nsew.world_ffi")
 
 -- util.add_cross_call("make_ephemerial", ewext.make_ephemerial)
 
-local initial_world_state_entity = nil
+local initial_world_state_entity
 
 local module = {}
 

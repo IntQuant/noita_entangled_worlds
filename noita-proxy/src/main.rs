@@ -9,7 +9,7 @@ use eframe::{
     egui::{IconData, ViewportBuilder},
     NativeOptions,
 };
-use noita_proxy::{args::Args, connect_cli, host_cli, recorder::replay_file, App};
+use noita_proxy::{args::Args, connect_cli, host_cli, App};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -23,10 +23,10 @@ async fn main() {
             println!("Creating a log file");
             match file {
                 Ok(file) => Box::new(BufWriter::new(file)) as Box<dyn io::Write + Send>,
-                Err(_) => Box::new(std::io::stdout()) as Box<dyn io::Write + Send>,
+                Err(_) => Box::new(io::stdout()) as Box<dyn io::Write + Send>,
             }
         } else {
-            Box::new(std::io::stdout()) as Box<dyn io::Write + Send>
+            Box::new(io::stdout()) as Box<dyn io::Write + Send>
         }
     };
 
@@ -47,10 +47,8 @@ async fn main() {
 
     info!("{:?}", args.launch_cmd);
 
-    if let Some(replay) = args.replay_folder {
-        replay_file(replay)
-    } else if let Some(host) = args.host {
-        let port = if host.to_ascii_lowercase() == "steam" {
+    if let Some(host) = args.host {
+        let port = if host.eq_ignore_ascii_case("steam") {
             0
         } else {
             host.parse::<u16>().unwrap_or(5123)
