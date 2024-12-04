@@ -338,11 +338,31 @@ pub fn create_player_png(
     let (arrows_path, ping_path, map_icon) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
     let player_lukki = tmp_path.join("unmodified_lukki.png");
-    replace_colors(player_path.into(), tmp_path.join(format!("tmp/{}.png", id)), &rgb);
-    replace_colors(player_lukki, tmp_path.join(format!("tmp/{}_lukki.png", id)), &rgb);
-    replace_colors(arrows_path, tmp_path.join(format!("tmp/{}_arrow.png", id)), &rgb);
-    replace_colors(ping_path, tmp_path.join(format!("tmp/{}_ping.png", id)), &rgb);
-    replace_colors(cursor_path, tmp_path.join(format!("tmp/{}_cursor.png", id)), &rgb);
+    replace_colors(
+        player_path.into(),
+        tmp_path.join(format!("tmp/{}.png", id)),
+        &rgb,
+    );
+    replace_colors(
+        player_lukki,
+        tmp_path.join(format!("tmp/{}_lukki.png", id)),
+        &rgb,
+    );
+    replace_colors(
+        arrows_path,
+        tmp_path.join(format!("tmp/{}_arrow.png", id)),
+        &rgb,
+    );
+    replace_colors(
+        ping_path,
+        tmp_path.join(format!("tmp/{}_ping.png", id)),
+        &rgb,
+    );
+    replace_colors(
+        cursor_path,
+        tmp_path.join(format!("tmp/{}_cursor.png", id)),
+        &rgb,
+    );
     replace_colors(map_icon, tmp_path.join(format!("tmp/{}_map.png", id)), &rgb);
     let ragdoll_path = tmp_path.join(format!("tmp/{}_ragdoll.txt", id));
     if ragdoll_path.exists() {
@@ -350,11 +370,25 @@ pub fn create_player_png(
     }
     let mut ragdoll = File::create_new(ragdoll_path).unwrap();
     let mut files = String::new();
-    for s in ["head.png", "left_hand.png", "left_arm.png", "left_thigh.png",
-                "right_hand.png", "right_arm.png", "right_thigh.png", "torso.png"].iter().rev() {
+    for s in [
+        "head.png",
+        "left_hand.png",
+        "left_arm.png",
+        "left_thigh.png",
+        "right_hand.png",
+        "right_arm.png",
+        "right_thigh.png",
+        "torso.png",
+    ]
+    .iter()
+    .rev()
+    {
         let f = tmp_path.join(s);
         replace_colors(f, tmp_path.join(format!("tmp/{}_ragdoll_{}", id, s)), &rgb);
-        files = format!("{}mods/quant.ew/files/system/player/tmp/{}_ragdoll_{}\n", files, id, s);
+        files = format!(
+            "{}mods/quant.ew/files/system/player/tmp/{}_ragdoll_{}\n",
+            files, id, s
+        );
     }
     ragdoll.write_all(files.as_bytes()).unwrap();
     let img = create_arm(Rgba::from(to_u8(rgb.player_forearm)));

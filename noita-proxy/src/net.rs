@@ -27,7 +27,7 @@ use crate::mod_manager::ModmanagerSettings;
 use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
-    DefaultSettings, GameSettings, PlayerColor,
+    DefaultSettings, GameSettings,
 };
 pub mod messages;
 mod proxy_opt;

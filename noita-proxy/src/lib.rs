@@ -98,8 +98,8 @@ impl GameSettings {
                     .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
                     .changed()
                     || ui
-                    .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
-                    .changed()
+                        .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
+                        .changed()
                 {
                     game_settings.game_mode = Some(temp)
                 }
@@ -134,7 +134,8 @@ impl GameSettings {
                             }
                         }
                         {
-                            let mut temp = game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                            let mut temp =
+                                game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
                             if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
                                 game_settings.global_hp_loss = Some(temp)
                             }
@@ -156,7 +157,8 @@ impl GameSettings {
                         }
                         ui.add_space(1.0);
                         {
-                            let mut temp = game_settings.physics_damage.unwrap_or(def.physics_damage);
+                            let mut temp =
+                                game_settings.physics_damage.unwrap_or(def.physics_damage);
                             if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
                                 game_settings.physics_damage = Some(temp)
                             }
@@ -543,11 +545,7 @@ fn settings_get() -> Settings {
     }
 }
 
-fn settings_set(
-    app: AppSavedState,
-    color: PlayerAppearance,
-    modmanager: ModmanagerSettings,
-) {
+fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: ModmanagerSettings) {
     if let Ok(s) = std::env::current_exe() {
         let settings = Settings {
             app,
@@ -1262,7 +1260,9 @@ impl App {
                     }
                 }
                 ConnectedMenu::Settings => {
-                    self.app_saved_state.game_settings.show_editor(ui, netman.peer.is_host());
+                    self.app_saved_state
+                        .game_settings
+                        .show_editor(ui, netman.peer.is_host());
                     if netman.peer.is_host() {
                         self.end_run_button.show(ui, netman);
                     }
@@ -1581,7 +1581,7 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
     let appearance: PlayerAppearance = settings.color;
     let mut state = steam_helper::SteamState::new(false).unwrap();
     let my_nickname = saved_state.nickname;
-;
+
     mod_manager.try_find_game_path(Some(&mut state));
     mod_manager.try_find_save_path();
     let run_save_state = if let Ok(path) = std::env::current_exe() {
