@@ -499,6 +499,10 @@ fn enable_mod(saves_path: &Path) -> Result<(), Box<dyn Error>> {
     // Certainly not the cleanest solution, but parsing that config properly is _hard_.
     let config = fs::read_to_string(&shared_config_path)?;
     let config = config.replace("mods_sandbox_enabled=\"1\"", "mods_sandbox_enabled=\"0\"");
+    let config = config.replace(
+        "single_threaded_loading=\"1\"",
+        "single_threaded_loading=\"0\"",
+    );
     fs::write(&shared_config_path, config)?;
 
     let mod_config_path = saves_path.join("save00/mod_config.xml");
