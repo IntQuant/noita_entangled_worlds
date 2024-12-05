@@ -1,8 +1,16 @@
-## Noita Entangled Worlds v0.31.2
+## Noita Entangled Worlds v0.31.3
 
-- fix wand errors
+- try to fix chest duping
 
-- see own messages with in game chat
+- fix some errors
+
+- try to make new game plus and orb sync more consistent
+
+- try to not store chunks from someone in a different world
+
+- fix divide by/trigger chains having bad rng
+
+- fix wands being unusable sometimes when someone drops them
 
 ## Accepted pull requests
 
