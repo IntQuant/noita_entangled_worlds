@@ -32,7 +32,11 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
         local entity = EntityCreateNew("totally_sampo")
         EntitySetTransform(entity, sx, sy)
 
-        wait(30)
+        wait(10)
+        EntitySetTransform(ctx.my_player.entity, x, y)
+        wait(10)
+        EntitySetTransform(ctx.my_player.entity, x, y)
+        wait(10)
 
         EntitySetTransform(ctx.my_player.entity, x, y)
         float()

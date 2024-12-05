@@ -45,10 +45,20 @@ function rpc.update_orbs(found_orbs, to_host)
         return
     end
     actual_orbs_update(found_orbs)
+    local found_local = orbs_found_this_run()
+    for _, orb_ent in ipairs(EntityGetWithTag("hittable") or {}) do
+        local comp = EntityGetFirstComponent(orb_ent, "OrbComponent")
+        if comp ~= nil then
+            local orb = ComponentGetValue2(comp, "orb_id")
+            if table.contains(found_local, orb) then
+                EntityKill(orb_ent)
+            end
+        end
+    end
 end
 
 function module.on_world_update()
-    if GameGetFrameNum() % 3 == 0 then
+    if GameGetFrameNum() % 15 == 0 then
         local found_local = orbs_found_this_run()
         for _, orb_ent in ipairs(EntityGetWithTag("hittable") or {}) do
             local comp = EntityGetFirstComponent(orb_ent, "OrbComponent")
