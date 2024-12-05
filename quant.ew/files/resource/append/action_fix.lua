@@ -6,8 +6,7 @@ for i=#actions,1,-1 do
     local func = action.action
     action.action = function(...)
         if reflecting then
-            func(...)
-            goto continue
+            return func(...)
         end
 
         local oldSetRandomSeed = SetRandomSeed
@@ -31,11 +30,11 @@ for i=#actions,1,-1 do
             oldSetRandomSeed(seed, seed)
         end
 
-        func(...)
+        local r = func(...)
 
         SetRandomSeed = oldSetRandomSeed
+        return r
     end
-    ::continue::
 end
 
 local orig = GetUpdatedEntityID
