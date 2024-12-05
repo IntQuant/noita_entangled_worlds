@@ -199,6 +199,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     end
+    shooter_player_data.projectile_seed_chain[entity_that_shot] = rng
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
         if ComponentGetValue2(lua, "script_source_file") == "data/scripts/projectiles/transmutation.lua" then
