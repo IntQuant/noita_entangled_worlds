@@ -184,15 +184,19 @@ local was_not_hm = false
 local was_notplayer = false
 
 function rpc.give_new_length(new_range)
-    tether_length = new_range
-    tether_length_2 = new_range + 128
-    tether_length_3 = math.max(tether_length_3 or 0, tether_length_2)
-    local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
-    if new_range == 0 then
-        tether_enable(false, host_playerdata.entity)
-    else
-        tether_enable(true, host_playerdata.entity)
-        set_tether_length(tether_length_3, host_playerdata.entity)
+    if new_range ~= nil then
+        tether_length = new_range
+        tether_length_2 = new_range + 128
+        tether_length_3 = math.max(tether_length_3 or 0, tether_length_2)
+        local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+        if host_playerdata ~= nil and host_playerdata.entity ~= nil then
+            if new_range == 0 then
+                tether_enable(false, host_playerdata.entity)
+            else
+                tether_enable(true, host_playerdata.entity)
+                set_tether_length(tether_length_3, host_playerdata.entity)
+            end
+        end
     end
 end
 

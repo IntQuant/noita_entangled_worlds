@@ -24,6 +24,8 @@ local gid_last_frame_updated = {}
 
 local wait_on_send = {}
 
+local wait_for_gid = {}
+
 function rpc.open_chest(gid)
     local ent = item_sync.find_by_gid(gid)
     if ent ~= nil then
@@ -37,6 +39,7 @@ function rpc.open_chest(gid)
             file = "data/scripts/items/chest_random.lua"
         end
         if file ~= nil then
+            wait_for_gid[gid] = GameGetFrameNum() + 600
             EntityAddComponent2(ent, "LuaComponent", {
                 script_source_file = file,
                 execute_on_added = true,
@@ -205,8 +208,6 @@ function item_sync.host_localize_item(gid, peer_id)
         rpc.hand_authority_over_to(peer_id, gid)
     end
 end
-
-local wait_for_gid = {}
 
 local function make_global(item, give_authority_to)
     if not EntityGetIsAlive(item) then
@@ -599,8 +600,7 @@ function rpc.item_globalize(item_data)
     end
     local item = inventory_helper.deserialize_single_item(item_data)
     add_stuff_to_globalized_item(item, item_data.gid)
-    local coms = EntityGetComponent(item, "VariableStorageComponent")
-    for _, com in ipairs(coms) do
+    for _, com in ipairs(EntityGetComponent(item, "VariableStorageComponent") or {}) do
         if ComponentGetValue2(com, "name") == "throw_time" then
             ComponentSetValue2(com, "value_int", GameGetFrameNum())
         end
