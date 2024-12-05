@@ -81,6 +81,12 @@ end
 function inventory_helper.deserialize_single_item(item_data)
     local x, y = item_data[2], item_data[3]
     local item = util.deserialize_entity(item_data[1], x, y)
+    local ability = ComponentGetValue2(item, "AbilityComponent")
+    if ability ~= nil then
+        ComponentSetValue2(ability, "mNextFrameUsable", 0)
+        ComponentSetValue2(ability, "mCastDelayStartFrame", 0)
+        ComponentSetValue2(ability, "mReloadNextFrameUsable", 0)
+    end
 
     if item_data.shop_info ~= nil then
         local item_cost_component = util.get_or_create_component(item, "ItemCostComponent")
