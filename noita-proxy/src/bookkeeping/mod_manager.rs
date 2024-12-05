@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env::{self, temp_dir},
     error::Error,
     fs::{self, File},
     io::BufReader,
@@ -236,7 +236,7 @@ impl Modmanager {
                 ui.label(mod_path.display().to_string());
                 ui.horizontal(|ui| {
                     if ui.button(tr("button_confirm")).clicked() {
-                        let download_path = PathBuf::from("mod.zip");
+                        let download_path = temp_dir().join("ewproxymod.zip");
                         let tag = Version::current().into();
                         let promise = Promise::spawn_thread("release-request", move || {
                             mod_downloader_for(tag, download_path)
