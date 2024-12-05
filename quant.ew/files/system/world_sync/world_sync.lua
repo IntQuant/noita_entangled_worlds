@@ -68,12 +68,12 @@ local function send_chunks(cx, cy, chunk_map)
         end
     end
 end
+local int = 4 -- ctx.proxy_opt.world_sync_interval
 
 local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     --local thread_impl = grid_world.mThreadImpl
-    local int = 4 -- ctx.proxy_opt.world_sync_interval
     if GameGetFrameNum() % int == 0 then
         send_chunks(ocx, ocy, chunk_map)
         local pri = priority
@@ -95,7 +95,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
             send_chunks(ocx, ocy - 1, chunk_map)
             send_chunks(ocx + 1, ocy - 1, chunk_map)
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 1, 16)))
+        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 1, 16))..pos_data)
         iter_fast = iter_fast + 1
         if iter_fast == 4 then
             iter_fast = 0
@@ -159,7 +159,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
             send_chunks(ocx + 3, ocy - 2, chunk_map)
             send_chunks(ocx + 3, ocy - 1, chunk_map)
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 2, 16)))
+        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 2, 16))..pos_data)
         iter_slow_2 = iter_slow_2 + 1
         if iter_slow_2 == 6 then
             iter_slow_2 = 0
@@ -184,7 +184,12 @@ function world_sync.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
         n = 1
     end
-    local pos_data = ocx..":"..ocy..":"..cx..":"..cy..":"..n
+    local pos_data
+    if GameGetFrameNum() % int ~= 0 and GameGetFrameNum() % (int * 4) == 3 then
+        pos_data = ocx..":"..ocy..":"..cx..":"..cy..":"..n ..":"..ctx.proxy_opt.world_num
+    else
+        pos_data = ctx.proxy_opt.world_num
+    end
     if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
         if GameGetFrameNum() % 3 ~= 2 then
             get_all_chunks(cx, cy, pos_data, 16, false)

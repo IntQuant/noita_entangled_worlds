@@ -62,11 +62,13 @@ pub(crate) enum WorldNetMessage {
     RelinquishAuthority {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
+        world_num: i32,
     },
     // Ttell how to update a chunk storage
     UpdateStorage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
+        world_num: i32,
     },
     // When listening
     AuthorityAlreadyTaken {
@@ -180,6 +182,7 @@ pub(crate) struct WorldManager {
     chunk_last_update: FxHashMap<ChunkCoord, u64>,
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
+    world_num: i32,
 }
 
 impl WorldManager {
@@ -201,6 +204,7 @@ impl WorldManager {
             current_update: 0,
             chunk_last_update: Default::default(),
             last_request_priority: Default::default(),
+            world_num: 0,
         }
     }
 
@@ -208,7 +212,7 @@ impl WorldManager {
         self.outbound_model.apply_noita_update(&update);
     }
 
-    pub(crate) fn add_end(&mut self, priority: u8, pos: Option<&[i32]>) {
+    pub(crate) fn add_end(&mut self, priority: u8, pos: &[i32]) {
         let updated_chunks = self
             .outbound_model
             .updated_chunks()
@@ -249,12 +253,15 @@ impl WorldManager {
         &mut self,
         chunk: ChunkCoord,
         priority: u8,
-        pos: Option<&[i32]>,
+        pos: &[i32],
     ) -> Vec<(OmniPeerId, u8)> {
-        if let Some(data) = pos {
-            self.my_pos = (data[0], data[1]);
-            self.cam_pos = (data[2], data[3]);
-            self.is_notplayer = data[4] == 1;
+        if pos.len() == 6 {
+            self.my_pos = (pos[0], pos[1]);
+            self.cam_pos = (pos[2], pos[3]);
+            self.is_notplayer = pos[4] == 1;
+            self.world_num = pos[5]
+        } else {
+            self.world_num = pos[0]
         }
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
             debug!("Created entry for {chunk:?}");
@@ -466,6 +473,7 @@ impl WorldManager {
                             WorldNetMessage::RelinquishAuthority {
                                 chunk,
                                 chunk_data: self.outbound_model.get_chunk_data(chunk),
+                                world_num: self.world_num,
                             },
                         ));
                         *state = ChunkState::UnloadPending;
@@ -676,18 +684,32 @@ impl WorldManager {
                     self.outbound_model.apply_chunk_data(chunk, &chunk_data);
                 }
             }
-            WorldNetMessage::UpdateStorage { chunk, chunk_data } => {
+            WorldNetMessage::UpdateStorage {
+                chunk,
+                chunk_data,
+                world_num,
+            } => {
                 if !self.is_host {
                     warn!("{} sent RelinquishAuthority to not-host.", source);
+                    return;
+                }
+                if world_num != self.world_num {
                     return;
                 }
                 if let Some(chunk_data) = chunk_data {
                     self.chunk_storage.insert(chunk, chunk_data);
                 }
             }
-            WorldNetMessage::RelinquishAuthority { chunk, chunk_data } => {
+            WorldNetMessage::RelinquishAuthority {
+                chunk,
+                chunk_data,
+                world_num,
+            } => {
                 if !self.is_host {
                     warn!("{} sent RelinquishAuthority to not-host.", source);
+                    return;
+                }
+                if world_num != self.world_num {
                     return;
                 }
                 if let Some(state) = self.authority_map.get(&chunk) {
@@ -864,6 +886,7 @@ impl WorldManager {
                         WorldNetMessage::RelinquishAuthority {
                             chunk,
                             chunk_data: None,
+                            world_num: self.world_num,
                         },
                     );
                 }
@@ -885,7 +908,11 @@ impl WorldManager {
                     let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Host,
-                        WorldNetMessage::UpdateStorage { chunk, chunk_data },
+                        WorldNetMessage::UpdateStorage {
+                            chunk,
+                            chunk_data,
+                            world_num: self.world_num,
+                        },
                     );
                 } else {
                     self.emit_msg(

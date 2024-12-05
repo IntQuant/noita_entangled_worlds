@@ -501,6 +501,7 @@ impl NetManager {
         } else {
             info!("No nickname chosen");
         }
+        state.try_ws_write_option("world_num", settings.world_num as u32);
         state.try_ws_write_option(
             "friendly_fire",
             settings.friendly_fire.unwrap_or(def.friendly_fire),
@@ -700,16 +701,11 @@ impl NetManager {
             }
             // world end
             1 => {
-                let pos = if data.len() > 1 {
-                    let pos = data[1..]
-                        .split(|b| *b == b':')
-                        .map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0))
-                        .collect::<Vec<i32>>();
-                    Some(pos)
-                } else {
-                    None
-                };
-                state.world.add_end(data[0], pos.as_deref());
+                let pos = data[1..]
+                    .split(|b| *b == b':')
+                    .map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0))
+                    .collect::<Vec<i32>>();
+                state.world.add_end(data[0], &pos);
             }
             key => {
                 error!("Unknown bin msg from mod: {:?}", key)
@@ -720,7 +716,7 @@ impl NetManager {
     fn end_run(&self, state: &mut NetInnerState) {
         self.init_settings.save_state.reset();
         {
-            let mut settings = self.pending_settings.lock().unwrap().clone();
+            let mut settings = self.pending_settings.lock().unwrap();
             if !settings.use_constant_seed {
                 settings.seed = rand::random();
             }
@@ -730,14 +726,18 @@ impl NetManager {
                 .modmanager_settings
                 .get_progress()
                 .unwrap_or_default();
-            *self.settings.lock().unwrap() = settings;
+            if settings.world_num == u16::MAX {
+                settings.world_num = 0
+            } else {
+                settings.world_num += 1
+            }
+            *self.settings.lock().unwrap() = settings.clone();
             state.world.reset();
             self.dirty.store(false, Ordering::Relaxed);
         }
         self.resend_game_settings();
     }
 }
-
 impl Drop for NetManager {
     fn drop(&mut self) {
         if self.is_host() {

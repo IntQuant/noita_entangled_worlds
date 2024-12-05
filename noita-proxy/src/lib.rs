@@ -67,6 +67,7 @@ pub(crate) enum GameMode {
 #[serde(default)]
 pub struct GameSettings {
     seed: u64,
+    world_num: u16,
     debug_mode: Option<bool>,
     world_sync_version: Option<u32>,
     use_constant_seed: bool,
@@ -1204,11 +1205,13 @@ impl App {
                     ConnectedMenu::Settings,
                     "Game Settings",
                 );
-                ui.selectable_value(
-                    &mut self.connected_menu,
-                    ConnectedMenu::ConnectionInfo,
-                    "Connection Info",
-                );
+                if netman.peer.is_steam() {
+                    ui.selectable_value(
+                        &mut self.connected_menu,
+                        ConnectedMenu::ConnectionInfo,
+                        "Connection Info",
+                    );
+                }
                 if !netman.ban_list.lock().unwrap().is_empty() {
                     ui.selectable_value(
                         &mut self.connected_menu,
