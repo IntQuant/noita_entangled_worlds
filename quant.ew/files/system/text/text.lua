@@ -9,7 +9,14 @@ local enabled = false
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.text(msg)
-    if not ModSettingGet("quant.ew.notext") then
+    local non_white = false
+    for i = 1, #msg do
+        if string.sub(msg, i, i) ~= " " then
+            non_white = true
+            break
+        end
+    end
+    if not ModSettingGet("quant.ew.notext") and non_white then
         GamePrint(ctx.rpc_player_data.name .. ": " ..msg)
     end
 end
