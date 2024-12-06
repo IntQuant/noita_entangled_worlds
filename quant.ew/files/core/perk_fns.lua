@@ -158,7 +158,7 @@ function perk_fns.update_perks(perk_data, player_data)
                 end
                 deal_with_globals(perk_id, count)
             else
-                wait_for_globals = GameGetFrameNum() + 600
+                wait_for_globals = GameGetFrameNum() + 60 * 60 * 20
                 EntityKill(entity)
             end
         end

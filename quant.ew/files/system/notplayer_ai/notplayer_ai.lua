@@ -810,12 +810,12 @@ local function choose_movement()
             if did_hit_down_10 then
                 local did_hit_3, _, _ = RaytracePlatforms(my_x, my_y, my_x + 100, my_y)
                 if not did_hit_3 then
-                    table.insert(state.stay_away, {my_x - 8, my_y + 8, nil, GameGetFrameNum() + 1200})
+                    table.insert(state.stay_away, {my_x - 8, my_y + 8, nil, GameGetFrameNum() + 60 * 60})
                 else
-                    table.insert(state.stay_away, {my_x + 8, my_y + 8, nil, GameGetFrameNum() + 1200})
+                    table.insert(state.stay_away, {my_x + 8, my_y + 8, nil, GameGetFrameNum() + 60 * 60})
                 end
             else
-                table.insert(state.stay_away, {my_x, my_y - 8, nil, GameGetFrameNum() + 1200})
+                table.insert(state.stay_away, {my_x, my_y - 8, nil, GameGetFrameNum() + 60 * 60})
                 material_gas = GameGetFrameNum() + 30
                 if (dist > 0 and did_hit_2) or (dist < 0 and did_hit_1) then
                     give_space = give_space + 10
@@ -840,7 +840,7 @@ local function choose_movement()
             end
         end
     elseif state.dtype == 32 or state.init_timer < no_shoot_time then
-        table.insert(state.stay_away, {my_x, my_y + 8, nil, GameGetFrameNum() + 1200})
+        table.insert(state.stay_away, {my_x, my_y + 8, nil, GameGetFrameNum() + 60 * 60})
         move = GameGetFrameNum() + 120
         state.control_w = true
         if my_x > t_x then
@@ -1275,18 +1275,20 @@ local function find_target()
             if EntityGetFilename(id) ~= 'data/entities/misc/invisibility_last_known_player_position.xml'
                     and EntityGetComponent(id, "GenomeDataComponent") ~= nil
                     and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil
-                    and EntityGetHerdRelation(root_id, id) < -10 then
+                    and EntityGetHerdRelation(root_id, id) < 40 then
                 local t_x, t_y = EntityGetTransform(id)
                 local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
                 local dx = x - t_x
                 local dy = y - t_y
                 local length = dx * dx + dy * dy
-                if not did_hit and not (IsInvisible(id) and length > INVIS_RANGE*INVIS_RANGE) then
+                if not did_hit
+                        and (state.last_did_hit or length < state.last_length)
+                        and not (IsInvisible(id) and length > INVIS_RANGE*INVIS_RANGE) then
                     state.last_did_hit = false
                     state.target = id
+                    state.last_length = length
                     target_is_polied = false
                     target_has_ambrosia = false
-                    break
                 end
             end
         end
