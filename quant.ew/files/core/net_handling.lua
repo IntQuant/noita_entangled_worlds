@@ -98,12 +98,19 @@ local function reset_cast_state_if_has_any_other_item(player_data)
     end
 end
 
+local fire_anyways = {"SUMMON_HOLLOW_EGG", "SUMMON_ROCK", "TNTBOX", "TNTBOX_BIG", "FISH", "LEVITATION_FIELD", "POLYMORPH_FIELD", "ALL_DISCS",
+                      "SHIELD_FIELD", "TELEPORTATION_FIELD", "BERSERK_FIELD", "ELECTROCUTION_FIELD", "FREEZE_FIELD", "CHAOS_POLYMORPH_FIELD",
+                      "BOMB_DETONATOR", "DESTRUCTION", "MASS_POLYMORPH", "ALL_ACID", "ALL_BLACKHOLES", "ALL_DEATHCROSSES", "ALL_ROCKETS", "ALL_NUKES",
+                      "CIRCLE_ACID", "SEA_ACID", "ALL_SPELLS", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER"}
+
 function net_handling.mod.fire(peer_id, fire_data)
     local player_data = player_fns.peer_get_player_data(peer_id)
     local entity = player_data.entity
     if not EntityGetIsAlive(entity) then
         return
     end
+    local inventory2Comp
+    local mActiveItem
     if ctx.my_id ~= ctx.host_id and EntityGetIsAlive(ctx.my_player.entity) then
         local x, y = EntityGetTransform(entity)
         local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
@@ -112,10 +119,24 @@ function net_handling.mod.fire(peer_id, fire_data)
         local cdx, cdy = cam_x - x, cam_y - y
         local DIST = 1024 * 1024
         if mdx * mdx + mdy * mdy > DIST and cdx * cdx + cdy * cdy > DIST then
+            inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
+            if inventory2Comp ~= nil then
+                mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+                if mActiveItem ~= nil then
+                    local children = EntityGetAllChildren(state.attack_wand)
+                    for _, child in pairs(children or {}) do
+                        local spell = EntityGetFirstComponentIncludingDisabled(child, "ItemActionComponent")
+                        local spell_name = ComponentGetValue2(spell, "action_id")
+                        if table.contains(fire_anyways, spell_name) then
+                            goto cont
+                        end
+                    end
+                end
+            end
             return
         end
     end
-
+    ::cont::
     local rng = fire_data[1]
     local message = fire_data[2]
 
@@ -133,13 +154,17 @@ function net_handling.mod.fire(peer_id, fire_data)
     local controlsComp = EntityGetFirstComponentIncludingDisabled(entity, "ControlsComponent")
 
     if controlsComp ~= nil then
-        local inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
+        if inventory2Comp == nil then
+            inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
+        end
 
         if (inventory2Comp == nil) then
             return
         end
 
-        local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+        if mActiveItem == nil then
+            mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+        end
 
         if mActiveItem ~= nil then
             local aimNormal_x, aimNormal_y = ComponentGetValue2(controlsComp, "mAimingVectorNormalized")
