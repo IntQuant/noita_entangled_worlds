@@ -33,6 +33,9 @@ local perks_to_ignore = {
     TRICK_BLOOD_MONEY = true,
     GOLD_IS_FOREVER = true,
     PEACE_WITH_GODS = true,
+    GLOBAL_GORE = true,
+    EXTRA_MONEY_TRICK_KILL = true,
+    EXTRA_MONEY = true,
 }
 
 local global_perks = {
@@ -40,10 +43,13 @@ local global_perks = {
     UNLIMITED_SPELLS = true,
     TRICK_BLOOD_MONEY = true,
     GOLD_IS_FOREVER = true,
+    EXTRA_MONEY_TRICK_KILL = true,
+    EXTRA_MONEY = true,
     PEACE_WITH_GODS = true,
     EXTRA_SHOP_ITEM = true,
     GENOME_MORE_LOVE = true,
     GENOME_MORE_HATRED = true,
+    GLOBAL_GORE = true,
 }
 
 function perk_fns.get_my_perks()
@@ -73,7 +79,7 @@ end
 
 local to_spawn = {}
 
-local function give_one_perk(entity_who_picked, perk_info, count)
+local function give_one_perk(entity_who_picked, perk_info, count, allow_globals)
     lazyload()
 
     if perk_info.ui_icon ~= nil then
@@ -83,7 +89,7 @@ local function give_one_perk(entity_who_picked, perk_info, count)
         EntityAddChild(entity_who_picked, icon)
     end
 
-    if not perks_to_ignore[perk_info.id] then
+    if not perks_to_ignore[perk_info.id] or (allow_globals and global_perks[perk_info.id]) then
         -- add game effect
         if perk_info.game_effect ~= nil then
             local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
@@ -120,20 +126,17 @@ local function give_one_perk(entity_who_picked, perk_info, count)
     end
 end
 
-local function deal_with_globals(perk_info, count)
-    if global_perks[perk_info.id] then
-        local n = perk_fns.get_my_perks()[perk_info.id] or 0
-        if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-            for _ = 1, count - n do
-                spawn_perk(perk_info, true)
-            end
-        elseif to_spawn[perk_info] ~= nil then
-            to_spawn[perk_info] = math.max(to_spawn[perk_info], count - n)
+local function deal_with_globals(perk_id, count)
+    if global_perks[perk_id] then
+        if to_spawn[perk_id] ~= nil then
+            to_spawn[perk_id] = math.max(to_spawn[perk_id], count)
         else
-            to_spawn[perk_info] = count - n
+            to_spawn[perk_id] = count
         end
     end
 end
+
+local wait_for_globals
 
 function perk_fns.update_perks(perk_data, player_data)
     lazyload()
@@ -142,7 +145,6 @@ function perk_fns.update_perks(perk_data, player_data)
     for perk_id, count in pairs(perk_data) do
         local current = (current_counts[perk_id] or 0)
         local diff = count - current
-        -- TODO handle diff < 0?
         if diff ~= 0 then
             local perk_info = get_perk_with_id(perk_list, perk_id)
             if perk_info == nil then
@@ -152,10 +154,13 @@ function perk_fns.update_perks(perk_data, player_data)
             if diff > 0 then
                 print("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
                 for i=current+1, count do
-                    give_one_perk(entity, perk_info, i)
+                    give_one_perk(entity, perk_info, i, false)
                 end
+                deal_with_globals(perk_id, count)
+            else
+                wait_for_globals = GameGetFrameNum() + 600
+                EntityKill(entity)
             end
-            deal_with_globals(perk_info, count)
         end
         ::continue::
     end
@@ -169,7 +174,6 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
     for perk_id, count in pairs(perk_data) do
         local current = (current_counts[perk_id] or 0)
         local diff = count - current
-        -- TODO handle diff < 0?
         if diff ~= 0 then
             local perk_info = get_perk_with_id(perk_list, perk_id)
             if perk_info == nil then
@@ -179,7 +183,7 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
             if diff > 0 then
                 if allow_perk(perk_info.id) then
                     for i=current+1, count do
-                        give_one_perk(entity, perk_info, i)
+                        give_one_perk(entity, perk_info, i, true)
                     end
                 end
             end
@@ -192,11 +196,17 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
 end
 
 function perk_fns.on_world_update()
-    if #to_spawn ~= 0 and GameGetFrameNum() % 60 == 40
+    if GameGetFrameNum() % 60 == 40
+            and (wait_for_globals == nil or GameGetFrameNum() > wait_for_globals)
             and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-        for perk_info, num in ipairs(to_spawn) do
-            for _ = 1, num do
-                spawn_perk(perk_info, true)
+        wait_for_globals = nil
+        for perk_id, num in pairs(to_spawn) do
+            local n = perk_fns.get_my_perks()[perk_id] or 0
+            if num > n then
+                local perk_info = get_perk_with_id(perk_list, perk_id)
+                for _ = 1, num - n do
+                    spawn_perk(perk_info, true)
+                end
             end
         end
         to_spawn = {}
