@@ -81,7 +81,7 @@ end
 function inventory_helper.deserialize_single_item(item_data)
     local x, y = item_data[2], item_data[3]
     local item = util.deserialize_entity(item_data[1], x, y)
-    local ability = ComponentGetValue2(item, "AbilityComponent")
+    local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
     if ability ~= nil then
         ComponentSetValue2(ability, "mNextFrameUsable", 0)
         ComponentSetValue2(ability, "mCastDelayStartFrame", 0)
@@ -239,12 +239,12 @@ end
 local function pickup_item(entity, item)
     local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
     if item_component then
-      ComponentSetValue2(item_component, "has_been_picked_by_player", true)
+        ComponentSetValue2(item_component, "has_been_picked_by_player", true)
     end
-                if EntityGetParent(item) ~= 0 then
-                    EntityRemoveFromParent(item)
-                end
-                EntityAddChild(entity, item)
+    if EntityGetParent(item) ~= 0 then
+        EntityRemoveFromParent(item)
+    end
+    EntityAddChild(entity, item)
 
     EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
     EntitySetComponentsWithTagEnabled( item, "enabled_in_hand", false )
@@ -253,7 +253,7 @@ local function pickup_item(entity, item)
     local wand_children = EntityGetAllChildren(item) or {}
 
     for _, _ in ipairs(wand_children)do
-      EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
+        EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
     end
 end
 
@@ -339,7 +339,7 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
         return
     end
 
-    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
+    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
     local inv_quick
     local inv_full
     local children = EntityGetAllChildren(player) or {}
@@ -393,13 +393,12 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
             np.SetActiveHeldEntity(player, active_item_entity, false, false)
         end
     end
-    async(function()
-        wait(1)
-        local inventory2Comp = EntityGetFirstComponentIncludingDisabled(player, "Inventory2Component")
-        if inventory2Comp ~= nil then
+    if inventory2Comp ~= nil then
+        async(function()
+            wait(1)
             ComponentSetValue2(inventory2Comp, "mForceRefresh", true)
-        end
-    end)
+        end)
+    end
 end
 
 function inventory_helper.has_inventory_changed(player_data)

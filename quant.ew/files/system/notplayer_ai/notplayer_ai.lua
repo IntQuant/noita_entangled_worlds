@@ -207,13 +207,7 @@ local function find_new_wand()
                 bad_mod = true
                 goto continue
             end
-            local dont_use = false
-            for _, name in ipairs(ignore_spell) do
-                if name == spell_name then
-                    dont_use = true
-                    break
-                end
-            end
+            local dont_use = table.contains(ignore_spell, spell_name)
             local item = EntityGetFirstComponentIncludingDisabled(child, "ItemComponent")
             if ComponentGetValue2(item, "uses_remaining") ~= 0 and is_proj and not dont_use then
                 is_any_not_empty = true
