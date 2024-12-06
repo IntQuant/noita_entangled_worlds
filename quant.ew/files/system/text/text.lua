@@ -99,26 +99,30 @@ end
 
 local function starttext()
     enabled = true
-    local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if g ~= nil then
         EntitySetComponentIsEnabled(ctx.my_player.entity, g, false)
     end
-    if controls ~= nil then
-        ComponentSetValue2(controls, "enabled", false)
+    if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+        if controls ~= nil then
+            ComponentSetValue2(controls, "enabled", false)
+        end
     end
 end
 
 local function stoptext()
     enabled = false
     text = ""
-    local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if g ~= nil then
         EntitySetComponentIsEnabled(ctx.my_player.entity, g, true)
     end
-    if controls ~= nil then
-        ComponentSetValue2(controls, "enabled", true)
+    if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+        if controls ~= nil then
+            ComponentSetValue2(controls, "enabled", true)
+        end
     end
 end
 

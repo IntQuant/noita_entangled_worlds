@@ -1228,6 +1228,7 @@ impl App {
                     let mut old_settings = netman.settings.lock().unwrap().clone();
                     old_settings.progress.clear();
                     old_settings.seed = new_settings.seed;
+                    old_settings.world_num = new_settings.world_num;
                     netman
                         .dirty
                         .store(old_settings != new_settings, Ordering::Relaxed)
