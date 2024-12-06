@@ -67,6 +67,9 @@ end
 
 local function spawn_perk(perk_info, auto_pickup_entity)
     local x, y = EntityGetTransform(ctx.my_player.entity)
+    if x == nil then
+        return
+    end
     local perk_entity = perk_spawn(x, y - 8, perk_info.id)
     if auto_pickup_entity then
         perk_pickup(perk_entity, auto_pickup_entity, nil, true, false)
