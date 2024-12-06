@@ -186,7 +186,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
                 rng = initial_rng
                 table.insert(shooter_player_data.projectile_rng_init, rng)
             else
-                rng = (shooter_player_data.projectile_seed_chain[shooter_id] or 0) + 25
+                rng = (shooter_player_data.projectile_seed_chain[shooter_id - 1] or 0) + 25
             end
         else
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
@@ -196,13 +196,13 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             if #shooter_player_data.projectile_rng_init > 0 then
                 rng = table.remove(shooter_player_data.projectile_rng_init, 1)
             else
-                -- Shouldn't happen
-                rng = (shooter_player_data.projectile_seed_chain[shooter_id] or 0) + 25 --TODO cursed egg shinanigans
+                rng = (shooter_player_data.projectile_seed_chain[shooter_id - 1] or 0) + 25
             end
         else
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     end
+    shooter_player_data.projectile_seed_chain[shooter_id - 1] = rng
     shooter_player_data.projectile_seed_chain[entity_that_shot] = rng
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
