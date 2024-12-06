@@ -30,6 +30,22 @@ function module.on_player_died(player_entity)
     -- Also inventory items seem to be borked.
 end
 
+local function get_gold()
+    local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
+    if wallet ~= nil then
+        return ComponentGetValue2(wallet, "money")
+    end
+end
+
+local function set_gold(gold)
+    if gold ~= nil then
+        local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+        if wallet ~= nil then
+            ComponentSetValue2(wallet, "money", gold)
+        end
+    end
+end
+
 rpc.opts_everywhere()
 function rpc.remove_homing(clear_area)
     local x, y
@@ -308,6 +324,7 @@ local function player_died()
         GameAddFlagRun("msg_gods_looking2")
         return
     end
+    local gold = get_gold()
 
     rpc.remove_homing(false)
     -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
@@ -366,6 +383,7 @@ local function player_died()
     util.set_ent_health(ctx.my_player.entity, {max_hp, max_hp})
     util.set_ent_health_cap(ctx.my_player.entity, cap)
     rpc.add_nickname_change_cursor()
+    set_gold(gold)
 end
 
 local function do_game_over(message)
@@ -530,6 +548,7 @@ ctx.cap.health = {
             if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") or ctx.proxy_opt.no_notplayer then
                 return
             end
+            local gold = get_gold()
             rpc.remove_homing(true)
             local item_data = inventory_helper.get_item_data(ctx.my_player)
             remove_inventory()
@@ -559,6 +578,7 @@ ctx.cap.health = {
             end
             reduce_hp()
             spectate.disable_throwing(false, ctx.my_player.entity)
+            set_gold(gold)
         else
             polymorph.switch_entity(end_poly_effect(ctx.my_player.entity))
             local _, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)
