@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bitcode = "0.6.3"
+bitcode = "0.6.0"
 eyre = "0.6.12"
 tracing = "0.1.41"
