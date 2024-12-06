@@ -431,6 +431,11 @@ local function send_item_positions(all)
                         end
                     end
                     position_data[gid] = {x, y, phys_info, cost}
+                    if EntityHasTag(item, "egg_item") then
+                        if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") ~= nil then
+                            position_data[gid][5] = true
+                        end
+                    end
                 end
             end
         end
@@ -657,6 +662,10 @@ local function cleanup(peer)
     end
 end
 
+function rpc.kill_egg(gid)
+    item_sync.remove_item_with_id_now(gid)
+end
+
 function rpc.update_positions(position_data, all)
     if frame[ctx.rpc_peer_id] == nil or all then
         frame[ctx.rpc_peer_id] = GameGetFrameNum()
@@ -689,10 +698,14 @@ function rpc.update_positions(position_data, all)
                         ComponentSetValue2(costcom, "cost", price)
                     end
                 end
-            elseif wait_for_gid[gid] == nil and el.egg == nil then
-                util.log("Requesting again "..gid)
-                rpc.request_send_again(gid)
-                wait_for_gid[gid] = GameGetFrameNum() + 300
+            elseif wait_for_gid[gid] == nil then
+                if el[5] ~= nil then
+                    rpc.kill_egg(gid)
+                else
+                    util.log("Requesting again "..gid)
+                    rpc.request_send_again(gid)
+                    wait_for_gid[gid] = GameGetFrameNum() + 300
+                end
             end
         end
         ::continue::
