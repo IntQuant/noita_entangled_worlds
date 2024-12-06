@@ -23,15 +23,18 @@ end
 
 function module.on_world_update()
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
+        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
         local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
         if enabled then
             rpc.text(string.sub(text, 1, -1))
             text = ""
             if gui ~= nil then
                 EntitySetComponentIsEnabled(ctx.my_player.entity, g, true)
+                ComponentSetValue2(controls, "enabled", true)
             end
         elseif gui ~= nil then
             EntitySetComponentIsEnabled(ctx.my_player.entity, g, false)
+            ComponentSetValue2(controls, "enabled", false)
         end
         enabled = not enabled
     end
