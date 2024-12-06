@@ -123,7 +123,7 @@ function net_handling.mod.fire(peer_id, fire_data)
             if inventory2Comp ~= nil then
                 mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
                 if mActiveItem ~= nil then
-                    local children = EntityGetAllChildren(state.attack_wand)
+                    local children = EntityGetAllChildren(mActiveItem)
                     for _, child in pairs(children or {}) do
                         local spell = EntityGetFirstComponentIncludingDisabled(child, "ItemActionComponent")
                         local spell_name = ComponentGetValue2(spell, "action_id")

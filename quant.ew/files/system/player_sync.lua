@@ -84,7 +84,7 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     end
 end
 
-function rpc.check_gamemode(gamemode, seed)
+function rpc.check_gamemode(gamemode, seed, world_num)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
     local not_fine = gamemode ~= gm
@@ -104,6 +104,12 @@ function rpc.check_gamemode(gamemode, seed)
         GamePrint("his seed: ".. seed)
         GamePrint("your seed: ".. my_seed)
     end
+    if world_num ~= ctx.proxy_opt.world_num then
+        GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different world number then you")
+        GamePrint("his num: ".. world_num)
+        GamePrint("your num: ".. ctx.proxy_opt.world_num)
+        GamePrint("world sync stops from this")
+    end
 end
 
 function module.on_world_update()
@@ -119,7 +125,7 @@ function module.on_world_update()
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
         if GameGetFrameNum() % 120 == 0 then
             local n = np.GetGameModeNr()
-            rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"))
+            rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"), ctx.proxy_opt.world_num)
         end
     end
 
