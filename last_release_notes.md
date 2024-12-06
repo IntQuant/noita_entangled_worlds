@@ -1,16 +1,20 @@
-## Noita Entangled Worlds v0.31.3
+## Noita Entangled Worlds v0.31.4
 
-- try to fix chest duping
+- fix hollow egg, dormant/unstable crystal with trigger being weird with rng
 
-- fix some errors
+- fix some high level wand crafting with divide-bys
 
-- try to make new game plus and orb sync more consistent
+- use a temporary directory when updating the mod
 
-- try to not store chunks from someone in a different world
+- disable single threaded loading if enabled
 
-- fix divide by/trigger chains having bad rng
+- fix settings menu not being correct on clients
 
-- fix wands being unusable sometimes when someone drops them
+- dont print empty strings in chat
+
+- dont send attract gold perk
+
+- move extra shop and genome perks to globals
 
 ## Accepted pull requests
 
