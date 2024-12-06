@@ -904,7 +904,10 @@ local function teleport_to_area(area)
         elseif area == 4 then
             x, y = 191, 10722
         elseif area == 5 then
-            x, y = 3244, 13084
+            if no_tp == nil then
+                no_tp = true
+                x, y = 3244, 13084
+            end
         elseif area == 6 then
             if no_tp == nil then
                 no_tp = true
@@ -923,7 +926,10 @@ local function teleport_to_area(area)
         elseif area == 4 then
             x, y = 191, 10722
         elseif area == 5 then
-            x, y = 3244, 13084
+            if no_tp == nil then
+                no_tp = true
+                x, y = 3244, 13084
+            end
         elseif area == 6 then
             if no_tp == nil then
                 no_tp = true
@@ -946,7 +952,10 @@ local function teleport_to_area(area)
         elseif area == 6 then
             x, y = 191, 10730
         elseif area == 7 then
-            x, y = 3244, 13084
+            if no_tp == nil then
+                no_tp = true
+                x, y = 3244, 13084
+            end
         elseif area == 8 then
             if no_tp == nil then
                 no_tp = true
