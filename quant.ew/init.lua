@@ -162,7 +162,7 @@ local function fire()
 end
 
 function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
-    unknown1, multicast_index, unknown3)
+                           unknown1, multicast_index, unknown3)
     ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
@@ -182,8 +182,12 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     if shooter_id == ctx.my_player.entity then
         -- If it was an initial shot by host
         if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
-            rng = initial_rng
-            table.insert(shooter_player_data.projectile_rng_init, rng)
+            if tonumber(GlobalsGetValue("ew_wand_fired", "0")) ~= 0 then
+                rng = initial_rng
+                table.insert(shooter_player_data.projectile_rng_init, rng)
+            else
+                rng = (shooter_player_data.projectile_seed_chain[shooter_id] or 0) + 25
+            end
         else
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
@@ -193,7 +197,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
                 rng = table.remove(shooter_player_data.projectile_rng_init, 1)
             else
                 -- Shouldn't happen
-                rng = 0
+                rng = (shooter_player_data.projectile_seed_chain[shooter_id] or 0) + 25 --TODO cursed egg shinanigans
             end
         else
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
