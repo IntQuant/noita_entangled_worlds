@@ -1,26 +1,25 @@
-## Noita Entangled Worlds v0.31.4
+## Noita Entangled Worlds v0.31.5
 
-- fix hollow egg, dormant/unstable crystal with trigger being weird with rng
+- fix egg more
 
-- fix some high level wand crafting with divide-bys
+- reset perks better, maybe fix global perk duping
 
-- use a temporary directory when updating the mod
+- always cast some spells independent on how far away player is
 
-- disable single threaded loading if enabled
+- fix wands not being usable if someone drops it sometimes but not broken this time
 
-- fix settings menu not being correct on clients
+- make notplayer deal with egg enemies better
 
-- dont print empty strings in chat
+- add delete key and pause menu to stop chat
 
-- dont send attract gold perk
+- warn on world number being different
 
-- move extra shop and genome perks to globals
+- add chat history
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- chat history feature by @sad-username-231 in #266
+- stop player controls from working when typing on chat, can prevent you walking into lava when typing or something like that by @ZXb125 in #264
 ## Installation
 
 

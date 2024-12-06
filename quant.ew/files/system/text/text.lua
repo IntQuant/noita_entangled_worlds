@@ -92,21 +92,13 @@ end
 
 function rpc.text(msg)
     if not ModSettingGet("quant.ew.notext") then
-        local non_white = false
-        for i = 1, utf8len(msg) do
-            if utf8sub(msg, i, i) ~= " " then
-                non_white = true
-                break
-            end
-        end
-        if non_white then
-            GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
-            saveMessage(ctx.rpc_player_data.name, msg)
-        end
+        GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
+        saveMessage(ctx.rpc_player_data.name, msg)
     end
 end
 
 local function starttext()
+    enabled = true
     local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if g ~= nil then
@@ -118,6 +110,7 @@ local function starttext()
 end
 
 local function stoptext()
+    enabled = false
     text = ""
     local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
@@ -132,17 +125,25 @@ end
 function module.on_world_update()
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
         if enabled then
-            rpc.text(text)
-            text = ""
+            local non_white = false
+            for i = 1, utf8len(text) do
+                if utf8sub(text, i, i) ~= " " then
+                    non_white = true
+                    break
+                end
+            end
+            if non_white then
+                rpc.text(text)
+            end
             stoptext()
         else
             starttext()
         end
-        enabled = not enabled
     end
 
-    if enabled and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext"))) or ctx.is_paused or ctx.is_wand_pickup) then
-        enabled = false
+    if enabled
+            and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext")))
+                or ctx.is_paused or ctx.is_wand_pickup) then
         stoptext()
     end
 
