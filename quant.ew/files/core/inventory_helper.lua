@@ -149,7 +149,16 @@ function inventory_helper.get_item_data(player_data, fresh)
 
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
 
-        if(entity_is_wand(item))then
+        local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg")
+        if var ~= nil then
+            table.insert(wandData,
+                    {
+                        egg = ComponentGetValue2(var, "value_int"),
+                        slot_x = slot_x,
+                        slot_y = slot_y,
+                        active = (mActiveItem == item)
+                    })
+        elseif(entity_is_wand(item))then
             table.insert(wandData,
                     {
                         data = inventory_helper.serialize_single_item(item),
@@ -260,7 +269,15 @@ local function get_item(itemInfo, inv, player, local_ent)
     --local x, y = EntityGetTransform(player)
     local item_entity
     local item
-    if(itemInfo.is_wand)then
+    if itemInfo.egg ~= nil then
+        for _, ent in ipairs(EntityGetWithTag("egg_item")) do
+            local var = EntityGetFirstComponentIncludingDisabled(ent, "VariableStorageComponent", "ew_egg")
+            if ComponentGetValue2(var, "value_int") == itemInfo.egg then
+                item = ent
+                break
+            end
+        end
+    elseif(itemInfo.is_wand)then
         item = inventory_helper.deserialize_single_item(itemInfo.data)
         remove_non_send(item)
         item = EZWand(item)
@@ -275,7 +292,10 @@ local function get_item(itemInfo, inv, player, local_ent)
         return
     end
 
-    if(itemInfo.is_wand)then
+    if itemInfo.egg ~= nil then
+        pickup_item(inv, item)
+        item_entity = item
+    elseif(itemInfo.is_wand)then
         EntityAddTag(item.entity_id, "ew_client_item")
         item:PickUp(player)
         item_entity = item.entity_id
@@ -296,9 +316,11 @@ local function get_item(itemInfo, inv, player, local_ent)
         active_item_entity = item_entity
     end
     if not local_ent then
-        EntityAddComponent(item_entity, "LuaComponent", {
-            script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
-        })
+        if itemInfo.egg == nil then
+            EntityAddComponent(item_entity, "LuaComponent", {
+                script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
+            })
+        end
         local notify = EntityGetFirstComponentIncludingDisabled(item_entity, "LuaComponent", "ew_notify_component")
         if notify ~= nil then
             EntityRemoveComponent(item_entity, notify)
@@ -327,7 +349,8 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
             local inv = EntityGetAllChildren(child)
             if inv ~= nil then
                 for _, item in pairs(inv) do
-                    if not EntityHasTag(item, "polymorphed_player") then
+                    if not EntityHasTag(item, "polymorphed_player")
+                            and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") == nil then
                         EntityKill(item)
                     end
                 end
@@ -337,9 +360,7 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
             local inv = EntityGetAllChildren(child)
             if inv ~= nil then
                 for _, item in pairs(inv) do
-                    if not EntityHasTag(item, "polymorphed_player") then
-                        EntityKill(item)
-                    end
+                    EntityKill(item)
                 end
             end
         end

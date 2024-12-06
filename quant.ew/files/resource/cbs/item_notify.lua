@@ -10,6 +10,3 @@ function item_pickup()
     end
     GlobalsSetValue("ew_picked", tostring(ent))
 end
-
-function kick()
-end

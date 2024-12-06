@@ -77,7 +77,6 @@ function item_sync.ensure_notify_component(ent)
             _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_notify_component,ew_remove_on_send",
             script_throw_item = "mods/quant.ew/files/resource/cbs/item_notify.lua",
             script_item_picked_up = "mods/quant.ew/files/resource/cbs/item_notify.lua",
-            -- script_kick = "mods/quant.ew/files/resource/cbs/item_notify.lua",
         })
     end
 end
@@ -488,7 +487,9 @@ function item_sync.on_world_update()
         mark_in_inventory(ctx.my_player)
     end
     local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(item_sync.get_global_item_id(thrown_item))) then
+    if thrown_item ~= nil
+            and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(item_sync.get_global_item_id(thrown_item)))
+            and EntityGetFirstComponentIncludingDisabled(thrown_item, "VariableStorageComponent", "ew_egg") == nil then
         item_sync.make_item_global(thrown_item)
     end
 
@@ -688,7 +689,7 @@ function rpc.update_positions(position_data, all)
                         ComponentSetValue2(costcom, "cost", price)
                     end
                 end
-            elseif wait_for_gid[gid] == nil then
+            elseif wait_for_gid[gid] == nil and el.egg == nil then
                 util.log("Requesting again "..gid)
                 rpc.request_send_again(gid)
                 wait_for_gid[gid] = GameGetFrameNum() + 300
