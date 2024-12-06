@@ -1275,7 +1275,8 @@ local function find_target()
             if EntityGetFilename(id) ~= 'data/entities/misc/invisibility_last_known_player_position.xml'
                     and EntityGetComponent(id, "GenomeDataComponent") ~= nil
                     and EntityGetComponent(root_id, "GenomeDataComponent") ~= nil
-                    and EntityGetHerdRelation(root_id, id) < 40 then
+                    and EntityGetHerdRelation(root_id, id) < 40
+                    and EntityGetFilename(id) ~= "data/entities/misc/perks/lukki_minion.xml" then
                 local t_x, t_y = EntityGetTransform(id)
                 local did_hit, _, _ = RaytracePlatforms(x, y, t_x, t_y)
                 local dx = x - t_x
