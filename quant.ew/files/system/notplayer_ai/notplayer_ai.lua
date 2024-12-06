@@ -885,6 +885,13 @@ local function choose_movement()
     end
 end
 
+local function float()
+    local character_data = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent")
+    ComponentSetValue2(character_data, "mVelocity", 0, -40)
+end
+
+local no_tp
+
 local function teleport_to_area(area)
     local x, y
     if np.GetGameModeNr() == 2 then
@@ -898,7 +905,12 @@ local function teleport_to_area(area)
             x, y = 191, 10722
         elseif area == 5 then
             x, y = 3244, 13084
-        elseif area == 9 then
+        elseif area == 6 then
+            if no_tp == nil then
+                no_tp = true
+                x, y = 1900, 13100
+            end
+        elseif area == 8 then
             x, y = 6400, 15000
         end
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
@@ -912,7 +924,12 @@ local function teleport_to_area(area)
             x, y = 191, 10722
         elseif area == 5 then
             x, y = 3244, 13084
-        elseif area == 9 then
+        elseif area == 6 then
+            if no_tp == nil then
+                no_tp = true
+                x, y = 1900, 13100
+            end
+        elseif area == 8 then
             x, y = 6400, 15000
         end
     else
@@ -930,7 +947,12 @@ local function teleport_to_area(area)
             x, y = 191, 10730
         elseif area == 7 then
             x, y = 3244, 13084
-        elseif area == 9 then
+        elseif area == 8 then
+            if no_tp == nil then
+                no_tp = true
+                x, y = 1900, 13100
+            end
+        elseif area == 10 then
             x, y = 6400, 15000
         end
     end
@@ -939,6 +961,7 @@ local function teleport_to_area(area)
             EntitySetTransform(ctx.my_player.entity, x, y)
             wait(30)
             EntitySetTransform(ctx.my_player.entity, x, y)
+            float()
         end)
     end
 end
@@ -981,11 +1004,6 @@ local function teleport_to_next_hm()
     if my_area_num < others_area_num then
         teleport_to_area(others_area_num - 1)
     end
-end
-
-local function float()
-    local character_data = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent")
-    ComponentSetValue2(character_data, "mVelocity", 0, -40)
 end
 
 local function teleport_outside_cursed()

@@ -34,9 +34,11 @@ function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
-            return 10
-        else
+            return 11
+        elseif not is_in_box(3000, 4200, 12800, 13500, x, y) then
             return 6
+        else
+            return 7
         end
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
         if y < 1199 then
@@ -50,9 +52,11 @@ function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
         elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
-            return 10
-        else
+            return 11
+        elseif not is_in_box(3000, 4200, 12800, 13500, x, y) then
             return 6
+        else
+            return 7
         end
     else
         if y < 1199 then
@@ -70,9 +74,11 @@ function position_to_area_number(x, y)
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 7
         elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
-            return 10
-        else
+            return 11
+        elseif not is_in_box(3000, 4200, 12800, 13500, x, y) then
             return 8
+        else
+            return 9
         end
     end
 end
