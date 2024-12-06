@@ -57,14 +57,6 @@ util.add_cross_call("ew_randomize_perks", function()
     return ctx.proxy_opt.randomize_perks
 end)
 
-rpc.opts_everywhere()
-function rpc.sync_perk_amount(items, genome)
-    GlobalsSetValue("TEMPLE_SHOP_ITEM_COUNT", tostring(items))
-    local world = GameGetWorldStateEntity()
-    local com = EntityGetFirstComponent(world, "WorldStateComponent")
-    ComponentSetValue(com, "global_genome_relations_modifier", tostring(genome))
-end
-
 local function become_rat(entity_who_picked)
     local child_id = EntityLoad( "data/entities/verlet_chains/tail/verlet_tail.xml", x, y )
     EntityAddTag( child_id, "perk_entity" )
@@ -219,28 +211,6 @@ end
 function module.on_world_update()
     if GameGetFrameNum() == 5 then
         default_items = tonumber(GlobalsGetValue("TEMPLE_SHOP_ITEM_COUNT", "5"))
-    end
-    if ctx.is_host and GameGetFrameNum() % 120 == 24 then
-        local items = default_items
-        local genome = 0
-        for peer, player in pairs(ctx.players) do
-            local perks = {}
-            if peer == ctx.my_id then
-                perks = perk_fns.get_my_perks()
-            else
-                perks = util.get_ent_variable(player.entity, "ew_current_perks") or {}
-            end
-            for perk, count in pairs(perks) do
-                if perk == "EXTRA_SHOP_ITEM" then
-                    items = items + count
-                elseif perk == "GENOME_MORE_LOVE" then
-                    genome = genome + count
-                elseif perk == "GENOME_MORE_HATRED" then
-                    genome = genome - count
-                end
-            end
-        end
-        rpc.sync_perk_amount(items, genome * 25)
     end
     if GameGetFrameNum() % 60 == 26 then
         rpc.send_mutations(

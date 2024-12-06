@@ -25,6 +25,14 @@ local perks_to_ignore = {
     LUKKI_MINION = true,
     EDIT_WANDS_EVERYWHERE = true,
     ATTRACT_ITEMS = true,
+    EXTRA_SHOP_ITEM = true,
+    GENOME_MORE_LOVE = true,
+    GENOME_MORE_HATRED = true,
+    NO_MORE_SHUFFLE = true,
+    UNLIMITED_SPELLS = true,
+    TRICK_BLOOD_MONEY = true,
+    GOLD_IS_FOREVER = true,
+    PEACE_WITH_GODS = true,
 }
 
 local global_perks = {
@@ -32,7 +40,10 @@ local global_perks = {
     UNLIMITED_SPELLS = true,
     TRICK_BLOOD_MONEY = true,
     GOLD_IS_FOREVER = true,
-    PEACE_WITH_GODS = true
+    PEACE_WITH_GODS = true,
+    EXTRA_SHOP_ITEM = true,
+    GENOME_MORE_LOVE = true,
+    GENOME_MORE_HATRED = true,
 }
 
 function perk_fns.get_my_perks()
@@ -107,15 +118,20 @@ local function give_one_perk(entity_who_picked, perk_info, count)
             EntityAddChild( entity_who_picked, particle_id )
         end
     end
+end
 
-    if global_perks[perk_info.id]
-            and perk_fns.get_my_perks()[perk_info.id] == nil then
+local function deal_with_globals(perk_info, count)
+    if global_perks[perk_info.id] then
+        local n = perk_fns.get_my_perks()[perk_info.id] or 0
         if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-            spawn_perk(perk_info, true)
+            for _ = 1, count - n do
+                spawn_perk(perk_info, true)
+            end
+        elseif to_spawn[perk_info] ~= nil then
+            to_spawn[perk_info] = math.max(to_spawn[perk_info], count - n)
         else
-            table.insert(to_spawn, perk_info)
+            to_spawn[perk_info] = count - n
         end
-        global_perks[perk_info.id] = false
     end
 end
 
@@ -139,6 +155,7 @@ function perk_fns.update_perks(perk_data, player_data)
                     give_one_perk(entity, perk_info, i)
                 end
             end
+            deal_with_globals(perk_info, count)
         end
         ::continue::
     end
@@ -175,10 +192,12 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
 end
 
 function perk_fns.on_world_update()
-    if to_spawn ~= {} and GameGetFrameNum() % 60 == 40
+    if #to_spawn ~= 0 and GameGetFrameNum() % 60 == 40
             and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-        for _, perk_info in ipairs(to_spawn) do
-            spawn_perk(perk_info, true)
+        for perk_info, num in ipairs(to_spawn) do
+            for _ = 1, num do
+                spawn_perk(perk_info, true)
+            end
         end
         to_spawn = {}
     end
