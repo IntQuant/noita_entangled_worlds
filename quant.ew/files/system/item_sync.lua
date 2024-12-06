@@ -39,7 +39,7 @@ function rpc.open_chest(gid)
             file = "data/scripts/items/chest_random.lua"
         end
         if file ~= nil then
-            wait_for_gid[gid] = GameGetFrameNum() + 600
+            wait_for_gid[gid] = GameGetFrameNum() + 3600
             EntityAddComponent2(ent, "LuaComponent", {
                 script_source_file = file,
                 execute_on_added = true,
