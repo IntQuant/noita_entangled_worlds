@@ -52,6 +52,25 @@ local global_perks = {
     GLOBAL_GORE = true,
 }
 
+local function set_lukki(entity, peer_id)
+    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+        for _, sprite in ipairs(EntityGetComponent(child, "SpriteComponent") or {}) do
+            local img = ComponentGetValue(sprite, "image_file")
+            local new
+            if img == "data/entities/misc/perks/attack_foot/limb_a.png" then
+                new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_limb_a.png"
+            elseif img == "data/entities/misc/perks/attack_foot/limb_B.png" then
+                new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_limb_b.png"
+            elseif img == "data/entities/misc/perks/attack_foot/knee.png" then
+                new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_knee.png"
+            end
+            if new ~= nil then
+                ComponentSetValue(sprite, "image_file", new)
+            end
+        end
+    end
+end
+
 function perk_fns.get_my_perks()
     lazyload()
     local perks = {}
@@ -60,6 +79,9 @@ function perk_fns.get_my_perks()
         local perk_count = tonumber(GlobalsGetValue(perk_flag_name .. "_PICKUP_COUNT", "0"))
         if perk_count > 0 then
             perks[perk_list[i].id] = perk_count
+            if perk_list[i].id == "ATTACK_FOOT" then
+                set_lukki(ctx.my_player.entity, ctx.my_id)
+            end
         end
     end
     return perks
@@ -82,7 +104,7 @@ end
 
 local to_spawn = {}
 
-local function give_one_perk(entity_who_picked, perk_info, count, allow_globals)
+local function give_one_perk(entity_who_picked, perk_info, count, allow_globals, peer_id)
     lazyload()
 
     if perk_info.ui_icon ~= nil then
@@ -112,6 +134,9 @@ local function give_one_perk(entity_who_picked, perk_info, count, allow_globals)
 
         if perk_info.func ~= nil then
             perk_info.func( 0, entity_who_picked, "", count )
+            if perk_info.id == "ATTACK_FOOT" and peer_id ~= nil then
+                set_lukki(entity_who_picked, peer_id)
+            end
         end
 
         local no_remove = perk_info.do_not_remove or false
@@ -157,7 +182,7 @@ function perk_fns.update_perks(perk_data, player_data)
             if diff > 0 then
                 print("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
                 for i=current+1, count do
-                    give_one_perk(entity, perk_info, i, false)
+                    give_one_perk(entity, perk_info, i, false, player_data.peer_id)
                 end
                 deal_with_globals(perk_id, count)
             else

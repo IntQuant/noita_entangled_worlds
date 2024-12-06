@@ -363,6 +363,21 @@ pub fn create_player_png(
         tmp_path.join(format!("tmp/{}_cursor.png", id)),
         &rgb,
     );
+    replace_colors(
+        tmp_path.join("knee.png"),
+        tmp_path.join(format!("tmp/{}_knee.png", id)),
+        &rgb,
+    );
+    replace_colors(
+        tmp_path.join("limb_a.png"),
+        tmp_path.join(format!("tmp/{}_limb_a.png", id)),
+        &rgb,
+    );
+    replace_colors(
+        tmp_path.join("limb_b.png"),
+        tmp_path.join(format!("tmp/{}_limb_b.png", id)),
+        &rgb,
+    );
     replace_colors(map_icon, tmp_path.join(format!("tmp/{}_map.png", id)), &rgb);
     let ragdoll_path = tmp_path.join(format!("tmp/{}_ragdoll.txt", id));
     if ragdoll_path.exists() {
