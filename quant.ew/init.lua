@@ -225,6 +225,7 @@ function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, posit
 end
 
 function OnPausedChanged(paused, is_wand_pickup)
+    ctx.is_paused = paused
     ctx.is_wand_pickup = is_wand_pickup
     local players = EntityGetWithTag("player_unit") or {}
 

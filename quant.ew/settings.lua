@@ -157,6 +157,15 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "stoptext",
+                    ui_name = "stop text",
+                    ui_description = "bye",
+                    value_default = "76",
+                    ui_fn = ui_get_input,
+                    is_waiting_for_input = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "notext",
                     ui_name = "no text",
                     ui_description = ":c",

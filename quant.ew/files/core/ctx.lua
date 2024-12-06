@@ -24,6 +24,7 @@ ctx.init = function()
     ctx.is_inventory_open = false
     ctx.rpc_peer_id = nil
     ctx.is_wand_pickup = false
+    ctx.is_paused = false
     ctx.host_frame_num = 0
 end
 

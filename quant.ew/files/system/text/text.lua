@@ -21,22 +21,42 @@ function rpc.text(msg)
     end
 end
 
+local function stoptext()
+    text = ""
+    local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+    local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
+    if g ~= nil then
+        EntitySetComponentIsEnabled(ctx.my_player.entity, g, true)
+    end
+    if controls ~= nil then
+        ComponentSetValue2(controls, "enabled", true)
+    end
+end
+
+local function starttext()
+    local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
+    local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
+    if g ~= nil then
+        EntitySetComponentIsEnabled(ctx.my_player.entity, g, false)
+    end
+    if controls ~= nil then
+        ComponentSetValue2(controls, "enabled", false)
+    end
+end
+
 function module.on_world_update()
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
-        local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-        local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
         if enabled then
             rpc.text(string.sub(text, 1, -1))
-            text = ""
-            if gui ~= nil then
-                EntitySetComponentIsEnabled(ctx.my_player.entity, g, true)
-                ComponentSetValue2(controls, "enabled", true)
-            end
-        elseif gui ~= nil then
-            EntitySetComponentIsEnabled(ctx.my_player.entity, g, false)
-            ComponentSetValue2(controls, "enabled", false)
+            stoptext()
+        else
+            starttext()
         end
         enabled = not enabled
+    end
+    if enabled and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext"))) or ctx.is_paused or ctx.is_wand_pickup) then
+        enabled = false
+        stoptext()
     end
     if enabled then
         GuiStartFrame(gui)
