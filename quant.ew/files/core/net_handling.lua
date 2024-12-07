@@ -1,10 +1,4 @@
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
-local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
-
-local np = require("noitapatcher")
 
 local net_handling = {
     proxy = {},

@@ -1,5 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-
 ModLuaFileAppend("data/scripts/misc/no_heal_in_meat_biome.lua", "mods/quant.ew/files/system/patch_meat_biome/append/biome_check.lua")
 
 local is_in_meat_current = false

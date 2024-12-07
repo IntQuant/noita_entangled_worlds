@@ -2,11 +2,6 @@
 -- Also handles shared health system in general.
 -- Also recalculates percentage-based damage.
 
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-local np = require("noitapatcher")
-
 local rpc = net.new_rpc_namespace()
 
 local module = {}

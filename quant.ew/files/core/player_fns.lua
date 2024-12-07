@@ -1,9 +1,4 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-
 local ffi = require("ffi")
-local np = require("noitapatcher")
 
 ffi.cdef([[
 #pragma pack(push, 1)

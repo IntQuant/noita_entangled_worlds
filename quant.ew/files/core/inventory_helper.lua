@@ -1,7 +1,4 @@
-local np = require("noitapatcher")
 local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 
 local inventory_helper = {}
 

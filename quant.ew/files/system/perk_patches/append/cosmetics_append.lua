@@ -133,7 +133,6 @@ function add_halo_level(entity_who_picked, amount, set_to_this_value)
     if peer_id ~= "DEBUG_NAME:player" then
         return
     end
-    local resistance_multplier = 0.90
 
     local x,y = EntityGetTransform( entity_who_picked )
     local damagemodels = EntityGetComponent( entity_who_picked, "DamageModelComponent" )

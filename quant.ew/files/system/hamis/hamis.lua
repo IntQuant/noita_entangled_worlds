@@ -1,5 +1,3 @@
-dofile_once("data/scripts/lib/utilities.lua")
-
 local rpc = net.new_rpc_namespace()
 
 ModLuaFileAppend("data/scripts/animals/longleg_pet.lua", "mods/quant.ew/files/system/hamis/append.lua")

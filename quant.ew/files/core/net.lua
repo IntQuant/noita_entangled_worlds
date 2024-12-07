@@ -1,8 +1,5 @@
 local bitser = dofile_once("mods/quant.ew/files/lib/bitser.lua")
 local hex_table = dofile_once("mods/quant.ew/files/lib/hex.lua")
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
 local net_handling = dofile_once("mods/quant.ew/files/core/net_handling.lua")
 local net = {}

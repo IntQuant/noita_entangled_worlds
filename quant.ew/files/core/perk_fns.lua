@@ -1,5 +1,3 @@
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-
 local function lazyload()
     dofile_once("data/scripts/perks/perk_list.lua")
 end

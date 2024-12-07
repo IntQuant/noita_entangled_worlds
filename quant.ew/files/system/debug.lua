@@ -1,6 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-
 if load_imgui == nil then
     return {}
 end

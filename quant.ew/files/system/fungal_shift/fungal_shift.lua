@@ -1,7 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local np = require("noitapatcher")
-
 local rpc = net.new_rpc_namespace()
 
 local module = {}
@@ -19,8 +15,6 @@ local log_messages = {
 
 rpc.opts_reliable()
 function rpc.fungal_shift(conversions, iter, from_material_name)
-    dofile_once("data/scripts/lib/utilities.lua")
-
     local entity = ctx.my_player.entity
     local x, y = EntityGetTransform(entity)
 

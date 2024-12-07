@@ -1,8 +1,4 @@
 -- Synchronizes item pickup and item drop
-local inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-
 ModLuaFileAppend("data/scripts/items/utility_box.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
 ModLuaFileAppend("data/scripts/items/chest_random.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
 ModLuaFileAppend("data/scripts/items/chest_random_super.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")

@@ -1,7 +1,3 @@
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local np = require("noitapatcher")
-
 local module = {}
 
 ModLuaFileAppend("data/scripts/director_helpers.lua",

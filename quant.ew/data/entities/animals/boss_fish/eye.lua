@@ -5,7 +5,6 @@ local root_id = EntityGetRootEntity( entity_id )
 local x, y = EntityGetTransform( entity_id )
 
 local pcomp = 0
-local scomp = 0
 local timer = 0
 
 local c = EntityGetComponent( entity_id, "VariableStorageComponent" )

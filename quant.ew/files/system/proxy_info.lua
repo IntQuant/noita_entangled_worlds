@@ -1,6 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-
 local module = {}
 
 function module.on_world_update()

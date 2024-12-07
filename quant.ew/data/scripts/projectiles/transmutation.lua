@@ -24,8 +24,6 @@ if ( rnd > 98 ) then
     rare = true
 end
 
-local material_string = "water"
-
 if (rare == false) then
     rnd = Random( 1, #material_options )
     material = material_options[rnd]

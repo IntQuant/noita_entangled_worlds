@@ -1,5 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
 local rpc = net.new_rpc_namespace()
 
 local gui = GuiCreate()

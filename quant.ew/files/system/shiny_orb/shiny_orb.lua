@@ -6,8 +6,6 @@ ModLuaFileAppend("data/scripts/items/gold_orb.lua", "mods/quant.ew/files/system/
 
 ModLuaFileAppend("data/scripts/items/gold_orb_greed.lua", "mods/quant.ew/files/system/shiny_orb/append_greed.lua")
 
-dofile_once("data/scripts/lib/utilities.lua")
-
 rpc.opts_everywhere()
 function rpc.kicked_orb(gid, rx, ry, greed)
     if gid == nil or item_sync.find_by_gid(gid) == nil then

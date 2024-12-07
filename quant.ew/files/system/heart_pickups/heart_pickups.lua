@@ -1,7 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local util = dofile_once("mods/quant.ew/files/core/util.lua")
-
 ModLuaFileAppend("data/scripts/items/heart.lua", "mods/quant.ew/files/system/heart_pickups/append/heart.lua")
 ModLuaFileAppend("data/scripts/items/heart_better.lua", "mods/quant.ew/files/system/heart_pickups/append/heart_better.lua")
 ModLuaFileAppend("data/scripts/items/heart_evil.lua", "mods/quant.ew/files/system/heart_pickups/append/heart_evil.lua")

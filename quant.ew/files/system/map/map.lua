@@ -1,5 +1,3 @@
-dofile_once("data/scripts/lib/utilities.lua")
-
 ModLuaFileAppend("data/scripts/perks/map.lua", "mods/quant.ew/files/system/map/append.lua")
 
 util.add_cross_call("ew_place_player_on_map", function()

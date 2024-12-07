@@ -3,9 +3,6 @@ local world = dofile_once("mods/quant.ew/files/system/world_sync/world.lua")
 local rect = require("noitapatcher.nsew.rect")
 local ffi = require("ffi")
 
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-
 -- local rpc = net.new_rpc_namespace()
 
 --local rect_optimiser = rect.Optimiser_new()

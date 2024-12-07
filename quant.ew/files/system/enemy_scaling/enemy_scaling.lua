@@ -1,4 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 local hp_scale = ctx.proxy_opt.enemy_hp_scale
 
 if hp_scale > 1.01 then

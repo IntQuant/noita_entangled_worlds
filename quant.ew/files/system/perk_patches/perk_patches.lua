@@ -1,8 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local net = dofile_once("mods/quant.ew/files/core/net.lua")
-local np = require("noitapatcher")
-local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
-
 local rpc = net.new_rpc_namespace()
 
 local module = {}
@@ -15,9 +10,9 @@ ModLuaFileAppend("data/scripts/perks/perk_utilities.lua", "mods/quant.ew/files/s
 if ctx.proxy_opt.game_mode == "shared_health" then
     print("Loading extra perk patches for shared health mode")
     ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_shared.lua")
-else
-    print("Loading extra perk patches for local health mode")
-    ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_local.lua")
+    --else
+    --print("Loading extra perk patches for local health mode")
+    --ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_local.lua")
 end
 
 if not ctx.is_host or not ctx.proxy_opt.randomize_perks then

@@ -7,8 +7,6 @@ print(package.cpath)
 
 dofile_once( "data/scripts/lib/utilities.lua" )
 
-dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
-
 np.InstallShootProjectileFiredCallbacks()
 np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
@@ -18,11 +16,13 @@ ewext = require("ewext0")
 
 -- Make some stuff global, as it's way too annoying to import each time.
 ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-net = dofile_once("mods/quant.ew/files/core/net.lua")
 util = dofile_once("mods/quant.ew/files/core/util.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
+player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
+net = dofile_once("mods/quant.ew/files/core/net.lua")
 constants = dofile_once("mods/quant.ew/files/core/constants.lua")
+
+dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
@@ -220,9 +220,9 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     np.SetProjectileSpreadRNG(rng)
 end
 
-function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
-    unknown1, multicast_index, unknown3)
-end
+--function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
+--    unknown1, multicast_index, unknown3)
+--end
 
 function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_paused = paused

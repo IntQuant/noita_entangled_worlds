@@ -926,8 +926,8 @@ function wand:GetSpells()
     return spells, always_cast_spells
   end
     for _, spell in ipairs(children) do
-        local action_id = nil
-        local permanent = false
+        local action_id
+      local permanent = false
     local item_action_component = EntityGetFirstComponentIncludingDisabled(spell, "ItemActionComponent")
     if item_action_component then
       action_id = ComponentGetValue2(item_action_component, "action_id")
@@ -1109,8 +1109,8 @@ function WandDiff( gun, wand )
 end
 
 function GetWand( gun )
-    local best_wand = nil
-    local best_score = 1000
+    local best_wand
+  local best_score = 1000
     local gun_in_wand_space = {}
 
     gun_in_wand_space.fire_rate_wait = clamp(((gun["fire_rate_wait"] + 5) / 7)-1, 0, 4)

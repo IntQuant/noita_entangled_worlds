@@ -1,4 +1,3 @@
-local np = require("noitapatcher")
 local rpc = net.new_rpc_namespace()
 
 function rpc.spawn_gate()

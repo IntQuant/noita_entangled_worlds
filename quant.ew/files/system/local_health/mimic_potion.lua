@@ -1,5 +1,3 @@
-dofile_once("data/scripts/lib/utilities.lua")
-
 function init( entity_id )
     EntityRemoveTag( entity_id , "enemy" ) -- to fix bug with RISKY_CRITICAL, which uses this tag to detect enemies nearby
 end
@@ -15,7 +13,7 @@ end
 -- this is needed because item component enable/disable logic doesn't enable the legs for some reason
 function enabled_changed( entity_id, is_enabled )
 
-    -- NOTE( Petri ): Bug fixing homing targeting mimic potion in hand. 
+    -- NOTE( Petri ): Bug fixing homing targeting mimic potion in hand.
     -- This section was skipped when is_enabled was false
     if EntityGetParent( entity_id ) ~= NULL_ENTITY then
         EntityRemoveTag( entity_id , "homing_target" )
@@ -25,7 +23,7 @@ function enabled_changed( entity_id, is_enabled )
 
 
     if is_enabled == false then
-        return 
+        return
     end
 
     local c = EntityGetAllChildren( entity_id )
@@ -75,7 +73,7 @@ if alive then
     local var = EntityGetFirstComponentIncludingDisabled( entity_id, "VariableStorageComponent", "potion_mimic_awoken" )
     if var ~= nil then
         local awoken = ComponentGetValue2( var, "value_bool" )
-        if not awoken then 
+        if not awoken then
             ComponentSetValue2( var, "value_bool", true )
         end
     end

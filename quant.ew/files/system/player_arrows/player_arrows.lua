@@ -1,5 +1,3 @@
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-
 local gui = GuiCreate()
 
 local module = {}

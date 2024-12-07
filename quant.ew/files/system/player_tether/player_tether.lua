@@ -1,6 +1,3 @@
-dofile_once("data/scripts/lib/utilities.lua")
-local ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
-local player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 local rpc = net.new_rpc_namespace()
 
 local module = {}

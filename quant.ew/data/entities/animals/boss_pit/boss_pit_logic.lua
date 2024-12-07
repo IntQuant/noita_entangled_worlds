@@ -46,9 +46,6 @@ end
 
 SetRandomSeed( x, y * GameGetFrameNum() )
 
-local players = EntityGetWithTag( "ew_peer" )
-local player = players[1]
-
 if ( state == 1 ) then
     if ( #p > 0 ) then
         local angle = Random( 1, 200 ) * math.pi
@@ -109,7 +106,7 @@ elseif ( state == 7 ) then
 
             -- we're stuck, lets hunt for that connoisseur of cheese
             local path = "data/entities/projectiles/remove_ground.xml"
-            local wid = shoot_projectile( entity_id, path, x, y, 0, 0 )
+            shoot_projectile( entity_id, path, x, y, 0, 0 )
 
         else
 
