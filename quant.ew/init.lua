@@ -212,11 +212,17 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             break
         end
     end
-    if EntityGetFilename(projectile_id) == "data/entities/items/pickup/egg_hollow.xml" then
+    local n = EntityGetFilename(projectile_id)
+    if n == "data/entities/items/pickup/egg_hollow.xml" then
         EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags = "ew_egg", value_int = rng})
         EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
                                                                         value_string = shooter_player_data.peer_id .. ":" .. rng})
         EntityAddTag(projectile_id, "ew_global_item")
+    elseif n == "data/entities/projectiles/deck/rock.xml" then
+        EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
+                                                                        value_string = shooter_player_data.peer_id .. ":" .. rng})
+        EntityAddTag(projectile_id, "ew_global_item")
+        EntityAddTag(projectile_id, "ew_no_spawn")
     end
     np.SetProjectileSpreadRNG(rng)
 end

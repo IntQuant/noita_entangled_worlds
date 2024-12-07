@@ -431,6 +431,8 @@ local function send_item_positions(all)
                         if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") ~= nil then
                             position_data[gid][5] = true
                         end
+                    elseif EntityHasTag(item, "ew_no_spawn") then
+                        position_data[gid][5] = false
                     end
                 end
             end
@@ -675,7 +677,7 @@ function rpc.update_positions(position_data, all)
             goto continue
         end
         local x, y = el[1], el[2]
-        if math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT then
+        if el[5] ~= nil or (math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT) then
             gid_last_frame_updated[ctx.rpc_peer_id][gid] = frame[ctx.rpc_peer_id]
             local phys_info = el[3]
             local price = el[4]
@@ -695,9 +697,9 @@ function rpc.update_positions(position_data, all)
                     end
                 end
             elseif wait_for_gid[gid] == nil then
-                if el[5] ~= nil then
+                if el[5] == true then
                     rpc.kill_egg(gid)
-                else
+                elseif el[5] ~= false then
                     util.log("Requesting again "..gid)
                     rpc.request_send_again(gid)
                     wait_for_gid[gid] = GameGetFrameNum() + 300
