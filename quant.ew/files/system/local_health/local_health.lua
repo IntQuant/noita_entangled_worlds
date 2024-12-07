@@ -31,8 +31,9 @@ function module.on_player_died(player_entity)
 end
 
 local function get_gold()
-    local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
+    local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
     if wallet ~= nil then
+        GamePrint(ComponentGetValue2(wallet, "money"))
         return ComponentGetValue2(wallet, "money")
     end
 end
@@ -41,6 +42,7 @@ local function set_gold(gold)
     if gold ~= nil then
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
         if wallet ~= nil then
+            GamePrint(gold)
             ComponentSetValue2(wallet, "money", gold)
         end
     end

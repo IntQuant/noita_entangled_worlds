@@ -12,7 +12,7 @@ function rpc.send_money_and_ingestion(money, delta, ingestion_size)
     local entity = ctx.rpc_player_data.entity
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
     if wallet ~= nil and money ~= nil then
-        if ctx.proxy_opt.share_gold then
+        if ctx.proxy_opt.share_gold and last_money ~= nil then
             local my_wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
             local cm = ComponentGetValue2(my_wallet, "money")
             if ctx.is_host then
@@ -119,6 +119,7 @@ function module.on_world_update()
     if input_data ~= nil or pos_data ~= nil then
         local my_team
         if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 10 == 7 then
+
             my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         end
 
