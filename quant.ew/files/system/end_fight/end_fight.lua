@@ -162,10 +162,6 @@ function end_fight.on_world_update()
             end
             if init == -1 then
                 local _, y = EntityGetTransform(ctx.my_player.entity)
-                if y < 10414 then
-                    stop_fully = true
-                    return
-                end
                 np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
                 np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", 1)
                 if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
@@ -177,7 +173,9 @@ function end_fight.on_world_update()
                 end
                 GamePrintImportant("Fight for the spoils")
                 init = GameGetFrameNum() + 10
-                teleport_random()
+                if y > 10414 then
+                    teleport_random()
+                end
                 remove_fire(ctx.my_player.entity)
                 kill_walls = GameGetFrameNum() + 180
             elseif init < GameGetFrameNum() and GameGetFrameNum() % 10 == 0 then

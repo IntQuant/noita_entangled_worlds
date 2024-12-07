@@ -132,20 +132,22 @@ local function is_suitable_target(entity)
 end
 
 local function tether_enable(to_enable, entity)
-    local found = false
-    for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-        if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
+    if entity ~= nil and EntityGetIsAlive(entity) then
+        local found = false
+        for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
+            if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
+                local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
+                EntitySetComponentIsEnabled(child, emmiter, to_enable)
+                found = true
+                break
+            end
+        end
+        if not found then
+            local child = EntityLoad("mods/quant.ew/files/system/player_tether/zone_entity.xml")
+            EntityAddChild(entity, child)
             local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
             EntitySetComponentIsEnabled(child, emmiter, to_enable)
-            found = true
-            break
         end
-    end
-    if not found then
-        local child = EntityLoad("mods/quant.ew/files/system/player_tether/zone_entity.xml")
-        EntityAddChild(entity, child)
-        local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
-        EntitySetComponentIsEnabled(child, emmiter, to_enable)
     end
 end
 
