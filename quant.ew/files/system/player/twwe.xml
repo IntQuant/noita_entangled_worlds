@@ -1,0 +1,14 @@
+<Entity>
+    <InheritTransformComponent>
+    </InheritTransformComponent>
+    <UIIconComponent
+            icon_sprite_file = "data/ui_gfx/perk_icons/edit_wands_everywhere.png"
+        name = "$perk_edit_wands_everywhere"
+    description = "$perkdesc_edit_wands_everywhere"></UIIconComponent>
+
+    <GameEffectComponent
+        effect="EDIT_WANDS_EVERYWHERE"
+        frames="-1"
+    >
+    </GameEffectComponent >
+</Entity>

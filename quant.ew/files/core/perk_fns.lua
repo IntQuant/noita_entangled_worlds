@@ -74,16 +74,21 @@ end
 function perk_fns.get_my_perks()
     lazyload()
     local perks = {}
+    local got_twwe
     for i=1, #perk_list do
-        local perk_flag_name = get_perk_picked_flag_name(perk_list[i].id)
+        local perk_id = perk_list[i].id
+        local perk_flag_name = get_perk_picked_flag_name(perk_id)
         local perk_count = tonumber(GlobalsGetValue(perk_flag_name .. "_PICKUP_COUNT", "0"))
         if perk_count > 0 then
-            perks[perk_list[i].id] = perk_count
-            if perk_list[i].id == "ATTACK_FOOT" then
+            perks[perk_id] = perk_count
+            if perk_id == "ATTACK_FOOT" then
                 set_lukki(ctx.my_player.entity, ctx.my_id)
+            elseif perk_id == "EDIT_WANDS_EVERYWHERE" then
+                got_twwe = true
             end
         end
     end
+    ctx.my_player.twwe = got_twwe
     return perks
 end
 
@@ -152,6 +157,9 @@ local function give_one_perk(entity_who_picked, perk_info, count, allow_globals,
             EntityAddChild( entity_who_picked, particle_id )
         end
     end
+    if perk_info.id == "EDIT_WANDS_EVERYWHERE" then
+        return true
+    end
 end
 
 local function deal_with_globals(perk_id, count)
@@ -182,10 +190,13 @@ function perk_fns.update_perks(perk_data, player_data)
             if diff > 0 then
                 print("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
                 for i=current+1, count do
-                    give_one_perk(entity, perk_info, i, false, player_data.peer_id)
+                    if give_one_perk(entity, perk_info, i, false, player_data.peer_id) then
+                        player_data.twwe = true
+                    end
                 end
                 deal_with_globals(perk_id, count)
             else
+                player_data.twwe = nil
                 wait_for_globals = GameGetFrameNum() + 60 * 60 * 20
                 EntityKill(entity)
             end

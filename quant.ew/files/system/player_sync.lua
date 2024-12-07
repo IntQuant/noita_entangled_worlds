@@ -50,6 +50,8 @@ end
 
 local wait_on_requst = {}
 
+local has_twwe_locally = false
+
 function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     local peer_id = ctx.rpc_peer_id
 
@@ -219,6 +221,34 @@ function module.on_world_update()
             end
             rpc.send_money_and_ingestion(last_money, delta,
                     ingestion and ComponentGetValue2(ingestion, "ingestion_size"))
+        end
+    end
+    if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+        if not ctx.my_player.twwe then
+            local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
+            local found = false
+            for _, data in pairs(ctx.players) do
+                if data.twwe then
+                    local x, y = EntityGetTransform(data.entity)
+                    local dx, dy = x - my_x, y - my_y
+                    if dx * dx + dy * dy < 20 * 20 then
+                        found = true
+                        break
+                    end
+                end
+            end
+            if found then
+                if has_twwe_locally == nil then
+                    has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml")
+                    EntityAddChild(ctx.my_player.entity, has_twwe_locally)
+                end
+            elseif has_twwe_locally ~= nil then
+                EntityKill(has_twwe_locally)
+                has_twwe_locally = nil
+            end
+        elseif has_twwe_locally ~= nil then
+            EntityKill(has_twwe_locally)
+            has_twwe_locally = nil
         end
     end
 end
