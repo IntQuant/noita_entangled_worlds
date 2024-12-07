@@ -616,6 +616,12 @@ impl App {
             .map(|steam| steam.client.utils().is_steam_running_on_steam_deck())
             .unwrap_or(false);
         let default_zoom_factor = if running_on_steamdeck { 0.3 } else { 1.0 };
+        if running_on_steamdeck {
+            cc.egui_ctx
+                .send_viewport_cmd(egui::ViewportCommand::MinInnerSize(Vec2::new(10.0, 10.0)));
+            cc.egui_ctx
+                .send_viewport_cmd(egui::ViewportCommand::Fullscreen(true));
+        }
 
         cc.egui_ctx
             .set_zoom_factor(args.ui_zoom_factor.unwrap_or(default_zoom_factor));

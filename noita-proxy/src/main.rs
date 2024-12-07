@@ -45,7 +45,7 @@ async fn main() {
 
     let args: Args = argh::from_env();
 
-    info!("{:?}", args.launch_cmd);
+    info!("Launch command: {:?}", args.launch_cmd);
 
     if let Some(host) = args.host {
         let port = if host.eq_ignore_ascii_case("steam") {
