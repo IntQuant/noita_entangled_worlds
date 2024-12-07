@@ -964,6 +964,7 @@ impl App {
         match &self.steam_state {
             Ok(_) => {
                 if ui.button(tr("connect_steam_create")).clicked() {
+                    self.set_settings();
                     self.start_steam_host();
                 }
                 if ui.button(tr("connect_steam_connect")).clicked() {
@@ -971,6 +972,7 @@ impl App {
                         .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
                     match id {
                         Ok(id) => {
+                            self.set_settings();
                             self.connect_to_steam_lobby(id);
                         }
                         Err(error) => self.notify_error(error),
@@ -982,6 +984,7 @@ impl App {
                     ui.label(tr("connect_steam_workaround_label"));
                     ui.text_edit_singleline(&mut self.lobby_id_field);
                     if ui.button(tr("connect_steam_connect_2")).clicked() {
+                        self.set_settings();
                         self.connect_to_steam_lobby(self.lobby_id_field.clone());
                     }
                 }
@@ -997,6 +1000,7 @@ impl App {
 
         ui.label(tr("ip_note"));
         if ui.button(tr("ip_host")).clicked() {
+            self.set_settings();
             self.start_server();
         }
 
@@ -1011,6 +1015,7 @@ impl App {
         ui.add_enabled_ui(addr.is_ok(), |ui| {
             if ui.button(tr("ip_connect")).clicked() {
                 if let Ok(addr) = addr {
+                    self.set_settings();
                     self.start_connect(addr);
                 }
             }
