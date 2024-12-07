@@ -88,7 +88,7 @@ local function ui_get_input(_, gui, _, im_id, setting)
         end
     end
     if keycodes[current] == "BACKSPACE" then
-        current_key = "[RIGHT CLICK]"
+        current_key = "[MIDDLE MOUSE BUTTON]"
     end
     GuiText(gui, 0, 0, current_key)
 
