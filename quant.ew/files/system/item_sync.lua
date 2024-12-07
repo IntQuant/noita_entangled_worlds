@@ -259,14 +259,6 @@ function item_sync.make_item_global(item, instant, give_authority_to)
     end
 end
 
-local function get_global_ent(key)
-    local val = tonumber(GlobalsGetValue(key, "0"))
-    GlobalsSetValue(key, "0")
-    if val ~= 0 then
-        return val
-    end
-end
-
 local function remove_client_items_from_world()
     if GameGetFrameNum() % 5 ~= 3 then
         return
@@ -446,6 +438,27 @@ local function send_item_positions(all)
     dead_entities = {}
 end
 
+util.add_cross_call("ew_thrown", function(thrown_item)
+    if thrown_item ~= nil
+            and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(item_sync.get_global_item_id(thrown_item)))
+            and EntityGetFirstComponentIncludingDisabled(thrown_item, "VariableStorageComponent", "ew_egg") == nil then
+        item_sync.make_item_global(thrown_item)
+    end
+end)
+
+util.add_cross_call("ew_picked", function(picked_item)
+    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
+        local gid = item_sync.get_global_item_id(picked_item)
+        if gid ~= nil then
+            if ctx.is_host then
+                item_sync.host_localize_item(gid, ctx.my_id)
+            else
+                rpc.item_localize_req(gid)
+            end
+        end
+    end
+end)
+
 function item_sync.on_world_update()
     -- TODO check that we not removing item we are going to pick now, instead of checking if picker gui is open.
     if is_safe_to_remove() then
@@ -489,24 +502,7 @@ function item_sync.on_world_update()
     if GameGetFrameNum() % 5 == 4 then
         mark_in_inventory(ctx.my_player)
     end
-    local thrown_item = get_global_ent("ew_thrown")
-    if thrown_item ~= nil
-            and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(item_sync.get_global_item_id(thrown_item)))
-            and EntityGetFirstComponentIncludingDisabled(thrown_item, "VariableStorageComponent", "ew_egg") == nil then
-        item_sync.make_item_global(thrown_item)
-    end
 
-    local picked_item = get_global_ent("ew_picked")
-    if picked_item ~= nil and EntityHasTag(picked_item, "ew_global_item") then
-        local gid = item_sync.get_global_item_id(picked_item)
-        if gid ~= nil then
-            if ctx.is_host then
-                item_sync.host_localize_item(gid, ctx.my_id)
-            else
-                rpc.item_localize_req(gid)
-            end
-        end
-    end
     remove_client_items_from_world()
 end
 

@@ -486,7 +486,7 @@ function module.on_world_update()
             -- Restore the player back to small amount of hp.
             local new_hp = 3 * max_hp_new / 20
             if ctx.proxy_opt.no_notplayer then
-                new_hp = new_hp * 3
+                new_hp = new_hp * 5
             end
             local final_hp = math.max(new_hp, math.min(2/5, max_hp_new))
             util.set_ent_health(ctx.my_player.entity, {final_hp, max_hp_new})

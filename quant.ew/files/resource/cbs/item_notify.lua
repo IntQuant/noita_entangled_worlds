@@ -1,5 +1,5 @@
 function throw_item()
-    GlobalsSetValue("ew_thrown", tostring(GetUpdatedEntityID()))
+    CrossCall("ew_thrown", GetUpdatedEntityID())
 end
 
 function item_pickup()
@@ -8,5 +8,5 @@ function item_pickup()
     if com ~= nil then
         ComponentSetValue2(com, "permanently_attached", false)
     end
-    GlobalsSetValue("ew_picked", tostring(ent))
+    CrossCall("ew_picked", ent)
 end

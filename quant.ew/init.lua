@@ -227,9 +227,9 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     np.SetProjectileSpreadRNG(rng)
 end
 
---function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
---    unknown1, multicast_index, unknown3)
---end
+function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
+    unknown1, multicast_index, unknown3)
+end
 
 function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_paused = paused
