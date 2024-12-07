@@ -1,42 +1,12 @@
-## Noita Entangled Worlds v0.31.6
+## Noita Entangled Worlds v0.31.7
 
-- fix gold being removed from poly effects in shared gold mode
+- fix global perks
 
-- dont let notplayer target lukki minion
+- sync rocks
 
-- fix controls being taken away from notplayer when texting
-
-- make nests work when host is far away
+- yet annother egg fix
 
 - fix some errors
-
-- try to not spawn notplayers on you when facing kolmi
-
-- fix a world sync issue
-
-- color lukki legs
-
-- give twwe if someone near you has it only when you are close
-
-- fix a bunch of issues with alternate revive mechanic
-
-- dont let you spectate dead players with alternate revive mechanic
-
-- remove some unused stuff
-
-- do end fight at mountain when applicable
-
-- try to fix proxy on steamdeck looking bad
-
-- add notes about text/alternate revive mechanic on first use
-
-- make ui a bit more clear
-
-- spawn ragdolls when you die in perma death
-
-- save settings on create/connect to lobby to prevent them being lost if proxy dies too fast
-
-- fix a crash when picking up wands someone is looking at
 
 ## Accepted pull requests
 
