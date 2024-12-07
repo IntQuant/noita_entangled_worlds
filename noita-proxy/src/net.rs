@@ -27,7 +27,7 @@ use crate::mod_manager::{get_mods, ModmanagerSettings};
 use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
-    DefaultSettings, GameSettings,
+    DefaultSettings, GameMode, GameSettings, LocalHealthMode,
 };
 pub mod messages;
 mod proxy_opt;
@@ -508,12 +508,6 @@ impl NetManager {
         );
         state.try_ws_write_option("share_gold", settings.share_gold.unwrap_or(def.share_gold));
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
-        state.try_ws_write_option(
-            "world_sync_version",
-            settings
-                .world_sync_version
-                .unwrap_or(def.world_sync_version),
-        );
         state.try_ws_write_option("item_dedup", settings.item_dedup.unwrap_or(def.item_dedup));
         state.try_ws_write_option(
             "randomize_perks",
@@ -523,38 +517,26 @@ impl NetManager {
             "enemy_hp_scale",
             settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult),
         );
-        state.try_ws_write_option(
-            "world_sync_interval",
-            settings
-                .world_sync_interval
-                .unwrap_or(def.world_sync_interval),
-        );
-        state.try_ws_write_option("game_mode", settings.game_mode.unwrap_or(def.game_mode));
+        let mode = settings.game_mode.unwrap_or(def.game_mode);
+        state.try_ws_write_option("game_mode", mode);
+        if let GameMode::LocalHealth(mode) = mode {
+            match mode {
+                LocalHealthMode::Normal => {}
+                LocalHealthMode::PermaDeath => state.try_ws_write_option("perma_death", true),
+                LocalHealthMode::Alternate => state.try_ws_write_option("no_notplayer", true),
+            }
+        }
         state.try_ws_write_option(
             "health_per_player",
             settings.health_per_player.unwrap_or(def.health_per_player),
-        );
-        state.try_ws_write_option(
-            "enemy_sync_interval",
-            settings
-                .enemy_sync_interval
-                .unwrap_or(def.enemy_sync_interval),
         );
         state.try_ws_write_option(
             "global_hp_loss",
             settings.global_hp_loss.unwrap_or(def.global_hp_loss),
         );
         state.try_ws_write_option(
-            "perma_death",
-            settings.perma_death.unwrap_or(def.perma_death),
-        );
-        state.try_ws_write_option(
             "physics_damage",
             settings.physics_damage.unwrap_or(def.physics_damage),
-        );
-        state.try_ws_write_option(
-            "no_notplayer",
-            settings.no_notplayer.unwrap_or(def.no_notplayer),
         );
         let lst = settings.clone();
         state.try_ws_write_option(

@@ -292,6 +292,11 @@ local function no_notplayer()
     polymorph.switch_entity(ent + 1)
 end
 
+rpc.opts_everywhere()
+function rpc.spawn_ragdoll(x, y)
+    LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. ctx.rpc_peer_id.."_ragdoll.txt", x, y)
+end
+
 local function player_died()
     if ctx.my_player.entity == nil then
         return
@@ -315,11 +320,13 @@ local function player_died()
     end
     if ctx.proxy_opt.perma_death then
         remove_inventory()
+        local x, y = EntityGetTransform(ctx.my_player.entity)
         local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/notplayer/cessation.xml")
         EntityAddTag(ent + 1, "ew_notplayer")
         polymorph.switch_entity(ent + 1)
         GameAddFlagRun("msg_gods_looking")
         GameAddFlagRun("msg_gods_looking2")
+        rpc.spawn_ragdoll(x, y)
         return
     end
     local gold = get_gold()
@@ -388,6 +395,11 @@ local function do_game_over(message)
     net.proxy_notify_game_over()
     GameRemoveFlagRun("ew_flag_notplayer_active")
     set_camera_free(true, ctx.my_player.entity)
+
+    if ctx.proxy_opt.perma_death then
+        GameTriggerGameOver()
+        return
+    end
 
     if not GameHasFlagRun("ending_game_completed") then
         for peer_id, data in pairs(ctx.players) do

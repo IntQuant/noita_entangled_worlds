@@ -1,6 +1,5 @@
-use std::io::Write;
-
 use crate::GameMode;
+use std::io::Write;
 
 /// Trait that allows to pass value to mod as proxy options.
 pub(crate) trait ProxyOpt {
@@ -43,7 +42,7 @@ impl ProxyOpt for GameMode {
             GameMode::SharedHealth => {
                 write!(buf, "proxy_opt {} shared_health", key).unwrap();
             }
-            GameMode::LocalHealth => {
+            GameMode::LocalHealth(_) => {
                 write!(buf, "proxy_opt {} local_health", key).unwrap();
             }
         }

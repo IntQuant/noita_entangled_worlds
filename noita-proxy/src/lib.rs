@@ -59,8 +59,15 @@ const DEFAULT_PORT: u16 = 5123;
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub(crate) enum GameMode {
     SharedHealth,
-    LocalHealth,
+    LocalHealth(LocalHealthMode),
     // MestariMina, // TODO later
+}
+
+#[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+pub(crate) enum LocalHealthMode {
+    Normal,
+    Alternate,
+    PermaDeath,
 }
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -69,14 +76,11 @@ pub struct GameSettings {
     seed: u64,
     world_num: u16,
     debug_mode: Option<bool>,
-    world_sync_version: Option<u32>,
     use_constant_seed: bool,
     item_dedup: Option<bool>,
     enemy_hp_mult: Option<f32>,
-    world_sync_interval: Option<u32>,
     game_mode: Option<GameMode>,
     friendly_fire: Option<bool>,
-    enemy_sync_interval: Option<u32>,
     randomize_perks: Option<bool>,
     progress: Vec<String>,
     max_players: Option<u32>,
@@ -85,10 +89,8 @@ pub struct GameSettings {
     no_material_damage: Option<bool>,
     global_hp_loss: Option<bool>,
     perk_ban_list: Option<String>,
-    perma_death: Option<bool>,
     physics_damage: Option<bool>,
     share_gold: Option<bool>,
-    no_notplayer: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -102,7 +104,25 @@ impl GameSettings {
                     .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
                     .changed()
                     || ui
-                        .radio_value(&mut temp, GameMode::LocalHealth, tr("Local-health"))
+                        .radio_value(
+                            &mut temp,
+                            GameMode::LocalHealth(LocalHealthMode::Normal),
+                            tr("Local-health"),
+                        )
+                        .changed()
+                    || ui
+                        .radio_value(
+                            &mut temp,
+                            GameMode::LocalHealth(LocalHealthMode::Alternate),
+                            tr("Local-health-alt"),
+                        )
+                        .changed()
+                    || ui
+                        .radio_value(
+                            &mut temp,
+                            GameMode::LocalHealth(LocalHealthMode::PermaDeath),
+                            tr("Local-health-perma"),
+                        )
                         .changed()
                 {
                     game_settings.game_mode = Some(temp)
@@ -124,55 +144,64 @@ impl GameSettings {
                             game_settings.health_per_player = Some(temp)
                         }
                     }
-                    GameMode::LocalHealth => {
+                    GameMode::LocalHealth(mode) => {
                         ui.label(tr("local_health_desc_1"));
-                        ui.label(tr("local_health_desc_2"));
-                        ui.add_space(5.0);
-                        ui.label(tr("Health-percent-lost-on-reviving"));
-                        {
-                            let mut temp = game_settings
-                                .health_lost_on_revive
-                                .unwrap_or(def.health_lost_on_revive);
-                            if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                                game_settings.health_lost_on_revive = Some(temp)
+                        match mode {
+                            LocalHealthMode::Normal => {
+                                ui.add_space(5.0);
+                                ui.label(tr("Health-percent-lost-on-reviving"));
+                                {
+                                    let mut temp = game_settings
+                                        .health_lost_on_revive
+                                        .unwrap_or(def.health_lost_on_revive);
+                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                        game_settings.health_lost_on_revive = Some(temp)
+                                    }
+                                }
+                                {
+                                    let mut temp =
+                                        game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                                    if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                        game_settings.global_hp_loss = Some(temp)
+                                    }
+                                }
+                                {
+                                    let mut temp = game_settings
+                                        .no_material_damage
+                                        .unwrap_or(def.no_material_damage);
+                                    if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
+                                        game_settings.no_material_damage = Some(temp)
+                                    }
+                                }
+                                ui.add_space(1.0);
+                                {
+                                    let mut temp =
+                                        game_settings.physics_damage.unwrap_or(def.physics_damage);
+                                    if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
+                                        game_settings.physics_damage = Some(temp)
+                                    }
+                                }
                             }
-                        }
-                        {
-                            let mut temp =
-                                game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
-                            if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
-                                game_settings.global_hp_loss = Some(temp)
+                            LocalHealthMode::Alternate => {
+                                ui.add_space(5.0);
+                                ui.label(tr("Health-percent-lost-on-reviving"));
+                                {
+                                    let mut temp = game_settings
+                                        .health_lost_on_revive
+                                        .unwrap_or(def.health_lost_on_revive);
+                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                        game_settings.health_lost_on_revive = Some(temp)
+                                    }
+                                }
+                                {
+                                    let mut temp =
+                                        game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                                    if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                        game_settings.global_hp_loss = Some(temp)
+                                    }
+                                }
                             }
-                        }
-                        {
-                            let mut temp = game_settings
-                                .no_material_damage
-                                .unwrap_or(def.no_material_damage);
-                            if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
-                                game_settings.no_material_damage = Some(temp)
-                            }
-                        }
-                        ui.add_space(1.0);
-                        {
-                            let mut temp = game_settings.perma_death.unwrap_or(def.perma_death);
-                            if ui.checkbox(&mut temp, tr("perma_death")).changed() {
-                                game_settings.perma_death = Some(temp)
-                            }
-                        }
-                        ui.add_space(1.0);
-                        {
-                            let mut temp =
-                                game_settings.physics_damage.unwrap_or(def.physics_damage);
-                            if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
-                                game_settings.physics_damage = Some(temp)
-                            }
-                        }
-                        ui.add_space(1.0);
-                        {
-                            let mut temp = game_settings.no_notplayer.unwrap_or(def.no_notplayer);
-                            if ui.checkbox(&mut temp, "no minua").changed() {
-                                game_settings.no_notplayer = Some(temp)
-                            }
+                            LocalHealthMode::PermaDeath => {}
                         }
                     }
                 }
@@ -284,13 +313,10 @@ impl GameSettings {
 }
 pub struct DefaultSettings {
     debug_mode: bool,
-    world_sync_version: u32,
     item_dedup: bool,
     enemy_hp_mult: f32,
-    world_sync_interval: u32,
     game_mode: GameMode,
     friendly_fire: bool,
-    enemy_sync_interval: u32,
     randomize_perks: bool,
     max_players: u32,
     health_per_player: u32,
@@ -298,24 +324,19 @@ pub struct DefaultSettings {
     no_material_damage: bool,
     global_hp_loss: bool,
     perk_ban_list: String,
-    perma_death: bool,
     physics_damage: bool,
     share_gold: bool,
-    no_notplayer: bool,
 }
 
 impl Default for DefaultSettings {
     fn default() -> Self {
         DefaultSettings {
             debug_mode: false,
-            world_sync_version: 2,
             item_dedup: true,
             randomize_perks: true,
             enemy_hp_mult: 1.0,
-            world_sync_interval: 3,
-            game_mode: GameMode::LocalHealth,
+            game_mode: GameMode::LocalHealth(LocalHealthMode::Normal),
             friendly_fire: false,
-            enemy_sync_interval: 3,
             max_players: 250,
             health_per_player: 100,
             health_lost_on_revive: 0,
@@ -324,10 +345,8 @@ impl Default for DefaultSettings {
             perk_ban_list:
                 "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD"
                     .to_string(),
-            perma_death: false,
             physics_damage: true,
             share_gold: false,
-            no_notplayer: false,
         }
     }
 }
