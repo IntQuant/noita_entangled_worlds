@@ -108,7 +108,7 @@ end
 
 local function is_wand(ent)
     if ent == nil or ent == 0 then return false end
-    local ability = ComponentGetValue2(ent, "AbilityComponent")
+    local ability = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
     if ability == nil then
         return false
     end
@@ -120,11 +120,11 @@ local function is_safe_to_remove()
 end
 
 function item_sync.remove_item_with_id(gid)
-    if is_safe_to_remove() or not is_wand(a) then
+    local item_ent_id = item_sync.find_by_gid(gid)
+    if is_safe_to_remove() or not is_wand(item_ent_id) then
         item_sync.remove_item_with_id_now(gid)
     else
         table.insert(pending_remove, gid)
-        local item_ent_id = item_sync.find_by_gid(gid)
         EntitySetTransform(item_ent_id, 0, 0)
         util.make_ephemerial(item_ent_id)
     end
