@@ -50,15 +50,17 @@ function rpc.ensure_held(peer_id)
                 break
             end
         end
-        local has_player = false
-        for _, child in ipairs(EntityGetAllChildren(inv) or {}) do
-            local player = player_fns.get_player_data_by_local_entity_id(child)
-            if player ~= nil and player.peer_id == ctx.rpc_player_data.peer_id then
-                has_player = true
+        if inv ~= nil then
+            local has_player = false
+            for _, child in ipairs(EntityGetAllChildren(inv) or {}) do
+                local player = player_fns.get_player_data_by_local_entity_id(child)
+                if player ~= nil and player.peer_id == ctx.rpc_player_data.peer_id then
+                    has_player = true
+                end
             end
-        end
-        if not has_player then
-            EntityAddChild(inv, ctx.rpc_player_data.entity)
+            if not has_player then
+                EntityAddChild(inv, ctx.rpc_player_data.entity)
+            end
         end
     end
 end

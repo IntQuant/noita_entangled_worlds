@@ -278,6 +278,28 @@ local function reset_cast_state_if_has_any_other_item(player_data)
     end
 end
 
+local function no_notplayer()
+    local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/poly.xml")
+    EntityAddTag(ent + 1, "ew_notplayer")
+
+    EntityAddComponent2(ent + 1, "LuaComponent", {
+        script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+        script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+    })
+
+    for _, com in ipairs(EntityGetComponent(ent + 1, "LuaComponent")) do
+        if ComponentGetValue2(com, "script_death") == "data/scripts/items/potion_glass_break.lua" then
+            EntityRemoveComponent(ent + 1, com)
+            break
+        end
+    end
+    for _, com in ipairs(EntityGetComponent(ent + 1, "DamageModelComponent")) do
+        EntityRemoveComponent(ent + 1, com)
+    end
+
+    polymorph.switch_entity(ent + 1)
+end
+
 local function player_died()
     if ctx.my_player.entity == nil then
         return
@@ -296,25 +318,7 @@ local function player_died()
     -- Which is, like, perfect.
     GameAddFlagRun("ew_flag_notplayer_active")
     if ctx.proxy_opt.no_notplayer then
-        local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/poly.xml")
-        EntityAddTag(ent + 1, "ew_notplayer")
-
-        EntityAddComponent2(ent + 1, "LuaComponent", {
-            script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-            script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-        })
-
-        for _, com in ipairs(EntityGetComponent(ent + 1, "LuaComponent")) do
-            if ComponentGetValue2(com, "script_death") == "data/scripts/items/potion_glass_break.lua" then
-                EntityRemoveComponent(ent + 1, com)
-                break
-            end
-        end
-        for _, com in ipairs(EntityGetComponent(ent + 1, "DamageModelComponent")) do
-            EntityRemoveComponent(ent + 1, com)
-        end
-
-        polymorph.switch_entity(ent + 1)
+        no_notplayer()
         return
     end
     if ctx.proxy_opt.perma_death then
@@ -451,20 +455,9 @@ function module.on_world_update()
         rpc.send_status(status)
     end
 
-    local hp_new, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)
-    if not ctx.my_player.currently_polymorphed and has_hp then
-        if hp_new <= 0 then
-            -- Restore the player back to small amount of hp.
-            local new_hp = 3 * max_hp_new / 20
-            local final_hp = math.max(new_hp, math.min(2/5, max_hp_new))
-            util.set_ent_health(ctx.my_player.entity, {final_hp, max_hp_new})
-            player_died()
-        end
-    end
-
     if ctx.proxy_opt.no_notplayer and notplayer_active then
         local x, y = EntityGetTransform(ctx.my_player.entity)
-        for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 8, "drillable")) do
+        for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 14, "drillable")) do
             if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
                 GameRemoveFlagRun("ew_flag_notplayer_active")
                 EntityKill(ent)
@@ -475,6 +468,20 @@ function module.on_world_update()
                 reduce_hp()
                 break
             end
+        end
+    end
+
+    local hp_new, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)
+    if not ctx.my_player.currently_polymorphed and has_hp then
+        if hp_new <= 0 then
+            -- Restore the player back to small amount of hp.
+            local new_hp = 3 * max_hp_new / 20
+            if ctx.proxy_opt.no_notplayer then
+                new_hp = new_hp * 3
+            end
+            local final_hp = math.max(new_hp, math.min(2/5, max_hp_new))
+            util.set_ent_health(ctx.my_player.entity, {final_hp, max_hp_new})
+            player_died()
         end
     end
 end
@@ -547,8 +554,15 @@ ctx.cap.health = {
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
         if notplayer_active then
-            if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") or ctx.proxy_opt.no_notplayer then
+            if GameHasFlagRun("ending_game_completed") and not GameHasFlagRun("ew_kill_player") then
                 return
+            end
+            if ctx.proxy_opt.no_notplayer then
+                polymorph.switch_entity(end_poly_effect(ctx.my_player.entity))
+                async(function()
+                    wait(1)
+                    player_died()
+                end)
             end
             local gold = get_gold()
             rpc.remove_homing(true)

@@ -109,6 +109,7 @@ local function set_camera_position(x, y)
         cam = EntityAddComponent2(ctx.my_player.entity, "PlatformShooterPlayerComponent", {center_camera_on_this_entity=false, move_camera_with_aim=false})
     end
     if cam ~= nil then
+        EntitySetComponentIsEnabled(ctx.my_player.entity, cam, true)
         ComponentSetValue2(cam, "mDesiredCameraPos", x, y)
     end
 end

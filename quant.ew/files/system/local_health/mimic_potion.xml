@@ -1,4 +1,4 @@
-<Entity tags="glue_NOT,mimic_potion" name="$animal_mimic_potion" >
+<Entity tags="glue_NOT" name="$animal_mimic_potion" >
   
     <Base file="data/entities/items/pickup/potion.xml">
   
@@ -21,7 +21,7 @@
             centered="1"
             is_circle="1"
             image_file="data/items_gfx/potion_normals.png"
-            material="potion_glass_box2d" 
+            material="rock_box2d_nohit_hard" 
         ></PhysicsImageShapeComponent>
       
         <MaterialInventoryComponent 
@@ -35,7 +35,7 @@
             death_throw_particle_velocity_coeff="0.2"
             >
             <count_per_material_type>
-            <Material material="mimic_liquid" count="1"  />
+            <Material material="blood" count="1"  />
              </count_per_material_type>
         </MaterialInventoryComponent>
          <DamageModelComponent 
@@ -81,7 +81,7 @@
 
           <!-- should not suck most materials -->
         <MaterialSuckerComponent 
-            suck_tag="[mimic_liquid]"
+            suck_tag=""
             randomized_position.min_x="-3"
             randomized_position.max_x="3"
             randomized_position.min_y="-2"
@@ -291,8 +291,8 @@
     <LuaComponent 
         _tags="enabled_in_world,enabled_in_hand"
         call_init_function="1"
-        script_source_file="data/scripts/animals/mimic_potion.lua"
-        script_enabled_changed="data/scripts/animals/mimic_potion.lua"
+        script_source_file="mods/quant.ew/files/system/local_health/mimic_potion.lua"
+        script_enabled_changed="mods/quant.ew/files/system/local_health/mimic_potion.lua"
         execute_on_added="1"
         execute_every_n_frame="30"
     ></LuaComponent>
@@ -324,7 +324,7 @@
   
     <IKLimbsAnimatorComponent
         _tags="enabled_in_world,enabled_in_hand"
-        ray_skip_material="potion_glass_box2d"
+        ray_skip_material="rock_box2d_nohit_hard"
         no_ground_attachment_penalty_coeff="0.01"
     ></IKLimbsAnimatorComponent>
 
