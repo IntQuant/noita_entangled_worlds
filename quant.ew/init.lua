@@ -15,12 +15,12 @@ np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away
 ewext = require("ewext0")
 
 -- Make some stuff global, as it's way too annoying to import each time.
+constants = dofile_once("mods/quant.ew/files/core/constants.lua")
 ctx = dofile_once("mods/quant.ew/files/core/ctx.lua")
 util = dofile_once("mods/quant.ew/files/core/util.lua")
+net = dofile_once("mods/quant.ew/files/core/net.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
-net = dofile_once("mods/quant.ew/files/core/net.lua")
-constants = dofile_once("mods/quant.ew/files/core/constants.lua")
 
 dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 
@@ -136,6 +136,7 @@ local function load_modules()
     ctx.load_system("map")
     ctx.load_system("homunculus")
     ctx.load_system("text")
+    ctx.load_system("ragdoll_fix")
 end
 
 local function load_extra_modules()
