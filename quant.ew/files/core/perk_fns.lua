@@ -97,12 +97,8 @@ local function spawn_perk(perk_info, auto_pickup_entity)
     end
     local perk_entity = perk_spawn(x, y - 8, perk_info.id)
     if auto_pickup_entity then
-        perk_pickup(perk_entity, auto_pickup_entity, nil, true, false)
+        perk_pickup(perk_entity, ctx.my_player.entity, nil, true, false)
     end
-    local icon = EntityCreateNew()
-    EntityAddTag(icon, "perk_entity")
-    EntityAddComponent2(icon, "UIIconComponent", {icon_sprite_file = perk_info.ui_icon, name = perk_info.ui_name, description = perk_info.ui_description})
-    EntityAddChild(ctx.my_player.entity, icon)
 end
 
 local to_spawn = {}
