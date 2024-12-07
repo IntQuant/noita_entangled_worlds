@@ -561,6 +561,7 @@ ctx.cap.health = {
                     wait(1)
                     player_died()
                 end)
+                return
             end
             local gold = get_gold()
             rpc.remove_homing(true)

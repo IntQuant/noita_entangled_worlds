@@ -29,6 +29,7 @@ local function cant_spectate(ent)
             and EntityHasTag(ent, "ew_notplayer"))
             or (EntityHasTag(ent, "polymorphed_cessation")
                 and cam_target ~= nil and cam_target.entity ~= ent)
+            or (ctx.proxy_opt.no_notplayer and EntityHasTag(ent, "ew_notplayer"))
 end
 
 local function perks_ui(enable)

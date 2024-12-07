@@ -8,22 +8,29 @@ local module = {}
 
 local last_money
 
+local was_polied = false
+
 function rpc.send_money_and_ingestion(money, delta, ingestion_size)
     local entity = ctx.rpc_player_data.entity
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
     if wallet ~= nil and money ~= nil then
         if ctx.proxy_opt.share_gold and last_money ~= nil then
             local my_wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+            if my_wallet == nil then
+                my_wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", {money = last_money})
+            end
             local cm = ComponentGetValue2(my_wallet, "money")
-            if ctx.is_host then
-                ComponentSetValue2(my_wallet, "money", cm + delta)
-            elseif ctx.rpc_peer_id == ctx.host_id then
-                local my_delta = 0
-                if cm ~= last_money then
-                    my_delta = cm - last_money
+            if cm ~= nil then
+                if ctx.is_host then
+                    ComponentSetValue2(my_wallet, "money", cm + delta)
+                elseif ctx.rpc_peer_id == ctx.host_id then
+                    local my_delta = 0
+                    if cm ~= last_money then
+                        my_delta = cm - last_money
+                    end
+                    last_money = money
+                    ComponentSetValue2(my_wallet, "money", money + my_delta)
                 end
-                last_money = money
-                ComponentSetValue2(my_wallet, "money", money + my_delta)
             end
         end
         ComponentSetValue2(wallet, "money", money)
@@ -208,11 +215,20 @@ function module.on_world_update()
         end
     end
 
-    if GameGetFrameNum() % 60 == 47 then
+    if GameGetFrameNum() % 10 == 8 then
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
         local ingestion = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "IngestionComponent")
+        if was_polied ~= ctx.my_player.currently_polymorphed then
+            if wallet ~= nil then
+                ComponentSetValue2(wallet, "money", last_money)
+            end
+        end
+        was_polied = ctx.my_player.currently_polymorphed
         if wallet ~= nil or ingestion ~= nil then
             local delta = 0
+            if wallet == nil then
+                wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", {money = last_money})
+            end
             if wallet ~= nil then
                 if last_money ~= nil then
                     delta = ComponentGetValue2(wallet, "money") - last_money
@@ -223,6 +239,7 @@ function module.on_world_update()
                     ingestion and ComponentGetValue2(ingestion, "ingestion_size"))
         end
     end
+
     if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         if not ctx.my_player.twwe then
             local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
