@@ -1,25 +1,48 @@
-## Noita Entangled Worlds v0.31.5
+## Noita Entangled Worlds v0.31.6
 
-- fix egg more
+- fix gold being removed from poly effects in shared gold mode
 
-- reset perks better, maybe fix global perk duping
+- dont let notplayer target lukki minion
 
-- always cast some spells independent on how far away player is
+- fix controls being taken away from notplayer when texting
 
-- fix wands not being usable if someone drops it sometimes but not broken this time
+- make nests work when host is far away
 
-- make notplayer deal with egg enemies better
+- fix some errors
 
-- add delete key and pause menu to stop chat
+- try to not spawn notplayers on you when facing kolmi
 
-- warn on world number being different
+- fix a world sync issue
 
-- add chat history
+- color lukki legs
+
+- give twwe if someone near you has it only when you are close
+
+- fix a bunch of issues with alternate revive mechanic
+
+- dont let you spectate dead players with alternate revive mechanic
+
+- remove some unused stuff
+
+- do end fight at mountain when applicable
+
+- try to fix proxy on steamdeck looking bad
+
+- add notes about text/alternate revive mechanic on first use
+
+- make ui a bit more clear
+
+- spawn ragdolls when you die in perma death
+
+- save settings on create/connect to lobby to prevent them being lost if proxy dies too fast
+
+- fix a crash when picking up wands someone is looking at
 
 ## Accepted pull requests
 
-- chat history feature by @sad-username-231 in #266
-- stop player controls from working when typing on chat, can prevent you walking into lava when typing or something like that by @ZXb125 in #264
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
