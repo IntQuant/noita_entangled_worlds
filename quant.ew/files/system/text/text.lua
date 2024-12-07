@@ -90,6 +90,19 @@ local function renderChat()
     end
 end
 
+local function disable_movement(controls)
+    ComponentSetValue2(controls, "mButtonDownFire", false)
+    ComponentSetValue2(controls, "mButtonDownFire2", false)
+    ComponentSetValue2(controls, "mButtonDownLeft", false)
+    ComponentSetValue2(controls, "mButtonDownDown", false)
+    ComponentSetValue2(controls, "mButtonDownRight", false)
+    ComponentSetValue2(controls, "mButtonDownUp", false)
+    ComponentSetValue2(controls, "mButtonDownJump", false)
+    ComponentSetValue2(controls, "mButtonDownFly", false)
+    ComponentSetValue2(controls, "mButtonDownKick", false)
+    ComponentSetValue2(controls, "mButtonDownEat", false)
+end
+
 function rpc.text(msg)
     if not ModSettingGet("quant.ew.notext") then
         GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
@@ -107,6 +120,7 @@ local function starttext()
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
         if controls ~= nil then
             ComponentSetValue2(controls, "enabled", false)
+            disable_movement(controls)
         end
     end
 end
