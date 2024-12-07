@@ -140,6 +140,8 @@ local function stoptext()
     end
 end
 
+local first = true
+
 function module.on_world_update()
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
         if enabled then
@@ -154,6 +156,7 @@ function module.on_world_update()
                 rpc.text(text)
             end
             stoptext()
+            first = false
         else
             starttext()
         end
@@ -163,6 +166,7 @@ function module.on_world_update()
             and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext")))
                 or ctx.is_paused or ctx.is_wand_pickup) then
         stoptext()
+        first = false
     end
 
     if enabled then
@@ -177,6 +181,12 @@ function module.on_world_update()
         GuiText(gui, 64, 115, overflowText)
 
         text = GuiTextInput(gui, 421, 64, 100, text, 512, 256)
+        if first then
+            local w, h = GuiGetScreenDimensions(gui)
+            local note = "text chat, hover over black box to type, enter to send"
+            local tw, th = GuiGetTextDimensions(gui, note)
+            GuiText(gui, w-2-tw, h-1-th, note)
+        end
     end
 end
 

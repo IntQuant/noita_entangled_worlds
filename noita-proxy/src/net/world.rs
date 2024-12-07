@@ -852,12 +852,14 @@ impl WorldManager {
                             authority,
                             my_priority,
                             ..
-                        }) if priority <= *my_priority => {
-                            let cs = ChunkState::Listening {
-                                authority: *authority,
-                                priority,
-                            };
-                            self.chunk_state.insert(delta.chunk_coord, cs);
+                        }) => {
+                            if priority <= *my_priority {
+                                let cs = ChunkState::Listening {
+                                    authority: *authority,
+                                    priority,
+                                };
+                                self.chunk_state.insert(delta.chunk_coord, cs);
+                            }
                         }
                         _ => continue,
                     }

@@ -1037,7 +1037,7 @@ end
 
 local function hold_something()
     local ch_x, ch_y = EntityGetTransform(state.entity)
-    if GameGetFrameNum() % 20 == 0 then
+    if GameGetFrameNum() % 20 == 5 then
         find_new_wand()
     end
     local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")

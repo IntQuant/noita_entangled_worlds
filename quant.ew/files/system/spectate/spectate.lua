@@ -350,7 +350,7 @@ function spectate.on_world_update()
     set_camera_pos()
     ctx.spectating_over_peer_id = camera_player_id
 
-    if GameHasFlagRun("ew_flag_notplayer_active") and not has_switched then
+    if GameHasFlagRun("ew_flag_notplayer_active") and not has_switched and not ctx.proxy_opt.no_notplayer then
         GuiStartFrame(gui)
         GuiZSet(gui, 11)
         local w, h = GuiGetScreenDimensions(gui)
@@ -358,7 +358,7 @@ function spectate.on_world_update()
         if GameGetIsGamepadConnected() then
             text = "Use d-pad-left and d-pad-right keys to spectate over other players."
         else
-            text = "Use ',' and '.' keys to spectate over other players. '/' for self"
+            text = "Use ',' and '.' keys to spectate over other players, '/' for self, ' for spectate closest to cursor"
         end
         local tw, th = GuiGetTextDimensions(gui, text)
         GuiText(gui, w-2-tw, h-1-th, text)

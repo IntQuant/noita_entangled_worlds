@@ -435,6 +435,10 @@ function module.on_local_player_spawn(my_player)
     })
 end
 
+local first = true
+
+local gui = GuiCreate()
+
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
@@ -458,6 +462,7 @@ function module.on_world_update()
                 polymorph.switch_entity(ctx.my_player.entity)
                 spectate.disable_throwing(false, ctx.my_player.entity)
                 reduce_hp()
+                first = false
                 break
             end
         end
@@ -475,6 +480,13 @@ function module.on_world_update()
             util.set_ent_health(ctx.my_player.entity, {final_hp, max_hp_new})
             player_died()
         end
+    end
+    if ctx.proxy_opt.no_notplayer and first and notplayer_active then
+        GuiStartFrame(gui)
+        local w, h = GuiGetScreenDimensions(gui)
+        local note = "find potion mimic player at last point of death, throw at full hp to revive"
+        local tw, th = GuiGetTextDimensions(gui, note)
+        GuiText(gui, w-2-tw, h-1-th, note)
     end
 end
 
@@ -511,7 +523,7 @@ function module.on_client_spawned(peer_id, playerdata)
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
 
-function module.health()
+--[[function module.health()
 end
 
 function module.max_health()
@@ -526,7 +538,7 @@ end
 function module.inflict_damage(dmg)
     local hp = module.health()
     module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
-end
+end]]
 
 rpc.opts_reliable()
 function rpc.loss_hp()
@@ -537,11 +549,11 @@ end
 
 -- Provides health capability
 ctx.cap.health = {
-    health = module.health,
-    max_health = module.max_health,
-    set_health = module.set_health,
-    set_max_health = module.set_max_health,
-    inflict_damage = module.inflict_damage,
+    --health = module.health,
+    --max_health = module.max_health,
+    --set_health = module.set_health,
+    --set_max_health = module.set_max_health,
+    --inflict_damage = module.inflict_damage,
     do_game_over = function(message) rpc.trigger_game_over(message) end,
     on_poly_death = function()
         local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")

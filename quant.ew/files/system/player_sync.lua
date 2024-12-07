@@ -130,7 +130,7 @@ function module.on_world_update()
         end
 
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
-        if GameGetFrameNum() % 120 == 0 then
+        if GameGetFrameNum() % 120 == 53 then
             local n = np.GetGameModeNr()
             rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"), ctx.proxy_opt.world_num)
         end
@@ -212,7 +212,7 @@ function module.on_world_update()
         end
     end
 
-    if GameGetFrameNum() % 10 == 8 then
+    if GameGetFrameNum() % 10 == 9 then
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
         local ingestion = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "IngestionComponent")
         if was_polied ~= ctx.my_player.currently_polymorphed then
