@@ -1,10 +1,13 @@
 use bitcode::{Decode, Encode};
+use image::DynamicImage::ImageRgba8;
+use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use shared::message_socket::MessageSocket;
 use shared::{NoitaInbound, NoitaOutbound};
 use socket2::{Domain, Socket, Type};
+use std::collections::HashMap;
 use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
 use std::path::PathBuf;
@@ -24,7 +27,7 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 
 use crate::mod_manager::{get_mods, ModmanagerSettings};
-use crate::player_cosmetics::{create_player_png, PlayerPngDesc};
+use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
     DefaultSettings, GameMode, GameSettings, LocalHealthMode,
@@ -98,7 +101,7 @@ impl NetInnerState {
 pub mod omni;
 
 pub struct NetManagerInit {
-    pub my_nickname: Option<String>,
+    pub my_nickname: String,
     pub save_state: SaveState,
     pub cosmetics: (bool, bool, bool),
     pub mod_path: PathBuf,
@@ -129,6 +132,9 @@ pub struct NetManager {
     pub dirty: AtomicBool,
     pub actual_noita_port: AtomicU16,
     pub active_mods: Mutex<Vec<String>>,
+    pub nicknames: Mutex<HashMap<OmniPeerId, String>>,
+    #[allow(clippy::type_complexity)]
+    pub minas: Mutex<HashMap<OmniPeerId, ImageBuffer<Rgba<u8>, Vec<u8>>>>,
 }
 
 impl NetManager {
@@ -154,6 +160,8 @@ impl NetManager {
             dirty: AtomicBool::new(false),
             actual_noita_port: AtomicU16::new(0),
             active_mods: Default::default(),
+            nicknames: Default::default(),
+            minas: Default::default(),
         }
         .into()
     }
@@ -237,6 +245,15 @@ impl NetManager {
             ),
         };
         let mut last_iter = Instant::now();
+        let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
+        let player_image = if path.exists() {
+            image::open(path)
+                .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
+                .crop(1, 1, 8, 18)
+                .into_rgba8()
+        } else {
+            RgbaImage::new(1, 1)
+        };
         // Create appearance files for local player.
         create_player_png(
             self.peer.my_id(),
@@ -244,6 +261,14 @@ impl NetManager {
             &self.init_settings.player_path,
             &self.init_settings.player_png_desc,
             self.is_host(),
+        );
+        self.nicknames
+            .lock()
+            .unwrap()
+            .insert(self.peer.my_id(), self.init_settings.my_nickname.clone());
+        self.minas.lock().unwrap().insert(
+            self.peer.my_id(),
+            get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
         while self.continue_running.load(Ordering::Relaxed) {
             if cli {
@@ -347,6 +372,7 @@ impl NetManager {
                                     self.init_settings.player_png_desc,
                                     self.is_host(),
                                     Some(self.peer.my_id()),
+                                    self.init_settings.my_nickname.clone(),
                                 ),
                                 Reliability::Reliable,
                             );
@@ -406,7 +432,7 @@ impl NetManager {
                                 }
                             }
                             NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
-                            NetMsg::PlayerColor(rgb, host, pong) => {
+                            NetMsg::PlayerColor(rgb, host, pong, name) => {
                                 info!("Player appearance created for {}", src);
                                 // Create proper appearance files for new player.
                                 create_player_png(
@@ -416,6 +442,11 @@ impl NetManager {
                                     &rgb,
                                     host,
                                 );
+                                self.nicknames.lock().unwrap().insert(src, name);
+                                self.minas
+                                    .lock()
+                                    .unwrap()
+                                    .insert(src, get_player_skin(player_image.clone(), rgb));
                                 if let Some(id) = pong {
                                     self.send(
                                         id,
@@ -423,6 +454,7 @@ impl NetManager {
                                             self.init_settings.player_png_desc,
                                             self.is_host(),
                                             None,
+                                            self.init_settings.my_nickname.clone(),
                                         ),
                                         Reliability::Reliable,
                                     );
@@ -495,12 +527,8 @@ impl NetManager {
             "host_id",
             format!("{:016x}", self.peer.host_id().0),
         ));
-        if let Some(nickname) = &self.init_settings.my_nickname {
-            info!("Chosen nickname: {}", nickname);
-            state.try_ws_write_option("name", nickname.as_str());
-        } else {
-            info!("No nickname chosen");
-        }
+        info!("Chosen nickname: {}", self.init_settings.my_nickname);
+        state.try_ws_write_option("name", self.init_settings.my_nickname.as_str());
         state.try_ws_write_option("world_num", settings.world_num as u32);
         state.try_ws_write_option(
             "friendly_fire",

@@ -6,8 +6,8 @@ use bookkeeping::{
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
-    InnerResponse, Key, KeyboardShortcut, Margin, Modifiers, OpenUrl, Rect, RichText, ScrollArea,
-    Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions,
+    ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
 };
 use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
@@ -47,7 +47,7 @@ pub use util::{args, lang, steam_helper};
 mod bookkeeping;
 use crate::net::messages::NetMsg;
 use crate::player_cosmetics::{
-    display_player_skin, player_path, player_select_current_color_slot,
+    display_player_skin, get_player_skin, player_path, player_select_current_color_slot,
     player_skin_display_color_picker, shift_hue,
 };
 pub use bookkeeping::{mod_manager, releases, self_update};
@@ -688,12 +688,21 @@ impl App {
     }
 
     fn get_netman_init(&self) -> NetManagerInit {
+        let mut id = "no name found".to_string();
         let steam_nickname = if let Ok(steam) = &self.steam_state {
-            Some(steam.get_user_name(steam.get_my_id()))
+            let sid = steam.get_my_id();
+            id = sid.steamid32().to_string();
+            Some(steam.get_user_name(sid))
         } else {
             None
         };
-        let my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
+        let mut my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
+        if let Some(n) = my_nickname.clone() {
+            if n.trim().is_empty() {
+                my_nickname = None
+            }
+        }
+        let my_nickname = my_nickname.unwrap_or(id);
         let mod_path = self.modmanager_settings.mod_path();
         let mut cosmetics = self.appearance.cosmetics;
         if let Some(path) = &self.modmanager_settings.game_save_path {
@@ -1024,6 +1033,25 @@ impl App {
 
     fn show_local_settings(&mut self, ui: &mut Ui) {
         heading_with_underline(ui, tr("connect_settings_local"));
+        {
+            let mut temp = self.app_saved_state.nickname.clone().unwrap_or(
+                if let Ok(steam) = &self.steam_state {
+                    steam.get_user_name(steam.get_my_id())
+                } else {
+                    String::new()
+                },
+            );
+            if ui
+                .horizontal(|ui| {
+                    ui.label("nickname");
+                    ui.text_edit_singleline(&mut temp)
+                })
+                .inner
+                .changed()
+            {
+                self.app_saved_state.nickname = Some(temp)
+            }
+        }
         ui.checkbox(
             &mut self.app_saved_state.start_game_automatically,
             tr("connect_settings_autostart"),
@@ -1086,7 +1114,33 @@ impl App {
             }
         }
         ui.horizontal(|ui| {
-            display_player_skin(ui, self);
+            let mut cosmetics = self.appearance.cosmetics;
+            if let Some(path) = &self.modmanager_settings.game_save_path {
+                let flags = path.join("save00/persistent/flags");
+                let hat = flags.join("secret_hat").exists();
+                let amulet = flags.join("secret_amulet").exists();
+                let gem = flags.join("secret_amulet_gem").exists();
+                if !hat {
+                    cosmetics.0 = false
+                }
+                if !amulet {
+                    cosmetics.1 = false
+                }
+                if !gem {
+                    cosmetics.2 = false
+                }
+            }
+            display_player_skin(
+                ui,
+                get_player_skin(
+                    self.player_image.clone(),
+                    PlayerPngDesc {
+                        colors: self.appearance.player_color,
+                        cosmetics: cosmetics.into(),
+                    },
+                ),
+                11.0,
+            );
             player_select_current_color_slot(ui, self);
             player_skin_display_color_picker(
                 ui,
@@ -1199,32 +1253,7 @@ impl App {
             .exact_width(200.0)
             .show(ctx, |ui| {
                 ui.add_space(3.0);
-                if netman.peer.is_steam() {
-                    let steam = self
-                        .steam_state
-                        .as_mut()
-                        .expect("steam should be available, as we are using steam networking");
-                    show_player_list_steam(ctx, steam, ui, netman);
-                } else {
-                    for peer in netman.peer.iter_peer_ids() {
-                        ui.label(peer.to_string());
-                        ui.horizontal(|ui| {
-                            if peer != netman.peer.my_id() {
-                                if netman.peer.is_host() {
-                                    if ui.button("kick").clicked() {
-                                        netman.kick_list.lock().unwrap().push(peer)
-                                    }
-                                    if ui.button("ban").clicked() {
-                                        netman.ban_list.lock().unwrap().push(peer)
-                                    }
-                                }
-                                if ui.button("mods").clicked() {
-                                    netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
-                                }
-                            }
-                        });
-                    }
-                }
+                show_player_list(ui, netman);
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -1421,7 +1450,7 @@ impl App {
             .enable_recorder
             .store(self.app_saved_state.record_all, Ordering::Relaxed);
         if goto_menu {
-            self.state = AppState::ModManager;
+            self.state = AppState::Connect;
         }
     }
 }
@@ -1558,29 +1587,24 @@ impl eframe::App for App {
     }
 }
 
-fn show_player_list_steam(
-    ctx: &Context,
-    steam: &mut steam_helper::SteamState,
-    ui: &mut Ui,
-    netman: &mut NetManStopOnDrop,
-) {
-    if ctx.input_mut(|i| i.consume_shortcut(&KeyboardShortcut::new(Modifiers::CTRL, Key::R))) {
-        steam.reset_avatar_cache();
-    }
+fn show_player_list(ui: &mut Ui, netman: &mut NetManStopOnDrop) {
     ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+        let nicknames = netman.nicknames.lock().unwrap();
+        let minas = netman.minas.lock().unwrap();
         for peer in netman.peer.iter_peer_ids() {
             let role = peer_role(peer, netman);
-            let username = steam.get_user_name(peer.into());
-            let avatar = steam.get_avatar(ctx, peer.into());
+            let peer_str = peer.to_string().clone();
+            let username = nicknames.get(&peer).unwrap_or(&peer_str);
+            let mina = minas.get(&peer);
             ui.group(|ui| {
-                if let Some(ref avatar) = avatar {
-                    avatar.display_with_labels(ui, &username, &role);
+                if let Some(img) = mina {
+                    display_with_labels(img.clone(), ui, username, &role)
                 } else {
-                    ui.label(&username);
+                    ui.label(username);
                 }
                 ui.horizontal(|ui| {
                     if peer != netman.peer.my_id() {
-                        if avatar.is_some() {
+                        if mina.is_some() {
                             ui.add_space(5.0);
                         }
                         if netman.peer.is_host() {
@@ -1598,6 +1622,18 @@ fn show_player_list_steam(
                 });
             });
         }
+    });
+}
+fn display_with_labels(img: RgbaImage, ui: &mut Ui, label_top: &str, label_bottom: &str) {
+    ui.scope(|ui| {
+        ui.set_min_width(200.0);
+        ui.horizontal(|ui| {
+            display_player_skin(ui, img, 4.0);
+            ui.vertical(|ui| {
+                ui.label(RichText::new(label_top).size(14.0));
+                ui.label(RichText::new(label_bottom).size(11.0));
+            });
+        });
     });
 }
 fn add_per_status_ui(
@@ -1678,7 +1714,9 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
     let mut mod_manager: ModmanagerSettings = settings.modmanager;
     let appearance: PlayerAppearance = settings.color;
     let mut state = steam_helper::SteamState::new(false).unwrap();
-    let my_nickname = saved_state.nickname;
+    let my_nickname = saved_state
+        .nickname
+        .unwrap_or("no nickname found".to_string());
 
     mod_manager.try_find_game_path(Some(&mut state));
     mod_manager.try_find_save_path();

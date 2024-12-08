@@ -4,8 +4,8 @@ use crate::{App, PlayerColor, PlayerPicker};
 use bitcode::{Decode, Encode};
 use eframe::egui;
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
-use eframe::egui::{Color32, TextureHandle, TextureOptions, Ui};
-use image::{Pixel, Rgba, RgbaImage};
+use eframe::egui::{Color32, Image, TextureHandle, TextureOptions, Ui};
+use image::{ImageBuffer, Pixel, Rgba, RgbaImage};
 use std::ffi::OsString;
 use std::fs::{self, remove_file, File};
 use std::io::Write;
@@ -103,32 +103,22 @@ pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
     }
 }
 
-pub fn add_cosmetics(
-    image: &mut RgbaImage,
-    saves_paths: Option<PathBuf>,
-    cosmetics: (bool, bool, bool),
-) {
-    if let Some(path) = saves_paths {
-        let flags = path.join("save00/persistent/flags");
-        let hat = flags.join("secret_hat").exists();
-        let amulet = flags.join("secret_amulet").exists();
-        let gem = flags.join("secret_amulet_gem").exists();
-        for (i, pixel) in image.pixels_mut().enumerate() {
-            match i {
-                2 | 4 | 6 if hat && cosmetics.0 => *pixel = Rgba::from([255, 244, 140, 255]),
-                10 | 14 if hat && cosmetics.0 => *pixel = Rgba::from([191, 141, 65, 255]),
-                11..=13 if hat && cosmetics.0 => *pixel = Rgba::from([255, 206, 98, 255]),
-                61 if gem && cosmetics.2 => *pixel = Rgba::from([255, 242, 162, 255]),
-                68 if gem && cosmetics.2 => *pixel = Rgba::from([255, 227, 133, 255]),
-                69 if gem && cosmetics.2 => *pixel = Rgba::from([255, 94, 38, 255]),
-                70 | 77 if gem && cosmetics.2 => *pixel = Rgba::from([247, 188, 86, 255]),
-                51 | 60 if amulet && cosmetics.1 => *pixel = Rgba::from([247, 188, 86, 255]),
-                61 if amulet && cosmetics.1 => *pixel = Rgba::from([255, 227, 133, 255]),
-                69 if amulet && cosmetics.1 => *pixel = Rgba::from([255, 242, 162, 255]),
-                54 if amulet && cosmetics.1 => *pixel = Rgba::from([198, 111, 57, 255]),
-                62 if amulet && cosmetics.1 => *pixel = Rgba::from([177, 97, 48, 149]),
-                _ => {}
-            }
+pub fn add_cosmetics(image: &mut RgbaImage, cosmetics: &[bool]) {
+    for (i, pixel) in image.pixels_mut().enumerate() {
+        match i {
+            2 | 4 | 6 if cosmetics[0] => *pixel = Rgba::from([255, 244, 140, 255]),
+            10 | 14 if cosmetics[0] => *pixel = Rgba::from([191, 141, 65, 255]),
+            11..=13 if cosmetics[0] => *pixel = Rgba::from([255, 206, 98, 255]),
+            61 if cosmetics[2] => *pixel = Rgba::from([255, 242, 162, 255]),
+            68 if cosmetics[2] => *pixel = Rgba::from([255, 227, 133, 255]),
+            69 if cosmetics[2] => *pixel = Rgba::from([255, 94, 38, 255]),
+            70 | 77 if cosmetics[2] => *pixel = Rgba::from([247, 188, 86, 255]),
+            51 | 60 if cosmetics[1] => *pixel = Rgba::from([247, 188, 86, 255]),
+            61 if cosmetics[1] => *pixel = Rgba::from([255, 227, 133, 255]),
+            69 if cosmetics[1] => *pixel = Rgba::from([255, 242, 162, 255]),
+            54 if cosmetics[1] => *pixel = Rgba::from([198, 111, 57, 255]),
+            62 if cosmetics[1] => *pixel = Rgba::from([177, 97, 48, 149]),
+            _ => {}
         }
     }
 }
@@ -278,20 +268,22 @@ pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
     }
 }
 
-pub fn display_player_skin(ui: &mut Ui, app: &App) {
-    let mut img = app.player_image.clone();
-    add_cosmetics(
-        &mut img,
-        app.modmanager_settings.game_save_path.clone(),
-        app.appearance.cosmetics,
-    );
-    make_player_image(&mut img, app.appearance.player_color);
+pub fn get_player_skin(
+    mut img: RgbaImage,
+    colors: PlayerPngDesc,
+) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+    add_cosmetics(&mut img, &colors.cosmetics);
+    make_player_image(&mut img, colors.colors);
+    img
+}
+
+pub fn display_player_skin(ui: &mut Ui, img: ImageBuffer<Rgba<u8>, Vec<u8>>, scale: f32) {
     let texture: TextureHandle = ui.ctx().load_texture(
         "player",
         egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),
         TextureOptions::NEAREST,
     );
-    ui.add(egui::Image::new(&texture).fit_to_original_size(11.0));
+    ui.add(Image::new(&texture).fit_to_original_size(scale));
 }
 
 pub fn create_arm(arm: Rgba<u8>) -> RgbaImage {

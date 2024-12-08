@@ -84,7 +84,10 @@ function potion.on_world_update()
             EntitySetComponentIsEnabled(ctx.my_player.entity, effect, root == ctx.my_player.entity)
         end
         if GameGetFrameNum() % 60 == 53 and root ~= ctx.my_player.entity then
-            rpc.ensure_held(player_fns.get_player_data_by_local_entity_id(root).peer_id)
+            local data = player_fns.get_player_data_by_local_entity_id(root)
+            if data ~= nil then
+                rpc.ensure_held(data.peer_id)
+            end
         end
     end
     --if InputIsKeyJustDown(16) then --when "m" is pressed
