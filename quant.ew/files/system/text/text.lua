@@ -15,6 +15,21 @@ local maxVisibleLines = 15
 local maxInputLength = 1024
 local visibleChars = 85
 
+local function world2gui( x, y )
+    in_camera_ref = in_camera_ref or false
+
+    local gui_n = GuiCreate()
+    GuiStartFrame(gui_n)
+    local w, h = GuiGetScreenDimensions(gui_n)
+    GuiDestroy(gui_n)
+
+    local vres_scaling_factor = w/( MagicNumbersGetValue( "VIRTUAL_RESOLUTION_X" ) + MagicNumbersGetValue( "VIRTUAL_RESOLUTION_OFFSET_X" ))
+    local cam_x, cam_y = GameGetCameraPos()
+    x, y = w/2 + vres_scaling_factor*( x - cam_x ), h/2 + vres_scaling_factor*( y - cam_y )
+
+    return x, y, vres_scaling_factor
+end
+
 local function utf8len(s)
     local len = 0
     for _ in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
@@ -140,8 +155,6 @@ local function stoptext()
     end
 end
 
-local first = true
-
 function module.on_world_update()
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
         if enabled then
@@ -156,7 +169,6 @@ function module.on_world_update()
                 rpc.text(text)
             end
             stoptext()
-            first = false
         else
             starttext()
         end
@@ -166,7 +178,6 @@ function module.on_world_update()
             and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext")))
                 or ctx.is_paused or ctx.is_wand_pickup) then
         stoptext()
-        first = false
     end
 
     if enabled then
@@ -180,12 +191,15 @@ function module.on_world_update()
         local overflowText = getOverflowText(text, visibleChars)
         GuiText(gui, 64, 115, overflowText)
 
-        text = GuiTextInput(gui, 421, 64, 100, text, 512, 256)
-        if first then
-            local w, h = GuiGetScreenDimensions(gui)
-            local note = "text chat, hover over black box to type, enter to send"
-            local tw, th = GuiGetTextDimensions(gui, note)
-            GuiText(gui, w-2-tw, h-1-th, note)
+        local x, y = DEBUG_GetMouseWorld()
+        x, y = world2gui(x, y)
+        local new = GuiTextInput(gui, 421, x, y - 6, " ", 0, 256)
+        if new ~= " " then
+            if new == "" then
+                text = string.sub(text, 1, -2)
+            else
+                text = text .. string.sub(new, 2, -1)
+            end
         end
     end
 end
