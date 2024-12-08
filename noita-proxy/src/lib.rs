@@ -46,6 +46,7 @@ pub use util::{args, lang, steam_helper};
 
 mod bookkeeping;
 use crate::net::messages::NetMsg;
+use crate::net::omni::OmniPeerId;
 use crate::player_cosmetics::{
     display_player_skin, get_player_skin, player_path, player_select_current_color_slot,
     player_skin_display_color_picker, shift_hue,
@@ -1589,24 +1590,56 @@ impl eframe::App for App {
 
 fn show_player_list(ui: &mut Ui, netman: &mut NetManStopOnDrop) {
     ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-        let nicknames = netman.nicknames.lock().unwrap();
-        let minas = netman.minas.lock().unwrap();
-        for peer in netman.peer.iter_peer_ids() {
+        let nicknames = netman.nicknames.lock().unwrap().clone();
+        let minas = netman.minas.lock().unwrap().clone();
+        for peer in netman.peer.iter_peer_ids().clone() {
             let role = peer_role(peer, netman);
             let peer_str = peer.to_string().clone();
             let username = nicknames.get(&peer).unwrap_or(&peer_str);
             let mina = minas.get(&peer);
             ui.group(|ui| {
                 if let Some(img) = mina {
-                    display_with_labels(img.clone(), ui, username, &role)
+                    display_with_labels(img.clone(), ui, username, &role, netman, peer)
                 } else {
                     ui.label(username);
-                }
-                ui.horizontal(|ui| {
                     if peer != netman.peer.my_id() {
-                        if mina.is_some() {
-                            ui.add_space(5.0);
-                        }
+                        ui.horizontal(|ui| {
+                            if mina.is_some() {
+                                ui.add_space(5.0);
+                            }
+                            if netman.peer.is_host() {
+                                if ui.button("Kick").clicked() {
+                                    netman.kick_list.lock().unwrap().push(peer)
+                                }
+                                if ui.button("Ban").clicked() {
+                                    netman.ban_list.lock().unwrap().push(peer)
+                                }
+                            }
+                            if ui.button("mods").clicked() {
+                                netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+}
+fn display_with_labels(
+    img: RgbaImage,
+    ui: &mut Ui,
+    label_top: &str,
+    label_bottom: &str,
+    netman: &mut NetManStopOnDrop,
+    peer: OmniPeerId,
+) {
+    ui.scope(|ui| {
+        ui.set_min_width(200.0);
+        ui.horizontal(|ui| {
+            display_player_skin(ui, img, 4.0);
+            ui.vertical(|ui| {
+                if netman.peer.my_id() != peer {
+                    ui.horizontal(|ui| {
                         if netman.peer.is_host() {
                             if ui.button("Kick").clicked() {
                                 netman.kick_list.lock().unwrap().push(peer)
@@ -1618,22 +1651,12 @@ fn show_player_list(ui: &mut Ui, netman: &mut NetManStopOnDrop) {
                         if ui.button("mods").clicked() {
                             netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
                         }
-                    }
-                });
-            });
-        }
-    });
-}
-fn display_with_labels(img: RgbaImage, ui: &mut Ui, label_top: &str, label_bottom: &str) {
-    ui.scope(|ui| {
-        ui.set_min_width(200.0);
-        ui.horizontal(|ui| {
-            display_player_skin(ui, img, 4.0);
-            ui.vertical(|ui| {
+                    });
+                }
                 ui.label(RichText::new(label_top).size(14.0));
                 ui.label(RichText::new(label_bottom).size(11.0));
             });
-        });
+        })
     });
 }
 fn add_per_status_ui(
