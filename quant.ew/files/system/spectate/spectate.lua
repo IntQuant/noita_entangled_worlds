@@ -320,32 +320,34 @@ function spectate.on_world_update()
         return
     end
 
-    if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_lspectate"))) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 13)) then
-        camera_player = camera_player - 1
-        if camera_player < 1 then
-            camera_player = last_len
-        end
+    if not ctx.is_texting then
+        if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_lspectate"))) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 13)) then
+            camera_player = camera_player - 1
+            if camera_player < 1 then
+                camera_player = last_len
+            end
 
-        has_switched = true
-        re_cam = true
-    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_rspectate"))) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 14)) then
-        camera_player = camera_player + 1
-        if camera_player > last_len then
-            camera_player = 1
-        end
+            has_switched = true
+            re_cam = true
+        elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_rspectate"))) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 14)) then
+            camera_player = camera_player + 1
+            if camera_player > last_len then
+                camera_player = 1
+            end
 
-        has_switched = true
-        re_cam = true
-    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_sspectate"))) then
-        camera_player_id, camera_player = get_me()
-        re_cam = true
-    elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_mspectate"))) then
-        local mx, my = DEBUG_GetMouseWorld()
-        local ent = EntityGetClosestWithTag(mx, my, "ew_peer")
-        camera_player = player_fns.get_player_data_by_local_entity_id(ent)
-        camera_player_id = camera_player.peer_id
-        update_i()
-        re_cam = true
+            has_switched = true
+            re_cam = true
+        elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_sspectate"))) then
+            camera_player_id, camera_player = get_me()
+            re_cam = true
+        elseif InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.rebind_mspectate"))) then
+            local mx, my = DEBUG_GetMouseWorld()
+            local ent = EntityGetClosestWithTag(mx, my, "ew_peer")
+            camera_player = player_fns.get_player_data_by_local_entity_id(ent)
+            camera_player_id = camera_player.peer_id
+            update_i()
+            re_cam = true
+        end
     end
     set_camera_pos()
     ctx.spectating_over_peer_id = camera_player_id
