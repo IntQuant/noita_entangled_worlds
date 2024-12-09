@@ -187,7 +187,23 @@ function module.on_world_update()
         if utf8len(text) > maxInputLength then
             text = utf8sub(text, 1, maxInputLength)
         end
+        
+        if InputIsKeyJustDown(42) then --backspace
+            text = utf8sub(text, 1, -1)
+            counter = 10
+        end
 
+        if InputIsKeyDown(42) then
+            counter = counter + 1
+            if counter == 3 then
+                text = utf8sub(text, 1, -2)
+                counter = 0
+            end
+            if counter == 30 then --delay for deleting only 1 character
+                counter = 0
+            end
+        end
+        
         local overflowText = getOverflowText(text, visibleChars)
         GuiText(gui, 64, 115, overflowText)
 
