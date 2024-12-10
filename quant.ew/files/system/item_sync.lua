@@ -374,6 +374,7 @@ local ignore = {}
 local function send_item_positions(all)
     local position_data = {}
     local cx, cy = EntityGetTransform(ctx.my_player.entity)
+    local cap = ModSettingGet("quant.ew.rocks")
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
@@ -431,6 +432,11 @@ local function send_item_positions(all)
                             position_data[gid][5] = true
                         end
                     elseif tg then
+                        if cap == 0 then
+                            position_data[gid] = nil
+                            goto continue
+                        end
+                        cap = cap - 1
                         position_data[gid][5] = false
                     end
                 end
