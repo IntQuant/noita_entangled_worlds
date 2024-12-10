@@ -37,9 +37,9 @@ local function calculateTextWidth(gui, text)
 end
 
 local function getColorComponents(color)
-    local r = math.floor(color / (256 * 256)) % 256
-    local g = math.floor(color / 256) % 256
-    local b = color % 256
+    local b = math.floor(color / 2^16) % 2^8
+    local g = math.floor(color / 2^8) % 2^8
+    local r = color % 2^8
     return r, g, b
 end
 
@@ -101,7 +101,7 @@ local function renderChat()
         local msg = chatMessages[i]
         if msg then
             if msg.sender ~= "" then
-                local senderR, senderG, senderB = getColorComponents(msg.colorAlt or colorAlt)
+                local senderR, senderG, senderB = getColorComponents(msg.color or color)
                 senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaAltColorThreshold)
                 GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
 
@@ -110,13 +110,13 @@ local function renderChat()
 
                 local senderWidth = calculateTextWidth(gui, string.format("%s: ", msg.sender))
 
-                local textR, textG, textB = getColorComponents(msg.color or color)
+                local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
                 textR, textG, textB = lightenColor(textR, textG, textB, minaColorThreshold)
                 GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
 
                 GuiText(gui, 64 + senderWidth, startY, msg.message)
             else
-                local textR, textG, textB = getColorComponents(msg.color or color)
+                local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
                 textR, textG, textB = lightenColor(textR, textG, textB, minaColorThreshold)
                 GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
                 GuiText(gui, 64, startY, msg.message)
@@ -232,7 +232,7 @@ function module.on_world_update()
                 end
             end
             if non_white then
-                rpc.text(text, ctx.proxy_opt.mina_color_alt, ctx.proxy_opt.mina_color)
+                rpc.text(text, ctx.proxy_opt.mina_color, ctx.proxy_opt.mina_color_alt)
             end
             stoptext()
         else

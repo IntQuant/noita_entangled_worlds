@@ -81,14 +81,14 @@ local function ui_get_input(_, gui, _, im_id, setting)
         GuiTooltip(gui, setting.ui_description, GameTextGetTranslatedOrNot("$menuoptions_reset_keyboard"))
         GuiColorSetForNextWidget(gui, 1, 1, 0.7, 1)
         if InputIsMouseButtonJustDown(1) then setting.is_waiting_for_input = true end
-        if InputIsMouseButtonJustDown(2) then
+        if InputIsMouseButtonJustDown(2) or InputIsMouseButtonJustDown(3) then
             GamePlaySound("ui", "ui/button_click", 0, 0)
             ModSettingSetNextValue(setting_id, setting.value_default, false)
             setting.is_waiting_for_input = false
         end
     end
     if keycodes[current] == "BACKSPACE" then
-        current_key = "[RIGHT CLICK]"
+        current_key = "[MIDDLE MOUSE BUTTON]"
     end
     GuiText(gui, 0, 0, current_key)
 
