@@ -9,11 +9,12 @@ rpc.opts_everywhere()
 rpc.opts_reliable()
 
 local chatMessages = {}
-local maxMessages = 100
+local maxMessages = 128
 local lineHeight = 10
 local maxVisibleLines = 15
-local maxInputLength = 1024
+local maxInputLength = 512
 local visibleChars = 85
+local currentMessageIndex = 1
 
 local function world2gui( x, y )
     in_camera_ref = in_camera_ref or false
@@ -23,49 +24,32 @@ local function world2gui( x, y )
     local w, h = GuiGetScreenDimensions(gui_n)
     GuiDestroy(gui_n)
 
-    local vres_scaling_factor = w/( MagicNumbersGetValue( "VIRTUAL_RESOLUTION_X" ) + MagicNumbersGetValue( "VIRTUAL_RESOLUTION_OFFSET_X" ))
+    local vres_scaling_factor = w / (MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") + MagicNumbersGetValue("VIRTUAL_RESOLUTION_OFFSET_X"))
     local cam_x, cam_y = GameGetCameraPos()
-    x, y = w/2 + vres_scaling_factor*( x - cam_x ), h/2 + vres_scaling_factor*( y - cam_y )
+    x, y = w / 2 + vres_scaling_factor * (x - cam_x), h / 2 + vres_scaling_factor * (y - cam_y)
 
     return x, y, vres_scaling_factor
 end
 
-local function utf8len(s)
-    local len = 0
-    for _ in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        len = len + 1
-    end
-    return len
+local function calculateTextWidth(gui, text)
+    local width, _ = GuiGetTextDimensions(gui, text)
+    return width
 end
 
-local function utf8sub(s, i, j)
-    j = j or -1
-    if i < 1 then i = utf8len(s) + i + 1 end
-    if j < 1 then j = utf8len(s) + j + 1 end
-    if i > j then return "" end
-    local res = ""
-    local k = 1
-    for c in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if k >= i and k <= j then res = res .. c end
-        k = k + 1
-    end
-    return res
+local function getColorComponents(color)
+    local r = math.floor(color / (256 * 256)) % 256
+    local g = math.floor(color / 256) % 256
+    local b = color % 256
+    return r, g, b
 end
 
-local function getOverflowText(message, startLimit)
-    if utf8len(message) > startLimit then
-        return utf8sub(message, startLimit + 1)
-    else
-        return ""
-    end
-end
-
-local function saveMessage(sender, message)
+local function saveMessage(sender, message, color, colorAlt)
     local wrappedMessage = {}
     local currentLine = ""
 
-    for char in message:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if utf8len(currentLine) >= visibleChars then
+    for i = 1, string.len(message) do
+        local char = string.sub(message, i, i)
+        if string.len(currentLine) >= visibleChars then
             table.insert(wrappedMessage, currentLine)
             currentLine = ""
         end
@@ -79,29 +63,100 @@ local function saveMessage(sender, message)
     local isFirstLine = true
     for _, line in ipairs(wrappedMessage) do
         if isFirstLine then
-            table.insert(chatMessages, {sender = sender, message = line})
+            table.insert(chatMessages, {sender = sender, message = line, color = color, colorAlt = colorAlt})
             isFirstLine = false
         else
-            table.insert(chatMessages, {sender = "", message = line})
+            table.insert(chatMessages, {sender = "", message = line, color = color, colorAlt = colorAlt})
         end
         if #chatMessages > maxMessages then
             table.remove(chatMessages, 1)
         end
     end
+
+    currentMessageIndex = math.max(1, #chatMessages - maxVisibleLines + 1)
+end
+
+local function lightenColor(r, g, b, threshold)
+    local function brighten(c)
+        return c < threshold and threshold or c
+    end
+
+    return brighten(r), brighten(g), brighten(b)
 end
 
 local function renderChat()
     local startY = 128
-    local startIdx = math.max(1, #chatMessages - maxVisibleLines + 1)
+    currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - maxVisibleLines + 1)
+    if #chatMessages <= 0 then return end
 
-    for i = startIdx, #chatMessages do
+    local startIdx = currentMessageIndex
+    local endIdx = math.min(#chatMessages, startIdx + maxVisibleLines - 1)
+
+    local minaColorThreshold = tonumber(ModSettingGet("quant.ew.textcolor"))
+    local minaAltColorThreshold = tonumber(ModSettingGet("quant.ew.textaltcolor"))
+    local color = 0
+    local colorAlt = 0
+
+    for i = startIdx, endIdx do
         local msg = chatMessages[i]
-        if msg.sender ~= "" then
-            GuiText(gui, 64, startY, string.format("%s: %s", msg.sender, msg.message))
-        else
-            GuiText(gui, 64, startY, msg.message)
+        if msg then
+            if msg.sender ~= "" then
+                local senderR, senderG, senderB = getColorComponents(msg.colorAlt or colorAlt)
+                senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaAltColorThreshold)
+                GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
+
+                local senderText = string.format("%s: ", msg.sender)
+                GuiText(gui, 64, startY, senderText)
+
+                local senderWidth = calculateTextWidth(gui, string.format("%s: ", msg.sender))
+
+                local textR, textG, textB = getColorComponents(msg.color or color)
+                textR, textG, textB = lightenColor(textR, textG, textB, minaColorThreshold)
+                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
+
+                GuiText(gui, 64 + senderWidth, startY, msg.message)
+            else
+                local textR, textG, textB = getColorComponents(msg.color or color)
+                textR, textG, textB = lightenColor(textR, textG, textB, minaColorThreshold)
+                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
+                GuiText(gui, 64, startY, msg.message)
+            end
+            startY = startY + lineHeight
         end
-        startY = startY + lineHeight
+    end
+end
+
+local function renderTextInput()
+    local startY = 128 + 150
+    local wrappedMessage = {}
+    local currentLine = ""
+
+    if text == "" then
+        GuiColorSetForNextWidget(gui, 0.5, 0.5, 0.5, 1)
+        GuiText(gui, 64, startY, "ur text ll be here (u can scroll with up/down arrows r mouse wheel)")
+    else
+        for i = 1, string.len(text) do
+            local char = string.sub(text, i, i)
+            if string.len(currentLine) >= visibleChars then
+                table.insert(wrappedMessage, currentLine)
+                currentLine = ""
+            end
+            currentLine = currentLine .. char
+        end
+
+        if currentLine ~= "" then
+            table.insert(wrappedMessage, currentLine)
+        end
+
+        local maxLines = 8
+        if #wrappedMessage > maxLines then
+            wrappedMessage = {unpack(wrappedMessage, 1, maxLines)}
+        end
+
+        for _, line in ipairs(wrappedMessage) do
+            GuiText(gui, 64, startY, line)
+            startY = startY + lineHeight
+        end
     end
 end
 
@@ -118,15 +173,15 @@ local function disable_movement(controls)
     ComponentSetValue2(controls, "mButtonDownEat", false)
 end
 
-function rpc.text(msg)
+function rpc.text(msg, color, colorAlt)
     if not ModSettingGet("quant.ew.notext") then
         GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
-        saveMessage(ctx.rpc_player_data.name, msg)
+        saveMessage(ctx.rpc_player_data.name, msg, color, colorAlt)
     end
 end
 
 local function starttext()
-    enabled = true
+    ctx.is_texting = true
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if g ~= nil then
         EntitySetComponentIsEnabled(ctx.my_player.entity, g, false)
@@ -141,7 +196,7 @@ local function starttext()
 end
 
 local function stoptext()
-    enabled = false
+    ctx.is_texting = false
     text = ""
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if g ~= nil then
@@ -156,17 +211,28 @@ local function stoptext()
 end
 
 function module.on_world_update()
+    if InputIsMouseButtonJustDown(4) or InputIsKeyDown(82) then
+        if #chatMessages > 0 then
+            currentMessageIndex = math.max(1, currentMessageIndex - 1)
+        end
+    end
+    
+    if InputIsMouseButtonJustDown(5) or InputIsKeyDown(81) then
+        if #chatMessages > 0 then
+            currentMessageIndex = math.min(#chatMessages - maxVisibleLines + 1, currentMessageIndex + 1)
+        end
+    end
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
-        if enabled then
+        if ctx.is_texting == true then
             local non_white = false
-            for i = 1, utf8len(text) do
-                if utf8sub(text, i, i) ~= " " then
+            for i = 1, string.len(text) do
+                if string.sub(text, i, i) ~= " " then
                     non_white = true
                     break
                 end
             end
             if non_white then
-                rpc.text(text)
+                rpc.text(text, ctx.proxy_opt.mina_color_alt, ctx.proxy_opt.mina_color)
             end
             stoptext()
         else
@@ -174,38 +240,35 @@ function module.on_world_update()
         end
     end
 
-    if enabled
-            and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext")))
-                or ctx.is_paused or ctx.is_wand_pickup) then
+    if ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext"))))
+            or ctx.is_paused or ctx.is_wand_pickup then
         stoptext()
     end
 
-    if enabled then
+    if ctx.is_texting == true then
         GuiStartFrame(gui)
         renderChat()
+        renderTextInput()
 
-        if utf8len(text) > maxInputLength then
-            text = utf8sub(text, 1, maxInputLength)
+        if string.len(text) > maxInputLength then
+            text = string.sub(text, 1, maxInputLength)
         end
-        
+
         if InputIsKeyJustDown(42) then --backspace
-            text = utf8sub(text, 1, -1)
+            text = string.sub(text, 1, -1)
             counter = 10
         end
 
         if InputIsKeyDown(42) then
             counter = counter + 1
             if counter == 3 then
-                text = utf8sub(text, 1, -2)
+                text = string.sub(text, 1, -2)
                 counter = 0
             end
             if counter == 30 then --delay for deleting only 1 character
                 counter = 0
             end
         end
-        
-        local overflowText = getOverflowText(text, visibleChars)
-        GuiText(gui, 64, 115, overflowText)
 
         local x, y = DEBUG_GetMouseWorld()
         x, y = world2gui(x, y)
