@@ -158,6 +158,18 @@ local function combine_tables(a, b)
     return c
 end
 
+local function find_teleport_wand()
+    for _, ent in ipairs(wandfinder.get_all_wands({}) or {}) do
+        for _, child in pairs(EntityGetAllChildren(ent) or {}) do
+            local spell = EntityGetFirstComponentIncludingDisabled(child, "ItemActionComponent")
+            local spell_name = ComponentGetValue2(spell, "action_id")
+            if spell_name == "TELEPORT_PROJECTILE" or spell_name == "TELEPORT_PROJECTILE_SHORT" then
+                return ent
+            end
+        end
+    end
+end
+
 local function find_new_wand()
     local children = EntityGetAllChildren(state.attack_wand)
     local kick_mode
@@ -179,7 +191,6 @@ local function find_new_wand()
                     state.bad_wands[state.target or 1] = {}
                 end
                 table.insert(state.bad_wands[state.target or 1], state.attack_wand)
-                table.insert(state.empty_wands, state.attack_wand)
                 state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
                 changed_held = true
                 return
@@ -217,12 +228,17 @@ local function find_new_wand()
         end
         if not is_any_not_empty then
             table.insert(state.empty_wands, state.attack_wand)
-            state.attack_wand, kick_mode = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
+            if state.attack_wand == state.teleport_wand then
+                state.attack_wand, kick_mode = wandfinder.find_attack_wand(state.empty_wands)
+            else
+                state.attack_wand, kick_mode = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
+            end
             changed_held = true
         end
     end
     if kick_mode then
         state.kick_mode = true
+        state.attack_wand = state.teleport_wand
     end
 end
 
@@ -527,6 +543,7 @@ local function init_state()
         had_potion = false,
 
         attack_wand = wandfinder.find_attack_wand({}),
+        teleport_wand = find_teleport_wand(),
         empty_wands = {},
         bad_wands = {},
         good_wands = {},
@@ -595,7 +612,9 @@ local function choose_wand_actions()
         end
         state.dont_throw = false
         aim_at(t_x, t_y)
-        fire_wand(not state.last_did_hit and state.init_timer > no_shoot_time and not changed_held)-- or has_water_potion)
+        fire_wand(not state.last_did_hit and state.init_timer > no_shoot_time
+            and not changed_held and (state.teleport_wand == nil or
+                state.teleport_wand ~= state.attack_wand or state.last_length > 100 * 100))
         if changed_held then
             changed_held = false
         end
@@ -681,6 +700,14 @@ local function choose_movement()
     end
     local t_x, t_y = EntityGetTransform(state.target)
     local dist = my_x - t_x
+    local dy = my_y - t_y
+    if dist * dist + dy * dy > 132 * 132
+            and state.teleport_wand ~= nil
+            and state.attack_wand ~= state.teleport_wand
+            and GameGetFrameNum() % 100 == 0 then
+        state.attack_wand = state.teleport_wand
+        changed_held = true
+    end
     local LIM = give_space
     if swap_side and (on_right ~= (my_x > t_x) or GameGetFrameNum() % 300 == 299) then
         swap_side = false
@@ -867,7 +894,7 @@ local function choose_movement()
         move = -1
     end
     state.dtype = 0
-    if (is_froze or state.kick_mode) and math.abs(dist) < 10 then
+    if (is_froze or state.kick_mode) and math.abs(dist) < 10 and my_y < t_y then
         state.control_w = false
     end
     local did_hit_up, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 40)
@@ -1041,10 +1068,10 @@ local function teleport_outside_cursed()
 end
 
 local function hold_something()
-    local ch_x, ch_y = EntityGetTransform(state.entity)
     if GameGetFrameNum() % 20 == 5 then
         find_new_wand()
     end
+    local ch_x, ch_y = EntityGetTransform(state.entity)
     local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
     local holding = ComponentGetValue2(inventory, "mActualActiveItem")
     local i = 1
@@ -1220,7 +1247,7 @@ local function find_target()
         else
             local dx = x - x1
             local dy = y - y1
-            state.last_length = dx * dx + dy + dy
+            state.last_length = dx * dx + dy * dy
             if not is_suitable_target(state.target)
                     or (state.last_length > (MAX_RADIUS + 128) * (MAX_RADIUS + 128))
                     or (IsInvisible(state.target) and state.last_length > (INVIS_RANGE + 32)*(INVIS_RANGE + 32)) then
@@ -1436,7 +1463,7 @@ local function update()
 
     find_target()
 
-    do_kick = state.last_length ~= nil and state.last_length < no_shoot_time
+    do_kick = state.last_length ~= nil and state.last_length < 100
 
     hold_something()
 

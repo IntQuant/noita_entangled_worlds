@@ -6,17 +6,11 @@ local function entity_is_wand(entity_id)
     return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
-local function get_all_wands(dont_do)
+function wandfinder.get_all_wands(dont_do)
     local wands = {}
     local items = GameGetAllInventoryItems(ctx.my_player.entity) or {}
     for _, item in ipairs(items) do
-        local use = true
-        for _, item2 in ipairs(dont_do) do
-            if item == item2 then
-                use = false
-            end
-        end
-        if entity_is_wand(item) and use then
+        if entity_is_wand(item) and not table.contains(dont_do, item) then
             table.insert(wands, item)
         end
     end
@@ -24,10 +18,14 @@ local function get_all_wands(dont_do)
 end
 
 function wandfinder.find_attack_wand(dont_do)
-    local wands = get_all_wands(dont_do)
+    local wands = wandfinder.get_all_wands(dont_do)
     if #wands == 0 then
-        wands = get_all_wands({})
-        return wands[Random(1, #wands)], true
+        wands = wandfinder.get_all_wands({})
+        if #wands == 0 then
+            return nil, true
+        else
+            return wands[Random(1, #wands)], true
+        end
     end
     local largest = {-1, -1}
     for _, wand in ipairs(wands) do
