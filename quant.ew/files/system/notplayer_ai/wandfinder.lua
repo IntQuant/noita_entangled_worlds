@@ -26,7 +26,8 @@ end
 function wandfinder.find_attack_wand(dont_do)
     local wands = get_all_wands(dont_do)
     if #wands == 0 then
-        return nil
+        wands = get_all_wands({})
+        return wands[Random(1, #wands)], true
     end
     local largest = {-1, -1}
     for _, wand in ipairs(wands) do

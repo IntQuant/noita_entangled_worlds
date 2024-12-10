@@ -3,7 +3,6 @@ local gui = GuiCreate()
 local rpc = net.new_rpc_namespace()
 
 local text = ""
-local enabled = false
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
@@ -31,8 +30,8 @@ local function world2gui( x, y )
     return x, y, vres_scaling_factor
 end
 
-local function calculateTextWidth(gui, text)
-    local width, _ = GuiGetTextDimensions(gui, text)
+local function calculateTextWidth(msg)
+    local width, _ = GuiGetTextDimensions(gui, msg)
     return width
 end
 

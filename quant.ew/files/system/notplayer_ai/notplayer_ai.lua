@@ -160,9 +160,10 @@ end
 
 local function find_new_wand()
     local children = EntityGetAllChildren(state.attack_wand)
+    local kick_mode
     if children == nil then
         table.insert(state.empty_wands, state.attack_wand)
-        state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
+        state.attack_wand, kick_mode = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
         changed_held = true
     else
         local bad_mod = false
@@ -216,9 +217,12 @@ local function find_new_wand()
         end
         if not is_any_not_empty then
             table.insert(state.empty_wands, state.attack_wand)
-            state.attack_wand = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
+            state.attack_wand, kick_mode = wandfinder.find_attack_wand(combine_tables(state.empty_wands, state.bad_wands[state.target or 1]))
             changed_held = true
         end
+    end
+    if kick_mode then
+        state.kick_mode = true
     end
 end
 
@@ -511,6 +515,7 @@ local function init_state()
         dont_throw = true,
         stop_potion = false,
         bathe = false,
+        kick_mode = false,
 
         bad_potions = get_potions_of_type(bad_mats),
         good_potions = get_potions_of_type(good_mats),
@@ -686,8 +691,8 @@ local function choose_movement()
         give_space = 100
     end
     local is_froze = is_frozen(state.target)
-    if is_froze then
-        give_space = 5
+    if is_froze or state.kick_mode then
+        give_space = 4
     end
     if dist > 0 then
         state.control_a = dist > LIM
@@ -862,7 +867,7 @@ local function choose_movement()
         move = -1
     end
     state.dtype = 0
-    if is_froze and math.abs(dist) < 10 then
+    if (is_froze or state.kick_mode) and math.abs(dist) < 10 then
         state.control_w = false
     end
     local did_hit_up, _, _ = RaytracePlatforms(my_x, my_y, my_x, my_y - 40)
@@ -1132,6 +1137,8 @@ local function hold_something()
             EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_world", false)
             EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_hand", false)
             EntitySetComponentsWithTagEnabled(pity_potion, "enabled_in_inventory", true)
+            local item = EntityGetFirstComponentIncludingDisabled(pity_potion, "SpriteParticleEmitterComponent")
+            EntitySetComponentIsEnabled(pity_potion, item, false)
         end
     end
 
