@@ -98,9 +98,9 @@ end
 local function build_settings()
     local settings = {
         {
-            category_id = "default_settings",
-            ui_name = "",
-            ui_description = "",
+            category_id = "keybinds",
+            ui_name = "keybinds",
+            ui_description = "keybinds",
             settings = {
                 {
                     id = "rebind_ping",
@@ -166,58 +166,67 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
-                    id = "notext",
-                    ui_name = "no text",
-                    ui_description = ":c",
+                    id = "no_gamepad",
+                    ui_name = "dont add keybinds for gamepad",
+                    ui_description = ":(",
                     value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
-                {
-                    id = "textaltcolor",
-                    ui_name = "chat nickname brightening",
-                    ui_description = "0 - player secondary color, 255 - white, default - 63",
-                    value_default = 63,
-                    value_min = 0,
-                    value_max = 255,
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "textcolor",
-                    ui_name = "chat message brightening",
-                    ui_description = "0 - player primary color, 255 - white, default - 191",
-                    value_default = 191,
-                    value_min = 0,
-                    value_max = 255,
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "ping_life",
-                    ui_name = "ping lifetime",
-                    ui_description = "in seconds",
-                    value_default = "6.0",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "ping_size",
-                    ui_name = "ping extra size",
-                    ui_description = "in pixels",
-                    value_default = "0.0",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "disable_cursors",
-                    ui_name = "disable others cursors",
-                    ui_description = "bool",
-                    value_default = false,
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "tether_range",
-                    ui_name = "tether range",
-                    ui_description = "radius in pixels, 0 for disabled",
-                    value_default = "2048",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
+            }},            {category_id = "ui",
+                            ui_name = "ui",
+                            ui_description = "ui",
+                            settings = {
+                                {
+                                    id = "notext",
+                                    ui_name = "no text",
+                                    ui_description = ":c",
+                                    value_default = false,
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                                {
+                                    id = "textcolor",
+                                    ui_name = "chat nickname brightening",
+                                    ui_description = "0 - player primary color, 255 - white, default - 63",
+                                    value_default = 0,
+                                    value_min = 0,
+                                    value_max = 255,
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                                {
+                                    id = "textaltcolor",
+                                    ui_name = "chat message brightening",
+                                    ui_description = "0 - player secondary color, 255 - white, default - 191",
+                                    value_default = 255,
+                                    value_min = 0,
+                                    value_max = 255,
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                                {
+                                    id = "ping_life",
+                                    ui_name = "ping lifetime",
+                                    ui_description = "in seconds",
+                                    value_default = "6.0",
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                                {
+                                    id = "ping_size",
+                                    ui_name = "ping extra size",
+                                    ui_description = "in pixels",
+                                    value_default = "0.0",
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                                {
+                                    id = "disable_cursors",
+                                    ui_name = "disable others cursors",
+                                    ui_description = "bool",
+                                    value_default = false,
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                            }},{
+            category_id = "misc",
+            ui_name = "misc",
+            ui_description = "misc",
+            settings = {
                 {
                     id = "chunk_target",
                     ui_name = "chunk target",
@@ -233,21 +242,22 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "tether_range",
+                    ui_name = "tether range",
+                    ui_description = "radius in pixels, 0 for disabled",
+                    value_default = "2048",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "team",
                     ui_name = "friendly fire team",
                     ui_description = "team for friendly fire, 0 no team, -1 friendly",
                     value_default = "0",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
-                {
-                    id = "no_gamepad",
-                    ui_name = "dont add keybinds for gamepad",
-                    ui_description = ":(",
-                    value_default = false,
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-            },
-        },
+            }
+        }
+
     }
     return settings
 end

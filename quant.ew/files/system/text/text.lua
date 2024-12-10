@@ -102,7 +102,7 @@ local function renderChat()
         if msg then
             if msg.sender ~= "" then
                 local senderR, senderG, senderB = getColorComponents(msg.color or color)
-                senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaAltColorThreshold)
+                senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
                 GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
 
                 local senderText = string.format("%s: ", msg.sender)
@@ -111,13 +111,13 @@ local function renderChat()
                 local senderWidth = calculateTextWidth(gui, string.format("%s: ", msg.sender))
 
                 local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                textR, textG, textB = lightenColor(textR, textG, textB, minaColorThreshold)
+                textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
                 GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
 
                 GuiText(gui, 64 + senderWidth, startY, msg.message)
             else
                 local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                textR, textG, textB = lightenColor(textR, textG, textB, minaColorThreshold)
+                textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
                 GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
                 GuiText(gui, 64, startY, msg.message)
             end
@@ -133,7 +133,7 @@ local function renderTextInput()
 
     if text == "" then
         GuiColorSetForNextWidget(gui, 0.5, 0.5, 0.5, 1)
-        GuiText(gui, 64, startY, "ur text ll be here (u can scroll with up/down arrows r mouse wheel)")
+        GuiText(gui, 64, startY, "Message *")
     else
         for i = 1, string.len(text) do
             local char = string.sub(text, i, i)
