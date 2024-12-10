@@ -88,7 +88,7 @@ local function ui_get_input(_, gui, _, im_id, setting)
         end
     end
     if keycodes[current] == "BACKSPACE" then
-        current_key = "[MIDDLE MOUSE BUTTON]"
+        current_key = "[RIGHT CLICK]"
     end
     GuiText(gui, 0, 0, current_key)
 
@@ -170,6 +170,24 @@ local function build_settings()
                     ui_name = "no text",
                     ui_description = ":c",
                     value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "textaltcolor",
+                    ui_name = "chat nickname brightening",
+                    ui_description = "0 - player secondary color, 255 - white, default - 63",
+                    value_default = 63,
+                    value_min = 0,
+                    value_max = 255,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "textcolor",
+                    ui_name = "chat message brightening",
+                    ui_description = "0 - player primary color, 255 - white, default - 191",
+                    value_default = 191,
+                    value_min = 0,
+                    value_max = 255,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
