@@ -19,9 +19,9 @@ function player_color(player_entity)
 
     local player_sprite_component = EntityGetFirstComponent( player_entity, "SpriteComponent" )
     local damage = EntityGetFirstComponent( player_entity, "DamageModelComponent" )
-    local player_sprite_component_lukki = EntityGetFirstComponent( player_entity, "SpriteComponent", "lukki_enable" )
+    local player_sprite_component_lukki = EntityGetFirstComponentIncludingDisabled( player_entity, "SpriteComponent", "lukki_enable" )
     local player_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. ".xml"
-    local player_sprite_file_lukki = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. ".xml"
+    local player_sprite_file_lukki = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_lukki.xml"
     local player_arm_sprite_component = EntityGetFirstComponent( player_arm, "SpriteComponent" )
     if player_sprite_component == nil or player_arm_sprite_component == nil then
         return
