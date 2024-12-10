@@ -1545,6 +1545,15 @@ impl eframe::App for App {
                     });
             }
             AppState::LangPick => {
+                //had to move arg check here because in new() i cannot access app_saved_state
+                if let Some(lang) = &self.args.language
+                {
+                    let li: LanguageIdentifier = lang.parse().unwrap();
+                    self.app_saved_state.lang_id = Some(li.clone());
+                    set_current_locale(li);
+                    self.state = AppState::ModManager;
+                    return
+                }
                 egui::CentralPanel::default().show(ctx, draw_bg);
                 Window::new(tr("lang_picker"))
                     .auto_sized()
