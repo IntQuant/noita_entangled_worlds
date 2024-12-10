@@ -404,6 +404,96 @@ struct PlayerAppearance {
     cosmetics: (bool, bool, bool),
 }
 
+impl PlayerAppearance {
+    fn create_png_desc(&self, game_save_path: Option<PathBuf>) -> PlayerPngDesc {
+        let mut cosmetics = self.cosmetics;
+        if let Some(path) = &game_save_path {
+            let flags = path.join("save00/persistent/flags");
+            let hat = flags.join("secret_hat").exists();
+            let amulet = flags.join("secret_amulet").exists();
+            let gem = flags.join("secret_amulet_gem").exists();
+            if !hat {
+                cosmetics.0 = false
+            }
+            if !amulet {
+                cosmetics.1 = false
+            }
+            if !gem {
+                cosmetics.2 = false
+            }
+        }
+        PlayerPngDesc {
+            cosmetics: cosmetics.into(),
+            colors: self.player_color,
+        }
+    }
+    fn mina_color_picker(
+        &mut self,
+        ui: &mut Ui,
+        game_save_path: Option<PathBuf>,
+        player_image: RgbaImage,
+    ) {
+        let old_hue = self.hue;
+        let old = ui.style_mut().spacing.slider_width;
+        ui.style_mut().spacing.slider_width = 256.0;
+        ui.add(
+            Slider::new(&mut self.hue, 0.0..=360.0)
+                .text(tr("Shift-hue"))
+                .min_decimals(0)
+                .max_decimals(0)
+                .step_by(2.0),
+        );
+        ui.style_mut().spacing.slider_width = old;
+        if old_hue != self.hue {
+            let diff = self.hue - old_hue;
+            match self.player_picker {
+                PlayerPicker::PlayerAlt => {
+                    shift_hue(diff, &mut self.player_color.player_alt);
+                }
+                PlayerPicker::PlayerArm => {
+                    shift_hue(diff, &mut self.player_color.player_arm);
+                }
+                PlayerPicker::PlayerCape => {
+                    shift_hue(diff, &mut self.player_color.player_cape);
+                }
+                PlayerPicker::PlayerForearm => {
+                    shift_hue(diff, &mut self.player_color.player_forearm);
+                }
+                PlayerPicker::PlayerCapeEdge => {
+                    shift_hue(diff, &mut self.player_color.player_cape_edge);
+                }
+                PlayerPicker::PlayerMain => {
+                    shift_hue(diff, &mut self.player_color.player_main);
+                }
+                PlayerPicker::None => {
+                    shift_hue(diff, &mut self.player_color.player_main);
+                    shift_hue(diff, &mut self.player_color.player_alt);
+                    shift_hue(diff, &mut self.player_color.player_arm);
+                    shift_hue(diff, &mut self.player_color.player_forearm);
+                    shift_hue(diff, &mut self.player_color.player_cape);
+                    shift_hue(diff, &mut self.player_color.player_cape_edge);
+                }
+            }
+        }
+        ui.horizontal(|ui| {
+            display_player_skin(
+                ui,
+                get_player_skin(
+                    player_image.clone(),
+                    self.create_png_desc(game_save_path.clone()),
+                ),
+                11.0,
+            );
+            player_select_current_color_slot(ui, self, game_save_path.clone());
+            player_skin_display_color_picker(ui, &mut self.player_color, &self.player_picker);
+        });
+        if ui.button(tr("Reset-colors-to-default")).clicked() {
+            self.hue = 0.0;
+            self.player_color = Default::default();
+        }
+    }
+}
+
 impl Default for PlayerAppearance {
     fn default() -> Self {
         Self {
@@ -1039,7 +1129,7 @@ impl App {
                 if let Ok(steam) = &self.steam_state {
                     steam.get_user_name(steam.get_my_id())
                 } else {
-                    String::new()
+                    "NO NICKNAME CHOSEN".to_string()
                 },
             );
             if ui
@@ -1065,96 +1155,18 @@ impl App {
             &mut self.app_saved_state.random_ports,
             tr("connect_settings_random_ports"),
         );
-        ui.add_space(20.0);
         if self.player_image.width() == 1 {
             self.player_image = image::open(player_path(self.modmanager_settings.mod_path()))
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
                 .crop(1, 1, 8, 18)
                 .into_rgba8();
         }
-        let old_hue = self.appearance.hue;
-        let old = ui.style_mut().spacing.slider_width;
-        ui.style_mut().spacing.slider_width = 256.0;
-        ui.add(
-            Slider::new(&mut self.appearance.hue, 0.0..=360.0)
-                .text(tr("Shift-hue"))
-                .min_decimals(0)
-                .max_decimals(0)
-                .step_by(2.0),
+        ui.add_space(20.0);
+        self.appearance.mina_color_picker(
+            ui,
+            self.modmanager_settings.game_save_path.clone(),
+            self.player_image.clone(),
         );
-        ui.style_mut().spacing.slider_width = old;
-        if old_hue != self.appearance.hue {
-            let diff = self.appearance.hue - old_hue;
-            match self.appearance.player_picker {
-                PlayerPicker::PlayerAlt => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_alt);
-                }
-                PlayerPicker::PlayerArm => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_arm);
-                }
-                PlayerPicker::PlayerCape => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_cape);
-                }
-                PlayerPicker::PlayerForearm => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_forearm);
-                }
-                PlayerPicker::PlayerCapeEdge => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_cape_edge);
-                }
-                PlayerPicker::PlayerMain => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_main);
-                }
-                PlayerPicker::None => {
-                    shift_hue(diff, &mut self.appearance.player_color.player_main);
-                    shift_hue(diff, &mut self.appearance.player_color.player_alt);
-                    shift_hue(diff, &mut self.appearance.player_color.player_arm);
-                    shift_hue(diff, &mut self.appearance.player_color.player_forearm);
-                    shift_hue(diff, &mut self.appearance.player_color.player_cape);
-                    shift_hue(diff, &mut self.appearance.player_color.player_cape_edge);
-                }
-            }
-        }
-        ui.horizontal(|ui| {
-            let mut cosmetics = self.appearance.cosmetics;
-            if let Some(path) = &self.modmanager_settings.game_save_path {
-                let flags = path.join("save00/persistent/flags");
-                let hat = flags.join("secret_hat").exists();
-                let amulet = flags.join("secret_amulet").exists();
-                let gem = flags.join("secret_amulet_gem").exists();
-                if !hat {
-                    cosmetics.0 = false
-                }
-                if !amulet {
-                    cosmetics.1 = false
-                }
-                if !gem {
-                    cosmetics.2 = false
-                }
-            }
-            display_player_skin(
-                ui,
-                get_player_skin(
-                    self.player_image.clone(),
-                    PlayerPngDesc {
-                        colors: self.appearance.player_color,
-                        cosmetics: cosmetics.into(),
-                    },
-                ),
-                11.0,
-            );
-            player_select_current_color_slot(ui, self);
-            player_skin_display_color_picker(
-                ui,
-                &mut self.appearance.player_color,
-                &self.appearance.player_picker,
-            );
-        });
-        if ui.button(tr("Reset-colors-to-default")).clicked() {
-            let old = self.appearance.clone();
-            self.appearance = Default::default();
-            self.appearance.cosmetics = old.cosmetics;
-            self.appearance.player_picker = old.player_picker;
-        }
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id: String) {
@@ -1299,7 +1311,6 @@ impl App {
                 }
             });
             ui.separator();
-
             if stopped {
                 ui.colored_label(Color32::LIGHT_RED, "Netmanager thread has stopped");
                 if let Some(err) = netman.error.lock().unwrap().as_ref() {
@@ -1308,7 +1319,6 @@ impl App {
                 }
                 ui.separator();
             }
-
             match self.connected_menu {
                 ConnectedMenu::Normal => {
                     if netman.peer.is_steam() {
@@ -1317,9 +1327,23 @@ impl App {
                                 ui.output_mut(|o| o.copied_text = id.raw().to_string());
                             }
                         }
-                    } else {
-                        ui.label(format!("Peer state: {:?}", netman.peer.state()));
                     }
+                    self.appearance.mina_color_picker(
+                        ui,
+                        self.modmanager_settings.game_save_path.clone(),
+                        self.player_image.clone(),
+                    );
+                    ui.add_space(15.0);
+                    ui.horizontal(|ui| {
+                        if ui.button("save colors").clicked() {
+                            let desc = self
+                                .appearance
+                                .create_png_desc(self.modmanager_settings.game_save_path.clone());
+                            netman.new_desc(desc, self.player_image.clone());
+                            *netman.new_desc.lock().unwrap() = Some(desc);
+                        };
+                        ui.label("requires noita restart")
+                    });
                     ui.add_space(15.0);
                     if accept_local && !local_connected {
                         match noita_launcher.launch_token() {
@@ -1346,12 +1370,9 @@ impl App {
                     } else {
                         ui.label(tr("launcher_only_when_awaiting"));
                     }
-
                     if netman.peer.is_host() {
                         ui.add_space(15.0);
-
                         self.end_run_button.show(ui, netman);
-
                         ui.add_space(15.0);
                         let mut temp = netman.no_more_players.load(Ordering::Relaxed);
                         if ui
@@ -1407,7 +1428,6 @@ impl App {
                     }
                 },
             }
-
             if self.app_saved_state.show_extra_debug_stuff {
                 if self.show_map_plot {
                     if ui.button("Close plot").clicked() {
@@ -1455,7 +1475,6 @@ impl App {
         }
     }
 }
-
 fn draw_bg(ui: &mut Ui) {
     let image = egui::Image::new(egui::include_image!("../assets/noita_ew_logo_sq.webp"))
         .texture_options(TextureOptions::NEAREST);
@@ -1615,7 +1634,7 @@ fn show_player_list(ui: &mut Ui, netman: &mut NetManStopOnDrop) {
                                     netman.ban_list.lock().unwrap().push(peer)
                                 }
                             }
-                            if ui.button("mods").clicked() {
+                            if ui.button("Mods").clicked() {
                                 netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
                             }
                         });
@@ -1648,7 +1667,7 @@ fn display_with_labels(
                                 netman.ban_list.lock().unwrap().push(peer)
                             }
                         }
-                        if ui.button("mods").clicked() {
+                        if ui.button("Mods").clicked() {
                             netman.send(peer, &NetMsg::RequestMods, Reliability::Reliable);
                         }
                     });
@@ -1721,7 +1740,7 @@ fn add_per_status_ui(
     }
 }
 
-fn peer_role(peer: net::omni::OmniPeerId, netman: &Arc<net::NetManager>) -> String {
+fn peer_role(peer: OmniPeerId, netman: &Arc<net::NetManager>) -> String {
     if peer == netman.peer.host_id() {
         tr("player_host")
     } else if peer == netman.peer.my_id() {

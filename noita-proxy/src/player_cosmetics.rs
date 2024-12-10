@@ -1,6 +1,6 @@
 use crate::lang::tr;
 use crate::net::omni::OmniPeerId;
-use crate::{App, PlayerColor, PlayerPicker};
+use crate::{PlayerAppearance, PlayerColor, PlayerPicker};
 use bitcode::{Decode, Encode};
 use eframe::egui;
 use eframe::egui::color_picker::{color_picker_color32, Alpha};
@@ -216,55 +216,59 @@ pub fn color_picker(ui: &mut Ui, color: &mut [f64; 4]) {
     }
 }
 
-pub fn player_select_current_color_slot(ui: &mut Ui, app: &mut App) {
+pub fn player_select_current_color_slot(
+    ui: &mut Ui,
+    appearance: &mut PlayerAppearance,
+    game_save_path: Option<PathBuf>,
+) {
     let mut clicked = false;
-    let last = app.appearance.player_picker.clone();
+    let last = appearance.player_picker.clone();
     ui.scope(|ui| {
         ui.set_max_width(100.0);
         ui.vertical_centered_justified(|ui| {
             if ui.button(tr("Main-color")).clicked() {
                 clicked = true;
-                app.appearance.player_picker = PlayerPicker::PlayerMain
+                appearance.player_picker = PlayerPicker::PlayerMain
             }
             if ui.button(tr("Alt-color")).clicked() {
                 clicked = true;
-                app.appearance.player_picker = PlayerPicker::PlayerAlt
+                appearance.player_picker = PlayerPicker::PlayerAlt
             }
             if ui.button(tr("Arm-color")).clicked() {
                 clicked = true;
-                app.appearance.player_picker = PlayerPicker::PlayerArm
+                appearance.player_picker = PlayerPicker::PlayerArm
             }
             if ui.button(tr("Forearm-color")).clicked() {
                 clicked = true;
-                app.appearance.player_picker = PlayerPicker::PlayerForearm
+                appearance.player_picker = PlayerPicker::PlayerForearm
             }
             if ui.button(tr("Cape-color")).clicked() {
                 clicked = true;
-                app.appearance.player_picker = PlayerPicker::PlayerCape
+                appearance.player_picker = PlayerPicker::PlayerCape
             }
             if ui.button(tr("Cape-edge-color")).clicked() {
                 clicked = true;
-                app.appearance.player_picker = PlayerPicker::PlayerCapeEdge
+                appearance.player_picker = PlayerPicker::PlayerCapeEdge
             }
-            if let Some(path) = &app.modmanager_settings.game_save_path {
+            if let Some(path) = game_save_path {
                 let flags = path.join("save00/persistent/flags");
                 let hat = flags.join("secret_hat").exists();
                 let amulet = flags.join("secret_amulet").exists();
                 let gem = flags.join("secret_amulet_gem").exists();
                 if hat {
-                    ui.checkbox(&mut app.appearance.cosmetics.0, tr("Crown"));
+                    ui.checkbox(&mut appearance.cosmetics.0, tr("Crown"));
                 }
                 if amulet {
-                    ui.checkbox(&mut app.appearance.cosmetics.1, tr("Amulet"));
+                    ui.checkbox(&mut appearance.cosmetics.1, tr("Amulet"));
                 }
                 if gem {
-                    ui.checkbox(&mut app.appearance.cosmetics.2, tr("Gem"));
+                    ui.checkbox(&mut appearance.cosmetics.2, tr("Gem"));
                 }
             }
         });
     });
-    if clicked && last == app.appearance.player_picker {
-        app.appearance.player_picker = PlayerPicker::None
+    if clicked && last == appearance.player_picker {
+        appearance.player_picker = PlayerPicker::None
     }
 }
 

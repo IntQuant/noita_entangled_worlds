@@ -135,6 +135,7 @@ pub struct NetManager {
     pub nicknames: Mutex<HashMap<OmniPeerId, String>>,
     #[allow(clippy::type_complexity)]
     pub minas: Mutex<HashMap<OmniPeerId, ImageBuffer<Rgba<u8>, Vec<u8>>>>,
+    pub new_desc: Mutex<Option<PlayerPngDesc>>,
 }
 
 impl NetManager {
@@ -162,6 +163,7 @@ impl NetManager {
             active_mods: Default::default(),
             nicknames: Default::default(),
             minas: Default::default(),
+            new_desc: Default::default(),
         }
         .into()
     }
@@ -185,6 +187,29 @@ impl NetManager {
             remove_dir_all(tmp.clone()).ok();
         }
         create_dir(tmp).ok();
+    }
+
+    pub fn new_desc(&self, desc: PlayerPngDesc, player_image: RgbaImage) {
+        create_player_png(
+            self.peer.my_id(),
+            &self.init_settings.mod_path,
+            &self.init_settings.player_path,
+            &desc,
+            self.is_host(),
+        );
+        self.minas
+            .lock()
+            .unwrap()
+            .insert(self.peer.my_id(), get_player_skin(player_image, desc));
+        self.broadcast(
+            &NetMsg::PlayerColor(
+                desc,
+                self.is_host(),
+                Some(self.peer.my_id()),
+                self.init_settings.my_nickname.clone(),
+            ),
+            Reliability::Reliable,
+        );
     }
 
     pub(crate) fn start_inner(
@@ -448,16 +473,18 @@ impl NetManager {
                                     .unwrap()
                                     .insert(src, get_player_skin(player_image.clone(), rgb));
                                 if let Some(id) = pong {
-                                    self.send(
-                                        id,
-                                        &NetMsg::PlayerColor(
-                                            self.init_settings.player_png_desc,
-                                            self.is_host(),
-                                            None,
-                                            self.init_settings.my_nickname.clone(),
-                                        ),
-                                        Reliability::Reliable,
-                                    );
+                                    if id != self.peer.my_id() {
+                                        self.send(
+                                            id,
+                                            &NetMsg::PlayerColor(
+                                                self.init_settings.player_png_desc,
+                                                self.is_host(),
+                                                None,
+                                                self.init_settings.my_nickname.clone(),
+                                            ),
+                                            Reliability::Reliable,
+                                        );
+                                    }
                                 }
                             }
                             NetMsg::Kick => std::process::exit(0),
@@ -583,13 +610,25 @@ impl NetManager {
                 .health_lost_on_revive
                 .unwrap_or(def.health_lost_on_revive),
         );
-        let rgb = self.init_settings.player_png_desc.colors.player_main;
+        let rgb = self
+            .new_desc
+            .lock()
+            .unwrap()
+            .unwrap_or(self.init_settings.player_png_desc)
+            .colors
+            .player_main;
         state.try_ws_write_option(
             "mina_color",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
         );
 
-        let rgb = self.init_settings.player_png_desc.colors.player_alt;
+        let rgb = self
+            .new_desc
+            .lock()
+            .unwrap()
+            .unwrap_or(self.init_settings.player_png_desc)
+            .colors
+            .player_alt;
         state.try_ws_write_option(
             "mina_color_alt",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
