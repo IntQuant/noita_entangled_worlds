@@ -349,14 +349,12 @@ function enemy_sync.client_cleanup()
 end
 
 function enemy_sync.on_world_update_host()
-    local int = 3 --ctx.proxy_opt.enemy_sync_interval
-    local num = 2
-    if int == 1 then
-        num = 0
-    elseif int == 2 then
-        num = 1
+    local rt = math.floor(ModSettingGet("quant.ew.enemy_sync"))
+    local n = 0
+    if rt == 3 then
+        n = 2
     end
-    if GameGetFrameNum() % int == num then
+    if rt == 1 or GameGetFrameNum() % rt == n then
         enemy_sync.host_upload_entities()
     end
     if GameGetFrameNum() % 10 == 5 then
@@ -378,9 +376,6 @@ function enemy_sync.on_world_update_client()
     end
     if GameGetFrameNum() % (60*60) == 1 then
         times_spawned_last_minute = {}
-    end
-    if wait_1_frame then
-        wait_1_frame = false
     end
 end
 

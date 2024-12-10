@@ -218,7 +218,12 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
         EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
                                                                         value_string = shooter_player_data.peer_id .. ":" .. rng})
         EntityAddTag(projectile_id, "ew_global_item")
-    elseif n == "data/entities/projectiles/deck/rock.xml" then
+        EntityAddTag(projectile_id, "ew_no_spawn")
+    elseif n == "data/entities/projectiles/deck/rock.xml"
+            or n == "data/entities/projectiles/deck/black_hole.xml"
+            or n == "data/entities/projectiles/deck/black_hole_giga.xml"
+            or n == "data/entities/projectiles/deck/white_hole.xml"
+            or n == "data/entities/projectiles/deck/white_hole_giga.xml" then
         EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
                                                                         value_string = shooter_player_data.peer_id .. ":" .. rng})
         EntityAddTag(projectile_id, "ew_global_item")

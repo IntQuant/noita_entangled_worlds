@@ -91,8 +91,8 @@ local function renderChat()
     local startIdx = currentMessageIndex
     local endIdx = math.min(#chatMessages, startIdx + maxVisibleLines - 1)
 
-    local minaColorThreshold = tonumber(ModSettingGet("quant.ew.textcolor"))
-    local minaAltColorThreshold = tonumber(ModSettingGet("quant.ew.textaltcolor"))
+    local minaColorThreshold = math.floor(ModSettingGet("quant.ew.textcolor"))
+    local minaAltColorThreshold = math.floor(ModSettingGet("quant.ew.textaltcolor"))
     local color = 0
     local colorAlt = 0
 
@@ -215,7 +215,7 @@ function module.on_world_update()
             currentMessageIndex = math.max(1, currentMessageIndex - 1)
         end
     end
-    
+
     if InputIsMouseButtonJustDown(5) or InputIsKeyDown(81) then
         if #chatMessages > 0 then
             currentMessageIndex = math.min(#chatMessages - maxVisibleLines + 1, currentMessageIndex + 1)

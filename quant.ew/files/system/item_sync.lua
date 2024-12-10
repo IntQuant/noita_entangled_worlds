@@ -271,10 +271,16 @@ local function remove_client_items_from_world()
 end
 
 local function is_peers_item(gid, peer)
+    if gid == nil then
+        return false
+    end
     return string.sub(gid, 1, 16) == peer
 end
 
 function item_sync.is_my_item(gid)
+    if gid == nil then
+        return false
+    end
     return string.sub(gid, 1, 16) == ctx.my_id
 end
 
@@ -402,12 +408,13 @@ local function send_item_positions(all)
                     ignore[gid] = GameGetFrameNum() + 60
                 end
             else
+                local tg = EntityHasTag(item, "ew_no_spawn")
                 local phys_info = util.get_phys_info(item, true)
-                if (phys_info[1][1] ~= nil
+                if tg or ((phys_info[1][1] ~= nil
                         or phys_info[2][1] ~= nil
                         or all)
                         and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
-                        or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0) then
+                        or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0)) then
                     local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
                     local cost = 0
                     if costcom ~= nil then
@@ -423,7 +430,7 @@ local function send_item_positions(all)
                         if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") ~= nil then
                             position_data[gid][5] = true
                         end
-                    elseif EntityHasTag(item, "ew_no_spawn") then
+                    elseif tg then
                         position_data[gid][5] = false
                     end
                 end
@@ -486,9 +493,14 @@ function item_sync.on_world_update()
             end
         end
     end
+    local rt = math.floor(ModSettingGet("quant.ew.item_sync"))
+    local n = 0
+    if rt == 5 then
+        n = 3
+    end
     if GameGetFrameNum() % 60 == 3 then
         send_item_positions(true)
-    elseif GameGetFrameNum() % 5 == 3 then
+    elseif rt == 1 or GameGetFrameNum() % rt == n then
         send_item_positions(false)
     end
     if GameGetFrameNum() % 30 == 23 then
