@@ -67,6 +67,7 @@ end
 
 function potion.on_world_update()
     if EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ItemComponent") ~= nil then
+        EntityAddTag(ctx.my_player.entity, "teleportable")
         local effect
         for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
             local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
