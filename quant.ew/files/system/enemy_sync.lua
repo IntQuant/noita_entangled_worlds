@@ -189,6 +189,11 @@ function enemy_sync.host_upload_entities()
         --     -- local x, y, r =
         -- end
 
+        local cell = EntityGetFirstComponentIncludingDisabled(enemy_id, "CellEaterComponent")
+        if cell ~= nil and not ComponentGetValue2(cell, "only_stain") then
+            item_sync.hole(x, y, enemy_id, ComponentGetValue2(cell, "radius"))
+        end
+
         local death_triggers = {}
         for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
             local script = ComponentGetValue2(com, "script_death")

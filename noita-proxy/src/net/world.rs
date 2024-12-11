@@ -206,7 +206,7 @@ impl WorldManager {
             chunk_last_update: Default::default(),
             last_request_priority: Default::default(),
             world_num: 0,
-            durabilities: Vec::new()
+            durabilities: Vec::new(),
         }
     }
 
@@ -1109,7 +1109,7 @@ impl WorldManager {
         let dmy = max_y - min_y;
         if dmx == 0 && dmy == 0 {
             self.cut_through_world_circle(min_x, max_x, r, None);
-            return
+            return;
         }
         let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
         let air_pixel = Pixel {
@@ -1167,16 +1167,8 @@ impl WorldManager {
         }
     }
     pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32, dur: Option<u8>) {
-        let (min_cx, max_cx) =
-            (
-                (x - r) / CHUNK_SIZE as i32,
-                (x + r) / CHUNK_SIZE as i32,
-            );
-        let (min_cy, max_cy) = 
-            (
-                (y - r) / CHUNK_SIZE as i32,
-                (y + r) / CHUNK_SIZE as i32,
-            );
+        let (min_cx, max_cx) = ((x - r) / CHUNK_SIZE as i32, (x + r) / CHUNK_SIZE as i32);
+        let (min_cy, max_cy) = ((y - r) / CHUNK_SIZE as i32, (y + r) / CHUNK_SIZE as i32);
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
@@ -1206,7 +1198,7 @@ impl WorldManager {
                                 }
                                 let p = chunk.pixel(px);
                                 if self.durabilities[p.material as usize] > n {
-                                    continue
+                                    continue;
                                 }
                             }
                             if !dirty {
