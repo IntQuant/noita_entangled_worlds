@@ -732,6 +732,20 @@ impl NetManager {
 
                 state.world.cut_through_world(x, y_min, y_max, radius);
             }
+            Some("cut_through_world_line") => {
+                let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let lx: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let ly: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let (Some(x), Some(y), Some(lx), Some(ly)) = (x, y, lx, ly) else {
+                    error!("Missing arguments in cut_through_world_line message");
+                    return;
+                };
+                let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                state
+                    .world
+                    .cut_through_world_line(x, y, lx, ly, r.unwrap_or(12));
+            }
             Some("flush") => self.peer.flush(),
             key => {
                 error!("Unknown msg from mod: {:?}", key)

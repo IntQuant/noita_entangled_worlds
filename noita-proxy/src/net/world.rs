@@ -2,7 +2,7 @@ use bitcode::{Decode, Encode};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{env, f32::consts::PI, mem, time::Instant};
+use std::{env, f32::consts::PI, mem};
 use tracing::{debug, info, warn};
 use world_model::{
     chunk::{Chunk, Pixel},
@@ -1022,9 +1022,6 @@ impl WorldManager {
     }
 
     pub(crate) fn cut_through_world(&mut self, x: i32, y_min: i32, y_max: i32, radius: i32) {
-        let start = Instant::now();
-        info!("Started cut_through_world");
-
         let max_wiggle = 5;
         let interval = 300.0;
 
@@ -1072,9 +1069,96 @@ impl WorldManager {
 
             *chunk_encoded = chunk.to_chunk_data();
         }
+    }
 
-        let elapsed = start.elapsed();
-        info!("Cut through world took {} ms", elapsed.as_millis());
+    pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
+        let (min_cx, max_cx, min_x, max_x) = if x < lx {
+            (
+                (x - r) / CHUNK_SIZE as i32,
+                (lx + r) / CHUNK_SIZE as i32,
+                x,
+                lx,
+            )
+        } else {
+            (
+                (lx - r) / CHUNK_SIZE as i32,
+                (x + r) / CHUNK_SIZE as i32,
+                lx,
+                x,
+            )
+        };
+        let (min_cy, max_cy, min_y, max_y) = if y < ly {
+            (
+                (y - r) / CHUNK_SIZE as i32,
+                (ly + r) / CHUNK_SIZE as i32,
+                y,
+                ly,
+            )
+        } else {
+            (
+                (ly - r) / CHUNK_SIZE as i32,
+                (y + r) / CHUNK_SIZE as i32,
+                ly,
+                y,
+            )
+        };
+
+        let dmx = max_x - min_x;
+        let dmy = max_y - min_y;
+        if dmx == 0 && dmy == 0 {
+            return;
+        }
+        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
+            if chunk_coord.0 >= min_cx
+                && chunk_coord.0 <= max_cx
+                && chunk_coord.1 >= min_cy
+                && chunk_coord.1 <= max_cy
+            {
+                let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+                let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+                let mut chunk = Chunk::default();
+                let mut dirty = false;
+                for icx in 0..CHUNK_SIZE as i32 {
+                    let cx = chunk_start_x + icx;
+                    for icy in 0..CHUNK_SIZE as i32 {
+                        let cy = chunk_start_y + icy;
+                        let (a, b) = if cx < min_x && cy < min_y {
+                            (min_x, min_y)
+                        } else if cx > max_x && cy > max_y {
+                            (max_x, max_y)
+                        } else {
+                            let dcx = cx - min_x;
+                            let dcy = cy - min_y;
+                            let m = (dcx * dmx + dcy * dmy) / (dmx * dmx + dmy * dmy);
+                            let (px, py) = (m * dmx, m * dmy);
+                            if px > dmx || py > dmy {
+                                (max_x, max_y)
+                            } else if px < 0 || py < 0 {
+                                (min_x, min_y)
+                            } else {
+                                (min_x + px, min_y + py)
+                            }
+                        };
+                        let dx = cx - a;
+                        let dy = cy - b;
+                        if dx * dx + dy * dy <= r * r {
+                            let air_pixel = Pixel {
+                                flags: world_model::chunk::PixelFlags::Normal,
+                                material: 0,
+                            };
+                            if !dirty {
+                                chunk_encoded.apply_to_chunk(&mut chunk);
+                                dirty = true
+                            }
+                            chunk.set_pixel(icy as usize * CHUNK_SIZE + icx as usize, air_pixel);
+                        }
+                    }
+                }
+                if dirty {
+                    *chunk_encoded = chunk.to_chunk_data();
+                }
+            }
+        }
     }
 }
 

@@ -22,7 +22,11 @@ local wait_on_send = {}
 
 local wait_for_gid = {}
 
+local hole_last = {}
+
 function rpc.open_chest(gid)
+    wait_for_gid[gid] = GameGetFrameNum() + 3600
+    wait_on_send[gid] = GameGetFrameNum() + 3600
     local ent = item_sync.find_by_gid(gid)
     if ent ~= nil then
         local file
@@ -35,7 +39,6 @@ function rpc.open_chest(gid)
             file = "data/scripts/items/chest_random.lua"
         end
         if file ~= nil then
-            wait_for_gid[gid] = GameGetFrameNum() + 3600
             EntityAddComponent2(ent, "LuaComponent", {
                 script_source_file = file,
                 execute_on_added = true,
@@ -367,6 +370,21 @@ function rpc.handle_death_data(death_data)
     end
 end
 
+local function hole(x, y, item, f)
+    if hole_last[item] ~= nil then
+        local lx, ly = hole_last[item][1], hole_last[item][2]
+        if lx == x and ly == y then
+            return
+        end
+        local inp = math.floor(x).." "..math.floor(lx).." "..math.floor(y).." "..math.floor(ly)
+        if string.sub(f, -9, -1) == "_giga.xml" then
+            inp = inp .. " " .. 60
+        end
+        net.proxy_send("cut_through_world_line", inp)
+    end
+    hole_last[item] = {x, y}
+end
+
 local DISTANCE_LIMIT = 128 * 4
 
 local ignore = {}
@@ -438,6 +456,10 @@ local function send_item_positions(all)
                         end
                         cap = cap - 1
                         position_data[gid][5] = false
+                        local f = EntityGetFilename(item)
+                        if ctx.is_host and f ~= "data/entities/projectiles/deck/rock.xml" then
+                            hole(x, y, item, f)
+                        end
                     end
                 end
             end
@@ -709,6 +731,10 @@ function rpc.update_positions(position_data, all)
                         EntitySetComponentsWithTagEnabled(item, "shop_cost", true)
                         ComponentSetValue2(costcom, "cost", price)
                     end
+                end
+                local f = EntityGetFilename(item)
+                if el[5] == false and ctx.is_host and f ~= "data/entities/projectiles/deck/rock.xml" then
+                    hole(x, y, item, f)
                 end
             elseif wait_for_gid[gid] == nil then
                 if el[5] == true then

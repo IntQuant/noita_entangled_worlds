@@ -254,7 +254,7 @@ local function build_settings()
                     ui_description = "every N frames enemys are synced, host only, try 3 if laggy",
                     value_default = 1,
                     value_min = 1,
-                    value_max = 10,
+                    value_max = 8,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
@@ -263,7 +263,7 @@ local function build_settings()
                     ui_description = "every N frames physics items are synced, try 5 if laggy",
                     value_default = 1,
                     value_min = 1,
-                    value_max = 10,
+                    value_max = 8,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
