@@ -184,6 +184,13 @@ local function build_settings()
                                     scope = MOD_SETTING_SCOPE_RUNTIME,
                                 },
                                 {
+                                    id = "nochathint",
+                                    ui_name = "no chat hint",
+                                    ui_description = ":c",
+                                    value_default = false,
+                                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                                },
+                                {
                                     id = "textcolor",
                                     ui_name = "chat nickname brightening",
                                     ui_description = "0 - player primary color, 255 - white, default - 63",

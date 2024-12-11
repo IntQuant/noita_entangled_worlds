@@ -225,8 +225,7 @@ function create_chat_hint(hint) --maybe will make it for all hints in future if 
 end
 
 function module.on_world_update()
-
-    if not ModSettingGet("quant.ew.notext") then
+    if not ModSettingGet("quant.ew.notext") and not ModSettingGet("quant.ew.nochathint") then
         GuiStartFrame(gui)
 
         if unread_messages_counter > 0 then --prevents hint from appearing all the time (can be annoying) and just appear when there is some unread message
