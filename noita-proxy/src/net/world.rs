@@ -1108,7 +1108,7 @@ impl WorldManager {
         if dmx == 0 && dmy == 0 {
             return;
         }
-        let dm2 = dmx * dmx + dmy * dmy;
+        let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
         for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
             if chunk_coord.0 >= min_cx - 1
                 && chunk_coord.0 <= max_cx + 1
@@ -1131,8 +1131,8 @@ impl WorldManager {
                             (max_x, max_y)
                         } else {
                             let dcy = cy - min_y;
-                            let m = (dx2 + dcy * dmy) / dm2;
-                            let (px, py) = (m * dmx, m * dmy);
+                            let m = (dx2 + dcy * dmy) as f64 * dm2;
+                            let (px, py) = ((m * dmx as f64) as i32, (m * dmy as f64) as i32);
                             if px > dmx || py > dmy {
                                 (max_x, max_y)
                             } else if px < 0 || py < 0 {
