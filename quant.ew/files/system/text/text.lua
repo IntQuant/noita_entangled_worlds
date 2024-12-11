@@ -4,6 +4,8 @@ local rpc = net.new_rpc_namespace()
 
 local text = ""
 
+local unread_messages_counter = 0
+
 rpc.opts_everywhere()
 rpc.opts_reliable()
 
@@ -84,6 +86,8 @@ local function lightenColor(r, g, b, threshold)
 end
 
 local function renderChat()
+    unread_messages_counter = 0
+
     local startY = 128
     currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - maxVisibleLines + 1)
     if #chatMessages <= 0 then return end
@@ -176,6 +180,10 @@ function rpc.text(msg, color, colorAlt)
     if not ModSettingGet("quant.ew.notext") then
         GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
         saveMessage(ctx.rpc_player_data.name, msg, color, colorAlt)
+
+        if ctx.rpc_player_data.name ~= ctx.my_player.name then
+            unread_messages_counter = unread_messages_counter + 1
+        end
     end
 end
 
@@ -209,7 +217,22 @@ local function stoptext()
     end
 end
 
+function create_chat_hint(hint) --maybe will make it for all hints in future if something else is added here for some reason
+    local hint = hint
+    local w, h = GuiGetScreenDimensions(gui)
+    local tw, th = GuiGetTextDimensions(gui, hint)
+    GuiText(gui, 2, h-1-th, hint)
+end
+
 function module.on_world_update()
+    if not ModSettingGet("quant.ew.notext") and not ModSettingGet("quant.ew.nochathint") then
+        GuiStartFrame(gui)
+
+        if unread_messages_counter > 0 then --prevents hint from appearing all the time (can be annoying) and just appear when there is some unread message
+            create_chat_hint("Use 'Enter' to open chat.(" .. unread_messages_counter .. " unread messages)")
+        end
+    end
+
     if InputIsMouseButtonJustDown(4) or InputIsKeyDown(82) then
         if #chatMessages > 0 then
             currentMessageIndex = math.max(1, currentMessageIndex - 1)
@@ -245,7 +268,10 @@ function module.on_world_update()
     end
 
     if ctx.is_texting == true then
-        GuiStartFrame(gui)
+        if ModSettingGet("quant.ew.notext") then --the game aparently dont like when you run 2 GuiStartFrame
+            GuiStartFrame(gui)
+        end
+
         renderChat()
         renderTextInput()
 
