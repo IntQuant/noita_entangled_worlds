@@ -371,24 +371,24 @@ function rpc.handle_death_data(death_data)
 end
 
 local function hole(x, y, item, f)
-    local lx, ly
-    if hole_last[item] ~= nil then
-        lx, ly = hole_last[item].last[1], hole_last[item].last[2]
-        local nx, ny = lx, ly
-        if hole_last[item].slast ~= nil then
-            nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
-        end
-        if nx ~= x or ny ~= y then
+    if string.sub(f, -9 - 4, -1) == "hole_giga.xml" or string.sub(f, -8, -1) == "hole.xml" then
+        local lx, ly
+        if hole_last[item] ~= nil then
+            lx, ly = hole_last[item].last[1], hole_last[item].last[2]
+            local nx, ny = lx, ly
+            if hole_last[item].slast ~= nil then
+                nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
+            end
             local inp = math.floor(x).." "..math.floor(nx).." "..math.floor(y).." "..math.floor(ny)
             if string.sub(f, -9, -1) == "_giga.xml" then
                 inp = inp .. " " .. 60
             end
             net.proxy_send("cut_through_world_line", inp)
         end
-    end
-    hole_last[item] = {last = {x, y}}
-    if lx ~= nil then
-        hole_last[item].slast = {lx, ly}
+        hole_last[item] = {last = {x, y}}
+        if lx ~= nil then
+            hole_last[item].slast = {lx, ly}
+        end
     end
 end
 
@@ -464,7 +464,7 @@ local function send_item_positions(all)
                         cap = cap - 1
                         position_data[gid][5] = false
                         local f = EntityGetFilename(item)
-                        if ctx.is_host and f ~= "data/entities/projectiles/deck/rock.xml" then
+                        if ctx.is_host then
                             hole(x, y, item, f)
                         end
                     end
@@ -740,7 +740,7 @@ function rpc.update_positions(position_data, all)
                     end
                 end
                 local f = EntityGetFilename(item)
-                if el[5] == false and ctx.is_host and f ~= "data/entities/projectiles/deck/rock.xml" then
+                if el[5] == false and ctx.is_host then
                     hole(x, y, item, f)
                 end
             elseif wait_for_gid[gid] == nil then

@@ -183,6 +183,7 @@ pub(crate) struct WorldManager {
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
     world_num: i32,
+    durabilities: Vec<u8>,
 }
 
 impl WorldManager {
@@ -205,6 +206,7 @@ impl WorldManager {
             chunk_last_update: Default::default(),
             last_request_priority: Default::default(),
             world_num: 0,
+            durabilities: Vec::new()
         }
     }
 
@@ -1029,6 +1031,10 @@ impl WorldManager {
             (x - radius - max_wiggle - CHUNK_SIZE as i32)..(x + radius + max_wiggle);
         let cut_x_range = x - radius..x + radius;
 
+        let air_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: 0,
+        };
         for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
             // Check if this chunk is anywhere close to the cut. Skip if it isn't.
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
@@ -1056,10 +1062,6 @@ impl WorldManager {
                     ..in_chunk_x_range.end.clamp(0, CHUNK_SIZE as i32);
 
                 for in_chunk_x in in_chunk_x_range {
-                    let air_pixel = Pixel {
-                        flags: world_model::chunk::PixelFlags::Normal,
-                        material: 0,
-                    };
                     chunk.set_pixel(
                         (in_chunk_y as usize) * CHUNK_SIZE + (in_chunk_x as usize),
                         air_pixel,
@@ -1106,14 +1108,19 @@ impl WorldManager {
         let dmx = max_x - min_x;
         let dmy = max_y - min_y;
         if dmx == 0 && dmy == 0 {
-            return;
+            self.cut_through_world_circle(min_x, max_x, r, None);
+            return
         }
         let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
+        let air_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: 0,
+        };
         for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
             if chunk_coord.0 >= min_cx - 1
-                && chunk_coord.0 <= max_cx + 1
+                && chunk_coord.0 <= max_cx
                 && chunk_coord.1 >= min_cy - 1
-                && chunk_coord.1 <= max_cy + 1
+                && chunk_coord.1 <= max_cy
             {
                 let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
                 let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
@@ -1144,15 +1151,71 @@ impl WorldManager {
                         let dx = cx - a;
                         let dy = cy - b;
                         if dx * dx + dy * dy <= r * r {
-                            let air_pixel = Pixel {
-                                flags: world_model::chunk::PixelFlags::Normal,
-                                material: 0,
-                            };
+                            let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if !dirty {
                                 chunk_encoded.apply_to_chunk(&mut chunk);
                                 dirty = true
                             }
-                            chunk.set_pixel(icy as usize * CHUNK_SIZE + icx as usize, air_pixel);
+                            chunk.set_pixel(px, air_pixel);
+                        }
+                    }
+                }
+                if dirty {
+                    *chunk_encoded = chunk.to_chunk_data();
+                }
+            }
+        }
+    }
+    pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32, dur: Option<u8>) {
+        let (min_cx, max_cx) =
+            (
+                (x - r) / CHUNK_SIZE as i32,
+                (x + r) / CHUNK_SIZE as i32,
+            );
+        let (min_cy, max_cy) = 
+            (
+                (y - r) / CHUNK_SIZE as i32,
+                (y + r) / CHUNK_SIZE as i32,
+            );
+        let air_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: 0,
+        };
+        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
+            if chunk_coord.0 >= min_cx - 1
+                && chunk_coord.0 <= max_cx
+                && chunk_coord.1 >= min_cy - 1
+                && chunk_coord.1 <= max_cy
+            {
+                let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+                let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+                let mut chunk = Chunk::default();
+                let mut dirty = false;
+                for icx in 0..CHUNK_SIZE as i32 {
+                    let cx = chunk_start_x + icx;
+                    let dx = cx - x;
+                    let dd = dx * dx;
+                    for icy in 0..CHUNK_SIZE as i32 {
+                        let cy = chunk_start_y + icy;
+                        let dy = cy - y;
+                        if dd + dy * dy <= r * r {
+                            let px = icy as usize * CHUNK_SIZE + icx as usize;
+                            if let Some(n) = dur {
+                                if !dirty {
+                                    chunk_encoded.apply_to_chunk(&mut chunk);
+                                }
+                                let p = chunk.pixel(px);
+                                if self.durabilities[p.material as usize] > n {
+                                    continue
+                                }
+                            }
+                            if !dirty {
+                                if dur.is_none() {
+                                    chunk_encoded.apply_to_chunk(&mut chunk);
+                                }
+                                dirty = true
+                            }
+                            chunk.set_pixel(px, air_pixel);
                         }
                     }
                 }

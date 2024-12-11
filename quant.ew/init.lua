@@ -220,6 +220,9 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
         EntityAddTag(projectile_id, "ew_global_item")
         EntityAddTag(projectile_id, "ew_no_spawn")
     elseif n == "data/entities/projectiles/deck/rock.xml"
+            or n == "data/entities/projectiles/deck/levitation_field.xml"
+            or n == "data/entities/projectiles/bomb.xml"
+            or n == "data/entities/projectiles/propane_tank.xml"
             or n == "data/entities/projectiles/deck/black_hole.xml"
             or n == "data/entities/projectiles/deck/black_hole_giga.xml"
             or n == "data/entities/projectiles/deck/white_hole.xml"
