@@ -107,7 +107,7 @@ local function renderChat()
                 local senderText = string.format("%s: ", msg.sender)
                 GuiText(gui, 64, startY, senderText)
 
-                local senderWidth = calculateTextWidth(gui, string.format("%s: ", msg.sender))
+                local senderWidth = calculateTextWidth(string.format("%s: ", msg.sender))
 
                 local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
                 textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
