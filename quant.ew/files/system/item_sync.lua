@@ -373,17 +373,23 @@ end
 local function hole(x, y, item, f)
     local lx, ly
     if hole_last[item] ~= nil then
-        lx, ly = hole_last[item][1] or hole_last[item][3], hole_last[item][2] or hole_last[item][4]
-        if lx == x and ly == y then
-            return
+        lx, ly = hole_last[item].last[1], hole_last[item].last[2]
+        local nx, ny = lx, ly
+        if hole_last[item].slast ~= nil then
+            nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
         end
-        local inp = math.floor(x).." "..math.floor(lx).." "..math.floor(y).." "..math.floor(ly)
-        if string.sub(f, -9, -1) == "_giga.xml" then
-            inp = inp .. " " .. 60
+        if nx ~= x or ny ~= y then
+            local inp = math.floor(x).." "..math.floor(nx).." "..math.floor(y).." "..math.floor(ny)
+            if string.sub(f, -9, -1) == "_giga.xml" then
+                inp = inp .. " " .. 60
+            end
+            net.proxy_send("cut_through_world_line", inp)
         end
-        net.proxy_send("cut_through_world_line", inp)
     end
-    hole_last[item] = {lx, ly, x, y}
+    hole_last[item] = {last = {x, y}}
+    if lx ~= nil then
+        hole_last[item].slast = {lx, ly}
+    end
 end
 
 local DISTANCE_LIMIT = 128 * 4
