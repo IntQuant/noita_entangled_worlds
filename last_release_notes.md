@@ -1,18 +1,33 @@
-## Noita Entangled Worlds v0.31.7
+## Noita Entangled Worlds v0.31.8 - Lag Edition
 
-- fix global perks
+- add in game options to change enemy sync rate and item sync rate, at 1 by default for testing reasons, set to 3/5 respectively for a more reasonable default
 
-- sync rocks
+- sync blackholes like rocks, add option to cap amount of those to sync for performance reasons, infinite by default
 
-- yet annother egg fix
+- make blackholes effect chunks not near you but previously in visual range
 
-- fix some errors
+- add mina color picker to lobby menu
+
+- notplayer ai changes :)
+
+- reformat ingame settings
+
+- fix lukki mutation visual
+
+- text changes, now dont need to hover over a box, added scrolling, add hold backspace
+
+- cli arg for language
+
+- fix some mispelling
+
+- update portuguese
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- Language cli arg by @kcalbxof in #275
+- a lot of chat improvenets by @sad-username-231 in #274
+- fix backspace on chat by @ZXb125 in #271
+- update portuguese translation by @ZXb125 in #269
 ## Installation
 
 
