@@ -371,8 +371,9 @@ function rpc.handle_death_data(death_data)
 end
 
 local function hole(x, y, item, f)
+    local lx, ly
     if hole_last[item] ~= nil then
-        local lx, ly = hole_last[item][1], hole_last[item][2]
+        lx, ly = hole_last[item][1] or hole_last[item][3], hole_last[item][2] or hole_last[item][4]
         if lx == x and ly == y then
             return
         end
@@ -382,7 +383,7 @@ local function hole(x, y, item, f)
         end
         net.proxy_send("cut_through_world_line", inp)
     end
-    hole_last[item] = {x, y}
+    hole_last[item] = {lx, ly, x, y}
 end
 
 local DISTANCE_LIMIT = 128 * 4

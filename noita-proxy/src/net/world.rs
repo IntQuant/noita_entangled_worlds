@@ -1108,11 +1108,12 @@ impl WorldManager {
         if dmx == 0 && dmy == 0 {
             return;
         }
+        let dm2 = dmx * dmx + dmy * dmy;
         for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            if chunk_coord.0 >= min_cx
-                && chunk_coord.0 <= max_cx
-                && chunk_coord.1 >= min_cy
-                && chunk_coord.1 <= max_cy
+            if chunk_coord.0 >= min_cx - 1
+                && chunk_coord.0 <= max_cx + 1
+                && chunk_coord.1 >= min_cy - 1
+                && chunk_coord.1 <= max_cy + 1
             {
                 let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
                 let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
@@ -1120,6 +1121,8 @@ impl WorldManager {
                 let mut dirty = false;
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
+                    let dcx = cx - min_x;
+                    let dx2 = dcx * dmx;
                     for icy in 0..CHUNK_SIZE as i32 {
                         let cy = chunk_start_y + icy;
                         let (a, b) = if cx < min_x && cy < min_y {
@@ -1127,9 +1130,8 @@ impl WorldManager {
                         } else if cx > max_x && cy > max_y {
                             (max_x, max_y)
                         } else {
-                            let dcx = cx - min_x;
                             let dcy = cy - min_y;
-                            let m = (dcx * dmx + dcy * dmy) / (dmx * dmx + dmy * dmy);
+                            let m = (dx2 + dcy * dmy) / dm2;
                             let (px, py) = (m * dmx, m * dmy);
                             if px > dmx || py > dmy {
                                 (max_x, max_y)
