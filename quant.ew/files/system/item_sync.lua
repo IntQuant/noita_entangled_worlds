@@ -51,6 +51,8 @@ end
 util.add_cross_call("ew_chest_opened", function(chest_id)
     local gid = item_sync.get_global_item_id(chest_id)
     if gid ~= nil then
+        wait_for_gid[gid] = GameGetFrameNum() + 36000
+        wait_on_send[gid] = GameGetFrameNum() + 36000
         rpc.open_chest(gid)
     end
 end)
