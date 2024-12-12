@@ -409,7 +409,8 @@ local function send_item_positions(all)
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
-        if gid ~= nil and item_sync.is_my_item(gid) and is_item_on_ground(item) then
+        local tg = EntityHasTag(item, "ew_no_spawn")
+        if gid ~= nil and item_sync.is_my_item(gid) and (is_item_on_ground(item) or tg) then
             local x, y = EntityGetTransform(item)
             local dx, dy = x - cx, y - cy
             if (ignore[gid] == nil or ignore[gid] < GameGetFrameNum()) and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT then
@@ -440,7 +441,6 @@ local function send_item_positions(all)
                     ignore[gid] = GameGetFrameNum() + 60
                 end
             else
-                local tg = EntityHasTag(item, "ew_no_spawn")
                 local phys_info = util.get_phys_info(item, true)
                 if tg or ((phys_info[1][1] ~= nil
                         or phys_info[2][1] ~= nil

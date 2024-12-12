@@ -25,7 +25,6 @@ function mod.on_world_update_host()
     for ent, data in pairs(alive) do
         if not EntityGetIsAlive(ent) then
             local inp = math.floor(data[1]) .. " " .. math.floor(data[2]) .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4])
-            GamePrint(inp)
             net.proxy_send("cut_through_world_circle", inp)
             alive[ent] = nil
         end
