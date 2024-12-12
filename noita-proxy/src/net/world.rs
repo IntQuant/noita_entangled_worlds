@@ -2,7 +2,8 @@ use bitcode::{Decode, Encode};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{env, f32::consts::PI, mem};
+use std::f32::consts::TAU;
+use std::{env, mem};
 use tracing::{debug, info, warn};
 use world_model::{
     chunk::{Chunk, Pixel},
@@ -1053,7 +1054,7 @@ impl WorldManager {
                     continue;
                 }
 
-                let wiggle = -f32::cos((global_y as f32) / interval * PI * 2.0) * max_wiggle as f32;
+                let wiggle = -f32::cos((global_y as f32) / interval * TAU) * max_wiggle as f32;
                 let wiggle = wiggle as i32; // TODO find a more accurate way to compute wiggle.
 
                 let in_chunk_x_range = cut_x_range.start - chunk_start_x + wiggle
@@ -1206,51 +1207,77 @@ impl WorldManager {
             }
         }
     }
-    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let (min_cx, max_cx) = ((x - r) / CHUNK_SIZE as i32, (x + r) / CHUNK_SIZE as i32);
-        let (min_cy, max_cy) = ((y - r) / CHUNK_SIZE as i32, (y + r) / CHUNK_SIZE as i32);
-        let air_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
-            material: 0,
+    fn do_ray(
+        &mut self,
+        mut x: i32,
+        mut y: i32,
+        end_x: i32,
+        end_y: i32,
+        mut ray: i64,
+        d: u8,
+    ) -> (i32, i32) {
+        let dx = (end_x - x).abs();
+        let dy = (end_y - y).abs();
+        let sx = if x < end_x { 1 } else { -1 };
+        let sy = if y < end_y { 1 } else { -1 };
+        let mut err = if dx > dy { dx } else { -dy } / 2;
+        let mut e2;
+        let mut working_chunk = Chunk::default();
+        let mut last_co = ChunkCoord(x / CHUNK_SIZE as i32, y / CHUNK_SIZE as i32);
+        let mut last;
+        if let Some(c) = self.chunk_storage.get(&last_co) {
+            last = c
+        } else {
+            return (0, 0);
         };
-        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            if chunk_coord.0 >= min_cx - 1
-                && chunk_coord.0 <= max_cx
-                && chunk_coord.1 >= min_cy - 1
-                && chunk_coord.1 <= max_cy
-            {
-                let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
-                let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
-                let mut chunk = Chunk::default();
-                let mut dirty = false;
-                for icx in 0..CHUNK_SIZE as i32 {
-                    let cx = chunk_start_x + icx;
-                    let dx = cx - x;
-                    let dd = dx * dx;
-                    for icy in 0..CHUNK_SIZE as i32 {
-                        let cy = chunk_start_y + icy;
-                        let dy = cy - y;
-                        if dd + dy * dy <= r * r {
-                            let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            if !dirty {
-                                chunk_encoded.apply_to_chunk(&mut chunk);
-                                dirty = true
-                            }
-                            let p = chunk.pixel(px);
-                            if self
-                                .durabilities
-                                .get(&p.material)
-                                .map(|a| a.0 <= d)
-                                .unwrap_or(true)
-                            {
-                                chunk.set_pixel(px, air_pixel);
-                            }
-                        }
-                    }
+        last.apply_to_chunk(&mut working_chunk);
+        while x != end_x || y != end_y {
+            let co = ChunkCoord(x / CHUNK_SIZE as i32, y / CHUNK_SIZE as i32);
+            if co != last_co {
+                if let Some(c) = self.chunk_storage.get(&co) {
+                    last = c
+                } else {
+                    return (0, 0);
+                };
+                last.apply_to_chunk(&mut working_chunk);
+                last_co = co;
+            }
+
+            let icx = x.rem_euclid(CHUNK_SIZE as i32);
+            let icy = y.rem_euclid(CHUNK_SIZE as i32);
+            let px = icy as usize * CHUNK_SIZE + icx as usize;
+            let pixel = working_chunk.pixel(px);
+            if let Some(stats) = self.durabilities.get(&pixel.material) {
+                ray -= stats.1 as i64;
+                if stats.0 > d || ray < 0 {
+                    return (x, y);
                 }
-                if dirty {
-                    *chunk_encoded = chunk.to_chunk_data();
-                }
+            }
+
+            e2 = err;
+            if e2 > -dx {
+                err -= dy;
+                x += sx;
+            }
+            if e2 < dy {
+                err += dx;
+                y += sy;
+            }
+        }
+        (x, y)
+    }
+    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
+        for n in 0..256 {
+            let t = TAU / 256.0;
+            let theta = t * n as f32;
+            let end_x = x + (r as f32 * theta.cos()) as i32;
+            let end_y = y + (r as f32 * theta.sin()) as i32;
+            let (ex, ey) = self.do_ray(x, y, end_x, end_y, ray as i64, d);
+            let dx = ex - x;
+            let dy = ey - y;
+            if dx != 0 || dy != 0 {
+                let r = t * ((dx * dx + dy * dy) as f32).sqrt();
+                self.cut_through_world_line(x, y, ex, ey, r as i32)
             }
         }
     }
