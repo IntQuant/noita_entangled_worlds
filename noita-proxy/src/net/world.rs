@@ -1077,30 +1077,30 @@ impl WorldManager {
     pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
         let (min_cx, max_cx, min_x, max_x) = if x < lx {
             (
-                (x - r) / CHUNK_SIZE as i32,
-                (lx + r) / CHUNK_SIZE as i32,
+                (x - r).div_euclid(CHUNK_SIZE as i32),
+                (lx + r).div_euclid(CHUNK_SIZE as i32),
                 x,
                 lx,
             )
         } else {
             (
-                (lx - r) / CHUNK_SIZE as i32,
-                (x + r) / CHUNK_SIZE as i32,
+                (lx - r).div_euclid(CHUNK_SIZE as i32),
+                (x + r).div_euclid(CHUNK_SIZE as i32),
                 lx,
                 x,
             )
         };
         let (min_cy, max_cy, min_y, max_y) = if y < ly {
             (
-                (y - r) / CHUNK_SIZE as i32,
-                (ly + r) / CHUNK_SIZE as i32,
+                (y - r).div_euclid(CHUNK_SIZE as i32),
+                (ly + r).div_euclid(CHUNK_SIZE as i32),
                 y,
                 ly,
             )
         } else {
             (
-                (ly - r) / CHUNK_SIZE as i32,
-                (y + r) / CHUNK_SIZE as i32,
+                (ly - r).div_euclid(CHUNK_SIZE as i32),
+                (y + r).div_euclid(CHUNK_SIZE as i32),
                 ly,
                 y,
             )
@@ -1118,9 +1118,9 @@ impl WorldManager {
             material: 0,
         };
         for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            if chunk_coord.0 >= min_cx - 1
+            if chunk_coord.0 >= min_cx
                 && chunk_coord.0 <= max_cx
-                && chunk_coord.1 >= min_cy - 1
+                && chunk_coord.1 >= min_cy
                 && chunk_coord.1 <= max_cy
             {
                 let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
@@ -1168,16 +1168,22 @@ impl WorldManager {
         }
     }
     pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32) {
-        let (min_cx, max_cx) = ((x - r) / CHUNK_SIZE as i32, (x + r) / CHUNK_SIZE as i32);
-        let (min_cy, max_cy) = ((y - r) / CHUNK_SIZE as i32, (y + r) / CHUNK_SIZE as i32);
+        let (min_cx, max_cx) = (
+            (x - r).div_euclid(CHUNK_SIZE as i32),
+            (x + r).div_euclid(CHUNK_SIZE as i32),
+        );
+        let (min_cy, max_cy) = (
+            (y - r).div_euclid(CHUNK_SIZE as i32),
+            (y + r).div_euclid(CHUNK_SIZE as i32),
+        );
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
         for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            if chunk_coord.0 >= min_cx - 1
+            if chunk_coord.0 >= min_cx
                 && chunk_coord.0 <= max_cx
-                && chunk_coord.1 >= min_cy - 1
+                && chunk_coord.1 >= min_cy
                 && chunk_coord.1 <= max_cy
             {
                 let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
@@ -1208,36 +1214,45 @@ impl WorldManager {
         }
     }
     fn do_ray(
-        &mut self,
+        &self,
         mut x: i32,
         mut y: i32,
         end_x: i32,
         end_y: i32,
-        mut ray: i64,
+        mut ray: u32,
         d: u8,
-    ) -> (i32, i32) {
+    ) -> Option<(i32, i32)> {
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
+        if dx == 0 && dy == 0 {
+            return None;
+        }
         let sx = if x < end_x { 1 } else { -1 };
         let sy = if y < end_y { 1 } else { -1 };
         let mut err = if dx > dy { dx } else { -dy } / 2;
         let mut e2;
         let mut working_chunk = Chunk::default();
-        let mut last_co = ChunkCoord(x / CHUNK_SIZE as i32, y / CHUNK_SIZE as i32);
+        let mut last_co = ChunkCoord(
+            x.div_euclid(CHUNK_SIZE as i32),
+            y.div_euclid(CHUNK_SIZE as i32),
+        );
         let mut last;
         if let Some(c) = self.chunk_storage.get(&last_co) {
             last = c
         } else {
-            return (0, 0);
+            return None;
         };
         last.apply_to_chunk(&mut working_chunk);
         while x != end_x || y != end_y {
-            let co = ChunkCoord(x / CHUNK_SIZE as i32, y / CHUNK_SIZE as i32);
+            let co = ChunkCoord(
+                x.div_euclid(CHUNK_SIZE as i32),
+                y.div_euclid(CHUNK_SIZE as i32),
+            );
             if co != last_co {
                 if let Some(c) = self.chunk_storage.get(&co) {
                     last = c
                 } else {
-                    return (0, 0);
+                    return None;
                 };
                 last.apply_to_chunk(&mut working_chunk);
                 last_co = co;
@@ -1248,9 +1263,9 @@ impl WorldManager {
             let px = icy as usize * CHUNK_SIZE + icx as usize;
             let pixel = working_chunk.pixel(px);
             if let Some(stats) = self.durabilities.get(&pixel.material) {
-                ray -= stats.1 as i64;
-                if stats.0 > d || ray < 0 {
-                    return (x, y);
+                ray = ray.saturating_sub(stats.1);
+                if stats.0 > d || ray == 0 {
+                    return Some((x, y));
                 }
             }
 
@@ -1264,15 +1279,18 @@ impl WorldManager {
                 y += sy;
             }
         }
-        (x, y)
+        Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        for n in 0..256 {
-            let t = TAU / 256.0;
+        let rays = (r * 4).clamp(64, 1024);
+        for n in 0..rays {
+            let t = TAU / rays as f32;
             let theta = t * n as f32;
             let end_x = x + (r as f32 * theta.cos()) as i32;
             let end_y = y + (r as f32 * theta.sin()) as i32;
-            let (ex, ey) = self.do_ray(x, y, end_x, end_y, ray as i64, d);
+            let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d) else {
+                continue;
+            };
             let dx = ex - x;
             let dy = ey - y;
             if dx != 0 || dy != 0 {
