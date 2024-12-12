@@ -59,18 +59,19 @@ function mod.on_world_update_host()
                 local x, y = EntityGetTransform(ent)
                 alive[ent] = {x, y, ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius"),
                               ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"), ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
-            end
-            local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
-            if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" and ComponentGetValue2(mat, "to_material") == "air" then
-                local x, y = EntityGetTransform(ent)
-                alive[ent] = {x, y, ComponentGetValue2(mat, "radius")}
+            else
+                local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
+                if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" and ComponentGetValue2(mat, "to_material") == 0 then
+                    local x, y = EntityGetTransform(ent)
+                    alive[ent] = {x, y, ComponentGetValue2(mat, "radius")}
+                end
             end
         end
     end
     last = n
     for ent, data in pairs(alive) do
         if not EntityGetIsAlive(ent) then
-            if #alive == 5 then
+            if #alive[ent] == 5 then
                 local inp = math.floor(data[1]) .. " " .. math.floor(data[2])
                         .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4]) .. " " .. math.floor(data[5])
                 net.proxy_send("cut_through_world_explosion", inp)

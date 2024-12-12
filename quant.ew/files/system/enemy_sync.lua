@@ -272,6 +272,10 @@ function enemy_sync.host_upload_entities()
                     item_sync.make_item_global(item)
                 else
                     wand = item_sync.get_global_item_id(item)
+                    if wand == nil then
+                        EntityRemoveTag(item, "ew_global_item")
+                        goto continue
+                    end
                     if not item_sync.is_my_item(wand) then
                         item_sync.take_authority(wand)
                     end
