@@ -21,35 +21,22 @@ local function send_mats()
     local info = {}
     for element in xml_orig:each_child() do
         if element.name == "CellData" then
-            local hp = element.attr.hp
-            if hp == nil then
-                hp = 0
-            end
-            local dur = element.attr.durability
-            if dur == nil then
-                dur = 0
-            end
+            local hp = element.attr.hp or 0
+            local dur = element.attr.durability or 0
             info[element.attr.name] = {dur, hp}
-            inp = inp .. mats[element.attr.name]
+            inp = inp .. mats[element.attr.name] .. " "
                     .. dur .. " " .. hp .. " "
         elseif element.name == "CellDataChild" then
             local p = info[element.attr._parent]
             if p ~= nil then
                 local dur = element.attr.durability or p[1]
                 local hp = element.attr.hp or p[2]
-                inp = inp .. mats[element.attr.name]
+                inp = inp .. mats[element.attr.name] .. " "
                         .. dur .. " " .. hp .. " "
             else
-                local hp = element.attr.hp
-                if hp == nil then
-                    hp = 0
-                end
-                local dur = element.attr.durability
-                if dur == nil then
-                    dur = 0
-                end
-
-                inp = inp .. mats[element.attr.name]
+                local hp = element.attr.hp or 0
+                local dur = element.attr.durability or 0
+                inp = inp .. mats[element.attr.name] .. " "
                         .. dur .. " " .. hp .. " "
             end
         end

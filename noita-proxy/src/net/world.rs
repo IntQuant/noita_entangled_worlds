@@ -1237,8 +1237,11 @@ impl WorldManager {
                                 dirty = true
                             }
                             let p = chunk.pixel(px);
-                            if self.durabilities.len() > p.material as usize
-                                && self.durabilities.get(&p.material).unwrap_or(&(100, 0)).0 <= d
+                            if self
+                                .durabilities
+                                .get(&p.material)
+                                .map(|a| a.0 <= d)
+                                .unwrap_or(true)
                             {
                                 chunk.set_pixel(px, air_pixel);
                             }
