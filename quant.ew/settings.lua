@@ -276,7 +276,7 @@ local function build_settings()
                 {
                     id = "rocks",
                     ui_name = "cap of special item entities to be synced",
-                    ui_description = "max amount of rocks/black holes/etc to be synced, -1 for infinite",
+                    ui_description = "max amount of proj to be synced, -1 for infinite",
                     value_default = "-1",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },

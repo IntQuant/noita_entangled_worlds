@@ -372,31 +372,26 @@ function rpc.handle_death_data(death_data)
     end
 end
 
-function item_sync.hole(x, y, item, f)
-    local n
-    if type(f) == "number" then
-        n = tonumber(f)
+function item_sync.hole(x, y, item)
+    local ce = EntityGetFirstComponent(item, "CellEaterComponent")
+    if ce == nil or ComponentGetValue2(ce, "only_stain") then
+        return
     end
-    if n ~= nil or string.sub(f, -9 - 4, -1) == "hole_giga.xml" or string.sub(f, -8, -1) == "hole.xml" then
-        local lx, ly
-        if hole_last[item] ~= nil then
-            lx, ly = hole_last[item].last[1], hole_last[item].last[2]
-            local nx, ny = lx, ly
-            if hole_last[item].slast ~= nil then
-                nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
-            end
-            local inp = math.floor(x).." "..math.floor(nx).." "..math.floor(y).." "..math.floor(ny)
-            if n ~= nil then
-                inp = inp .. " " .. n
-            elseif string.sub(f, -9, -1) == "_giga.xml" then
-                inp = inp .. " " .. 60
-            end
-            net.proxy_send("cut_through_world_line", inp)
+    local n = ComponentGetValue2(ce, "radius")
+    local lx, ly
+    if hole_last[item] ~= nil then
+        lx, ly = hole_last[item].last[1], hole_last[item].last[2]
+        local nx, ny = lx, ly
+        if hole_last[item].slast ~= nil then
+            nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
         end
-        hole_last[item] = {last = {x, y}}
-        if lx ~= nil then
-            hole_last[item].slast = {lx, ly}
-        end
+        local inp = math.floor(x).." "..math.floor(nx)
+                .." "..math.floor(y).." "..math.floor(ny) .. " " .. n
+        net.proxy_send("cut_through_world_line", inp)
+    end
+    hole_last[item] = {last = {x, y}}
+    if lx ~= nil then
+        hole_last[item].slast = {lx, ly}
     end
 end
 
@@ -407,7 +402,7 @@ local ignore = {}
 local function send_item_positions(all)
     local position_data = {}
     local cx, cy = EntityGetTransform(ctx.my_player.entity)
-    local cap = ModSettingGet("quant.ew.rocks")
+    local cap = {}
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)
         -- Only send info about items created by us.
@@ -465,15 +460,18 @@ local function send_item_positions(all)
                             position_data[gid][5] = true
                         end
                     elseif tg then
-                        if cap == 0 then
+                        local f = EntityGetFilename(item)
+                        if cap[f] == nil then
+                            cap[f] = ModSettingGet("quant.ew.rocks")
+                        end
+                        if cap[f] == 0 then
                             position_data[gid] = nil
                             goto continue
                         end
-                        cap = cap - 1
+                        cap[f] = cap[f] - 1
                         position_data[gid][5] = false
-                        local f = EntityGetFilename(item)
                         if ctx.is_host then
-                            item_sync.hole(x, y, item, f)
+                            item_sync.hole(x, y, item)
                         end
                     end
                 end
@@ -750,9 +748,8 @@ function rpc.update_positions(position_data, all)
                         ComponentSetValue2(costcom, "cost", price)
                     end
                 end
-                local f = EntityGetFilename(item)
                 if el[5] == false and ctx.is_host then
-                    item_sync.hole(x, y, item, f)
+                    item_sync.hole(x, y, item)
                 end
             elseif wait_for_gid[gid] == nil then
                 if el[5] == true then
