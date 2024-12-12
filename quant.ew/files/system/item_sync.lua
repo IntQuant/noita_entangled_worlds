@@ -25,8 +25,8 @@ local wait_for_gid = {}
 local hole_last = {}
 
 function rpc.open_chest(gid)
-    wait_for_gid[gid] = GameGetFrameNum() + 3600
-    wait_on_send[gid] = GameGetFrameNum() + 3600
+    wait_for_gid[gid] = GameGetFrameNum() + 36000
+    wait_on_send[gid] = GameGetFrameNum() + 36000
     local ent = item_sync.find_by_gid(gid)
     if ent ~= nil then
         local file
@@ -636,6 +636,9 @@ end
 rpc.opts_reliable()
 function rpc.item_globalize(item_data)
     if wait_for_gid[item_data.gid] ~= nil then
+        if wait_for_gid[item_data.gid] > GameGetFrameNum() + 10000 then
+            return
+        end
         wait_for_gid[item_data.gid] = GameGetFrameNum() + 30
     end
     local a = item_sync.find_by_gid(item_data.gid)
