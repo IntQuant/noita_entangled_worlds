@@ -183,7 +183,7 @@ pub(crate) struct WorldManager {
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
     world_num: i32,
-    durabilities: Vec<u8>,
+    pub durabilities: Vec<u8>,
 }
 
 impl WorldManager {
@@ -1197,7 +1197,9 @@ impl WorldManager {
                                     chunk_encoded.apply_to_chunk(&mut chunk);
                                 }
                                 let p = chunk.pixel(px);
-                                if self.durabilities[p.material as usize] > n {
+                                if self.durabilities.len() > p.material as usize
+                                    && self.durabilities[p.material as usize] > n
+                                {
                                     continue;
                                 }
                             }

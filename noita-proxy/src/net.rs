@@ -719,6 +719,12 @@ impl NetManager {
                 }
             }
             Some("reset_world") => state.world.reset(),
+            Some("material_list") => {
+                state.world.durabilities.clear();
+                while let Some(d) = msg.next().and_then(|s| s.parse().ok()) {
+                    state.world.durabilities.push(d)
+                }
+            }
             Some("cut_through_world") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y_min: Option<i32> = msg.next().and_then(|s| s.parse().ok());
@@ -745,6 +751,17 @@ impl NetManager {
                 state
                     .world
                     .cut_through_world_line(x, y, lx, ly, r.unwrap_or(12));
+            }
+            Some("cut_through_world_circle") => {
+                let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let d: Option<u8> = msg.next().and_then(|s| s.parse().ok());
+                let (Some(x), Some(y), Some(r)) = (x, y, r) else {
+                    error!("Missing arguments in cut_through_world_line message");
+                    return;
+                };
+                state.world.cut_through_world_circle(x, y, r, d);
             }
             Some("flush") => self.peer.flush(),
             key => {

@@ -137,6 +137,7 @@ local function load_modules()
     ctx.load_system("homunculus")
     ctx.load_system("text")
     ctx.load_system("ragdoll_fix")
+    ctx.load_system("explosion_cuts")
 end
 
 local function load_extra_modules()
