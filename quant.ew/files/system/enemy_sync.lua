@@ -285,10 +285,24 @@ function enemy_sync.host_upload_entities()
 
         local effect_data = effect_sync.get_sync_data(enemy_id, true)
 
-        local sprite = EntityGetFirstComponent(enemy_id, "SpriteComponent")
-        local animation
-        if sprite ~= nil then
-            animation = ComponentGetValue2(sprite, "rect_animation")
+        local has_laser
+        local animations = {}
+        for _, sprite in ipairs(EntityGetComponentIncludingDisabled(enemy_id, "SpriteComponent") or {}) do
+            local animation
+            if sprite ~= nil then
+                animation = ComponentGetValue2(sprite, "rect_animation")
+            end
+            table.insert(animations, animation)
+            if ComponentHasTag(sprite, "laser_sight") then
+                local ai = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
+                if ai ~= nil then
+                    local target = ComponentGetValue2(ai, "mGreatestPrey")
+                    local peer = player_fns.get_player_data_by_local_entity_id(target)
+                    if peer ~= nil then
+                        has_laser = peer.peer_id
+                    end
+                end
+            end
         end
 
         local dont_cull = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
@@ -297,7 +311,7 @@ function enemy_sync.host_upload_entities()
         local stains = stain_sync.get_stains(enemy_id)
 
         table.insert(enemy_data_list, {filename, en_data, phys_info, wand,
-                                       effect_data, animation, dont_cull, death_triggers, stains})
+                                       effect_data, animations, dont_cull, death_triggers, stains, has_laser})
         ::continue::
     end
 
@@ -394,6 +408,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local dont_cull = enemy_info_raw[7]
     local death_triggers = enemy_info_raw[8]
     local stains = enemy_info_raw[9]
+    local has_laser = enemy_info_raw[10]
     local remote_enemy_id = en_data.enemy_id
     local x, y = en_data.x, en_data.y
     if not force_no_cull and not dont_cull  then
@@ -495,7 +510,6 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             EntityRemoveComponent(enemy_id, pick_up)
         end
         for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "character") or {}) do
-            ComponentAddTag(sprite, "ew_sprite")
             ComponentRemoveTag(sprite, "character")
         end
 
@@ -513,6 +527,37 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local enemy_id = enemy_data_new.id
 
     if not has_died then
+        local laser = EntityGetFirstComponentIncludingDisabled(enemy_id, "LaserEmitterComponent", "ew_laser")
+        if has_laser then
+            if laser == nil then
+                laser = EntityAddComponent2(enemy_id, "LaserEmitterComponent", {_tags = "ew_laser"})
+                ComponentObjectSetValue2(laser, "laser", "max_cell_durability_to_destroy", 0)
+                ComponentObjectSetValue2(laser, "laser", "damage_to_cells", 0)
+                ComponentObjectSetValue2(laser, "laser", "max_length", 1024)
+                ComponentObjectSetValue2(laser, "laser", "beam_radius", 0)
+                ComponentObjectSetValue2(laser, "laser", "beam_particle_chance", 80)
+                ComponentObjectSetValue2(laser, "laser", "beam_particle_fade", 0)
+                ComponentObjectSetValue2(laser, "laser", "hit_particle_chance", 0)
+                ComponentObjectSetValue2(laser, "laser", "audio_enabled", false)
+                ComponentObjectSetValue2(laser, "laser", "damage_to_entities", 0)
+                ComponentObjectSetValue2(laser, "laser", "beam_particle_type", 225)
+            end
+            local target = ctx.players[has_laser].entity
+            local lx, ly = EntityGetTransform(target)
+            if lx ~= nil then
+                local did_hit, _, _ = RaytracePlatforms(x, y, lx, ly)
+                ComponentSetValue2(laser, "is_emitting", not did_hit)
+                if not did_hit then
+                    local dy = ly - y
+                    local dx = lx - x
+                    local theta = math.atan2(dy, dx)
+                    ComponentSetValue2(laser, "laser_angle_add_rad", theta)
+                    ComponentObjectSetValue2(laser, "laser", "max_length", math.sqrt(dx * dx + dy * dy))
+                end
+            end
+        elseif laser ~= nil then
+            ComponentSetValue2(laser, "is_emitting", false)
+        end
         if not util.set_phys_info(enemy_id, phys_infos) or enemy_id == kolmi_spawn then
             local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
             if character_data ~= nil then
@@ -609,10 +654,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         end
     end
 
-    for _, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent", "ew_sprite") or {}) do
-        if animation ~= nil then
-            ComponentSetValue2(sprite, "rect_animation", animation)
-            ComponentSetValue2(sprite, "next_rect_animation", animation)
+    for i, sprite in pairs(EntityGetComponent(enemy_id, "SpriteComponent") or {}) do
+        if animation[i] ~= nil then
+            ComponentSetValue2(sprite, "rect_animation", animation[i])
+            ComponentSetValue2(sprite, "next_rect_animation", animation[i])
         end
     end
 
