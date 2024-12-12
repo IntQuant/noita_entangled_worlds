@@ -1119,6 +1119,9 @@ impl WorldManager {
             self.cut_through_world_circle(min_x, max_x, r);
             return;
         }
+        let (dx_sign, dy_sign) = (dmx.signum(), dmy.signum());
+        let dmx = dmx.abs();
+        let dmy = dmy.abs();
         let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
@@ -1140,20 +1143,26 @@ impl WorldManager {
                     let dx2 = dcx * dmx;
                     for icy in 0..CHUNK_SIZE as i32 {
                         let cy = chunk_start_y + icy;
-                        let (a, b) = if cx < min_x && cy < min_y {
-                            (min_x, min_y)
-                        } else if cx > max_x && cy > max_y {
-                            (max_x, max_y)
+                        let (a, b) = if cx < min_x {
+                            (min_x, cy.clamp(min_y, max_y))
+                        } else if cx > max_x {
+                            (max_x, cy.clamp(min_y, max_y))
+                        } else if cy < min_y {
+                            (cx.clamp(min_x, max_x), min_y)
+                        } else if cy > max_y {
+                            (cx.clamp(min_x, max_x), max_y)
                         } else {
                             let dcy = cy - min_y;
                             let m = (dx2 + dcy * dmy) as f64 * dm2;
-                            let (px, py) = ((m * dmx as f64) as i32, (m * dmy as f64) as i32);
-                            if px > dmx || py > dmy {
-                                (max_x, max_y)
-                            } else if px < 0 || py < 0 {
+                            let px = (m * dmx as f64).round() as i32;
+                            let py = (m * dmy as f64).round() as i32;
+
+                            if px <= 0 && py <= 0 {
                                 (min_x, min_y)
+                            } else if px >= dmx && py >= dmy {
+                                (max_x, max_y)
                             } else {
-                                (min_x + px, min_y + py)
+                                (min_x + px * dx_sign, min_y + py * dy_sign)
                             }
                         };
                         let dx = cx - a;
@@ -1301,7 +1310,7 @@ impl WorldManager {
             let dx = ex - x;
             let dy = ey - y;
             if dx != 0 || dy != 0 {
-                let r = t * ((dx * dx + dy * dy) as f32).sqrt() * 1.1;
+                let r = t * ((dx * dx + dy * dy) as f64).sqrt() as f32 * 1.1;
                 self.cut_through_world_line(x, y, ex, ey, r as i32)
             }
         }
