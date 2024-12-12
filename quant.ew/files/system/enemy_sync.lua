@@ -384,6 +384,8 @@ function enemy_sync.on_world_update_client()
     end
 end
 
+local kolmi_spawn
+
 local function sync_enemy(enemy_info_raw, force_no_cull)
     local filename = enemy_info_raw[1]
     filename = constants.interned_index_to_filename[filename] or filename
@@ -511,7 +513,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
     local enemy_id = enemy_data_new.id
 
     if not has_died then
-        if not util.set_phys_info(enemy_id, phys_infos) then
+        if not util.set_phys_info(enemy_id, phys_infos) or enemy_id == kolmi_spawn then
             local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
             if character_data ~= nil then
                 ComponentSetValue2(character_data, "mVelocity", vx, vy)
@@ -533,9 +535,11 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             ComponentSetValue2(worm, "mTargetVec", tx, ty)
         end
         if ffi.typeof(en_data) == EnemyDataKolmi and en_data.enabled then
-            local lua_components = EntityGetComponentIncludingDisabled(enemy_id, "LuaComponent") or {}
-            for _, c in ipairs(lua_components) do
-                EntityRemoveComponent(enemy_id, c)
+            if kolmi_spawn ~= enemy_id then
+                for _, c in ipairs(EntityGetComponentIncludingDisabled(enemy_id, "LuaComponent") or {}) do
+                    EntityRemoveComponent(enemy_id, c)
+                end
+                kolmi_spawn = enemy_id
             end
             EntitySetComponentsWithTagEnabled(enemy_id, "enabled_at_start", false)
             EntitySetComponentsWithTagEnabled(enemy_id, "disabled_at_start", true)

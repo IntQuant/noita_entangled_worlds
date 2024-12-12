@@ -2,8 +2,6 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-local default_items = 5
-
 ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_common.lua")
 ModLuaFileAppend("data/scripts/perks/perk_utilities.lua", "mods/quant.ew/files/system/perk_patches/append/cosmetics_append.lua")
 
@@ -196,17 +194,14 @@ function rpc.send_mutations(ghost, luuki, rat, fungus, halo)
     if fungus and not last.fungus then
         become_fungus(ent)
     end
-    if math.abs(halo) < 3 and math.abs(last.halo) == 3 then
+    if math.abs(halo) < 3 and math.abs(last.halo) >= 3 then
         lose_halo(ent)
-    elseif math.abs(halo) == 3 and math.abs(last.halo) < 3 then
-        gain_halo(ent, halo == 3)
+    elseif math.abs(halo) >= 3 and math.abs(last.halo) < 3 then
+        gain_halo(ent, halo >= 3)
     end
 end
 
 function module.on_world_update()
-    if GameGetFrameNum() == 5 then
-        default_items = tonumber(GlobalsGetValue("TEMPLE_SHOP_ITEM_COUNT", "5"))
-    end
     if GameGetFrameNum() % 60 == 26 then
         rpc.send_mutations(
                 tonumber(GlobalsGetValue("PLAYER_GHOSTNESS_LEVEL", "0")) >= 3,
