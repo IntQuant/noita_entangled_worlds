@@ -721,8 +721,12 @@ impl NetManager {
             Some("reset_world") => state.world.reset(),
             Some("material_list") => {
                 state.world.durabilities.clear();
-                while let Some(d) = msg.next().and_then(|s| s.parse().ok()) {
-                    state.world.durabilities.push(d)
+                while let (Some(i), Some(d), Some(h)) = (
+                    msg.next().and_then(|s| s.parse().ok()),
+                    msg.next().and_then(|s| s.parse().ok()),
+                    msg.next().and_then(|s| s.parse().ok()),
+                ) {
+                    state.world.durabilities.insert(i, (d, h));
                 }
             }
             Some("cut_through_world") => {
@@ -756,12 +760,23 @@ impl NetManager {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                let d: Option<u8> = msg.next().and_then(|s| s.parse().ok());
                 let (Some(x), Some(y), Some(r)) = (x, y, r) else {
                     error!("Missing arguments in cut_through_world_line message");
                     return;
                 };
-                state.world.cut_through_world_circle(x, y, r, d);
+                state.world.cut_through_world_circle(x, y, r);
+            }
+            Some("cut_through_world_explosion") => {
+                let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let d: Option<u8> = msg.next().and_then(|s| s.parse().ok());
+                let ray: Option<u32> = msg.next().and_then(|s| s.parse().ok());
+                let (Some(x), Some(y), Some(r), Some(d), Some(ray)) = (x, y, r, d, ray) else {
+                    error!("Missing arguments in cut_through_world_line message");
+                    return;
+                };
+                state.world.cut_through_world_explosion(x, y, r, d, ray);
             }
             Some("flush") => self.peer.flush(),
             key => {
