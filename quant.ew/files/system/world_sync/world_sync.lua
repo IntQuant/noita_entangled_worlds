@@ -77,7 +77,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
         if give_0 then
             pri = 0
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(pri))
+        net.proxy_bin_send(KEY_WORLD_END, string.char(pri)..pos_data)
     elseif GameGetFrameNum() % int == 2 then
         if iter_fast == 0 then
             send_chunks(ocx + 1, ocy, chunk_map)

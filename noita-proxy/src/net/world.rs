@@ -262,9 +262,13 @@ impl WorldManager {
             self.my_pos = (pos[0], pos[1]);
             self.cam_pos = (pos[2], pos[3]);
             self.is_notplayer = pos[4] == 1;
-            self.world_num = pos[5]
-        } else {
-            self.world_num = pos[0]
+            if self.world_num != pos[5] {
+                self.world_num = pos[5];
+                self.reset();
+            }
+        } else if self.world_num != pos[0] {
+            self.world_num = pos[0];
+            self.reset();
         }
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
             debug!("Created entry for {chunk:?}");
@@ -529,6 +533,9 @@ impl WorldManager {
         self.inbound_model.reset();
         self.outbound_model.reset();
         self.chunk_storage.clear();
+        self.authority_map.clear();
+        self.chunk_last_update.clear();
+        self.chunk_state.clear();
     }
 
     pub(crate) fn get_emitted_msgs(&mut self) -> Vec<MessageRequest<WorldNetMessage>> {
@@ -1282,7 +1289,7 @@ impl WorldManager {
         Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let rays = (r * 4).clamp(64, 1024);
+        let rays = (r * 4).clamp(128, 1024);
         for n in 0..rays {
             let t = TAU / rays as f32;
             let theta = t * n as f32;
@@ -1294,7 +1301,7 @@ impl WorldManager {
             let dx = ex - x;
             let dy = ey - y;
             if dx != 0 || dy != 0 {
-                let r = t * ((dx * dx + dy * dy) as f32).sqrt();
+                let r = t * ((dx * dx + dy * dy) as f32).sqrt() * 1.1;
                 self.cut_through_world_line(x, y, ex, ey, r as i32)
             }
         }
