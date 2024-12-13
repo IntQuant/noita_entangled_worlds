@@ -21,10 +21,17 @@ local function generate_detour_fn(orig_fn_name)
     local detour_fn_name = detour_name(orig_fn_name)
 
     local detour_fn = "\n".."function " .. detour_fn_name .. [[(x, y, w, h, is_open_path)
+    local entity_load_orig = EntityLoad
+    local entity_load_camera_bound = EntityLoadCameraBound
     if CrossCall("ew_wang_detour", EW_CURRENT_FILE, "]]..orig_fn_name..[[", x, y, w, h, is_open_path) then
-        return
+        EntityLoad = function(...) end
+        EntityLoadCameraBound = function(...) end
     end
-    return ]] .. orig_fn_name .. [[(x, y, w, h, is_open_path)
+
+    ]] .. orig_fn_name .. [[(x, y, w, h, is_open_path)
+
+    EntityLoad = entity_load_orig
+    EntityLoadCameraBound = entity_load_camera_bound
 end
     ]]
 
@@ -35,6 +42,10 @@ local function patch_fn(color, orig_fn_name)
     -- print(color, orig_fn_name)
     -- Seems like init is special and doesn't work with this detour approach.
     if orig_fn_name == "init" then
+        return nil
+    end
+
+    if orig_fn_name ~= "spawn_all_shopitems" then
         return nil
     end
 
@@ -52,7 +63,7 @@ local function patch_file(filename)
     local content = ModTextFileGetContent(filename)
     current_file = filename
     -- A textbook example of how to NOT use regular expressions.
-    -- content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
+    content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
     content = content .. "\n"..'EW_CURRENT_FILE="'..filename..'"\n'
 
     content = content .. generate_detour_fn("spawn_small_enemies")
