@@ -288,20 +288,25 @@ function enemy_sync.host_upload_entities()
 
         local has_laser
         local animations = {}
-        for _, sprite in ipairs(EntityGetComponentIncludingDisabled(enemy_id, "SpriteComponent") or {}) do
+
+        for _, sprite in ipairs(EntityGetComponent(enemy_id, "SpriteComponent") or {}) do
             local animation
             if sprite ~= nil then
                 animation = ComponentGetValue2(sprite, "rect_animation")
             end
             table.insert(animations, animation)
             if ComponentHasTag(sprite, "laser_sight") then
-                local ai = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
-                if ai ~= nil then
-                    local target = ComponentGetValue2(ai, "mGreatestPrey")
-                    local peer = player_fns.get_player_data_by_local_entity_id(target)
-                    if peer ~= nil then
-                        has_laser = peer.peer_id
-                    end
+                has_laser = true
+            end
+        end
+        local laser
+        if has_laser and EntityGetName(enemy_id) ~= "$animal_turret" then
+            local ai = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
+            if ai ~= nil then
+                local target = ComponentGetValue2(ai, "mGreatestPrey")
+                local peer = player_fns.get_player_data_by_local_entity_id(target)
+                if peer ~= nil then
+                    laser = peer.peer_id
                 end
             end
         end
@@ -312,7 +317,7 @@ function enemy_sync.host_upload_entities()
         local stains = stain_sync.get_stains(enemy_id)
 
         table.insert(enemy_data_list, {filename, en_data, phys_info, wand,
-                                       effect_data, animations, dont_cull, death_triggers, stains, has_laser})
+                                       effect_data, animations, dont_cull, death_triggers, stains, laser})
         ::continue::
     end
 

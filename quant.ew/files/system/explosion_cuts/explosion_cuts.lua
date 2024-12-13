@@ -61,9 +61,9 @@ function mod.on_world_update_host()
                               ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"), ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
             else
                 local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
-                if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" and ComponentGetValue2(mat, "to_material") == 0 then
+                if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
                     local x, y = EntityGetTransform(ent)
-                    alive[ent] = {x, y, ComponentGetValue2(mat, "radius")}
+                    alive[ent] = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
                 end
             end
         end
@@ -77,7 +77,7 @@ function mod.on_world_update_host()
                 net.proxy_send("cut_through_world_explosion", inp)
             else
                 local inp = math.floor(data[1]) .. " " .. math.floor(data[2])
-                        .. " " .. math.floor(data[3])
+                        .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4])
                 net.proxy_send("cut_through_world_circle", inp)
             end
             alive[ent] = nil

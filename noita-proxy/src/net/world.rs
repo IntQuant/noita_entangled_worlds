@@ -1,8 +1,11 @@
 use bitcode::{Decode, Encode};
+use rayon::iter::IntoParallelIterator;
+use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
+use std::time::Instant;
 use std::{env, mem};
 use tracing::{debug, info, warn};
 use world_model::{
@@ -1105,13 +1108,13 @@ impl WorldManager {
             )
         };
 
-        let dmx = (lx - x) as f64;
-        let dmy = (ly - y) as f64;
-        if dmx == 0.0 && dmy == 0.0 {
-            self.cut_through_world_circle(x, y, r);
+        let dmx = lx - x;
+        let dmy = ly - y;
+        if dmx == 0 && dmy == 0 {
+            self.cut_through_world_circle(x, y, r, None);
             return;
         }
-        let dm2 = (dmx * dmx + dmy * dmy).recip();
+        let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
@@ -1127,38 +1130,29 @@ impl WorldManager {
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
             let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
             let mut chunk = Chunk::default();
-            let mut dirty = false;
+            chunk_encoded.apply_to_chunk(&mut chunk);
             for icx in 0..CHUNK_SIZE as i32 {
                 let cx = chunk_start_x + icx;
-                let dcx = (cx - x) as f64;
+                let dcx = cx - x;
                 let dx2 = dcx * dmx;
                 for icy in 0..CHUNK_SIZE as i32 {
                     let cy = chunk_start_y + icy;
-                    let (a, b) = {
-                        let dcy = (cy - y) as f64;
-                        let m = ((dx2 + dcy * dmy) * dm2).clamp(0.0, 1.0);
-                        let px = m * dmx;
-                        let py = m * dmy;
-                        (x as f64 + px, y as f64 + py)
-                    };
-                    let dx = cx as f64 - a;
-                    let dy = cy as f64 - b;
-                    if dx.hypot(dy) <= r as f64 {
+                    let dcy = cy - y;
+                    let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                    let px = (m * dmx as f64) as i32;
+                    let py = (m * dmy as f64) as i32;
+                    let dx = dcx + px;
+                    let dy = dcy - py;
+                    if dx * dx + dy * dy <= r * r {
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
-                        if !dirty {
-                            chunk_encoded.apply_to_chunk(&mut chunk);
-                            dirty = true
-                        }
                         chunk.set_pixel(px, air_pixel);
                     }
                 }
             }
-            if dirty {
-                *chunk_encoded = chunk.to_chunk_data();
-            }
+            *chunk_encoded = chunk.to_chunk_data();
         }
     }
-    pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32) {
+    pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32, mat: Option<u16>) {
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
             (x + r).div_euclid(CHUNK_SIZE as i32),
@@ -1169,7 +1163,7 @@ impl WorldManager {
         );
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
-            material: 0,
+            material: mat.unwrap_or(0),
         };
         for (chunk_coord, chunk_encoded) in
             self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
@@ -1182,7 +1176,7 @@ impl WorldManager {
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
             let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
             let mut chunk = Chunk::default();
-            let mut dirty = false;
+            chunk_encoded.apply_to_chunk(&mut chunk);
             for icx in 0..CHUNK_SIZE as i32 {
                 let cx = chunk_start_x + icx;
                 let dx = cx - x;
@@ -1192,17 +1186,13 @@ impl WorldManager {
                     let dy = cy - y;
                     if dd + dy * dy <= r * r {
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
-                        if !dirty {
-                            chunk_encoded.apply_to_chunk(&mut chunk);
-                            dirty = true
+                        if chunk.pixel(px).material != 0 {
+                            chunk.set_pixel(px, air_pixel);
                         }
-                        chunk.set_pixel(px, air_pixel);
                     }
                 }
             }
-            if dirty {
-                *chunk_encoded = chunk.to_chunk_data();
-            }
+            *chunk_encoded = chunk.to_chunk_data();
         }
     }
     fn do_ray(
@@ -1215,14 +1205,14 @@ impl WorldManager {
         d: u8,
     ) -> Option<(i32, i32)> {
         //Bresenham's line algorithm
-        let dx = (end_x - x).abs() as f64;
-        let dy = (end_y - y).abs() as f64;
-        if dx == 0.0 && dy == 0.0 {
+        let dx = (end_x - x).abs();
+        let dy = (end_y - y).abs();
+        if dx == 0 && dy == 0 {
             return None;
         }
         let sx = if x < end_x { 1 } else { -1 };
         let sy = if y < end_y { 1 } else { -1 };
-        let mut err = if dx > dy { dx } else { -dy } / 2.0;
+        let mut err = if dx > dy { dx } else { -dy } / 2;
         let mut e2;
         let mut working_chunk = Chunk::default();
         let mut last_co = ChunkCoord(
@@ -1275,22 +1265,37 @@ impl WorldManager {
         Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let rays = (r * 4).clamp(128, 1024);
-        for n in 0..rays {
-            let t = core::f64::consts::TAU / rays as f64;
-            let theta = t * n as f64;
-            let end_x = x + (r as f64 * theta.cos()) as i32;
-            let end_y = y + (r as f64 * theta.sin()) as i32;
-            let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d) else {
-                continue;
-            };
-            let dx = ex - x;
-            let dy = ey - y;
-            if dx != 0 || dy != 0 {
-                let r = t * (dx as f64).hypot(dy as f64);
-                self.cut_through_world_line(x, y, ex, ey, r as i32)
-            }
+        let timer = Instant::now();
+        let rays = (r * 2).clamp(16, 1024);
+        let results: Vec<(i32, i32, i32, i32, i32)> = (0..rays)
+            .into_par_iter()
+            .filter_map(|n| {
+                let t = TAU / rays as f32;
+                let theta = t * n as f32;
+                let end_x = x + (r as f32 * theta.cos()) as i32;
+                let end_y = y + (r as f32 * theta.sin()) as i32;
+                if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d) {
+                    let dx = ex - x;
+                    let dy = ey - y;
+                    if dx != 0 || dy != 0 {
+                        let r = t * (dx as f32).hypot(dy as f32);
+                        Some((x, y, ex, ey, r as i32))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for (x, y, ex, ey, r) in results {
+            self.cut_through_world_line(x, y, ex, ey, r);
         }
+        println!(
+            "{}: {}",
+            timer.elapsed().as_nanos(),
+            timer.elapsed().as_nanos() / rays as u128
+        );
     }
 }
 

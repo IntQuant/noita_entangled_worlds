@@ -760,11 +760,12 @@ impl NetManager {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let mat: Option<u16> = msg.next().and_then(|s| s.parse().ok());
                 let (Some(x), Some(y), Some(r)) = (x, y, r) else {
                     error!("Missing arguments in cut_through_world_circle message");
                     return;
                 };
-                state.world.cut_through_world_circle(x, y, r);
+                state.world.cut_through_world_circle(x, y, r, mat);
             }
             Some("cut_through_world_explosion") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
