@@ -1082,104 +1082,79 @@ impl WorldManager {
     }
 
     pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
-        let (min_cx, max_cx, min_x, max_x) = if x < lx {
+        let (min_cx, max_cx) = if x < lx {
             (
                 (x - r).div_euclid(CHUNK_SIZE as i32),
                 (lx + r).div_euclid(CHUNK_SIZE as i32),
-                x,
-                lx,
             )
         } else {
             (
                 (lx - r).div_euclid(CHUNK_SIZE as i32),
                 (x + r).div_euclid(CHUNK_SIZE as i32),
-                lx,
-                x,
             )
         };
-        let (min_cy, max_cy, min_y, max_y) = if y < ly {
+        let (min_cy, max_cy) = if y < ly {
             (
                 (y - r).div_euclid(CHUNK_SIZE as i32),
                 (ly + r).div_euclid(CHUNK_SIZE as i32),
-                y,
-                ly,
             )
         } else {
             (
                 (ly - r).div_euclid(CHUNK_SIZE as i32),
                 (y + r).div_euclid(CHUNK_SIZE as i32),
-                ly,
-                y,
             )
         };
 
-        let dmx = max_x - min_x;
-        let dmy = max_y - min_y;
-        if dmx == 0 && dmy == 0 {
-            self.cut_through_world_circle(min_x, max_x, r);
+        let dmx = (lx - x) as f64;
+        let dmy = (ly - y) as f64;
+        if dmx == 0.0 && dmy == 0.0 {
+            self.cut_through_world_circle(x, y, r);
             return;
         }
-        let (dx_sign, dy_sign) = (dmx.signum(), dmy.signum());
-        let dmx = dmx.abs();
-        let dmy = dmy.abs();
-        let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
+        let dm2 = (dmx * dmx + dmy * dmy).recip();
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
-        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            if chunk_coord.0 >= min_cx
-                && chunk_coord.0 <= max_cx
-                && chunk_coord.1 >= min_cy
-                && chunk_coord.1 <= max_cy
-            {
-                let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
-                let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
-                let mut chunk = Chunk::default();
-                let mut dirty = false;
-                for icx in 0..CHUNK_SIZE as i32 {
-                    let cx = chunk_start_x + icx;
-                    let dcx = cx - min_x;
-                    let dx2 = dcx * dmx;
-                    for icy in 0..CHUNK_SIZE as i32 {
-                        let cy = chunk_start_y + icy;
-                        let (a, b) = if cx < min_x {
-                            (min_x, cy.clamp(min_y, max_y))
-                        } else if cx > max_x {
-                            (max_x, cy.clamp(min_y, max_y))
-                        } else if cy < min_y {
-                            (cx.clamp(min_x, max_x), min_y)
-                        } else if cy > max_y {
-                            (cx.clamp(min_x, max_x), max_y)
-                        } else {
-                            let dcy = cy - min_y;
-                            let m = (dx2 + dcy * dmy) as f64 * dm2;
-                            let px = (m * dmx as f64).round() as i32;
-                            let py = (m * dmy as f64).round() as i32;
-
-                            if px <= 0 && py <= 0 {
-                                (min_x, min_y)
-                            } else if px >= dmx && py >= dmy {
-                                (max_x, max_y)
-                            } else {
-                                (min_x + px * dx_sign, min_y + py * dy_sign)
-                            }
-                        };
-                        let dx = cx - a;
-                        let dy = cy - b;
-                        if dx * dx + dy * dy <= r * r {
-                            let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            if !dirty {
-                                chunk_encoded.apply_to_chunk(&mut chunk);
-                                dirty = true
-                            }
-                            chunk.set_pixel(px, air_pixel);
+        for (chunk_coord, chunk_encoded) in
+            self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
+                chunk_coord.0 >= min_cx
+                    && chunk_coord.0 <= max_cx
+                    && chunk_coord.1 >= min_cy
+                    && chunk_coord.1 <= max_cy
+            })
+        {
+            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+            let mut chunk = Chunk::default();
+            let mut dirty = false;
+            for icx in 0..CHUNK_SIZE as i32 {
+                let cx = chunk_start_x + icx;
+                let dcx = (cx - x) as f64;
+                let dx2 = dcx * dmx;
+                for icy in 0..CHUNK_SIZE as i32 {
+                    let cy = chunk_start_y + icy;
+                    let (a, b) = {
+                        let dcy = (cy - y) as f64;
+                        let m = ((dx2 + dcy * dmy) * dm2).clamp(0.0, 1.0);
+                        let px = m * dmx;
+                        let py = m * dmy;
+                        (x as f64 + px, y as f64 + py)
+                    };
+                    let dx = cx as f64 - a;
+                    let dy = cy as f64 - b;
+                    if dx.hypot(dy) <= r as f64 {
+                        let px = icy as usize * CHUNK_SIZE + icx as usize;
+                        if !dirty {
+                            chunk_encoded.apply_to_chunk(&mut chunk);
+                            dirty = true
                         }
+                        chunk.set_pixel(px, air_pixel);
                     }
                 }
-                if dirty {
-                    *chunk_encoded = chunk.to_chunk_data();
-                }
+            }
+            if dirty {
+                *chunk_encoded = chunk.to_chunk_data();
             }
         }
     }
@@ -1196,36 +1171,37 @@ impl WorldManager {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
-        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            if chunk_coord.0 >= min_cx
-                && chunk_coord.0 <= max_cx
-                && chunk_coord.1 >= min_cy
-                && chunk_coord.1 <= max_cy
-            {
-                let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
-                let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
-                let mut chunk = Chunk::default();
-                let mut dirty = false;
-                for icx in 0..CHUNK_SIZE as i32 {
-                    let cx = chunk_start_x + icx;
-                    let dx = cx - x;
-                    let dd = dx * dx;
-                    for icy in 0..CHUNK_SIZE as i32 {
-                        let cy = chunk_start_y + icy;
-                        let dy = cy - y;
-                        if dd + dy * dy <= r * r {
-                            let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            if !dirty {
-                                chunk_encoded.apply_to_chunk(&mut chunk);
-                                dirty = true
-                            }
-                            chunk.set_pixel(px, air_pixel);
+        for (chunk_coord, chunk_encoded) in
+            self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
+                chunk_coord.0 >= min_cx
+                    && chunk_coord.0 <= max_cx
+                    && chunk_coord.1 >= min_cy
+                    && chunk_coord.1 <= max_cy
+            })
+        {
+            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+            let mut chunk = Chunk::default();
+            let mut dirty = false;
+            for icx in 0..CHUNK_SIZE as i32 {
+                let cx = chunk_start_x + icx;
+                let dx = cx - x;
+                let dd = dx * dx;
+                for icy in 0..CHUNK_SIZE as i32 {
+                    let cy = chunk_start_y + icy;
+                    let dy = cy - y;
+                    if dd + dy * dy <= r * r {
+                        let px = icy as usize * CHUNK_SIZE + icx as usize;
+                        if !dirty {
+                            chunk_encoded.apply_to_chunk(&mut chunk);
+                            dirty = true
                         }
+                        chunk.set_pixel(px, air_pixel);
                     }
                 }
-                if dirty {
-                    *chunk_encoded = chunk.to_chunk_data();
-                }
+            }
+            if dirty {
+                *chunk_encoded = chunk.to_chunk_data();
             }
         }
     }
@@ -1238,14 +1214,15 @@ impl WorldManager {
         mut ray: u32,
         d: u8,
     ) -> Option<(i32, i32)> {
-        let dx = (end_x - x).abs();
-        let dy = (end_y - y).abs();
-        if dx == 0 && dy == 0 {
+        //Bresenham's line algorithm
+        let dx = (end_x - x).abs() as f64;
+        let dy = (end_y - y).abs() as f64;
+        if dx == 0.0 && dy == 0.0 {
             return None;
         }
         let sx = if x < end_x { 1 } else { -1 };
         let sy = if y < end_y { 1 } else { -1 };
-        let mut err = if dx > dy { dx } else { -dy } / 2;
+        let mut err = if dx > dy { dx } else { -dy } / 2.0;
         let mut e2;
         let mut working_chunk = Chunk::default();
         let mut last_co = ChunkCoord(
@@ -1268,7 +1245,7 @@ impl WorldManager {
                 if let Some(c) = self.chunk_storage.get(&co) {
                     last = c
                 } else {
-                    return None;
+                    return Some((x, y));
                 };
                 last.apply_to_chunk(&mut working_chunk);
                 last_co = co;
@@ -1300,17 +1277,17 @@ impl WorldManager {
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
         let rays = (r * 4).clamp(128, 1024);
         for n in 0..rays {
-            let t = TAU / rays as f32;
-            let theta = t * n as f32;
-            let end_x = x + (r as f32 * theta.cos()) as i32;
-            let end_y = y + (r as f32 * theta.sin()) as i32;
+            let t = core::f64::consts::TAU / rays as f64;
+            let theta = t * n as f64;
+            let end_x = x + (r as f64 * theta.cos()) as i32;
+            let end_y = y + (r as f64 * theta.sin()) as i32;
             let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d) else {
                 continue;
             };
             let dx = ex - x;
             let dy = ey - y;
             if dx != 0 || dy != 0 {
-                let r = t * ((dx * dx + dy * dy) as f64).sqrt() as f32 * 1.1;
+                let r = t * (dx as f64).hypot(dy as f64);
                 self.cut_through_world_line(x, y, ex, ey, r as i32)
             }
         }
