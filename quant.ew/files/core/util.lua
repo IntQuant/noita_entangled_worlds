@@ -5,6 +5,7 @@ local base64 = dofile_once("mods/quant.ew/files/resource/base64.lua")
 local util = {}
 
 local entity_load_orig = EntityLoad
+local mod_text_file_set_content = ModTextFileSetContent
 
 function EntityLoad(path, ...)
     if path == "??SAV/world_state.xml" then
@@ -461,5 +462,18 @@ function util.set_phys_info(entity, data, fps)
     end
     return has_set
 end
+
+-- Runs code (provided as a string) in a different lua context
+function util.run_in_new_context(code)
+    mod_text_file_set_content("data/ew_code_tmp.lua", code)
+    local entity = EntityCreateNew()
+    EntityAddComponent2(entity, "LuaComponent", {
+        script_source_file = "mods/quant.ew/files/resource/cbs/util_runner.lua",
+        execute_on_added = true,
+        remove_after_executed = true,
+    })
+    EntityKill(entity)
+end
+
 
 return util
