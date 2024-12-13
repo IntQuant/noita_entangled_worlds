@@ -1,33 +1,22 @@
-## Noita Entangled Worlds v0.32.0
+## Noita Entangled Worlds v0.32.1
 
-- make black holes nicer
+- fix chat with some options
 
-- sync big and bigger sawblades, bombs, propane, and levitation field
+- change default sync rates
 
-- have worms cut through non visible chunks
+- try to fix chests again
 
-- fix orbit larpa black holes
+- add fallback to orbs
 
-- try to fix chest duping
+- dont give turrets lasers
 
-- have explosions work on non visible chunks
-
-- fix halo/kolmi
-
-- give sniper hiisi a laser
-
-- cap proj entities item sync on a per entity basis
-
-- clear chunk storage for worm rain
-
-- make holdable players teleportable
-
-- fix an error
-
+- optimize explosions
 
 ## Accepted pull requests
 
-- add chat hint and indicator of unread messages by @ZXb125 in #276
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 

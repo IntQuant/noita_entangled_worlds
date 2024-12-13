@@ -1287,7 +1287,13 @@ impl WorldManager {
             .collect();
         self.cut_through_world_explosion_list(x, y, rays, results);
     }
-    pub(crate) fn cut_through_world_explosion_list(&mut self, x: i32, y: i32, rays: i32, list: Vec<i32>) {
+    pub(crate) fn cut_through_world_explosion_list(
+        &mut self,
+        x: i32,
+        y: i32,
+        rays: i32,
+        list: Vec<i32>,
+    ) {
         let mut r = 0;
         for n in &list {
             if *n > r {
@@ -1295,7 +1301,7 @@ impl WorldManager {
             }
         }
         if r == 0 {
-            return
+            return;
         }
         let r = (r as f64).sqrt().ceil() as i32;
         let (min_cx, max_cx) = (
@@ -1316,7 +1322,8 @@ impl WorldManager {
                     && chunk_coord.0 <= max_cx
                     && chunk_coord.1 >= min_cy
                     && chunk_coord.1 <= max_cy
-            }) {
+            })
+        {
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
             let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
             let mut chunk = Chunk::default();
