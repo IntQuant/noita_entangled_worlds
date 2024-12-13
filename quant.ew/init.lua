@@ -113,7 +113,7 @@ local function load_modules()
     ctx.load_system("spectate")
     ctx.load_system("effect_data_sync")
     if ctx.proxy_opt.item_dedup then
-        ctx.load_system("gen_sync")
+        -- ctx.load_system("gen_sync")
     end
     ctx.load_system("karl")
     ctx.load_system("remove_wand_sound")
