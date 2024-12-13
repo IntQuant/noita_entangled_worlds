@@ -1,33 +1,33 @@
-## Noita Entangled Worlds v0.31.8 - Lag Edition
+## Noita Entangled Worlds v0.32.0
 
-- add in game options to change enemy sync rate and item sync rate, at 1 by default for testing reasons, set to 3/5 respectively for a more reasonable default
+- make black holes nicer
 
-- sync blackholes like rocks, add option to cap amount of those to sync for performance reasons, infinite by default
+- sync big and bigger sawblades, bombs, propane, and levitation field
 
-- make blackholes effect chunks not near you but previously in visual range
+- have worms cut through non visible chunks
 
-- add mina color picker to lobby menu
+- fix orbit larpa black holes
 
-- notplayer ai changes :)
+- try to fix chest duping
 
-- reformat ingame settings
+- have explosions work on non visible chunks
 
-- fix lukki mutation visual
+- fix halo/kolmi
 
-- text changes, now dont need to hover over a box, added scrolling, add hold backspace
+- give sniper hiisi a laser
 
-- cli arg for language
+- cap proj entities item sync on a per entity basis
 
-- fix some mispelling
+- clear chunk storage for worm rain
 
-- update portuguese
+- make holdable players teleportable
+
+- fix an error
+
 
 ## Accepted pull requests
 
-- Language cli arg by @kcalbxof in #275
-- a lot of chat improvenets by @sad-username-231 in #274
-- fix backspace on chat by @ZXb125 in #271
-- update portuguese translation by @ZXb125 in #269
+- add chat hint and indicator of unread messages by @ZXb125 in #276
 ## Installation
 
 
