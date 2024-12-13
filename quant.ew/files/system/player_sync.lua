@@ -244,10 +244,12 @@ function module.on_world_update()
             for _, data in pairs(ctx.players) do
                 if data.twwe then
                     local x, y = EntityGetTransform(data.entity)
-                    local dx, dy = x - my_x, y - my_y
-                    if dx * dx + dy * dy < 20 * 20 then
-                        found = true
-                        break
+                    if x ~= nil then
+                        local dx, dy = x - my_x, y - my_y
+                        if dx * dx + dy * dy < 20 * 20 then
+                            found = true
+                            break
+                        end
                     end
                 end
             end
