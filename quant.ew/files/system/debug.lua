@@ -13,8 +13,6 @@ function module.on_local_player_spawn(my_player)
     -- util.load_ephemerial("mods/quant.ew/files/resource/entities/client.xml", 512*3+20, 512*3+10)
     -- EntityLoad("mods/quant.ew/files/resource/entities/client.xml", 512*3+20, 512*3+10)
 
-    ctx.cap.health.set_max_health(1000)
-    ctx.cap.health.set_health(1000)
     -- util.set_ent_health(player_entity, {1000, 1000})
     local wallet = EntityGetFirstComponentIncludingDisabled(player_entity, "WalletComponent")
     ComponentSetValue2(wallet, "money", 100000)
