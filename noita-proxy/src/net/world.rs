@@ -5,7 +5,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
-use std::time::Instant;
 use std::{env, mem};
 use tracing::{debug, info, warn};
 use world_model::{
@@ -1265,11 +1264,10 @@ impl WorldManager {
         Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let timer = Instant::now();
         let rays = (r * 2).clamp(16, 1024);
-        let results: Vec<(i32, i32, i32, i32, i32)> = (0..rays)
+        let results: Vec<i32> = (0..rays)
             .into_par_iter()
-            .filter_map(|n| {
+            .map(|n| {
                 let t = TAU / rays as f32;
                 let theta = t * n as f32;
                 let end_x = x + (r as f32 * theta.cos()) as i32;
@@ -1278,24 +1276,67 @@ impl WorldManager {
                     let dx = ex - x;
                     let dy = ey - y;
                     if dx != 0 || dy != 0 {
-                        let r = t * (dx as f32).hypot(dy as f32);
-                        Some((x, y, ex, ey, r as i32))
+                        dx * dx + dy * dy
                     } else {
-                        None
+                        0
                     }
                 } else {
-                    None
+                    0
                 }
             })
             .collect();
-        for (x, y, ex, ey, r) in results {
-            self.cut_through_world_line(x, y, ex, ey, r);
+        self.cut_through_world_explosion_list(x, y, rays, results);
+    }
+    pub(crate) fn cut_through_world_explosion_list(&mut self, x: i32, y: i32, rays: i32, list: Vec<i32>) {
+        let mut r = 0;
+        for n in &list {
+            if *n > r {
+                r = *n
+            }
         }
-        println!(
-            "{}: {}",
-            timer.elapsed().as_nanos(),
-            timer.elapsed().as_nanos() / rays as u128
+        if r == 0 {
+            return
+        }
+        let r = (r as f64).sqrt().ceil() as i32;
+        let (min_cx, max_cx) = (
+            (x - r).div_euclid(CHUNK_SIZE as i32),
+            (x + r).div_euclid(CHUNK_SIZE as i32),
         );
+        let (min_cy, max_cy) = (
+            (y - r).div_euclid(CHUNK_SIZE as i32),
+            (y + r).div_euclid(CHUNK_SIZE as i32),
+        );
+        let air_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: 0,
+        };
+        for (chunk_coord, chunk_encoded) in
+            self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
+                chunk_coord.0 >= min_cx
+                    && chunk_coord.0 <= max_cx
+                    && chunk_coord.1 >= min_cy
+                    && chunk_coord.1 <= max_cy
+            }) {
+            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+            let mut chunk = Chunk::default();
+            chunk_encoded.apply_to_chunk(&mut chunk);
+            for icx in 0..CHUNK_SIZE as i32 {
+                let cx = chunk_start_x + icx;
+                let dx = cx - x;
+                let dd = dx * dx;
+                for icy in 0..CHUNK_SIZE as i32 {
+                    let cy = chunk_start_y + icy;
+                    let dy = cy - y;
+                    let r = list[(rays as f32 * (dy as f32).atan2(dx as f32) / TAU) as usize];
+                    if dd + dy * dy <= r {
+                        let px = icy as usize * CHUNK_SIZE + icx as usize;
+                        chunk.set_pixel(px, air_pixel);
+                    }
+                }
+            }
+            *chunk_encoded = chunk.to_chunk_data();
+        }
     }
 }
 
