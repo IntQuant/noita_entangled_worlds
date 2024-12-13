@@ -25,25 +25,27 @@ local wait_for_gid = {}
 local hole_last = {}
 
 function rpc.open_chest(gid)
-    wait_for_gid[gid] = GameGetFrameNum() + 36000
-    wait_on_send[gid] = GameGetFrameNum() + 36000
-    local ent = item_sync.find_by_gid(gid)
-    if ent ~= nil then
-        local file
-        local name = EntityGetFilename(ent)
-        if name == "data/entities/items/pickup/utility_box.xml" then
-            file = "data/scripts/items/utility_box.lua"
-        elseif name == "data/entities/items/pickup/chest_random_super.xml" then
-            file = "data/scripts/items/chest_random_super.lua"
-        elseif name == "data/entities/items/pickup/chest_random.xml" then
-            file = "data/scripts/items/chest_random.lua"
-        end
-        if file ~= nil then
-            EntityAddComponent2(ent, "LuaComponent", {
-                script_source_file = file,
-                execute_on_added = true,
-                call_init_function = true,
-            })
+    if wait_for_gid[gid] == nil or wait_for_gid[gid] < 10000 then
+        wait_for_gid[gid] = GameGetFrameNum() + 36000
+        wait_on_send[gid] = GameGetFrameNum() + 36000
+        local ent = item_sync.find_by_gid(gid)
+        if ent ~= nil then
+            local file
+            local name = EntityGetFilename(ent)
+            if name == "data/entities/items/pickup/utility_box.xml" then
+                file = "data/scripts/items/utility_box.lua"
+            elseif name == "data/entities/items/pickup/chest_random_super.xml" then
+                file = "data/scripts/items/chest_random_super.lua"
+            elseif name == "data/entities/items/pickup/chest_random.xml" then
+                file = "data/scripts/items/chest_random.lua"
+            end
+            if file ~= nil then
+                EntityAddComponent2(ent, "LuaComponent", {
+                    script_source_file = file,
+                    execute_on_added = true,
+                    call_init_function = true,
+                })
+            end
         end
     end
 end
@@ -538,6 +540,10 @@ function item_sync.on_world_update()
     local n = 0
     if rt == 5 then
         n = 3
+    elseif rt == 3 then
+        n = 1
+    elseif rt == 4 then
+        n = 2
     end
     if GameGetFrameNum() % 60 == 3 then
         send_item_positions(true)

@@ -373,6 +373,8 @@ function enemy_sync.on_world_update_host()
     local n = 0
     if rt == 3 then
         n = 2
+    elseif rt == 2 then
+        n = 1
     end
     if rt == 1 or GameGetFrameNum() % rt == n then
         enemy_sync.host_upload_entities()
