@@ -73,9 +73,9 @@ function module.on_world_update()
     if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "polymorphed") then
         actual_orbs_update(wait_for_these)
         wait_for_these = nil
-    elseif last_orb_count ~= GameGetOrbCountThisRun() then
+    elseif last_orb_count ~= GameGetOrbCountThisRun() or GameGetFrameNum() % 60 * 60 == 563 then
         last_orb_count = GameGetOrbCountThisRun()
-        rpc.update_orbs(orbs_found_this_run(), ctx.my_id ~= ctx.host_id)
+        rpc.update_orbs(orbs_found_this_run())
     end
 end
 
