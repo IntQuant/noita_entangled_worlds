@@ -379,6 +379,7 @@ local player_fns = {
             pos_x = 0,
             mouse_y = 0,
             pos_y = 0,
+            fps = 60,
             mutations = {ghost = false, luuki = false, rat = false, fungus = false, halo = 0}
         }
     end,

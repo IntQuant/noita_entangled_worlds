@@ -270,6 +270,13 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "world_sync",
+                    ui_name = "world sync interval",
+                    ui_description = "rate at which world is synced~",
+                    value_default = "4",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "rocks",
                     ui_name = "cap of special item entities to be synced",
                     ui_description = "max amount of proj to be synced, -1 for infinite",

@@ -118,6 +118,22 @@ function rpc.check_gamemode(gamemode, seed, world_num)
     end
 end
 
+local fps_last_frame = 0
+local fps_last_update_time = 0
+
+local function update_fps()
+    local current_frame = GameGetFrameNum()
+    local current_time = GameGetRealWorldTimeSinceStarted()
+    local fps = (current_frame - fps_last_frame) / (current_time - fps_last_update_time)
+    ctx.my_player.fps = math.min(60, math.floor(fps + 0.5))
+    fps_last_frame = current_frame
+    fps_last_update_time = current_time
+end
+
+function rpc.update_fps(fps)
+    ctx.rpc_player_data.fps = fps
+end
+
 function module.on_world_update()
     local input_data = player_fns.serialize_inputs(ctx.my_player)
     local pos_data, phys_info =  player_fns.serialize_position(ctx.my_player)
@@ -130,7 +146,7 @@ function module.on_world_update()
         end
 
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
-        if GameGetFrameNum() % 120 == 53 then
+        if GameGetFrameNum() % 300 == 53 then
             local n = np.GetGameModeNr()
             rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"), ctx.proxy_opt.world_num)
         end
@@ -234,6 +250,14 @@ function module.on_world_update()
             end
             rpc.send_money_and_ingestion(last_money, delta,
                     ingestion and ComponentGetValue2(ingestion, "ingestion_size"))
+        end
+    end
+
+    if GameGetFrameNum() % 10 == 4 then
+        local last = ctx.my_player.fps
+        update_fps()
+        if ctx.my_player.fps ~= last then
+            rpc.update_fps(ctx.my_player.fps)
         end
     end
 
