@@ -1225,6 +1225,7 @@ impl WorldManager {
             return None;
         };
         last.apply_to_chunk(&mut working_chunk);
+        let mut last_coord = None;
         while x != end_x || y != end_y {
             let co = ChunkCoord(
                 x.div_euclid(CHUNK_SIZE as i32),
@@ -1234,7 +1235,7 @@ impl WorldManager {
                 if let Some(c) = self.chunk_storage.get(&co) {
                     last = c
                 } else {
-                    return Some((x, y));
+                    return last_coord;
                 };
                 last.apply_to_chunk(&mut working_chunk);
                 last_co = co;
@@ -1245,12 +1246,13 @@ impl WorldManager {
             let px = icy as usize * CHUNK_SIZE + icx as usize;
             let pixel = working_chunk.pixel(px);
             if let Some(stats) = self.durabilities.get(&pixel.material) {
-                ray = ray.saturating_sub(stats.1);
-                if stats.0 > d || ray == 0 {
-                    return Some((x, y));
+                if stats.0 > d || ray < stats.1 {
+                    return last_coord
                 }
+                ray = ray.saturating_sub(stats.1);
             }
 
+            last_coord = Some((x, y));
             e2 = err;
             if e2 > -dx {
                 err -= dy;
