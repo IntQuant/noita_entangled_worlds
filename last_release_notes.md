@@ -1,22 +1,18 @@
-## Noita Entangled Worlds v0.32.1
+## Noita Entangled Worlds v0.32.2
 
-- fix chat with some options
+- make explosions more correct
 
-- change default sync rates
+- optimize explosions/cell eaters
 
-- try to fix chests again
+- make cell eaters or material converters(to air) work on unseen chunks as option
 
-- add fallback to orbs
+- do not cull blackholes from clients
 
-- dont give turrets lasers
-
-- optimize explosions
+- chat fixes
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- moving chat scroll to a better place, chat options fix by @ZXb125 in #282
 ## Installation
 
 
