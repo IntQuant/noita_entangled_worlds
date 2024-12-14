@@ -1123,7 +1123,7 @@ impl WorldManager {
                 chunk_coord.0 >= min_cx
                     && chunk_coord.0 <= max_cx
                     && chunk_coord.1 >= min_cy
-                    && chunk_coord.1 <= max_cy
+                    && chunk_coord.1 <= max_cy //TODO can filter more
             })
         {
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
@@ -1164,12 +1164,33 @@ impl WorldManager {
             flags: world_model::chunk::PixelFlags::Normal,
             material: mat.unwrap_or(0),
         };
+        let (chunk_x, chunk_y) = (
+            x.div_euclid(CHUNK_SIZE as i32),
+            y.div_euclid(CHUNK_SIZE as i32),
+        );
         for (chunk_coord, chunk_encoded) in
             self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
-                chunk_coord.0 >= min_cx
-                    && chunk_coord.0 <= max_cx
-                    && chunk_coord.1 >= min_cy
-                    && chunk_coord.1 <= max_cy
+                let chx = chunk_coord.0;
+                let chy = chunk_coord.1;
+                chx >= min_cx
+                    && chx <= max_cx
+                    && chy >= min_cy
+                    && chy <= max_cy
+                    && (r <= CHUNK_SIZE as i32 || {
+                        let close_x = if chx < chunk_x {
+                            (chx + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chx * CHUNK_SIZE as i32
+                        };
+                        let close_y = if chy < chunk_y {
+                            (chy + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chy * CHUNK_SIZE as i32
+                        };
+                        let dx = close_x - x;
+                        let dy = close_y - y;
+                        dx * dx + dy * dy <= r * r
+                    })
             })
         {
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
@@ -1194,6 +1215,7 @@ impl WorldManager {
             *chunk_encoded = chunk.to_chunk_data();
         }
     }
+    #[allow(clippy::too_many_arguments)]
     fn do_ray(
         &self,
         mut x: i32,
@@ -1202,6 +1224,7 @@ impl WorldManager {
         end_y: i32,
         mut ray: u32,
         d: u8,
+        mult: f32,
     ) -> Option<(i32, i32)> {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
@@ -1246,10 +1269,11 @@ impl WorldManager {
             let px = icy as usize * CHUNK_SIZE + icx as usize;
             let pixel = working_chunk.pixel(px);
             if let Some(stats) = self.durabilities.get(&pixel.material) {
-                if stats.0 > d || ray < stats.1 {
-                    return last_coord
+                let h = (stats.1 as f32 * mult) as u32;
+                if stats.0 > d || ray < h {
+                    return last_coord;
                 }
-                ray = ray.saturating_sub(stats.1);
+                ray = ray.saturating_sub(h);
             }
 
             last_coord = Some((x, y));
@@ -1266,6 +1290,7 @@ impl WorldManager {
         Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
+        let timer = std::time::Instant::now();
         let rays = (r * 2).clamp(4, 1024);
         let t = TAU / rays as f32;
         let results: Vec<i32> = (0..rays)
@@ -1274,7 +1299,13 @@ impl WorldManager {
                 let theta = t * (n as f32 + 0.5);
                 let end_x = x + (r as f32 * theta.cos()) as i32;
                 let end_y = y + (r as f32 * theta.sin()) as i32;
-                if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d) {
+                let mult = if (8.0 * theta / TAU).floor() as u32 % 2 == 0 {
+                    (theta % (TAU / 8.0)).cos()
+                } else {
+                    (theta % (TAU / 4.0)).sin()
+                }
+                .recip();
+                if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
                     let dx = ex - x;
                     let dy = ey - y;
                     if dx != 0 || dy != 0 {
@@ -1288,6 +1319,7 @@ impl WorldManager {
             })
             .collect();
         self.cut_through_world_explosion_list(x, y, rays, results);
+        println!("{} {rays}", timer.elapsed().as_nanos());
     }
     pub(crate) fn cut_through_world_explosion_list(
         &mut self,
@@ -1312,12 +1344,33 @@ impl WorldManager {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
+        let (chunk_x, chunk_y) = (
+            x.div_euclid(CHUNK_SIZE as i32),
+            y.div_euclid(CHUNK_SIZE as i32),
+        );
         for (chunk_coord, chunk_encoded) in
             self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
-                chunk_coord.0 >= min_cx
-                    && chunk_coord.0 <= max_cx
-                    && chunk_coord.1 >= min_cy
-                    && chunk_coord.1 <= max_cy
+                let chx = chunk_coord.0;
+                let chy = chunk_coord.1;
+                chx >= min_cx
+                    && chx <= max_cx
+                    && chy >= min_cy
+                    && chy <= max_cy
+                    && (r <= CHUNK_SIZE as i32 || {
+                        let close_x = if chx < chunk_x {
+                            (chx + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chx * CHUNK_SIZE as i32
+                        };
+                        let close_y = if chy < chunk_y {
+                            (chy + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chy * CHUNK_SIZE as i32
+                        };
+                        let dx = close_x - x;
+                        let dy = close_y - y;
+                        dx * dx + dy * dy <= r * r //TODO find good radius
+                    })
             })
         {
             let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
