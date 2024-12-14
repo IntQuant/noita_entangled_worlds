@@ -315,6 +315,11 @@ function rpc.give_authority_to(gid, new_id)
         local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
         ComponentSetValue2(var, "value_string", new_id)
     end
+    item = item_sync.find_by_gid(gid)
+    while item ~= nil do
+        EntityKill(item)
+        item = item_sync.find_by_gid(gid)
+    end
 end
 
 rpc.opts_reliable()
