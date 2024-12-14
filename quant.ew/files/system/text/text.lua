@@ -217,21 +217,22 @@ local function stoptext()
     end
 end
 
-function create_chat_hint(hint) --maybe will make it for all hints in future if something else is added here for some reason
-    local hint = hint
-    local w, h = GuiGetScreenDimensions(gui)
-    local tw, th = GuiGetTextDimensions(gui, hint)
+local function create_chat_hint(hint) --maybe will make it for all hints in future if something else is added here for some reason
+    local _, h = GuiGetScreenDimensions(gui)
+    local _, th = GuiGetTextDimensions(gui, hint)
     GuiText(gui, 2, h-1-th, hint)
 end
 
 function module.on_world_update()
-    GuiStartFrame(gui)
-    if not ModSettingGet("quant.ew.nochathint") or not ModSettingGet("quant.ew.notext") then
+    local gui_started = false
+    if not ModSettingGet("quant.ew.nochathint") then
         if unread_messages_counter > 0 then --prevents hint from appearing all the time (can be annoying) and just appear when there is some unread message
+            GuiStartFrame(gui)
+            gui_started = true
             create_chat_hint("Use 'Enter' to open chat.(" .. unread_messages_counter .. " unread messages)")
         end
     end
-    
+
     if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
         if ctx.is_texting == true then
             local non_white = false
@@ -245,7 +246,7 @@ function module.on_world_update()
                 rpc.text(text, ctx.proxy_opt.mina_color, ctx.proxy_opt.mina_color_alt)
             end
             stoptext()
-        elseif not ModSettingGet("quant.ew.notext") then
+        else
             starttext()
         end
     end
@@ -256,6 +257,9 @@ function module.on_world_update()
     end
 
     if ctx.is_texting == true then
+        if not gui_started then
+            GuiStartFrame(gui)
+        end
         renderChat()
         renderTextInput()
 
@@ -268,7 +272,7 @@ function module.on_world_update()
                 currentMessageIndex = math.max(1, currentMessageIndex - 1)
             end
         end
-    
+
         if InputIsMouseButtonJustDown(5) or InputIsKeyDown(81) then
             if #chatMessages > 0 then
                 currentMessageIndex = math.min(#chatMessages - maxVisibleLines + 1, currentMessageIndex + 1)
