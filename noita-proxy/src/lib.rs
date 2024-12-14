@@ -92,6 +92,7 @@ pub struct GameSettings {
     perk_ban_list: Option<String>,
     physics_damage: Option<bool>,
     share_gold: Option<bool>,
+    nice_terraforming: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -242,6 +243,20 @@ impl GameSettings {
                     game_settings.item_dedup = Some(temp)
                 }
             }
+            {
+                let mut temp = game_settings
+                    .nice_terraforming
+                    .unwrap_or(def.nice_terraforming);
+                if ui
+                    .checkbox(
+                        &mut temp,
+                        "fix blackholes/explosions to work in unseen chunks",
+                    )
+                    .changed()
+                {
+                    game_settings.nice_terraforming = Some(temp)
+                }
+            }
             ui.add_space(10.0);
             ui.label("Player settings");
             ui.horizontal(|ui| {
@@ -327,6 +342,7 @@ pub struct DefaultSettings {
     perk_ban_list: String,
     physics_damage: bool,
     share_gold: bool,
+    nice_terraforming: bool,
 }
 
 impl Default for DefaultSettings {
@@ -348,6 +364,7 @@ impl Default for DefaultSettings {
                     .to_string(),
             physics_damage: true,
             share_gold: false,
+            nice_terraforming: true,
         }
     }
 }

@@ -160,6 +160,7 @@ impl ChunkState {
 }
 // TODO handle exits.
 pub(crate) struct WorldManager {
+    pub nice_terraforming: bool,
     is_host: bool,
     my_pos: (i32, i32),
     cam_pos: (i32, i32),
@@ -193,6 +194,7 @@ impl WorldManager {
     pub(crate) fn new(is_host: bool, my_peer_id: OmniPeerId, save_state: SaveState) -> Self {
         let chunk_storage = save_state.load().unwrap_or_default();
         WorldManager {
+            nice_terraforming: true,
             is_host,
             my_pos: (i32::MIN / 2, i32::MIN / 2),
             cam_pos: (i32::MIN / 2, i32::MIN / 2),
@@ -1147,6 +1149,8 @@ impl WorldManager {
                     let coord = ChunkCoord(chunk_x, chunk_y);
                     if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk)
+                    } else if !self.nice_terraforming {
+                        continue;
                     }
                     for icx in 0..CHUNK_SIZE as i32 {
                         let cx = chunk_start_x + icx;
@@ -1210,7 +1214,7 @@ impl WorldManager {
                     let mut chunk = Chunk::default();
                     if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk)
-                    } else if do_continue {
+                    } else if do_continue || !self.nice_terraforming {
                         continue;
                     }
                     for icx in 0..CHUNK_SIZE as i32 {

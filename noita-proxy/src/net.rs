@@ -610,6 +610,7 @@ impl NetManager {
                 .health_lost_on_revive
                 .unwrap_or(def.health_lost_on_revive),
         );
+        state.world.nice_terraforming = settings.nice_terraforming.unwrap_or(def.nice_terraforming);
         let rgb = self
             .new_desc
             .lock()
