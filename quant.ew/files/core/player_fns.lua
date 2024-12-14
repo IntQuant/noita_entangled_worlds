@@ -437,8 +437,9 @@ function player_fns.deserialize_position(message, phys_infos, player_data)
 
     ComponentSetValue2(velocity_comp, "gravity_y", 0)
 
-    if not util.set_phys_info(entity, phys_infos) then
-        ComponentSetValue2(character_data, "mVelocity", message.vel_x, message.vel_y)
+    if not util.set_phys_info(entity, phys_infos, player_data.fps) then
+        local m = player_data.fps / ctx.my_player.fps
+        ComponentSetValue2(character_data, "mVelocity", message.vel_x * m, message.vel_y * m)
         EntityApplyTransform(entity, message.x, message.y)
     end
 end

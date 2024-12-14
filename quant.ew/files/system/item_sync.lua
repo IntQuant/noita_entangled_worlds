@@ -456,6 +456,11 @@ local function send_item_positions(all)
                         end
                         cap[f] = cap[f] - 1
                         position_data[gid][5] = false
+                        local velocity = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+                        if velocity ~= nil then
+                            local vx, vy = ComponentGetValue2(velocity, "mVelocity")
+                            position_data[gid][6] = {vx, vy}
+                        end
                     end
                 end
             end
@@ -722,8 +727,15 @@ function rpc.update_positions(position_data, all)
             local price = el[4]
             local item = item_sync.find_by_gid(gid)
             if item ~= nil then
-                if not util.set_phys_info(item, phys_info) then
+                if not util.set_phys_info(item, phys_info, ctx.rpc_player_data.fps) then
                     EntitySetTransform(item, x, y)
+                    if el[6] ~= nil then
+                        local vx, vy = el[6][1], el[6][2]
+                        local velocity = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+                        if velocity ~= nil then
+                            ComponentSetValue2(velocity, "mVelocity", vx, vy)
+                        end
+                    end
                 end
                 local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
                 if costcom ~= nil then

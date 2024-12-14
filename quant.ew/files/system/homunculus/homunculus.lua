@@ -35,11 +35,11 @@ function rpc.send_positions(ho, lu)
     end
     if #lu ~= 0 then
         for i, child in ipairs(l) do
-            util.set_phys_info(child, lu[i][3])
+            util.set_phys_info(child, lu[i][3], ctx.rpc_player_data.fps)
         end
         for i=1,#lu-#l do
             local n = EntityLoad( "data/entities/misc/perks/lukki_minion.xml", lu[#l+i][1], lu[#l+i][2])
-            util.set_phys_info(n, lu[i][3])
+            util.set_phys_info(n, lu[i][3], ctx.rpc_player_data.fps)
             EntityAddComponent( n, "VariableStorageComponent",
                     {
                         name = "owner_id",

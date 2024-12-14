@@ -411,7 +411,7 @@ end
 
 local kolmi_spawn
 
-local function sync_enemy(enemy_info_raw, force_no_cull)
+local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
     local filename = enemy_info_raw[1]
     filename = constants.interned_index_to_filename[filename] or filename
 
@@ -569,7 +569,9 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
         elseif laser ~= nil then
             ComponentSetValue2(laser, "is_emitting", false)
         end
-        if not util.set_phys_info(enemy_id, phys_infos) or enemy_id == kolmi_spawn then
+        if not util.set_phys_info(enemy_id, phys_infos, host_fps) or enemy_id == kolmi_spawn then
+            local m = host_fps / ctx.my_player.fps
+            vx, vy = vx * m, vy * m
             local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
             if character_data ~= nil then
                 ComponentSetValue2(character_data, "mVelocity", vx, vy)
@@ -694,7 +696,7 @@ function rpc.handle_death_data(death_data)
         end
 
         if unsynced_enemys[remote_id] ~= nil then
-            sync_enemy(unsynced_enemys[remote_id], true)
+            sync_enemy(unsynced_enemys[remote_id], true, 60)
         end
         local enemy_data = ctx.entity_by_remote_id[remote_id]
         if enemy_data ~= nil and EntityGetIsAlive(enemy_data.id) then
@@ -741,7 +743,7 @@ function rpc.handle_enemy_data(enemy_data, is_first)
     end
     frame = GameGetFrameNum()
     for _, enemy_info_raw in ipairs(enemy_data) do
-        sync_enemy(enemy_info_raw, false)
+        sync_enemy(enemy_info_raw, false, ctx.rpc_player_data.fps)
     end
 end
 

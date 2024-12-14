@@ -394,12 +394,13 @@ local function serialize_phys_component(phys_component)
     end
 end
 
-local function deserialize_phys_component(phys_component, phys_info)
+local function deserialize_phys_component(phys_component, phys_info, fps)
     local x, y = GamePosToPhysicsPos(phys_info.x, phys_info.y)
     if ffi.typeof(phys_info) == PhysDataNoMotion then
         np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
     else
-        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, phys_info.vx, phys_info.vy, phys_info.vr)
+        local m = fps / ctx.my_player.fps
+        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, phys_info.vx * m, phys_info.vy * m, phys_info.vr * m)
     end
 end
 
@@ -435,13 +436,13 @@ function util.get_phys_info(entity, kill)
     return {phys_info, phys_info_2}
 end
 
-function util.set_phys_info(entity, data)
+function util.set_phys_info(entity, data, fps)
     local phys_infos, phys_infos_2 = data[1], data[2]
     local has_set = false
     for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
         local phys_info = phys_infos[i]
         if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            deserialize_phys_component(phys_component, phys_info)
+            deserialize_phys_component(phys_component, phys_info, fps)
             has_set = true
         end
     end
@@ -451,7 +452,7 @@ function util.set_phys_info(entity, data)
             -- A physics body doesn't exist otherwise, causing a crash
             local initialized = ComponentGetValue2(phys_component, "mInitialized")
             if initialized then
-                deserialize_phys_component(phys_component, phys_info)
+                deserialize_phys_component(phys_component, phys_info, fps)
                 has_set = true
             end
         end
