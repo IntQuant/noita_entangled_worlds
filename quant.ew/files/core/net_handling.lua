@@ -95,7 +95,8 @@ end
 local fire_anyways = {"SUMMON_HOLLOW_EGG", "SUMMON_ROCK", "TNTBOX", "TNTBOX_BIG", "FISH", "LEVITATION_FIELD", "POLYMORPH_FIELD", "ALL_DISCS",
                       "SHIELD_FIELD", "TELEPORTATION_FIELD", "BERSERK_FIELD", "ELECTROCUTION_FIELD", "FREEZE_FIELD", "CHAOS_POLYMORPH_FIELD",
                       "BOMB_DETONATOR", "DESTRUCTION", "MASS_POLYMORPH", "ALL_ACID", "ALL_BLACKHOLES", "ALL_DEATHCROSSES", "ALL_ROCKETS", "ALL_NUKES",
-                      "CIRCLE_ACID", "SEA_ACID", "ALL_SPELLS", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER"}
+                      "CIRCLE_ACID", "SEA_ACID", "ALL_SPELLS", "PIPE_BOMB", "PIPE_BOMB_DEATH_TRIGGER", "BLACK_HOLE", "BLACK_HOLE_DEATH_TRIGGER",
+                      "BLACK_HOLE_BIG", "BLACK_HOLE_GIGA", "WHITE_HOLE", "WHITE_HOLE_BIG", "WHITE_HOLE_GIGA"}
 
 function net_handling.mod.fire(peer_id, fire_data)
     local player_data = player_fns.peer_get_player_data(peer_id)
