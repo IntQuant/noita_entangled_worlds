@@ -191,7 +191,11 @@ local was_notplayer = false
 function rpc.give_new_length(new_range)
     if new_range ~= nil then
         tether_length = new_range
-        tether_length_2 = new_range + 128
+        if new_range > 512 then
+            tether_length_2 = new_range + 128
+        else
+            tether_length_2 = new_range
+        end
         tether_length_3 = math.max(tether_length_3 or 0, tether_length_2)
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         if host_playerdata ~= nil and host_playerdata.entity ~= nil then
@@ -215,6 +219,14 @@ function module.on_world_update()
             local new_range = tonumber(ModSettingGet("quant.ew.tether_range")) or 0
             if tether_length ~= new_range and new_range ~= nil then
                 tether_length = new_range
+                if new_range > 512 then
+                    tether_length_2 = new_range + 128
+                    tether_enable(false, ctx.my_player.entity)
+                else
+                    tether_length_2 = new_range
+                    tether_enable(true, ctx.my_player.entity)
+                    set_tether_length(tether_length_2, ctx.my_player.entity)
+                end
                 rpc.give_new_length(new_range)
             end
         end
