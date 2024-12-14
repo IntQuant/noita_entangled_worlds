@@ -233,6 +233,13 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             or EntityHasTag(projectile_id, "ew_projectile_position_sync") then
         EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
                                                                         value_string = shooter_player_data.peer_id .. ":" .. rng})
+        if shooter_player_data.peer_id ~= ctx.my_id then
+            local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
+            local life = ComponentGetValue2(proj, "lifetime")
+            if life > 4 then
+                ComponentSetValue2(proj, "lifetime", 9999999)
+            end
+        end
         EntityAddTag(projectile_id, "ew_global_item")
         EntityAddTag(projectile_id, "ew_no_spawn")
     end
