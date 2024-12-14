@@ -298,7 +298,7 @@ function module.on_world_update()
         local host_mx, host_my = host_playerdata.mouse_x, host_playerdata.mouse_y
         local dxm, dym = host_mx - x2, host_my - y2
         if x1 ~= nil and x2 ~= nil and (not_hm or (not not_actual_hm and y1 < y2)) and i_not_in_hm
-                and (tether_length > 512 and dxm * dxm + dym * dym > tether_length * tether_length / 2) then
+                and (tether_length < 512 or dxm * dxm + dym * dym > tether_length * tether_length / 2) then
             if no_tether then
                 tether_enable(true, host_playerdata.entity)
                 no_tether = false
