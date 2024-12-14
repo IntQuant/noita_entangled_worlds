@@ -235,9 +235,11 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
                                                                         value_string = shooter_player_data.peer_id .. ":" .. rng})
         if shooter_player_data.peer_id ~= ctx.my_id then
             local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
-            local life = ComponentGetValue2(proj, "lifetime")
-            if life > 4 then
-                ComponentSetValue2(proj, "lifetime", 9999999)
+            if proj ~= nil then
+                local life = ComponentGetValue2(proj, "lifetime")
+                if life > 4 then
+                    ComponentSetValue2(proj, "lifetime", 9999999)
+                end
             end
         end
         EntityAddTag(projectile_id, "ew_global_item")

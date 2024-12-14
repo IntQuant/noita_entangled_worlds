@@ -55,21 +55,15 @@ local function hole(item)
     end
     local x, y = EntityGetTransform(item)
     local n = ComponentGetValue2(ce, "radius")
-    local lx, ly
     if hole_last[item] ~= nil then
-        lx, ly = hole_last[item].last[1], hole_last[item].last[2]
-        local nx, ny = lx, ly
-        if hole_last[item].slast ~= nil then
-            nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
+        local lx, ly = hole_last[item][1], hole_last[item][2]
+        if lx ~= x or y ~= ly then
+            local inp = math.floor(x).." "..math.floor(lx)
+                    .." "..math.floor(y).." "..math.floor(ly) .. " " .. n
+            net.proxy_send("cut_through_world_line", inp)
         end
-        local inp = math.floor(x).." "..math.floor(nx)
-                .." "..math.floor(y).." "..math.floor(ny) .. " " .. n
-        net.proxy_send("cut_through_world_line", inp)
     end
-    hole_last[item] = {last = {x, y}}
-    if lx ~= nil then
-        hole_last[item].slast = {lx, ly}
-    end
+    hole_last[item] = {x, y}
     return true
 end
 
