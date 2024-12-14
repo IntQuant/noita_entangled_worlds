@@ -704,7 +704,8 @@ local function choose_movement()
     if dist * dist + dy * dy > 132 * 132
             and state.teleport_wand ~= nil
             and state.attack_wand ~= state.teleport_wand
-            and GameGetFrameNum() % 100 == 0 then
+            and GameGetFrameNum() % 100 == 0
+            and not state.last_did_hit then
         state.attack_wand = state.teleport_wand
         changed_held = true
     end
