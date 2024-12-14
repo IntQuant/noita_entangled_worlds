@@ -46,66 +46,56 @@ end
 
 local first = true
 
+local function update(ent)
+    local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
+    if proj ~= nil and ComponentGetValue2(proj, "on_death_explode") then
+        local x, y = EntityGetTransform(ent)
+        local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
+        alive[ent] = {x, y, r,
+                      ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
+                      ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
+    else
+        local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
+        if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
+            local x, y = EntityGetTransform(ent)
+            alive[ent] = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
+        end
+    end
+end
+
 function mod.on_world_update_host()
     if first then
         send_mats()
         first = false
     end
+    local count = tonumber(ModSettingGet("quant.ew.explosions"))
+    for ent, data in pairs(alive) do
+        if not EntityGetIsAlive(ent) then
+            if count > 0 then
+                if #alive[ent] == 5 then
+                    count = count - data[3]
+                    local inp = math.floor(data[1]) .. " " .. math.floor(data[2])
+                            .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4]) .. " " .. math.floor(data[5])
+                    net.proxy_send("cut_through_world_explosion", inp)
+                else
+                    count = count - data[3]
+                    local inp = math.floor(data[1]) .. " " .. math.floor(data[2])
+                            .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4])
+                    net.proxy_send("cut_through_world_circle", inp)
+                end
+                alive[ent] = nil
+            end
+        else
+            update(ent)
+        end
+    end
     local n = EntitiesGetMaxID()
     for ent = last + 1, n do
         if EntityGetIsAlive(ent) then
-            local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-            if proj ~= nil and ComponentGetValue2(proj, "on_death_explode") then
-                local x, y = EntityGetTransform(ent)
-                local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
-                if r >= 16 then
-                    alive[ent] = {x, y, r,
-                                  ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
-                                  ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
-                end
-            else
-                local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
-                if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
-                    local x, y = EntityGetTransform(ent)
-                    alive[ent] = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
-                end
-            end
+            update(ent)
         end
     end
     last = n
-    local count = 128
-    for ent, data in pairs(alive) do
-        if not EntityGetIsAlive(ent) and count > 0 then
-            if #alive[ent] == 5 then
-                count = count - data[3]
-                local inp = math.floor(data[1]) .. " " .. math.floor(data[2])
-                        .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4]) .. " " .. math.floor(data[5])
-                net.proxy_send("cut_through_world_explosion", inp)
-            else
-                local inp = math.floor(data[1]) .. " " .. math.floor(data[2])
-                        .. " " .. math.floor(data[3]) .. " " .. math.floor(data[4])
-                net.proxy_send("cut_through_world_circle", inp)
-            end
-            alive[ent] = nil
-        else
-            local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-            if proj ~= nil and ComponentGetValue2(proj, "on_death_explode") then
-                local x, y = EntityGetTransform(ent)
-                local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
-                if r >= 16 then
-                    alive[ent] = {x, y, r,
-                                  ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
-                                  ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
-                end
-            else
-                local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
-                if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
-                    local x, y = EntityGetTransform(ent)
-                    alive[ent] = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
-                end
-            end
-        end
-    end
 end
 
 return mod

@@ -258,7 +258,7 @@ local function build_settings()
                 {
                     id = "enemy_sync",
                     ui_name = "enemy sync interval",
-                    ui_description = "every N frames enemys are synced, host only, try 3 if laggy",
+                    ui_description = "host only, every N frames enemys are synced, try 3 if laggy",
                     value_default = "2",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
@@ -274,6 +274,13 @@ local function build_settings()
                     ui_name = "cap of special item entities to be synced",
                     ui_description = "max amount of proj to be synced, -1 for infinite",
                     value_default = "-1",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "explosions",
+                    ui_name = "amount of radii of explosions can be handled in 1 frame",
+                    ui_description = "host only, decrease if weird network lag, increase if weird world sync, cpu bounded",
+                    value_default = "128",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {

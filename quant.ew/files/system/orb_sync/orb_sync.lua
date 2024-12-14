@@ -57,18 +57,24 @@ function rpc.update_orbs(found_orbs, to_host)
     end
 end
 
+local last = 0
+
 function module.on_world_update()
     if GameGetFrameNum() % 15 == 0 then
         local found_local = orbs_found_this_run()
-        for _, orb_ent in ipairs(EntityGetWithTag("hittable") or {}) do
-            local comp = EntityGetFirstComponent(orb_ent, "OrbComponent")
-            if comp ~= nil then
-                local orb = ComponentGetValue2(comp, "orb_id")
-                if table.contains(found_local, orb) then
-                    EntityKill(orb_ent)
+        local n = EntitiesGetMaxID()
+        for ent = last + 1, n do
+            if EntityGetIsAlive(ent) then
+                local comp = EntityGetFirstComponent(ent, "OrbComponent")
+                if comp ~= nil then
+                    local orb = ComponentGetValue2(comp, "orb_id")
+                    if table.contains(found_local, orb) then
+                        EntityKill(ent)
+                    end
                 end
             end
         end
+        last = n
     end
     if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "polymorphed") then
         actual_orbs_update(wait_for_these)

@@ -536,7 +536,7 @@ function item_sync.on_world_update()
             end
         end
     end
-    local rt = math.floor(ModSettingGet("quant.ew.item_sync"))
+    local rt = tonumber(ModSettingGet("quant.ew.item_sync"))
     local n = 0
     if rt == 5 then
         n = 3

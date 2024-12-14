@@ -1264,12 +1264,12 @@ impl WorldManager {
         Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let rays = (r * 2).clamp(16, 1024);
+        let rays = (r * 2).clamp(4, 1024);
+        let t = TAU / rays as f32;
         let results: Vec<i32> = (0..rays)
             .into_par_iter()
             .map(|n| {
-                let t = TAU / rays as f32;
-                let theta = t * n as f32;
+                let theta = t * (n as f32 + 0.5);
                 let end_x = x + (r as f32 * theta.cos()) as i32;
                 let end_y = y + (r as f32 * theta.sin()) as i32;
                 if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d) {
@@ -1294,16 +1294,10 @@ impl WorldManager {
         rays: i32,
         list: Vec<i32>,
     ) {
-        let mut r = 0;
-        for n in &list {
-            if *n > r {
-                r = *n
-            }
-        }
+        let r = (*list.iter().max().unwrap_or(&0) as f64).sqrt().ceil() as i32;
         if r == 0 {
             return;
         }
-        let r = (r as f64).sqrt().ceil() as i32;
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
             (x + r).div_euclid(CHUNK_SIZE as i32),
@@ -1335,8 +1329,11 @@ impl WorldManager {
                 for icy in 0..CHUNK_SIZE as i32 {
                     let cy = chunk_start_y + icy;
                     let dy = cy - y;
-                    let r = list[(rays as f32 * (dy as f32).atan2(dx as f32) / TAU) as usize];
-                    if dd + dy * dy <= r {
+                    let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
+                    if i.is_sign_negative() {
+                        i += rays as f32
+                    }
+                    if dd + dy * dy <= list[i as usize] {
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
                         chunk.set_pixel(px, air_pixel);
                     }
