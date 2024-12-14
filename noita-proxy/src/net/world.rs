@@ -1121,6 +1121,17 @@ impl WorldManager {
             material: 0,
         };
         let close_check = max_cx == min_cx || max_cy == min_cy;
+        let iter_check = [
+            (x + r, y),
+            (x - r, y),
+            (x, y + r),
+            (x, y - r),
+            (lx + r, ly),
+            (lx - r, ly),
+            (lx, ly + r),
+            (lx, ly - r),
+        ]
+        .into_iter();
         for chunk_x in min_cx..=max_cx {
             for chunk_y in min_cy..=max_cy {
                 let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
@@ -1144,6 +1155,15 @@ impl WorldManager {
                         let dy = dcy - (m * dmy as f64) as i32;
                         dx * dx + dy * dy <= r * r
                     })
+                    || {
+                        let (end_x, end_y) = (
+                            chunk_start_x + CHUNK_SIZE as i32 - 1,
+                            chunk_start_y + CHUNK_SIZE as i32 - 1,
+                        );
+                        iter_check.clone().any(|(x, y)| {
+                            end_x >= x && x >= chunk_start_x && end_y >= y && y >= chunk_start_y
+                        })
+                    }
                 {
                     let mut chunk = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);

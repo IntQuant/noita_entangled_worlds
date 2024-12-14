@@ -317,8 +317,12 @@ function rpc.give_authority_to(gid, new_id)
     end
     item = item_sync.find_by_gid(gid)
     while item ~= nil do
-        EntityKill(item)
+        item_sync.remove_item_with_id(gid)
+        local last = item
         item = item_sync.find_by_gid(gid)
+        if last == item then
+            break
+        end
     end
 end
 
