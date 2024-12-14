@@ -1118,35 +1118,54 @@ impl WorldManager {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
+        let close_check = max_cx == min_cx || max_cy == min_cy;
         for chunk_x in min_cx..=max_cx {
             for chunk_y in min_cy..=max_cy {
-                //TODO can filter closer to line
-                let coord = ChunkCoord(chunk_x, chunk_y);
                 let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
-                let mut chunk = Chunk::default();
-                if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
-                    chunk_encoded.apply_to_chunk(&mut chunk)
-                }
-                for icx in 0..CHUNK_SIZE as i32 {
-                    let cx = chunk_start_x + icx;
-                    let dcx = cx - x;
-                    let dx2 = dcx * dmx;
-                    for icy in 0..CHUNK_SIZE as i32 {
-                        let cy = chunk_start_y + icy;
+                if close_check
+                    || [
+                        (chunk_start_x, chunk_start_y),
+                        (
+                            chunk_start_x + CHUNK_SIZE as i32 - 1,
+                            chunk_start_y + CHUNK_SIZE as i32 - 1,
+                        ),
+                        (chunk_start_x + CHUNK_SIZE as i32 - 1, chunk_start_y),
+                        (chunk_start_x, chunk_start_y + CHUNK_SIZE as i32 - 1),
+                    ]
+                    .iter()
+                    .any(|(cx, cy)| {
+                        let dcx = cx - x;
                         let dcy = cy - y;
-                        let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
-                        let px = (m * dmx as f64) as i32;
-                        let py = (m * dmy as f64) as i32;
-                        let dx = dcx - px;
-                        let dy = dcy - py;
-                        if dx * dx + dy * dy <= r * r {
-                            let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            chunk.set_pixel(px, air_pixel);
+                        let m = ((dcx * dmx + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                        let dx = dcx - (m * dmx as f64) as i32;
+                        let dy = dcy - (m * dmy as f64) as i32;
+                        dx * dx + dy * dy <= r * r
+                    })
+                {
+                    let mut chunk = Chunk::default();
+                    let coord = ChunkCoord(chunk_x, chunk_y);
+                    if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
+                        chunk_encoded.apply_to_chunk(&mut chunk)
+                    }
+                    for icx in 0..CHUNK_SIZE as i32 {
+                        let cx = chunk_start_x + icx;
+                        let dcx = cx - x;
+                        let dx2 = dcx * dmx;
+                        for icy in 0..CHUNK_SIZE as i32 {
+                            let cy = chunk_start_y + icy;
+                            let dcy = cy - y;
+                            let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                            let dx = dcx - (m * dmx as f64) as i32;
+                            let dy = dcy - (m * dmy as f64) as i32;
+                            if dx * dx + dy * dy <= r * r {
+                                let px = icy as usize * CHUNK_SIZE + icx as usize;
+                                chunk.set_pixel(px, air_pixel);
+                            }
                         }
                     }
+                    self.chunk_storage.insert(coord, chunk.to_chunk_data());
                 }
-                self.chunk_storage.insert(coord, chunk.to_chunk_data());
             }
         }
     }
@@ -1289,7 +1308,6 @@ impl WorldManager {
         Some((x, y))
     }
     pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let timer = std::time::Instant::now();
         let rays = (r * 2).clamp(4, 1024);
         let t = TAU / rays as f32;
         let results: Vec<i32> = (0..rays)
@@ -1315,7 +1333,6 @@ impl WorldManager {
             })
             .collect();
         self.cut_through_world_explosion_list(x, y, rays, results);
-        println!("{} {rays}", timer.elapsed().as_nanos());
     }
     pub(crate) fn cut_through_world_explosion_list(
         &mut self,
