@@ -78,6 +78,9 @@ local function update(ent)
     if proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
         local x, y = EntityGetTransform(ent)
         local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
+        if alive[ent] == nil then
+            alive[ent] = {}
+        end
         alive[ent].expl = {x, y, r,
                            ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
                            ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
@@ -86,9 +89,15 @@ local function update(ent)
     local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
     if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
         local x, y = EntityGetTransform(ent)
+        if alive[ent] == nil then
+            alive[ent] = {}
+        end
         alive[ent].del = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
     end
-    if hole(ent) then
+    if hole(ent) ~= nil then
+        if alive[ent] == nil then
+            alive[ent] = {}
+        end
         alive[ent].eater = true
     end
 end
@@ -114,6 +123,8 @@ function mod.on_world_update_host()
                             .. " " .. math.floor(data.del[3]) .. " " .. math.floor(data.del[4])
                     net.proxy_send("cut_through_world_circle", inp)
                 end
+                alive[ent] = nil
+                hole_last[ent] = nil
             end
         else
             update(ent)
