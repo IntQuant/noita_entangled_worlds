@@ -1374,10 +1374,40 @@ impl WorldManager {
                     } else {
                         chunk_y * CHUNK_SIZE as i32
                     };
+                    let (adj_x1, adj_x2) = (
+                        chunk_x * CHUNK_SIZE as i32,
+                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
+                    );
+                    let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
+                        (
+                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                            chunk_y * CHUNK_SIZE as i32,
+                        )
+                    } else {
+                        (
+                            chunk_y * CHUNK_SIZE as i32,
+                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                        )
+                    };
                     let dx = close_x - x;
                     let dy = close_y - y;
                     let d = dx * dx + dy * dy;
-                    d <= r * r //TODO find good radius
+                    let adj_dx = adj_x1 - x;
+                    let adj_dy = adj_y1 - y;
+                    let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+                    if i.is_sign_negative() {
+                        i += rays as f32
+                    }
+                    let adj_dx = adj_x2 - x;
+                    let adj_dy = adj_y2 - y;
+                    let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+                    if j.is_sign_negative() {
+                        j += rays as f32
+                    }
+                    let i = i as usize;
+                    let j = j as usize;
+                    let r = list[i.min(j)..=i.max(j)].iter().max().unwrap_or(&0);
+                    d <= *r
                 } {
                     let mut chunk = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);
