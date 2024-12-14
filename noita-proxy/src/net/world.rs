@@ -1163,55 +1163,55 @@ impl WorldManager {
             flags: world_model::chunk::PixelFlags::Normal,
             material: mat.unwrap_or(0),
         };
-        let (chunk_x, chunk_y) = (
+        let (chunkx, chunky) = (
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
         );
-        for (chunk_coord, chunk_encoded) in
-            self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
-                let chx = chunk_coord.0;
-                let chy = chunk_coord.1;
-                chx >= min_cx
-                    && chx <= max_cx
-                    && chy >= min_cy
-                    && chy <= max_cy
-                    && (r <= CHUNK_SIZE as i32 || {
-                        let close_x = if chx < chunk_x {
-                            (chx + 1) * CHUNK_SIZE as i32 - 1
-                        } else {
-                            chx * CHUNK_SIZE as i32
-                        };
-                        let close_y = if chy < chunk_y {
-                            (chy + 1) * CHUNK_SIZE as i32 - 1
-                        } else {
-                            chy * CHUNK_SIZE as i32
-                        };
-                        let dx = close_x - x;
-                        let dy = close_y - y;
-                        dx * dx + dy * dy <= r * r
-                    })
-            })
-        {
-            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
-            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
-            let mut chunk = Chunk::default();
-            chunk_encoded.apply_to_chunk(&mut chunk);
-            for icx in 0..CHUNK_SIZE as i32 {
-                let cx = chunk_start_x + icx;
-                let dx = cx - x;
-                let dd = dx * dx;
-                for icy in 0..CHUNK_SIZE as i32 {
-                    let cy = chunk_start_y + icy;
-                    let dy = cy - y;
-                    if dd + dy * dy <= r * r {
-                        let px = icy as usize * CHUNK_SIZE + icx as usize;
-                        if chunk.pixel(px).material != 0 {
-                            chunk.set_pixel(px, air_pixel);
+        let do_continue = mat.unwrap_or(0) != 0;
+        for chunk_x in min_cx..=max_cx {
+            for chunk_y in min_cy..=max_cy {
+                if r <= CHUNK_SIZE as i32 || {
+                    let close_x = if chunk_x < chunkx {
+                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                    } else {
+                        chunk_x * CHUNK_SIZE as i32
+                    };
+                    let close_y = if chunk_y < chunky {
+                        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+                    } else {
+                        chunk_y * CHUNK_SIZE as i32
+                    };
+                    let dx = close_x - x;
+                    let dy = close_y - y;
+                    dx * dx + dy * dy <= r * r
+                } {
+                    let coord = ChunkCoord(chunk_x, chunk_y);
+                    let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
+                    let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
+                    let mut chunk = Chunk::default();
+                    if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
+                        chunk_encoded.apply_to_chunk(&mut chunk)
+                    } else if do_continue {
+                        continue;
+                    }
+                    for icx in 0..CHUNK_SIZE as i32 {
+                        let cx = chunk_start_x + icx;
+                        let dx = cx - x;
+                        let dd = dx * dx;
+                        for icy in 0..CHUNK_SIZE as i32 {
+                            let cy = chunk_start_y + icy;
+                            let dy = cy - y;
+                            if dd + dy * dy <= r * r {
+                                let px = icy as usize * CHUNK_SIZE + icx as usize;
+                                if chunk.pixel(px).material != 0 {
+                                    chunk.set_pixel(px, air_pixel);
+                                }
+                            }
                         }
                     }
+                    self.chunk_storage.insert(coord, chunk.to_chunk_data());
                 }
             }
-            *chunk_encoded = chunk.to_chunk_data();
         }
     }
     #[allow(clippy::too_many_arguments)]
@@ -1340,57 +1340,54 @@ impl WorldManager {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
-        let (chunk_x, chunk_y) = (
+        let (chunkx, chunky) = (
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
         );
-        for (chunk_coord, chunk_encoded) in
-            self.chunk_storage.iter_mut().filter(|(chunk_coord, _)| {
-                let chx = chunk_coord.0;
-                let chy = chunk_coord.1;
-                chx >= min_cx
-                    && chx <= max_cx
-                    && chy >= min_cy
-                    && chy <= max_cy
-                    && (r <= CHUNK_SIZE as i32 || {
-                        let close_x = if chx < chunk_x {
-                            (chx + 1) * CHUNK_SIZE as i32 - 1
-                        } else {
-                            chx * CHUNK_SIZE as i32
-                        };
-                        let close_y = if chy < chunk_y {
-                            (chy + 1) * CHUNK_SIZE as i32 - 1
-                        } else {
-                            chy * CHUNK_SIZE as i32
-                        };
-                        let dx = close_x - x;
-                        let dy = close_y - y;
-                        dx * dx + dy * dy <= r * r //TODO find good radius
-                    })
-            })
-        {
-            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
-            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
-            let mut chunk = Chunk::default();
-            chunk_encoded.apply_to_chunk(&mut chunk);
-            for icx in 0..CHUNK_SIZE as i32 {
-                let cx = chunk_start_x + icx;
-                let dx = cx - x;
-                let dd = dx * dx;
-                for icy in 0..CHUNK_SIZE as i32 {
-                    let cy = chunk_start_y + icy;
-                    let dy = cy - y;
-                    let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
-                    if i.is_sign_negative() {
-                        i += rays as f32
-                    }
-                    if dd + dy * dy <= list[i as usize] {
-                        let px = icy as usize * CHUNK_SIZE + icx as usize;
-                        chunk.set_pixel(px, air_pixel);
+        for chunk_x in min_cx..=max_cx {
+            for chunk_y in min_cy..=max_cy {
+                if r <= CHUNK_SIZE as i32 || {
+                    let close_x = if chunk_x < chunkx {
+                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                    } else {
+                        chunk_x * CHUNK_SIZE as i32
+                    };
+                    let close_y = if chunk_y < chunky {
+                        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+                    } else {
+                        chunk_y * CHUNK_SIZE as i32
+                    };
+                    let dx = close_x - x;
+                    let dy = close_y - y;
+                    dx * dx + dy * dy <= r * r //TODO find good radius
+                } {
+                    let mut chunk = Chunk::default();
+                    let coord = ChunkCoord(chunk_x, chunk_y);
+                    if let Some(chunk_encoded) = self.chunk_storage.get_mut(&coord) {
+                        chunk_encoded.apply_to_chunk(&mut chunk);
+                        let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
+                        let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
+                        for icx in 0..CHUNK_SIZE as i32 {
+                            let cx = chunk_start_x + icx;
+                            let dx = cx - x;
+                            let dd = dx * dx;
+                            for icy in 0..CHUNK_SIZE as i32 {
+                                let cy = chunk_start_y + icy;
+                                let dy = cy - y;
+                                let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
+                                if i.is_sign_negative() {
+                                    i += rays as f32
+                                }
+                                if dd + dy * dy <= list[i as usize] {
+                                    let px = icy as usize * CHUNK_SIZE + icx as usize;
+                                    chunk.set_pixel(px, air_pixel);
+                                }
+                            }
+                        }
+                        *chunk_encoded = chunk.to_chunk_data();
                     }
                 }
             }
-            *chunk_encoded = chunk.to_chunk_data();
         }
     }
 }
