@@ -160,10 +160,15 @@ function enemy_sync.host_upload_entities()
         filename = constants.interned_filename_to_index[filename] or filename
 
         local x, y, rot = EntityGetTransform(enemy_id)
-        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+        local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
         local vx, vy = 0, 0
         if character_data ~= nil then
             vx, vy = ComponentGetValue2(character_data, "mVelocity")
+        else
+            local velocity = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+            if velocity ~= nil then
+                vx, vy = ComponentGetValue2(velocity, "mVelocity")
+            end
         end
         local ai_component = EntityGetFirstComponentIncludingDisabled(enemy_id, "AnimalAIComponent")
         if ai_component ~= 0 and ai_component ~= nil then
@@ -568,10 +573,11 @@ local function sync_enemy(enemy_info_raw, force_no_cull)
             local character_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "CharacterDataComponent")
             if character_data ~= nil then
                 ComponentSetValue2(character_data, "mVelocity", vx, vy)
-            end
-            local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
-            if velocity_data ~= nil then
-                ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
+            else
+                local velocity_data = EntityGetFirstComponentIncludingDisabled(enemy_id, "VelocityComponent")
+                if velocity_data ~= nil then
+                    ComponentSetValue2(velocity_data, "mVelocity", vx, vy)
+                end
             end
             if ffi.typeof(en_data) == EnemyDataFish then
                 EntitySetTransform(enemy_id, x, y, en_data.r / 255 * FULL_TURN)
