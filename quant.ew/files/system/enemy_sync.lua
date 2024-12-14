@@ -189,8 +189,6 @@ function enemy_sync.host_upload_entities()
         --     -- local x, y, r =
         -- end
 
-        item_sync.hole(x, y, enemy_id)
-
         local death_triggers = {}
         for _, com in ipairs(EntityGetComponent(enemy_id, "LuaComponent") or {}) do
             local script = ComponentGetValue2(com, "script_death")

@@ -22,8 +22,6 @@ local wait_on_send = {}
 
 local wait_for_gid = {}
 
-local hole_last = {}
-
 function rpc.open_chest(gid)
     if wait_for_gid[gid] == nil or wait_for_gid[gid] < 10000 then
         wait_for_gid[gid] = GameGetFrameNum() + 36000
@@ -374,29 +372,6 @@ function rpc.handle_death_data(death_data)
     end
 end
 
-function item_sync.hole(x, y, item)
-    local ce = EntityGetFirstComponent(item, "CellEaterComponent")
-    if ce == nil or ComponentGetValue2(ce, "only_stain") then
-        return
-    end
-    local n = ComponentGetValue2(ce, "radius")
-    local lx, ly
-    if hole_last[item] ~= nil then
-        lx, ly = hole_last[item].last[1], hole_last[item].last[2]
-        local nx, ny = lx, ly
-        if hole_last[item].slast ~= nil then
-            nx, ny = hole_last[item].slast[1], hole_last[item].slast[2]
-        end
-        local inp = math.floor(x).." "..math.floor(nx)
-                .." "..math.floor(y).." "..math.floor(ny) .. " " .. n
-        net.proxy_send("cut_through_world_line", inp)
-    end
-    hole_last[item] = {last = {x, y}}
-    if lx ~= nil then
-        hole_last[item].slast = {lx, ly}
-    end
-end
-
 local DISTANCE_LIMIT = 128 * 4
 
 local ignore = {}
@@ -472,9 +447,6 @@ local function send_item_positions(all)
                         end
                         cap[f] = cap[f] - 1
                         position_data[gid][5] = false
-                        if ctx.is_host then
-                            item_sync.hole(x, y, item)
-                        end
                     end
                 end
             end
@@ -753,9 +725,6 @@ function rpc.update_positions(position_data, all)
                         EntitySetComponentsWithTagEnabled(item, "shop_cost", true)
                         ComponentSetValue2(costcom, "cost", price)
                     end
-                end
-                if el[5] == false and ctx.is_host then
-                    item_sync.hole(x, y, item)
                 end
             elseif wait_for_gid[gid] == nil then
                 if el[5] == true then
