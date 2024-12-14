@@ -1359,7 +1359,8 @@ impl WorldManager {
                     };
                     let dx = close_x - x;
                     let dy = close_y - y;
-                    dx * dx + dy * dy <= r * r //TODO find good radius
+                    let d = dx * dx + dy * dy;
+                    d <= r * r //TODO find good radius
                 } {
                     let mut chunk = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);

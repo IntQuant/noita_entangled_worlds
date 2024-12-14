@@ -229,7 +229,8 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             or n == "data/entities/projectiles/deck/black_hole.xml"
             or n == "data/entities/projectiles/deck/black_hole_giga.xml"
             or n == "data/entities/projectiles/deck/white_hole.xml"
-            or n == "data/entities/projectiles/deck/white_hole_giga.xml" then
+            or n == "data/entities/projectiles/deck/white_hole_giga.xml"
+            or EntityHasTag(projectile_id, "ew_projectile_position_sync") then
         EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
                                                                         value_string = shooter_player_data.peer_id .. ":" .. rng})
         EntityAddTag(projectile_id, "ew_global_item")
