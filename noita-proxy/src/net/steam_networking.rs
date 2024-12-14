@@ -148,7 +148,9 @@ impl Connections {
     fn flush(&self) {
         for i in &self.peers {
             if let Some(c) = i.connection() {
-                c.flush_messages().unwrap()
+                if let Err(err) = c.flush_messages() {
+                    warn!("Error while flushing a message: {err:?}")
+                }
             }
         }
     }
