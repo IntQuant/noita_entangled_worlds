@@ -11,8 +11,6 @@ for line in string.gmatch(ModTextFileGetContent("mods/quant.ew/files/system/wang
     table.insert(module.files_with_spawnhooks, line)
 end
 
-local current_file = nil
-
 local function detour_name(orig_fn_name)
     return "ew_detour_" .. orig_fn_name
 end
@@ -88,7 +86,6 @@ local function run_spawn_fn(file, fn, x, y, w, h, is_open_path)
     -- file shouldn't be significant, as (fn, x, y) seem to be always unique
     local flag = "wspwn_"..fn.."_"..x.."_"..y
     if GameHasFlagRun(flag) then
-        util.log("Already spawned")
         return
     end
     GameAddFlagRun(flag)
@@ -109,20 +106,15 @@ end
 rpc.opts_reliable()
 function rpc.run_spawn_fn(file, fn, x, y, w, h, is_open_path)
     if ctx.is_host then
-        util.log("got request spawn of "..file.." "..fn.. " "..x.." "..y)
         run_spawn_fn(file, fn, x, y, w, h, is_open_path)
     end
 end
 
 
 util.add_cross_call("ew_wang_detour", function(file, fn, x, y, w, h, is_open_path)
-    -- print("detour", file, fn, x, y, w, h)
-
     if ctx.is_host then
-        util.log("[host] requested spawn of "..file.." "..fn.. " "..x.." "..y)
         run_spawn_fn(file, fn, x, y, w, h, is_open_path)
     else
-        util.log("requested spawn of "..file.." "..fn.. " "..x.." "..y)
         rpc.run_spawn_fn(file, fn, x, y, w, h, is_open_path)
     end
 
