@@ -116,9 +116,7 @@ function rpc.check_gamemode(gamemode, seed, world_num, has_won)
         GamePrint("your num: ".. ctx.proxy_opt.world_num)
         GamePrint("world sync stops from this")
     end
-    GamePrint(seed)
-    GamePrint(my_seed)
-    if has_won ~= GameHasFlagRun("ending_game_completed") then
+    if has_won and not GameHasFlagRun("ending_game_completed") then
         GameAddFlagRun("ending_game_completed")
         GameAddFlagRun("ew_fight_started")
     end
