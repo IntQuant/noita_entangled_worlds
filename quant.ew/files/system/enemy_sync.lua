@@ -116,6 +116,7 @@ local function get_sync_entities(return_all)
     table_extend(entities, EntityGetWithTag("seed_d"))
     table_extend(entities, EntityGetWithTag("seed_c"))
     table_extend(entities, EntityGetWithTag("perk_fungus_tiny"))
+    table_extend(entities, EntityGetWithName("$item_essence_stone"))
     table_extend(entities, EntityGetWithTag("helpless_animal"))
     table_extend_filtered(entities, EntityGetWithTag("touchmagic_immunity"), function(ent)
         return EntityGetName(ent) == "$animal_fish_giga"
@@ -320,7 +321,7 @@ function enemy_sync.host_upload_entities()
                 or EntityHasTag(enemy_id, "seed_e")
                 or EntityHasTag(enemy_id, "seed_d")
                 or EntityHasTag(enemy_id, "seed_c")
-
+                or EntityGetFilename(enemy_id) == "data/entities/buildings/essence_eater.xml"
 
         local stains = stain_sync.get_stains(enemy_id)
 
