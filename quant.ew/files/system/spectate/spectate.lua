@@ -250,7 +250,7 @@ local function set_camera_pos()
             camera_player_id, camera_player = get_me()
             re_cam = true
             if camera_player == -1 or camera_player_id == -1 then
-                break
+                return
             end
             set_camera_pos()
         else
