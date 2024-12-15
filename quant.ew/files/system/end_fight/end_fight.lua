@@ -162,6 +162,11 @@ function end_fight.on_world_update()
                 end
             end
             if init == -1 then
+                if not GameHasFlagRun("ew_fight_started") then
+                    GameAddFlagRun("ew_fight_started")
+                else
+                    EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
+                end
                 local _, y = EntityGetTransform(ctx.my_player.entity)
                 np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
                 np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", 1)

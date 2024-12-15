@@ -90,11 +90,11 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     end
 end
 
-function rpc.check_gamemode(gamemode, seed, world_num)
+function rpc.check_gamemode(gamemode, seed, world_num, has_won)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
     local not_fine = gamemode ~= gm
-    local my_seed = MagicNumbersGetValue("WORLD_SEED")
+    local my_seed = StatsGetValue("world_seed")
 
     if gm == "save_slots_enabler" or gamemode == "save_slots_enabler" then
         not_fine = not (gm == "" or gamemode == "")
@@ -115,6 +115,12 @@ function rpc.check_gamemode(gamemode, seed, world_num)
         GamePrint("his num: ".. world_num)
         GamePrint("your num: ".. ctx.proxy_opt.world_num)
         GamePrint("world sync stops from this")
+    end
+    GamePrint(seed)
+    GamePrint(my_seed)
+    if has_won ~= GameHasFlagRun("ending_game_completed") then
+        GameAddFlagRun("ending_game_completed")
+        GameAddFlagRun("ew_fight_started")
     end
 end
 
@@ -148,7 +154,7 @@ function module.on_world_update()
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
         if GameGetFrameNum() % 300 == 53 then
             local n = np.GetGameModeNr()
-            rpc.check_gamemode(np.GetGameModeName(n), MagicNumbersGetValue("WORLD_SEED"), ctx.proxy_opt.world_num)
+            rpc.check_gamemode(np.GetGameModeName(n), StatsGetValue("world_seed"), ctx.proxy_opt.world_num, GameHasFlagRun("ending_game_completed"))
         end
     end
 
