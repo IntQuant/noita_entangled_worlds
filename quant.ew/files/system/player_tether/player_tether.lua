@@ -246,6 +246,13 @@ function module.on_world_update()
             return
         end
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
+        if GameHasFlagRun("ending_game_completed") then
+            if not no_tether then
+                tether_enable(false, host_playerdata.entity)
+                no_tether = true
+            end
+            return
+        end
         if (ctx.proxy_opt.perma_death or ctx.proxy_opt.no_notplayer) and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive) then
             return
         end
@@ -295,13 +302,6 @@ function module.on_world_update()
                 no_tether = true
                 tether_enable(false, host_playerdata.entity)
                 was_notplayer = true
-            end
-            return
-        end
-        if GameHasFlagRun("ending_game_completed") then
-            if not no_tether then
-                tether_enable(false, host_playerdata.entity)
-                no_tether = true
             end
             return
         end
