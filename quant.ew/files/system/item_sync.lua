@@ -396,7 +396,7 @@ local function send_item_positions(all)
         if gid ~= nil and item_sync.is_my_item(gid) and (is_item_on_ground(item) or tg) then
             local x, y = EntityGetTransform(item)
             local dx, dy = x - cx, y - cy
-            if (ignore[gid] == nil or ignore[gid] < GameGetFrameNum()) and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT then
+            if not tg and (ignore[gid] == nil or ignore[gid] < GameGetFrameNum()) and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT then
                 local ent = EntityGetClosestWithTag(x, y, "ew_peer")
                 local nx, ny
                 local ndx, ndy

@@ -1,18 +1,35 @@
-## Noita Entangled Worlds v0.32.2
+## Noita Entangled Worlds v0.32.3
 
-- make explosions more correct
+- make blackholes slightly more correct
 
-- optimize explosions/cell eaters
+- fix notplayer ai
 
-- make cell eaters or material converters(to air) work on unseen chunks as option
+- make small tether work as you would expect
 
-- do not cull blackholes from clients
+- fix a proxy crash
 
-- chat fixes
+- try to fix some item dupe
+
+- scale synced stuff to frame rate
+
+- make synced projectile last until it goes away from
+
+- optimize black hole a bit
+
+- add world sync rate setting
+
+- maybe make enemies movements smoother
+
+- allow mods to add global perks
+
+- fix text a bit
+
 
 ## Accepted pull requests
 
-- moving chat scroll to a better place, chat options fix by @ZXb125 in #282
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
