@@ -78,19 +78,19 @@ end
 
 local function get_me()
     local i = 0
-    local alive = -1, -1
+    local alive = {-1, -1}
     for peer_id, potential_target in pairs(ctx.players) do
         if cant_spectate(potential_target.entity) then
             goto continue
         end
         i = i + 1
-        alive = peer_id, i
+        alive = {peer_id, i}
         if peer_id == ctx.my_id then
             return peer_id, i
         end
         ::continue::
     end
-    return alive
+    return alive[1], alive[2]
 end
 
 local function set_camera_free(enable)
@@ -249,6 +249,9 @@ local function set_camera_pos()
         if cam_target == nil then
             camera_player_id, camera_player = get_me()
             re_cam = true
+            if camera_player == -1 or camera_player_id == -1 then
+                break
+            end
             set_camera_pos()
         else
             target()
