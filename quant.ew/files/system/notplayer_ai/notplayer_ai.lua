@@ -1069,6 +1069,12 @@ local function teleport_outside_cursed()
 end
 
 local function hold_something()
+    if state.init_timer == 10 then
+        state.attack_wand = wandfinder.find_attack_wand({state.attack_wand})
+    end
+    if state.init_timer == 40 then
+        state.attack_wand = wandfinder.find_attack_wand({})
+    end
     if GameGetFrameNum() % 20 == 5 then
         find_new_wand()
     end
@@ -1175,7 +1181,7 @@ local function hold_something()
         spectate.disable_throwing(true, ctx.my_player.entity)
     end
 
-    if has_water_potion or state.water_potion ~= nil then
+    if (has_water_potion or state.water_potion ~= nil) and state.water_potions[1] ~= nil then
         state.expected_held = state.water_potions[1]
         np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
         if state.water_potion == nil then
@@ -1187,7 +1193,7 @@ local function hold_something()
             state.had_potion = true
         end
         state.bathe = not target_is_ambrosia
-    elseif (has_bad_potion or state.bad_potion ~= nil) and tablet then
+    elseif (has_bad_potion or state.bad_potion ~= nil) and tablet and state.bad_potions[i] ~= nil then
         state.expected_held = state.bad_potions[i]
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
@@ -1197,7 +1203,7 @@ local function hold_something()
             state.bad_potion = state.bad_potions[i]
             changed_held = true
         end
-    elseif has_good_potion or state.good_potion ~= nil then
+    elseif (has_good_potion or state.good_potion ~= nil) and state.good_potion[1] ~= nil then
         if EntityHasTag(state.good_potions[1], "potion") then
             state.had_potion = true
         end
@@ -1207,11 +1213,9 @@ local function hold_something()
             state.good_potion = state.good_potions[1]
             changed_held = true
         end
-    else
-        if state.attack_wand ~= nil then
-            state.expected_held = state.attack_wand
-            np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
-        end
+    elseif state.attack_wand ~= nil then
+        state.expected_held = state.attack_wand
+        np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
     end
     local holding2 = ComponentGetValue2(inventory, "mActualActiveItem")
     if holding ~= holding2 then
