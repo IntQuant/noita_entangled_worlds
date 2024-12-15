@@ -3,10 +3,12 @@ local ghost = {}
 
 function rpc.send_ghost_data(ghosts_memory)
     for i, entity in ipairs(EntityGetAllChildren(ctx.rpc_player_data.entity, "angry_ghost") or {}) do
-        local memory = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "angry_ghost_projectile_memory")
-        ComponentSetValue2(memory, "value_string", ghosts_memory[i][1])
-        EntitySetTransform(entity, ghosts_memory[i][2], ghosts_memory[i][3])
-        ComponentSetValue2(EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_ghost_rnd"), "value_float", ghosts_memory[i][4])
+        if ghosts_memory[i] ~= nil then
+            local memory = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "angry_ghost_projectile_memory")
+            ComponentSetValue2(memory, "value_string", ghosts_memory[i][1])
+            EntitySetTransform(entity, ghosts_memory[i][2], ghosts_memory[i][3])
+            ComponentSetValue2(EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", "ew_ghost_rnd"), "value_float", ghosts_memory[i][4])
+        end
     end
 end
 
