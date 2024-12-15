@@ -739,6 +739,9 @@ function rpc.handle_death_data(death_data)
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
             if not remote_data[3] then
                 EntityKill(enemy_id)
+            else
+                ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
+                ComponentSetValue2(damage_component, "kill_now", true)
             end
             ctx.entity_by_remote_id[remote_id] = nil
         end

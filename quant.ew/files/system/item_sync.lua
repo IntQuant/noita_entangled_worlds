@@ -387,7 +387,7 @@ local ignore = {}
 
 local function send_item_positions(all)
     local position_data = {}
-    local cx, cy = EntityGetTransform(ctx.my_player.entity)
+    local cx, cy = GameGetCameraPos()
     local cap = {}
     for _, item in ipairs(EntityGetWithTag("ew_global_item")) do
         local gid = item_sync.get_global_item_id(item)

@@ -396,17 +396,14 @@ local function do_game_over(message)
     GameRemoveFlagRun("ew_flag_notplayer_active")
     set_camera_free(true, ctx.my_player.entity)
 
-    if ctx.proxy_opt.perma_death then
-        GameTriggerGameOver()
-        return
-    end
-
-    if not GameHasFlagRun("ending_game_completed") then
-        for peer_id, data in pairs(ctx.players) do
-            if peer_id ~= ctx.my_id
-                    and #(EntityGetAllChildren(data.entity) or {}) ~= 0 then
-                local x, y = EntityGetTransform(data.entity)
-                LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. peer_id .."_ragdoll.txt", x, y)
+    if not ctx.proxy_opt.perma_death then
+        if not GameHasFlagRun("ending_game_completed") then
+            for peer_id, data in pairs(ctx.players) do
+                if peer_id ~= ctx.my_id
+                        and #(EntityGetAllChildren(data.entity) or {}) ~= 0 then
+                    local x, y = EntityGetTransform(data.entity)
+                    LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. peer_id .."_ragdoll.txt", x, y)
+                end
             end
         end
     end

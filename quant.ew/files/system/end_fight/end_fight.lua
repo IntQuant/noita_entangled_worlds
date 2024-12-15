@@ -61,6 +61,7 @@ local function teleport_random()
     for i, key in ipairs(keys) do
         if key == ctx.my_id then
             my_num = my_num + i - 1
+            break
         end
     end
     --local r = Random(0, 7)
