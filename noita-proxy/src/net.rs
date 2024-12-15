@@ -257,6 +257,10 @@ impl NetManager {
         self.actual_noita_port.store(actual_port, Ordering::Relaxed);
         info!("Actual Noita port: {actual_port}");
 
+        if self.is_host() {
+            self.accept_local.store(true, Ordering::Relaxed);
+        }
+
         let local_server: TcpListener = socket.into();
 
         let is_host = self.is_host();

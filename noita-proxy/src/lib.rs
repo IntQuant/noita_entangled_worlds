@@ -887,7 +887,6 @@ impl App {
         }
         settings.progress = self.modmanager_settings.get_progress().unwrap_or_default();
         *netman.pending_settings.lock().unwrap() = settings.clone();
-        netman.accept_local.store(true, Ordering::SeqCst);
     }
 
     fn start_connect(&mut self, addr: SocketAddr) {
