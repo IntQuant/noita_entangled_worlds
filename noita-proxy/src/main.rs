@@ -3,6 +3,7 @@
 use std::{
     fs::File,
     io::{self, BufWriter},
+    panic,
 };
 
 use eframe::{
@@ -10,7 +11,7 @@ use eframe::{
     NativeOptions,
 };
 use noita_proxy::{args::Args, connect_cli, host_cli, App};
-use tracing::{info, level_filters::LevelFilter};
+use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 #[allow(clippy::needless_return)]
@@ -42,6 +43,30 @@ async fn main() {
         .finish();
 
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
+
+    panic::set_hook(Box::new(|info| {
+        let mut payload = "no panic payload available".to_string();
+
+        if let Some(p) = info.payload().downcast_ref::<&str>() {
+            payload = p.to_string();
+        }
+
+        if let Some(p) = info.payload().downcast_ref::<String>() {
+            payload = p.to_string();
+        }
+
+        match info.location() {
+            Some(loc) => {
+                let file = loc.file();
+                let line = loc.line();
+                let col = loc.column();
+                error!("Panic occured at {file}:{line}:{col} : {payload}");
+            }
+            None => {
+                error!("Panic occured at unknown location: {payload}");
+            }
+        }
+    }));
 
     let args: Args = argh::from_env();
 
