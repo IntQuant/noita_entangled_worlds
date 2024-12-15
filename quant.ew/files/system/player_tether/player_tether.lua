@@ -193,10 +193,11 @@ function rpc.give_new_length(new_range)
         tether_length = new_range
         if new_range > 512 then
             tether_length_2 = new_range + 128
+            tether_length_3 = math.max(tether_length_3 or 0, tether_length_2)
         else
             tether_length_2 = new_range
+            tether_length_3 = new_range
         end
-        tether_length_3 = math.max(tether_length_3 or 0, tether_length_2)
         local host_playerdata = player_fns.peer_get_player_data(ctx.host_id, true)
         if host_playerdata ~= nil and host_playerdata.entity ~= nil then
             if new_range == 0 then
@@ -315,8 +316,10 @@ function module.on_world_update()
                 tether_enable(true, host_playerdata.entity)
                 no_tether = false
                 if not was_not_hm or was_notplayer then
-                    tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
-                    set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                    if tether_length > 512 then
+                        tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
+                        set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                    end
                 end
             end
             if dist_sq > tether_length_3 * tether_length_3 then
@@ -334,8 +337,10 @@ function module.on_world_update()
                     end
                 end)
             elseif tether_length_3 > tether_length_2 then
-                tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)
-                set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                if tether_length > 512 then
+                    tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)
+                    set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                end
             end
         else
             no_tether = true
