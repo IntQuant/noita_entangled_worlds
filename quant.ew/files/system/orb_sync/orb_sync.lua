@@ -60,7 +60,7 @@ end
 local last = 0
 
 function module.on_world_update()
-    if GameGetFrameNum() % 15 == 0 then
+    if GameGetFrameNum() % 4 == 3 then
         local found_local = orbs_found_this_run()
         local n = EntitiesGetMaxID()
         for ent = last + 1, n do
@@ -71,6 +71,9 @@ function module.on_world_update()
                     if table.contains(found_local, orb) then
                         EntityKill(ent)
                     end
+                end
+                if EntityGetFilename(ent) == "data/entities/base_item.xml" then
+                    EntityKill(ent)
                 end
             end
         end

@@ -1,35 +1,47 @@
-## Noita Entangled Worlds v0.32.3
+## Noita Entangled Worlds v0.32.4
 
-- make blackholes slightly more correct
+- fix host unable to connect sometimes
 
-- fix notplayer ai
+- log panics for windows
 
-- make small tether work as you would expect
+- fix a bunch of errors
 
-- fix a proxy crash
+- dont cull the sun
 
-- try to fix some item dupe
+- sync essence eaters
 
-- scale synced stuff to frame rate
+- fix projectiles not dying sometimes
 
-- make synced projectile last until it goes away from
+- spawn patsas if client gets close
 
-- optimize black hole a bit
+- fix notplayer holding 2 wands
 
-- add world sync rate setting
+- remove empty items from ground
 
-- maybe make enemies movements smoother
+- fix temple boss not dropping stuff
 
-- allow mods to add global perks
+- wait a second to send new tether length, dont tether if either you or host is taking damage
 
-- fix text a bit
+- fix kolmi in perma death with no host, fix kolmi ai and dont tp host to kolmi, sync kolmis legs
+
+- fix 1 orb in mom not syncing
+
+- maybe fix stuff not spawning as much(prob not)
+
+- fix perma death game over
+
+- fix spells falling through floor
+
+- dont let players rejoin or start a new game during end fight
+
+- check seed properly
+
+- fix an error when restarting while dead in perma death, and fix spectating when dead in perma death
 
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- Added German Translation by @KilianSen in #285
 ## Installation
 
 
