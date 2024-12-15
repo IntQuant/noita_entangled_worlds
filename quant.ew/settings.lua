@@ -187,7 +187,7 @@ local function build_settings()
                                     id = "nochathint",
                                     ui_name = "no chat hint",
                                     ui_description = ":c",
-                                    value_default = false,
+                                    value_default = true,
                                     scope = MOD_SETTING_SCOPE_RUNTIME,
                                 },
                                 {

@@ -441,20 +441,20 @@ function util.set_phys_info(entity, data, fps)
     local has_set = false
     for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBodyComponent") or {}) do
         local phys_info = phys_infos[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil
+                and ComponentGetValue2(phys_component, "mPixelCount") ~= 0 then
             deserialize_phys_component(phys_component, phys_info, fps)
             has_set = true
         end
     end
     for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
         local phys_info = phys_infos_2[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil then
-            -- A physics body doesn't exist otherwise, causing a crash
-            local initialized = ComponentGetValue2(phys_component, "mInitialized")
-            if initialized then
-                deserialize_phys_component(phys_component, phys_info, fps)
-                has_set = true
-            end
+        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil
+                and ComponentGetValue2(phys_component, "mPixelCount") ~= 0
+                -- A physics body doesn't exist otherwise, causing a crash
+                and ComponentGetValue2(phys_component, "mInitialized") then
+            deserialize_phys_component(phys_component, phys_info, fps)
+            has_set = true
         end
     end
     return has_set
