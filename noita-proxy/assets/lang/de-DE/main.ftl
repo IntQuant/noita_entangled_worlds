@@ -1,5 +1,5 @@
 connect_steam = Verbindung per Steam herstellen
-connect_steam_create = Create lobby
+connect_steam_create = Erstelle eine Lobby
 connect_steam_connect = Mit Lobby aus der Zwischenablage verbinden
 connect_steam_workaround_label = Verbinden, indem Sie die Lobby-ID in dieses Feld einfügen: (Falls Sie Wayland verwenden und der normale Weg nicht funktioniert)
 connect_steam_connect_2 = Mit Lobby im Textfeld verbinden
@@ -19,9 +19,9 @@ button_set_lang = Sprache auswählen
 button_open_discord = Discord Server
 
 modman = Mod-Manager
-modman_found_automatically = Ein Pfad wurde automatisch gefunden:
-modman_use_this = Diesen verwenden
-modman_select_manually = Manuell auswählen
+modman_found_automatically = Ein Spiel-Pfad wurde automatisch gefunden:
+modman_use_this = Diesen Pfad verwenden
+modman_select_manually = Pfad Manuell auswählen
 modman_path_to_exe = Pfad zu noita.exe auswählen
 modman_invalid_path = Dieser Pfad ist ungültig
 modman_downloading = Mod wird heruntergeladen...
@@ -55,7 +55,7 @@ netman_show_settings = Einstellungen anzeigen
 netman_apply_settings = Einstellungen für den nächsten Start übernehmen
 apply_default_settings = Setzt die Einstellungen auf Standard zurück
 
-ip_note = Hinweis: Steam-Netzwerke sind zuverlässiger. Verwenden Sie diese, wenn möglich.
+ip_note = Hinweis: Verbindung per Steam ist zuverlässiger.
 ip_connect = Per IP verbinden
 ip_host = Einen Server erstellen
 
@@ -105,9 +105,9 @@ physics_damage = Physischer Schaden
 shared_health_desc_1 = Gesundheit wird geteilt, skaliert aber mit der Spieleranzahl.
 shared_health_desc_2 = Prozentbasierter Schaden und vollständige Heilungen werden angepasst.
 shared_health_desc_3 = Der ursprüngliche Modus.
-Local-health = Lokale Gesundheit
-Local-health-alt = Alternative lokale Gesundheit
-Local-health-perma = Permanente lokale Gesundheit
+Local-health = Lokale Gesundheit (Boss Wiederbelebung)
+Local-health-alt = Alternative lokale Gesundheit (Mitnahme Wiederbelebung)
+Local-health-perma = Permanente lokale Gesundheit 
 Shared-health = Geteilte Gesundheit
 Game-mode = Spielmodus
 world-sync-is-pixel-sync-note = Hinweis: World-Sync synchronisiert die Pixel (Materialien) der Welt. Gegner und andere Entitäten sind davon nicht betroffen.
@@ -133,7 +133,7 @@ Arm-color = Armfarbe
 Alt-color = Alternativfarbe
 Main-color = Hauptfarbe
 Reset-colors-to-default = Farben auf Standard zurücksetzen
-Shift-hue = Farbton verschieben
+Shift-hue = Färbung verschieben
 
 ## Connected
 
