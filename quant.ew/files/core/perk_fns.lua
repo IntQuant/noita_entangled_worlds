@@ -228,7 +228,29 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
     -- util.set_ent_variable(entity, "ew_current_perks", perk_data)
 end
 
+local first = true
+
 function perk_fns.on_world_update()
+    if first then
+        local needs_reset = false
+        for _, file in ipairs(ModLuaFileGetAppends("mods/quant.ew/files/api/global_perks.lua")) do
+            local perks = dofile(file)
+            for _, perk in ipairs(perks) do
+                perks_to_ignore[perk] = true
+                global_perks[perk] = true
+                print("registering " .. perk .. " as global")
+                needs_reset = true
+            end
+        end
+        if needs_reset then
+            for peer_id, data in pairs(ctx.players) do
+                if peer_id ~= ctx.my_id then
+                    EntityKill(data.entity)
+                end
+            end
+        end
+        first = false
+    end
     if GameGetFrameNum() % 60 == 40
             and (wait_for_globals == nil or GameGetFrameNum() > wait_for_globals)
             and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
