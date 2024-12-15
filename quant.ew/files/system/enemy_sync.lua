@@ -203,7 +203,7 @@ function enemy_sync.host_upload_entities()
         end
         local en_data
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
-            or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
+                or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
         if EntityHasTag(enemy_id, "boss_centipede") then
             en_data = EnemyDataKolmi {
                 enemy_id = enemy_id,
@@ -316,6 +316,11 @@ function enemy_sync.host_upload_entities()
 
         local dont_cull = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent") ~= nil
                 or worm ~= nil
+                or EntityHasTag(enemy_id, "seed_f")
+                or EntityHasTag(enemy_id, "seed_e")
+                or EntityHasTag(enemy_id, "seed_d")
+                or EntityHasTag(enemy_id, "seed_c")
+
 
         local stains = stain_sync.get_stains(enemy_id)
 
