@@ -237,8 +237,8 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
             if proj ~= nil then
                 local life = ComponentGetValue2(proj, "lifetime")
-                if life > 4 then
-                    ComponentSetValue2(proj, "lifetime", 9999999)
+                if life > 0 then
+                    ComponentSetValue2(proj, "lifetime", life * ctx.my_player.fps / shooter_player_data.fps)
                 end
             end
         end
