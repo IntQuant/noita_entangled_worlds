@@ -434,10 +434,21 @@ local function send_item_positions(all)
                     local cost = 0
                     if costcom ~= nil then
                         cost = ComponentGetValue2(costcom, "cost")
-                        local mx, my = GameGetCameraPos()
-                        if math.abs(mx - x) < DISTANCE_LIMIT * 2 and math.abs(my - y) < DISTANCE_LIMIT * 2
-                                and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") then
-                            ComponentSetValue2(costcom, "stealable", true)
+                        local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+                        if math.abs(cx - x) < DISTANCE_LIMIT * 2 and math.abs(cy - y) < DISTANCE_LIMIT * 2 then
+                            if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") ~= nil then
+                                ComponentSetValue2(costcom, "stealable", true)
+                                ComponentSetValue2(vel, "gravity_y", 400)
+                            elseif EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_float") ~= nil then
+                                ComponentSetValue2(vel, "gravity_y", 400)
+                            end
+                        else
+                            if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") ~= nil then
+                                ComponentSetValue2(costcom, "stealable", false)
+                                ComponentSetValue2(vel, "gravity_y", 0)
+                            elseif EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_float") ~= nil then
+                                ComponentSetValue2(vel, "gravity_y", 0)
+                            end
                         end
                     end
                     position_data[gid] = {x, y, phys_info, cost}

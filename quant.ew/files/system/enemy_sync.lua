@@ -26,6 +26,7 @@ local EnemyDataKolmi = util.make_type({
     u32 = {"enemy_id"},
     f32 = {"x", "y", "vx", "vy"},
     bool = {"enabled"},
+    vecfloat = {"legs"},
 })
 
 local EnemyDataMom = util.make_type({
@@ -209,6 +210,13 @@ function enemy_sync.host_upload_entities()
         local worm = EntityGetFirstComponentIncludingDisabled(enemy_id, "WormAIComponent")
                 or EntityGetFirstComponentIncludingDisabled(enemy_id, "BossDragonComponent")
         if EntityHasTag(enemy_id, "boss_centipede") then
+            local legs = {}
+            for _, leg in ipairs(EntityGetAllChildren(enemy_id, "foot")) do
+                local limb = EntityGetFirstComponentIncludingDisabled(leg, "IKLimbComponent")
+                local lx, ly = ComponentGetValue2(limb, "end_position")
+                table.insert(legs, lx)
+                table.insert(legs, ly)
+            end
             en_data = EnemyDataKolmi {
                 enemy_id = enemy_id,
                 x = x,
@@ -216,6 +224,7 @@ function enemy_sync.host_upload_entities()
                 vx = vx,
                 vy = vy,
                 enabled = EntityGetFirstComponent(enemy_id, "BossHealthBarComponent", "disabled_at_start") ~= nil,
+                legs = legs,
             }
         elseif EntityHasTag(enemy_id, "boss_wizard") then
             local orbs = {false, false, false, false, false, false, false, false}
@@ -611,6 +620,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
             end
             EntitySetComponentsWithTagEnabled(enemy_id, "enabled_at_start", false)
             EntitySetComponentsWithTagEnabled(enemy_id, "disabled_at_start", true)
+            for i, leg in ipairs(EntityGetAllChildren(enemy_id, "foot")) do
+                local limb = EntityGetFirstComponentIncludingDisabled(leg, "IKLimbComponent")
+                ComponentSetValue2(limb, "end_position", en_data.legs[2 * i - 2], en_data.legs[2 * i - 1])
+            end
         end
 
         local indexed = {}
@@ -642,7 +655,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
                 local damage_component = EntityGetFirstComponentIncludingDisabled(child, "DamageModelComponent")
                 if EntityHasTag(child, "touchmagic_immunity") and var ~= nil then
                     local n = ComponentGetValue2(var, "value_int")
-                    if orbs[n] then
+                    if orbs[n - 1] then
                         ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
                     else
                         ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)

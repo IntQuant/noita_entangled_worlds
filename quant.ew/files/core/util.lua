@@ -291,6 +291,10 @@ function util.make_type(typedata)
         inner = inner .. "bool "..var.."[16];\n"
     end
 
+    for _, var in ipairs(typedata.vecfloat or {}) do
+        inner = inner .. "float "..var.."[32];\n"
+    end
+
     for _, var in ipairs(typedata.peer_id or {}) do
         inner = inner .. "char "..var.."[16];\n"
     end

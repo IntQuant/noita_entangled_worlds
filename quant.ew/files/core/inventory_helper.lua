@@ -97,9 +97,15 @@ function inventory_helper.deserialize_single_item(item_data)
             ComponentSetValue2(item_cost_component, "stealable", false)
         else
             local mx, my = GameGetCameraPos()
-            if (math.abs(mx - x) > 1024 or math.abs(my - y) > 1024) and ComponentGetValue2(item_cost_component, "stealable") then
-                EntityAddComponent2(item, "VariableStorageComponent", {_tags = "ew_try_stealable"})
-                ComponentSetValue2(item_cost_component, "stealable", false)
+            if (math.abs(mx - x) > 1024 or math.abs(my - y) > 1024) then
+                if ComponentGetValue2(item_cost_component, "stealable") then
+                    EntityAddComponent2(item, "VariableStorageComponent", {_tags = "ew_try_stealable"})
+                    ComponentSetValue2(item_cost_component, "stealable", false)
+                else
+                    EntityAddComponent2(eid, "VariableStorageComponent", {_tags = "ew_try_float"})
+                end
+                local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
+                ComponentSetValue2(vel, "gravity_y", 0)
             end
         end
 
