@@ -214,21 +214,28 @@ function rpc.request_tether()
     rpc.give_new_length(tether_length)
 end
 
+local wait_on_send
+
 function module.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
         if ctx.is_host then
             local new_range = tonumber(ModSettingGet("quant.ew.tether_range")) or 0
             if tether_length ~= new_range and new_range ~= nil then
-                tether_length = new_range
-                if new_range > 512 then
-                    tether_length_2 = new_range + 128
-                    tether_enable(false, ctx.my_player.entity)
-                else
-                    tether_length_2 = new_range
-                    tether_enable(true, ctx.my_player.entity)
-                    set_tether_length(tether_length_2, ctx.my_player.entity)
+                if wait_on_send == nil then
+                    wait_on_send = GameGetFrameNum() + 60
+                elseif wait_on_send < GameGetFrameNum() then
+                    wait_on_send = nil
+                    tether_length = new_range
+                    if new_range > 512 then
+                        tether_length_2 = new_range + 128
+                        tether_enable(false, ctx.my_player.entity)
+                    else
+                        tether_length_2 = new_range
+                        tether_enable(true, ctx.my_player.entity)
+                        set_tether_length(tether_length_2, ctx.my_player.entity)
+                    end
+                    rpc.give_new_length(new_range)
                 end
-                rpc.give_new_length(new_range)
             end
         end
         if tether_length == 0 then
@@ -312,34 +319,36 @@ function module.on_world_update()
         local dxm, dym = host_mx - x2, host_my - y2
         if x1 ~= nil and x2 ~= nil and (not_hm or (not not_actual_hm and y1 < y2)) and i_not_in_hm
                 and (tether_length < 512 or dxm * dxm + dym * dym > tether_length * tether_length / 2) then
-            if no_tether then
-                tether_enable(true, host_playerdata.entity)
-                no_tether = false
-                if not was_not_hm or was_notplayer then
+            if host_playerdata.last_hit + 10 < GameGetFrameNum() and ctx.my_player.last_hit + 10 < GameGetFrameNum() then
+                if no_tether then
+                    tether_enable(true, host_playerdata.entity)
+                    no_tether = false
+                    if not was_not_hm or was_notplayer then
+                        if tether_length > 512 then
+                            tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
+                            set_tether_length(tether_length_3 - 128, host_playerdata.entity)
+                        end
+                    end
+                end
+                if dist_sq > tether_length_3 * tether_length_3 then
+                    local x, y = x1, y1
+                    local my_pos, given = position_to_area_number(x2, y2)
+                    if not not_in_normal_area(x, y) and not not_in_normal_area(x2, y2) and position_to_area_number(x, y) > my_pos then
+                        x, y = new_pos(given)
+                    end
+                    async(function()
+                        EntitySetTransform(ctx.my_player.entity, x, y)
+                        if tether_length_3 > 1024 then
+                            wait(40)
+                            EntitySetTransform(ctx.my_player.entity, x, y)
+                            float()
+                        end
+                    end)
+                elseif tether_length_3 > tether_length_2 then
                     if tether_length > 512 then
-                        tether_length_3 = math.max(math.sqrt(dist_sq) + 256, tether_length_2)
+                        tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)
                         set_tether_length(tether_length_3 - 128, host_playerdata.entity)
                     end
-                end
-            end
-            if dist_sq > tether_length_3 * tether_length_3 then
-                local x, y = x1, y1
-                local my_pos, given = position_to_area_number(x2, y2)
-                if not not_in_normal_area(x, y) and not not_in_normal_area(x2, y2) and position_to_area_number(x, y) > my_pos then
-                    x, y = new_pos(given)
-                end
-                async(function()
-                    EntitySetTransform(ctx.my_player.entity, x, y)
-                    if tether_length_3 > 1024 then
-                        wait(40)
-                        EntitySetTransform(ctx.my_player.entity, x, y)
-                        float()
-                    end
-                end)
-            elseif tether_length_3 > tether_length_2 then
-                if tether_length > 512 then
-                    tether_length_3 = math.max(math.min(tether_length_3, math.sqrt(dist_sq) + 256), tether_length_2)
-                    set_tether_length(tether_length_3 - 128, host_playerdata.entity)
                 end
             end
         else
