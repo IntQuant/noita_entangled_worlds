@@ -82,7 +82,8 @@ util.add_cross_call("ew_es_death_notify", function(enemy_id, responsible_id)
     else
         responsible = responsible_id
     end
-    table.insert(dead_entities, {enemy_id, responsible})
+    local damage = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+    table.insert(dead_entities, {enemy_id, responsible, ComponentGetValue2(damage, "wait_for_kill_flag_on_death")})
 end)
 
 local function world_exists_for(entity)
@@ -116,8 +117,10 @@ local function get_sync_entities(return_all)
     table_extend(entities, EntityGetWithTag("seed_d"))
     table_extend(entities, EntityGetWithTag("seed_c"))
     table_extend(entities, EntityGetWithTag("perk_fungus_tiny"))
-    table_extend(entities, EntityGetWithName("$item_essence_stone"))
     table_extend(entities, EntityGetWithTag("helpless_animal"))
+    table_extend_filtered(entities, EntityGetWithTag("hittable"), function(ent)
+        return EntityGetName(ent) == "$item_essence_stone"
+    end)
     table_extend_filtered(entities, EntityGetWithTag("touchmagic_immunity"), function(ent)
         return EntityGetName(ent) == "$animal_fish_giga"
     end)
@@ -734,7 +737,10 @@ function rpc.handle_death_data(death_data)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
-            EntityKill(enemy_id)
+            if not remote_data[3] then
+                EntityKill(enemy_id)
+            end
+            ctx.entity_by_remote_id[remote_id] = nil
         end
         ::continue::
     end
