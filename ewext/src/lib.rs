@@ -14,7 +14,7 @@ use std::{
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use eyre::{bail, OptionExt};
 
-use modules::{entity_sync::EntitySync, Module};
+use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::{
@@ -40,6 +40,8 @@ thread_local! {
 }
 
 static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(Default::default);
+static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
+    LazyLock::new(|| unsafe { libloading::Library::new("ewext0.dll") });
 
 #[derive(Default)]
 struct ExtState {
@@ -190,12 +192,15 @@ fn on_world_initialized(lua: LuaState) {
     })
 }
 
-fn with_every_module(f: impl Fn(&mut dyn Module) -> eyre::Result<()>) -> eyre::Result<()> {
+fn with_every_module(
+    f: impl Fn(&mut ModuleCtx, &mut dyn Module) -> eyre::Result<()>,
+) -> eyre::Result<()> {
     STATE.with(|state| {
         let modules = &mut state.borrow_mut().modules;
+        let mut ctx = ModuleCtx {};
         let mut errs = Vec::new();
         for module in modules {
-            if let Err(e) = f(module.as_mut()) {
+            if let Err(e) = f(&mut ctx, module.as_mut()) {
                 errs.push(e);
             }
         }
@@ -210,7 +215,7 @@ fn with_every_module(f: impl Fn(&mut dyn Module) -> eyre::Result<()>) -> eyre::R
 }
 
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
-    with_every_module(|module| module.on_world_update())
+    with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 
 fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
@@ -277,6 +282,10 @@ fn __gc(_lua: LuaState) {
 #[no_mangle]
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
+
+    if let Err(e) = KEEP_SELF_LOADED.as_ref() {
+        println!("Got an error while loading self: {}", e);
+    }
 
     println!(
         "lua_call: 0x{:x}",

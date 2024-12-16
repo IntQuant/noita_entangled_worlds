@@ -19,6 +19,7 @@ noita_api_macro = {path = "noita_api_macro"}
 eyre = "0.6.12"
 noita_api = {path = "noita_api"}
 shared = {path = "../shared"}
+libloading = "0.8.6"
 
 [features]
 #enables cross-compilation on older systems (for example, when compiling on ubuntu 20.04)
