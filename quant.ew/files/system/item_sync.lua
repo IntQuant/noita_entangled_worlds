@@ -737,7 +737,11 @@ function rpc.update_positions(position_data, all)
             goto continue
         end
         local x, y = el[1], el[2]
-        if el[5] ~= nil or (math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT) then
+            local name = EntityGetFilename(item)
+        local is_chest = name == "data/entities/items/pickup/utility_box.xml"
+                or name == "data/entities/items/pickup/chest_random_super.xml"
+                or name == "data/entities/items/pickup/chest_random.xml"
+        if is_chest or el[5] ~= nil or (math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT) then
             gid_last_frame_updated[ctx.rpc_peer_id][gid] = frame[ctx.rpc_peer_id]
             local phys_info = el[3]
             local price = el[4]

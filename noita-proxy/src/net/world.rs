@@ -1307,6 +1307,12 @@ impl WorldManager {
                                 let px = icy as usize * CHUNK_SIZE + icx as usize;
                                 if chunk.pixel(px).material != 0 {
                                     chunk.set_pixel(px, air_pixel);
+                                    if has_in {
+                                        chunkin.set_pixel(px, air_pixel);
+                                    }
+                                    if has_out {
+                                        chunkout.set_pixel(px, air_pixel);
+                                    }
                                 }
                             }
                         }
@@ -1509,6 +1515,22 @@ impl WorldManager {
                     let coord = ChunkCoord(chunk_x, chunk_y);
                     if let Some(chunk_encoded) = self.chunk_storage.get_mut(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk);
+                        let mut chunkout = Chunk::default();
+                        /*let mut chunkin = Chunk::default();
+                        let mut has_in = false;
+                        if self.nice_terraforming {
+                            if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                                has_in = true;
+                                chunk_encoded.apply_to_chunk(&mut chunkin)
+                            };
+                        }*/
+                        let mut has_out = false;
+                        if self.nice_terraforming {
+                            if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
+                                has_out = true;
+                                chunk_encoded.apply_to_chunk(&mut chunkout)
+                            }
+                        }
                         let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
                         let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                         for icx in 0..CHUNK_SIZE as i32 {
@@ -1525,10 +1547,24 @@ impl WorldManager {
                                 if dd + dy * dy <= list[i as usize] {
                                     let px = icy as usize * CHUNK_SIZE + icx as usize;
                                     chunk.set_pixel(px, air_pixel);
+                                    /*if has_in {
+                                        chunkin.set_pixel(px, air_pixel);
+                                    }*/
+                                    if has_out {
+                                        chunkout.set_pixel(px, air_pixel);
+                                    }
                                 }
                             }
                         }
                         *chunk_encoded = chunk.to_chunk_data();
+                        /*if has_in {
+                            self.inbound_model
+                                .apply_chunk_data(coord, &chunkin.to_chunk_data())
+                        }*/
+                        if has_out {
+                            self.outbound_model
+                                .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                        }
                     }
                 }
             }
