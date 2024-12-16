@@ -20,6 +20,7 @@ eyre = "0.6.12"
 noita_api = {path = "noita_api"}
 shared = {path = "../shared"}
 libloading = "0.8.6"
+rand = "0.8.5"
 
 [features]
 #enables cross-compilation on older systems (for example, when compiling on ubuntu 20.04)
