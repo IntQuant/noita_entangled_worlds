@@ -69,7 +69,7 @@ end
 
 local function update(ent)
     local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-    if proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
+    if ctx.is_host and proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
         local x, y = EntityGetTransform(ent)
         local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
         if alive[ent] == nil then
@@ -96,7 +96,7 @@ local function update(ent)
     end
 end
 
-function mod.on_world_update_host()
+function mod.on_world_update()
     if first then
         send_mats()
         first = false

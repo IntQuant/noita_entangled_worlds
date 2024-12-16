@@ -1086,6 +1086,9 @@ impl WorldManager {
     }
 
     pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
+        if !self.is_host && !self.nice_terraforming {
+            return;
+        }
         let (min_cx, max_cx) = if x < lx {
             (
                 (x - r).div_euclid(CHUNK_SIZE as i32),
@@ -1166,11 +1169,27 @@ impl WorldManager {
                     }
                 {
                     let mut chunk = Chunk::default();
+                    let mut chunkin = Chunk::default();
+                    let mut chunkout = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);
                     if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk)
                     } else if !self.nice_terraforming {
                         continue;
+                    }
+                    let mut has_in = false;
+                    if self.nice_terraforming {
+                        if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                            has_in = true;
+                            chunk_encoded.apply_to_chunk(&mut chunkin)
+                        };
+                    }
+                    let mut has_out = false;
+                    if self.nice_terraforming {
+                        if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
+                            has_out = true;
+                            chunk_encoded.apply_to_chunk(&mut chunkout)
+                        }
                     }
                     for icx in 0..CHUNK_SIZE as i32 {
                         let cx = chunk_start_x + icx;
@@ -1184,16 +1203,40 @@ impl WorldManager {
                             let dy = dcy - (m * dmy as f64) as i32;
                             if dx * dx + dy * dy <= r * r {
                                 let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                chunk.set_pixel(px, air_pixel);
+                                if self.is_host {
+                                    chunk.set_pixel(px, air_pixel);
+                                }
+                                if has_in {
+                                    chunkin.set_pixel(px, air_pixel);
+                                }
+                                if has_out {
+                                    chunkout.set_pixel(px, air_pixel);
+                                }
                             }
                         }
                     }
-                    self.chunk_storage.insert(coord, chunk.to_chunk_data());
+                    if self.is_host {
+                        self.chunk_storage.insert(coord, chunk.to_chunk_data());
+                    }
+                    if has_in {
+                        self.inbound_model
+                            .apply_chunk_data(coord, &chunkin.to_chunk_data())
+                    } else if has_out {
+                        self.inbound_model
+                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                    }
+                    if has_out {
+                        self.outbound_model
+                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                    }
                 }
             }
         }
     }
     pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32, mat: Option<u16>) {
+        if !self.is_host && !self.nice_terraforming {
+            return;
+        }
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
             (x + r).div_euclid(CHUNK_SIZE as i32),
@@ -1232,10 +1275,26 @@ impl WorldManager {
                     let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
                     let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                     let mut chunk = Chunk::default();
+                    let mut chunkin = Chunk::default();
+                    let mut chunkout = Chunk::default();
                     if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk)
                     } else if do_continue || !self.nice_terraforming {
                         continue;
+                    }
+                    let mut has_in = false;
+                    if self.nice_terraforming {
+                        if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                            has_in = true;
+                            chunk_encoded.apply_to_chunk(&mut chunkin)
+                        };
+                    }
+                    let mut has_out = false;
+                    if self.nice_terraforming {
+                        if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
+                            has_out = true;
+                            chunk_encoded.apply_to_chunk(&mut chunkout)
+                        }
                     }
                     for icx in 0..CHUNK_SIZE as i32 {
                         let cx = chunk_start_x + icx;
@@ -1252,7 +1311,20 @@ impl WorldManager {
                             }
                         }
                     }
-                    self.chunk_storage.insert(coord, chunk.to_chunk_data());
+                    if self.is_host {
+                        self.chunk_storage.insert(coord, chunk.to_chunk_data());
+                    }
+                    if has_in {
+                        self.inbound_model
+                            .apply_chunk_data(coord, &chunkin.to_chunk_data())
+                    } else if has_out {
+                        self.inbound_model
+                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                    }
+                    if has_out {
+                        self.outbound_model
+                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                    }
                 }
             }
         }

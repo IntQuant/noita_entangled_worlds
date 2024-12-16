@@ -121,13 +121,19 @@ impl Chunk {
     }
 
     pub fn set_pixel(&mut self, offset: usize, pixel: Pixel) {
-        self.pixels[offset] = pixel.to_compact().raw();
-        self.mark_changed(offset);
+        let px = pixel.to_compact().raw();
+        if self.pixels[offset] != px {
+            self.pixels[offset] = px;
+            self.mark_changed(offset);
+        }
     }
 
     pub fn set_compact_pixel(&mut self, offset: usize, pixel: CompactPixel) {
-        self.pixels[offset] = pixel.raw();
-        self.mark_changed(offset);
+        let px = pixel.raw();
+        if self.pixels[offset] != px {
+            self.pixels[offset] = px;
+            self.mark_changed(offset);
+        }
     }
     pub fn changed(&self, offset: usize) -> bool {
         self.changed[offset]
