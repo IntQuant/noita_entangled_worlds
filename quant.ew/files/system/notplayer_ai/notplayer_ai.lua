@@ -1456,7 +1456,7 @@ local function update()
     state.dtype = ComponentGetValue2(var, "value_int")
     -- No taking control back, even after pressing esc.
     ComponentSetValue2(state.control_component, "enabled", false)
-    if InputIsKeyJustDown(43) or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 16)) then
+    if InputIsKeyJustDown(43) or (not (ModSettingGet("quant.ew.no_gamepad") or false) and InputIsJoystickButtonJustDown(0, 16)) then
         local active = not ComponentGetValue2(state.inv_component, "mActive")
         ComponentSetValue2(state.inv_component, "mActive", active)
         spectate.disable_throwing(active)

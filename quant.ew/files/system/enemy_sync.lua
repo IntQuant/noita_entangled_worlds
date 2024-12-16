@@ -120,10 +120,20 @@ local function get_sync_entities(return_all)
     table_extend(entities, EntityGetWithTag("perk_fungus_tiny"))
     table_extend(entities, EntityGetWithTag("helpless_animal"))
     table_extend_filtered(entities, EntityGetWithTag("hittable"), function(ent)
-        return EntityGetName(ent) == "$item_essence_stone"
-    end)
-    table_extend_filtered(entities, EntityGetWithTag("touchmagic_immunity"), function(ent)
-        return EntityGetName(ent) == "$animal_fish_giga"
+        local name = EntityGetName(ent)
+        local file = EntityGetFilename(ent)
+        return name == "$item_essence_stone"
+                or name == "$animal_fish_giga"
+                or file == "data/entities/buildings/spittrap_left.xml"
+                or file == "data/entities/buildings/spittrap_right.xml"
+                or file == "data/entities/buildings/thundertrap_left.xml"
+                or file == "data/entities/buildings/thundertrap_right.xml"
+                or file == "data/entities/buildings/arrowtrap_left.xml"
+                or file == "data/entities/buildings/arrowtrap_right.xml"
+                or file == "data/entities/buildings/firetrap_left.xml"
+                or file == "data/entities/buildings/firetrap_right.xml"
+                          --data/entities/buildings/statue_trap_left.xml
+                          --data/entities/buildings/statue_trap_right.xml
     end)
     table_extend_filtered(entities, EntityGetWithTag("prop_physics"), function (ent)
         local f = EntityGetFilename(ent)
