@@ -8,8 +8,6 @@ local hole_last = {}
 
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
-
-
 local function send_mats()
     local content_materials = ModTextFileGetContent("data/materials.xml")
     local xml_orig = nxml.parse(content_materials)
@@ -80,13 +78,16 @@ local function update(ent)
     if ctx.is_host and proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
         local x, y = EntityGetTransform(ent)
         local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
-        if alive[ent] == nil then
-            alive[ent] = {}
+        if r > 4 then
+            if alive[ent] == nil then
+                alive[ent] = {}
+            end
+            alive[ent].expl = {x, y, r,
+                               ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
+                               ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
+        elseif alive[ent] ~= nil and alive[ent].expl ~= nil then
+            alive[ent].expl = nil
         end
-        alive[ent].expl = {x, y, r,
-                           ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
-                           ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
-
     end
     local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
     if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then

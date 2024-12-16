@@ -1426,8 +1426,8 @@ impl WorldManager {
         }
         Some((x, y))
     }
-    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: i32, d: u8, ray: u32) {
-        let rays = (r * 2).clamp(4, 1024);
+    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: u32, d: u8, ray: u32) {
+        let rays = r.next_power_of_two().clamp(8, 256);
         let t = TAU / rays as f32;
         let results: Vec<i32> = (0..rays)
             .into_par_iter()
@@ -1457,10 +1457,11 @@ impl WorldManager {
         &mut self,
         x: i32,
         y: i32,
-        rays: i32,
+        rays: u32,
         list: Vec<i32>,
     ) {
-        let r = (*list.iter().max().unwrap_or(&0) as f64).sqrt().ceil() as i32;
+        let rs = *list.iter().max().unwrap_or(&0);
+        let r = (rs as f64).sqrt().ceil() as i32;
         if r == 0 {
             return;
         }
@@ -1483,50 +1484,65 @@ impl WorldManager {
         for chunk_x in min_cx..=max_cx {
             for chunk_y in min_cy..=max_cy {
                 if r <= CHUNK_SIZE as i32 || {
-                    let close_x = if chunk_x < chunkx {
-                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                    if r >= 8 * CHUNK_SIZE as i32 {
+                        let close_x = if chunk_x < chunkx {
+                            (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chunk_x * CHUNK_SIZE as i32
+                        };
+                        let close_y = if chunk_y < chunky {
+                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chunk_y * CHUNK_SIZE as i32
+                        };
+                        let (adj_x1, adj_x2) = (
+                            chunk_x * CHUNK_SIZE as i32,
+                            (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
+                        );
+                        let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
+                            (
+                                (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                                chunk_y * CHUNK_SIZE as i32,
+                            )
+                        } else {
+                            (
+                                chunk_y * CHUNK_SIZE as i32,
+                                (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                            )
+                        };
+                        let dx = close_x - x;
+                        let dy = close_y - y;
+                        let adj_dx = adj_x1 - x;
+                        let adj_dy = adj_y1 - y;
+                        let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+                        if i.is_sign_negative() {
+                            i += rays as f32
+                        }
+                        let adj_dx = adj_x2 - x;
+                        let adj_dy = adj_y2 - y;
+                        let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+                        if j.is_sign_negative() {
+                            j += rays as f32
+                        }
+                        let i = i as usize;
+                        let j = j as usize;
+                        let r = list[i.min(j)..=i.max(j)].iter().max().unwrap_or(&0);
+                        dx * dx + dy * dy <= *r
                     } else {
-                        chunk_x * CHUNK_SIZE as i32
-                    };
-                    let close_y = if chunk_y < chunky {
-                        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
-                    } else {
-                        chunk_y * CHUNK_SIZE as i32
-                    };
-                    let (adj_x1, adj_x2) = (
-                        chunk_x * CHUNK_SIZE as i32,
-                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
-                    );
-                    let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
-                        (
-                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                            chunk_y * CHUNK_SIZE as i32,
-                        )
-                    } else {
-                        (
-                            chunk_y * CHUNK_SIZE as i32,
-                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                        )
-                    };
-                    let dx = close_x - x;
-                    let dy = close_y - y;
-                    let d = dx * dx + dy * dy;
-                    let adj_dx = adj_x1 - x;
-                    let adj_dy = adj_y1 - y;
-                    let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-                    if i.is_sign_negative() {
-                        i += rays as f32
+                        let close_x = if chunk_x < chunkx {
+                            (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chunk_x * CHUNK_SIZE as i32
+                        };
+                        let close_y = if chunk_y < chunky {
+                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+                        } else {
+                            chunk_y * CHUNK_SIZE as i32
+                        };
+                        let dx = close_x - x;
+                        let dy = close_y - y;
+                        dx * dx + dy * dy <= rs
                     }
-                    let adj_dx = adj_x2 - x;
-                    let adj_dy = adj_y2 - y;
-                    let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-                    if j.is_sign_negative() {
-                        j += rays as f32
-                    }
-                    let i = i as usize;
-                    let j = j as usize;
-                    let r = list[i.min(j)..=i.max(j)].iter().max().unwrap_or(&0);
-                    d <= *r
                 } {
                     let mut chunk = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);

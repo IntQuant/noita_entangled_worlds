@@ -775,7 +775,7 @@ impl NetManager {
             Some("cut_through_world_explosion") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let r: Option<u32> = msg.next().and_then(|s| s.parse().ok());
                 let d: Option<u8> = msg.next().and_then(|s| s.parse().ok());
                 let ray: Option<u32> = msg.next().and_then(|s| s.parse().ok());
                 let (Some(x), Some(y), Some(r), Some(d), Some(ray)) = (x, y, r, d, ray) else {
