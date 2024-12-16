@@ -1,8 +1,12 @@
 use eyre::Ok;
 
+use crate::net::NetManager;
+
 pub(crate) mod entity_sync;
 
-pub(crate) struct ModuleCtx {}
+pub(crate) struct ModuleCtx<'a> {
+    pub(crate) net: &'a mut NetManager,
+}
 
 pub(crate) trait Module {
     // fn init() -> Self;

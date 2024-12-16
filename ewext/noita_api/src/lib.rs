@@ -1,4 +1,7 @@
-use std::{borrow::Cow, num::NonZero};
+use std::{
+    borrow::Cow,
+    num::{NonZero, TryFromIntError},
+};
 
 use eyre::{eyre, Context};
 
@@ -21,6 +24,10 @@ pub trait Component: From<ComponentID> {
 noita_api_macro::generate_components!();
 
 impl EntityID {
+    pub fn is_alive(self) -> bool {
+        raw::entity_get_is_alive(self).unwrap_or(false)
+    }
+
     pub fn try_get_first_component<C: Component>(
         self,
         tag: Option<Cow<'_, str>>,
@@ -32,6 +39,14 @@ impl EntityID {
     pub fn get_first_component<C: Component>(self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
         self.try_get_first_component(tag)?
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
+    }
+}
+
+impl TryFrom<isize> for EntityID {
+    type Error = TryFromIntError;
+
+    fn try_from(value: isize) -> Result<Self, Self::Error> {
+        NonZero::<isize>::try_from(value).map(Self)
     }
 }
 
