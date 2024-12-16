@@ -36,25 +36,25 @@ local function actual_orbs_update(found_orbs)
     last_orb_count = GameGetOrbCountThisRun()
 end
 
-function rpc.update_orbs(found_orbs, to_host)
-    if to_host and ctx.my_id ~= ctx.host_id then
+function rpc.update_orbs(found_orbs)
+    if ctx.rpc_peer_id ~= ctx.host_id and not ctx.is_host then
         return
     end
     if EntityHasTag(ctx.my_player.entity, "polymorphed") then
         wait_for_these = found_orbs
         return
     end
-    actual_orbs_update(found_orbs)
     local found_local = orbs_found_this_run()
     for _, orb_ent in ipairs(EntityGetWithTag("hittable") or {}) do
         local comp = EntityGetFirstComponent(orb_ent, "OrbComponent")
         if comp ~= nil then
             local orb = ComponentGetValue2(comp, "orb_id")
-            if table.contains(found_local, orb) then
+            if table.contains(found_local, orb) or table.contains(found_orbs, orb) then
                 EntityKill(orb_ent)
             end
         end
     end
+    actual_orbs_update(found_orbs)
 end
 
 local last = 0
@@ -71,8 +71,7 @@ function module.on_world_update()
                     if table.contains(found_local, orb) then
                         EntityKill(ent)
                     end
-                end
-                if EntityGetFilename(ent) == "data/entities/base_item.xml" then
+                elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
                     EntityKill(ent)
                 end
             end
@@ -82,7 +81,7 @@ function module.on_world_update()
     if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "polymorphed") then
         actual_orbs_update(wait_for_these)
         wait_for_these = nil
-    elseif last_orb_count ~= GameGetOrbCountThisRun() or GameGetFrameNum() % 60 * 60 == 563 then
+    elseif last_orb_count ~= GameGetOrbCountThisRun() or GameGetFrameNum() % (60 * 60) == 20 then
         last_orb_count = GameGetOrbCountThisRun()
         rpc.update_orbs(orbs_found_this_run())
     end

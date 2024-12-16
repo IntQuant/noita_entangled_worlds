@@ -329,7 +329,12 @@ end
 rpc.opts_reliable()
 function rpc.hand_authority_over_to(peer_id, gid)
     if peer_id == ctx.my_id then
-        item_sync.take_authority(gid)
+        if item_sync.find_by_gid(gid) ~= nil then
+            item_sync.take_authority(gid)
+        elseif wait_for_gid[gid] == nil then
+            item_sync.request_send_again(gid)
+            wait_for_gid[gid] = GameGetFrameNum() + 300
+        end
     end
 end
 
