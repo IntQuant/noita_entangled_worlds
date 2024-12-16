@@ -62,6 +62,10 @@ impl EntityID {
     pub fn next(self) -> eyre::Result<Self> {
         Ok(Self(NonZero::try_from(isize::from(self.0) + 1)?))
     }
+
+    pub fn raw(self) -> isize {
+        isize::from(self.0)
+    }
 }
 
 impl TryFrom<isize> for EntityID {
