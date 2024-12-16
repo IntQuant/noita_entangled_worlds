@@ -8,6 +8,8 @@ local hole_last = {}
 
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
+
+
 local function send_mats()
     local content_materials = ModTextFileGetContent("data/materials.xml")
     local xml_orig = nxml.parse(content_materials)
@@ -53,18 +55,22 @@ local function hole(item)
     if ce == nil or ComponentGetValue2(ce, "only_stain") then
         return
     end
+    local r = 0
     local x, y = EntityGetTransform(item)
     local n = ComponentGetValue2(ce, "radius")
     if hole_last[item] ~= nil then
         local lx, ly = hole_last[item][1], hole_last[item][2]
         if lx ~= x or y ~= ly then
+            local dx = x - lx
+            local dy = y - ly
+            r = math.sqrt(dx * dx + dy * dy)
             local inp = math.floor(x).." "..math.floor(lx)
                     .." "..math.floor(y).." "..math.floor(ly) .. " " .. n
             net.proxy_send("cut_through_world_line", inp)
         end
     end
     hole_last[item] = {x, y}
-    return true
+    return r
 end
 
 local function update(ent)
@@ -88,12 +94,14 @@ local function update(ent)
         end
         alive[ent].del = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
     end
-    if hole(ent) ~= nil then
+    local l = hole(ent)
+    if l ~= nil then
         if alive[ent] == nil then
             alive[ent] = {}
         end
         alive[ent].eater = true
     end
+    return l or 0
 end
 
 function mod.on_world_update()
@@ -101,18 +109,19 @@ function mod.on_world_update()
         send_mats()
         first = false
     end
-    local count = tonumber(ModSettingGet("quant.ew.explosions"))
+    local count1 = tonumber(ModSettingGet("quant.ew.explosions") or 128)
+    local count2 = tonumber(ModSettingGet("quant.ew.cell_eater") or 128)
     for ent, data in pairs(alive) do
         if not EntityGetIsAlive(ent) then
-            if count > 0 then
+            if count1 > 0 then
                 if data.expl ~= nil then
-                    count = count - data.expl[3]
+                    count1 = count1 - data.expl[3]
                     local inp = math.floor(data.expl[1]) .. " " .. math.floor(data.expl[2])
                             .. " " .. math.floor(data.expl[3]) .. " " .. math.floor(data.expl[4]) .. " " .. math.floor(data.expl[5])
                     net.proxy_send("cut_through_world_explosion", inp)
                 end
                 if data.del ~= nil then
-                    count = count - data.del[3]
+                    count1 = count1 - data.del[3]
                     local inp = math.floor(data.del[1]) .. " " .. math.floor(data.del[2])
                             .. " " .. math.floor(data.del[3]) .. " " .. math.floor(data.del[4])
                     net.proxy_send("cut_through_world_circle", inp)
@@ -120,8 +129,8 @@ function mod.on_world_update()
                 alive[ent] = nil
                 hole_last[ent] = nil
             end
-        else
-            update(ent)
+        elseif count2 > 0 then
+            count2 = count2 - update(ent)
         end
     end
     local n = EntitiesGetMaxID()

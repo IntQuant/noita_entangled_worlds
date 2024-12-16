@@ -119,8 +119,8 @@ local function renderChat()
     local startIdx = currentMessageIndex
     local endIdx = math.min(#chatMessages, startIdx + maxVisibleLines - 1)
 
-    local minaColorThreshold = math.floor(ModSettingGet("quant.ew.textcolor"))
-    local minaAltColorThreshold = math.floor(ModSettingGet("quant.ew.textaltcolor"))
+    local minaColorThreshold = math.floor(ModSettingGet("quant.ew.textcolor") or 0)
+    local minaAltColorThreshold = math.floor(ModSettingGet("quant.ew.textaltcolor") or 255)
     local color = 0
     local colorAlt = 0
 
@@ -250,7 +250,7 @@ function module.on_world_update()
         end
     end
 
-    if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text"))) then
+    if InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.text") or 40)) then
         if ctx.is_texting == true then
             local non_white = false
             for i = 1, string.len(text) do
@@ -268,7 +268,7 @@ function module.on_world_update()
         end
     end
 
-    if ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext"))))
+    if ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 76)))
             or ctx.is_paused or ctx.is_wand_pickup then
         stoptext()
     end

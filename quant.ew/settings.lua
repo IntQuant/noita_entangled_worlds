@@ -280,14 +280,21 @@ local function build_settings()
                     id = "rocks",
                     ui_name = "cap of special item entities to be synced",
                     ui_description = "max amount of proj to be synced, -1 for infinite",
-                    value_default = "-1",
+                    value_default = "16",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
                     id = "explosions",
                     ui_name = "amount of radii of explosions can be handled in 1 frame",
-                    ui_description = "host only, decrease if weird network lag, increase if weird world sync, cpu bounded",
+                    ui_description = "decrease if weird network lag, increase if weird world sync, cpu bounded",
                     value_default = "128",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "cell_eater",
+                    ui_name = "amount of length of cell eater logic can be handled in 1 frame",
+                    ui_description = "decrease if weird network lag, increase if weird world sync, cpu bounded",
+                    value_default = "64",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {

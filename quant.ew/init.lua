@@ -331,7 +331,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         GameAddFlagRun("ew_kill_player")
     end
     if ctx.host_id == ctx.my_id then
-        last_chunk = tonumber(ModSettingGet("quant.ew.chunk_target")) or 24
+        last_chunk = tonumber(ModSettingGet("quant.ew.chunk_target") or 24) or 24
         np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)
     end
     last_flex = ModSettingGet("quant.ew.flex")
@@ -383,7 +383,7 @@ local function on_world_pre_update_inner()
 
     if GameGetFrameNum() % 120 == 76 and not ctx.run_ended then
         if ctx.host_id == ctx.my_id then
-            local new_chunk = tonumber(ModSettingGet("quant.ew.chunk_target")) or 24
+            local new_chunk = tonumber(ModSettingGet("quant.ew.chunk_target") or 24) or 24
             if last_chunk ~= new_chunk then
                 last_chunk = new_chunk
                 np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)

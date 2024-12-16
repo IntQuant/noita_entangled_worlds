@@ -38,12 +38,12 @@ function module.on_world_update()
 
     local gui_id = 2
 
-    local rebind = tonumber(ModSettingGet("quant.ew.rebind_ping"))
+    local rebind = tonumber(ModSettingGet("quant.ew.rebind_ping") or 42)
     if (not EntityHasTag(ctx.my_player.entity, "polymorphed") or EntityHasTag(ctx.my_player.entity, "ew_notplayer"))
             and (
             ((rebind == 42 and InputIsMouseButtonJustDown(3))
                     or (rebind ~= 42 and InputIsKeyJustDown(rebind)))
-                        or (not ModSettingGet("quant.ew.no_gamepad") and InputIsJoystickButtonJustDown(0, 18))) then
+                        or (not (ModSettingGet("quant.ew.no_gamepad") or false) and InputIsJoystickButtonJustDown(0, 18))) then
         local x,y
         if GameGetIsGamepadConnected() then
             local tx, ty
@@ -62,8 +62,8 @@ function module.on_world_update()
 
     local i = 1
     --ternary operators ahead
-    local lifetime = (tonumber(ModSettingGet("quant.ew.ping_life")) or 6) * 60
-    local custom_scale = tonumber(ModSettingGet("quant.ew.ping_size")) or 0
+    local lifetime = (tonumber(ModSettingGet("quant.ew.ping_life") or 6) or 6) * 60
+    local custom_scale = tonumber(ModSettingGet("quant.ew.ping_size") or 0) or 0
     while i <= #pings do
         local pos = pings[i]
         local frame = pos[3]

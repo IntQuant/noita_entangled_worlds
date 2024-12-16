@@ -332,7 +332,7 @@ function rpc.hand_authority_over_to(peer_id, gid)
         if item_sync.find_by_gid(gid) ~= nil then
             item_sync.take_authority(gid)
         elseif wait_for_gid[gid] == nil then
-            item_sync.request_send_again(gid)
+            rpc.request_send_again(gid)
             wait_for_gid[gid] = GameGetFrameNum() + 300
         end
     end
@@ -464,7 +464,7 @@ local function send_item_positions(all)
                     elseif tg then
                         local f = EntityGetFilename(item)
                         if cap[f] == nil then
-                            cap[f] = ModSettingGet("quant.ew.rocks")
+                            cap[f] = ModSettingGet("quant.ew.rocks") or 32
                         end
                         if cap[f] == 0 then
                             position_data[gid] = nil
@@ -538,7 +538,7 @@ function item_sync.on_world_update()
             end
         end
     end
-    local rt = math.floor(tonumber(ModSettingGet("quant.ew.item_sync")))
+    local rt = math.floor(tonumber(ModSettingGet("quant.ew.item_sync") or 4) + 0.5)
     local n = 0
     if rt == 5 then
         n = 3
