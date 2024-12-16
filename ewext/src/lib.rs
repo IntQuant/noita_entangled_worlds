@@ -195,9 +195,11 @@ fn on_world_initialized(lua: LuaState) {
 fn with_every_module(
     f: impl Fn(&mut ModuleCtx, &mut dyn Module) -> eyre::Result<()>,
 ) -> eyre::Result<()> {
+    let mut temp = NETMANAGER.lock().unwrap();
+    let mut net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
     STATE.with(|state| {
         let modules = &mut state.borrow_mut().modules;
-        let mut ctx = ModuleCtx {};
+        let mut ctx = ModuleCtx { net: &mut net };
         let mut errs = Vec::new();
         for module in modules {
             if let Err(e) = f(&mut ctx, module.as_mut()) {
