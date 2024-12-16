@@ -13,8 +13,7 @@ local chatMessages = {}
 local maxMessages = 128
 local lineHeight = 10
 local maxVisibleLines = 15
-local maxInputLength = 512
-local visibleChars = 85
+local visibleChars = 384 -- it's actually pixel width now
 local currentMessageIndex = 1
 
 local function world2gui( x, y )
@@ -44,22 +43,46 @@ local function getColorComponents(color)
     return r, g, b
 end
 
-local function saveMessage(sender, message, color, colorAlt)
-    local wrappedMessage = {}
+local function wrapText(gui, text, maxWidth, senderWidth)
+    local wrappedLines = {}
     local currentLine = ""
+    local isFirstLine = true
+    local i = 1
 
-    for i = 1, string.len(message) do
-        local char = string.sub(message, i, i)
-        if string.len(currentLine) >= visibleChars then
-            table.insert(wrappedMessage, currentLine)
-            currentLine = ""
+    while i <= #text do
+        local char = text:sub(i, i)
+        local newLine = currentLine .. char
+        local lineWidth = GuiGetTextDimensions(gui, newLine)
+
+        if isFirstLine then
+            lineWidth = lineWidth + senderWidth
         end
-        currentLine = currentLine .. char
+
+        if lineWidth > maxWidth then
+            if lastSpace then
+                table.insert(wrappedLines, currentLine:sub(1, lastSpace - 1))
+                currentLine = currentLine:sub(lastSpace + 1) .. char
+            else
+                table.insert(wrappedLines, currentLine)
+                currentLine = char
+            end
+            isFirstLine = false
+        else
+            currentLine = newLine
+        end
+        i = i + 1
     end
 
     if currentLine ~= "" then
-        table.insert(wrappedMessage, currentLine)
+        table.insert(wrappedLines, currentLine)
     end
+
+    return wrappedLines
+end
+
+local function saveMessage(sender, message, color, colorAlt)
+    local senderWidth = sender ~= "" and calculateTextWidth(string.format("%s: ", sender)) or 0
+    local wrappedMessage = wrapText(gui, message or "", visibleChars, senderWidth)
 
     local isFirstLine = true
     for _, line in ipairs(wrappedMessage) do
@@ -69,6 +92,7 @@ local function saveMessage(sender, message, color, colorAlt)
         else
             table.insert(chatMessages, {sender = "", message = line, color = color, colorAlt = colorAlt})
         end
+
         if #chatMessages > maxMessages then
             table.remove(chatMessages, 1)
         end
@@ -103,53 +127,46 @@ local function renderChat()
     for i = startIdx, endIdx do
         local msg = chatMessages[i]
         if msg then
-            if msg.sender ~= "" then
-                local senderR, senderG, senderB = getColorComponents(msg.color or color)
-                senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
-                GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
+            local senderWidth = msg.sender ~= "" and calculateTextWidth(string.format("%s: ", msg.sender)) or 0
+            local wrappedMessage = wrapText(gui, msg.message or "", visibleChars, senderWidth)
 
-                local senderText = string.format("%s: ", msg.sender)
-                GuiText(gui, 64, startY, senderText)
+            local senderRendered = false
+            for _, line in ipairs(wrappedMessage) do
+                if not senderRendered and msg.sender ~= "" then
+                    local senderR, senderG, senderB = getColorComponents(msg.color or color)
+                    senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
+                    GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
 
-                local senderWidth = calculateTextWidth(string.format("%s: ", msg.sender))
+                    local senderText = string.format("%s: ", msg.sender)
+                    GuiText(gui, 64, startY, senderText)
 
-                local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
+                    local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
+                    textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
+                    GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
 
-                GuiText(gui, 64 + senderWidth, startY, msg.message)
-            else
-                local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
-                GuiText(gui, 64, startY, msg.message)
+                    GuiText(gui, 64 + senderWidth, startY, line)
+                    senderRendered = true
+                else
+                    local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
+                    textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
+                    GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
+
+                    GuiText(gui, 64, startY, line)
+                end
+                startY = startY + lineHeight
             end
-            startY = startY + lineHeight
         end
     end
 end
 
 local function renderTextInput()
     local startY = 128 + 150
-    local wrappedMessage = {}
-    local currentLine = ""
 
     if text == "" then
         GuiColorSetForNextWidget(gui, 0.5, 0.5, 0.5, 1)
         GuiText(gui, 64, startY, "Message *")
     else
-        for i = 1, string.len(text) do
-            local char = string.sub(text, i, i)
-            if string.len(currentLine) >= visibleChars then
-                table.insert(wrappedMessage, currentLine)
-                currentLine = ""
-            end
-            currentLine = currentLine .. char
-        end
-
-        if currentLine ~= "" then
-            table.insert(wrappedMessage, currentLine)
-        end
+        local wrappedMessage = wrapText(gui, text or "", visibleChars, 0)
 
         local maxLines = 8
         if #wrappedMessage > maxLines then
@@ -262,10 +279,6 @@ function module.on_world_update()
         end
         renderChat()
         renderTextInput()
-
-        if string.len(text) > maxInputLength then
-            text = string.sub(text, 1, maxInputLength)
-        end
 
         if InputIsMouseButtonJustDown(4) or InputIsKeyDown(82) then
             if #chatMessages > 0 then
