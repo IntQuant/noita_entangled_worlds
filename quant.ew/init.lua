@@ -260,17 +260,14 @@ function OnPausedChanged(paused, is_wand_pickup)
     if (players[1]) then
         np.RegisterPlayerEntityId(players[1])
         --local inventory_gui = EntityGetFirstComponentIncludingDisabled(players[1], "InventoryGuiComponent")
-        local controls_component = EntityGetFirstComponentIncludingDisabled(players[1], "ControlsComponent")
         if (paused) then
             --EntitySetComponentIsEnabled(players[1], inventory_gui, false)
             np.EnableInventoryGuiUpdate(false)
             np.EnablePlayerItemPickUpper(false)
-            ComponentSetValue2(controls_component, "enabled", true)
         else
             --EntitySetComponentIsEnabled(players[1], inventory_gui, true)
             np.EnableInventoryGuiUpdate(true)
             np.EnablePlayerItemPickUpper(true)
-            ComponentSetValue2(controls_component, "enabled", true)
         end
     end
 end

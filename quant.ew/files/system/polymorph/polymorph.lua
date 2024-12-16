@@ -28,7 +28,7 @@ local function entity_changed()
     else
         rpc.change_entity(nil)
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
-        ComponentSetValue2(controls, "enabled", true)
+        ComponentSetValue2(controls, "enabled", not ctx.is_texting)
     end
     ctx.hook.on_local_player_polymorphed(currently_polymorphed)
 end
