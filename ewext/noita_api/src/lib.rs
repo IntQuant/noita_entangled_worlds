@@ -24,10 +24,25 @@ pub trait Component: From<ComponentID> {
 noita_api_macro::generate_components!();
 
 impl EntityID {
+    /// Returns true if entity is alive.
+    ///
+    /// Corresponds to EntityGetIsAlive from lua api.
     pub fn is_alive(self) -> bool {
         raw::entity_get_is_alive(self).unwrap_or(false)
     }
 
+    /// Returns true if entity has a tag.
+    ///
+    /// Corresponds to EntityGetTag from lua api.
+    pub fn has_tag(self, tag: impl AsRef<str>) -> bool {
+        raw::entity_has_tag(self, tag.as_ref().into()).unwrap_or(false)
+    }
+
+    pub fn max_in_use() -> eyre::Result<Self> {
+        Ok(Self::try_from(raw::entities_get_max_id()? as isize)?)
+    }
+
+    /// Returns the first component of this type if an entity has it.
     pub fn try_get_first_component<C: Component>(
         self,
         tag: Option<Cow<'_, str>>,
@@ -36,9 +51,16 @@ impl EntityID {
             .map(|x| x.flatten().map(Into::into))
             .wrap_err_with(|| eyre!("Failed to get first component {} for {self:?}", C::NAME_STR))
     }
+
+    /// Returns the first component of this type if an entity has it.
     pub fn get_first_component<C: Component>(self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
         self.try_get_first_component(tag)?
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
+    }
+
+    /// Returns id+1
+    pub fn next(self) -> eyre::Result<Self> {
+        Ok(Self(NonZero::try_from(isize::from(self.0) + 1)?))
     }
 }
 
