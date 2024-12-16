@@ -1,5 +1,3 @@
-use std::num::NonZero;
-
 use eyre::Context;
 use noita_api::EntityID;
 
@@ -21,7 +19,7 @@ pub(crate) struct EntitySync {
 impl Default for EntitySync {
     fn default() -> Self {
         Self {
-            look_current_entity: EntityID(NonZero::new(1).unwrap()),
+            look_current_entity: EntityID::try_from(1).unwrap(),
             tracked: Vec::new(),
         }
     }
@@ -35,7 +33,7 @@ impl EntitySync {
     /// Looks for newly spawned entities that might need to be tracked.
     fn look_for_tracked(&mut self) -> eyre::Result<()> {
         let max_entity = EntityID::max_in_use()?;
-        for i in (self.look_current_entity.next()?)..=max_entity {
+        for i in (self.look_current_entity.raw() + 1)..=max_entity.raw() {
             let entity = EntityID::try_from(i)?;
             if !entity.is_alive() {
                 continue;
