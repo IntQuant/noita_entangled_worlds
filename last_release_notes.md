@@ -1,47 +1,38 @@
-## Noita Entangled Worlds v0.32.4
+## Noita Entangled Worlds v0.32.5
 
-- fix host unable to connect sometimes
+- fix some duping with orb sync
 
-- log panics for windows
+- fix items disappearing (probably)
 
-- fix a bunch of errors
+- fix being able to move in chat sometimes
 
-- dont cull the sun
+- make cell eaters more consistent
 
-- sync essence eaters
+- set default to amt of special items to sync at 16
 
-- fix projectiles not dying sometimes
+- add an option for how much cell eater logic to do per frame
 
-- spawn patsas if client gets close
+- sync traps
 
-- fix notplayer holding 2 wands
+- dont cull chests
 
-- remove empty items from ground
+- ignore some more cell eaters
 
-- fix temple boss not dropping stuff
+- fix a world sync issue
 
-- wait a second to send new tether length, dont tether if either you or host is taking damage
+- fix an issue with explosives
 
-- fix kolmi in perma death with no host, fix kolmi ai and dont tp host to kolmi, sync kolmis legs
+- dont cleanup special items in item sync
 
-- fix 1 orb in mom not syncing
+- reduce amount of rays for explosions
 
-- maybe fix stuff not spawning as much(prob not)
+- try to fix base item spam
 
-- fix perma death game over
-
-- fix spells falling through floor
-
-- dont let players rejoin or start a new game during end fight
-
-- check seed properly
-
-- fix an error when restarting while dead in perma death, and fix spectating when dead in perma death
-
+- try to fix tether looking visually wrong sometimes
 
 ## Accepted pull requests
 
-- Added German Translation by @KilianSen in #285
+- chat line lenght are limited based on pixels not symbols, words are wrapping to the next line now, maybe some other fixes i dont remember already by @sad-username-231 in #286
 ## Installation
 
 
