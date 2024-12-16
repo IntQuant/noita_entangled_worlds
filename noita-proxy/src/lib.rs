@@ -9,7 +9,6 @@ use eframe::egui::{
     InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions,
     ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
 };
-use egui_plot::{Plot, PlotPoint, PlotUi, Text};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{set_current_locale, tr, LANGS};
@@ -1198,15 +1197,17 @@ impl App {
 
         font_definitions.font_data.insert(
             "noto_sans".to_owned(),
-            egui::FontData::from_static(include_bytes!("../assets/font/NotoSans-Regular.ttf")),
+            egui::FontData::from_static(include_bytes!("../assets/font/NotoSans-Regular.ttf"))
+                .into(),
         );
         font_definitions.font_data.insert(
             "noto_sans_jp".to_owned(),
-            egui::FontData::from_static(include_bytes!("../assets/font/NotoSansJP-Light.ttf")),
+            egui::FontData::from_static(include_bytes!("../assets/font/NotoSansJP-Light.ttf"))
+                .into(),
         );
         font_definitions.font_data.insert(
             "noto_sans_sc".to_owned(),
-            egui::FontData::from_static(include_bytes!("../assets/font/MiSans-Light.ttf")),
+            egui::FontData::from_static(include_bytes!("../assets/font/MiSans-Light.ttf")).into(),
         );
 
         font_definitions
@@ -1446,7 +1447,7 @@ impl App {
             }
             if self.app_saved_state.show_extra_debug_stuff {
                 if self.show_map_plot {
-                    if ui.button("Close plot").clicked() {
+                    /*if ui.button("Close plot").clicked() {
                         self.show_map_plot = false;
                     }
                     ctx.request_repaint_after(Duration::from_millis(16));
@@ -1473,7 +1474,7 @@ impl App {
                             )
                         });
                     };
-                    Plot::new("map").data_aspect(1.0).show(ui, build_fn);
+                    Plot::new("map").data_aspect(1.0).show(ui, build_fn);*/
                 } else if ui.button(tr("Show-debug-plot")).clicked() {
                     self.show_map_plot = true;
                 }

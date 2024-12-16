@@ -1,7 +1,6 @@
-use std::{env, ops::Deref, sync::Arc, thread, time::Duration};
+use std::{env, thread, time::Duration};
 
-use dashmap::DashMap;
-use eframe::egui::{self, ColorImage, RichText, TextureHandle, TextureOptions, Ui};
+use eframe::egui::{self, RichText, TextureHandle, Ui};
 use steamworks::{PersonaChange, PersonaStateChange, SteamAPIInitError, SteamId};
 use tracing::{error, info};
 
@@ -27,7 +26,6 @@ impl SteamUserAvatar {
 
 pub struct SteamState {
     pub client: steamworks::Client,
-    avatar_cache: Arc<DashMap<SteamId, SteamUserAvatar>>,
 }
 
 impl SteamState {
@@ -46,7 +44,6 @@ impl SteamState {
         if let Err(err) = client.networking_sockets().init_authentication() {
             error!("Failed to init_authentication: {}", err)
         }
-        let avatar_cache = Arc::new(DashMap::new());
 
         thread::spawn(move || {
             info!("Spawned steam callback thread");
@@ -57,63 +54,21 @@ impl SteamState {
         });
 
         {
-            let avatar_cache = avatar_cache.clone();
             client.register_callback(move |event: PersonaStateChange| {
                 if event.flags.contains(PersonaChange::AVATAR) {
                     info!(
                         "Got PersonaStateChange for {:?}, removing from avatar cache.",
                         event.steam_id
                     );
-                    avatar_cache.remove(&event.steam_id);
                 }
             });
         }
-        Ok(SteamState {
-            client,
-            avatar_cache,
-        })
+        Ok(SteamState { client })
     }
 
     pub fn get_user_name(&self, id: SteamId) -> String {
         let friends = self.client.friends();
         friends.get_friend(id).name()
-    }
-
-    pub fn get_avatar<'a>(
-        &'a mut self,
-        ctx: &egui::Context,
-        id: SteamId,
-    ) -> Option<impl Deref<Target = SteamUserAvatar> + 'a> {
-        let friends = self.client.friends();
-
-        if self.avatar_cache.contains_key(&id) {
-            self.avatar_cache.get(&id)
-        } else {
-            // Check that we already have the avatar, as otherwise small_avatar will return a placeholder image.
-            if friends.request_user_information(id, false) {
-                return None;
-            };
-            let friend = friends.get_friend(id);
-            friend
-                .small_avatar()
-                .map(|(width, height, data)| {
-                    info!("Loaded avatar for {:?}", id);
-                    ctx.load_texture(
-                        format!("steam_avatar_for_{:?}", id),
-                        ColorImage::from_rgba_unmultiplied(
-                            [width as usize, height as usize],
-                            &data,
-                        ),
-                        TextureOptions::LINEAR,
-                    )
-                })
-                .map(|avatar| {
-                    let avatar = SteamUserAvatar { avatar };
-                    self.avatar_cache.entry(id).or_insert(avatar).downgrade()
-                })
-        }
-
-        // ctx.load_texture(name, image, options)
     }
 
     pub(crate) fn get_my_id(&self) -> SteamId {

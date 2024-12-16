@@ -5,16 +5,16 @@ resolver = "2"
 [package]
 name = "noita-proxy"
 description = "Noita Entangled Worlds companion app."
-version = "0.32.4"
+version = "0.32.5"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = { version="0.29.1", features = ["glow", "default_fonts"], default-features = false }
+eframe = { version= "0.30.0", features = ["glow", "default_fonts", "wayland"], default-features = false }
 rfd = "0.15.1"
-egui_extras = { version = "0.29.1", features = ["all_loaders"] }
-egui_plot = "0.29.0"
+egui_extras = { version = "0.30.0", features = ["all_loaders"] }
+#egui_plot = "0.29.0"
 image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 
 rayon = "1.10.0"
@@ -26,7 +26,7 @@ serde = { version = "1.0.207", features = ["serde_derive", "derive"] }
 bitcode = "0.6.3"
 lz4_flex = { version = "0.11.3", default-features = false, features = ["std"]}
 rand = "0.8.5"
-steamworks = { git = "https://github.com/IntQuant/steamworks-rs", branch = "avatar-fix" }
+steamworks = "0.11.0"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 clipboard = "0.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }

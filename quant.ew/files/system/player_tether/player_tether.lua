@@ -159,7 +159,9 @@ local function tether_enable(to_enable, entity)
             EntityAddChild(entity, child)
             local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
             EntitySetComponentIsEnabled(child, emmiter, to_enable)
-            set_tether_length(tether_length_3, entity)
+            if tether_length_3 ~= nil then
+                set_tether_length(tether_length_3, entity)
+            end
         end
     end
 end
@@ -229,9 +231,11 @@ function module.on_world_update()
                     tether_length = new_range
                     if new_range > 512 then
                         tether_length_2 = new_range + 128
+                        tether_length_3 = tether_length_2
                         tether_enable(false, ctx.my_player.entity)
                     else
                         tether_length_2 = new_range
+                        tether_length_3 = new_range
                         tether_enable(true, ctx.my_player.entity)
                         set_tether_length(tether_length_2, ctx.my_player.entity)
                     end
@@ -337,8 +341,8 @@ function module.on_world_update()
                     if not not_in_normal_area(x, y) and not not_in_normal_area(x2, y2) and position_to_area_number(x, y) > my_pos then
                         x, y = new_pos(given)
                     end
+                    EntitySetTransform(ctx.my_player.entity, x, y)
                     async(function()
-                        EntitySetTransform(ctx.my_player.entity, x, y)
                         if tether_length_3 > 1024 then
                             wait(40)
                             EntitySetTransform(ctx.my_player.entity, x, y)
