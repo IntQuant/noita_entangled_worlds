@@ -84,6 +84,9 @@ pub(crate) enum WorldNetMessage {
     ListenStopRequest {
         chunk: ChunkCoord,
     },
+    UnloadChunk {
+        chunk: ChunkCoord,
+    },
     // Listen responses/messages
     ListenInitialResponse {
         chunk: ChunkCoord,
@@ -741,9 +744,11 @@ impl WorldManager {
                     WorldNetMessage::ListenAuthorityRelinquished { chunk },
                 )
             }
+            WorldNetMessage::UnloadChunk { chunk } => {
+                self.chunk_state.insert(chunk, ChunkState::UnloadPending {});
+            }
 
             WorldNetMessage::AuthorityAlreadyTaken { chunk, authority } => {
-                // TODO what to do in case we won't get a response?
                 self.emit_msg(
                     Destination::Peer(authority),
                     WorldNetMessage::ListenRequest { chunk },
@@ -757,6 +762,10 @@ impl WorldManager {
                     ..
                 }) = self.chunk_state.get_mut(&chunk)
                 else {
+                    self.emit_msg(
+                        Destination::Peer(source),
+                        WorldNetMessage::UnloadChunk { chunk },
+                    );
                     //warn!("Can't listen for {chunk:?} - not an authority");
                     return;
                 };
@@ -1362,7 +1371,11 @@ impl WorldManager {
             y.div_euclid(CHUNK_SIZE as i32),
         );
         let mut last;
-        if let Some(c) = self.chunk_storage.get(&last_co) {
+        if let Some(c) = self.outbound_model.get_chunk_data(last_co) {
+            last = c
+        } else if let Some(c) = self.inbound_model.get_chunk_data(last_co) {
+            last = c
+        } else if let Some(c) = self.chunk_storage.get(&last_co).cloned() {
             last = c
         } else {
             return None;
@@ -1375,7 +1388,11 @@ impl WorldManager {
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co != last_co {
-                if let Some(c) = self.chunk_storage.get(&co) {
+                if let Some(c) = self.outbound_model.get_chunk_data(co) {
+                    last = c
+                } else if let Some(c) = self.outbound_model.get_chunk_data(co) {
+                    last = c
+                } else if let Some(c) = self.chunk_storage.get(&co).cloned() {
                     last = c
                 } else {
                     return last_coord;
@@ -1513,65 +1530,40 @@ impl WorldManager {
                 } {
                     let mut chunk = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);
-                    if let Some(chunk_encoded) = self.chunk_storage.get_mut(&coord) {
+                    if self.outbound_model.get_chunk_data(coord).is_some()
+                        || self.inbound_model.get_chunk_data(coord).is_some()
+                    {
+                        continue;
+                    } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk);
-                        let mut chunkout = Chunk::default();
-                        /*let mut chunkin = Chunk::default();
-                        let mut has_in = false;
-                        if self.nice_terraforming {
-                            if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
-                                has_in = true;
-                                chunk_encoded.apply_to_chunk(&mut chunkin)
-                            };
-                        }*/
-                        let mut has_out = false;
-                        if self.nice_terraforming {
-                            if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
-                                has_out = true;
-                                chunk_encoded.apply_to_chunk(&mut chunkout)
+                    } else {
+                        continue;
+                    }
+                    let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
+                    let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
+                    for icx in 0..CHUNK_SIZE as i32 {
+                        let cx = chunk_start_x + icx;
+                        let dx = cx - x;
+                        let dd = dx * dx;
+                        for icy in 0..CHUNK_SIZE as i32 {
+                            let cy = chunk_start_y + icy;
+                            let dy = cy - y;
+                            let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
+                            if i.is_sign_negative() {
+                                i += rays as f32
                             }
-                        }
-                        let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
-                        let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
-                        for icx in 0..CHUNK_SIZE as i32 {
-                            let cx = chunk_start_x + icx;
-                            let dx = cx - x;
-                            let dd = dx * dx;
-                            for icy in 0..CHUNK_SIZE as i32 {
-                                let cy = chunk_start_y + icy;
-                                let dy = cy - y;
-                                let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
-                                if i.is_sign_negative() {
-                                    i += rays as f32
-                                }
-                                if dd + dy * dy <= list[i as usize] {
-                                    let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                    chunk.set_pixel(px, air_pixel);
-                                    /*if has_in {
-                                        chunkin.set_pixel(px, air_pixel);
-                                    }*/
-                                    if has_out {
-                                        chunkout.set_pixel(px, air_pixel);
-                                    }
-                                }
+                            if dd + dy * dy <= list[i as usize] {
+                                let px = icy as usize * CHUNK_SIZE + icx as usize;
+                                chunk.set_pixel(px, air_pixel);
                             }
-                        }
-                        *chunk_encoded = chunk.to_chunk_data();
-                        /*if has_in {
-                            self.inbound_model
-                                .apply_chunk_data(coord, &chunkin.to_chunk_data())
-                        }*/
-                        if has_out {
-                            self.outbound_model
-                                .apply_chunk_data(coord, &chunkout.to_chunk_data())
                         }
                     }
+                    self.chunk_storage.insert(coord, chunk.to_chunk_data());
                 }
             }
         }
     }
 }
-
 impl Drop for WorldManager {
     fn drop(&mut self) {
         if self.is_host {

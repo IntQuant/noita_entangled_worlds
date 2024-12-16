@@ -202,7 +202,7 @@ impl WorldModel {
         chunk_data.apply_to_chunk(chunk);
     }
 
-    pub(crate) fn get_chunk_data(&mut self, chunk: ChunkCoord) -> Option<ChunkData> {
+    pub(crate) fn get_chunk_data(&self, chunk: ChunkCoord) -> Option<ChunkData> {
         let chunk = self.chunks.get(&chunk)?;
         Some(chunk.to_chunk_data())
     }
