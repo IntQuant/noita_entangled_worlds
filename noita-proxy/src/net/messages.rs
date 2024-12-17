@@ -4,12 +4,7 @@ use crate::{player_cosmetics::PlayerPngDesc, GameSettings};
 
 use super::{omni::OmniPeerId, world::WorldNetMessage};
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Destination {
-    Peer(OmniPeerId),
-    Host,
-    Broadcast,
-}
+pub(crate) type Destination = shared::Destination<OmniPeerId>;
 
 pub(crate) struct MessageRequest<T> {
     pub(crate) reliability: tangled::Reliability,

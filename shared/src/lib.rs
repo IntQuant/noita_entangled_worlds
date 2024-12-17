@@ -2,8 +2,10 @@ use bitcode::{Decode, Encode};
 
 pub mod message_socket;
 
-#[derive(Encode, Decode)]
-pub struct PeerId(pub u64);
+pub mod basic_types;
+pub mod des;
+
+pub use basic_types::*;
 
 #[derive(Encode, Decode)]
 pub struct ProxyKV {
@@ -19,17 +21,33 @@ pub struct ProxyKVBin {
 
 #[derive(Encode, Decode)]
 pub struct ModMessage {
-    pub peer: PeerId,
+    pub peer: basic_types::PeerId,
     pub value: Vec<u8>,
+}
+
+#[derive(Encode, Decode)]
+pub enum RemoteMessage {
+    RemoteDes(des::RemoteDes),
 }
 
 #[derive(Encode, Decode)]
 pub enum NoitaInbound {
     RawMessage(Vec<u8>),
     Ready,
+    ProxyToDes(des::ProxyToDes),
+    RemoteMessage {
+        reliable: bool,
+        source: basic_types::PeerId,
+        message: RemoteMessage,
+    },
 }
 
 #[derive(Encode, Decode)]
 pub enum NoitaOutbound {
     Raw(Vec<u8>),
+    DesToProxy(des::DesToProxy),
+    RemoteMessage {
+        destination: Destination<PeerId>,
+        message: RemoteMessage,
+    },
 }
