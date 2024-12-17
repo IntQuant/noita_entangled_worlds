@@ -3,6 +3,10 @@ local gui = GuiCreate()
 local rpc = net.new_rpc_namespace()
 
 local text = ""
+local cursorPos = 0
+
+local LPressed = false
+local RPressed = false
 
 local unread_messages_counter = 0
 
@@ -59,6 +63,7 @@ local function wrapText(gui, text, maxWidth, senderWidth)
         end
 
         if lineWidth > maxWidth then
+            local lastSpace = currentLine:match("^.*()%s")
             if lastSpace then
                 table.insert(wrappedLines, currentLine:sub(1, lastSpace - 1))
                 currentLine = currentLine:sub(lastSpace + 1) .. char
@@ -160,6 +165,7 @@ local function renderChat()
 end
 
 local function renderTextInput()
+    local charCounter = 0
     local startY = 128 + 150
 
     if text == "" then
@@ -174,6 +180,15 @@ local function renderTextInput()
         end
 
         for _, line in ipairs(wrappedMessage) do
+            lineCharCounter = 0
+            for i = 1, string.len(line) do
+                charCounter = charCounter + 1
+                lineCharCounter = lineCharCounter + 1
+                if charCounter == cursorPos then
+                    GuiText(gui, 63+calculateTextWidth(string.sub(line, 1, lineCharCounter)), startY+2, "_")
+                end
+            end
+
             GuiText(gui, 64, startY, line)
             startY = startY + lineHeight
         end
@@ -205,6 +220,8 @@ function rpc.text(msg, color, colorAlt)
 end
 
 local function starttext()
+    cursorPos = 0
+
     ctx.is_texting = true
     local g = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
     if g ~= nil then
@@ -238,6 +255,10 @@ local function create_chat_hint(hint) --maybe will make it for all hints in futu
     local _, h = GuiGetScreenDimensions(gui)
     local _, th = GuiGetTextDimensions(gui, hint)
     GuiText(gui, 2, h-1-th, hint)
+end
+
+function string.insert(str1, str2, pos)
+    return str1:sub(1,pos)..str2..str1:sub(pos+1)
 end
 
 function module.on_world_update()
@@ -292,19 +313,106 @@ function module.on_world_update()
             end
         end
 
-        if InputIsKeyJustDown(42) then --backspace
-            text = string.sub(text, 1, -1)
-            counter = 10
+        if InputIsKeyJustDown(42) and cursorPos - 1 >= 0 then --backspace
+            cursorPos = cursorPos - 1
+            text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos+2, -1)
+            counterB = 10
+        elseif InputIsKeyDown(42) and cursorPos - 1 >= 0 then
+            counterB = counterB + 1
+            if counterB == 3 then
+                cursorPos = cursorPos - 1
+                text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos+2, -1)
+                counterB = 0
+            end
+            if counterB == 30 then --delay for deleting only 1 character
+                counterB = 0
+            end
         end
 
-        if InputIsKeyDown(42) then
-            counter = counter + 1
-            if counter == 3 then
-                text = string.sub(text, 1, -2)
-                counter = 0
+        --home, end, left and right arrow implementation
+        if InputIsKeyDown(74) then --home
+            cursorPos = 0
+        end
+        if InputIsKeyDown(77) then --end
+            cursorPos = #text
+        end
+
+        if InputIsKeyJustUp(80) then
+            LPressed = false
+        end
+        if InputIsKeyJustUp(79) then
+            RPressed = false
+        end
+
+        if not InputIsKeyDown(224) then
+            if InputIsKeyJustDown(80) and cursorPos - 1 >= 0 then --left arrow
+                cursorPos = cursorPos - 1
+                counterL = 10
+
+                LPressed = true
+                RPressed = false
+            elseif not RPressed and InputIsKeyDown(80) and cursorPos - 1 >= 0 then
+                counterL = counterL + 1
+                if counterL == 3 then
+                    cursorPos = cursorPos - 1
+                    counterL = 0
+                end
+                if counterL == 30 then --delay for moving only 1 character
+                    counterL = 0
+                end
             end
-            if counter == 30 then --delay for deleting only 1 character
-                counter = 0
+            if InputIsKeyJustDown(79) and cursorPos + 1 < #text + 1 then --right arrow
+                cursorPos = cursorPos + 1
+                counterR = 10
+
+                RPressed = true
+                LPressed = false
+            elseif not LPressed and InputIsKeyDown(79) and cursorPos + 1 < #text + 1 then
+                counterR = counterR + 1
+                if counterR == 3 then
+                    cursorPos = cursorPos + 1
+                    counterR = 0
+                end
+                if counterR == 30 then --delay for moving only 1 character
+                    counterR = 0
+                end
+            end
+        else
+            local moveLength = (string.find(string.reverse(string.sub(text, 1, cursorPos)), " ") or cursorPos)
+            if InputIsKeyJustDown(80) and cursorPos - moveLength >= 0 then --left arrow
+                cursorPos = cursorPos - moveLength
+                counterL = 10
+
+                LPressed = true
+                RPressed = false
+            elseif not RPressed and InputIsKeyDown(80) and cursorPos - moveLength >= 0 then
+                counterL = counterL + 1
+                if counterL == 3 then
+                    cursorPos = cursorPos - moveLength
+                    counterL = 0
+                end
+                if counterL == 30 then --delay for moving only 1 character
+                    counterL = 0
+                end
+            end
+            local moveLength = (string.find(string.sub(text, cursorPos+2, -1), " ") or #text - cursorPos)
+            if InputIsKeyJustDown(79) and cursorPos + moveLength < #text + 1 then --right arrow
+                cursorPos = cursorPos + moveLength
+
+                counterR = 10
+
+                RPressed = true
+                LPressed = false
+            elseif not LPressed and InputIsKeyDown(79) and cursorPos + moveLength < #text + 1 then
+                counterR = counterR + 1
+                if counterR == 3 then
+                    cursorPos = cursorPos + moveLength
+
+                    counterR = 0
+                end
+                if counterR == 30 then --delay for moving only 1 character
+                    counterR = 0
+                end
             end
         end
 
@@ -312,11 +420,9 @@ function module.on_world_update()
         x, y = world2gui(x, y)
         local new = GuiTextInput(gui, 421, x, y - 6, " ", 0, 256)
         if new ~= " " then
-            if new == "" then
-                text = string.sub(text, 1, -2)
-            else
-                text = text .. string.sub(new, 2, -1)
-            end
+            text = string.insert(text, string.sub(new, 2, -1), cursorPos)
+            --text = text .. string.sub(new, 2, -1)
+            cursorPos = cursorPos + #string.sub(new, 2, -1)
         end
     end
 end
