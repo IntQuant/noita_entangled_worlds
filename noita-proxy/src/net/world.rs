@@ -1451,13 +1451,14 @@ impl WorldManager {
                 }
             })
             .collect();
-        self.cut_through_world_explosion_list(x, y, rays, results);
+        self.cut_through_world_explosion_list(x, y, d, rays, results);
     }
 
     pub(crate) fn cut_through_world_explosion_list(
         &mut self,
         x: i32,
         y: i32,
+        d: u8,
         rays: u32,
         list: Vec<i32>,
     ) {
@@ -1516,7 +1517,14 @@ impl WorldManager {
                             }
                             if dd + dy * dy <= list[i as usize] {
                                 let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                chunk.set_pixel(px, air_pixel);
+                                if self
+                                    .durabilities
+                                    .get(&chunk.pixel(px).material)
+                                    .map(|(h, _)| *h <= d)
+                                    .unwrap_or(true)
+                                {
+                                    chunk.set_pixel(px, air_pixel);
+                                }
                             }
                         }
                     }
