@@ -52,6 +52,22 @@ impl ChunkData {
         ChunkData { runs }
     }
 
+    #[cfg(test)]
+    pub(crate) fn new(mat: u16) -> Self {
+        let mut runner = PixelRunner::new();
+        for _ in 0..CHUNK_SIZE * CHUNK_SIZE {
+            runner.put_pixel(
+                Pixel {
+                    flags: PixelFlags::Normal,
+                    material: mat,
+                }
+                .to_compact(),
+            )
+        }
+        let runs = runner.build();
+        ChunkData { runs }
+    }
+
     pub(crate) fn apply_to_chunk(&self, chunk: &mut Chunk) {
         let mut offset = 0;
         for run in &self.runs {
