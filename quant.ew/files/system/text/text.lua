@@ -10,10 +10,11 @@ rpc.opts_everywhere()
 rpc.opts_reliable()
 
 local chatMessages = {}
-local maxMessages = 128
+local maxVisibleLines = 128
+local maxFileLines = 2048
 local lineHeight = 10
-local maxVisibleLines = 15
-local visibleChars = 384 -- it's actually pixel width now
+local visibleLines = 15
+local pixelWidth = 384
 local currentMessageIndex = 1
 
 local function world2gui( x, y )
@@ -59,6 +60,7 @@ local function wrapText(gui, text, maxWidth, senderWidth)
         end
 
         if lineWidth > maxWidth then
+            local lastSpace = currentLine:match("^.*()%s")
             if lastSpace then
                 table.insert(wrappedLines, currentLine:sub(1, lastSpace - 1))
                 currentLine = currentLine:sub(lastSpace + 1) .. char
@@ -80,25 +82,161 @@ local function wrapText(gui, text, maxWidth, senderWidth)
     return wrappedLines
 end
 
+local function getFileLineCount(fileName)
+    local lineCount = 0
+    local file = io.open(fileName, "r")
+
+    if file then
+        for _ in file:lines() do
+            lineCount = lineCount + 1
+        end
+        file:close()
+    end
+
+    return lineCount
+end
+
+local function trimFile(fileName)
+    local file = io.open(fileName, "r")
+    local lines = {}
+    
+    if file then
+        for line in file:lines() do
+            table.insert(lines, line)
+        end
+        file:close()
+    end
+    
+    local removeCount = math.floor(#lines / 2)
+    for i = 1, removeCount do
+        table.remove(lines, 1)
+    end
+
+    file = io.open(fileName, "w")
+    for _, line in ipairs(lines) do
+        file:write(line .. "\n")
+    end
+    file:close()
+end
+
+local function saveMessageToFile(sender, message, color, colorAlt)
+    local fileName = "mods/quant.ew/files/system/text/chat_history.txt"
+    local lineCount = getFileLineCount(fileName)
+
+    if lineCount >= maxFileLines then
+        trimFile(fileName)
+    end
+
+    local file = io.open(fileName, "a")
+    local line
+    if sender == "" then
+        line = string.format("[%s,%s] : %s\n", color, colorAlt, message)
+    else
+        line = string.format("[%s,%s] %s: %s\n", color, colorAlt, sender, message)
+    end
+    file:write(line)
+    file:close()
+end
+
+local function isFileEmpty(fileName)
+    local file = io.open(fileName, "r")
+    if not file then
+        return true
+    end
+    
+    local firstLine = file:read("*l")
+    file:close()
+    
+    return firstLine == nil
+end
+
+local function copyPresetChatHistory()
+    local presetFileName = "mods/quant.ew/files/system/text/chat_history_preset.txt"
+    local chatHistoryFileName = "mods/quant.ew/files/system/text/chat_history.txt"
+
+    local presetFile = io.open(presetFileName, "r")
+    local chatHistoryFile = io.open(chatHistoryFileName, "a")
+
+    if presetFile and chatHistoryFile then
+        for line in presetFile:lines() do
+            chatHistoryFile:write(line .. "\n")
+        end
+        presetFile:close()
+        chatHistoryFile:close()
+    end
+end
+
+local function loadChatHistory()
+    local fileName = "mods/quant.ew/files/system/text/chat_history.txt"
+    if isFileEmpty(fileName) then
+        copyPresetChatHistory()
+    end
+
+    local file = io.open(fileName, "r")
+    local lines = {}
+    local maxLinesToLoad = 128
+
+    if file then
+        local allLines = {}
+        for line in file:lines() do
+            table.insert(allLines, line)
+        end
+        file:close()
+
+        local startIdx = math.max(1, #allLines - maxLinesToLoad + 1)
+        for i = startIdx, #allLines do
+            table.insert(lines, allLines[i])
+        end
+    end
+
+    chatMessages = {}
+    for _, line in ipairs(lines) do
+        local color1, color2, sender, message = line:match("%[(%d+),(%d+)%] (%S+): (.*)")
+
+        if not sender then
+            sender = ""
+            color1, color2, message = line:match("%[(%d+),(%d+)%] : (.*)")
+        end
+
+        if color1 and color2 and message then
+            table.insert(chatMessages, {
+                sender = sender,
+                message = message,
+                color = tonumber(color1),
+                colorAlt = tonumber(color2),
+            })
+        end
+    end
+
+    currentMessageIndex = math.max(1, #chatMessages - visibleLines + 1)
+end
+
 local function saveMessage(sender, message, color, colorAlt)
-    local senderWidth = sender ~= "" and calculateTextWidth(string.format("%s: ", sender)) or 0
-    local wrappedMessage = wrapText(gui, message or "", visibleChars, senderWidth)
+    local senderWidth = sender ~= "" and GuiGetTextDimensions(gui, string.format("%s: ", sender)) or 0
+    local wrappedMessage = wrapText(gui, message or "", pixelWidth, senderWidth)
+
+    local maxLines = 8
+    if #wrappedMessage > maxLines then
+        wrappedMessage = {unpack(wrappedMessage, 1, maxLines)}
+    end
 
     local isFirstLine = true
     for _, line in ipairs(wrappedMessage) do
         if isFirstLine then
             table.insert(chatMessages, {sender = sender, message = line, color = color, colorAlt = colorAlt})
+            saveMessageToFile(sender, line, color, colorAlt)
             isFirstLine = false
         else
             table.insert(chatMessages, {sender = "", message = line, color = color, colorAlt = colorAlt})
+            saveMessageToFile("", line, color, colorAlt)
         end
 
-        if #chatMessages > maxMessages then
+        if #chatMessages > maxVisibleLines then
             table.remove(chatMessages, 1)
         end
     end
 
-    currentMessageIndex = math.max(1, #chatMessages - maxVisibleLines + 1)
+    currentMessageIndex = math.max(1, #chatMessages - visibleLines + 1)
 end
 
 local function lightenColor(r, g, b, threshold)
@@ -111,48 +249,37 @@ end
 
 local function renderChat()
     unread_messages_counter = 0
-
     local startY = 128
-    currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - maxVisibleLines + 1)
+    currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - visibleLines + 1)
+
     if #chatMessages <= 0 then return end
 
     local startIdx = currentMessageIndex
-    local endIdx = math.min(#chatMessages, startIdx + maxVisibleLines - 1)
+    local endIdx = math.min(#chatMessages, startIdx + visibleLines - 1)
 
     local minaColorThreshold = math.floor(ModSettingGet("quant.ew.textcolor") or 0)
     local minaAltColorThreshold = math.floor(ModSettingGet("quant.ew.textaltcolor") or 255)
-    local color = 0
-    local colorAlt = 0
 
     for i = startIdx, endIdx do
         local msg = chatMessages[i]
         if msg then
-            local senderWidth = msg.sender ~= "" and calculateTextWidth(string.format("%s: ", msg.sender)) or 0
-            local wrappedMessage = wrapText(gui, msg.message or "", visibleChars, senderWidth)
+            local senderWidth = msg.sender ~= "" and GuiGetTextDimensions(gui, string.format("%s: ", msg.sender)) or 0
+            local wrappedMessage = wrapText(gui, msg.message or "", pixelWidth, senderWidth)
 
             local senderRendered = false
             for _, line in ipairs(wrappedMessage) do
                 if not senderRendered and msg.sender ~= "" then
-                    local senderR, senderG, senderB = getColorComponents(msg.color or color)
+                    local senderR, senderG, senderB = getColorComponents(msg.color)
                     senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
                     GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
-
-                    local senderText = string.format("%s: ", msg.sender)
-                    GuiText(gui, 64, startY, senderText)
-
-                    local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                    textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                    GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
-
-                    GuiText(gui, 64 + senderWidth, startY, line)
+                    GuiText(gui, 64, startY, string.format("%s: ", msg.sender))
                     senderRendered = true
-                else
-                    local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                    textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                    GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
-
-                    GuiText(gui, 64, startY, line)
                 end
+
+                local textR, textG, textB = getColorComponents(msg.colorAlt)
+                textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
+                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
+                GuiText(gui, senderRendered and (64 + senderWidth) or 64, startY, line)
                 startY = startY + lineHeight
             end
         end
@@ -166,7 +293,7 @@ local function renderTextInput()
         GuiColorSetForNextWidget(gui, 0.5, 0.5, 0.5, 1)
         GuiText(gui, 64, startY, "Message *")
     else
-        local wrappedMessage = wrapText(gui, text or "", visibleChars, 0)
+        local wrappedMessage = wrapText(gui, text or "", pixelWidth, 0)
 
         local maxLines = 8
         if #wrappedMessage > maxLines then
@@ -181,16 +308,22 @@ local function renderTextInput()
 end
 
 local function disable_movement(controls)
-    ComponentSetValue2(controls, "mButtonDownFire", false)
-    ComponentSetValue2(controls, "mButtonDownFire2", false)
-    ComponentSetValue2(controls, "mButtonDownLeft", false)
-    ComponentSetValue2(controls, "mButtonDownDown", false)
-    ComponentSetValue2(controls, "mButtonDownRight", false)
-    ComponentSetValue2(controls, "mButtonDownUp", false)
-    ComponentSetValue2(controls, "mButtonDownJump", false)
-    ComponentSetValue2(controls, "mButtonDownFly", false)
-    ComponentSetValue2(controls, "mButtonDownKick", false)
-    ComponentSetValue2(controls, "mButtonDownEat", false)
+    local actions = {
+        "mButtonDownFire",
+        "mButtonDownFire2",
+        "mButtonDownLeft",
+        "mButtonDownDown",
+        "mButtonDownRight",
+        "mButtonDownUp",
+        "mButtonDownJump",
+        "mButtonDownFly",
+        "mButtonDownKick",
+        "mButtonDownEat"
+    }
+
+    for _, action in ipairs(actions) do
+        ComponentSetValue2(controls, action, false)
+    end
 end
 
 function rpc.text(msg, color, colorAlt)
@@ -241,6 +374,9 @@ local function create_chat_hint(hint) --maybe will make it for all hints in futu
 end
 
 function module.on_world_update()
+    if #chatMessages == 0 then
+        loadChatHistory()
+    end
     local gui_started = false
     if not ModSettingGet("quant.ew.nochathint") then
         if unread_messages_counter > 0 then --prevents hint from appearing all the time (can be annoying) and just appear when there is some unread message
@@ -281,29 +417,46 @@ function module.on_world_update()
         renderTextInput()
 
         if InputIsMouseButtonJustDown(4) or InputIsKeyDown(82) then
-            if #chatMessages > 0 then
-                currentMessageIndex = math.max(1, currentMessageIndex - 1)
-            end
+            currentMessageIndex = math.max(1, currentMessageIndex - 1)
         end
-
+        
         if InputIsMouseButtonJustDown(5) or InputIsKeyDown(81) then
-            if #chatMessages > 0 then
-                currentMessageIndex = math.min(#chatMessages - maxVisibleLines + 1, currentMessageIndex + 1)
-            end
+            currentMessageIndex = math.min(currentMessageIndex + 1, #chatMessages - visibleLines + 1)
         end
 
-        if InputIsKeyJustDown(42) then --backspace
-            text = string.sub(text, 1, -1)
+        if InputIsKeyJustDown(42) then -- backspace fix for russian letters
+            local lastChar = string.sub(text, -1)
+            local lastTwoChars = string.sub(text, -2)
+
+            if lastChar:match("[\128-\191]") then
+                text = string.sub(text, 1, -2)
+                text = string.sub(text, 1, -1)
+            else
+                text = string.sub(text, 1, -2)
+            end
+            
             counter = 10
         end
-
+        
         if InputIsKeyDown(42) then
             counter = counter + 1
-            if counter == 3 then
-                text = string.sub(text, 1, -2)
-                counter = 0
+            
+            local lastChar = string.sub(text, -1)
+            local lastTwoChars = string.sub(text, -2)
+        
+            if lastChar:match("[\128-\191]") then
+                if counter == 3 then
+                    text = string.sub(text, 1, -3)
+                    counter = 0
+                end
+            else
+                if counter == 3 then
+                    text = string.sub(text, 1, -2)
+                    counter = 0
+                end
             end
-            if counter == 30 then --delay for deleting only 1 character
+            
+            if counter == 30 then
                 counter = 0
             end
         end
