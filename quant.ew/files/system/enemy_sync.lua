@@ -505,6 +505,10 @@ local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
         end
         local enemy_id
         enemy_id = EntityLoad(filename, x, y)
+        if enemy_id == nil then
+            print("entity is nil " .. tostring(filename))
+            goto continue
+        end
         spawned_by_us[enemy_id] = true
         EntityAddTag(enemy_id, "ew_replicated")
         EntityAddTag(enemy_id, "polymorphable_NOT")
@@ -687,7 +691,7 @@ local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
     end
     if gid ~= nil and (item == nil or item == 0 or not EntityGetIsAlive(item)) then
         local wand = item_sync.find_by_gid(gid)
-        if wand ~= nil then
+        if wand ~= nil and EntityGetIsAlive(wand) then
             EntityAddTag(wand, "ew_client_item")
             local ezwand = EZWand(wand)
             ezwand:GiveTo(enemy_id)
