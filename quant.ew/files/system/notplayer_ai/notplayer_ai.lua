@@ -518,7 +518,6 @@ local function init_state()
     local genome = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "GenomeDataComponent")
     ComponentSetValue2(genome, "berserk_dont_attack_friends", true)
     state = {
-        entity = ctx.my_player.entity,
         control_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent"),
         inv_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent"),
         inv2_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component"),
@@ -1078,7 +1077,7 @@ local function hold_something()
     if GameGetFrameNum() % 20 == 5 then
         find_new_wand()
     end
-    local ch_x, ch_y = EntityGetTransform(state.entity)
+    local ch_x, ch_y = EntityGetTransform(ctx.my_player.entity)
     local inventory = EntityGetFirstComponent(ctx.my_player.entity, "Inventory2Component")
     local holding = ComponentGetValue2(inventory, "mActualActiveItem")
     local i = 1
@@ -1183,7 +1182,7 @@ local function hold_something()
 
     if (has_water_potion or state.water_potion ~= nil) and state.water_potions[1] ~= nil then
         state.expected_held = state.water_potions[1]
-        np.SetActiveHeldEntity(state.entity, state.water_potions[1], false, false)
+        np.SetActiveHeldEntity(ctx.my_player.entity, state.water_potions[1], false, false)
         if state.water_potion == nil then
             state.water_potion = state.water_potions[1]
             changed_held = true
@@ -1198,7 +1197,7 @@ local function hold_something()
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
         end
-        np.SetActiveHeldEntity(state.entity, state.bad_potions[i], false, false)
+        np.SetActiveHeldEntity(ctx.my_player.entity, state.bad_potions[i], false, false)
         if state.bad_potion == nil then
             state.bad_potion = state.bad_potions[i]
             changed_held = true
@@ -1208,14 +1207,14 @@ local function hold_something()
             state.had_potion = true
         end
         state.expected_held = state.good_potions[1]
-        np.SetActiveHeldEntity(state.entity, state.good_potions[1], false, false)
+        np.SetActiveHeldEntity(ctx.my_player.entity, state.good_potions[1], false, false)
         if state.good_potion == nil then
             state.good_potion = state.good_potions[1]
             changed_held = true
         end
     elseif state.attack_wand ~= nil then
         state.expected_held = state.attack_wand
-        np.SetActiveHeldEntity(state.entity, state.attack_wand, false, false)
+        np.SetActiveHeldEntity(ctx.my_player.entity, state.attack_wand, false, false)
     end
     local holding2 = ComponentGetValue2(inventory, "mActualActiveItem")
     if holding ~= holding2 then
@@ -1236,7 +1235,7 @@ local function better_player(length, did_hit, new_has_ambrosia, new_target_is_po
 end
 
 local function find_target()
-    local ch_x, ch_y = EntityGetTransform(state.entity)
+    local ch_x, ch_y = EntityGetTransform(ctx.my_player.entity)
     local potential_targets = EntityGetInRadiusWithTag(ch_x, ch_y, MAX_RADIUS, "ew_client") or {}
     local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
     local x, y = EntityGetHotspot(arm, "hand", true)

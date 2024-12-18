@@ -440,7 +440,7 @@ local function send_item_positions(all)
                     if costcom ~= nil then
                         cost = ComponentGetValue2(costcom, "cost")
                         local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
-                        if math.abs(cx - x) < DISTANCE_LIMIT * 2 and math.abs(cy - y) < DISTANCE_LIMIT * 2 then
+                        if math.abs(cx - x) < DISTANCE_LIMIT and math.abs(cy - y) < DISTANCE_LIMIT then
                             if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") ~= nil then
                                 ComponentSetValue2(costcom, "stealable", true)
                                 ComponentSetValue2(vel, "gravity_y", 400)
@@ -464,7 +464,7 @@ local function send_item_positions(all)
                     elseif tg then
                         local f = EntityGetFilename(item)
                         if cap[f] == nil then
-                            cap[f] = ModSettingGet("quant.ew.rocks") or 32
+                            cap[f] = ModSettingGet("quant.ew.rocks") or 16
                         end
                         if cap[f] == 0 then
                             position_data[gid] = nil

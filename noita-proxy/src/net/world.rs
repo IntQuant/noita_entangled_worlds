@@ -190,7 +190,7 @@ pub(crate) struct WorldManager {
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
     world_num: i32,
-    pub durabilities: HashMap<u16, (u8, u32)>,
+    pub durabilities: HashMap<u16, (u32, u32)>,
 }
 
 impl WorldManager {
@@ -1095,9 +1095,6 @@ impl WorldManager {
     }
 
     pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
-        if !self.is_host && !self.nice_terraforming {
-            return;
-        }
         let (min_cx, max_cx) = if x < lx {
             (
                 (x - r).div_euclid(CHUNK_SIZE as i32),
@@ -1178,74 +1175,53 @@ impl WorldManager {
                     }
                 {
                     let mut chunk = Chunk::default();
-                    let mut chunkin = Chunk::default();
-                    let mut chunkout = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);
-                    if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
-                        chunk_encoded.apply_to_chunk(&mut chunk)
+                    let mut del = false;
+                    if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
+                        del = true;
+                        if self.is_host {
+                            chunk_encoded.apply_to_chunk(&mut chunk);
+                        }
+                    } else if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                        del = true;
+                        if self.is_host {
+                            chunk_encoded.apply_to_chunk(&mut chunk);
+                        }
+                    } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
+                        if self.is_host {
+                            chunk_encoded.apply_to_chunk(&mut chunk)
+                        }
                     } else if !self.nice_terraforming {
                         continue;
                     }
-                    let mut has_in = false;
-                    if self.nice_terraforming {
-                        if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
-                            has_in = true;
-                            chunk_encoded.apply_to_chunk(&mut chunkin)
-                        };
-                    }
-                    let mut has_out = false;
-                    if self.nice_terraforming {
-                        if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
-                            has_out = true;
-                            chunk_encoded.apply_to_chunk(&mut chunkout)
-                        }
-                    }
-                    for icx in 0..CHUNK_SIZE as i32 {
-                        let cx = chunk_start_x + icx;
-                        let dcx = cx - x;
-                        let dx2 = dcx * dmx;
-                        for icy in 0..CHUNK_SIZE as i32 {
-                            let cy = chunk_start_y + icy;
-                            let dcy = cy - y;
-                            let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
-                            let dx = dcx - (m * dmx as f64) as i32;
-                            let dy = dcy - (m * dmy as f64) as i32;
-                            if dx * dx + dy * dy <= r * r {
-                                let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                if self.is_host {
+                    if self.is_host {
+                        for icx in 0..CHUNK_SIZE as i32 {
+                            let cx = chunk_start_x + icx;
+                            let dcx = cx - x;
+                            let dx2 = dcx * dmx;
+                            for icy in 0..CHUNK_SIZE as i32 {
+                                let cy = chunk_start_y + icy;
+                                let dcy = cy - y;
+                                let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                                let dx = dcx - (m * dmx as f64) as i32;
+                                let dy = dcy - (m * dmy as f64) as i32;
+                                if dx * dx + dy * dy <= r * r {
+                                    let px = icy as usize * CHUNK_SIZE + icx as usize;
                                     chunk.set_pixel(px, air_pixel);
-                                }
-                                if has_in {
-                                    chunkin.set_pixel(px, air_pixel);
-                                }
-                                if has_out {
-                                    chunkout.set_pixel(px, air_pixel);
                                 }
                             }
                         }
-                    }
-                    if self.is_host {
                         self.chunk_storage.insert(coord, chunk.to_chunk_data());
                     }
-                    if has_in {
-                        self.inbound_model
-                            .apply_chunk_data(coord, &chunkin.to_chunk_data())
-                    } else if has_out {
-                        self.inbound_model
-                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
-                    }
-                    if has_out {
-                        self.outbound_model
-                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                    if del {
+                        self.inbound_model.forget_chunk(coord);
+                        self.outbound_model.forget_chunk(coord);
                     }
                 }
             }
         }
     }
     pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32, mat: Option<u16>) {
-        if !self.is_host && !self.nice_terraforming {
-            return;
-        }
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
             (x + r).div_euclid(CHUNK_SIZE as i32),
@@ -1284,61 +1260,45 @@ impl WorldManager {
                     let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
                     let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                     let mut chunk = Chunk::default();
-                    let mut chunkin = Chunk::default();
-                    let mut chunkout = Chunk::default();
-                    if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
-                        chunk_encoded.apply_to_chunk(&mut chunk)
+                    let mut del = false;
+                    if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
+                        del = true;
+                        if self.is_host {
+                            chunk_encoded.apply_to_chunk(&mut chunk);
+                        }
+                    } else if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                        del = true;
+                        if self.is_host {
+                            chunk_encoded.apply_to_chunk(&mut chunk);
+                        }
+                    } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
+                        if self.is_host {
+                            chunk_encoded.apply_to_chunk(&mut chunk)
+                        }
                     } else if do_continue || !self.nice_terraforming {
                         continue;
                     }
-                    let mut has_in = false;
-                    if self.nice_terraforming {
-                        if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
-                            has_in = true;
-                            chunk_encoded.apply_to_chunk(&mut chunkin)
-                        };
-                    }
-                    let mut has_out = false;
-                    if self.nice_terraforming {
-                        if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
-                            has_out = true;
-                            chunk_encoded.apply_to_chunk(&mut chunkout)
-                        }
-                    }
-                    for icx in 0..CHUNK_SIZE as i32 {
-                        let cx = chunk_start_x + icx;
-                        let dx = cx - x;
-                        let dd = dx * dx;
-                        for icy in 0..CHUNK_SIZE as i32 {
-                            let cy = chunk_start_y + icy;
-                            let dy = cy - y;
-                            if dd + dy * dy <= r * r {
-                                let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                if chunk.pixel(px).material != 0 {
-                                    chunk.set_pixel(px, air_pixel);
-                                    if has_in {
-                                        chunkin.set_pixel(px, air_pixel);
-                                    }
-                                    if has_out {
-                                        chunkout.set_pixel(px, air_pixel);
+                    if self.is_host {
+                        for icx in 0..CHUNK_SIZE as i32 {
+                            let cx = chunk_start_x + icx;
+                            let dx = cx - x;
+                            let dd = dx * dx;
+                            for icy in 0..CHUNK_SIZE as i32 {
+                                let cy = chunk_start_y + icy;
+                                let dy = cy - y;
+                                if dd + dy * dy <= r * r {
+                                    let px = icy as usize * CHUNK_SIZE + icx as usize;
+                                    if chunk.pixel(px).material != 0 {
+                                        chunk.set_pixel(px, air_pixel);
                                     }
                                 }
                             }
                         }
-                    }
-                    if self.is_host {
                         self.chunk_storage.insert(coord, chunk.to_chunk_data());
                     }
-                    if has_in {
-                        self.inbound_model
-                            .apply_chunk_data(coord, &chunkin.to_chunk_data())
-                    } else if has_out {
-                        self.inbound_model
-                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
-                    }
-                    if has_out {
-                        self.outbound_model
-                            .apply_chunk_data(coord, &chunkout.to_chunk_data())
+                    if del {
+                        self.inbound_model.forget_chunk(coord);
+                        self.outbound_model.forget_chunk(coord);
                     }
                 }
             }
@@ -1352,7 +1312,7 @@ impl WorldManager {
         end_x: i32,
         end_y: i32,
         mut ray: u32,
-        d: u8,
+        d: u32,
         mult: f32,
     ) -> Option<(i32, i32)> {
         //Bresenham's line algorithm
@@ -1390,7 +1350,7 @@ impl WorldManager {
             if co != last_co {
                 if let Some(c) = self.outbound_model.get_chunk_data(co) {
                     last = c
-                } else if let Some(c) = self.outbound_model.get_chunk_data(co) {
+                } else if let Some(c) = self.inbound_model.get_chunk_data(co) {
                     last = c
                 } else if let Some(c) = self.chunk_storage.get(&co).cloned() {
                     last = c
@@ -1426,7 +1386,7 @@ impl WorldManager {
         }
         Some((x, y))
     }
-    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: u32, d: u8, ray: u32) {
+    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: u32, d: u32, ray: u32) {
         let rays = r.next_power_of_two().clamp(8, 256);
         let t = TAU / rays as f32;
         let results: Vec<i32> = (0..rays)
@@ -1458,7 +1418,7 @@ impl WorldManager {
         &mut self,
         x: i32,
         y: i32,
-        d: u8,
+        d: u32,
         rays: u32,
         list: Vec<i32>,
     ) {
@@ -1483,7 +1443,7 @@ impl WorldManager {
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
         );
-        let chunk_storage: Vec<(ChunkCoord, ChunkData)> = (min_cx..=max_cx)
+        let chunk_storage: Vec<(ChunkCoord, ChunkData, bool)> = (min_cx..=max_cx)
             .into_par_iter()
             .flat_map(|chunk_x| {
                 (min_cy..=max_cy)
@@ -1496,46 +1456,53 @@ impl WorldManager {
             .filter_map(|(chunk_x, chunk_y)| {
                 let mut chunk = Chunk::default();
                 let coord = ChunkCoord(chunk_x, chunk_y);
-                if self.outbound_model.get_chunk_data(coord).is_some()
-                    || self.inbound_model.get_chunk_data(coord).is_some()
-                {
-                    None
+                let mut del = false;
+                if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
+                    del = true;
+                    chunk_encoded.apply_to_chunk(&mut chunk);
+                } else if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                    del = true;
+                    chunk_encoded.apply_to_chunk(&mut chunk);
                 } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                     chunk_encoded.apply_to_chunk(&mut chunk);
-                    let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
-                    let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
-                    for icx in 0..CHUNK_SIZE as i32 {
-                        let cx = chunk_start_x + icx;
-                        let dx = cx - x;
-                        let dd = dx * dx;
-                        for icy in 0..CHUNK_SIZE as i32 {
-                            let cy = chunk_start_y + icy;
-                            let dy = cy - y;
-                            let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
-                            if i.is_sign_negative() {
-                                i += rays as f32
-                            }
-                            if dd + dy * dy <= list[i as usize] {
-                                let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                if self
-                                    .durabilities
-                                    .get(&chunk.pixel(px).material)
-                                    .map(|(h, _)| *h <= d)
-                                    .unwrap_or(true)
-                                {
-                                    chunk.set_pixel(px, air_pixel);
-                                }
+                } else {
+                    return None;
+                }
+                let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
+                let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
+                for icx in 0..CHUNK_SIZE as i32 {
+                    let cx = chunk_start_x + icx;
+                    let dx = cx - x;
+                    let dd = dx * dx;
+                    for icy in 0..CHUNK_SIZE as i32 {
+                        let cy = chunk_start_y + icy;
+                        let dy = cy - y;
+                        let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
+                        if i.is_sign_negative() {
+                            i += rays as f32
+                        }
+                        if dd + dy * dy <= list[i as usize] {
+                            let px = icy as usize * CHUNK_SIZE + icx as usize;
+                            if self
+                                .durabilities
+                                .get(&chunk.pixel(px).material)
+                                .map(|(h, _)| *h <= d)
+                                .unwrap_or(true)
+                            {
+                                chunk.set_pixel(px, air_pixel);
                             }
                         }
                     }
-                    Some((coord, chunk.to_chunk_data()))
-                } else {
-                    None
                 }
+                Some((coord, chunk.to_chunk_data(), del))
             })
             .collect();
         for entry in chunk_storage.into_iter() {
             self.chunk_storage.insert(entry.0, entry.1);
+            if entry.2 {
+                self.inbound_model.forget_chunk(entry.0);
+                self.outbound_model.forget_chunk(entry.0);
+            }
         }
     }
     #[cfg(test)]
@@ -1670,14 +1637,13 @@ fn test_explosion_img() {
     let w = 48;
     for i in -w..w {
         for j in -w..w {
-            if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                world
-                    .chunk_storage
-                    .insert(ChunkCoord(i, j), _dirt.clone());
-            } else {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
             }
         }
     }
@@ -1687,7 +1653,7 @@ fn test_explosion_img() {
     img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_explosion(0, 0, 4096, 14, 2_000_000_000);
+    world.cut_through_world_explosion(0, 0, 4096, 12, 10_000_000);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);

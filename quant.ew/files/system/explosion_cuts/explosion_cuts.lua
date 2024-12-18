@@ -68,35 +68,41 @@ local function hole(item)
                     .." "..math.floor(y).." "..math.floor(ly) .. " " .. n
             net.proxy_send("cut_through_world_line", inp)
         end
+    else
+        local inp = math.floor(x) .. " " .. math.floor(y)
+                .. " " .. math.floor(n) .. " " .. math.floor(0)
+        net.proxy_send("cut_through_world_circle", inp)
     end
     hole_last[item] = {x, y}
     return r
 end
 
 local function update(ent)
-    local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-    if ctx.is_host and proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
-        local x, y = EntityGetTransform(ent)
-        local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
-        if r > 4 then
+    if ctx.is_host then
+        local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
+        if proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
+            local x, y = EntityGetTransform(ent)
+            local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
+            if r > 4 then
+                if alive[ent] == nil then
+                    alive[ent] = {}
+                end
+                alive[ent].expl = {x, y, r,
+                                   ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
+                                   ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
+            elseif alive[ent] ~= nil and alive[ent].expl ~= nil then
+                alive[ent].expl = nil
+            end
+        end
+    end
+        local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
+        if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
+            local x, y = EntityGetTransform(ent)
             if alive[ent] == nil then
                 alive[ent] = {}
             end
-            alive[ent].expl = {x, y, r,
-                               ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
-                               ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
-        elseif alive[ent] ~= nil and alive[ent].expl ~= nil then
-            alive[ent].expl = nil
+            alive[ent].del = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
         end
-    end
-    local mat = EntityGetFirstComponent(ent, "MagicConvertMaterialComponent")
-    if mat ~= nil and ComponentGetValue2(mat, "from_material_tag") == "[solid]" then
-        local x, y = EntityGetTransform(ent)
-        if alive[ent] == nil then
-            alive[ent] = {}
-        end
-        alive[ent].del = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
-    end
     local l = hole(ent)
     if l ~= nil then
         if alive[ent] == nil then
@@ -113,7 +119,7 @@ function mod.on_world_update()
         first = false
     end
     local count1 = tonumber(ModSettingGet("quant.ew.explosions") or 128)
-    local count2 = tonumber(ModSettingGet("quant.ew.cell_eater") or 128)
+    local count2 = tonumber(ModSettingGet("quant.ew.cell_eater") or 64)
     for ent, data in pairs(alive) do
         if not EntityGetIsAlive(ent) then
             if count1 > 0 then
