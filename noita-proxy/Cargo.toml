@@ -48,6 +48,9 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 tracing-appender = "0.2.3"
 shared = {path = "../shared"}
 
+[dev-dependencies]
+serial_test = "3.2.0"
+
 [build-dependencies]
 winresource = "0.1.17"
 

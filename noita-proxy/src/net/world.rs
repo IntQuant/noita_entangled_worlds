@@ -1048,52 +1048,50 @@ impl WorldManager {
         let max_wiggle = 5;
         let interval = 300.0;
 
-        let cut_x_clip_range =
-            (x - radius - max_wiggle - CHUNK_SIZE as i32)..(x + radius + max_wiggle);
-        let cut_x_range = x - radius..x + radius;
+        let min_cx = (x - radius - max_wiggle).div_euclid(CHUNK_SIZE as i32);
+        let max_cx = (x + radius + max_wiggle).div_euclid(CHUNK_SIZE as i32);
+        let max_cy = y_max.div_euclid(CHUNK_SIZE as i32);
+        let min_cy = y_min.div_euclid(CHUNK_SIZE as i32);
+        let start = x - radius;
+        let end = x + radius;
 
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
         };
-        for (chunk_coord, chunk_encoded) in self.chunk_storage.iter_mut() {
-            // Check if this chunk is anywhere close to the cut. Skip if it isn't.
-            let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
-            let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
-            if !cut_x_clip_range.contains(&chunk_start_x) {
-                continue;
-            }
-
-            let mut chunk = Chunk::default();
-            chunk_encoded.apply_to_chunk(&mut chunk);
-
-            for in_chunk_y in 0..(CHUNK_SIZE as i32) {
-                let global_y = in_chunk_y + chunk_start_y;
-                // Skip if higher/lower than the cut.
-                if global_y < y_min || global_y > y_max {
-                    continue;
+        let chunk_storage: Vec<(ChunkCoord, ChunkData)> = self
+            .chunk_storage
+            .clone()
+            .into_par_iter()
+            .filter(|(coord, _)| {
+                min_cx <= coord.0 && max_cx >= coord.0 && coord.1 <= max_cy && coord.1 >= min_cy
+            })
+            .map(|(chunk_coord, chunk_encoded)| {
+                let chunk_start_x = chunk_coord.0 * CHUNK_SIZE as i32;
+                let chunk_start_y = chunk_coord.1 * CHUNK_SIZE as i32;
+                let mut chunk = Chunk::default();
+                chunk_encoded.apply_to_chunk(&mut chunk);
+                for in_chunk_y in 0..(CHUNK_SIZE as i32) {
+                    let global_y = in_chunk_y + chunk_start_y;
+                    let wiggle = -(global_y as f32 / interval * TAU).cos() * max_wiggle as f32;
+                    let wiggle = wiggle.round() as i32;
+                    let in_chunk_x_range = (start - chunk_start_x + wiggle)
+                        .clamp(0, CHUNK_SIZE as i32 - 1)
+                        ..(end - chunk_start_x + wiggle).clamp(0, CHUNK_SIZE as i32);
+                    for in_chunk_x in in_chunk_x_range {
+                        chunk.set_pixel(
+                            (in_chunk_y as usize) * CHUNK_SIZE + (in_chunk_x as usize),
+                            air_pixel,
+                        );
+                    }
                 }
-
-                let wiggle = -f32::cos((global_y as f32) / interval * TAU) * max_wiggle as f32;
-                let wiggle = wiggle as i32; // TODO find a more accurate way to compute wiggle.
-
-                let in_chunk_x_range = cut_x_range.start - chunk_start_x + wiggle
-                    ..cut_x_range.end - chunk_start_x + wiggle;
-                let in_chunk_x_range = in_chunk_x_range.start.clamp(0, CHUNK_SIZE as i32 - 1)
-                    ..in_chunk_x_range.end.clamp(0, CHUNK_SIZE as i32);
-
-                for in_chunk_x in in_chunk_x_range {
-                    chunk.set_pixel(
-                        (in_chunk_y as usize) * CHUNK_SIZE + (in_chunk_x as usize),
-                        air_pixel,
-                    );
-                }
-            }
-
-            *chunk_encoded = chunk.to_chunk_data();
+                (chunk_coord, chunk.to_chunk_data())
+            })
+            .collect();
+        for entry in chunk_storage.into_iter() {
+            self.chunk_storage.insert(entry.0, entry.1);
         }
     }
-
     pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
         let (min_cx, max_cx) = if x < lx {
             (
@@ -1177,12 +1175,11 @@ impl WorldManager {
                     let mut chunk = Chunk::default();
                     let coord = ChunkCoord(chunk_x, chunk_y);
                     let mut del = false;
-                    if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
-                        del = true;
-                        if self.is_host {
-                            chunk_encoded.apply_to_chunk(&mut chunk);
-                        }
-                    } else if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                    if let Some(chunk_encoded) = self
+                        .outbound_model
+                        .get_chunk_data(coord)
+                        .or(self.inbound_model.get_chunk_data(coord))
+                    {
                         del = true;
                         if self.is_host {
                             chunk_encoded.apply_to_chunk(&mut chunk);
@@ -1261,12 +1258,11 @@ impl WorldManager {
                     let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                     let mut chunk = Chunk::default();
                     let mut del = false;
-                    if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
-                        del = true;
-                        if self.is_host {
-                            chunk_encoded.apply_to_chunk(&mut chunk);
-                        }
-                    } else if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                    if let Some(chunk_encoded) = self
+                        .outbound_model
+                        .get_chunk_data(coord)
+                        .or(self.inbound_model.get_chunk_data(coord))
+                    {
                         del = true;
                         if self.is_host {
                             chunk_encoded.apply_to_chunk(&mut chunk);
@@ -1331,11 +1327,12 @@ impl WorldManager {
             y.div_euclid(CHUNK_SIZE as i32),
         );
         let mut last;
-        if let Some(c) = self.outbound_model.get_chunk_data(last_co) {
-            last = c
-        } else if let Some(c) = self.inbound_model.get_chunk_data(last_co) {
-            last = c
-        } else if let Some(c) = self.chunk_storage.get(&last_co).cloned() {
+        if let Some(c) = self
+            .outbound_model
+            .get_chunk_data(last_co)
+            .or(self.inbound_model.get_chunk_data(last_co))
+            .or(self.chunk_storage.get(&last_co).cloned())
+        {
             last = c
         } else {
             return None;
@@ -1348,11 +1345,12 @@ impl WorldManager {
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co != last_co {
-                if let Some(c) = self.outbound_model.get_chunk_data(co) {
-                    last = c
-                } else if let Some(c) = self.inbound_model.get_chunk_data(co) {
-                    last = c
-                } else if let Some(c) = self.chunk_storage.get(&co).cloned() {
+                if let Some(c) = self
+                    .outbound_model
+                    .get_chunk_data(co)
+                    .or(self.inbound_model.get_chunk_data(co))
+                    .or(self.chunk_storage.get(&co).cloned())
+                {
                     last = c
                 } else {
                     return last_coord;
@@ -1457,10 +1455,11 @@ impl WorldManager {
                 let mut chunk = Chunk::default();
                 let coord = ChunkCoord(chunk_x, chunk_y);
                 let mut del = false;
-                if let Some(chunk_encoded) = self.outbound_model.get_chunk_data(coord) {
-                    del = true;
-                    chunk_encoded.apply_to_chunk(&mut chunk);
-                } else if let Some(chunk_encoded) = self.inbound_model.get_chunk_data(coord) {
+                if let Some(chunk_encoded) = self
+                    .outbound_model
+                    .get_chunk_data(coord)
+                    .or(self.inbound_model.get_chunk_data(coord))
+                {
                     del = true;
                     chunk_encoded.apply_to_chunk(&mut chunk);
                 } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
@@ -1623,6 +1622,7 @@ impl SaveStateEntry for FxHashMap<ChunkCoord, ChunkData> {
 }
 #[cfg(test)]
 #[test]
+#[serial]
 fn test_explosion_img() {
     let mut world = WorldManager::new(
         true,
@@ -1648,9 +1648,9 @@ fn test_explosion_img() {
         }
     }
     let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
-    let mut img = image::GrayImage::new(pixels, pixels);
-    world._create_image(&mut img, pixels);
-    img.save("/tmp/ew_tmp_save/img1.png").unwrap();
+    //let mut img = image::GrayImage::new(pixels, pixels);
+    //world._create_image(&mut img, pixels);
+    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
     world.cut_through_world_explosion(0, 0, 4096, 12, 10_000_000);
@@ -1660,15 +1660,55 @@ fn test_explosion_img() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img2.png").unwrap();
 }
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_cut_img() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world.durabilities.insert(0, (0, 0));
+    world.durabilities.insert(1, (6, 2000));
+    world.durabilities.insert(2, (14, 1_000_000));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 48;
+    for i in -w..w {
+        for j in -w..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world(0, i32::MIN, 0, 128);
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img3.png").unwrap();
+}
+#[cfg(test)]
+use serial_test::serial;
 
 #[cfg(test)]
 #[test]
+#[serial]
 fn test_explosion_perf() {
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
 
     let mut total = 0;
-    let iters = 2048;
+    let iters = 64;
     for _ in 0..iters {
         let mut world = WorldManager::new(
             true,
@@ -1693,7 +1733,123 @@ fn test_explosion_perf() {
             }
         }
         let timer = std::time::Instant::now();
-        world.cut_through_world_explosion(0, 0, 380, 14, 2_000_000_000);
+        world.cut_through_world_explosion(0, 0, 320, 14, 2_000_000_000);
+        total += timer.elapsed().as_micros();
+    }
+    println!("total micros: {}", total / iters);
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_line_perf() {
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+
+    let mut total = 0;
+    let iters = 64;
+    for _ in 0..iters {
+        let mut world = WorldManager::new(
+            true,
+            OmniPeerId(0),
+            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+        );
+        world.durabilities.insert(0, (0, 0));
+        world.durabilities.insert(1, (6, 2000));
+        world.durabilities.insert(2, (14, 1_000_000));
+        let w = 48;
+        for i in -w..w {
+            for j in -w..w {
+                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
+                    world
+                        .outbound_model
+                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
+                } else {*/
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+                //}
+            }
+        }
+        let timer = std::time::Instant::now();
+        world.cut_through_world_line(0, 0, 64, 64, 64);
+        total += timer.elapsed().as_micros();
+    }
+    println!("total micros: {}", total / iters);
+}
+
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_circle_perf() {
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+
+    let mut total = 0;
+    let iters = 64;
+    for _ in 0..iters {
+        let mut world = WorldManager::new(
+            true,
+            OmniPeerId(0),
+            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+        );
+        world.durabilities.insert(0, (0, 0));
+        world.durabilities.insert(1, (6, 2000));
+        world.durabilities.insert(2, (14, 1_000_000));
+        let w = 48;
+        for i in -w..w {
+            for j in -w..w {
+                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
+                    world
+                        .outbound_model
+                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
+                } else {*/
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+                //}
+            }
+        }
+        let timer = std::time::Instant::now();
+        world.cut_through_world_circle(0, 0, 512, None);
+        total += timer.elapsed().as_micros();
+    }
+    println!("total micros: {}", total / iters);
+}
+
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_cut_perf() {
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+
+    let mut total = 0;
+    let iters = 64;
+    for _ in 0..iters {
+        let mut world = WorldManager::new(
+            true,
+            OmniPeerId(0),
+            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+        );
+        world.durabilities.insert(0, (0, 0));
+        world.durabilities.insert(1, (6, 2000));
+        world.durabilities.insert(2, (14, 1_000_000));
+        let w = 48;
+        for i in -w..w {
+            for j in -w..w {
+                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
+                    world
+                        .outbound_model
+                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
+                } else {*/
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+                //}
+            }
+        }
+        let timer = std::time::Instant::now();
+        world.cut_through_world(0, i32::MIN, i32::MAX, 128);
         total += timer.elapsed().as_micros();
     }
     println!("total micros: {}", total / iters);
