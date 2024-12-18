@@ -18,6 +18,16 @@ pub enum Reliability {
     Reliable,
 }
 
+impl Reliability {
+    pub fn from_reliability_bool(reliable: bool) -> Reliability {
+        if reliable {
+            Reliability::Reliable
+        } else {
+            Reliability::Unreliable
+        }
+    }
+}
+
 #[derive(Debug, Encode, Decode, Clone, Copy, PartialEq, Eq)]
 pub enum Destination {
     One(PeerId),
