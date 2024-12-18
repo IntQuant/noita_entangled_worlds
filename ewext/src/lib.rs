@@ -44,9 +44,14 @@ static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>
     LazyLock::new(|| unsafe { libloading::Library::new("ewext0.dll") });
 
 #[derive(Default)]
+struct Modules {
+    entity_sync: Option<EntitySync>,
+}
+
+#[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
-    modules: Vec<Box<dyn Module>>,
+    modules: Modules,
 }
 
 fn init_particle_world_state(lua: LuaState) {
@@ -133,6 +138,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
         match netman.recv()? {
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
             NoitaInbound::Ready => break,
+            _ => bail!("Received unexpected value during init"),
         }
     }
 
@@ -149,6 +155,11 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
         Some(NoitaInbound::Ready) => {
             bail!("Unexpected Ready message")
         }
+        Some(NoitaInbound::ProxyToDes(proxy_to_des)) => todo!(),
+        Some(NoitaInbound::RemoteMessage {
+            source,
+            message: shared::RemoteMessage::RemoteDes(remote_des),
+        }) => todo!(),
         None => None,
     })
 }
@@ -188,7 +199,7 @@ fn on_world_initialized(lua: LuaState) {
 
     STATE.with(|state| {
         let modules = &mut state.borrow_mut().modules;
-        modules.push(Box::new(EntitySync::default()));
+        modules.entity_sync = Some(EntitySync::default());
     })
 }
 
@@ -201,8 +212,8 @@ fn with_every_module(
         let modules = &mut state.borrow_mut().modules;
         let mut ctx = ModuleCtx { net: &mut net };
         let mut errs = Vec::new();
-        for module in modules {
-            if let Err(e) = f(&mut ctx, module.as_mut()) {
+        for module in &mut modules.entity_sync.iter_mut() {
+            if let Err(e) = f(&mut ctx, module as &mut dyn Module) {
                 errs.push(e);
             }
         }

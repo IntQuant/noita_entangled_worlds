@@ -25,7 +25,7 @@ pub struct ModMessage {
     pub value: Vec<u8>,
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Clone)]
 pub enum RemoteMessage {
     RemoteDes(des::RemoteDes),
 }
@@ -36,7 +36,6 @@ pub enum NoitaInbound {
     Ready,
     ProxyToDes(des::ProxyToDes),
     RemoteMessage {
-        reliable: bool,
         source: basic_types::PeerId,
         message: RemoteMessage,
     },
@@ -47,6 +46,7 @@ pub enum NoitaOutbound {
     Raw(Vec<u8>),
     DesToProxy(des::DesToProxy),
     RemoteMessage {
+        reliable: bool,
         destination: Destination<PeerId>,
         message: RemoteMessage,
     },

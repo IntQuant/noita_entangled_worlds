@@ -37,20 +37,20 @@ pub enum ProxyToDes {
     GotAuthority(FullEntityData),
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Clone)]
 pub struct InterestRequest {
     pub pos: WorldPos,
     pub radius: i32,
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     CurrentEntity(NonZero<i32>),
     SetPosition(WorldPos),
     // TODO...
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Clone)]
 pub enum RemoteDes {
     InterestRequest(InterestRequest),
     EnteredInterest,
