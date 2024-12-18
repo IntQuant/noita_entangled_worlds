@@ -1,4 +1,5 @@
 use bitcode::{Decode, Encode};
+use des::DesManager;
 use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
@@ -10,7 +11,6 @@ use socket2::{Domain, Socket, Type};
 use std::collections::HashMap;
 use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
-use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
@@ -33,6 +33,7 @@ use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
     DefaultSettings, GameMode, GameSettings, LocalHealthMode,
 };
+mod des;
 pub mod messages;
 mod proxy_opt;
 pub mod steam_networking;
@@ -80,6 +81,7 @@ pub(crate) struct NetInnerState {
     pub(crate) ms: Option<MessageSocket<NoitaOutbound, NoitaInbound>>,
     world: WorldManager,
     explosion_data: Vec<ExplosionData>,
+    des: DesManager,
 }
 
 impl NetInnerState {
@@ -285,6 +287,7 @@ impl NetManager {
                 self.init_settings.save_state.clone(),
             ),
             explosion_data: Vec::new(),
+            des: DesManager::new(is_host, self.init_settings.save_state.clone()),
         };
         let mut last_iter = Instant::now();
         let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
@@ -567,12 +570,20 @@ impl NetManager {
                 }
             }
             NetMsg::Kick => std::process::exit(0),
-            NetMsg::RemoteMsg(remote_message) => self.handle_remote_msg(state, remote_message),
+            NetMsg::RemoteMsg(remote_message) => self.handle_remote_msg(state, src, remote_message),
         }
     }
 
-    fn handle_remote_msg(&self, state: &mut NetInnerState, remote_msg: RemoteMessage) {
-        todo!()
+    fn handle_remote_msg(
+        &self,
+        state: &mut NetInnerState,
+        src: OmniPeerId,
+        message: RemoteMessage,
+    ) {
+        state.try_ms_write(&NoitaInbound::RemoteMessage {
+            source: src.into(),
+            message,
+        });
     }
 
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
@@ -723,18 +734,14 @@ impl NetManager {
                     }
                 }
             }
-            NoitaOutbound::DesToProxy(des_to_proxy) => todo!(),
+            NoitaOutbound::DesToProxy(des_to_proxy) => state.des.handle_noita_msg(des_to_proxy),
             NoitaOutbound::RemoteMessage {
                 reliable,
                 destination,
                 message,
             } => {
                 let destination = destination.convert::<OmniPeerId>();
-                let reliability = if reliable {
-                    Reliability::Reliable
-                } else {
-                    Reliability::Unreliable
-                };
+                let reliability = Reliability::from_reliability_bool(reliable);
                 match destination {
                     Destination::Peer(peer) => {
                         self.send(peer, &NetMsg::RemoteMsg(message), reliability)
