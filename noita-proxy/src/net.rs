@@ -5,11 +5,12 @@ use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use shared::message_socket::MessageSocket;
-use shared::{NoitaInbound, NoitaOutbound};
+use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
 use socket2::{Domain, Socket, Type};
 use std::collections::HashMap;
 use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
+use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
@@ -137,6 +138,10 @@ pub struct NetManager {
     #[allow(clippy::type_complexity)]
     pub minas: Mutex<HashMap<OmniPeerId, ImageBuffer<Rgba<u8>, Vec<u8>>>>,
     pub new_desc: Mutex<Option<PlayerPngDesc>>,
+    loopback_channel: (
+        crossbeam::channel::Sender<NetMsg>,
+        crossbeam::channel::Receiver<NetMsg>,
+    ),
 }
 
 impl NetManager {
@@ -165,13 +170,19 @@ impl NetManager {
             nicknames: Default::default(),
             minas: Default::default(),
             new_desc: Default::default(),
+            loopback_channel: crossbeam::channel::unbounded(),
         }
         .into()
     }
 
     pub(crate) fn send(&self, peer: OmniPeerId, msg: &NetMsg, reliability: Reliability) {
-        let encoded = lz4_flex::compress_prepend_size(&bitcode::encode(msg));
-        self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
+        if peer == self.peer.my_id() {
+            // Shortcut for sending stuff to myself
+            let _ = self.loopback_channel.0.send(msg.clone());
+        } else {
+            let encoded = lz4_flex::compress_prepend_size(&bitcode::encode(msg));
+            self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
+        }
     }
 
     pub(crate) fn broadcast(&self, msg: &NetMsg, reliability: Reliability) {
@@ -372,134 +383,12 @@ impl NetManager {
             }
             to_kick.clear();
             for net_event in self.peer.recv() {
-                match net_event {
-                    omni::OmniNetworkEvent::PeerConnected(id) => {
-                        self.broadcast(&NetMsg::Welcome, Reliability::Reliable);
-                        info!("Peer connected {id}");
-                        if self.peer.my_id() == self.peer.host_id() {
-                            info!("Sending start game message");
-                            self.send(
-                                id,
-                                &NetMsg::StartGame {
-                                    settings: self.settings.lock().unwrap().clone(),
-                                },
-                                Reliability::Reliable,
-                            );
-                        }
-                        if id != self.peer.my_id() {
-                            // Create temporary appearance files for new player.
-                            info!("Created temporary appearance for {id}");
-                            create_player_png(
-                                id,
-                                &self.init_settings.mod_path,
-                                &self.init_settings.player_path,
-                                &PlayerPngDesc::default(),
-                                id == self.peer.host_id(),
-                            );
-                            info!("Sending PlayerColor to {id}");
-                            self.send(
-                                id,
-                                &NetMsg::PlayerColor(
-                                    self.init_settings.player_png_desc,
-                                    self.is_host(),
-                                    Some(self.peer.my_id()),
-                                    self.init_settings.my_nickname.clone(),
-                                ),
-                                Reliability::Reliable,
-                            );
-                        }
-                        state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
-                    }
-                    omni::OmniNetworkEvent::PeerDisconnected(id) => {
-                        state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
-                        state.world.handle_peer_left(id);
-                    }
-                    omni::OmniNetworkEvent::Message { src, data } => {
-                        let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)
-                            .ok()
-                            .and_then(|decomp| bitcode::decode::<NetMsg>(&decomp).ok())
-                        else {
-                            continue;
-                        };
-                        match net_msg {
-                            NetMsg::RequestMods => {
-                                if let Some(n) =
-                                    &self.init_settings.modmanager_settings.game_save_path
-                                {
-                                    let res = get_mods(n);
-                                    if let Ok(mods) = res {
-                                        self.send(
-                                            src,
-                                            &NetMsg::Mods { mods },
-                                            Reliability::Reliable,
-                                        )
-                                    }
-                                }
-                            }
-                            NetMsg::Mods { mods } => *self.active_mods.lock().unwrap() = mods,
-                            NetMsg::Welcome => {}
-                            NetMsg::Disconnect { id } => {
-                                state.try_ms_write(&ws_encode_proxy("dc", id.as_hex()));
-                            }
-                            NetMsg::PeerDisconnected { id } => {
-                                info!("player kicked: {}", id);
-                                state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
-                                state.world.handle_peer_left(id);
-                            }
-                            NetMsg::EndRun => state.try_ms_write(&ws_encode_proxy(
-                                "end_run",
-                                self.peer.my_id().to_string(),
-                            )),
-                            NetMsg::StartGame { settings } => {
-                                *self.settings.lock().unwrap() = settings;
-                                info!("Settings updated");
-                                self.accept_local.store(true, Ordering::SeqCst);
-                                state.world.reset();
-                            }
-                            NetMsg::ModRaw { data } => {
-                                state.try_ms_write(&ws_encode_mod(src, &data));
-                            }
-                            NetMsg::ModCompressed { data } => {
-                                if let Ok(decompressed) = lz4_flex::decompress_size_prepended(&data)
-                                {
-                                    state.try_ms_write(&ws_encode_mod(src, &decompressed));
-                                }
-                            }
-                            NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
-                            NetMsg::PlayerColor(rgb, host, pong, name) => {
-                                info!("Player appearance created for {}", src);
-                                // Create proper appearance files for new player.
-                                create_player_png(
-                                    src,
-                                    &self.init_settings.mod_path,
-                                    &self.init_settings.player_path,
-                                    &rgb,
-                                    host,
-                                );
-                                self.nicknames.lock().unwrap().insert(src, name);
-                                self.minas
-                                    .lock()
-                                    .unwrap()
-                                    .insert(src, get_player_skin(player_image.clone(), rgb));
-                                if let Some(id) = pong {
-                                    if id != self.peer.my_id() {
-                                        self.send(
-                                            id,
-                                            &NetMsg::PlayerColor(
-                                                self.init_settings.player_png_desc,
-                                                self.is_host(),
-                                                None,
-                                                self.init_settings.my_nickname.clone(),
-                                            ),
-                                            Reliability::Reliable,
-                                        );
-                                    }
-                                }
-                            }
-                            NetMsg::Kick => std::process::exit(0),
-                        }
-                    }
-                }
+                self.clone()
+                    .handle_network_event(&mut state, &player_image, net_event);
+            }
+            for net_msg in self.loopback_channel.1.try_iter() {
+                self.clone()
+                    .handle_net_msg(&mut state, &player_image, self.peer.my_id(), net_msg);
             }
             // Handle all available messages from Noita.
             while let Some(ws) = &mut state.ms {
@@ -541,6 +430,149 @@ impl NetManager {
             last_iter = Instant::now();
         }
         Ok(())
+    }
+
+    fn handle_network_event(
+        self: Arc<NetManager>,
+        state: &mut NetInnerState,
+        player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
+        net_event: omni::OmniNetworkEvent,
+    ) {
+        match net_event {
+            omni::OmniNetworkEvent::PeerConnected(id) => {
+                self.broadcast(&NetMsg::Welcome, Reliability::Reliable);
+                info!("Peer connected {id}");
+                if self.peer.my_id() == self.peer.host_id() {
+                    info!("Sending start game message");
+                    self.send(
+                        id,
+                        &NetMsg::StartGame {
+                            settings: self.settings.lock().unwrap().clone(),
+                        },
+                        Reliability::Reliable,
+                    );
+                }
+                if id != self.peer.my_id() {
+                    // Create temporary appearance files for new player.
+                    info!("Created temporary appearance for {id}");
+                    create_player_png(
+                        id,
+                        &self.init_settings.mod_path,
+                        &self.init_settings.player_path,
+                        &PlayerPngDesc::default(),
+                        id == self.peer.host_id(),
+                    );
+                    info!("Sending PlayerColor to {id}");
+                    self.send(
+                        id,
+                        &NetMsg::PlayerColor(
+                            self.init_settings.player_png_desc,
+                            self.is_host(),
+                            Some(self.peer.my_id()),
+                            self.init_settings.my_nickname.clone(),
+                        ),
+                        Reliability::Reliable,
+                    );
+                }
+                state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
+            }
+            omni::OmniNetworkEvent::PeerDisconnected(id) => {
+                state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
+                state.world.handle_peer_left(id);
+            }
+            omni::OmniNetworkEvent::Message { src, data } => {
+                let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)
+                    .ok()
+                    .and_then(|decomp| bitcode::decode::<NetMsg>(&decomp).ok())
+                else {
+                    return;
+                };
+                self.handle_net_msg(state, player_image, src, net_msg);
+            }
+        }
+    }
+
+    fn handle_net_msg(
+        self: Arc<NetManager>,
+        state: &mut NetInnerState,
+        player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
+        src: OmniPeerId,
+        net_msg: NetMsg,
+    ) {
+        match net_msg {
+            NetMsg::RequestMods => {
+                if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
+                    let res = get_mods(n);
+                    if let Ok(mods) = res {
+                        self.send(src, &NetMsg::Mods { mods }, Reliability::Reliable)
+                    }
+                }
+            }
+            NetMsg::Mods { mods } => *self.active_mods.lock().unwrap() = mods,
+            NetMsg::Welcome => {}
+            NetMsg::Disconnect { id } => {
+                state.try_ms_write(&ws_encode_proxy("dc", id.as_hex()));
+            }
+            NetMsg::PeerDisconnected { id } => {
+                info!("player kicked: {}", id);
+                state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
+                state.world.handle_peer_left(id);
+            }
+            NetMsg::EndRun => {
+                state.try_ms_write(&ws_encode_proxy("end_run", self.peer.my_id().to_string()))
+            }
+            NetMsg::StartGame { settings } => {
+                *self.settings.lock().unwrap() = settings;
+                info!("Settings updated");
+                self.accept_local.store(true, Ordering::SeqCst);
+                state.world.reset();
+            }
+            NetMsg::ModRaw { data } => {
+                state.try_ms_write(&ws_encode_mod(src, &data));
+            }
+            NetMsg::ModCompressed { data } => {
+                if let Ok(decompressed) = lz4_flex::decompress_size_prepended(&data) {
+                    state.try_ms_write(&ws_encode_mod(src, &decompressed));
+                }
+            }
+            NetMsg::WorldMessage(msg) => state.world.handle_msg(src, msg),
+            NetMsg::PlayerColor(rgb, host, pong, name) => {
+                info!("Player appearance created for {}", src);
+                // Create proper appearance files for new player.
+                create_player_png(
+                    src,
+                    &self.init_settings.mod_path,
+                    &self.init_settings.player_path,
+                    &rgb,
+                    host,
+                );
+                self.nicknames.lock().unwrap().insert(src, name);
+                self.minas
+                    .lock()
+                    .unwrap()
+                    .insert(src, get_player_skin(player_image.clone(), rgb));
+                if let Some(id) = pong {
+                    if id != self.peer.my_id() {
+                        self.send(
+                            id,
+                            &NetMsg::PlayerColor(
+                                self.init_settings.player_png_desc,
+                                self.is_host(),
+                                None,
+                                self.init_settings.my_nickname.clone(),
+                            ),
+                            Reliability::Reliable,
+                        );
+                    }
+                }
+            }
+            NetMsg::Kick => std::process::exit(0),
+            NetMsg::RemoteMsg(remote_message) => self.handle_remote_msg(state, remote_message),
+        }
+    }
+
+    fn handle_remote_msg(&self, state: &mut NetInnerState, remote_msg: RemoteMessage) {
+        todo!()
     }
 
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
@@ -688,6 +720,32 @@ impl NetManager {
                     3 => self.handle_bin_message_to_proxy(&raw_msg[1..], state),
                     msg_variant => {
                         error!("Unknown msg variant from mod: {}", msg_variant)
+                    }
+                }
+            }
+            NoitaOutbound::DesToProxy(des_to_proxy) => todo!(),
+            NoitaOutbound::RemoteMessage {
+                reliable,
+                destination,
+                message,
+            } => {
+                let destination = destination.convert::<OmniPeerId>();
+                let reliability = if reliable {
+                    Reliability::Reliable
+                } else {
+                    Reliability::Unreliable
+                };
+                match destination {
+                    Destination::Peer(peer) => {
+                        self.send(peer, &NetMsg::RemoteMsg(message), reliability)
+                    }
+                    Destination::Host => self.send(
+                        self.peer.host_id(),
+                        &NetMsg::RemoteMsg(message),
+                        reliability,
+                    ),
+                    Destination::Broadcast => {
+                        self.broadcast(&NetMsg::RemoteMsg(message), reliability)
                     }
                 }
             }
