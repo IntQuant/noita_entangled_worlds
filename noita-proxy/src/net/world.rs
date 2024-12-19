@@ -231,10 +231,7 @@ impl WorldManager {
             .copied()
             .collect::<Vec<_>>();
         self.current_update += 1;
-        let mut chunks_to_send = Vec::new();
-        for chunk in updated_chunks.clone() {
-            chunks_to_send.push(self.chunk_updated_locally(chunk, priority, pos));
-        }
+        let chunks_to_send: Vec<Vec<(OmniPeerId, u8)>> = updated_chunks.iter().map(|chunk| self.chunk_updated_locally(*chunk, priority, pos)).collect();
         let mut chunk_packet: HashMap<OmniPeerId, Vec<(ChunkDelta, u8)>> = HashMap::new();
         for (chunk, who_sending) in updated_chunks.iter().zip(chunks_to_send.iter()) {
             let Some(delta) = self.outbound_model.get_chunk_delta(*chunk, false) else {
@@ -1712,7 +1709,7 @@ fn test_explosion_img() {
     //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_explosion(0, 0, 4096, 12, 10_000_000, true, true, 1, 50);
+    world.cut_through_world_explosion(0, 0, 2048, 12, 10_000_000, true, true, 1, 10);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);

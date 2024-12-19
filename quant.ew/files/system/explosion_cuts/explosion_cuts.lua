@@ -8,13 +8,14 @@ local hole_last = {}
 
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
+local mats = {}
+
 local function send_mats()
     local content_materials = ModTextFileGetContent("data/materials.xml")
     local xml_orig = nxml.parse(content_materials)
     local inp = ""
     local i = 0
     local name = CellFactory_GetName(i)
-    local mats = {}
     while name ~= "unknown" do
         mats[name] = i
         i = i + 1
@@ -42,7 +43,7 @@ local function send_mats()
         info[element.attr.name] = {dur, hp, cell_type, liquid_sand, liquid_static}
         inp = inp .. mats[element.attr.name] .. " "
                 .. dur .. " " .. hp .. " "
-                .. cell_type .. " " .. liquid_sand .. " " .. liquid_static
+                .. cell_type .. " " .. tostring(liquid_sand) .. " " .. tostring(liquid_static)
         ::continue::
     end
     net.proxy_send("material_list", string.sub(inp, 0, -2))
@@ -134,6 +135,8 @@ function mod.on_world_update()
                     count1 = count1 - data.expl[3]
                     local inp = math.floor(data.expl[1]) .. " " .. math.floor(data.expl[2])
                             .. " " .. math.floor(data.expl[3]) .. " " .. math.floor(data.expl[4]) .. " " .. math.floor(data.expl[5])
+                    .. " " .. tostring(data.expl[6]).. " " .. tostring(data.expl[7])
+                            .. " " .. (mats[data.expl[8] or "air"] or 0) .. " " .. math.floor(data.expl[9])
                     net.proxy_send("cut_through_world_explosion", inp)
                 end
                 if data.del ~= nil then
