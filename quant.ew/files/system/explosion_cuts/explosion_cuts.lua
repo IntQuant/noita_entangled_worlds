@@ -22,26 +22,28 @@ local function send_mats()
     end
     local info = {}
     for element in xml_orig:each_child() do
-        if element.name == "CellData" then
-            local hp = element.attr.hp or 0
-            local dur = element.attr.durability or 0
-            info[element.attr.name] = {dur, hp}
-            inp = inp .. mats[element.attr.name] .. " "
-                    .. dur .. " " .. hp .. " "
-        elseif element.name == "CellDataChild" then
+        local hp = element.attr.hp or 100
+        local dur = element.attr.durability or 0
+        local cell_type = element.attr.cell_type or "liquid"
+        local liquid_sand = element.attr.liquid_sand or false
+        local liquid_static = element.attr.liquid_static or false
+        if element.name == "CellDataChild" then
             local p = info[element.attr._parent]
             if p ~= nil then
-                local dur = element.attr.durability or p[1]
-                local hp = element.attr.hp or p[2]
-                inp = inp .. mats[element.attr.name] .. " "
-                        .. dur .. " " .. hp .. " "
-            else
-                local hp = element.attr.hp or 0
-                local dur = element.attr.durability or 0
-                inp = inp .. mats[element.attr.name] .. " "
-                        .. dur .. " " .. hp .. " "
+                dur = element.attr.durability or p[1]
+                hp = element.attr.hp or p[2]
+                cell_type = element.attr.cell_type or p[3]
+                liquid_sand = element.attr.liquid_sand or p[4]
+                liquid_static = element.attr.liquid_static or p[5]
             end
+        elseif element.name ~= "CellData" then
+            goto continue
         end
+        info[element.attr.name] = {dur, hp, cell_type, liquid_sand, liquid_static}
+        inp = inp .. mats[element.attr.name] .. " "
+                .. dur .. " " .. hp .. " "
+                .. cell_type .. " " .. liquid_sand .. " " .. liquid_static
+        ::continue::
     end
     net.proxy_send("material_list", string.sub(inp, 0, -2))
 end

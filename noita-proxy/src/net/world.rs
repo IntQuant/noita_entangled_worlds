@@ -19,7 +19,7 @@ use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 use super::{
     messages::{Destination, MessageRequest},
     omni::OmniPeerId,
-    DebugMarker,
+    CellType, DebugMarker, LiquidType,
 };
 
 pub mod world_info;
@@ -190,7 +190,7 @@ pub(crate) struct WorldManager {
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
     world_num: i32,
-    pub durabilities: HashMap<u16, (u32, u32)>,
+    pub materials: HashMap<u16, (u32, u32, CellType)>,
 }
 
 impl WorldManager {
@@ -214,7 +214,7 @@ impl WorldManager {
             chunk_last_update: Default::default(),
             last_request_priority: Default::default(),
             world_num: 0,
-            durabilities: HashMap::new(),
+            materials: HashMap::new(),
         }
     }
 
@@ -1389,7 +1389,7 @@ impl WorldManager {
             let icy = y.rem_euclid(CHUNK_SIZE as i32);
             let px = icy as usize * CHUNK_SIZE + icx as usize;
             let pixel = working_chunk.pixel(px);
-            if let Some(stats) = self.durabilities.get(&pixel.material) {
+            if let Some(stats) = self.materials.get(&pixel.material) {
                 let h = (stats.1 as f32 * mult) as u32;
                 if stats.0 > d || ray < h {
                     return last_coord;
@@ -1509,9 +1509,9 @@ impl WorldManager {
                         if dd + dy * dy <= list[i as usize] {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if self
-                                .durabilities
+                                .materials
                                 .get(&chunk.pixel(px).material)
-                                .map(|(h, _)| *h <= d)
+                                .map(|(h, ..)| *h <= d)
                                 .unwrap_or(true)
                             {
                                 chunk.set_pixel(px, air_pixel);
@@ -1554,9 +1554,9 @@ impl WorldManager {
                 last_co = coord
             }
             let p = icy as usize * CHUNK_SIZE + icx as usize;
-            *px =
-                image::Luma([((working_chunk.pixel(p).material * 255) as usize
-                    / self.durabilities.len()) as u8])
+            *px = image::Luma([
+                ((working_chunk.pixel(p).material * 255) as usize / self.materials.len()) as u8
+            ])
         }
     }
 }
@@ -1655,9 +1655,15 @@ fn test_explosion_img() {
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
     );
-    world.durabilities.insert(0, (0, 0));
-    world.durabilities.insert(1, (6, 2000));
-    world.durabilities.insert(2, (14, 1_000_000));
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
     let w = 48;
@@ -1684,7 +1690,7 @@ fn test_explosion_img() {
 
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
-    img.save("/tmp/ew_tmp_save/img2.png").unwrap();
+    img.save("/tmp/ew_tmp_save/img_ex.png").unwrap();
 }
 #[cfg(test)]
 #[test]
@@ -1695,9 +1701,15 @@ fn test_cut_img() {
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
     );
-    world.durabilities.insert(0, (0, 0));
-    world.durabilities.insert(1, (6, 2000));
-    world.durabilities.insert(2, (14, 1_000_000));
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
     let w = 48;
@@ -1721,11 +1733,97 @@ fn test_cut_img() {
 
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
-    img.save("/tmp/ew_tmp_save/img3.png").unwrap();
+    img.save("/tmp/ew_tmp_save/img_cut.png").unwrap();
 }
 #[cfg(test)]
-use serial_test::serial;
+#[test]
+#[serial]
+fn test_line_img() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 48;
+    for i in -w..w {
+        for j in -w..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
 
+    let timer = std::time::Instant::now();
+    world.cut_through_world_line(0, 0, 126, 64, 20);
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img_line.png").unwrap();
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_circ_img() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 48;
+    for i in -w..w {
+        for j in -w..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world_circle(0, 0, 540, None);
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img_circ.png").unwrap();
+}
+use crate::net;
+#[cfg(test)]
+use serial_test::serial;
 #[cfg(test)]
 #[test]
 #[serial]
@@ -1741,9 +1839,15 @@ fn test_explosion_perf() {
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
-        world.durabilities.insert(0, (0, 0));
-        world.durabilities.insert(1, (6, 2000));
-        world.durabilities.insert(2, (14, 1_000_000));
+        world
+            .materials
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+        world
+            .materials
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+        world
+            .materials
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -1779,9 +1883,15 @@ fn test_line_perf() {
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
-        world.durabilities.insert(0, (0, 0));
-        world.durabilities.insert(1, (6, 2000));
-        world.durabilities.insert(2, (14, 1_000_000));
+        world
+            .materials
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+        world
+            .materials
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+        world
+            .materials
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -1818,9 +1928,15 @@ fn test_circle_perf() {
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
-        world.durabilities.insert(0, (0, 0));
-        world.durabilities.insert(1, (6, 2000));
-        world.durabilities.insert(2, (14, 1_000_000));
+        world
+            .materials
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+        world
+            .materials
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+        world
+            .materials
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -1857,9 +1973,15 @@ fn test_cut_perf() {
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
-        world.durabilities.insert(0, (0, 0));
-        world.durabilities.insert(1, (6, 2000));
-        world.durabilities.insert(2, (14, 1_000_000));
+        world
+            .materials
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+        world
+            .materials
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+        world
+            .materials
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
         let w = 48;
         for i in -w..w {
             for j in -w..w {

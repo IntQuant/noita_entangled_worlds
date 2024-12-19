@@ -299,7 +299,18 @@ end
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.give_authority_to(gid, new_id)
-    local item = item_sync.find_by_gid(gid)
+    local item
+    local to_remove = {}
+    for _, ent in ipairs(EntityGetWithTag("ew_global_item") or {}) do
+        local i_gid = item_sync.get_global_item_id(ent)
+        if i_gid == gid then
+            if item == nil then
+                item = ent
+            else
+                table.insert(to_remove, gid)
+            end
+        end
+    end
     find_by_gid_cache[gid] = nil
     if table.contains(pending_remove, gid) then
         for i, id in ipairs(pending_remove) do
@@ -310,19 +321,13 @@ function rpc.give_authority_to(gid, new_id)
         end
         table.insert(pending_remove, new_id)
     end
+    for _, g in ipairs(to_remove) do
+        item_sync.remove_item_with_id(g)
+    end
     if item ~= nil then
         find_by_gid_cache[new_id] = item
         local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
         ComponentSetValue2(var, "value_string", new_id)
-    end
-    item = item_sync.find_by_gid(gid)
-    while item ~= nil do
-        item_sync.remove_item_with_id(gid)
-        local last = item
-        item = item_sync.find_by_gid(gid)
-        if last == item then
-            break
-        end
     end
 end
 

@@ -725,13 +725,26 @@ impl NetManager {
             }
             Some("reset_world") => state.world.reset(),
             Some("material_list") => {
-                state.world.durabilities.clear();
-                while let (Some(i), Some(d), Some(h)) = (
+                state.world.materials.clear();
+                while let (
+                    Some(i),
+                    Some(d),
+                    Some(h),
+                    Some(cell_type),
+                    Some(liquid_sand),
+                    Some(liquid_static),
+                ) = (
                     msg.next().and_then(|s| s.parse().ok()),
+                    msg.next().and_then(|s| s.parse().ok()),
+                    msg.next().and_then(|s| s.parse().ok()),
+                    msg.next().and_then(|s| s.parse::<String>().ok()),
                     msg.next().and_then(|s| s.parse().ok()),
                     msg.next().and_then(|s| s.parse().ok()),
                 ) {
-                    state.world.durabilities.insert(i, (d, h));
+                    state.world.materials.insert(
+                        i,
+                        (d, h, CellType::new(&cell_type, liquid_static, liquid_sand)),
+                    );
                 }
             }
             Some("cut_through_world") => {
@@ -839,6 +852,33 @@ impl NetManager {
         self.resend_game_settings();
     }
 }
+
+pub enum CellType {
+    Solid,
+    Liquid(LiquidType),
+    Gas,
+    Fire,
+    Invalid,
+}
+impl CellType {
+    fn new(s: &str, stat: bool, sand: bool) -> Self {
+        match s {
+            "solid" => Self::Solid,
+            "liquid" if stat => Self::Liquid(LiquidType::Static),
+            "liquid" if sand => Self::Liquid(LiquidType::Sand),
+            "liquid" => Self::Liquid(LiquidType::Liquid),
+            "gas" => Self::Gas,
+            "fire" => Self::Fire,
+            _ => Self::Invalid,
+        }
+    }
+}
+pub enum LiquidType {
+    Static,
+    Liquid,
+    Sand,
+}
+
 impl Drop for NetManager {
     fn drop(&mut self) {
         if self.is_host() {

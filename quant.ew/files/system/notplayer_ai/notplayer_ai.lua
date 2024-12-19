@@ -1202,7 +1202,7 @@ local function hold_something()
             state.bad_potion = state.bad_potions[i]
             changed_held = true
         end
-    elseif (has_good_potion or state.good_potion ~= nil) and state.good_potion[1] ~= nil then
+    elseif (has_good_potion or state.good_potion ~= nil) and state.good_potions[1] ~= nil then
         if EntityHasTag(state.good_potions[1], "potion") then
             state.had_potion = true
         end
