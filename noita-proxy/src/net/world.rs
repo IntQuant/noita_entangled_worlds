@@ -1,4 +1,5 @@
 use bitcode::{Decode, Encode};
+use rand::Rng;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -19,7 +20,7 @@ use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 use super::{
     messages::{Destination, MessageRequest},
     omni::OmniPeerId,
-    CellType, DebugMarker, LiquidType,
+    CellType, DebugMarker,
 };
 
 pub mod world_info;
@@ -1410,7 +1411,19 @@ impl WorldManager {
         }
         Some((x, y))
     }
-    pub(crate) fn cut_through_world_explosion(&mut self, x: i32, y: i32, r: u32, d: u32, ray: u32) {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn cut_through_world_explosion(
+        &mut self,
+        x: i32,
+        y: i32,
+        r: u32,
+        d: u32,
+        ray: u32,
+        hole: bool,
+        liquid: bool,
+        mat: u16,
+        prob: u8,
+    ) {
         let rays = r.next_power_of_two().clamp(8, 256);
         let t = TAU / rays as f32;
         let results: Vec<i32> = (0..rays)
@@ -1435,9 +1448,10 @@ impl WorldManager {
                 }
             })
             .collect();
-        self.cut_through_world_explosion_list(x, y, d, rays, results);
+        self.cut_through_world_explosion_list(x, y, d, rays, results, hole, liquid, mat, prob);
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn cut_through_world_explosion_list(
         &mut self,
         x: i32,
@@ -1445,6 +1459,10 @@ impl WorldManager {
         d: u32,
         rays: u32,
         list: Vec<i32>,
+        hole: bool,
+        liquid: bool,
+        mat: u16,
+        prob: u8,
     ) {
         let rs = *list.iter().max().unwrap_or(&0);
         let r = (rs as f64).sqrt().ceil() as i32;
@@ -1462,6 +1480,10 @@ impl WorldManager {
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
+        };
+        let mat_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: mat,
         };
         let (chunkx, chunky) = (
             x.div_euclid(CHUNK_SIZE as i32),
@@ -1511,10 +1533,15 @@ impl WorldManager {
                             if self
                                 .materials
                                 .get(&chunk.pixel(px).material)
-                                .map(|(h, ..)| *h <= d)
+                                .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                                 .unwrap_or(true)
                             {
-                                chunk.set_pixel(px, air_pixel);
+                                let mut rng = rand::thread_rng();
+                                if rng.gen_bool(prob as f64 / 100.0) {
+                                    chunk.set_pixel(px, mat_pixel);
+                                } else {
+                                    chunk.set_pixel(px, air_pixel);
+                                }
                             }
                         }
                     }
@@ -1685,7 +1712,7 @@ fn test_explosion_img() {
     //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_explosion(0, 0, 4096, 12, 10_000_000);
+    world.cut_through_world_explosion(0, 0, 4096, 12, 10_000_000, true, true, 1, 50);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);
@@ -1821,7 +1848,8 @@ fn test_circ_img() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_circ.png").unwrap();
 }
-use crate::net;
+#[cfg(test)]
+use crate::net::LiquidType;
 #[cfg(test)]
 use serial_test::serial;
 #[cfg(test)]
@@ -1863,7 +1891,7 @@ fn test_explosion_perf() {
             }
         }
         let timer = std::time::Instant::now();
-        world.cut_through_world_explosion(0, 0, 320, 14, 2_000_000_000);
+        world.cut_through_world_explosion(0, 0, 320, 14, 2_000_000_000, true, true, 1, 50);
         total += timer.elapsed().as_micros();
     }
     println!("total micros: {}", total / iters);

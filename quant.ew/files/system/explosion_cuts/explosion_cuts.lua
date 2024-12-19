@@ -91,7 +91,12 @@ local function update(ent)
                 end
                 alive[ent].expl = {x, y, r,
                                    ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
-                                   ComponentObjectGetValue2(proj, "config_explosion", "ray_energy")}
+                                   ComponentObjectGetValue2(proj, "config_explosion", "ray_energy"),
+                                   ComponentObjectGetValue2(proj, "config_explosion", "hole_enabled"),
+                                   ComponentObjectGetValue2(proj, "config_explosion", "hole_destroy_liquid"),
+                                   ComponentObjectGetValue2(proj, "config_explosion", "create_cell_material"),
+                                   ComponentObjectGetValue2(proj, "config_explosion", "create_cell_probability")
+                }
             elseif alive[ent] ~= nil and alive[ent].expl ~= nil then
                 alive[ent].expl = nil
             end

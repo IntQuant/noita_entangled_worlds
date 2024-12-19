@@ -791,11 +791,28 @@ impl NetManager {
                 let r: Option<u32> = msg.next().and_then(|s| s.parse().ok());
                 let d: Option<u32> = msg.next().and_then(|s| s.parse().ok());
                 let ray: Option<u32> = msg.next().and_then(|s| s.parse().ok());
-                let (Some(x), Some(y), Some(r), Some(d), Some(ray)) = (x, y, r, d, ray) else {
+                let hole: Option<bool> = msg.next().and_then(|s| s.parse().ok());
+                let liquid: Option<bool> = msg.next().and_then(|s| s.parse().ok());
+                let mat: Option<u16> = msg.next().and_then(|s| s.parse().ok());
+                let prob: Option<u8> = msg.next().and_then(|s| s.parse().ok());
+                let (
+                    Some(x),
+                    Some(y),
+                    Some(r),
+                    Some(d),
+                    Some(ray),
+                    Some(hole),
+                    Some(liquid),
+                    Some(mat),
+                    Some(prob),
+                ) = (x, y, r, d, ray, hole, liquid, mat, prob)
+                else {
                     error!("Missing arguments in cut_through_world_expl message");
                     return;
                 };
-                state.world.cut_through_world_explosion(x, y, r, d, ray);
+                state
+                    .world
+                    .cut_through_world_explosion(x, y, r, d, ray, hole, liquid, mat, prob);
             }
             Some("flush") => self.peer.flush(),
             key => {
@@ -870,6 +887,17 @@ impl CellType {
             "gas" => Self::Gas,
             "fire" => Self::Fire,
             _ => Self::Invalid,
+        }
+    }
+    fn can_remove(&self, hole: bool, liquid: bool) -> bool {
+        match self {
+            Self::Liquid(LiquidType::Sand) | Self::Liquid(LiquidType::Static) | Self::Solid
+                if hole =>
+            {
+                true
+            }
+            Self::Liquid(LiquidType::Liquid) if liquid => true,
+            _ => false,
         }
     }
 }
