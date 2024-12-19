@@ -54,6 +54,15 @@ struct ExtState {
     modules: Modules,
 }
 
+impl ExtState {
+    fn with_global<T>(f: impl FnOnce(&mut Self) -> T) -> T {
+        STATE.with(|state| {
+            let mut state = state.borrow_mut();
+            f(&mut state)
+        })
+    }
+}
+
 fn init_particle_world_state(lua: LuaState) {
     println!("\nInitializing particle world state");
     let world_pointer = lua.to_integer(1);
@@ -150,18 +159,26 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
     let mut binding = NETMANAGER.lock().unwrap();
     let netmanager = binding.as_mut().unwrap();
-    Ok(match netmanager.try_recv()? {
-        Some(NoitaInbound::RawMessage(msg)) => Some(msg.into()),
-        Some(NoitaInbound::Ready) => {
-            bail!("Unexpected Ready message")
+    while let Some(msg) = netmanager.try_recv()? {
+        match msg {
+            NoitaInbound::RawMessage(vec) => return Ok(Some(vec.into())),
+            NoitaInbound::Ready => bail!("Unexpected Ready message"),
+            NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
+                if let Some(entity_sync) = &mut state.modules.entity_sync {
+                    entity_sync.handle_proxytodes(proxy_to_des);
+                }
+            }),
+            NoitaInbound::RemoteMessage {
+                source,
+                message: shared::RemoteMessage::RemoteDes(remote_des),
+            } => ExtState::with_global(|state| {
+                if let Some(entity_sync) = &mut state.modules.entity_sync {
+                    entity_sync.handle_remotedes(source, remote_des);
+                }
+            }),
         }
-        Some(NoitaInbound::ProxyToDes(proxy_to_des)) => todo!(),
-        Some(NoitaInbound::RemoteMessage {
-            source,
-            message: shared::RemoteMessage::RemoteDes(remote_des),
-        }) => todo!(),
-        None => None,
-    })
+    }
+    Ok(None)
 }
 
 fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
