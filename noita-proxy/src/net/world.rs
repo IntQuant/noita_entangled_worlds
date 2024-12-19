@@ -231,7 +231,10 @@ impl WorldManager {
             .copied()
             .collect::<Vec<_>>();
         self.current_update += 1;
-        let chunks_to_send: Vec<Vec<(OmniPeerId, u8)>> = updated_chunks.iter().map(|chunk| self.chunk_updated_locally(*chunk, priority, pos)).collect();
+        let chunks_to_send: Vec<Vec<(OmniPeerId, u8)>> = updated_chunks
+            .iter()
+            .map(|chunk| self.chunk_updated_locally(*chunk, priority, pos))
+            .collect();
         let mut chunk_packet: HashMap<OmniPeerId, Vec<(ChunkDelta, u8)>> = HashMap::new();
         for (chunk, who_sending) in updated_chunks.iter().zip(chunks_to_send.iter()) {
             let Some(delta) = self.outbound_model.get_chunk_delta(*chunk, false) else {

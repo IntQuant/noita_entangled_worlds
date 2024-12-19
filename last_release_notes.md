@@ -1,38 +1,21 @@
-## Noita Entangled Worlds v0.32.5
+## Noita Entangled Worlds v0.32.6
 
-- fix some duping with orb sync
+- fix food clock and vomit rats breaking game immensely (oopsie)
 
-- fix items disappearing (probably)
+- optimize explosions/cell eaters/material converters/sadekivi
 
-- fix being able to move in chat sometimes
+- make sadekivi more correct
 
-- make cell eaters more consistent
+- try to fix item duping
 
-- set default to amt of special items to sync at 16
+- fix notplayer error
 
-- add an option for how much cell eater logic to do per frame
+- make explosions more correct
 
-- sync traps
-
-- dont cull chests
-
-- ignore some more cell eaters
-
-- fix a world sync issue
-
-- fix an issue with explosives
-
-- dont cleanup special items in item sync
-
-- reduce amount of rays for explosions
-
-- try to fix base item spam
-
-- try to fix tether looking visually wrong sometimes
 
 ## Accepted pull requests
 
-- chat line lenght are limited based on pixels not symbols, words are wrapping to the next line now, maybe some other fixes i dont remember already by @sad-username-231 in #286
+- arrows, ctrl+arrows, home, end implementation to chat by @ZXb125 in #289
 ## Installation
 
 
