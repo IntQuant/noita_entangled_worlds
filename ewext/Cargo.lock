@@ -39,6 +39,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bimap"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "230c5f1ca6a325a32553f8640d31ac9b49f2411e901e427570154868b46da4f7"
+
+[[package]]
 name = "bitcode"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -85,12 +91,14 @@ name = "ewext"
 version = "0.4.1"
 dependencies = [
  "backtrace",
+ "bimap",
  "eyre",
  "iced-x86",
  "libloading",
  "noita_api",
  "noita_api_macro",
  "rand",
+ "rustc-hash",
  "shared",
 ]
 
@@ -294,6 +302,12 @@ name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
+
+[[package]]
+name = "rustc-hash"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7fb8039b3032c191086b10f11f319a6e99e1e82889c5cc6046f515c9db1d497"
 
 [[package]]
 name = "ryu"

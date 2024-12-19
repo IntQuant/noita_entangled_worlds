@@ -7,17 +7,17 @@ use eyre::{eyre, Context};
 
 pub mod lua;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityID(pub NonZero<isize>);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentID(pub NonZero<isize>);
 
 pub struct Obj(pub usize);
 
 pub struct Color(pub u32);
 
-pub trait Component: From<ComponentID> {
+pub trait Component: From<ComponentID> + Into<ComponentID> {
     const NAME_STR: &'static str;
 }
 
@@ -31,6 +31,10 @@ impl EntityID {
         raw::entity_get_is_alive(self).unwrap_or(false)
     }
 
+    pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::entity_add_tag(self, tag.as_ref().into())
+    }
+
     /// Returns true if entity has a tag.
     ///
     /// Corresponds to EntityGetTag from lua api.
@@ -38,8 +42,13 @@ impl EntityID {
         raw::entity_has_tag(self, tag.as_ref().into()).unwrap_or(false)
     }
 
-    pub fn max_in_use() -> eyre::Result<Self> {
-        Ok(Self::try_from(raw::entities_get_max_id()? as isize)?)
+    pub fn kill(self) {
+        // Shouldn't ever error.
+        let _ = raw::entity_kill(self);
+    }
+
+    pub fn set_position(self, x: f32, y: f32) -> eyre::Result<()> {
+        raw::entity_set_transform(self, x as f64, Some(y as f64), None, None, None)
     }
 
     /// Returns the first component of this type if an entity has it.
@@ -56,6 +65,26 @@ impl EntityID {
     pub fn get_first_component<C: Component>(self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
         self.try_get_first_component(tag)?
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
+    }
+
+    pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<()> {
+        while let Some(c) = self.try_get_first_component::<C>(None)? {
+            raw::entity_remove_component(self, c.into())?;
+        }
+        Ok(())
+    }
+
+    pub fn load(
+        filename: impl AsRef<str>,
+        pos_x: Option<f64>,
+        pos_y: Option<f64>,
+    ) -> eyre::Result<Self> {
+        raw::entity_load(filename.as_ref().into(), pos_x, pos_y)?
+            .ok_or_else(|| eyre!("Failed to spawn entity from filename {}", filename.as_ref()))
+    }
+
+    pub fn max_in_use() -> eyre::Result<Self> {
+        Ok(Self::try_from(raw::entities_get_max_id()? as isize)?)
     }
 
     /// Returns id+1

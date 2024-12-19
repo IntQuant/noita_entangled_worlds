@@ -197,6 +197,12 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
             }
         }
 
+        impl From<#component_name> for ComponentID {
+            fn from(com: #component_name) -> Self {
+                com.0
+            }
+        }
+
         impl #component_name {
             #(#impls)*
         }

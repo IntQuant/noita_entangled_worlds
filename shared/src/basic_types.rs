@@ -6,7 +6,16 @@ pub struct WorldPos {
     pub y: i32,
 }
 
-#[derive(Encode, Decode)]
+impl WorldPos {
+    pub fn from_f64(x: f64, y: f64) -> Self {
+        Self {
+            x: x as i32,
+            y: y as i32,
+        }
+    }
+}
+
+#[derive(Encode, Decode, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct PeerId(pub u64);
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq)]

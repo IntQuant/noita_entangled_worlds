@@ -4,9 +4,13 @@ use bitcode::{Decode, Encode};
 
 use crate::WorldPos;
 
-#[derive(Encode, Decode)]
+/// 64 bit globally unique id. Assigned randomly, should only have 50% chance of collision with 2^32 entities at once.
+pub type Gid = u64;
+
+#[derive(Encode, Decode, Clone)]
 pub enum EntityData {
-    Serialized(Vec<u8>),
+    Filename(String),
+    // Serialized(Vec<u8>),
 }
 
 #[derive(Encode, Decode)]
@@ -45,15 +49,17 @@ pub struct InterestRequest {
 
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
-    CurrentEntity(NonZero<i32>),
-    SetPosition(WorldPos),
+    /// Sets the gid that following EntityUpdates will act on.
+    CurrentEntity(Gid),
+    EntityData(EntityData),
+    SetPosition(f32, f32),
     // TODO...
+    RemoveEntity(Gid),
 }
 
 #[derive(Encode, Decode, Clone)]
 pub enum RemoteDes {
     InterestRequest(InterestRequest),
-    EnteredInterest,
-    ExitedInterest,
     EntityUpdate(Vec<EntityUpdate>),
+    ExitedInterest,
 }
