@@ -64,6 +64,8 @@ pub enum EntityUpdate {
 
 #[derive(Encode, Decode, Clone)]
 pub enum RemoteDes {
+    /// Should be sent when client opens the game, to reset in case of restart.
+    Reset,
     InterestRequest(InterestRequest),
     EntityUpdate(Vec<EntityUpdate>),
     ExitedInterest,
