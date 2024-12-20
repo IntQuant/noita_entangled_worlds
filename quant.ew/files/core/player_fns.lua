@@ -547,9 +547,6 @@ function player_fns.replace_player_entity(new_entity, player_data)
         local old_entity = player_data.entity
         player_data.entity = new_entity
         ctx.player_data_by_local_entity[new_entity] = player_data
-        if EntityGetFirstComponentIncludingDisabled(new_entity, "StreamingKeepAliveComponent") == nil and player_data.entity ~= ctx.my_player.entity then
-            EntityAddComponent2(new_entity, "StreamingKeepAliveComponent")
-        end
         print("Replaced player entity: "..old_entity.." -> "..new_entity)
     else
         player_fns.spawn_player_for(player_data.peer_id, 0, 0, player_data)
