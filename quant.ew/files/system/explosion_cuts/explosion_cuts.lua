@@ -10,6 +10,8 @@ local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
 local mats = {}
 
+local rpc = net.new_rpc_namespace()
+
 local function send_mats()
     local content_materials = ModTextFileGetContent("data/materials.xml")
     local xml_orig = nxml.parse(content_materials)
@@ -23,28 +25,27 @@ local function send_mats()
     end
     local info = {}
     for element in xml_orig:each_child() do
-        local hp = element.attr.hp or 100
-        local dur = element.attr.durability or 0
-        local cell_type = element.attr.cell_type or "liquid"
-        local liquid_sand = element.attr.liquid_sand or false
-        local liquid_static = element.attr.liquid_static or false
-        if element.name == "CellDataChild" then
-            local p = info[element.attr._parent]
-            if p ~= nil then
-                dur = element.attr.durability or p[1]
-                hp = element.attr.hp or p[2]
-                cell_type = element.attr.cell_type or p[3]
-                liquid_sand = element.attr.liquid_sand or p[4]
-                liquid_static = element.attr.liquid_static or p[5]
+        if element.name == "CellDataChild" or element.name == "CellData" then
+            local hp = element.attr.hp or 100
+            local dur = element.attr.durability or 0
+            local cell_type = element.attr.cell_type or "liquid"
+            local liquid_sand = element.attr.liquid_sand or false
+            local liquid_static = element.attr.liquid_static or false
+            if element.attr._parent ~= nil then
+                local p = info[element.attr._parent]
+                if p ~= nil then
+                    dur = element.attr.durability or p[1]
+                    hp = element.attr.hp or p[2]
+                    cell_type = element.attr.cell_type or p[3]
+                    liquid_sand = element.attr.liquid_sand or p[4]
+                    liquid_static = element.attr.liquid_static or p[5]
+                end
             end
-        elseif element.name ~= "CellData" then
-            goto continue
+            info[element.attr.name] = {dur, hp, cell_type, liquid_sand, liquid_static}
+            inp = inp .. mats[element.attr.name] .. " "
+                    .. dur .. " " .. hp .. " "
+                    .. cell_type .. " " .. tostring(liquid_sand) .. " " .. tostring(liquid_static)
         end
-        info[element.attr.name] = {dur, hp, cell_type, liquid_sand, liquid_static}
-        inp = inp .. mats[element.attr.name] .. " "
-                .. dur .. " " .. hp .. " "
-                .. cell_type .. " " .. tostring(liquid_sand) .. " " .. tostring(liquid_static)
-        ::continue::
     end
     net.proxy_send("material_list", string.sub(inp, 0, -2))
 end
@@ -121,9 +122,18 @@ local function update(ent)
     return l or 0
 end
 
+function rpc.check_mats(new_mats)
+    for a, b in pairs(mats) do
+        if b ~= new_mats[a] then
+            GamePrint("MATERIALS DIFFER BETWEEN YOU AND ".. ctx.rpc_player_data.name ..", CHECK MOD ORDER")
+        end
+    end
+end
+
 function mod.on_world_update()
     if first then
         send_mats()
+        rpc.check_mats(mats)
         first = false
     end
     local count1 = tonumber(ModSettingGet("quant.ew.explosions") or 128)
