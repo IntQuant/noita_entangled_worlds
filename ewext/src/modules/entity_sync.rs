@@ -18,11 +18,6 @@ use super::Module;
 mod diff_model;
 mod interest;
 
-struct TrackedEntity {
-    gid: Gid,
-    entity: EntityID,
-}
-
 pub(crate) struct EntitySync {
     /// Last entity we stopped looking for new tracked entities at.
     look_current_entity: EntityID,
@@ -123,7 +118,9 @@ impl Module for EntitySync {
         }
 
         if frame_num % 2 == 0 {
-            self.local_diff_model.update_tracked_entities()?;
+            self.local_diff_model
+                .update_tracked_entities()
+                .wrap_err("Failed to update locally tracked entities")?;
             if self.interest_tracker.got_any_new_interested() {
                 game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();

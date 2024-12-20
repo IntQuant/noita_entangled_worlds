@@ -34,7 +34,7 @@ impl Typ {
             Typ::Double => quote!(f64),
             Typ::Bool => quote!(bool),
             Typ::StdString => quote!(Cow<'_, str>),
-            Typ::Vec2 => todo!(),
+            Typ::Vec2 => quote! {(f32, f32)},
             Typ::Other => todo!(),
         }
     }
@@ -158,22 +158,23 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
     let component_name = format_ident!("{}", com.name);
 
     let impls = com.fields.iter().filter_map(|field| {
+        let field_name_raw = &field.field;
         let field_name_s = convert_field_name(&field.field);
         let field_name = format_ident!("{}", field_name_s);
         let field_doc = &field.desc;
         let set_method_name = format_ident!("set_{}", field_name);
         match field.typ {
-            Typ::Int | Typ::UInt | Typ::Float | Typ::Double | Typ::Bool => {
+            Typ::Int | Typ::UInt | Typ::Float | Typ::Double | Typ::Bool | Typ::Vec2 => {
                 let field_type = field.typ.as_rust_type();
                 Some(quote! {
                     #[doc = #field_doc]
                     pub fn #field_name(self) -> eyre::Result<#field_type> {
                         // This trasmute is used to reinterpret i32 as u32 in one case.
-                        raw::component_get_value(self.0, #field_name_s)
+                        raw::component_get_value(self.0, #field_name_raw)
                      }
                     #[doc = #field_doc]
                     pub fn #set_method_name(self, value: #field_type) -> eyre::Result<()> {
-                        raw::component_set_value(self.0, #field_name_s, value)
+                        raw::component_set_value(self.0, #field_name_raw, value)
                      }
                 })
             }

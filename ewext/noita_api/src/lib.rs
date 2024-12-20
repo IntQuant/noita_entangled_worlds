@@ -158,7 +158,7 @@ pub mod raw {
         lua.push_integer(component.0.into());
         lua.push_string(field);
         value.put(lua);
-        lua.call(2 + T::size_on_stack(), 0);
+        lua.call((2 + T::SIZE_ON_STACK).try_into().unwrap(), 0);
         Ok(())
     }
 }

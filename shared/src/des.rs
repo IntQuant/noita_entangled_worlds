@@ -10,7 +10,7 @@ pub type Gid = u64;
 pub struct Lid(pub u32);
 
 #[derive(Encode, Decode, Clone)]
-pub enum EntityData {
+pub enum EntitySpawnInfo {
     Filename(String),
     // Serialized(Vec<u8>),
 }
@@ -19,7 +19,7 @@ pub enum EntityData {
 pub struct FullEntityData {
     pub gid: Gid,
     pub pos: WorldPos,
-    pub data: EntityData,
+    pub data: EntitySpawnInfo,
 }
 
 #[derive(Encode, Decode)]
@@ -42,18 +42,22 @@ pub struct InterestRequest {
 }
 
 #[derive(Encode, Decode, Clone)]
-pub struct EntityEntry {
-    pub entity_data: EntityData,
+pub struct EntityInfo {
+    pub entity_data: EntitySpawnInfo,
     pub x: f32,
     pub y: f32,
+    pub vx: f32,
+    pub vy: f32,
 }
 
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
-    Init(EntityEntry),
+    Init(EntityInfo),
+    // TODO diffing for position
     SetPosition(f32, f32),
+    SetVelocity(f32, f32),
     // TODO...
     RemoveEntity(Lid),
 }
