@@ -2,16 +2,16 @@ use bimap::BiHashMap;
 use eyre::OptionExt;
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
-    CameraBoundComponent, EntityID, PhysicsAIComponent,
+    CameraBoundComponent, CharacterDataComponent, EntityID, PhysicsAIComponent, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
-use shared::des::{EntityData, EntityEntry, EntityUpdate, Gid, Lid};
+use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Gid, Lid};
 
 pub(crate) static DES_TAG: &str = "ew_des";
 
 struct EntityEntryPair {
-    last: Option<EntityEntry>,
-    current: EntityEntry,
+    last: Option<EntityInfo>,
+    current: EntityInfo,
 }
 
 pub(crate) struct LocalDiffModel {
@@ -24,7 +24,7 @@ pub(crate) struct LocalDiffModel {
 #[derive(Default)]
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
-    entity_entries: FxHashMap<Lid, EntityEntry>,
+    entity_infos: FxHashMap<Lid, EntityInfo>,
 }
 
 impl Default for LocalDiffModel {
@@ -58,10 +58,12 @@ impl LocalDiffModel {
             lid,
             EntityEntryPair {
                 last: None,
-                current: EntityEntry {
-                    entity_data: EntityData::Filename(filename),
+                current: EntityInfo {
+                    entity_data: EntitySpawnInfo::Filename(filename),
                     x,
                     y,
+                    vx: 0.0,
+                    vy: 0.0,
                 },
             },
         );
@@ -87,6 +89,11 @@ impl LocalDiffModel {
             let (x, y) = entity.position()?;
             current.x = x;
             current.y = y;
+            if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                let (vx, vy) = vel.m_velocity()?;
+                current.vx = vx;
+                current.vy = vy;
+            }
         }
         Ok(())
     }
@@ -105,6 +112,13 @@ impl LocalDiffModel {
                 res.push(EntityUpdate::SetPosition(current.x, current.y));
                 last.x = current.x;
                 last.y = current.y;
+                had_any_delta = true;
+            }
+
+            if current.vx != last.vx || current.vy != last.vy {
+                res.push(EntityUpdate::SetVelocity(current.vx, current.vy));
+                last.vx = current.vx;
+                last.vy = current.vy;
                 had_any_delta = true;
             }
 
@@ -130,34 +144,48 @@ impl RemoteDiffModel {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => current_lid = *lid,
                 EntityUpdate::Init(entity_entry) => {
-                    self.entity_entries
-                        .insert(current_lid, entity_entry.clone());
+                    self.entity_infos.insert(current_lid, entity_entry.clone());
                 }
                 EntityUpdate::SetPosition(x, y) => {
-                    let Some(ent_data) = self.entity_entries.get_mut(&current_lid) else {
+                    let Some(ent_data) = self.entity_infos.get_mut(&current_lid) else {
                         continue;
                     };
                     ent_data.x = *x;
                     ent_data.y = *y;
                 }
+                EntityUpdate::SetVelocity(vx, vy) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.vx = *vx;
+                    entity_info.vy = *vy;
+                }
                 EntityUpdate::RemoveEntity(lid) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
                         entity.kill();
                     }
-                    self.entity_entries.remove(&lid);
+                    self.entity_infos.remove(&lid);
                 }
             }
         }
     }
 
     pub(crate) fn apply_entities(&mut self) -> eyre::Result<()> {
-        for (gid, entity_entry) in &self.entity_entries {
+        for (gid, entity_info) in &self.entity_infos {
             match self.tracked.get_by_left(gid) {
                 Some(entity) => {
-                    entity.set_position(entity_entry.x, entity_entry.y)?;
+                    entity.set_position(entity_info.x, entity_info.y)?;
+                    if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                        vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                    }
+                    if let Some(vel) =
+                        entity.try_get_first_component::<CharacterDataComponent>(None)?
+                    {
+                        vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                    }
                 }
                 None => {
-                    let entity = self.spawn_entity_by_data(&entity_entry.entity_data)?;
+                    let entity = self.spawn_entity_by_data(&entity_info.entity_data)?;
                     game_print("Spawned remote entity");
                     self.remove_unnecessary_components(entity)?;
                     entity.add_tag(DES_TAG)?;
@@ -169,9 +197,9 @@ impl RemoteDiffModel {
         Ok(())
     }
 
-    fn spawn_entity_by_data(&self, entity_data: &EntityData) -> eyre::Result<EntityID> {
+    fn spawn_entity_by_data(&self, entity_data: &EntitySpawnInfo) -> eyre::Result<EntityID> {
         match entity_data {
-            EntityData::Filename(filename) => EntityID::load(filename, None, None),
+            EntitySpawnInfo::Filename(filename) => EntityID::load(filename, None, None),
         }
     }
 

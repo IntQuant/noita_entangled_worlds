@@ -238,12 +238,10 @@ impl LuaFnRet for RawString {
 
 /// Trait for arguments that can be put on lua stack.
 pub(crate) trait LuaPutValue {
+    const SIZE_ON_STACK: u32 = 1;
     fn put(&self, lua: LuaState);
     fn is_non_empty(&self) -> bool {
         true
-    }
-    fn size_on_stack() -> i32 {
-        1
     }
 }
 
@@ -321,6 +319,7 @@ impl LuaPutValue for Obj {
 
 impl<T: LuaPutValue> LuaPutValue for Option<T> {
     fn put(&self, lua: LuaState) {
+        const { assert!(T::SIZE_ON_STACK == 1) }
         match self {
             Some(val) => val.put(lua),
             None => lua.push_nil(),
@@ -332,6 +331,15 @@ impl<T: LuaPutValue> LuaPutValue for Option<T> {
             Some(val) => val.is_non_empty(),
             None => false,
         }
+    }
+}
+
+// A.k.a. vec2
+impl LuaPutValue for (f32, f32) {
+    const SIZE_ON_STACK: u32 = 2;
+    fn put(&self, lua: LuaState) {
+        lua.push_number(self.0 as f64);
+        lua.push_number(self.1 as f64);
     }
 }
 
