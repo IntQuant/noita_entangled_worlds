@@ -1,7 +1,7 @@
 use bimap::BiHashMap;
 use eyre::OptionExt;
 use noita_api::{
-    game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    game_print, lua::LuaState, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, EntityID, PhysicsAIComponent, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
