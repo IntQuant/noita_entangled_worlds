@@ -237,7 +237,7 @@ impl LuaFnRet for RawString {
 }
 
 /// Trait for arguments that can be put on lua stack.
-pub(crate) trait LuaPutValue {
+pub trait LuaPutValue {
     const SIZE_ON_STACK: u32 = 1;
     fn put(&self, lua: LuaState);
     fn is_non_empty(&self) -> bool {
@@ -344,7 +344,7 @@ impl LuaPutValue for (f32, f32) {
 }
 
 /// Trait for arguments that can be retrieved from the lua stack.
-pub(crate) trait LuaGetValue {
+pub trait LuaGetValue {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
     where
         Self: Sized;

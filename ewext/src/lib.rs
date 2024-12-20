@@ -31,6 +31,7 @@ mod addr_grabber;
 mod modules;
 mod net;
 pub mod noita;
+mod serialize;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
@@ -252,6 +253,24 @@ fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 
+fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
+    let (
+        (shooter_id, projectile_id, initial_rng, position_x),
+        (position_y, target_x, target_y, multicast_index),
+    ) = noita_api::lua::LuaGetValue::get(lua, -1)?;
+    with_every_module(|ctx, module| {
+        module.on_projectile_fired(
+            ctx,
+            shooter_id,
+            projectile_id,
+            initial_rng,
+            (position_x, position_y),
+            (target_x, target_y),
+            multicast_index,
+        )
+    })
+}
+
 fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     let start = Instant::now();
     let iters = 10000;
@@ -358,6 +377,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
 
         add_lua_fn!(module_on_world_init);
         add_lua_fn!(module_on_world_update);
+        add_lua_fn!(module_on_projectile_fired);
     }
     println!("Initializing ewext - Ok");
     1

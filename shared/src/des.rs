@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bitcode::{Decode, Encode};
 
 use crate::WorldPos;
@@ -6,7 +8,7 @@ use crate::WorldPos;
 pub type Gid = u64;
 
 // 32 bit locally unique id.
-#[derive(Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Lid(pub u32);
 
 #[derive(Encode, Decode, Clone)]
@@ -69,4 +71,13 @@ pub enum RemoteDes {
     InterestRequest(InterestRequest),
     EntityUpdate(Vec<EntityUpdate>),
     ExitedInterest,
+    Projectiles(Arc<Vec<ProjectileFired>>),
+}
+
+#[derive(Debug, Encode, Decode, Clone)]
+pub struct ProjectileFired {
+    pub shooter_lid: Lid,
+    pub position: (f32, f32),
+    pub target: (f32, f32),
+    pub serialized: Vec<u8>,
 }

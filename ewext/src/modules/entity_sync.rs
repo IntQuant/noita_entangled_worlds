@@ -3,15 +3,19 @@
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
+use std::sync::Arc;
+
 use diff_model::{LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::Context;
 use interest::InterestTracker;
-use noita_api::{game_print, EntityID};
+use noita_api::{game_print, EntityID, ProjectileComponent};
 use rustc_hash::FxHashMap;
 use shared::{
-    des::{Gid, InterestRequest, RemoteDes},
+    des::{Gid, InterestRequest, ProjectileFired, RemoteDes},
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
+
+use crate::serialize::serialize_entity;
 
 use super::Module;
 
@@ -25,6 +29,8 @@ pub(crate) struct EntitySync {
     interest_tracker: InterestTracker,
     local_diff_model: LocalDiffModel,
     remote_models: FxHashMap<PeerId, RemoteDiffModel>,
+
+    pending_fired_projectiles: Arc<Vec<ProjectileFired>>,
 }
 
 impl Default for EntitySync {
@@ -35,6 +41,8 @@ impl Default for EntitySync {
             interest_tracker: InterestTracker::new(512.0),
             local_diff_model: LocalDiffModel::default(),
             remote_models: Default::default(),
+
+            pending_fired_projectiles: Vec::new().into(),
         }
     }
 }
@@ -85,6 +93,12 @@ impl EntitySync {
                 self.remote_models.remove(&source);
             }
             RemoteDes::Reset => self.interest_tracker.reset_interest_for(source),
+            RemoteDes::Projectiles(vec) => {
+                self.remote_models
+                    .entry(source)
+                    .or_default()
+                    .spawn_projectiles(&vec);
+            }
         }
     }
 }
@@ -138,9 +152,16 @@ impl Module for EntitySync {
                     ctx,
                     true,
                     Destination::Peer(peer),
+                    RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
+                )?;
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peer(peer),
                     RemoteDes::EntityUpdate(diff.clone()),
                 )?;
             }
+            Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         } else {
             for remote_model in self.remote_models.values_mut() {
                 remote_model.apply_entities()?;
@@ -148,6 +169,48 @@ impl Module for EntitySync {
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
+
+        Ok(())
+    }
+
+    fn on_projectile_fired(
+        &mut self,
+        _ctx: &mut super::ModuleCtx,
+        shooter: Option<EntityID>,
+        projectile: Option<EntityID>,
+        _initial_rng: i32,
+        position: (f32, f32),
+        target: (f32, f32),
+        _multicast_index: i32,
+    ) -> eyre::Result<()> {
+        // This also checks that we do own the entity and that entity_sync is supposed to work on it.
+        let Some(shooter_lid) = shooter.and_then(|e| self.local_diff_model.lid_by_entity(e)) else {
+            return Ok(());
+        };
+        let Some(projectile) = projectile else {
+            // How is that supposed to happen, anyway?
+            return Ok(());
+        };
+        let Some(proj_component) =
+            projectile.try_get_first_component::<ProjectileComponent>(None)?
+        else {
+            return Ok(());
+        };
+
+        if proj_component.m_entity_that_shot()?.is_some() {
+            return Ok(());
+        }
+
+        let serialized = serialize_entity(projectile)?;
+
+        Arc::make_mut(&mut self.pending_fired_projectiles).push(ProjectileFired {
+            shooter_lid,
+            position,
+            target,
+            serialized,
+        });
+
+        //TODO initial_rng might need to be handled with np.SetProjectileSpreadRNG?
 
         Ok(())
     }

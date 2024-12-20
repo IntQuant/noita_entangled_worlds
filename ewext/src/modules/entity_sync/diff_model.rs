@@ -5,7 +5,9 @@ use noita_api::{
     CameraBoundComponent, CharacterDataComponent, EntityID, PhysicsAIComponent, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
-use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Gid, Lid};
+use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Gid, Lid, ProjectileFired};
+
+use crate::serialize::deserialize_entity;
 
 pub(crate) static DES_TAG: &str = "ew_des";
 
@@ -135,6 +137,10 @@ impl LocalDiffModel {
         }
         res
     }
+
+    pub(crate) fn lid_by_entity(&self, entity: EntityID) -> Option<Lid> {
+        self.tracked.get_by_right(&entity).copied()
+    }
 }
 
 impl RemoteDiffModel {
@@ -212,6 +218,39 @@ impl RemoteDiffModel {
         entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
         entity.remove_all_components_of_type::<AIAttackComponent>()?;
         Ok(())
+    }
+
+    pub(crate) fn spawn_projectiles(&self, projectiles: &[ProjectileFired]) {
+        for projectile in projectiles {
+            let Ok(deserialized) = deserialize_entity(
+                &projectile.serialized,
+                projectile.position.0,
+                projectile.position.1,
+            ) else {
+                game_print("uhh something went wrong when spawning projectile: deserialize");
+                continue;
+            };
+            let Some(&shooter_entity) = self.tracked.get_by_left(&projectile.shooter_lid) else {
+                continue;
+            };
+
+            game_print(format!(
+                "gsp {shooter_entity:?} {deserialized:?} {:?} {:?}",
+                projectile.position, projectile.target,
+            ));
+
+            // TODO hangs at this point
+            let _ = noita_api::raw::game_shoot_projectile(
+                shooter_entity.raw() as i32,
+                projectile.position.0 as f64,
+                projectile.position.1 as f64,
+                projectile.target.0 as f64,
+                projectile.target.1 as f64,
+                deserialized.raw() as i32,
+                None,
+                None,
+            );
+        }
     }
 }
 
