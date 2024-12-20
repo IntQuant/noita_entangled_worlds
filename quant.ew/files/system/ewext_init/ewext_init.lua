@@ -7,6 +7,10 @@ local initial_world_state_entity
 
 local module = {}
 
+-- Used in ewext
+EwextSerialize = util.serialize_entity
+EwextDeserialize = util.deserialize_entity
+
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()
     ewext.on_world_initialized()
@@ -68,6 +72,10 @@ function module.on_world_update()
         initial_world_state_entity = GameGetWorldStateEntity()
     end
     ewext.module_on_world_update()
+end
+
+function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
+    ewext.module_on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, multicast_index)
 end
 
 return module

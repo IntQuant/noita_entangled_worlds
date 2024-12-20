@@ -21,6 +21,7 @@ enum Typ {
     StdString,
     #[serde(rename = "vec2")]
     Vec2,
+    EntityID,
     #[serde(other)]
     Other,
 }
@@ -35,6 +36,7 @@ impl Typ {
             Typ::Bool => quote!(bool),
             Typ::StdString => quote!(Cow<'_, str>),
             Typ::Vec2 => quote! {(f32, f32)},
+            Typ::EntityID => quote! { Option<EntityID> },
             Typ::Other => todo!(),
         }
     }
@@ -164,7 +166,13 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
         let field_doc = &field.desc;
         let set_method_name = format_ident!("set_{}", field_name);
         match field.typ {
-            Typ::Int | Typ::UInt | Typ::Float | Typ::Double | Typ::Bool | Typ::Vec2 => {
+            Typ::Int
+            | Typ::UInt
+            | Typ::Float
+            | Typ::Double
+            | Typ::Bool
+            | Typ::Vec2
+            | Typ::EntityID => {
                 let field_type = field.typ.as_rust_type();
                 Some(quote! {
                     #[doc = #field_doc]
@@ -279,7 +287,9 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
             lua.call(last_non_empty+1, #ret_count);
 
             let ret = LuaGetValue::get(lua, -1);
-            lua.pop_last_n(#ret_count);
+            if #ret_count > 0 {
+                lua.pop_last_n(#ret_count);
+            }
             ret
         }
     }
