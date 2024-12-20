@@ -164,6 +164,10 @@ impl LuaState {
     pub fn rawset_table(&self, table_index: i32, index_in_table: i32) {
         unsafe { LUA.lua_rawseti(self.lua, table_index, index_in_table) };
     }
+
+    pub fn checkstack(&self, sz: i32) -> bool {
+        unsafe { LUA.lua_checkstack(self.lua, sz) > 0 }
+    }
 }
 
 pub struct RawString(Vec<u8>);
