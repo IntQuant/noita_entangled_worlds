@@ -1,68 +1,150 @@
 use bimap::BiHashMap;
+use eyre::OptionExt;
 use noita_api::{
-    AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, CameraBoundComponent, EntityID,
-    PhysicsAIComponent,
+    game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    CameraBoundComponent, EntityID, PhysicsAIComponent,
 };
 use rustc_hash::FxHashMap;
-use shared::des::{EntityData, EntityUpdate, Gid};
+use shared::des::{EntityData, EntityEntry, EntityUpdate, Gid, Lid};
 
-struct EntityEntry {
-    entity_data: EntityData,
-    x: f32,
-    y: f32,
+pub(crate) static DES_TAG: &str = "ew_des";
+
+struct EntityEntryPair {
+    last: Option<EntityEntry>,
+    current: EntityEntry,
 }
 
-#[derive(Default)]
-pub(crate) struct LocalDiffModel {}
+pub(crate) struct LocalDiffModel {
+    next_lid: Lid,
+    tracked: BiHashMap<Lid, EntityID>,
+    entity_entries: FxHashMap<Lid, EntityEntryPair>,
+    pending_removal: Vec<Lid>,
+}
 
 #[derive(Default)]
 pub(crate) struct RemoteDiffModel {
-    tracked: BiHashMap<Gid, EntityID>,
-    entity_entries: FxHashMap<Gid, EntityEntry>,
+    tracked: BiHashMap<Lid, EntityID>,
+    entity_entries: FxHashMap<Lid, EntityEntry>,
 }
 
-impl EntityEntry {
-    fn new(entity_data: EntityData) -> Self {
+impl Default for LocalDiffModel {
+    fn default() -> Self {
         Self {
-            entity_data,
-            x: 0.0,
-            y: 0.0,
+            next_lid: Lid(0),
+            tracked: Default::default(),
+            entity_entries: Default::default(),
+            pending_removal: Vec::with_capacity(16),
         }
     }
 }
 
 impl LocalDiffModel {
+    fn alloc_lid(&mut self) -> Lid {
+        let ret = self.next_lid;
+        self.next_lid.0 += 1;
+        ret
+    }
+
+    pub(crate) fn track_entity(&mut self, entity: EntityID) -> eyre::Result<()> {
+        let lid = self.alloc_lid();
+        entity.remove_all_components_of_type::<CameraBoundComponent>()?;
+        entity.add_tag(DES_TAG)?;
+
+        self.tracked.insert(lid, entity);
+        // TODO: handle other types of entities, like items.
+        let filename = entity.filename()?;
+        let (x, y) = entity.position()?;
+        self.entity_entries.insert(
+            lid,
+            EntityEntryPair {
+                last: None,
+                current: EntityEntry {
+                    entity_data: EntityData::Filename(filename),
+                    x,
+                    y,
+                },
+            },
+        );
+        Ok(())
+    }
+
     pub(crate) fn reset_diff_encoding(&mut self) {
-        todo!();
+        for (_, entry_pair) in &mut self.entity_entries {
+            entry_pair.last = None;
+        }
+    }
+
+    pub(crate) fn update_tracked_entities(&mut self) -> eyre::Result<()> {
+        for (&lid, EntityEntryPair { last: _, current }) in &mut self.entity_entries {
+            let entity = self
+                .tracked
+                .get_by_left(&lid)
+                .ok_or_eyre("Expected to find a corresponding entity")?;
+            if !entity.is_alive() {
+                self.pending_removal.push(lid);
+                continue;
+            }
+            let (x, y) = entity.position()?;
+            current.x = x;
+            current.y = y;
+        }
+        Ok(())
     }
 
     pub(crate) fn make_diff(&mut self) -> Vec<EntityUpdate> {
-        todo!()
+        let mut res = Vec::new();
+        for (&lid, EntityEntryPair { last, current }) in &mut self.entity_entries {
+            res.push(EntityUpdate::CurrentEntity(lid));
+            let Some(last) = last.as_mut() else {
+                res.push(EntityUpdate::Init(current.clone()));
+                *last = Some(current.clone());
+                continue;
+            };
+            let mut had_any_delta = false;
+            if current.x != last.x || current.y != last.y {
+                res.push(EntityUpdate::SetPosition(current.x, current.y));
+                last.x = current.x;
+                last.y = current.y;
+                had_any_delta = true;
+            }
+
+            // Remove the CurrentEntity thing because it's not necessary.
+            if !had_any_delta {
+                res.pop();
+            }
+        }
+        for lid in self.pending_removal.drain(..) {
+            res.push(EntityUpdate::RemoveEntity(lid));
+            // "Untrack" entity
+            self.tracked.remove_by_left(&lid);
+            self.entity_entries.remove(&lid);
+        }
+        res
     }
 }
 
 impl RemoteDiffModel {
     pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) {
-        let mut current_gid = 0;
+        let mut current_lid = Lid(0);
         for entry in diff {
             match entry {
-                EntityUpdate::CurrentEntity(gid) => current_gid = *gid,
-                EntityUpdate::EntityData(entity_data) => {
+                EntityUpdate::CurrentEntity(lid) => current_lid = *lid,
+                EntityUpdate::Init(entity_entry) => {
                     self.entity_entries
-                        .insert(current_gid, EntityEntry::new(entity_data.clone()));
+                        .insert(current_lid, entity_entry.clone());
                 }
                 EntityUpdate::SetPosition(x, y) => {
-                    let Some(ent_data) = self.entity_entries.get_mut(&current_gid) else {
+                    let Some(ent_data) = self.entity_entries.get_mut(&current_lid) else {
                         continue;
                     };
                     ent_data.x = *x;
                     ent_data.y = *y;
                 }
-                EntityUpdate::RemoveEntity(gid) => {
-                    if let Some((_, entity)) = self.tracked.remove_by_left(gid) {
+                EntityUpdate::RemoveEntity(lid) => {
+                    if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
                         entity.kill();
                     }
-                    self.entity_entries.remove(&gid);
+                    self.entity_entries.remove(&lid);
                 }
             }
         }
@@ -76,7 +158,9 @@ impl RemoteDiffModel {
                 }
                 None => {
                     let entity = self.spawn_entity_by_data(&entity_entry.entity_data)?;
+                    game_print("Spawned remote entity");
                     self.remove_unnecessary_components(entity)?;
+                    entity.add_tag(DES_TAG)?;
                     self.tracked.insert(*gid, entity);
                 }
             }

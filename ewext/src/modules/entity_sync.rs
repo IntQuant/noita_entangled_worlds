@@ -3,10 +3,10 @@
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
-use diff_model::{LocalDiffModel, RemoteDiffModel};
+use diff_model::{LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::Context;
 use interest::InterestTracker;
-use noita_api::EntityID;
+use noita_api::{game_print, EntityID};
 use rustc_hash::FxHashMap;
 use shared::{
     des::{Gid, InterestRequest, RemoteDes},
@@ -26,8 +26,6 @@ struct TrackedEntity {
 pub(crate) struct EntitySync {
     /// Last entity we stopped looking for new tracked entities at.
     look_current_entity: EntityID,
-    /// List of entities that we have authority over.
-    tracked: Vec<TrackedEntity>,
 
     interest_tracker: InterestTracker,
     local_diff_model: LocalDiffModel,
@@ -38,7 +36,6 @@ impl Default for EntitySync {
     fn default() -> Self {
         Self {
             look_current_entity: EntityID::try_from(1).unwrap(),
-            tracked: Vec::new(),
 
             interest_tracker: InterestTracker::new(512.0),
             local_diff_model: LocalDiffModel::default(),
@@ -60,12 +57,13 @@ impl EntitySync {
             if !entity.is_alive() {
                 continue;
             }
+            if entity.has_tag(DES_TAG) {
+                entity.kill();
+                continue;
+            }
             if self.should_be_tracked(entity)? {
-                println!("Tracking {entity:?}");
-                self.tracked.push(TrackedEntity {
-                    gid: rand::random(),
-                    entity,
-                });
+                game_print(format!("Tracking {entity:?}"));
+                self.local_diff_model.track_entity(entity)?;
             }
         }
 
@@ -125,7 +123,9 @@ impl Module for EntitySync {
         }
 
         if frame_num % 2 == 0 {
+            self.local_diff_model.update_tracked_entities()?;
             if self.interest_tracker.got_any_new_interested() {
+                game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();
             }
             let diff = self.local_diff_model.make_diff();
@@ -143,6 +143,8 @@ impl Module for EntitySync {
                 remote_model.apply_entities()?;
             }
         }
+        // These entities shouldn't be tracked by us, as they were spawned by remote.
+        self.look_current_entity = EntityID::max_in_use()?;
 
         Ok(())
     }

@@ -51,6 +51,15 @@ impl EntityID {
         raw::entity_set_transform(self, x as f64, Some(y as f64), None, None, None)
     }
 
+    pub fn position(self) -> eyre::Result<(f32, f32)> {
+        let (x, y, _, _, _) = raw::entity_get_transform(self)?;
+        Ok((x as f32, y as f32))
+    }
+
+    pub fn filename(self) -> eyre::Result<String> {
+        raw::entity_get_filename(self).map(|x| x.to_string())
+    }
+
     /// Returns the first component of this type if an entity has it.
     pub fn try_get_first_component<C: Component>(
         self,
@@ -103,6 +112,10 @@ impl TryFrom<isize> for EntityID {
     fn try_from(value: isize) -> Result<Self, Self::Error> {
         NonZero::<isize>::try_from(value).map(Self)
     }
+}
+
+pub fn game_print(value: impl AsRef<str>) {
+    let _ = raw::game_print(value.as_ref().into());
 }
 
 pub mod raw {

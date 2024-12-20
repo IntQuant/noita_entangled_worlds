@@ -15,7 +15,7 @@ impl WorldPos {
     }
 }
 
-#[derive(Encode, Decode, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Encode, Decode, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct PeerId(pub u64);
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq)]
