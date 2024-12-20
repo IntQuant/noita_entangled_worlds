@@ -244,6 +244,10 @@ fn with_every_module(
     })
 }
 
+fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
+    with_every_module(|ctx, module| module.on_world_init(ctx))
+}
+
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
@@ -352,6 +356,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(netmanager_send);
         add_lua_fn!(netmanager_flush);
 
+        add_lua_fn!(module_on_world_init);
         add_lua_fn!(module_on_world_update);
     }
     println!("Initializing ewext - Ok");

@@ -84,11 +84,17 @@ impl EntitySync {
             RemoteDes::ExitedInterest => {
                 self.remote_models.remove(&source);
             }
+            RemoteDes::Reset => self.interest_tracker.reset_interest_for(source),
         }
     }
 }
 
 impl Module for EntitySync {
+    fn on_world_init(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+        send_remotedes(ctx, true, Destination::Broadcast, RemoteDes::Reset)?;
+        Ok(())
+    }
+
     fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
         self.look_for_tracked()
             .wrap_err("Error in look_for_tracked")?;

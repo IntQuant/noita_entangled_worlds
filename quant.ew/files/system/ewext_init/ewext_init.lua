@@ -16,6 +16,7 @@ function module.on_world_initialized()
     chunk_map = tonumber(ffi.cast("intptr_t", chunk_map))
     local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
     ewext.init_particle_world_state(grid_world, chunk_map, material_list)
+    ewext.module_on_world_init()
 end
 
 local function oh_another_world_state(entity)
