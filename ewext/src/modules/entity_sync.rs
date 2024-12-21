@@ -11,7 +11,7 @@ use interest::InterestTracker;
 use noita_api::{game_print, EntityID, ProjectileComponent};
 use rustc_hash::FxHashMap;
 use shared::{
-    des::{Gid, InterestRequest, ProjectileFired, RemoteDes},
+    des::{InterestRequest, ProjectileFired, RemoteDes},
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
 
