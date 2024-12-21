@@ -27,6 +27,9 @@ pub(crate) enum NetMsg {
     WorldMessage(WorldNetMessage),
     PlayerColor(PlayerPngDesc, bool, Option<OmniPeerId>, String),
     RemoteMsg(shared::RemoteMessage),
+    ForwardDesToProxy(shared::des::DesToProxy),
+    ForwardProxyToDes(shared::des::ProxyToDes),
+    NoitaDisconnected,
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

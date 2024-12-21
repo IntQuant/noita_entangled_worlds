@@ -4,8 +4,13 @@ use bitcode::{Decode, Encode};
 
 use crate::WorldPos;
 
+pub const REQUEST_AUTHORITY_RADIUS: i32 = 512;
+pub const AUTHORITY_RADIUS: f32 = 756.0;
+pub const INTEREST_REQUEST_RADIUS: i32 = 1024;
+
 /// 64 bit globally unique id. Assigned randomly, should only have 50% chance of collision with 2^32 entities at once.
-pub type Gid = u64;
+#[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct Gid(pub u64);
 
 // 32 bit locally unique id.
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
@@ -17,21 +22,29 @@ pub enum EntitySpawnInfo {
     // Serialized(Vec<u8>),
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Clone)]
 pub struct FullEntityData {
     pub gid: Gid,
     pub pos: WorldPos,
     pub data: EntitySpawnInfo,
 }
 
-#[derive(Encode, Decode)]
-pub enum DesToProxy {
-    InitOrUpdateEntity(FullEntityData),
-    DeleteEntity { gid: Gid },
-    ReleaseAuthority(FullEntityData),
+#[derive(Encode, Decode, Clone)]
+pub struct UpdatePosition {
+    pub gid: Gid,
+    pub pos: WorldPos,
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Clone)]
+pub enum DesToProxy {
+    InitOrUpdateEntity(FullEntityData),
+    DeleteEntity(Gid),
+    ReleaseAuthority(Gid),
+    RequestAuthority { pos: WorldPos, radius: i32 },
+    UpdatePositions(Vec<UpdatePosition>),
+}
+
+#[derive(Encode, Decode, Clone)]
 pub enum ProxyToDes {
     /// Got authority over entity.
     GotAuthority(FullEntityData),
