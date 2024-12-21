@@ -1,14 +1,12 @@
-use std::arch::asm;
-
 use bimap::BiHashMap;
 use eyre::OptionExt;
 use noita_api::{
-    game_print, lua::LuaState, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
     PhysicsAIComponent, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
-use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Gid, Lid, ProjectileFired};
+use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Lid, ProjectileFired};
 
 use crate::serialize::deserialize_entity;
 
@@ -69,6 +67,7 @@ impl LocalDiffModel {
                     y,
                     vx: 0.0,
                     vy: 0.0,
+                    hp: 1.0,
                 },
             },
         );
@@ -99,6 +98,10 @@ impl LocalDiffModel {
                 current.vx = vx;
                 current.vy = vy;
             }
+            if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+                let hp = damage.hp()?;
+                current.hp = hp as f32;
+            }
         }
         Ok(())
     }
@@ -124,6 +127,12 @@ impl LocalDiffModel {
                 res.push(EntityUpdate::SetVelocity(current.vx, current.vy));
                 last.vx = current.vx;
                 last.vy = current.vy;
+                had_any_delta = true;
+            }
+
+            if current.hp != last.hp {
+                res.push(EntityUpdate::SetHp(current.hp));
+                last.hp = current.hp;
                 had_any_delta = true;
             }
 
@@ -169,6 +178,12 @@ impl RemoteDiffModel {
                     entity_info.vx = *vx;
                     entity_info.vy = *vy;
                 }
+                EntityUpdate::SetHp(hp) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.hp = *hp;
+                }
                 EntityUpdate::RemoveEntity(lid) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
                         entity.kill();
@@ -192,9 +207,33 @@ impl RemoteDiffModel {
                     {
                         vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
                     }
+                    if let Some(damage) =
+                        entity.try_get_first_component::<DamageModelComponent>(None)?
+                    {
+                        let current_hp = damage.hp()? as f32;
+                        if current_hp > entity_info.hp {
+                            noita_api::raw::entity_inflict_damage(
+                                entity.raw() as i32,
+                                (current_hp - entity_info.hp) as f64,
+                                "CURSE".into(),
+                                "hp sync".into(),
+                                "NONE".into(),
+                                0.0,
+                                0.0,
+                                None,
+                                None,
+                                None,
+                                None,
+                            )?;
+                        }
+                    }
                 }
                 None => {
-                    let entity = self.spawn_entity_by_data(&entity_info.entity_data)?;
+                    let entity = self.spawn_entity_by_data(
+                        &entity_info.entity_data,
+                        entity_info.x,
+                        entity_info.y,
+                    )?;
                     game_print("Spawned remote entity");
                     self.remove_unnecessary_components(entity)?;
                     entity.add_tag(DES_TAG)?;
@@ -211,9 +250,16 @@ impl RemoteDiffModel {
         Ok(())
     }
 
-    fn spawn_entity_by_data(&self, entity_data: &EntitySpawnInfo) -> eyre::Result<EntityID> {
+    fn spawn_entity_by_data(
+        &self,
+        entity_data: &EntitySpawnInfo,
+        x: f32,
+        y: f32,
+    ) -> eyre::Result<EntityID> {
         match entity_data {
-            EntitySpawnInfo::Filename(filename) => EntityID::load(filename, None, None),
+            EntitySpawnInfo::Filename(filename) => {
+                EntityID::load(filename, Some(x as f64), Some(y as f64))
+            }
         }
     }
 

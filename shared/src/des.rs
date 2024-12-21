@@ -50,6 +50,7 @@ pub struct EntityInfo {
     pub y: f32,
     pub vx: f32,
     pub vy: f32,
+    pub hp: f32,
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -60,6 +61,7 @@ pub enum EntityUpdate {
     // TODO diffing for position
     SetPosition(f32, f32),
     SetVelocity(f32, f32),
+    SetHp(f32),
     // TODO...
     RemoveEntity(Lid),
 }

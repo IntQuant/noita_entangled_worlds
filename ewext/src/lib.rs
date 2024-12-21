@@ -6,7 +6,7 @@ use std::{
     arch::asm,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
-    sync::{atomic::AtomicBool, LazyLock, Mutex},
+    sync::{LazyLock, Mutex},
     thread,
     time::Instant,
 };
