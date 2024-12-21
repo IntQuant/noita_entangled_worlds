@@ -83,6 +83,16 @@ impl EntityID {
         Ok(())
     }
 
+    pub fn iter_all_components_of_type<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<impl Iterator<Item = C>> {
+        Ok(raw::entity_get_component(self, C::NAME_STR.into(), tag)?
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|x| x.map(C::from)))
+    }
+
     pub fn load(
         filename: impl AsRef<str>,
         pos_x: Option<f64>,

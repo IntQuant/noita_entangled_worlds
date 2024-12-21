@@ -3,7 +3,8 @@ use eyre::OptionExt;
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
-    PhysicsAIComponent, VelocityComponent,
+    ExplodeOnDamageComponent, ItemPickUpperComponent, PhysicsAIComponent, PhysicsBody2Component,
+    VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Lid, ProjectileFired};
@@ -235,13 +236,7 @@ impl RemoteDiffModel {
                         entity_info.y,
                     )?;
                     game_print("Spawned remote entity");
-                    self.remove_unnecessary_components(entity)?;
-                    entity.add_tag(DES_TAG)?;
-                    if let Some(damage) =
-                        entity.try_get_first_component::<DamageModelComponent>(None)?
-                    {
-                        damage.set_wait_for_kill_flag_on_death(true)?;
-                    }
+                    self.init_remote_entity(entity)?;
                     self.tracked.insert(*gid, entity);
                 }
             }
@@ -263,14 +258,33 @@ impl RemoteDiffModel {
         }
     }
 
+    /// Modifies a newly spawned entity so it can be synced properly.
     /// Removes components that shouldn't be on entities that were replicated from a remote,
     /// generally because they interfere with things we're supposed to sync.
-    fn remove_unnecessary_components(&self, entity: EntityID) -> eyre::Result<()> {
+    fn init_remote_entity(&self, entity: EntityID) -> eyre::Result<()> {
         entity.remove_all_components_of_type::<CameraBoundComponent>()?;
         entity.remove_all_components_of_type::<AnimalAIComponent>()?;
         entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
         entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
         entity.remove_all_components_of_type::<AIAttackComponent>()?;
+        entity.remove_all_components_of_type::<ItemPickUpperComponent>()?;
+
+        entity.add_tag(DES_TAG)?;
+        entity.add_tag("polymorphable_NOT")?;
+        if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+            damage.set_wait_for_kill_flag_on_death(true)?;
+        }
+
+        for pb2 in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
+            pb2.set_destroy_body_if_entity_destroyed(true)?;
+        }
+
+        for expl in entity.iter_all_components_of_type::<ExplodeOnDamageComponent>(None)? {
+            expl.set_explode_on_damage_percent(0.0)?;
+            expl.set_explode_on_death_percent(0.0)?;
+            expl.set_physics_body_modified_death_probability(0.0)?;
+        }
+
         Ok(())
     }
 
