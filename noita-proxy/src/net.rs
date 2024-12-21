@@ -81,6 +81,7 @@ pub(crate) struct NetInnerState {
     pub(crate) ms: Option<MessageSocket<NoitaOutbound, NoitaInbound>>,
     world: WorldManager,
     des: DesManager,
+    had_a_disconnect: bool,
 }
 
 impl NetInnerState {
@@ -89,6 +90,7 @@ impl NetInnerState {
             if let Err(err) = ws.write(data) {
                 error!("Error occured while sending to websocket: {}", err);
                 self.ms = None;
+                self.had_a_disconnect = true;
             };
         }
     }
@@ -285,7 +287,8 @@ impl NetManager {
                 self.peer.my_id(),
                 self.init_settings.save_state.clone(),
             ),
-            des: DesManager::new(is_host, self.init_settings.save_state.clone()),
+            des: DesManager::new(self.init_settings.save_state.clone()),
+            had_a_disconnect: false,
         };
         let mut last_iter = Instant::now();
         let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
@@ -401,6 +404,7 @@ impl NetManager {
                     Ok(None) => break,
                     Err(err) => {
                         warn!("Game closed (Lost connection to noita instance: {})", err);
+                        state.had_a_disconnect = true;
                         state.ms = None;
                     }
                 }
@@ -416,6 +420,20 @@ impl NetManager {
             for update in updates {
                 state.try_ms_write(&ws_encode_proxy_bin(0, &update));
             }
+
+            if state.had_a_disconnect {
+                self.broadcast(&NetMsg::NoitaDisconnected, Reliability::Reliable);
+                if self.is_host() {
+                    state.des.noita_disconnected(self.peer.my_id());
+                }
+                state.had_a_disconnect = false;
+            }
+
+            let des_pending = state.des.pending_messages();
+            for (dest, msg) in des_pending {
+                self.send(dest, &NetMsg::ForwardProxyToDes(msg), Reliability::Reliable);
+            }
+
             // Don't do excessive busy-waiting;
             let min_update_time = Duration::from_millis(1);
             let elapsed = last_iter.elapsed();
@@ -560,6 +578,13 @@ impl NetManager {
             }
             NetMsg::Kick => std::process::exit(0),
             NetMsg::RemoteMsg(remote_message) => self.handle_remote_msg(state, src, remote_message),
+            NetMsg::ForwardDesToProxy(des_to_proxy) => {
+                state.des.handle_noita_msg(src, des_to_proxy)
+            }
+            NetMsg::ForwardProxyToDes(proxy_to_des) => {
+                state.try_ms_write(&NoitaInbound::ProxyToDes(proxy_to_des));
+            }
+            NetMsg::NoitaDisconnected => state.des.noita_disconnected(src),
         }
     }
 
@@ -723,7 +748,17 @@ impl NetManager {
                     }
                 }
             }
-            NoitaOutbound::DesToProxy(des_to_proxy) => state.des.handle_noita_msg(des_to_proxy),
+            NoitaOutbound::DesToProxy(des_to_proxy) => {
+                if self.is_host() {
+                    state.des.handle_noita_msg(self.peer.my_id(), des_to_proxy)
+                } else {
+                    self.send(
+                        self.peer.host_id(),
+                        &NetMsg::ForwardDesToProxy(des_to_proxy),
+                        Reliability::Reliable,
+                    );
+                }
+            }
             NoitaOutbound::RemoteMessage {
                 reliable,
                 destination,

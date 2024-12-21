@@ -6,12 +6,15 @@
 use std::sync::Arc;
 
 use diff_model::{LocalDiffModel, RemoteDiffModel, DES_TAG};
-use eyre::Context;
+use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::{game_print, EntityID, ProjectileComponent};
 use rustc_hash::FxHashMap;
 use shared::{
-    des::{InterestRequest, ProjectileFired, RemoteDes},
+    des::{
+        InterestRequest, ProjectileFired, RemoteDes, INTEREST_REQUEST_RADIUS,
+        REQUEST_AUTHORITY_RADIUS,
+    },
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
 
@@ -53,7 +56,7 @@ impl EntitySync {
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
-    fn look_for_tracked(&mut self) -> eyre::Result<()> {
+    fn look_for_tracked(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
         let max_entity = EntityID::max_in_use()?;
         for i in (self.look_current_entity.raw() + 1)..=max_entity.raw() {
             let entity = EntityID::try_from(i)?;
@@ -66,7 +69,16 @@ impl EntitySync {
             }
             if self.should_be_tracked(entity)? {
                 game_print(format!("Tracking {entity:?}"));
-                self.local_diff_model.track_entity(entity)?;
+                let gid = shared::des::Gid(rand::random());
+                let lid = self.local_diff_model.track_entity(entity, gid)?;
+
+                ctx.net.send(&NoitaOutbound::DesToProxy(
+                    shared::des::DesToProxy::InitOrUpdateEntity(
+                        self.local_diff_model
+                            .full_entity_data_for(lid)
+                            .ok_or_eyre("entity just began being tracked")?,
+                    ),
+                ))?;
             }
         }
 
@@ -75,7 +87,12 @@ impl EntitySync {
     }
 
     pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
-        todo!()
+        match proxy_to_des {
+            shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
+                game_print("Got authority over new entity");
+                self.local_diff_model.got_authority(full_entity_data);
+            }
+        }
     }
 
     pub(crate) fn handle_remotedes(&mut self, source: PeerId, remote_des: RemoteDes) {
@@ -110,7 +127,7 @@ impl Module for EntitySync {
     }
 
     fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        self.look_for_tracked()
+        self.look_for_tracked(ctx)
             .wrap_err("Error in look_for_tracked")?;
 
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
@@ -123,7 +140,7 @@ impl Module for EntitySync {
                 Destination::Broadcast,
                 RemoteDes::InterestRequest(InterestRequest {
                     pos: WorldPos::from_f64(x, y),
-                    radius: 1024,
+                    radius: INTEREST_REQUEST_RADIUS,
                 }),
             )?;
         }
@@ -137,9 +154,11 @@ impl Module for EntitySync {
             )?;
         }
 
+        self.local_diff_model.update()?;
+
         if frame_num % 2 == 0 {
             self.local_diff_model
-                .update_tracked_entities()
+                .update_tracked_entities(ctx)
                 .wrap_err("Failed to update locally tracked entities")?;
             if self.interest_tracker.got_any_new_interested() {
                 game_print("Got new interested");
@@ -166,6 +185,17 @@ impl Module for EntitySync {
             for remote_model in self.remote_models.values_mut() {
                 remote_model.apply_entities()?;
             }
+        }
+
+        if frame_num % 60 == 0 {
+            let (x, y) = noita_api::raw::game_get_camera_pos()?;
+            ctx.net.send(&NoitaOutbound::DesToProxy(
+                shared::des::DesToProxy::RequestAuthority {
+                    pos: WorldPos::from_f64(x, y),
+                    radius: REQUEST_AUTHORITY_RADIUS,
+                },
+            ))?;
+            // TODO also send positions periodically.
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
