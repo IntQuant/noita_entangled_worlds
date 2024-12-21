@@ -43,7 +43,7 @@ end)
 
 util.add_cross_call("ew_spectator", function()
     if ctx.spectating_over_peer_id == nil then
-        return ctx.my_player.entity or EntityGetWithTag("player_unit")[1]
+        return (ctx.my_player ~= nil and ctx.my_player.entity) or EntityGetWithTag("player_unit")[1]
     else
         return ctx.players[ctx.spectating_over_peer_id].entity
     end

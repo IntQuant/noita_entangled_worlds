@@ -1,6 +1,6 @@
 local rpc = net.new_rpc_namespace()
 
-local best_times = rpc:create_var("best_times")
+local best_times = {}
 
 local karl = {}
 
@@ -32,6 +32,7 @@ function rpc.send_karl(x, y, vx, vy, t, jet, rgb1, rgb2)
     end
     if players_karl == nil then
         players_karl = EntityLoad("data/entities/buildings/racing_cart.xml", x, y)
+        util.make_ephemerial(players_karl)
         EntitySetTransform(players_karl, x, y, t)
         EntityAddComponent2(players_karl, "VariableStorageComponent", {_tags = "ew_karl", value_string = ctx.rpc_peer_id})
         for _, com in ipairs(EntityGetComponent(players_karl, "LuaComponent")) do
@@ -59,14 +60,47 @@ local function draw_leaderboards_gui()
     GuiStartFrame(gui)
     GuiZSet(gui, 11)
 
-    local _w, h = GuiGetScreenDimensions(gui)
+    local _, h = GuiGetScreenDimensions(gui)
     local text_x = 10
     local text_y = h / 5
-    GuiText(gui, text_x, text_y - 10, "Lap times")
-    for peer_id, peer_time in pairs(best_times.values) do
-        GuiText(gui, text_x, text_y, string.format("%-16s %.02fs", player_fns.nickname_of_peer(peer_id), peer_time/60))
-        text_y = text_y + 10
+    local times = {}
+    for peer_id, peer_time in pairs(best_times) do
+        GamePrint(peer_id .. " " .. peer_time)
+        if peer_time ~= 0 then
+            local i = 1
+            for _, t in ipairs(times) do
+                if t[1] >= peer_time then
+                    break
+                end
+                i = i + 1
+            end
+            table.insert(times, i, {peer_time, player_fns.nickname_of_peer(peer_id)})
+        end
     end
+    if #times ~= 0 then
+        GuiText(gui, text_x, text_y - 10, "Lap times")
+        for _, data in ipairs(times) do
+        GamePrint(" ".. data[2])
+            GuiText(gui, text_x, text_y, string.format("%-16s %.02fs", data[2], data[1]/60))
+            text_y = text_y + 10
+        end
+    end
+end
+
+local my_time = 0
+
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.update_time(new_time, ping)
+    best_times[ctx.rpc_peer_id] = new_time
+    GamePrint(best_times[ctx.rpc_peer_id])
+    if ping then
+        rpc.update_time(my_time)
+    end
+end
+
+function karl.on_client_spawned()
+    rpc.update_time(my_time, true)
 end
 
 function karl.on_world_update()
@@ -100,7 +134,10 @@ function karl.on_world_update()
         local com = EntityGetFirstComponentIncludingDisabled(stopwatch_best, "VariableStorageComponent")
         if com ~= nil then
             local best_time = ComponentGetValue2(com, "value_int")
-            best_times.set(best_time)
+            if best_time ~= my_time then
+                rpc.update_time(best_time)
+                my_time = best_time
+            end
         end
     end
 
