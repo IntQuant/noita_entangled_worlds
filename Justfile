@@ -42,10 +42,13 @@ run: add_dylib_debug build_ext
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run
 
 run2: add_dylib_debug build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe" 
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
+
+run2-alt: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0" 
 
 run3: add_dylib_debug build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
 
 release_old: build_ext
     python scripts/prepare_release.py

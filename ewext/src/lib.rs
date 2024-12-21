@@ -6,7 +6,7 @@ use std::{
     arch::asm,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
-    sync::{LazyLock, Mutex},
+    sync::{atomic::AtomicBool, LazyLock, Mutex},
     thread,
     time::Instant,
 };
@@ -165,6 +165,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::RawMessage(vec) => return Ok(Some(vec.into())),
             NoitaInbound::Ready => bail!("Unexpected Ready message"),
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
+                let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
                     entity_sync.handle_proxytodes(proxy_to_des);
                 }
@@ -173,6 +174,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
                 source,
                 message: shared::RemoteMessage::RemoteDes(remote_des),
             } => ExtState::with_global(|state| {
+                let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
                     entity_sync.handle_remotedes(source, remote_des);
                 }
@@ -221,9 +223,12 @@ fn on_world_initialized(lua: LuaState) {
     })
 }
 
+static IN_MODULE_LOCK: Mutex<()> = Mutex::new(());
+
 fn with_every_module(
     f: impl Fn(&mut ModuleCtx, &mut dyn Module) -> eyre::Result<()>,
 ) -> eyre::Result<()> {
+    let _lock = IN_MODULE_LOCK.lock().unwrap();
     let mut temp = NETMANAGER.lock().unwrap();
     let mut net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
     STATE.with(|state| {
@@ -254,6 +259,10 @@ fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
+    // Could be called while we do game_shoot_projectile call, leading to a deadlock.
+    if IN_MODULE_LOCK.try_lock().is_err() {
+        return Ok(());
+    }
     let (
         (shooter_id, projectile_id, initial_rng, position_x),
         (position_y, target_x, target_y, multicast_index),
