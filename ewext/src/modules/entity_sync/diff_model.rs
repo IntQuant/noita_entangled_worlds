@@ -1,8 +1,11 @@
+use std::arch::asm;
+
 use bimap::BiHashMap;
 use eyre::OptionExt;
 use noita_api::{
     game_print, lua::LuaState, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
-    CameraBoundComponent, CharacterDataComponent, EntityID, PhysicsAIComponent, VelocityComponent,
+    CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
+    PhysicsAIComponent, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::des::{EntityInfo, EntitySpawnInfo, EntityUpdate, Gid, Lid, ProjectileFired};
@@ -195,6 +198,11 @@ impl RemoteDiffModel {
                     game_print("Spawned remote entity");
                     self.remove_unnecessary_components(entity)?;
                     entity.add_tag(DES_TAG)?;
+                    if let Some(damage) =
+                        entity.try_get_first_component::<DamageModelComponent>(None)?
+                    {
+                        damage.set_wait_for_kill_flag_on_death(true)?;
+                    }
                     self.tracked.insert(*gid, entity);
                 }
             }
@@ -234,12 +242,6 @@ impl RemoteDiffModel {
                 continue;
             };
 
-            game_print(format!(
-                "gsp {shooter_entity:?} {deserialized:?} {:?} {:?}",
-                projectile.position, projectile.target,
-            ));
-
-            // TODO hangs at this point
             let _ = noita_api::raw::game_shoot_projectile(
                 shooter_entity.raw() as i32,
                 projectile.position.0 as f64,
