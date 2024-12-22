@@ -4,9 +4,9 @@ use bitcode::{Decode, Encode};
 
 use crate::WorldPos;
 
-pub const REQUEST_AUTHORITY_RADIUS: i32 = 512;
-pub const AUTHORITY_RADIUS: f32 = 756.0;
-pub const INTEREST_REQUEST_RADIUS: i32 = 1024;
+pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
+pub const AUTHORITY_RADIUS: f32 = 600.0;
+pub const INTEREST_REQUEST_RADIUS: i32 = 900;
 
 /// 64 bit globally unique id. Assigned randomly, should only have 50% chance of collision with 2^32 entities at once.
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
