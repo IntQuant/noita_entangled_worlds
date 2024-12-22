@@ -56,6 +56,16 @@ pub struct InterestRequest {
     pub radius: i32,
 }
 
+#[derive(Encode, Decode, Clone, Copy, PartialEq)]
+pub struct PhysBodyInfo {
+    pub x: f32,
+    pub y: f32,
+    pub angle: f32,
+    pub vx: f32,
+    pub vy: f32,
+    pub av: f32,
+}
+
 #[derive(Encode, Decode, Clone)]
 pub struct EntityInfo {
     pub entity_data: EntitySpawnInfo,
@@ -64,6 +74,7 @@ pub struct EntityInfo {
     pub vx: f32,
     pub vy: f32,
     pub hp: f32,
+    pub phys: Vec<PhysBodyInfo>,
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -75,6 +86,7 @@ pub enum EntityUpdate {
     SetPosition(f32, f32),
     SetVelocity(f32, f32),
     SetHp(f32),
+    SetPhysInfo(Vec<PhysBodyInfo>),
     // TODO...
     RemoveEntity(Lid),
 }

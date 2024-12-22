@@ -29,8 +29,10 @@ def maybe_map_types(name, typ):
         typ = "bool"
     if typ == "item_entity_id":
         typ = "entity_id"
-    if typ == "physics_body_id":
-        raise ValueError(f"{typ} not supported")
+    #if typ == "physics_body_id":
+    #    raise ValueError(f"{typ} not supported")
+    if name == "physics_body_id":
+        typ = "physics_body_id"
     return typ
 
 def parse_arg(arg_s):

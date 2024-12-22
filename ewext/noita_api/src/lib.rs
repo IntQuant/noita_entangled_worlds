@@ -17,6 +17,9 @@ pub struct Obj(pub usize);
 
 pub struct Color(pub u32);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PhysicsBodyID(pub i32);
+
 pub trait Component: From<ComponentID> + Into<ComponentID> {
     const NAME_STR: &'static str;
 }
@@ -132,7 +135,7 @@ pub mod raw {
     use eyre::eyre;
     use eyre::Context;
 
-    use super::{Color, ComponentID, EntityID, Obj};
+    use super::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
     use crate::lua::LuaGetValue;
     use crate::lua::LuaPutValue;
     use std::borrow::Cow;
@@ -170,5 +173,28 @@ pub mod raw {
         value.put(lua);
         lua.call((2 + T::SIZE_ON_STACK).try_into()?, 0);
         Ok(())
+    }
+
+    pub fn physics_body_id_get_transform(
+        body: PhysicsBodyID,
+    ) -> eyre::Result<Option<(f32, f32, f32, f32, f32, f32)>> {
+        let lua = LuaState::current()?;
+        lua.get_global(c"PhysicsBodyIDGetTransform");
+        lua.push_integer(body.0 as isize);
+        lua.call(1, 6);
+        if lua.is_nil_or_none(-1) {
+            Ok(None)
+        } else {
+            match LuaGetValue::get(lua, -1) {
+                Ok(ret) => {
+                    lua.pop_last_n(6);
+                    Ok(Some(ret))
+                }
+                Err(err) => {
+                    lua.pop_last_n(6);
+                    Err(err)
+                }
+            }
+        }
     }
 }

@@ -1,7 +1,7 @@
 use std::mem;
 
 use bimap::BiHashMap;
-use eyre::OptionExt;
+use eyre::{eyre, OptionExt};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
@@ -11,8 +11,8 @@ use noita_api::{
 use rustc_hash::FxHashMap;
 use shared::{
     des::{
-        EntityInfo, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid, ProjectileFired,
-        UpdatePosition, AUTHORITY_RADIUS,
+        EntityInfo, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid, PhysBodyInfo,
+        ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
     },
     WorldPos,
 };
@@ -83,6 +83,7 @@ impl LocalDiffModel {
                     vx: 0.0,
                     vy: 0.0,
                     hp: 1.0,
+                    phys: Vec::new(),
                 },
                 gid,
             },
@@ -96,7 +97,7 @@ impl LocalDiffModel {
         }
     }
 
-    pub(crate) fn update(&mut self) -> eyre::Result<()> {
+    pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
         for entity_data in mem::take(&mut self.pending_authority) {
             let entity = spawn_entity_by_data(
                 &entity_data.data,
@@ -166,6 +167,28 @@ impl LocalDiffModel {
                 let hp = damage.hp()?;
                 current.hp = hp as f32;
             }
+
+            let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(*entity, None)?;
+            current.phys = phys_bodies
+                .into_iter()
+                .map(|body| -> eyre::Result<PhysBodyInfo> {
+                    let (x, y, angle, vx, vy, av) = noita_api::raw::physics_body_id_get_transform(
+                        body,
+                    )?
+                    .ok_or_else(
+                        || eyre!("Couldn't get transform of an entity that we checked that it exists? Phys body: {body:?} Ent: {entity:?}"),
+                    )?;
+                    let (x, y) = noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))?;
+                    Ok(PhysBodyInfo {
+                        x: x as f32,
+                        y: y as f32,
+                        angle,
+                        vx,
+                        vy,
+                        av,
+                    })
+                })
+                .collect::<eyre::Result<Vec<_>>>()?;
         }
         Ok(())
     }
@@ -205,6 +228,12 @@ impl LocalDiffModel {
             if current.hp != last.hp {
                 res.push(EntityUpdate::SetHp(current.hp));
                 last.hp = current.hp;
+                had_any_delta = true;
+            }
+
+            if current.phys != last.phys {
+                res.push(EntityUpdate::SetPhysInfo(current.phys.clone()));
+                last.phys = current.phys.clone();
                 had_any_delta = true;
             }
 
@@ -269,6 +298,12 @@ impl RemoteDiffModel {
                     };
                     entity_info.hp = *hp;
                 }
+                EntityUpdate::SetPhysInfo(vec) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.phys = vec.clone();
+                }
                 EntityUpdate::RemoveEntity(lid) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
                         entity.kill();
@@ -309,6 +344,27 @@ impl RemoteDiffModel {
                                 None,
                                 None,
                                 None,
+                            )?;
+                        }
+                    }
+
+                    if !entity_info.phys.is_empty() {
+                        let phys_bodies =
+                            noita_api::raw::physics_body_id_get_from_entity(*entity, None)?;
+                        for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter())
+                        {
+                            let (x, y) = noita_api::raw::game_pos_to_physics_pos(
+                                p.x.into(),
+                                Some(p.y.into()),
+                            )?;
+                            noita_api::raw::physics_body_id_set_transform(
+                                *physics_body_id,
+                                x,
+                                y,
+                                p.angle.into(),
+                                p.vx.into(),
+                                p.vy.into(),
+                                p.av.into(),
                             )?;
                         }
                     }

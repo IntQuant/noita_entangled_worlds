@@ -11,7 +11,7 @@ use std::{
 use eyre::{bail, Context, OptionExt};
 use lua_bindings::{lua_CFunction, lua_State, Lua51, LUA_GLOBALSINDEX};
 
-use crate::{Color, ComponentID, EntityID, Obj};
+use crate::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
 
 thread_local! {
     static CURRENT_LUA_STATE: Cell<Option<LuaState>> = Cell::default();
@@ -153,7 +153,7 @@ impl LuaState {
         unreachable!()
     }
 
-    fn is_nil_or_none(&self, index: i32) -> bool {
+    pub fn is_nil_or_none(&self, index: i32) -> bool {
         (unsafe { LUA.lua_type(self.lua, index) }) <= 0
     }
 
@@ -321,6 +321,12 @@ impl LuaPutValue for Obj {
     }
 }
 
+impl LuaPutValue for PhysicsBodyID {
+    fn put(&self, lua: LuaState) {
+        lua.push_integer(self.0 as isize);
+    }
+}
+
 impl<T: LuaPutValue> LuaPutValue for Option<T> {
     fn put(&self, lua: LuaState) {
         const { assert!(T::SIZE_ON_STACK == 1) }
@@ -439,6 +445,15 @@ impl LuaGetValue for Color {
     }
 }
 
+impl LuaGetValue for PhysicsBodyID {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(PhysicsBodyID(lua.to_integer(index) as i32))
+    }
+}
+
 impl<T: LuaGetValue> LuaGetValue for Option<T> {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
         Ok(if lua.is_nil_or_none(index) {
@@ -457,7 +472,7 @@ impl<T: LuaGetValue> LuaGetValue for Vec<T> {
         let len = lua.objlen(index);
         let mut res = Vec::with_capacity(len);
         for i in 1..=len {
-            lua.index_table(index, dbg!(i));
+            lua.index_table(index, i);
             let get = T::get(lua, -1);
             lua.pop_last();
             res.push(get?);

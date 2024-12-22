@@ -60,6 +60,8 @@ enum Typ2 {
     Obj,
     #[serde(rename = "color")]
     Color,
+    #[serde(rename = "physics_body_id")]
+    PhysicsBodyID,
 }
 
 impl Typ2 {
@@ -73,6 +75,7 @@ impl Typ2 {
             Typ2::ComponentID => quote!(ComponentID),
             Typ2::Obj => quote! {Obj},
             Typ2::Color => quote!(Color),
+            Typ2::PhysicsBodyID => quote! {PhysicsBodyID},
         }
     }
 

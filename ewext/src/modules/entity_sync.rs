@@ -52,7 +52,7 @@ impl Default for EntitySync {
 
 impl EntitySync {
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
-        Ok(entity.has_tag("enemy"))
+        Ok(entity.has_tag("enemy") || entity.has_tag("prop_physics"))
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
@@ -154,7 +154,7 @@ impl Module for EntitySync {
             )?;
         }
 
-        self.local_diff_model.update()?;
+        self.local_diff_model.update_pending_authority()?;
 
         if frame_num % 2 == 0 {
             self.local_diff_model
