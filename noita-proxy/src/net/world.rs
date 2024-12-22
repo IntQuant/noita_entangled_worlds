@@ -1429,7 +1429,7 @@ impl WorldManager {
                     mat,
                     prob,
                 } = ex;
-                let rays = r.next_power_of_two().clamp(32, 1024);
+                let rays = r.next_power_of_two().clamp(16, 1024);
                 let t = TAU / rays as f32;
                 let results = (0..rays)
                     .into_par_iter()
@@ -1444,7 +1444,7 @@ impl WorldManager {
                             let dx = ex - x;
                             let dy = ey - y;
                             if dx != 0 || dy != 0 {
-                                dx * dx + dy * dy
+                                ((dx * dx + dy * dy) * 101) / 100
                             } else {
                                 0
                             }
@@ -1749,7 +1749,7 @@ fn test_explosion_img() {
             true,
             true,
             1,
-            10,
+            4,
         ),
         ExplosionData::new(
             -2 * CHUNK_SIZE as i32,
@@ -1760,7 +1760,7 @@ fn test_explosion_img() {
             true,
             true,
             1,
-            10,
+            4,
         ),
         ExplosionData::new(
             -4 * CHUNK_SIZE as i32,
@@ -1771,7 +1771,7 @@ fn test_explosion_img() {
             true,
             true,
             1,
-            10,
+            4,
         ),
         ExplosionData::new(
             -5 * CHUNK_SIZE as i32,
@@ -1782,8 +1782,19 @@ fn test_explosion_img() {
             true,
             true,
             1,
-            10,
+            4,
         ),
+                ExplosionData::new(
+            -42 * CHUNK_SIZE as i32,
+            -42 * CHUNK_SIZE as i32,
+            1048,
+            12,
+            10_000_000,
+            true,
+            true,
+            1,
+            4,
+        )
     ]);
     println!("total img micros {}", timer.elapsed().as_micros());
 
