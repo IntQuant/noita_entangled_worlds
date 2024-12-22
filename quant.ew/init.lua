@@ -139,6 +139,7 @@ local function load_modules()
     ctx.load_system("ragdoll_fix")
     ctx.load_system("explosion_cuts")
     ctx.load_system("wang_hooks")
+    ctx.load_system("patch_entities")
 end
 
 local function load_extra_modules()
