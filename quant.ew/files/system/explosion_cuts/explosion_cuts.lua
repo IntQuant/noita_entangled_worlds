@@ -29,8 +29,8 @@ local function send_mats()
             local hp = element.attr.hp or 100
             local dur = element.attr.durability or 0
             local cell_type = element.attr.cell_type or "liquid"
-            local liquid_sand = element.attr.liquid_sand or false
-            local liquid_static = element.attr.liquid_static or false
+            local liquid_sand = element.attr.liquid_sand or 0
+            local liquid_static = element.attr.liquid_static or 0
             if element.attr._parent ~= nil then
                 local p = info[element.attr._parent]
                 if p ~= nil then
@@ -44,7 +44,7 @@ local function send_mats()
             info[element.attr.name] = {dur, hp, cell_type, liquid_sand, liquid_static}
             inp = inp .. mats[element.attr.name] .. " "
                     .. dur .. " " .. hp .. " "
-                    .. cell_type .. " " .. tostring(liquid_sand) .. " " .. tostring(liquid_static)
+                    .. cell_type .. " " .. tostring(liquid_sand) .. " " .. tostring(liquid_static) .. " "
         end
     end
     net.proxy_send("material_list", string.sub(inp, 0, -2))

@@ -572,13 +572,13 @@ impl WorldManager {
     }
 
     fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId, priority: u8) {
-        let auth = self.authority_map.get(&chunk).cloned();
-        self.authority_map.insert(chunk, (source, priority));
+        let auth = self.authority_map.get(&chunk);
         let chunk_data = if auth.map(|a| a.0 != source).unwrap_or(true) {
             self.chunk_storage.get(&chunk).cloned()
         } else {
             None
         };
+        self.authority_map.insert(chunk, (source, priority));
         self.emit_msg(
             Destination::Peer(source),
             WorldNetMessage::GotAuthority {
@@ -1348,18 +1348,21 @@ impl WorldManager {
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
         );
-        let mut last;
-        if let Some(c) = self
+        if self.is_storage_recent.contains(&last_co) {
+            self.chunk_storage
+                .get(&last_co)?
+                .apply_to_chunk(&mut working_chunk);
+        } else if let Some(c) = self
             .outbound_model
             .get_chunk_data(last_co)
             .or(self.inbound_model.get_chunk_data(last_co))
-            .or(self.chunk_storage.get(&last_co).cloned())
         {
-            last = c
+            c.apply_to_chunk(&mut working_chunk);
+        } else if let Some(c) = self.chunk_storage.get(&last_co) {
+            c.apply_to_chunk(&mut working_chunk);
         } else {
             return None;
         };
-        last.apply_to_chunk(&mut working_chunk);
         let mut last_coord = None;
         while x != end_x || y != end_y {
             let co = ChunkCoord(
@@ -1367,17 +1370,21 @@ impl WorldManager {
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co != last_co {
-                if let Some(c) = self
+                if self.is_storage_recent.contains(&last_co) {
+                    self.chunk_storage
+                        .get(&last_co)?
+                        .apply_to_chunk(&mut working_chunk);
+                } else if let Some(c) = self
                     .outbound_model
                     .get_chunk_data(co)
                     .or(self.inbound_model.get_chunk_data(co))
-                    .or(self.chunk_storage.get(&co).cloned())
                 {
-                    last = c
+                    c.apply_to_chunk(&mut working_chunk)
+                } else if let Some(c) = self.chunk_storage.get(&co) {
+                    c.apply_to_chunk(&mut working_chunk)
                 } else {
                     return last_coord;
                 };
-                last.apply_to_chunk(&mut working_chunk);
                 last_co = co;
             }
 
@@ -1534,6 +1541,7 @@ impl WorldManager {
                 let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                 let mut all = true;
+                let mut none = true;
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx - x;
@@ -1559,6 +1567,7 @@ impl WorldManager {
                                 } else {
                                     chunk_delta.set_pixel(px, air_pixel);
                                 }
+                                none = false;
                             } else {
                                 all = false
                             }
@@ -1567,7 +1576,11 @@ impl WorldManager {
                         }
                     }
                 }
-                Some((coord, chunk_delta.to_chunk_data(), del, all))
+                if none {
+                    None
+                } else {
+                    Some((coord, chunk_delta.to_chunk_data(), del, all))
+                }
             })
             .collect()
     }
@@ -1726,9 +1739,52 @@ fn test_explosion_img() {
     //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_explosion(vec![ExplosionData::new(
-        0, 0, 2048, 12, 10_000_000, true, true, 1, 10,
-    )]);
+    world.cut_through_world_explosion(vec![
+        ExplosionData::new(
+            2 * CHUNK_SIZE as i32,
+            -2 * CHUNK_SIZE as i32,
+            1048,
+            12,
+            10_000_000,
+            true,
+            true,
+            1,
+            10,
+        ),
+        ExplosionData::new(
+            -2 * CHUNK_SIZE as i32,
+            2 * CHUNK_SIZE as i32,
+            1048,
+            12,
+            10_000_000,
+            true,
+            true,
+            1,
+            10,
+        ),
+        ExplosionData::new(
+            -4 * CHUNK_SIZE as i32,
+            2 * CHUNK_SIZE as i32,
+            1048,
+            12,
+            10_000_000,
+            true,
+            true,
+            1,
+            10,
+        ),
+        ExplosionData::new(
+            -5 * CHUNK_SIZE as i32,
+            -2 * CHUNK_SIZE as i32,
+            1048,
+            12,
+            10_000_000,
+            true,
+            true,
+            1,
+            10,
+        ),
+    ]);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);

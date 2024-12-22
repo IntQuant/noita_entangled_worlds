@@ -739,14 +739,18 @@ impl NetManager {
                     msg.next().and_then(|s| s.parse().ok()),
                     msg.next().and_then(|s| s.parse().ok()),
                     msg.next().and_then(|s| s.parse().ok()),
-                    msg.next().and_then(|s| s.parse::<String>().ok()),
-                    msg.next().and_then(|s| s.parse().ok()),
-                    msg.next().and_then(|s| s.parse().ok()),
+                    msg.next(),
+                    msg.next().map(|s| s == "1"),
+                    msg.next().map(|s| s == "1"),
                 ) {
                     state.world.materials.insert(
                         i,
-                        (d, h, CellType::new(&cell_type, liquid_static, liquid_sand)),
+                        (d, h, CellType::new(cell_type, liquid_static, liquid_sand)),
                     );
+                };
+                let c = msg.count();
+                if c != 0 {
+                    error!("bad materials data {}", c);
                 }
             }
             Some("cut_through_world") => {
