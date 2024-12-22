@@ -1784,7 +1784,7 @@ fn test_explosion_img() {
             1,
             4,
         ),
-                ExplosionData::new(
+        ExplosionData::new(
             -42 * CHUNK_SIZE as i32,
             -42 * CHUNK_SIZE as i32,
             1048,
@@ -1794,7 +1794,7 @@ fn test_explosion_img() {
             true,
             1,
             4,
-        )
+        ),
     ]);
     println!("total img micros {}", timer.elapsed().as_micros());
 

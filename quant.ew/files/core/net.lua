@@ -76,11 +76,13 @@ local rpc_meta = {
         end
       end)
       net_handling.mod[index] = function(peer_id, args)
-        ctx.rpc_peer_id = peer_id
-        ctx.rpc_player_data = player_fns.peer_get_player_data(peer_id)
-        v(unpack(args))
-        ctx.rpc_peer_id = nil
-        ctx.rpc_player_data = nil
+        if peer_id ~= nil then
+          ctx.rpc_peer_id = peer_id
+          ctx.rpc_player_data = player_fns.peer_get_player_data(peer_id)
+          v(unpack(args))
+          ctx.rpc_peer_id = nil
+          ctx.rpc_player_data = nil
+        end
       end
       rpc_inner.opts = {}
   end,

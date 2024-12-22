@@ -747,7 +747,7 @@ impl NetManager {
                         i,
                         (d, h, CellType::new(cell_type, liquid_static, liquid_sand)),
                     );
-                };
+                }
                 let c = msg.count();
                 if c != 0 {
                     error!("bad materials data {}", c);

@@ -1,4 +1,4 @@
-local old_order_deck = order_deck 
+local old_order_deck = order_deck
 
 order_deck = function()
     local oldSetRandomSeed = SetRandomSeed
@@ -19,7 +19,7 @@ order_deck = function()
         oldSetRandomSeed(seed, seed)
     end
 
-    SetRandomSeed()
+    SetRandomSeed(0,0)
 
     old_order_deck()
 
