@@ -1192,37 +1192,35 @@ impl WorldManager {
                 let mut chunk = Chunk::default();
                 let coord = ChunkCoord(chunk_x, chunk_y);
                 let mut del = false;
-                if let Some(chunk_encoded) = self
+                if self.is_storage_recent.contains(&coord) {
+                    if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
+                        chunk_encoded.apply_to_chunk(&mut chunk)
+                    }
+                } else if let Some(chunk_encoded) = self
                     .outbound_model
                     .get_chunk_data(coord)
                     .or(self.inbound_model.get_chunk_data(coord))
                 {
                     del = true;
-                    if self.is_host {
-                        chunk_encoded.apply_to_chunk(&mut chunk);
-                    }
+                    chunk_encoded.apply_to_chunk(&mut chunk);
                 } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
-                    if self.is_host {
-                        chunk_encoded.apply_to_chunk(&mut chunk)
-                    }
+                    chunk_encoded.apply_to_chunk(&mut chunk)
                 } else if !self.nice_terraforming {
                     return None;
                 }
-                if self.is_host {
-                    for icx in 0..CHUNK_SIZE as i32 {
-                        let cx = chunk_start_x + icx;
-                        let dcx = cx - x;
-                        let dx2 = dcx * dmx;
-                        for icy in 0..CHUNK_SIZE as i32 {
-                            let cy = chunk_start_y + icy;
-                            let dcy = cy - y;
-                            let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
-                            let dx = dcx - (m * dmx as f64) as i32;
-                            let dy = dcy - (m * dmy as f64) as i32;
-                            if dx * dx + dy * dy <= r * r {
-                                let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                chunk.set_pixel(px, air_pixel);
-                            }
+                for icx in 0..CHUNK_SIZE as i32 {
+                    let cx = chunk_start_x + icx;
+                    let dcx = cx - x;
+                    let dx2 = dcx * dmx;
+                    for icy in 0..CHUNK_SIZE as i32 {
+                        let cy = chunk_start_y + icy;
+                        let dcy = cy - y;
+                        let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                        let dx = dcx - (m * dmx as f64) as i32;
+                        let dy = dcy - (m * dmy as f64) as i32;
+                        if dx * dx + dy * dy <= r * r {
+                            let px = icy as usize * CHUNK_SIZE + icx as usize;
+                            chunk.set_pixel(px, air_pixel);
                         }
                     }
                 }
@@ -1230,12 +1228,9 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
-            if self.is_host {
-                self.chunk_storage.insert(entry.0, entry.1);
-            }
+            self.chunk_storage.insert(entry.0, entry.1);
             if entry.2 {
-                self.inbound_model.forget_chunk(entry.0);
-                self.outbound_model.forget_chunk(entry.0);
+                self.is_storage_recent.insert(entry.0);
             }
         }
     }
@@ -1287,35 +1282,33 @@ impl WorldManager {
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                 let mut chunk = Chunk::default();
                 let mut del = false;
-                if let Some(chunk_encoded) = self
+                if self.is_storage_recent.contains(&coord) {
+                    if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
+                        chunk_encoded.apply_to_chunk(&mut chunk)
+                    }
+                } else if let Some(chunk_encoded) = self
                     .outbound_model
                     .get_chunk_data(coord)
                     .or(self.inbound_model.get_chunk_data(coord))
                 {
                     del = true;
-                    if self.is_host {
-                        chunk_encoded.apply_to_chunk(&mut chunk);
-                    }
+                    chunk_encoded.apply_to_chunk(&mut chunk);
                 } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
-                    if self.is_host {
-                        chunk_encoded.apply_to_chunk(&mut chunk)
-                    }
+                    chunk_encoded.apply_to_chunk(&mut chunk)
                 } else if do_continue || !self.nice_terraforming {
                     return None;
                 }
-                if self.is_host {
-                    for icx in 0..CHUNK_SIZE as i32 {
-                        let cx = chunk_start_x + icx;
-                        let dx = cx - x;
-                        let dd = dx * dx;
-                        for icy in 0..CHUNK_SIZE as i32 {
-                            let cy = chunk_start_y + icy;
-                            let dy = cy - y;
-                            if dd + dy * dy <= r * r {
-                                let px = icy as usize * CHUNK_SIZE + icx as usize;
-                                if chunk.pixel(px).material != 0 {
-                                    chunk.set_pixel(px, air_pixel);
-                                }
+                for icx in 0..CHUNK_SIZE as i32 {
+                    let cx = chunk_start_x + icx;
+                    let dx = cx - x;
+                    let dd = dx * dx;
+                    for icy in 0..CHUNK_SIZE as i32 {
+                        let cy = chunk_start_y + icy;
+                        let dy = cy - y;
+                        if dd + dy * dy <= r * r {
+                            let px = icy as usize * CHUNK_SIZE + icx as usize;
+                            if chunk.pixel(px).material != 0 {
+                                chunk.set_pixel(px, air_pixel);
                             }
                         }
                     }
@@ -1324,12 +1317,9 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
-            if self.is_host {
-                self.chunk_storage.insert(entry.0, entry.1);
-            }
+            self.chunk_storage.insert(entry.0, entry.1);
             if entry.2 {
-                self.inbound_model.forget_chunk(entry.0);
-                self.outbound_model.forget_chunk(entry.0);
+                self.is_storage_recent.insert(entry.0);
             }
         }
     }
