@@ -78,6 +78,7 @@ impl SaveStateEntry for RunInfo {
 pub(crate) struct NetInnerState {
     pub(crate) ms: Option<MessageSocket<NoitaOutbound, NoitaInbound>>,
     world: WorldManager,
+    explosion_data: Vec<ExplosionData>,
 }
 
 impl NetInnerState {
@@ -272,6 +273,7 @@ impl NetManager {
                 self.peer.my_id(),
                 self.init_settings.save_state.clone(),
             ),
+            explosion_data: Vec::new(),
         };
         let mut last_iter = Instant::now();
         let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
@@ -811,8 +813,13 @@ impl NetManager {
                     return;
                 };
                 state
+                    .explosion_data
+                    .push(ExplosionData::new(x, y, r, d, ray, hole, liquid, mat, prob));
+            }
+            Some("flush_exp") => {
+                state
                     .world
-                    .cut_through_world_explosion(x, y, r, d, ray, hole, liquid, mat, prob);
+                    .cut_through_world_explosion(std::mem::take(&mut state.explosion_data));
             }
             Some("flush") => self.peer.flush(),
             key => {
@@ -867,6 +874,45 @@ impl NetManager {
             self.dirty.store(false, Ordering::Relaxed);
         }
         self.resend_game_settings();
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ExplosionData {
+    x: i32,
+    y: i32,
+    r: u32,
+    d: u32,
+    ray: u32,
+    hole: bool,
+    liquid: bool,
+    mat: u16,
+    prob: u8,
+}
+impl ExplosionData {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        x: i32,
+        y: i32,
+        r: u32,
+        d: u32,
+        ray: u32,
+        hole: bool,
+        liquid: bool,
+        mat: u16,
+        prob: u8,
+    ) -> ExplosionData {
+        ExplosionData {
+            x,
+            y,
+            r,
+            d,
+            ray,
+            hole,
+            liquid,
+            mat,
+            prob,
+        }
     }
 }
 

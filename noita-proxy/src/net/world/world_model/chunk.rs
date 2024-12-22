@@ -74,7 +74,7 @@ impl Pixel {
 /// An entire pixel packed into 12 bits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode)]
 #[repr(transparent)]
-pub struct CompactPixel(NonZeroU16);
+pub struct CompactPixel(pub NonZeroU16);
 
 impl CompactPixel {
     const UNKNOWN_RAW: u16 = 4095;

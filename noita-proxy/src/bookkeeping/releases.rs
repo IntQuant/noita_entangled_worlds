@@ -250,10 +250,10 @@ mod test {
         // let release = get_latest_release(&client).unwrap();
         let release = get_release_by_tag(&client, Tag("v0.4.1".to_string())).unwrap();
         let assets = release.get_release_assets(&client).unwrap();
-        println!("{:?}", release);
-        println!("{:?}", assets);
+        //println!("{:?}", release);
+        //println!("{:?}", assets);
         let mod_asset = assets.find_by_name("quant.ew.zip").unwrap();
-        println!("{:?}", mod_asset);
+        //println!("{:?}", mod_asset);
         assert_eq!(mod_asset.name, "quant.ew.zip")
     }
 }

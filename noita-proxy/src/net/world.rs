@@ -6,6 +6,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
+use std::num::NonZeroU16;
 use std::{env, mem};
 use tracing::{debug, info, warn};
 use world_model::{
@@ -20,7 +21,7 @@ use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 use super::{
     messages::{Destination, MessageRequest},
     omni::OmniPeerId,
-    CellType, DebugMarker,
+    CellType, DebugMarker, ExplosionData,
 };
 
 pub mod world_info;
@@ -1412,48 +1413,72 @@ impl WorldManager {
         Some((x, y))
     }
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn cut_through_world_explosion(
-        &mut self,
-        x: i32,
-        y: i32,
-        r: u32,
-        d: u32,
-        ray: u32,
-        hole: bool,
-        liquid: bool,
-        mat: u16,
-        prob: u8,
-    ) {
-        let rays = r.next_power_of_two().clamp(8, 256);
-        let t = TAU / rays as f32;
-        let results: Vec<i32> = (0..rays)
+    pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) -> Vec<ChunkCoord> {
+        let resres: Vec<(ChunkCoord, ChunkData, bool)> = exp
             .into_par_iter()
-            .map(|n| {
-                let theta = t * (n as f32 + 0.5);
-                let end_x = x + (r as f32 * theta.cos()) as i32;
-                let end_y = y + (r as f32 * theta.sin()) as i32;
-                let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
-                    .cos()
-                    .recip();
-                if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
-                    let dx = ex - x;
-                    let dy = ey - y;
-                    if dx != 0 || dy != 0 {
-                        dx * dx + dy * dy
-                    } else {
-                        0
-                    }
-                } else {
-                    0
-                }
+            .flat_map(|ex| {
+                let ExplosionData {
+                    x,
+                    y,
+                    r,
+                    d,
+                    ray,
+                    hole,
+                    liquid,
+                    mat,
+                    prob,
+                } = ex;
+                let rays = r.next_power_of_two().clamp(64, 1024);
+                let t = TAU / rays as f32;
+                let results = (0..rays)
+                    .into_par_iter()
+                    .map(|n| {
+                        let theta = t * (n as f32 + 0.5);
+                        let end_x = x + (r as f32 * theta.cos()) as i32;
+                        let end_y = y + (r as f32 * theta.sin()) as i32;
+                        let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
+                            .cos()
+                            .recip();
+                        if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
+                            let dx = ex - x;
+                            let dy = ey - y;
+                            if dx != 0 || dy != 0 {
+                                dx * dx + dy * dy
+                            } else {
+                                0
+                            }
+                        } else {
+                            0
+                        }
+                    })
+                    .collect();
+                self.cut_through_world_explosion_list(
+                    x, y, d, rays, results, hole, liquid, mat, prob,
+                )
             })
-            .collect();
-        self.cut_through_world_explosion_list(x, y, d, rays, results, hole, liquid, mat, prob);
+            .collect::<Vec<(ChunkCoord, ChunkData, bool)>>();
+        let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
+        resres.iter().filter_map(|entry| {
+            if let Some(c) = self.chunk_storage.get_mut(&entry.0) {
+                for (i, p) in c.runs.iter_mut().enumerate() {
+                    if entry.1.runs[i].data != nil {
+                        *p = entry.1.runs[i];
+                    }
+                }
+            }
+            if entry.2 {
+                self.inbound_model.forget_chunk(entry.0);
+                self.outbound_model.forget_chunk(entry.0);
+                Some(entry.0)
+            } else {
+                None
+            }
+        }).collect::<Vec<ChunkCoord>>()
     }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn cut_through_world_explosion_list(
-        &mut self,
+        &self,
         x: i32,
         y: i32,
         d: u32,
@@ -1463,11 +1488,11 @@ impl WorldManager {
         liquid: bool,
         mat: u16,
         prob: u8,
-    ) {
+    ) -> Vec<(ChunkCoord, ChunkData, bool)> {
         let rs = *list.iter().max().unwrap_or(&0);
         let r = (rs as f64).sqrt().ceil() as i32;
         if r == 0 {
-            return;
+            return Vec::new();
         }
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
@@ -1489,7 +1514,7 @@ impl WorldManager {
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
         );
-        let chunk_storage: Vec<(ChunkCoord, ChunkData, bool)> = (min_cx..=max_cx)
+        (min_cx..=max_cx)
             .into_par_iter()
             .flat_map(|chunk_x| {
                 (min_cy..=max_cy)
@@ -1501,6 +1526,7 @@ impl WorldManager {
             })
             .filter_map(|(chunk_x, chunk_y)| {
                 let mut chunk = Chunk::default();
+                let mut chunk_delta = Chunk::default();
                 let coord = ChunkCoord(chunk_x, chunk_y);
                 let mut del = false;
                 if let Some(chunk_encoded) = self
@@ -1538,24 +1564,17 @@ impl WorldManager {
                             {
                                 let mut rng = rand::thread_rng();
                                 if rng.gen_bool(prob as f64 / 100.0) {
-                                    chunk.set_pixel(px, mat_pixel);
+                                    chunk_delta.set_pixel(px, mat_pixel);
                                 } else {
-                                    chunk.set_pixel(px, air_pixel);
+                                    chunk_delta.set_pixel(px, air_pixel);
                                 }
                             }
                         }
                     }
                 }
-                Some((coord, chunk.to_chunk_data(), del))
+                Some((coord, chunk_delta.to_chunk_data(), del))
             })
-            .collect();
-        for entry in chunk_storage.into_iter() {
-            self.chunk_storage.insert(entry.0, entry.1);
-            if entry.2 {
-                self.inbound_model.forget_chunk(entry.0);
-                self.outbound_model.forget_chunk(entry.0);
-            }
-        }
+            .collect()
     }
     #[cfg(test)]
     pub(crate) fn _create_image(&self, image: &mut image::GrayImage, w: u32) {
@@ -1712,7 +1731,9 @@ fn test_explosion_img() {
     //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_explosion(0, 0, 2048, 12, 10_000_000, true, true, 1, 10);
+    world.cut_through_world_explosion(vec![ExplosionData::new(
+        0, 0, 2048, 12, 10_000_000, true, true, 1, 10,
+    )]);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);
@@ -1848,6 +1869,7 @@ fn test_circ_img() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_circ.png").unwrap();
 }
+use crate::net::world::world_model::chunk::CompactPixel;
 #[cfg(test)]
 use crate::net::LiquidType;
 #[cfg(test)]
@@ -1860,7 +1882,7 @@ fn test_explosion_perf() {
     let _brickwork = ChunkData::new(2);
 
     let mut total = 0;
-    let iters = 512;
+    let iters = 64;
     for _ in 0..iters {
         let mut world = WorldManager::new(
             true,
@@ -1891,7 +1913,20 @@ fn test_explosion_perf() {
             }
         }
         let timer = std::time::Instant::now();
-        world.cut_through_world_explosion(0, 0, 320, 14, 2_000_000_000, true, true, 1, 50);
+        world.cut_through_world_explosion(vec![
+            ExplosionData::new(
+                0,
+                0,
+                1100,
+                14,
+                2_000_000_000,
+                true,
+                true,
+                1,
+                50
+            );
+            5
+        ]);
         total += timer.elapsed().as_micros();
     }
     println!("total micros: {}", total / iters);

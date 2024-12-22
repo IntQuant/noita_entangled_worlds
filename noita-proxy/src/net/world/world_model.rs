@@ -26,7 +26,7 @@ pub(crate) struct WorldModel {
 /// Kinda close to ChunkDelta, but doesn't assume we know anything about the chunk.
 #[derive(Debug, Encode, Decode, Clone)]
 pub(crate) struct ChunkData {
-    runs: Vec<PixelRun<CompactPixel>>,
+    pub runs: Vec<PixelRun<CompactPixel>>,
 }
 
 /// Contains a diff, only pixels that were updated, for a given chunk.
