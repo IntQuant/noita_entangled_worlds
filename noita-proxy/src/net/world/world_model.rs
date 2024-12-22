@@ -90,7 +90,7 @@ impl WorldModel {
         (ChunkCoord(chunk_x, chunk_y), offset)
     }
 
-    fn set_pixel(&mut self, x: i32, y: i32, pixel: Pixel) {
+    /*fn set_pixel(&mut self, x: i32, y: i32, pixel: Pixel) {
         let (chunk_coord, offset) = Self::get_chunk_coords(x, y);
         let chunk = self.chunks.entry(chunk_coord).or_default();
         let current = chunk.pixel(offset);
@@ -98,7 +98,7 @@ impl WorldModel {
             chunk.set_pixel(offset, pixel);
         }
         self.updated_chunks.insert(chunk_coord);
-    }
+    }*/
 
     fn get_pixel(&self, x: i32, y: i32) -> Pixel {
         let (chunk_coord, offset) = Self::get_chunk_coords(x, y);
@@ -108,13 +108,26 @@ impl WorldModel {
             .unwrap_or_default()
     }
 
-    pub fn apply_noita_update(&mut self, update: &NoitaWorldUpdate) {
+    pub fn apply_noita_update(
+        &mut self,
+        update: &NoitaWorldUpdate,
+        changed: &mut FxHashSet<ChunkCoord>,
+    ) {
+        fn set_pixel(pixel: Pixel, chunk: &mut Chunk, offset: usize) -> bool {
+            let current = chunk.pixel(offset);
+            if current != pixel {
+                chunk.set_pixel(offset, pixel);
+                true
+            } else {
+                false
+            }
+        }
         let header = &update.header;
         let runs = &update.runs;
-
         let mut x = 0;
         let mut y = 0;
-
+        let (mut chunk_coord, _) = Self::get_chunk_coords(header.x, header.y);
+        let mut chunk = self.chunks.entry(chunk_coord).or_default();
         for run in runs {
             let flags = if run.data.flags > 0 {
                 PixelFlags::Fluid
@@ -122,14 +135,26 @@ impl WorldModel {
                 PixelFlags::Normal
             };
             for _ in 0..run.length {
-                self.set_pixel(
-                    header.x + x,
-                    header.y + y,
+                let xs = header.x + x;
+                let ys = header.y + y;
+                let (new_chunk_coord, offset) = Self::get_chunk_coords(xs, ys);
+                if chunk_coord != new_chunk_coord {
+                    chunk_coord = new_chunk_coord;
+                    chunk = self.chunks.entry(chunk_coord).or_default();
+                }
+                if set_pixel(
                     Pixel {
                         material: run.data.material,
                         flags,
                     },
-                );
+                    chunk,
+                    offset,
+                ) {
+                    self.updated_chunks.insert(chunk_coord);
+                    if changed.contains(&chunk_coord) {
+                        changed.remove(&chunk_coord);
+                    }
+                }
                 x += 1;
                 if x == i32::from(header.w) + 1 {
                     x = 0;

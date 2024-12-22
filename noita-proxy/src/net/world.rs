@@ -192,7 +192,8 @@ pub(crate) struct WorldManager {
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
     world_num: i32,
-    pub materials: HashMap<u16, (u32, u32, CellType)>,
+    pub materials: FxHashMap<u16, (u32, u32, CellType)>,
+    is_storage_recent: FxHashSet<ChunkCoord>,
 }
 
 impl WorldManager {
@@ -216,12 +217,14 @@ impl WorldManager {
             chunk_last_update: Default::default(),
             last_request_priority: Default::default(),
             world_num: 0,
-            materials: HashMap::new(),
+            materials: Default::default(),
+            is_storage_recent: Default::default(),
         }
     }
 
     pub(crate) fn add_update(&mut self, update: NoitaWorldUpdate) {
-        self.outbound_model.apply_noita_update(&update);
+        self.outbound_model
+            .apply_noita_update(&update, &mut self.is_storage_recent);
     }
 
     pub(crate) fn add_end(&mut self, priority: u8, pos: &[i32]) {
@@ -866,6 +869,7 @@ impl WorldManager {
                     _ => return,
                 }
                 self.inbound_model.apply_chunk_delta(&delta);
+                self.is_storage_recent.remove(&delta.chunk_coord);
             }
             WorldNetMessage::ChunkPacket { chunkpacket } => {
                 for (delta, priority) in chunkpacket {
@@ -889,6 +893,7 @@ impl WorldManager {
                         _ => continue,
                     }
                     self.inbound_model.apply_chunk_delta(&delta);
+                    self.is_storage_recent.remove(&delta.chunk_coord);
                 }
             }
             WorldNetMessage::ListenAuthorityRelinquished { chunk } => {
@@ -1413,8 +1418,8 @@ impl WorldManager {
         Some((x, y))
     }
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) -> Vec<ChunkCoord> {
-        let resres: Vec<(ChunkCoord, ChunkData, bool)> = exp
+    pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) {
+        let resres: Vec<(ChunkCoord, ChunkData, bool, bool)> = exp
             .into_par_iter()
             .flat_map(|ex| {
                 let ExplosionData {
@@ -1428,7 +1433,7 @@ impl WorldManager {
                     mat,
                     prob,
                 } = ex;
-                let rays = r.next_power_of_two().clamp(64, 1024);
+                let rays = r.next_power_of_two().clamp(32, 1024);
                 let t = TAU / rays as f32;
                 let results = (0..rays)
                     .into_par_iter()
@@ -1456,24 +1461,24 @@ impl WorldManager {
                     x, y, d, rays, results, hole, liquid, mat, prob,
                 )
             })
-            .collect::<Vec<(ChunkCoord, ChunkData, bool)>>();
+            .collect::<Vec<(ChunkCoord, ChunkData, bool, bool)>>();
         let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
-        resres.iter().filter_map(|entry| {
-            if let Some(c) = self.chunk_storage.get_mut(&entry.0) {
-                for (i, p) in c.runs.iter_mut().enumerate() {
-                    if entry.1.runs[i].data != nil {
-                        *p = entry.1.runs[i];
+        for entry in resres {
+            if entry.3 {
+                self.chunk_storage.insert(entry.0, entry.1);
+            } else {
+                self.chunk_storage.entry(entry.0).and_modify(|c| {
+                    for (i, p) in c.runs.iter_mut().enumerate() {
+                        if entry.1.runs[i].data != nil {
+                            *p = entry.1.runs[i];
+                        }
                     }
-                }
+                });
             }
             if entry.2 {
-                self.inbound_model.forget_chunk(entry.0);
-                self.outbound_model.forget_chunk(entry.0);
-                Some(entry.0)
-            } else {
-                None
+                self.is_storage_recent.insert(entry.0);
             }
-        }).collect::<Vec<ChunkCoord>>()
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1488,7 +1493,7 @@ impl WorldManager {
         liquid: bool,
         mat: u16,
         prob: u8,
-    ) -> Vec<(ChunkCoord, ChunkData, bool)> {
+    ) -> Vec<(ChunkCoord, ChunkData, bool, bool)> {
         let rs = *list.iter().max().unwrap_or(&0);
         let r = (rs as f64).sqrt().ceil() as i32;
         if r == 0 {
@@ -1529,20 +1534,22 @@ impl WorldManager {
                 let mut chunk_delta = Chunk::default();
                 let coord = ChunkCoord(chunk_x, chunk_y);
                 let mut del = false;
-                if let Some(chunk_encoded) = self
+                let storage = self.chunk_storage.get(&coord)?;
+                if self.is_storage_recent.contains(&coord) {
+                    storage.apply_to_chunk(&mut chunk);
+                } else if let Some(chunk_encoded) = self
                     .outbound_model
                     .get_chunk_data(coord)
                     .or(self.inbound_model.get_chunk_data(coord))
                 {
                     del = true;
                     chunk_encoded.apply_to_chunk(&mut chunk);
-                } else if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
-                    chunk_encoded.apply_to_chunk(&mut chunk);
                 } else {
-                    return None;
+                    storage.apply_to_chunk(&mut chunk);
                 }
                 let chunk_start_x = chunk_x * CHUNK_SIZE as i32;
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
+                let mut all = true;
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx - x;
@@ -1568,11 +1575,15 @@ impl WorldManager {
                                 } else {
                                     chunk_delta.set_pixel(px, air_pixel);
                                 }
+                            } else {
+                                all = false
                             }
+                        } else {
+                            all = false
                         }
                     }
                 }
-                Some((coord, chunk_delta.to_chunk_data(), del))
+                Some((coord, chunk_delta.to_chunk_data(), del, all))
             })
             .collect()
     }
@@ -1882,7 +1893,7 @@ fn test_explosion_perf() {
     let _brickwork = ChunkData::new(2);
 
     let mut total = 0;
-    let iters = 64;
+    let iters = 256;
     for _ in 0..iters {
         let mut world = WorldManager::new(
             true,
@@ -1917,7 +1928,7 @@ fn test_explosion_perf() {
             ExplosionData::new(
                 0,
                 0,
-                1100,
+                8,
                 14,
                 2_000_000_000,
                 true,
@@ -1925,7 +1936,7 @@ fn test_explosion_perf() {
                 1,
                 50
             );
-            5
+            16
         ]);
         total += timer.elapsed().as_micros();
     }
