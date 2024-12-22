@@ -41,7 +41,7 @@ impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbo
                 loop {
                     let res = read_one(&mut socket);
                     let res_was_error = res.is_err();
-                    if let Err(_) = sender.send(res) {
+                    if sender.send(res).is_err() {
                         break;
                     }
                     if res_was_error {

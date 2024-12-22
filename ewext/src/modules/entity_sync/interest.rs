@@ -33,16 +33,14 @@ impl InterestTracker {
         let ry = request.pos.y as f64;
 
         let dist_sq = (rx - self.x).powi(2) + (ry - self.y).powi(2);
-        if dist_sq < (request.radius as f64).powi(2) {
-            if self.interested_peers.insert(peer) {
-                self.added_any = true;
-            }
+        if dist_sq < (request.radius as f64).powi(2) && self.interested_peers.insert(peer) {
+            self.added_any = true;
         }
 
-        if dist_sq > ((request.radius as f64) + self.radius_hysteresis).powi(2) {
-            if self.interested_peers.remove(&peer) {
-                self.lost_interest.push(peer);
-            }
+        if dist_sq > ((request.radius as f64) + self.radius_hysteresis).powi(2)
+            && self.interested_peers.remove(&peer)
+        {
+            self.lost_interest.push(peer);
         }
     }
 

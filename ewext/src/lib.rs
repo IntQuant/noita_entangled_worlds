@@ -143,7 +143,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 
     let mut kvs = Vec::new();
 
-    #[expect(clippy::while_let_loop)] // Will probably get more variants in the future
+    //#[expect(clippy::while_let_loop)] // Will probably get more variants in the future
     loop {
         match netman.recv()? {
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
@@ -230,10 +230,10 @@ fn with_every_module(
 ) -> eyre::Result<()> {
     let _lock = IN_MODULE_LOCK.lock().unwrap();
     let mut temp = NETMANAGER.lock().unwrap();
-    let mut net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+    let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
     STATE.with(|state| {
         let modules = &mut state.borrow_mut().modules;
-        let mut ctx = ModuleCtx { net: &mut net };
+        let mut ctx = ModuleCtx { net };
         let mut errs = Vec::new();
         for module in &mut modules.entity_sync.iter_mut() {
             if let Err(e) = f(&mut ctx, module as &mut dyn Module) {

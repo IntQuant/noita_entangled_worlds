@@ -21,7 +21,7 @@ pub struct ProxyKVBin {
 
 #[derive(Encode, Decode)]
 pub struct ModMessage {
-    pub peer: basic_types::PeerId,
+    pub peer: PeerId,
     pub value: Vec<u8>,
 }
 
@@ -36,7 +36,7 @@ pub enum NoitaInbound {
     Ready,
     ProxyToDes(des::ProxyToDes),
     RemoteMessage {
-        source: basic_types::PeerId,
+        source: PeerId,
         message: RemoteMessage,
     },
 }

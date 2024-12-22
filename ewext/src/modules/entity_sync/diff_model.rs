@@ -91,7 +91,7 @@ impl LocalDiffModel {
     }
 
     pub(crate) fn reset_diff_encoding(&mut self) {
-        for (_, entry_pair) in &mut self.entity_entries {
+        for (_, entry_pair) in self.entity_entries.iter_mut() {
             entry_pair.last = None;
         }
     }
@@ -226,7 +226,7 @@ impl LocalDiffModel {
         self.tracked.get_by_right(&entity).copied()
     }
 
-    pub(crate) fn got_authority(&mut self, full_entity_data: shared::des::FullEntityData) {
+    pub(crate) fn got_authority(&mut self, full_entity_data: FullEntityData) {
         self.pending_authority.push(full_entity_data);
     }
 
@@ -273,7 +273,7 @@ impl RemoteDiffModel {
                     if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
                         entity.kill();
                     }
-                    self.entity_infos.remove(&lid);
+                    self.entity_infos.remove(lid);
                 }
             }
         }

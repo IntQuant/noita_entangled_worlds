@@ -614,13 +614,13 @@ impl NetManager {
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
         let request: MessageRequest<NetMsg> = request.into();
         match request.dst {
-            messages::Destination::Peer(peer) => {
+            Destination::Peer(peer) => {
                 self.send(peer, &request.msg, request.reliability);
             }
-            messages::Destination::Host => {
+            Destination::Host => {
                 self.send(self.peer.host_id(), &request.msg, request.reliability);
             }
-            messages::Destination::Broadcast => self.broadcast(&request.msg, request.reliability),
+            Destination::Broadcast => self.broadcast(&request.msg, request.reliability),
         }
     }
 
