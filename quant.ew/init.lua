@@ -58,7 +58,7 @@ end
 local function load_modules()
     ctx.load_system("ewext_init")
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
+    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
     -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
@@ -90,7 +90,7 @@ local function load_modules()
 
     ctx.load_system("world_sync")
 
-    ctx.load_system("spawn_hooks")
+    -- ctx.load_system("spawn_hooks")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
     ctx.load_system("perk_patches")
 

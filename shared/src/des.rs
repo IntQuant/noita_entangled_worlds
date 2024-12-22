@@ -19,7 +19,7 @@ pub struct Lid(pub u32);
 #[derive(Encode, Decode, Clone)]
 pub enum EntitySpawnInfo {
     Filename(String),
-    // Serialized(Vec<u8>),
+    Serialized { serialized_at: i32, data: Vec<u8> },
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -66,9 +66,18 @@ pub struct PhysBodyInfo {
     pub av: f32,
 }
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq)]
+pub enum EntityKind {
+    /// Normal entity, replicated with a filename.
+    Normal,
+    // Item entity, can be picked up.
+    Item,
+}
+
 #[derive(Encode, Decode, Clone)]
 pub struct EntityInfo {
-    pub entity_data: EntitySpawnInfo,
+    pub spawn_info: EntitySpawnInfo,
+    pub kind: EntityKind,
     pub x: f32,
     pub y: f32,
     pub vx: f32,

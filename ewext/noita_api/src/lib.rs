@@ -45,6 +45,10 @@ impl EntityID {
         raw::entity_has_tag(self, tag.as_ref().into()).unwrap_or(false)
     }
 
+    pub fn remove_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::entity_remove_tag(self, tag.as_ref().into())
+    }
+
     pub fn kill(self) {
         // Shouldn't ever error.
         let _ = raw::entity_kill(self);
@@ -61,6 +65,10 @@ impl EntityID {
 
     pub fn filename(self) -> eyre::Result<String> {
         raw::entity_get_filename(self).map(|x| x.to_string())
+    }
+
+    pub fn parent(self) -> eyre::Result<EntityID> {
+        Ok(raw::entity_get_parent(self)?.unwrap_or(self))
     }
 
     /// Returns the first component of this type if an entity has it.

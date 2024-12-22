@@ -5,19 +5,21 @@ use eyre::{eyre, OptionExt};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
-    ExplodeOnDamageComponent, ItemPickUpperComponent, PhysicsAIComponent, PhysicsBody2Component,
-    VelocityComponent,
+    ExplodeOnDamageComponent, ItemComponent, ItemPickUpperComponent, PhysicsAIComponent,
+    PhysicsBody2Component, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
     des::{
-        EntityInfo, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid, PhysBodyInfo,
-        ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
+        EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
+        PhysBodyInfo, ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
     },
     WorldPos,
 };
 
 use crate::{modules::ModuleCtx, serialize::deserialize_entity};
+
+use super::serialize_entity;
 
 pub(crate) static DES_TAG: &str = "ew_des";
 
@@ -27,13 +29,20 @@ struct EntityEntryPair {
     gid: Gid,
 }
 
-pub(crate) struct LocalDiffModel {
-    next_lid: Lid,
+struct LocalDiffModelTracker {
     tracked: BiHashMap<Lid, EntityID>,
-    entity_entries: FxHashMap<Lid, EntityEntryPair>,
+    /// Stores items that were picked up and currently aren't tracked, but might need to be in future.
+    /// TODO: add back to tracked.
+    backtracked: Vec<EntityID>,
     pending_removal: Vec<Lid>,
     pending_authority: Vec<FullEntityData>,
     authority_radius: f32,
+}
+
+pub(crate) struct LocalDiffModel {
+    next_lid: Lid,
+    entity_entries: FxHashMap<Lid, EntityEntryPair>,
+    tracker: LocalDiffModelTracker,
 }
 
 #[derive(Default)]
@@ -46,13 +55,118 @@ impl Default for LocalDiffModel {
     fn default() -> Self {
         Self {
             next_lid: Lid(0),
-            tracked: Default::default(),
             entity_entries: Default::default(),
-            pending_removal: Vec::with_capacity(16),
-            pending_authority: Vec::new(),
-
-            authority_radius: AUTHORITY_RADIUS,
+            tracker: LocalDiffModelTracker {
+                tracked: Default::default(),
+                backtracked: Default::default(),
+                pending_removal: Vec::with_capacity(16),
+                pending_authority: Vec::new(),
+                authority_radius: AUTHORITY_RADIUS,
+            },
         }
+    }
+}
+
+impl LocalDiffModelTracker {
+    fn update_entity(
+        &mut self,
+        ctx: &mut ModuleCtx,
+        gid: Gid,
+        info: &mut EntityInfo,
+        lid: Lid,
+        cam_pos: (f32, f32),
+    ) -> eyre::Result<()> {
+        let entity = self.entity_by_lid(lid)?;
+
+        if !entity.is_alive() {
+            self.untrack_entity(ctx, gid, lid)?;
+            return Ok(());
+        }
+        let item_and_was_picked = info.kind == EntityKind::Item && entity.parent()? != entity;
+        if item_and_was_picked {
+            self.temporary_untrack_item(ctx, gid, lid, entity)?;
+            return Ok(());
+        }
+
+        let (x, y) = entity.position()?;
+        info.x = x;
+        info.y = y;
+
+        // Check if entity went out of range, remove and release authority if it did.
+        if (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2) {
+            self.release_authority(ctx, gid, lid)?;
+            return Ok(());
+        }
+
+        if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+            let (vx, vy) = vel.m_velocity()?;
+            info.vx = vx;
+            info.vy = vy;
+        }
+        if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+            let hp = damage.hp()?;
+            info.hp = hp as f32;
+        }
+
+        info.phys = collect_phys_info(entity)?;
+        Ok(())
+    }
+
+    fn untrack_entity(
+        &mut self,
+        ctx: &mut ModuleCtx<'_>,
+        gid: Gid,
+        lid: Lid,
+    ) -> Result<(), eyre::Error> {
+        self.pending_removal.push(lid);
+        ctx.net.send(&shared::NoitaOutbound::DesToProxy(
+            shared::des::DesToProxy::DeleteEntity(gid),
+        ))?;
+
+        Ok(())
+    }
+
+    fn temporary_untrack_item(
+        &mut self,
+        ctx: &mut ModuleCtx<'_>,
+        gid: Gid,
+        lid: Lid,
+        entity: EntityID,
+    ) -> Result<(), eyre::Error> {
+        self.untrack_entity(ctx, gid, lid)?;
+        entity.remove_tag(DES_TAG)?;
+        self.backtracked.push(entity);
+        Ok(())
+    }
+
+    fn entity_by_lid(&mut self, lid: Lid) -> eyre::Result<EntityID> {
+        Ok(*self
+            .tracked
+            .get_by_left(&lid)
+            .ok_or_eyre("Expected to find a corresponding entity")?)
+    }
+
+    fn release_authority(
+        &mut self,
+        ctx: &mut ModuleCtx<'_>,
+        gid: Gid,
+        lid: Lid,
+    ) -> eyre::Result<()> {
+        let entity = self.entity_by_lid(lid)?;
+        let (x, y) = entity.position()?;
+        ctx.net.send(&shared::NoitaOutbound::DesToProxy(
+            shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
+                gid,
+                pos: WorldPos::from_f32(x, y),
+            }]),
+        ))?;
+        ctx.net.send(&shared::NoitaOutbound::DesToProxy(
+            shared::des::DesToProxy::ReleaseAuthority(gid),
+        ))?;
+        game_print("Released authority over entity");
+        self.pending_removal.push(lid);
+        entity.kill();
+        Ok(())
     }
 }
 
@@ -68,16 +182,25 @@ impl LocalDiffModel {
         entity.remove_all_components_of_type::<CameraBoundComponent>()?;
         entity.add_tag(DES_TAG)?;
 
-        self.tracked.insert(lid, entity);
-        // TODO: handle other types of entities, like items.
-        let filename = entity.filename()?;
+        self.tracker.tracked.insert(lid, entity);
+
         let (x, y) = entity.position()?;
+
+        let entity_kind = classify_entity(entity)?;
+        let spawn_info = match entity_kind {
+            EntityKind::Normal => EntitySpawnInfo::Filename(entity.filename()?),
+            EntityKind::Item => EntitySpawnInfo::Serialized {
+                serialized_at: noita_api::raw::game_get_frame_num()?,
+                data: serialize_entity(entity)?,
+            },
+        };
         self.entity_entries.insert(
             lid,
             EntityEntryPair {
                 last: None,
                 current: EntityInfo {
-                    entity_data: EntitySpawnInfo::Filename(filename),
+                    spawn_info,
+                    kind: entity_kind,
                     x,
                     y,
                     vx: 0.0,
@@ -98,7 +221,7 @@ impl LocalDiffModel {
     }
 
     pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
-        for entity_data in mem::take(&mut self.pending_authority) {
+        for entity_data in mem::take(&mut self.tracker.pending_authority) {
             let entity = spawn_entity_by_data(
                 &entity_data.data,
                 entity_data.pos.x as f32,
@@ -122,73 +245,8 @@ impl LocalDiffModel {
             },
         ) in &mut self.entity_entries
         {
-            let entity = self
-                .tracked
-                .get_by_left(&lid)
-                .ok_or_eyre("Expected to find a corresponding entity")?;
-            if !entity.is_alive() {
-                self.pending_removal.push(lid);
-
-                ctx.net.send(&shared::NoitaOutbound::DesToProxy(
-                    shared::des::DesToProxy::DeleteEntity(*gid),
-                ))?;
-
-                continue;
-            }
-            let (x, y) = entity.position()?;
-            current.x = x;
-            current.y = y;
-
-            // Check if entity went out of range, remove and release authority if it did.
-            if (x - cam_x).powi(2) + (y - cam_y).powi(2) > self.authority_radius.powi(2) {
-                ctx.net.send(&shared::NoitaOutbound::DesToProxy(
-                    shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
-                        gid: *gid,
-                        pos: WorldPos::from_f32(x, y),
-                    }]),
-                ))?;
-                ctx.net.send(&shared::NoitaOutbound::DesToProxy(
-                    shared::des::DesToProxy::ReleaseAuthority(*gid),
-                ))?;
-                game_print("Released authority over entity");
-
-                self.pending_removal.push(lid);
-
-                entity.kill();
-                continue;
-            }
-
-            if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
-                let (vx, vy) = vel.m_velocity()?;
-                current.vx = vx;
-                current.vy = vy;
-            }
-            if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
-                let hp = damage.hp()?;
-                current.hp = hp as f32;
-            }
-
-            let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(*entity, None)?;
-            current.phys = phys_bodies
-                .into_iter()
-                .map(|body| -> eyre::Result<PhysBodyInfo> {
-                    let (x, y, angle, vx, vy, av) = noita_api::raw::physics_body_id_get_transform(
-                        body,
-                    )?
-                    .ok_or_else(
-                        || eyre!("Couldn't get transform of an entity that we checked that it exists? Phys body: {body:?} Ent: {entity:?}"),
-                    )?;
-                    let (x, y) = noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))?;
-                    Ok(PhysBodyInfo {
-                        x: x as f32,
-                        y: y as f32,
-                        angle,
-                        vx,
-                        vy,
-                        av,
-                    })
-                })
-                .collect::<eyre::Result<Vec<_>>>()?;
+            self.tracker
+                .update_entity(ctx, *gid, current, lid, (cam_x, cam_y))?;
         }
         Ok(())
     }
@@ -242,21 +300,21 @@ impl LocalDiffModel {
                 res.pop();
             }
         }
-        for lid in self.pending_removal.drain(..) {
+        for lid in self.tracker.pending_removal.drain(..) {
             res.push(EntityUpdate::RemoveEntity(lid));
             // "Untrack" entity
-            self.tracked.remove_by_left(&lid);
+            self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
         }
         res
     }
 
     pub(crate) fn lid_by_entity(&self, entity: EntityID) -> Option<Lid> {
-        self.tracked.get_by_right(&entity).copied()
+        self.tracker.tracked.get_by_right(&entity).copied()
     }
 
     pub(crate) fn got_authority(&mut self, full_entity_data: FullEntityData) {
-        self.pending_authority.push(full_entity_data);
+        self.tracker.pending_authority.push(full_entity_data);
     }
 
     pub(crate) fn full_entity_data_for(&self, lid: Lid) -> Option<FullEntityData> {
@@ -264,9 +322,33 @@ impl LocalDiffModel {
         Some(FullEntityData {
             gid: entry_pair.gid,
             pos: WorldPos::from_f32(entry_pair.current.x, entry_pair.current.y),
-            data: entry_pair.current.entity_data.clone(),
+            data: entry_pair.current.spawn_info.clone(),
         })
     }
+}
+
+fn collect_phys_info(entity: EntityID) -> Result<Vec<PhysBodyInfo>, eyre::Error> {
+    let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)?;
+    phys_bodies
+        .into_iter()
+        .map(|body| -> eyre::Result<PhysBodyInfo> {
+            let (x, y, angle, vx, vy, av) = noita_api::raw::physics_body_id_get_transform(
+                body,
+            )?
+            .ok_or_else(
+                || eyre!("Couldn't get transform of an entity that we checked that it exists? Phys body: {body:?} Ent: {entity:?}"),
+            )?;
+            let (x, y) = noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))?;
+            Ok(PhysBodyInfo {
+                x: x as f32,
+                y: y as f32,
+                angle,
+                vx,
+                vy,
+                av,
+            })
+        })
+        .collect::<eyre::Result<Vec<_>>>()
 }
 
 impl RemoteDiffModel {
@@ -371,7 +453,7 @@ impl RemoteDiffModel {
                 }
                 None => {
                     let entity = spawn_entity_by_data(
-                        &entity_info.entity_data,
+                        &entity_info.spawn_info,
                         entity_info.x,
                         entity_info.y,
                     )?;
@@ -457,5 +539,24 @@ fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::
         EntitySpawnInfo::Filename(filename) => {
             EntityID::load(filename, Some(x as f64), Some(y as f64))
         }
+        // TODO handle things like wand recharge time.
+        EntitySpawnInfo::Serialized {
+            serialized_at: _,
+            data,
+        } => deserialize_entity(data, x, y),
     }
+}
+
+pub(crate) fn entity_is_item(entity: EntityID) -> eyre::Result<bool> {
+    Ok(entity
+        .try_get_first_component::<ItemComponent>(None)?
+        .is_some())
+}
+
+fn classify_entity(entity: EntityID) -> eyre::Result<EntityKind> {
+    if entity_is_item(entity)? {
+        return Ok(EntityKind::Item);
+    }
+
+    Ok(EntityKind::Normal)
 }

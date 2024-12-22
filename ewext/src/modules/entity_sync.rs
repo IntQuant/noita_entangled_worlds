@@ -3,13 +3,13 @@
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
-use diff_model::{LocalDiffModel, RemoteDiffModel, DES_TAG};
+use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::{game_print, EntityID, ProjectileComponent};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
         InterestRequest, ProjectileFired, RemoteDes, INTEREST_REQUEST_RADIUS,
@@ -24,6 +24,19 @@ use super::Module;
 
 mod diff_model;
 mod interest;
+
+static ENTITY_EXCLUDES: LazyLock<FxHashSet<String>> = LazyLock::new(|| {
+    let mut hs = FxHashSet::default();
+    hs.insert("data/entities/items/pickup/perk.xml".to_string());
+    hs.insert("data/entities/items/pickup/spell_refresh.xml".to_string());
+    hs.insert("data/entities/items/pickup/heart.xml".to_string());
+    hs.insert("data/entities/items/pickup/heart_better.xml".to_string());
+    hs.insert("data/entities/items/pickup/heart_evil.xml".to_string());
+    hs.insert("data/entities/items/pickup/heart_fullhp.xml".to_string());
+    hs.insert("data/entities/items/pickup/heart_fullhp_temple.xml".to_string());
+    hs.insert("data/entities/items/pickup/perk_reroll.xml".to_string());
+    hs
+});
 
 pub(crate) struct EntitySync {
     /// Last entity we stopped looking for new tracked entities at.
@@ -50,9 +63,17 @@ impl Default for EntitySync {
     }
 }
 
+fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
+    let filename = entity.filename()?;
+    Ok(ENTITY_EXCLUDES.contains(&filename))
+}
+
 impl EntitySync {
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
-        Ok(entity.has_tag("enemy") || entity.has_tag("ew_synced"))
+        let should_be_tracked =
+            entity.has_tag("enemy") || entity.has_tag("ew_synced") || entity_is_item(entity)?;
+
+        Ok(should_be_tracked && !entity_is_excluded(entity)?)
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
