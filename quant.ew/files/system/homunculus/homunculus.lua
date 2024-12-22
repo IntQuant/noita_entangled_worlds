@@ -25,7 +25,11 @@ function rpc.send_positions(ho, lu)
     local h, l = get_entities(ctx.rpc_player_data.entity)
     if #ho ~= 0 then
         for i, child in ipairs(h) do
-            EntitySetTransform(child, ho[i][1], ho[i][2])
+            if ho[i] == nil then
+                EntityKill(child)
+            else
+                EntitySetTransform(child, ho[i][1], ho[i][2])
+            end
         end
         for i=1,#ho-#h do
             local n = EntityLoad( "data/entities/misc/homunculus.xml", ho[#h+i][1], ho[#h+i][2])
@@ -35,7 +39,11 @@ function rpc.send_positions(ho, lu)
     end
     if #lu ~= 0 then
         for i, child in ipairs(l) do
-            util.set_phys_info(child, lu[i][3], ctx.rpc_player_data.fps)
+            if lu[i] == nil then
+                EntityKill(child)
+            else
+                util.set_phys_info(child, lu[i][3], ctx.rpc_player_data.fps)
+            end
         end
         for i=1,#lu-#l do
             local n = EntityLoad( "data/entities/misc/perks/lukki_minion.xml", lu[#l+i][1], lu[#l+i][2])
