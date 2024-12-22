@@ -208,9 +208,10 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     shooter_player_data.projectile_seed_chain[entity_that_shot] = rng
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
-        if ComponentGetValue2(lua, "script_source_file") == "data/scripts/projectiles/transmutation.lua" then
+        local src = ComponentGetValue2(lua, "script_source_file")
+        if src == "data/scripts/projectiles/transmutation.lua"
+            or src == "data/scripts/projectiles/random_explosion.lua" then
             EntityAddComponent2(projectile_id, "VariableStorageComponent", {name = "ew_transmutation", value_int = rng})
-            break
         end
     end
     local n = EntityGetFilename(projectile_id)
