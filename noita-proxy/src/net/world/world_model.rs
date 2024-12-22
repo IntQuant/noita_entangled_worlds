@@ -1,3 +1,4 @@
+use std::num::NonZeroU16;
 use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
@@ -71,12 +72,29 @@ impl ChunkData {
     pub(crate) fn apply_to_chunk(&self, chunk: &mut Chunk) {
         let mut offset = 0;
         for run in &self.runs {
+            let pixel = run.data;
             for _ in 0..run.length {
-                let pixel = run.data;
                 chunk.set_compact_pixel(offset, pixel);
                 offset += 1;
             }
         }
+    }
+    pub(crate) fn apply_delta(&mut self, delta: ChunkData) {
+        let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
+        let mut chunk = Chunk::default();
+        self.apply_to_chunk(&mut chunk);
+        let mut offset = 0;
+        for run in delta.runs.iter() {
+            if run.data != nil {
+                for _ in 0..run.length {
+                    chunk.set_compact_pixel(offset, run.data);
+                    offset += 1;
+                }
+            } else {
+                offset += run.length as usize
+            }
+        }
+        *self = chunk.to_chunk_data()
     }
 }
 
@@ -195,11 +213,13 @@ impl WorldModel {
         let chunk = self.chunks.entry(delta.chunk_coord).or_default();
         let mut offset = 0;
         for run in delta.runs.iter() {
-            for _ in 0..run.length {
-                if let Some(pixel) = run.data {
-                    chunk.set_compact_pixel(offset, pixel)
+            if let Some(pixel) = run.data {
+                for _ in 0..run.length {
+                    chunk.set_compact_pixel(offset, pixel);
+                    offset += 1;
                 }
-                offset += 1;
+            } else {
+                offset += run.length as usize
             }
         }
     }

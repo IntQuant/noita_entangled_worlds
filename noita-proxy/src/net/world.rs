@@ -6,7 +6,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
-use std::num::NonZeroU16;
 use std::{env, mem};
 use tracing::{debug, info, warn};
 use world_model::{
@@ -1451,19 +1450,14 @@ impl WorldManager {
                     x, y, d, rays, results, hole, liquid, mat, prob,
                 )
             })
-            .collect::<Vec<(ChunkCoord, ChunkData, bool, bool)>>();
-        let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
+            .collect();
         for entry in resres {
             if entry.3 {
                 self.chunk_storage.insert(entry.0, entry.1);
             } else {
-                self.chunk_storage.entry(entry.0).and_modify(|c| {
-                    for (i, p) in c.runs.iter_mut().enumerate() {
-                        if entry.1.runs[i].data != nil {
-                            *p = entry.1.runs[i];
-                        }
-                    }
-                });
+                self.chunk_storage
+                    .entry(entry.0)
+                    .and_modify(|c| c.apply_delta(entry.1));
             }
             if entry.2 {
                 self.is_storage_recent.insert(entry.0);
@@ -1870,7 +1864,6 @@ fn test_circ_img() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_circ.png").unwrap();
 }
-use crate::net::world::world_model::chunk::CompactPixel;
 #[cfg(test)]
 use crate::net::LiquidType;
 #[cfg(test)]
