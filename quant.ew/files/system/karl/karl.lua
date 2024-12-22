@@ -65,7 +65,6 @@ local function draw_leaderboards_gui()
     local text_y = h / 5
     local times = {}
     for peer_id, peer_time in pairs(best_times) do
-        GamePrint(peer_id .. " " .. peer_time)
         if peer_time ~= 0 then
             local i = 1
             for _, t in ipairs(times) do
@@ -80,7 +79,6 @@ local function draw_leaderboards_gui()
     if #times ~= 0 then
         GuiText(gui, text_x, text_y - 10, "Lap times")
         for _, data in ipairs(times) do
-        GamePrint(" ".. data[2])
             GuiText(gui, text_x, text_y, string.format("%-16s %.02fs", data[2], data[1]/60))
             text_y = text_y + 10
         end
@@ -93,7 +91,6 @@ rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.update_time(new_time, ping)
     best_times[ctx.rpc_peer_id] = new_time
-    GamePrint(best_times[ctx.rpc_peer_id])
     if ping then
         rpc.update_time(my_time)
     end
