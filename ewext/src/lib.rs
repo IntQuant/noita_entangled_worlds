@@ -143,7 +143,6 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 
     let mut kvs = Vec::new();
 
-    //#[expect(clippy::while_let_loop)] // Will probably get more variants in the future
     loop {
         match netman.recv()? {
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),

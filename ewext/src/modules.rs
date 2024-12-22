@@ -19,7 +19,7 @@ pub(crate) trait Module {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn on_projectile_fired(
         &mut self,
         _ctx: &mut ModuleCtx,

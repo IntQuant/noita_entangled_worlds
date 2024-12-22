@@ -91,7 +91,7 @@ impl LocalDiffModel {
     }
 
     pub(crate) fn reset_diff_encoding(&mut self) {
-        for (_, entry_pair) in self.entity_entries.iter_mut() {
+        for entry_pair in &mut self.entity_entries.values_mut() {
             entry_pair.last = None;
         }
     }
