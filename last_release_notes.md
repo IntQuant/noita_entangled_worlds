@@ -1,21 +1,18 @@
-## Noita Entangled Worlds v0.32.6
+## Noita Entangled Worlds v0.32.7
 
-- fix food clock and vomit rats breaking game immensely (oopsie)
+- parse materials better
 
-- optimize explosions/cell eaters/material converters/sadekivi
+- improve karl
 
-- make sadekivi more correct
+- optimize explosions and improve correct-ness
 
-- try to fix item duping
+- fix some errors
 
-- fix notplayer error
-
-- make explosions more correct
-
+- fix chaos magic
 
 ## Accepted pull requests
 
-- arrows, ctrl+arrows, home, end implementation to chat by @ZXb125 in #289
+- Rough Korean translation by @Alphaccca in #294
 ## Installation
 
 
