@@ -52,7 +52,7 @@ impl Default for EntitySync {
 
 impl EntitySync {
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
-        Ok(entity.has_tag("enemy") || entity.has_tag("prop_physics"))
+        Ok(entity.has_tag("enemy") || entity.has_tag("ew_synced"))
     }
 
     /// Looks for newly spawned entities that might need to be tracked.

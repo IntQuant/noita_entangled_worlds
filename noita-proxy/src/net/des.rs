@@ -116,7 +116,6 @@ impl DesManager {
         let mut free_again = Vec::new();
         self.authority.retain(|gid, authority| {
             let remove = source == *authority;
-            info!("{gid:?} {authority}");
             free_again.push(*gid);
             !remove
         });

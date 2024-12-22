@@ -67,9 +67,6 @@ impl LocalDiffModel {
         let lid = self.alloc_lid();
         entity.remove_all_components_of_type::<CameraBoundComponent>()?;
         entity.add_tag(DES_TAG)?;
-        for pb2 in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
-            pb2.set_destroy_body_if_entity_destroyed(true)?;
-        }
 
         self.tracked.insert(lid, entity);
         // TODO: handle other types of entities, like items.
