@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
 
-use crate::WorldPos;
+use crate::{PeerId, WorldPos};
 
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
 pub const AUTHORITY_RADIUS: f32 = 600.0;
@@ -98,6 +98,7 @@ pub enum EntityUpdate {
     SetPhysInfo(Vec<PhysBodyInfo>),
     // TODO...
     RemoveEntity(Lid),
+    LocalizeEntity(Lid, PeerId),
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -108,6 +109,7 @@ pub enum RemoteDes {
     EntityUpdate(Vec<EntityUpdate>),
     ExitedInterest,
     Projectiles(Arc<Vec<ProjectileFired>>),
+    RequestGrab(Lid),
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

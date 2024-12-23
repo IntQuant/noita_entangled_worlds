@@ -33,7 +33,9 @@ pub enum RemoteMessage {
 #[derive(Encode, Decode)]
 pub enum NoitaInbound {
     RawMessage(Vec<u8>),
-    Ready,
+    Ready {
+        my_peer_id: PeerId,
+    },
     ProxyToDes(des::ProxyToDes),
     RemoteMessage {
         source: PeerId,

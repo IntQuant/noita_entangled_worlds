@@ -1,12 +1,12 @@
 use std::mem;
 
 use bimap::BiHashMap;
-use eyre::{eyre, OptionExt};
+use eyre::{eyre, Context, OptionExt};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
-    ExplodeOnDamageComponent, ItemComponent, ItemPickUpperComponent, PhysicsAIComponent,
-    PhysicsBody2Component, VelocityComponent,
+    ExplodeOnDamageComponent, ItemComponent, ItemPickUpperComponent, LuaComponent,
+    PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -14,14 +14,15 @@ use shared::{
         EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
         PhysBodyInfo, ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
     },
-    WorldPos,
+    NoitaOutbound, PeerId, WorldPos,
 };
 
-use crate::{modules::ModuleCtx, serialize::deserialize_entity};
+use crate::{modules::ModuleCtx, my_peer_id, serialize::deserialize_entity};
 
-use super::serialize_entity;
+use super::{serialize_entity, NetManager};
 
 pub(crate) static DES_TAG: &str = "ew_des";
+pub(crate) static DES_SCRIPTS_TAG: &str = "ew_des_lua";
 
 struct EntityEntryPair {
     last: Option<EntityInfo>,
@@ -31,11 +32,9 @@ struct EntityEntryPair {
 
 struct LocalDiffModelTracker {
     tracked: BiHashMap<Lid, EntityID>,
-    /// Stores items that were picked up and currently aren't tracked, but might need to be in future.
-    /// TODO: add back to tracked.
-    backtracked: Vec<EntityID>,
     pending_removal: Vec<Lid>,
     pending_authority: Vec<FullEntityData>,
+    pending_localize: Vec<(Lid, PeerId)>,
     authority_radius: f32,
 }
 
@@ -49,6 +48,8 @@ pub(crate) struct LocalDiffModel {
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
     entity_infos: FxHashMap<Lid, EntityInfo>,
+    backtrack: Vec<EntityID>,
+    grab_request: Vec<Lid>,
 }
 
 impl Default for LocalDiffModel {
@@ -58,9 +59,9 @@ impl Default for LocalDiffModel {
             entity_entries: Default::default(),
             tracker: LocalDiffModelTracker {
                 tracked: Default::default(),
-                backtracked: Default::default(),
                 pending_removal: Vec::with_capacity(16),
                 pending_authority: Vec::new(),
+                pending_localize: Vec::with_capacity(4),
                 authority_radius: AUTHORITY_RADIUS,
             },
         }
@@ -82,7 +83,7 @@ impl LocalDiffModelTracker {
             self.untrack_entity(ctx, gid, lid)?;
             return Ok(());
         }
-        let item_and_was_picked = info.kind == EntityKind::Item && entity.parent()? != entity;
+        let item_and_was_picked = info.kind == EntityKind::Item && item_in_inventory(entity)?;
         if item_and_was_picked {
             self.temporary_untrack_item(ctx, gid, lid, entity)?;
             return Ok(());
@@ -94,7 +95,8 @@ impl LocalDiffModelTracker {
 
         // Check if entity went out of range, remove and release authority if it did.
         if (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2) {
-            self.release_authority(ctx, gid, lid)?;
+            self.release_authority(ctx, gid, lid)
+                .wrap_err("Failed to release authority")?;
             return Ok(());
         }
 
@@ -135,7 +137,11 @@ impl LocalDiffModelTracker {
     ) -> Result<(), eyre::Error> {
         self.untrack_entity(ctx, gid, lid)?;
         entity.remove_tag(DES_TAG)?;
-        self.backtracked.push(entity);
+        with_entity_scripts(entity, |luac| {
+            luac.set_script_throw_item(
+                "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
+            )
+        })?;
         Ok(())
     }
 
@@ -165,7 +171,7 @@ impl LocalDiffModelTracker {
         ))?;
         game_print("Released authority over entity");
         self.pending_removal.push(lid);
-        entity.kill();
+        safe_entitykill(entity);
         Ok(())
     }
 }
@@ -211,6 +217,23 @@ impl LocalDiffModel {
                 gid,
             },
         );
+
+        Ok(lid)
+    }
+
+    pub(crate) fn track_and_upload_entity(
+        &mut self,
+        net: &mut NetManager,
+        entity: EntityID,
+        gid: Gid,
+    ) -> eyre::Result<Lid> {
+        let lid = self.track_entity(entity, gid)?;
+        net.send(&NoitaOutbound::DesToProxy(
+            shared::des::DesToProxy::InitOrUpdateEntity(
+                self.full_entity_data_for(lid)
+                    .ok_or_eyre("entity just began being tracked")?,
+            ),
+        ))?;
         Ok(lid)
     }
 
@@ -246,7 +269,8 @@ impl LocalDiffModel {
         ) in &mut self.entity_entries
         {
             self.tracker
-                .update_entity(ctx, *gid, current, lid, (cam_x, cam_y))?;
+                .update_entity(ctx, *gid, current, lid, (cam_x, cam_y))
+                .wrap_err("Failed to update local entity")?;
         }
         Ok(())
     }
@@ -300,6 +324,13 @@ impl LocalDiffModel {
                 res.pop();
             }
         }
+        for (lid, peer) in self.tracker.pending_localize.drain(..) {
+            res.push(EntityUpdate::LocalizeEntity(lid, peer));
+            // "Untrack" entity
+            self.tracker.tracked.remove_by_left(&lid);
+            self.entity_entries.remove(&lid);
+        }
+
         for lid in self.tracker.pending_removal.drain(..) {
             res.push(EntityUpdate::RemoveEntity(lid));
             // "Untrack" entity
@@ -324,6 +355,20 @@ impl LocalDiffModel {
             pos: WorldPos::from_f32(entry_pair.current.x, entry_pair.current.y),
             data: entry_pair.current.spawn_info.clone(),
         })
+    }
+
+    pub(crate) fn entity_grabbed(&mut self, source: PeerId, lid: Lid) {
+        let Some(info) = self.entity_entries.get(&lid) else {
+            return;
+        };
+        if let Ok(entity) = self.tracker.entity_by_lid(lid) {
+            if info.current.kind == EntityKind::Item {
+                self.tracker.pending_localize.push((lid, source));
+                safe_entitykill(entity);
+            } else {
+                game_print("Tried to localize entity that's not an item");
+            }
+        }
     }
 }
 
@@ -388,7 +433,17 @@ impl RemoteDiffModel {
                 }
                 EntityUpdate::RemoveEntity(lid) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
-                        entity.kill();
+                        safe_entitykill(entity);
+                    }
+                    self.entity_infos.remove(lid);
+                }
+                EntityUpdate::LocalizeEntity(lid, peer_id) => {
+                    if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
+                        if *peer_id != my_peer_id() {
+                            safe_entitykill(entity);
+                        } else {
+                            self.backtrack.push(entity);
+                        }
                     }
                     self.entity_infos.remove(lid);
                 }
@@ -400,6 +455,10 @@ impl RemoteDiffModel {
         for (lid, entity_info) in &self.entity_infos {
             match self.tracked.get_by_left(lid) {
                 Some(entity) => {
+                    if entity_info.kind == EntityKind::Item && item_in_inventory(*entity)? {
+                        self.grab_request.push(*lid);
+                    }
+
                     entity.set_position(entity_info.x, entity_info.y)?;
                     if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
                         vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
@@ -523,13 +582,25 @@ impl RemoteDiffModel {
             );
         }
     }
+
+    pub(crate) fn drain_backtrack(&mut self) -> impl Iterator<Item = EntityID> + '_ {
+        self.backtrack.drain(..)
+    }
+
+    pub(crate) fn drain_grab_request(&mut self) -> impl Iterator<Item = Lid> + '_ {
+        self.grab_request.drain(..)
+    }
+}
+
+fn item_in_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
+    Ok(entity.parent()? != entity)
 }
 
 impl Drop for RemoteDiffModel {
     fn drop(&mut self) {
         // Cleanup all entities tracked by this model.
         for ent in self.tracked.right_values() {
-            ent.kill();
+            safe_entitykill(*ent);
         }
     }
 }
@@ -549,7 +620,7 @@ fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::
 
 pub(crate) fn entity_is_item(entity: EntityID) -> eyre::Result<bool> {
     Ok(entity
-        .try_get_first_component::<ItemComponent>(None)?
+        .try_get_first_component_including_disabled::<ItemComponent>(None)?
         .is_some())
 }
 
@@ -559,4 +630,27 @@ fn classify_entity(entity: EntityID) -> eyre::Result<EntityKind> {
     }
 
     Ok(EntityKind::Normal)
+}
+
+fn with_entity_scripts<T>(
+    entity: EntityID,
+    f: impl FnOnce(LuaComponent) -> eyre::Result<T>,
+) -> eyre::Result<T> {
+    let component = entity
+        .try_get_first_component(Some(DES_SCRIPTS_TAG.into()))
+        .transpose()
+        .unwrap_or_else(|| {
+            let component = entity.add_component::<LuaComponent>()?;
+            component.0.add_tag(DES_SCRIPTS_TAG)?;
+            component.0.add_tag("enabled_in_inventory")?;
+            component.0.add_tag("enabled_in_world")?;
+            component.0.add_tag("enabled_in_hand")?;
+            Ok(component)
+        })?;
+    f(component)
+}
+
+fn safe_entitykill(entity: EntityID) {
+    // TODO
+    entity.kill();
 }

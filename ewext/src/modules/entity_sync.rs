@@ -12,7 +12,7 @@ use noita_api::{game_print, EntityID, ProjectileComponent};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
-        InterestRequest, ProjectileFired, RemoteDes, INTEREST_REQUEST_RADIUS,
+        Gid, InterestRequest, ProjectileFired, RemoteDes, INTEREST_REQUEST_RADIUS,
         REQUEST_AUTHORITY_RADIUS,
     },
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
@@ -20,7 +20,7 @@ use shared::{
 
 use crate::serialize::serialize_entity;
 
-use super::Module;
+use super::{Module, NetManager};
 
 mod diff_model;
 mod interest;
@@ -91,15 +91,8 @@ impl EntitySync {
             if self.should_be_tracked(entity)? {
                 game_print(format!("Tracking {entity:?}"));
                 let gid = shared::des::Gid(rand::random());
-                let lid = self.local_diff_model.track_entity(entity, gid)?;
-
-                ctx.net.send(&NoitaOutbound::DesToProxy(
-                    shared::des::DesToProxy::InitOrUpdateEntity(
-                        self.local_diff_model
-                            .full_entity_data_for(lid)
-                            .ok_or_eyre("entity just began being tracked")?,
-                    ),
-                ))?;
+                self.local_diff_model
+                    .track_and_upload_entity(ctx.net, entity, gid)?;
             }
         }
 
@@ -137,7 +130,21 @@ impl EntitySync {
                     .or_default()
                     .spawn_projectiles(&vec);
             }
+            RemoteDes::RequestGrab(lid) => {
+                self.local_diff_model.entity_grabbed(source, lid);
+            }
         }
+    }
+
+    pub(crate) fn cross_item_thrown(
+        &mut self,
+        net: &mut NetManager,
+        entity: Option<EntityID>,
+    ) -> eyre::Result<()> {
+        let entity = entity.ok_or_eyre("Passed entity 0 into cross call")?;
+        self.local_diff_model
+            .track_and_upload_entity(net, entity, Gid(rand::random()))?;
+        Ok(())
     }
 }
 
@@ -203,8 +210,23 @@ impl Module for EntitySync {
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         } else {
-            for remote_model in self.remote_models.values_mut() {
+            for (owner, remote_model) in &mut self.remote_models {
                 remote_model.apply_entities()?;
+                for entity in remote_model.drain_backtrack() {
+                    self.local_diff_model.track_and_upload_entity(
+                        ctx.net,
+                        entity,
+                        Gid(rand::random()),
+                    )?;
+                }
+                for lid in remote_model.drain_grab_request() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(*owner),
+                        RemoteDes::RequestGrab(lid),
+                    )?;
+                }
             }
         }
 

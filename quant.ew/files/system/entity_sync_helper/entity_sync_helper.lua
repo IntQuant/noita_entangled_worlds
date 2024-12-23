@@ -19,4 +19,10 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
     end
 end
 
+util.add_cross_call("ew_thrown", function(thrown_item)
+    if thrown_item ~= nil then
+        ewext.des_item_thrown(thrown_item)
+    end
+end)
+
 return {}

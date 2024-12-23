@@ -96,7 +96,7 @@ local function load_modules()
 
     ctx.load_system("player_tether")
 
-    ctx.load_system("kolmi")
+    -- ctx.load_system("kolmi") -- TODO
     ctx.load_system("ending")
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")
@@ -139,7 +139,7 @@ local function load_modules()
     ctx.load_system("ragdoll_fix")
     ctx.load_system("explosion_cuts")
     ctx.load_system("wang_hooks")
-    ctx.load_system("patch_entities")
+    ctx.load_system("entity_sync_helper")
 end
 
 local function load_extra_modules()

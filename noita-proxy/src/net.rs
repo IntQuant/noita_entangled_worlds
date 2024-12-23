@@ -721,7 +721,9 @@ impl NetManager {
         let progress = settings.progress.join(",");
         state.try_ws_write_option("progress", progress.as_str());
 
-        state.try_ms_write(&NoitaInbound::Ready);
+        state.try_ms_write(&NoitaInbound::Ready {
+            my_peer_id: self.peer.my_id().into(),
+        });
         // TODO? those are currently ignored by mod
         for id in self.peer.iter_peer_ids() {
             state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
@@ -992,6 +994,7 @@ impl NetManager {
             }
             *self.settings.lock().unwrap() = settings.clone();
             state.world.reset();
+            state.des.reset();
             self.dirty.store(false, Ordering::Relaxed);
         }
         self.resend_game_settings();

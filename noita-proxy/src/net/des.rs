@@ -24,6 +24,7 @@ pub(crate) struct DesManager {
     rtree: RTree<GeomWithData<[i64; 2], Gid>>,
     authority: FxHashMap<Gid, OmniPeerId>,
     pending_messages: Vec<(OmniPeerId, ProxyToDes)>,
+    save_state: SaveState,
 }
 
 impl DesManager {
@@ -45,6 +46,7 @@ impl DesManager {
             rtree,
             authority: Default::default(),
             pending_messages: Vec::new(),
+            save_state,
         }
     }
 
@@ -126,5 +128,18 @@ impl DesManager {
 
     pub(crate) fn pending_messages(&mut self) -> Vec<(OmniPeerId, ProxyToDes)> {
         mem::take(&mut self.pending_messages)
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.entity_storage = Default::default();
+        self.rtree = RTree::default();
+        self.authority.clear();
+        self.pending_messages.clear();
+    }
+}
+
+impl Drop for DesManager {
+    fn drop(&mut self) {
+        self.save_state.save(&self.entity_storage);
     }
 }

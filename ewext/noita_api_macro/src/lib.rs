@@ -40,6 +40,13 @@ impl Typ {
             Typ::Other => todo!(),
         }
     }
+    fn as_rust_type_return(&self) -> proc_macro2::TokenStream {
+        match self {
+            Typ::StdString => quote! {Cow<'static, str>},
+            Typ::EntityID => quote! {Option<EntityID>},
+            _ => self.as_rust_type(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -175,11 +182,13 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
             | Typ::Double
             | Typ::Bool
             | Typ::Vec2
-            | Typ::EntityID => {
+            | Typ::EntityID
+            | Typ::StdString => {
                 let field_type = field.typ.as_rust_type();
+                let field_type_ret = field.typ.as_rust_type_return();
                 Some(quote! {
                     #[doc = #field_doc]
-                    pub fn #field_name(self) -> eyre::Result<#field_type> {
+                    pub fn #field_name(self) -> eyre::Result<#field_type_ret> {
                         // This trasmute is used to reinterpret i32 as u32 in one case.
                         raw::component_get_value(self.0, #field_name_raw)
                      }

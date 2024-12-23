@@ -3,7 +3,7 @@ use std::{
     num::{NonZero, TryFromIntError},
 };
 
-use eyre::{eyre, Context};
+use eyre::{eyre, Context, OptionExt};
 
 pub mod lua;
 
@@ -81,6 +81,15 @@ impl EntityID {
             .wrap_err_with(|| eyre!("Failed to get first component {} for {self:?}", C::NAME_STR))
     }
 
+    pub fn try_get_first_component_including_disabled<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<Option<C>> {
+        raw::entity_get_first_component_including_disabled(self, C::NAME_STR.into(), tag)
+            .map(|x| x.flatten().map(Into::into))
+            .wrap_err_with(|| eyre!("Failed to get first component {} for {self:?}", C::NAME_STR))
+    }
+
     /// Returns the first component of this type if an entity has it.
     pub fn get_first_component<C: Component>(self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
         self.try_get_first_component(tag)?
@@ -102,6 +111,10 @@ impl EntityID {
             .unwrap_or_default()
             .into_iter()
             .filter_map(|x| x.map(C::from)))
+    }
+
+    pub fn add_component<C: Component>(self) -> eyre::Result<C> {
+        raw::entity_add_component::<C>(self)?.ok_or_eyre("Couldn't create a component")
     }
 
     pub fn load(
@@ -135,6 +148,20 @@ impl TryFrom<isize> for EntityID {
     }
 }
 
+impl ComponentID {
+    pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::component_add_tag(self, tag.as_ref().into())
+    }
+
+    pub fn has_tag(self, tag: impl AsRef<str>) -> bool {
+        raw::component_has_tag(self, tag.as_ref().into()).unwrap_or(false)
+    }
+
+    pub fn remove_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::component_remove_tag(self, tag.as_ref().into())
+    }
+}
+
 pub fn game_print(value: impl AsRef<str>) {
     let _ = raw::game_print(value.as_ref().into());
 }
@@ -146,7 +173,9 @@ pub mod raw {
     use super::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
     use crate::lua::LuaGetValue;
     use crate::lua::LuaPutValue;
+    use crate::Component;
     use std::borrow::Cow;
+    use std::num::NonZero;
 
     use crate::lua::LuaState;
 
@@ -204,5 +233,16 @@ pub mod raw {
                 }
             }
         }
+    }
+
+    pub fn entity_add_component<C: Component>(entity: EntityID) -> eyre::Result<Option<C>> {
+        let lua = LuaState::current()?;
+        lua.get_global(c"EntityAddComponent");
+        lua.push_integer(entity.raw());
+        lua.push_string(C::NAME_STR);
+        lua.call(2, 1);
+        let c = lua.to_integer(-1);
+        lua.pop_last_n(1);
+        Ok(NonZero::new(c).map(ComponentID).map(C::from))
     }
 }
