@@ -484,6 +484,7 @@ end
 function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     if peer_id == ctx.my_id then
         util.print_traceback()
+        return
     end
     if ctx.run_ended then
         return
