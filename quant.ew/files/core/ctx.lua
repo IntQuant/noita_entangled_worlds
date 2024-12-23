@@ -23,6 +23,7 @@ ctx.init = function()
     ctx.events = {}
     ctx.is_inventory_open = false
     ctx.rpc_peer_id = nil
+    ctx.rpc_player_data = nil
     ctx.is_wand_pickup = false
     ctx.is_paused = false
     ctx.host_frame_num = 0

@@ -693,14 +693,24 @@ local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
         local wand = item_sync.find_by_gid(gid)
         if wand ~= nil and EntityGetIsAlive(wand) then
             EntityAddTag(wand, "ew_client_item")
-            local ezwand = EZWand(wand)
-            ezwand:GiveTo(enemy_id)
-            np.SetActiveHeldEntity(enemy_id, wand, false, false)
-        else
-            if should_wait[gid] == nil or should_wait[gid] < GameGetFrameNum() then
-                item_sync.rpc.request_send_again(gid)
-                should_wait[gid] = GameGetFrameNum() + 15
+            local inventory
+            for _, child in pairs(EntityGetAllChildren(enemy_id) or {}) do
+                if EntityGetName(child) == "inventory_quick" then
+                    inventory = child
+                end
             end
+            if inventory == nil then
+                inventory = EntityCreateNew("inventory_quick")
+                EntityAddChild(enemy_id, inventory)
+            end
+            if EntityGetParent(wand) ~= 0 then
+                EntityRemoveFromParent(wand)
+            end
+            EntityAddChild(inventory, wand)
+            np.SetActiveHeldEntity(enemy_id, wand, false, false)
+        elseif should_wait[gid] == nil or should_wait[gid] < GameGetFrameNum() then
+            item_sync.rpc.request_send_again(gid)
+            should_wait[gid] = GameGetFrameNum() + 15
         end
     end
 
