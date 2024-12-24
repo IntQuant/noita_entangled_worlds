@@ -35,6 +35,8 @@ struct LocalDiffModelTracker {
     pending_removal: Vec<Lid>,
     pending_authority: Vec<FullEntityData>,
     pending_localize: Vec<(Lid, PeerId)>,
+    /// Stores pairs of entity killed and optionally the responsible entity.
+    pending_death_notify: Vec<(EntityID, Option<EntityID>)>,
     authority_radius: f32,
 }
 
@@ -48,8 +50,11 @@ pub(crate) struct LocalDiffModel {
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
     entity_infos: FxHashMap<Lid, EntityInfo>,
+    /// Entities that we want to track again. Typically when we move authority locally from a different peer.
     backtrack: Vec<EntityID>,
     grab_request: Vec<Lid>,
+    pending_remove: Vec<Lid>,
+    pending_death_notify: Vec<(Lid, Option<PeerId>)>,
 }
 
 impl Default for LocalDiffModel {
@@ -62,6 +67,7 @@ impl Default for LocalDiffModel {
                 pending_removal: Vec::with_capacity(16),
                 pending_authority: Vec::new(),
                 pending_localize: Vec::with_capacity(4),
+                pending_death_notify: Vec::with_capacity(4),
                 authority_radius: AUTHORITY_RADIUS,
             },
         }
@@ -199,6 +205,12 @@ impl LocalDiffModel {
                 data: serialize_entity(entity)?,
             },
         };
+        with_entity_scripts(entity, |scripts| {
+            scripts.set_script_death(
+                "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
+            )
+        })?;
+
         self.entity_entries.insert(
             lid,
             EntityEntryPair {
@@ -274,7 +286,7 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn make_diff(&mut self) -> Vec<EntityUpdate> {
+    pub(crate) fn make_diff(&mut self, ctx: &mut ModuleCtx) -> Vec<EntityUpdate> {
         let mut res = Vec::new();
         for (
             &lid,
@@ -325,9 +337,19 @@ impl LocalDiffModel {
         }
         for (lid, peer) in self.tracker.pending_localize.drain(..) {
             res.push(EntityUpdate::LocalizeEntity(lid, peer));
-            // "Untrack" entity
-            self.tracker.tracked.remove_by_left(&lid);
-            self.entity_entries.remove(&lid);
+        }
+
+        for (killed, responsible) in self.tracker.pending_death_notify.drain(..) {
+            let responsible_peer = responsible
+                .and_then(|ent| ctx.player_map.get_by_right(&ent))
+                .copied();
+            let Some(lid) = self.tracker.tracked.get_by_right(&killed).copied() else {
+                continue;
+            };
+            res.push(EntityUpdate::KillEntity {
+                lid,
+                responsible_peer,
+            });
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
@@ -364,10 +386,23 @@ impl LocalDiffModel {
             if info.current.kind == EntityKind::Item {
                 self.tracker.pending_localize.push((lid, source));
                 safe_entitykill(entity);
+                // "Untrack" entity
+                self.tracker.tracked.remove_by_left(&lid);
+                self.entity_entries.remove(&lid);
             } else {
                 game_print("Tried to localize entity that's not an item");
             }
         }
+    }
+
+    pub(crate) fn death_notify(
+        &mut self,
+        entity_killed: EntityID,
+        entity_responsible: Option<EntityID>,
+    ) {
+        self.tracker
+            .pending_death_notify
+            .push((entity_killed, entity_responsible))
     }
 }
 
@@ -431,10 +466,7 @@ impl RemoteDiffModel {
                     entity_info.phys = vec.clone();
                 }
                 EntityUpdate::RemoveEntity(lid) => {
-                    if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
-                        safe_entitykill(entity);
-                    }
-                    self.entity_infos.remove(lid);
+                    self.pending_remove.push(*lid);
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
@@ -446,11 +478,17 @@ impl RemoteDiffModel {
                     }
                     self.entity_infos.remove(lid);
                 }
+                EntityUpdate::KillEntity {
+                    lid,
+                    responsible_peer,
+                } => {
+                    self.pending_death_notify.push((*lid, *responsible_peer));
+                }
             }
         }
     }
 
-    pub(crate) fn apply_entities(&mut self) -> eyre::Result<()> {
+    pub(crate) fn apply_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         for (lid, entity_info) in &self.entity_infos {
             match self.tracked.get_by_left(lid) {
                 Some(entity) => {
@@ -519,6 +557,39 @@ impl RemoteDiffModel {
                     self.tracked.insert(*lid, entity);
                 }
             }
+        }
+
+        for (lid, responsible) in self.pending_death_notify.drain(..) {
+            let responsible_entity = responsible
+                .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                .copied();
+            let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
+                continue;
+            };
+
+            if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+                damage.set_wait_for_kill_flag_on_death(false)?;
+                noita_api::raw::entity_inflict_damage(
+                    entity.raw() as i32,
+                    damage.hp()? as f64 + 0.1,
+                    "CURSE".into(),
+                    "kill sync".into(),
+                    "NONE".into(),
+                    0.0,
+                    0.0,
+                    responsible_entity.map(|e| e.raw() as i32),
+                    None,
+                    None,
+                    None,
+                )?;
+            }
+        }
+
+        for lid in self.pending_remove.drain(..) {
+            if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
+                safe_entitykill(entity);
+            }
+            self.entity_infos.remove(&lid);
         }
 
         Ok(())

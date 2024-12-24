@@ -4,6 +4,7 @@ pub extern "C" fn _Unwind_Resume() {}
 
 use std::{
     arch::asm,
+    borrow::Cow,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
     sync::{LazyLock, Mutex, OnceLock},
@@ -12,6 +13,7 @@ use std::{
 };
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
+use bimap::BiHashMap;
 use eyre::{bail, OptionExt};
 
 use modules::{entity_sync::EntitySync, Module, ModuleCtx};
@@ -22,7 +24,7 @@ use noita_api::{
         lua_bindings::{lua_State, LUA_REGISTRYINDEX},
         LuaFnRet, LuaGetValue, LuaState, RawString, ValuesOnStack, LUA,
     },
-    DamageModelComponent,
+    DamageModelComponent, EntityID,
 };
 use noita_api_macro::add_lua_fn;
 use shared::{NoitaInbound, PeerId, ProxyKV};
@@ -61,6 +63,7 @@ struct Modules {
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
     modules: Modules,
+    player_entity_map: BiHashMap<PeerId, EntityID>,
 }
 
 impl ExtState {
@@ -241,11 +244,13 @@ fn with_every_module(
     let _lock = IN_MODULE_LOCK.lock().unwrap();
     let mut temp = NETMANAGER.lock().unwrap();
     let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
-    STATE.with(|state| {
-        let mut ctx = ModuleCtx { net };
-        let modules = &mut state.borrow_mut().modules;
+    ExtState::with_global(|state| {
+        let mut ctx = ModuleCtx {
+            net,
+            player_map: &mut state.player_entity_map,
+        };
         let mut errs = Vec::new();
-        for module in &mut modules.entity_sync.iter_mut() {
+        for module in &mut (&mut state.modules).entity_sync.iter_mut() {
             if let Err(e) = f(&mut ctx, module as &mut dyn Module) {
                 errs.push(e);
             }
@@ -411,8 +416,35 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 Ok(())
             })
         }
-
         add_lua_fn!(des_item_thrown);
+
+        fn des_death_notify(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                let (entity_killed, entity_responsible): (Option<EntityID>, Option<EntityID>) =
+                    LuaGetValue::get(lua, -1)?;
+                let entity_killed =
+                    entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
+                entity_sync.cross_death_notify(entity_killed, entity_responsible)?;
+                Ok(())
+            })
+        }
+        add_lua_fn!(des_death_notify);
+
+        fn register_player_entity(lua: LuaState) -> eyre::Result<()> {
+            let (peer_id, entity): (Cow<'_, str>, Option<EntityID>) = LuaGetValue::get(lua, -1)?;
+            let peer_id = PeerId::from_hex(&peer_id)?;
+            let entity = entity.ok_or_eyre("Expected a valid entity")?;
+            ExtState::with_global(|state| {
+                state.player_entity_map.insert(peer_id, entity);
+                Ok(())
+            })
+        }
+        add_lua_fn!(register_player_entity);
     }
     println!("Initializing ewext - Ok");
     1

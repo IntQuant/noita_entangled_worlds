@@ -1,4 +1,5 @@
 use bitcode::{Decode, Encode};
+use eyre::Context;
 
 #[derive(Debug, Encode, Decode, Clone, Copy)]
 pub struct WorldPos {
@@ -28,6 +29,14 @@ impl WorldPos {
 
 #[derive(Debug, Encode, Decode, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct PeerId(pub u64);
+
+impl PeerId {
+    pub fn from_hex(hex_str: &str) -> eyre::Result<Self> {
+        Ok(Self(
+            u64::from_str_radix(hex_str, 16).wrap_err("Failed to parse PeerId")?,
+        ))
+    }
+}
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq)]
 pub enum Destination<PeerType> {

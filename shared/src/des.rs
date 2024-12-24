@@ -99,6 +99,10 @@ pub enum EntityUpdate {
     // TODO...
     RemoveEntity(Lid),
     LocalizeEntity(Lid, PeerId),
+    KillEntity {
+        lid: Lid,
+        responsible_peer: Option<PeerId>,
+    },
 }
 
 #[derive(Encode, Decode, Clone)]

@@ -1,5 +1,7 @@
+use bimap::BiHashMap;
 use eyre::Ok;
 use noita_api::EntityID;
+use shared::PeerId;
 
 use crate::net::NetManager;
 
@@ -7,6 +9,7 @@ pub(crate) mod entity_sync;
 
 pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
+    pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
 }
 
 pub(crate) trait Module {

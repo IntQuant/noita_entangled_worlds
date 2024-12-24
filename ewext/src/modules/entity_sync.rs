@@ -144,6 +144,16 @@ impl EntitySync {
             .track_and_upload_entity(net, entity, Gid(rand::random()))?;
         Ok(())
     }
+
+    pub(crate) fn cross_death_notify(
+        &mut self,
+        entity_killed: EntityID,
+        entity_responsible: Option<EntityID>,
+    ) -> eyre::Result<()> {
+        self.local_diff_model
+            .death_notify(entity_killed, entity_responsible);
+        Ok(())
+    }
 }
 
 impl Module for EntitySync {
@@ -190,7 +200,7 @@ impl Module for EntitySync {
                 game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();
             }
-            let diff = self.local_diff_model.make_diff();
+            let diff = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
             for peer in self.interest_tracker.iter_interested() {
                 send_remotedes(
@@ -209,7 +219,7 @@ impl Module for EntitySync {
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         } else {
             for (owner, remote_model) in &mut self.remote_models {
-                remote_model.apply_entities()?;
+                remote_model.apply_entities(ctx)?;
                 for entity in remote_model.drain_backtrack() {
                     self.local_diff_model.track_and_upload_entity(
                         ctx.net,
