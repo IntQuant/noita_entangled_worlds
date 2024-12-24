@@ -289,7 +289,7 @@ impl NetManager {
                 self.init_settings.save_state.clone(),
             ),
             explosion_data: Vec::new(),
-            des: DesManager::new(self.init_settings.save_state.clone()),
+            des: DesManager::new(is_host, self.init_settings.save_state.clone()),
             had_a_disconnect: false,
         };
         let mut last_iter = Instant::now();

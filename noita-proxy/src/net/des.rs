@@ -20,6 +20,7 @@ impl SaveStateEntry for EntityStorage {
 }
 
 pub(crate) struct DesManager {
+    is_host: bool,
     entity_storage: EntityStorage,
     rtree: RTree<GeomWithData<[i64; 2], Gid>>,
     authority: FxHashMap<Gid, OmniPeerId>,
@@ -28,7 +29,7 @@ pub(crate) struct DesManager {
 }
 
 impl DesManager {
-    pub(crate) fn new(save_state: SaveState) -> Self {
+    pub(crate) fn new(is_host: bool, save_state: SaveState) -> Self {
         info!("Loading EntityStorage...");
         let entity_storage: EntityStorage = save_state.load().unwrap_or_default();
 
@@ -47,6 +48,7 @@ impl DesManager {
             authority: Default::default(),
             pending_messages: Vec::new(),
             save_state,
+            is_host,
         }
     }
 
@@ -140,6 +142,8 @@ impl DesManager {
 
 impl Drop for DesManager {
     fn drop(&mut self) {
-        self.save_state.save(&self.entity_storage);
+        if self.is_host {
+            self.save_state.save(&self.entity_storage);
+        }
     }
 }
