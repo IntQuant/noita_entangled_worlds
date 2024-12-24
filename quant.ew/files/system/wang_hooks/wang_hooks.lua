@@ -1,3 +1,5 @@
+local uniq_flags = dofile_once("mods/quant.ew/files/system/uniq_flags/uniq_flags.lua")
+
 local rpc = net.new_rpc_namespace()
 
 local module = {}
@@ -26,7 +28,7 @@ local function generate_detour_fn(orig_fn_name)
         EntityLoadCameraBound = function(...) end
     end
 
-    ]] .. orig_fn_name .. [[(x, y, w, h, is_open_path)
+    --]] .. orig_fn_name .. [[(x, y, w, h, is_open_path)
 
     EntityLoad = entity_load_orig
     EntityLoadCameraBound = entity_load_camera_bound
@@ -36,6 +38,13 @@ end
     return detour_fn
 end
 
+local allow_patching = {
+    spawn_all_shopitems = true,
+    spawn_shopitem = true,
+    spawn_statue = true,
+    spawn_crate = true,
+}
+
 local function patch_fn(color, orig_fn_name)
     -- print(color, orig_fn_name)
     -- Seems like init is special and doesn't work with this detour approach.
@@ -43,7 +52,7 @@ local function patch_fn(color, orig_fn_name)
         return nil
     end
 
-    if orig_fn_name ~= "spawn_all_shopitems" then
+    if not allow_patching[orig_fn_name] then
         return nil
     end
 
@@ -64,8 +73,15 @@ local function patch_file(filename)
     content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
     content = content .. "\n"..'EW_CURRENT_FILE="'..filename..'"\n'
 
-    content = content .. generate_detour_fn("spawn_small_enemies")
-    content = content .. generate_detour_fn("spawn_big_enemies")
+    local wang_scripts = ModTextFileGetContent("data/scripts/wang_scripts.csv")
+
+    for val in string.gmatch(wang_scripts, 'ew_detour_(.-),') do
+        -- print("Generating detour fn for", val)
+        content = content .. generate_detour_fn(val)
+    end
+
+    -- content = content .. generate_detour_fn("spawn_small_enemies")
+    -- content = content .. generate_detour_fn("spawn_big_enemies")
     -- content = content .. generate_detour_fn("spawn_items")
 
     ModTextFileSetContent(filename, content)
@@ -81,15 +97,6 @@ end
 
 -- Runs a wang spawn fn if it wasn't called for these coordinates yet.
 local function run_spawn_fn(file, fn, x, y, w, h, is_open_path)
-    -- Check if we have been called already.
-    -- TODO: it's probably a bad idea to use run flags for that.
-    -- file shouldn't be significant, as (fn, x, y) seem to be always unique
-    local flag = "wspwn_"..fn.."_"..x.."_"..y
-    if GameHasFlagRun(flag) then
-        return
-    end
-    GameAddFlagRun(flag)
-
     local is_open_str = "false"
     if is_open_path then
         is_open_str = "true"
@@ -103,22 +110,22 @@ local function run_spawn_fn(file, fn, x, y, w, h, is_open_path)
     )
 end
 
-rpc.opts_reliable()
-function rpc.run_spawn_fn(file, fn, x, y, w, h, is_open_path)
-    if ctx.is_host then
-        run_spawn_fn(file, fn, x, y, w, h, is_open_path)
-    end
+local function run_spawn_fn_if_uniq(file, fn, x, y, w, h, is_open_path)
+    -- Check if we have been called already.
+    -- TODO: it's probably a bad idea to use run flags for that.
+    -- file shouldn't be significant, as (fn, x, y) seem to be always unique
+    async(function ()
+        local flag = "wspwn_"..fn.."_"..x.."_"..y
+        if uniq_flags.request_flag(flag) then
+            run_spawn_fn(file, fn, x, y, w, h, is_open_path)
+        end
+    end)
 end
 
-
 util.add_cross_call("ew_wang_detour", function(file, fn, x, y, w, h, is_open_path)
-    if ctx.is_host then
-        run_spawn_fn(file, fn, x, y, w, h, is_open_path)
-    else
-        rpc.run_spawn_fn(file, fn, x, y, w, h, is_open_path)
-    end
+    run_spawn_fn_if_uniq(file, fn, x, y, w, h, is_open_path)
 
-    return true
+    return false
 end)
 
 return module

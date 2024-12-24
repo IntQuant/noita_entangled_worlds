@@ -89,7 +89,6 @@ impl EntitySync {
                 continue;
             }
             if self.should_be_tracked(entity)? {
-                game_print(format!("Tracking {entity:?}"));
                 let gid = shared::des::Gid(rand::random());
                 self.local_diff_model
                     .track_and_upload_entity(ctx.net, entity, gid)?;
@@ -103,7 +102,6 @@ impl EntitySync {
     pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
-                game_print("Got authority over new entity");
                 self.local_diff_model.got_authority(full_entity_data);
             }
         }

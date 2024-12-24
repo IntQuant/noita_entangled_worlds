@@ -169,7 +169,6 @@ impl LocalDiffModelTracker {
         ctx.net.send(&shared::NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
-        game_print("Released authority over entity");
         self.pending_removal.push(lid);
         safe_entitykill(entity);
         Ok(())
@@ -516,7 +515,6 @@ impl RemoteDiffModel {
                         entity_info.x,
                         entity_info.y,
                     )?;
-                    game_print("Spawned remote entity");
                     self.init_remote_entity(entity)?;
                     self.tracked.insert(*lid, entity);
                 }
