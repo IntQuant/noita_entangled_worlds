@@ -559,6 +559,8 @@ impl RemoteDiffModel {
             }
         }
 
+        let mut postpone_remove = Vec::new();
+
         for (lid, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
@@ -566,6 +568,12 @@ impl RemoteDiffModel {
             let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
                 continue;
             };
+
+            if let Some(explosion) =
+                entity.try_get_first_component::<ExplodeOnDamageComponent>(None)?
+            {
+                explosion.set_explode_on_death_percent(1.0)?;
+            }
 
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 damage.set_wait_for_kill_flag_on_death(false)?;
@@ -583,14 +591,21 @@ impl RemoteDiffModel {
                     None,
                 )?;
             }
+
+            postpone_remove.push(lid);
         }
 
         for lid in self.pending_remove.drain(..) {
+            if postpone_remove.contains(&lid) {
+                continue;
+            }
             if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
                 safe_entitykill(entity);
             }
             self.entity_infos.remove(&lid);
         }
+
+        self.pending_remove.extend_from_slice(&postpone_remove);
 
         Ok(())
     }
