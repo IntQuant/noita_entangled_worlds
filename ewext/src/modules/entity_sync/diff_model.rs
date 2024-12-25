@@ -579,7 +579,7 @@ impl RemoteDiffModel {
                 damage.set_wait_for_kill_flag_on_death(false)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
-                    damage.hp()? as f64 + 0.1,
+                    damage.hp()? + 0.1,
                     "CURSE".into(),
                     "kill sync".into(),
                     "NONE".into(),

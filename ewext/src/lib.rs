@@ -250,7 +250,7 @@ fn with_every_module(
             player_map: &mut state.player_entity_map,
         };
         let mut errs = Vec::new();
-        for module in &mut (&mut state.modules).entity_sync.iter_mut() {
+        for module in state.modules.entity_sync.iter_mut() {
             if let Err(e) = f(&mut ctx, module as &mut dyn Module) {
                 errs.push(e);
             }
