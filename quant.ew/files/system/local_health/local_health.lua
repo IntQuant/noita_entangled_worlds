@@ -550,6 +550,11 @@ function module.inflict_damage(dmg)
 end]]
 
 rpc.opts_reliable()
+function rpc.reset_nick()
+    nickname.add_label(ctx.rpc_player_data.entity, ctx.rpc_player_data.name, "data/fonts/font_pixel_white.xml", 0.75)
+end
+
+rpc.opts_reliable()
 function rpc.loss_hp()
     local p = 100 - ctx.proxy_opt.health_lost_on_revive
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
@@ -609,6 +614,10 @@ ctx.cap.health = {
             reduce_hp()
             spectate.disable_throwing(false, ctx.my_player.entity)
             set_gold(gold)
+            async(function()
+                wait(1)
+                rpc.reset_nick()
+            end)
         else
             polymorph.switch_entity(end_poly_effect(ctx.my_player.entity))
             local _, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)
