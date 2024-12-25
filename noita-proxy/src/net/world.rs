@@ -1207,6 +1207,7 @@ impl WorldManager {
                 } else if !self.nice_terraforming {
                     return None;
                 }
+                let mut changed = false;
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dcx = cx - x;
@@ -1219,11 +1220,23 @@ impl WorldManager {
                         let dy = dcy - (m * dmy as f64) as i32;
                         if dx * dx + dy * dy <= r * r {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            chunk.set_pixel(px, air_pixel);
+                            if self
+                                .materials
+                                .get(&chunk.pixel(px).material)
+                                .map(|(_, _, cell)| cell.can_remove(true, false))
+                                .unwrap_or(true)
+                            {
+                                changed = true;
+                                chunk.set_pixel(px, air_pixel);
+                            }
                         }
                     }
                 }
-                Some((coord, chunk.to_chunk_data(), del))
+                if changed {
+                    Some((coord, chunk.to_chunk_data(), del))
+                } else {
+                    None
+                }
             })
             .collect();
         for entry in chunk_storage.into_iter() {
@@ -1297,6 +1310,7 @@ impl WorldManager {
                 } else if do_continue || !self.nice_terraforming {
                     return None;
                 }
+                let mut changed = false;
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx - x;
@@ -1306,13 +1320,23 @@ impl WorldManager {
                         let dy = cy - y;
                         if dd + dy * dy <= r * r {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            if chunk.pixel(px).material != 0 {
+                            if self
+                                .materials
+                                .get(&chunk.pixel(px).material)
+                                .map(|(_, _, cell)| cell.can_remove(true, false))
+                                .unwrap_or(true)
+                            {
+                                changed = true;
                                 chunk.set_pixel(px, air_pixel);
                             }
                         }
                     }
                 }
-                Some((coord, chunk.to_chunk_data(), del))
+                if changed {
+                    Some((coord, chunk.to_chunk_data(), del))
+                } else {
+                    None
+                }
             })
             .collect();
         for entry in chunk_storage.into_iter() {
