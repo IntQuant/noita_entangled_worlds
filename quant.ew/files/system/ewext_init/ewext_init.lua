@@ -30,7 +30,12 @@ local function oh_another_world_state(entity)
     util.make_ephemerial(entity)
 end
 
+function module.on_client_spawned(peer_id, player_data)
+    ewext.register_player_entity(peer_id, player_data.entity)
+end
+
 function module.on_local_player_spawn()
+    ewext.register_player_entity(ctx.my_id, ctx.my_player.entity)
     initial_world_state_entity = GameGetWorldStateEntity()
     for _, ent in ipairs(EntityGetWithTag("world_state")) do
         if ent ~= GameGetWorldStateEntity() then

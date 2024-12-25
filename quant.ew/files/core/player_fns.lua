@@ -536,7 +536,6 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     end
     GlobalsSetValue(global, "1")
     -- np.SetPlayerEntity(new, peer_id+1)
-    ewext.register_player_entity(peer_id, new)
     ctx.hook.on_client_spawned(peer_id, new_playerdata)
 end
 
