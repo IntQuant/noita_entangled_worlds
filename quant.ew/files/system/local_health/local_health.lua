@@ -59,7 +59,10 @@ function rpc.remove_homing(clear_area)
     end
 end
 
-local function remove_stuff()
+local function remove_stuff(ent)
+    if ent == nil then
+        ent = ctx.my_player.entity
+    end
     for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
         if not EntityHasTag(child, "perk_entity") then
             local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
@@ -466,9 +469,9 @@ function module.on_world_update()
             if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
                 GameRemoveFlagRun("ew_flag_notplayer_active")
                 EntityKill(ent)
-                ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
-                remove_stuff()
-                polymorph.switch_entity(ctx.my_player.entity)
+                ent = end_poly_effect(ctx.my_player.entity)
+                remove_stuff(ent)
+                polymorph.switch_entity(ent)
                 spectate.disable_throwing(false, ctx.my_player.entity)
                 reduce_hp()
                 first = false
@@ -596,25 +599,24 @@ ctx.cap.health = {
             if controls ~= nil then
                 ComponentSetValue2(controls, "enabled", true)
             end
-            if GameHasFlagRun("ew_kill_player") then
-                GameRemoveFlagRun("ew_kill_player")
-                polymorph.switch_entity(ctx.my_player.entity)
-                async(function()
+            async(function()
+                wait(1)
+                if GameHasFlagRun("ew_kill_player") then
+                    GameRemoveFlagRun("ew_kill_player")
+                    polymorph.switch_entity(ctx.my_player.entity)
                     wait(1)
                     if GameHasFlagRun("ending_game_completed") then
                         EntityInflictDamage(ctx.my_player.entity, -1000000, "DAMAGE_HEALING", "", "NONE", 0, 0, GameGetWorldStateEntity())
                     else
                         EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
                     end
-                end)
-            else
-                do_switch_effect(true)
-                polymorph.switch_entity(ctx.my_player.entity)
-            end
-            reduce_hp()
-            spectate.disable_throwing(false, ctx.my_player.entity)
-            set_gold(gold)
-            async(function()
+                else
+                    do_switch_effect(true)
+                    polymorph.switch_entity(ctx.my_player.entity)
+                end
+                reduce_hp()
+                spectate.disable_throwing(false, ctx.my_player.entity)
+                set_gold(gold)
                 wait(1)
                 rpc.reset_nick()
             end)

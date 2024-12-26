@@ -116,7 +116,10 @@ function nickname.on_local_player_spawn(my_player)
 end
 
 function nickname.on_client_spawned(peer_id, player_data)
-  nickname.add_label(player_data.entity, player_data.name, "data/fonts/font_pixel_white.xml", 0.75)
+    if player_data.name == "[Peer "..peer_id.."]" then
+        rpc.send_name(ctx.proxy_opt.name, true)
+    end
+    nickname.add_label(player_data.entity, player_data.name, "data/fonts/font_pixel_white.xml", 0.75)
 end
 
 function nickname.on_should_send_updates()
@@ -128,9 +131,14 @@ function nickname.on_should_send_updates()
 end
 
 rpc.opts_reliable()
-function rpc.send_name(name)
-  ctx.rpc_player_data.name = name
-  nickname.add_label(ctx.rpc_player_data.entity, name, "data/fonts/font_pixel_white.xml", 0.75)
+function rpc.send_name(name, pong)
+    if name ~= nil then
+        ctx.rpc_player_data.name = name
+        nickname.add_label(ctx.rpc_player_data.entity, name, "data/fonts/font_pixel_white.xml", 0.75)
+    end
+    if pong and ctx.proxy_opt.name ~= nil then
+        rpc.send_name(ctx.proxy_opt.name)
+    end
 end
 
 return nickname
