@@ -471,6 +471,7 @@ function util.run_in_new_context(code)
         script_source_file = "mods/quant.ew/files/resource/cbs/util_runner.lua",
         execute_on_added = true,
         remove_after_executed = true,
+        vm_type = "ONE_PER_COMPONENT_INSTANCE"
     })
     EntityKill(entity)
 end

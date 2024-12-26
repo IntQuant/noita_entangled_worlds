@@ -13,9 +13,9 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
         end
     end
     if not added_anything then
-        print("No PhysicsBody2Component to edit in", filename)
+        -- print("No PhysicsBody2Component to edit in", filename)
     else
-        print("Updated PhysicsBody2Component in", filename)
+        -- print("Updated PhysicsBody2Component in", filename)
     end
 end
 

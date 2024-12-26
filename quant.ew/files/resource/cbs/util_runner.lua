@@ -1,3 +1,6 @@
 -- Used for util.run_in_new_context(code)
 local f = loadfile("data/ew_code_tmp.lua")
-f()
+local ok = pcall(f)
+if not ok then
+    print("Failed to call code passed to util.run_in_new_context")
+end
