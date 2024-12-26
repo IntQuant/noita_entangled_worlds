@@ -45,6 +45,27 @@ function net_handling.proxy.proxy_opt_bool(_, key, value)
     ctx.proxy_opt[key] = value == "true"
 end
 
+function net_handling.proxy.dc(_, peer_id)
+    local player = ctx.players[peer_id]
+    if player == nil or player.entity == nil
+            or (EntityHasTag(player.entity, "ew_notplayer")
+            and (ctx.proxy_opt.no_notplayer or ctx.proxy_opt.perma_death)) then
+        return
+    end
+    local sprite = EntityGetFirstComponentIncludingDisabled(player.entity, "SpriteComponent")
+    local name = ComponentGetValue2(sprite, "image_file")
+    local new = string.sub(name, 0, -5) .. "_dc.xml"
+    GamePrint(name)
+    GamePrint(new)
+    ComponentSetValue2(sprite, "image_file", new)
+    for _, child in ipairs(EntityGetAllChildren(player.entity) or {}) do
+        if EntityGetName(child) == "notcursor"
+                or EntityGetName(child) == "cursor" then
+            EntityKill(child)
+        end
+    end
+end
+
 function net_handling.proxy.leave(_, peer_id)
     local player = ctx.players[peer_id]
     if player ~= nil then

@@ -339,6 +339,20 @@ pub fn create_player_png(
         tmp_path.join(format!("tmp/{}.png", id)),
         &rgb,
     );
+    {
+        let mut img = image::open(player_path).unwrap().into_rgba8();
+        replace_color(
+            &mut img,
+            Rgba::from(to_u8(rgb.player_main)),
+            Rgba::from(to_u8(rgb.player_alt)),
+            Rgba::from(to_u8(rgb.player_arm)),
+        );
+        for px in img.pixels_mut() {
+            px.0[3] = px.0[3].min(64)
+        }
+        img.save(tmp_path.join(format!("tmp/{}_dc.png", id)))
+            .unwrap();
+    }
     replace_colors(
         player_lukki,
         tmp_path.join(format!("tmp/{}_lukki.png", id)),
@@ -418,6 +432,15 @@ pub fn create_player_png(
                 rgb_to_hex(to_u8(rgb.player_cape_edge))
             ),
         ],
+    );
+    edit_nth_line(
+        tmp_path.join("unmodified.xml").into(),
+        tmp_path.join(format!("tmp/{}_dc.xml", id)).into_os_string(),
+        vec![1],
+        vec![format!(
+            "filename=\"mods/quant.ew/files/system/player/tmp/{}_dc.png\"",
+            id
+        )],
     );
     edit_nth_line(
         tmp_path.join("unmodified.xml").into(),

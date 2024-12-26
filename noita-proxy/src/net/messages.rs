@@ -20,6 +20,7 @@ pub(crate) struct MessageRequest<T> {
 #[derive(Debug, Decode, Encode)]
 pub(crate) enum NetMsg {
     Welcome,
+    Disconnect { id: OmniPeerId },
     RequestMods,
     Mods { mods: Vec<String> },
     EndRun,
