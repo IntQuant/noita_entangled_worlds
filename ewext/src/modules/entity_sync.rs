@@ -65,7 +65,9 @@ impl Default for EntitySync {
 
 fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
     let filename = entity.filename()?;
-    Ok(ENTITY_EXCLUDES.contains(&filename))
+    Ok(entity.has_tag("ew_no_enemy_sync")
+        || entity.has_tag("polymorphed_player")
+        || ENTITY_EXCLUDES.contains(&filename))
 }
 
 impl EntitySync {
