@@ -210,7 +210,8 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
         local src = ComponentGetValue2(lua, "script_source_file")
         if src == "data/scripts/projectiles/transmutation.lua"
-            or src == "data/scripts/projectiles/random_explosion.lua" then
+            or src == "data/scripts/projectiles/random_explosion.lua"
+            or src == "data/scripts/projectiles/fizzle.lua" then
             EntityAddComponent2(projectile_id, "VariableStorageComponent", {name = "ew_transmutation", value_int = rng})
         end
     end
