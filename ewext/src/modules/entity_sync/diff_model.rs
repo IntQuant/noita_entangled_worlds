@@ -5,8 +5,8 @@ use eyre::{eyre, Context, OptionExt};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
-    ExplodeOnDamageComponent, ItemComponent, ItemPickUpperComponent, LuaComponent,
-    PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
+    ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
+    LuaComponent, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -117,6 +117,13 @@ impl LocalDiffModelTracker {
         }
 
         info.phys = collect_phys_info(entity)?;
+
+        if let Some(item_cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+            info.cost = item_cost.cost()?;
+        } else {
+            info.cost = 0;
+        }
+
         Ok(())
     }
 
@@ -224,6 +231,7 @@ impl LocalDiffModel {
                     vy: 0.0,
                     hp: 1.0,
                     phys: Vec::new(),
+                    cost: 0,
                 },
                 gid,
             },
@@ -327,6 +335,11 @@ impl LocalDiffModel {
             if current.phys != last.phys {
                 res.push(EntityUpdate::SetPhysInfo(current.phys.clone()));
                 last.phys = current.phys.clone();
+                had_any_delta = true;
+            }
+            if current.cost != last.cost {
+                res.push(EntityUpdate::SetCost(current.cost));
+                last.cost = current.cost;
                 had_any_delta = true;
             }
 
@@ -484,6 +497,12 @@ impl RemoteDiffModel {
                 } => {
                     self.pending_death_notify.push((*lid, *responsible_peer));
                 }
+                EntityUpdate::SetCost(cost) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.cost = *cost;
+                }
             }
         }
     }
@@ -545,6 +564,10 @@ impl RemoteDiffModel {
                                 p.av.into(),
                             )?;
                         }
+                    }
+
+                    if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+                        cost.set_cost(entity_info.cost)?;
                     }
                 }
                 None => {
@@ -635,6 +658,10 @@ impl RemoteDiffModel {
             expl.set_explode_on_damage_percent(0.0)?;
             expl.set_explode_on_death_percent(0.0)?;
             expl.set_physics_body_modified_death_probability(0.0)?;
+        }
+
+        if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+            itemc.set_stealable(false)?;
         }
 
         Ok(())

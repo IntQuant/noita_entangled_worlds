@@ -84,6 +84,7 @@ pub struct EntityInfo {
     pub vy: f32,
     pub hp: f32,
     pub phys: Vec<PhysBodyInfo>,
+    pub cost: i64,
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -103,6 +104,7 @@ pub enum EntityUpdate {
         lid: Lid,
         responsible_peer: Option<PeerId>,
     },
+    SetCost(i64),
 }
 
 #[derive(Encode, Decode, Clone)]

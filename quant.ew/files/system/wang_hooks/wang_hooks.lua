@@ -126,6 +126,11 @@ end
 util.add_cross_call("ew_wang_detour", function(file, fn, x, y, w, h, is_open_path)
     run_spawn_fn_if_uniq(file, fn, x, y, w, h, is_open_path)
 
+    -- Make so that whatever items get spawned won't be free because they count as "stolen".
+    if fn == "spawn_all_shopitems" then
+        EntityLoad( "data/entities/buildings/shop_hitbox.xml", x, y )
+    end
+
     return false
 end)
 

@@ -22,6 +22,8 @@ enum Typ {
     #[serde(rename = "vec2")]
     Vec2,
     EntityID,
+    #[serde(rename = "int64")]
+    Int64,
     #[serde(other)]
     Other,
 }
@@ -37,6 +39,7 @@ impl Typ {
             Typ::StdString => quote!(Cow<'_, str>),
             Typ::Vec2 => quote! {(f32, f32)},
             Typ::EntityID => quote! { Option<EntityID> },
+            Typ::Int64 => quote! { i64 },
             Typ::Other => todo!(),
         }
     }
@@ -183,7 +186,8 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
             | Typ::Bool
             | Typ::Vec2
             | Typ::EntityID
-            | Typ::StdString => {
+            | Typ::StdString
+            | Typ::Int64 => {
                 let field_type = field.typ.as_rust_type();
                 let field_type_ret = field.typ.as_rust_type_return();
                 Some(quote! {

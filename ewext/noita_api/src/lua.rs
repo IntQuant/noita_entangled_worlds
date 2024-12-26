@@ -255,6 +255,12 @@ impl LuaPutValue for i32 {
     }
 }
 
+impl LuaPutValue for i64 {
+    fn put(&self, lua: LuaState) {
+        lua.push_number(*self as f64);
+    }
+}
+
 impl LuaPutValue for isize {
     fn put(&self, lua: LuaState) {
         lua.push_integer(*self);
@@ -366,6 +372,15 @@ pub trait LuaGetValue {
 impl LuaGetValue for i32 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
         Ok(lua.to_integer(index) as Self)
+    }
+}
+
+impl LuaGetValue for i64 {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(lua.to_number(index) as Self)
     }
 }
 
