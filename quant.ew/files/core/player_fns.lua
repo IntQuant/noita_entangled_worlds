@@ -59,6 +59,7 @@ typedef struct E {
     float x;
     float y;
     float r;
+    float mana;
     int special_seed;
     int player_action_rng;
 } FireWand;
@@ -650,7 +651,7 @@ function player_fns.set_current_slot(slot_data, player_data)
     end
 end
 
-function player_fns.make_fire_data(special_seed, player_data)
+function player_fns.make_fire_data(special_seed, player_data, mana)
     local player = player_data.entity
     local wand = player_fns.get_active_held_item(player)
 
@@ -660,6 +661,7 @@ function player_fns.make_fire_data(special_seed, player_data)
             x = x,
             y = y,
             r = r,
+            mana = mana,
             special_seed = tonumber(special_seed),
             player_action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0"))
         }

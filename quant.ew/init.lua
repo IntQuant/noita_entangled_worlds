@@ -147,13 +147,15 @@ local function load_extra_modules()
     end
 end
 
+local last_mana = -1
+
 local function fire()
     local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
     if inventory_component ~= nil then
         local last_switch = ComponentGetValue2(inventory_component, "mLastItemSwitchFrame")
         local switched_now = last_switch == GameGetFrameNum()
         local special_seed = tonumber(GlobalsGetValue("ew_player_rng", "0"))
-        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player)
+        local fire_data = player_fns.make_fire_data(special_seed, ctx.my_player, last_mana)
         if fire_data ~= nil then
             if switched_now then
                 fire_data.switched_now = true
@@ -465,13 +467,16 @@ local function on_world_post_update_inner()
     local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
     GlobalsSetValue("ew_wand_fired", "0")
     local wand = player_fns.get_active_held_item(ctx.my_player.entity)
-    local ability
-    if wand ~= nil and EntityHasTag(wand, "card_action") then
-        ability = EntityGetFirstComponentIncludingDisabled(wand, "AbilityComponent")
-    end
+    local ability = EntityGetFirstComponentIncludingDisabled(wand, "AbilityComponent")
     if times_wand_fired > 0
-            or (ability ~= nil and ComponentGetValue2(ability, "mCastDelayStartFrame") == GameGetFrameNum()) then
+            or (wand ~= nil and EntityHasTag(wand, "card_action")
+            and ability ~= nil and ComponentGetValue2(ability, "mCastDelayStartFrame") == GameGetFrameNum()) then
         fire()
+    end
+    if ability ~= nil then
+        last_mana = ComponentGetValue2(ability, "mana")
+    else
+        last_mana = -1
     end
 end
 

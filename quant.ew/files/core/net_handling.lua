@@ -151,6 +151,9 @@ function net_handling.mod.fire(peer_id, fire_data)
                 local aimNormal_x, aimNormal_y = ComponentGetValue2(controlsComp, "mAimingVectorNormalized")
                 local aim_x, aim_y = ComponentGetValue2(controlsComp, "mAimingVector")
                 local firing = ComponentGetValue2(controlsComp, "mButtonDownFire")
+                if message.mana ~= -1 then
+                    ComponentSetValue2(ability, "mana", message.mana)
+                end
 
                 ComponentSetValue2(controlsComp, "mButtonDownFire", false)
 
