@@ -95,9 +95,21 @@ impl LocalDiffModelTracker {
             return Ok(());
         }
 
-        let (x, y) = entity.position()?;
-        info.x = x;
-        info.y = y;
+        let should_send_position = if info.kind == EntityKind::Item {
+            if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
+                !com.play_hover_animation()?
+            } else {
+                true
+            }
+        } else {
+            true
+        };
+
+        if should_send_position {
+            let (x, y) = entity.position()?;
+            info.x = x;
+            info.y = y;
+        }
 
         // Check if entity went out of range, remove and release authority if it did.
         if (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2) {
