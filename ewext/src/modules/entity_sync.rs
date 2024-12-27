@@ -221,7 +221,9 @@ impl Module for EntitySync {
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         } else {
             for (owner, remote_model) in &mut self.remote_models {
-                remote_model.apply_entities(ctx)?;
+                remote_model
+                    .apply_entities(ctx)
+                    .wrap_err("Failed to apply entity infos")?;
                 for entity in remote_model.drain_backtrack() {
                     self.local_diff_model.track_and_upload_entity(
                         ctx.net,

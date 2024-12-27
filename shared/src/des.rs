@@ -83,7 +83,7 @@ pub struct EntityInfo {
     pub vx: f32,
     pub vy: f32,
     pub hp: f32,
-    pub phys: Vec<PhysBodyInfo>,
+    pub phys: Vec<Option<PhysBodyInfo>>,
     pub cost: i64,
 }
 
@@ -96,7 +96,7 @@ pub enum EntityUpdate {
     SetPosition(f32, f32),
     SetVelocity(f32, f32),
     SetHp(f32),
-    SetPhysInfo(Vec<PhysBodyInfo>),
+    SetPhysInfo(Vec<Option<PhysBodyInfo>>),
     // TODO...
     RemoveEntity(Lid),
     LocalizeEntity(Lid, PeerId),

@@ -1,7 +1,7 @@
 use std::mem;
 
 use bimap::BiHashMap;
-use eyre::{eyre, Context, OptionExt};
+use eyre::{Context, OptionExt};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
@@ -116,7 +116,9 @@ impl LocalDiffModelTracker {
             info.hp = hp as f32;
         }
 
-        info.phys = collect_phys_info(entity)?;
+        if check_all_phys_init(entity)? {
+            info.phys = collect_phys_info(entity)?;
+        }
 
         if let Some(item_cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
             info.cost = item_cost.cost()?;
@@ -419,26 +421,39 @@ impl LocalDiffModel {
     }
 }
 
-fn collect_phys_info(entity: EntityID) -> Result<Vec<PhysBodyInfo>, eyre::Error> {
+fn check_all_phys_init(entity: EntityID) -> eyre::Result<bool> {
+    for phys_c in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
+        if !phys_c.m_initialized()? {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>> {
     let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)?;
     phys_bodies
         .into_iter()
-        .map(|body| -> eyre::Result<PhysBodyInfo> {
-            let (x, y, angle, vx, vy, av) = noita_api::raw::physics_body_id_get_transform(
-                body,
-            )?
-            .ok_or_else(
-                || eyre!("Couldn't get transform of an entity that we checked that it exists? Phys body: {body:?} Ent: {entity:?}"),
-            )?;
-            let (x, y) = noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))?;
-            Ok(PhysBodyInfo {
-                x: x as f32,
-                y: y as f32,
-                angle,
-                vx,
-                vy,
-                av,
-            })
+        .map(|body| -> eyre::Result<Option<PhysBodyInfo>> {
+            Ok(
+                noita_api::raw::physics_body_id_get_transform(body)?.and_then(
+                    |(x, y, angle, vx, vy, av)| {
+                        let (x, y) =
+                            noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))
+                                .ok()?;
+
+                        Some(PhysBodyInfo {
+                            x: x as f32,
+                            y: y as f32,
+                            angle,
+                            vx,
+                            vy,
+                            av,
+                        })
+                    },
+                ),
+            )
         })
         .collect::<eyre::Result<Vec<_>>>()
 }
@@ -545,11 +560,14 @@ impl RemoteDiffModel {
                         }
                     }
 
-                    if !entity_info.phys.is_empty() {
+                    if !entity_info.phys.is_empty() && check_all_phys_init(*entity)? {
                         let phys_bodies =
                             noita_api::raw::physics_body_id_get_from_entity(*entity, None)?;
                         for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter())
                         {
+                            let Some(p) = p else {
+                                continue;
+                            };
                             let (x, y) = noita_api::raw::game_pos_to_physics_pos(
                                 p.x.into(),
                                 Some(p.y.into()),
