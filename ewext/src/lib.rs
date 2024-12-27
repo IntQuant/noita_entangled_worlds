@@ -33,6 +33,7 @@ mod addr_grabber;
 mod modules;
 mod net;
 pub mod noita;
+mod phys;
 mod serialize;
 
 thread_local! {
