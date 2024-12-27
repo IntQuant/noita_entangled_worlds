@@ -36,11 +36,11 @@ impl Display for ConnectError {
                     "error_version_mismatch",
                     &[
                         (
-                            "remote_version",
+                            "remote_version".to_string(),
                             FluentValue::from(remote_version.to_string()),
                         ),
                         (
-                            "current_version",
+                            "current_version".to_string(),
                             FluentValue::from(Version::current().to_string()),
                         ),
                     ],

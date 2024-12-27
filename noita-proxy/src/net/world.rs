@@ -1394,9 +1394,10 @@ impl WorldManager {
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co != last_co {
-                if self.is_storage_recent.contains(&last_co) {
+                if self.is_storage_recent.contains(&co) {
                     self.chunk_storage
-                        .get(&last_co)?
+                        .get(&co)
+                        .unwrap()
                         .apply_to_chunk(&mut working_chunk);
                 } else if let Some(c) = self
                     .outbound_model
@@ -2011,6 +2012,63 @@ fn test_explosion_perf() {
                 50
             );
             16
+        ]);
+        total += timer.elapsed().as_micros();
+    }
+    println!("total micros: {}", total / iters);
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_explosion_perf_large() {
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+
+    let mut total = 0;
+    let iters = 64;
+    for _ in 0..iters {
+        let mut world = WorldManager::new(
+            true,
+            OmniPeerId(0),
+            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+        );
+        world
+            .materials
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+        world
+            .materials
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+        world
+            .materials
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+        let w = 48;
+        for i in -w..w {
+            for j in -w..w {
+                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
+                    world
+                        .outbound_model
+                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
+                } else {*/
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+                //}
+            }
+        }
+        let timer = std::time::Instant::now();
+        world.cut_through_world_explosion(vec![
+            ExplosionData::new(
+                0,
+                0,
+                1024,
+                14,
+                2_000_000_000,
+                true,
+                true,
+                1,
+                50
+            );
+            4
         ]);
         total += timer.elapsed().as_micros();
     }

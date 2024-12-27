@@ -1,7 +1,6 @@
 local item_sync = dofile_once("mods/quant.ew/files/system/item_sync.lua")
 local effect_sync = dofile_once("mods/quant.ew/files/system/game_effect_sync/game_effect_sync.lua")
 local stain_sync = dofile_once("mods/quant.ew/files/system/effect_data_sync/effect_data_sync.lua")
-local EZWand = dofile_once("mods/quant.ew/files/lib/EZWand.lua")
 
 local ffi = require("ffi")
 local rpc = net.new_rpc_namespace()

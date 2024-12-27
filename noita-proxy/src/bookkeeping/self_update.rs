@@ -75,7 +75,7 @@ impl SelfUpdateManager {
                 Some(&Some(VersionCheckResult { newest, ord: _ })) => {
                     let button = Button::new(tr_a(
                         "version_new_available",
-                        &[("new_version", newest.to_string().into())],
+                        &[("new_version".to_string(), newest.to_string().into())],
                     ))
                     .small()
                     .fill(Color32::RED);

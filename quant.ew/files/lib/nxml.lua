@@ -1,4 +1,4 @@
-local ffi = nil
+local ffi
 if require then
     pcall(function()
         ffi = require("ffi")
@@ -39,9 +39,9 @@ end
  *
  * The NXML Parser is heavily based on code from poro
  * https://github.com/gummikana/poro
- * 
+ *
  * The poro project is licensed under the Zlib license:
- * 
+ *
  * --------------------------------------------------------------------------
  * Copyright (c) 2010-2019 Petri Purho, Dennis Belfrage
  * Contributors: Martin Jonasson, Olli Harjola
@@ -134,7 +134,7 @@ end
 function TOKENIZER_FUNCS:match_string(str)
     local len = #str
     str = str_normalize(str)
-    
+
     for i = 0, len - 1 do
         if self:peek(i) ~= str_index(str, i) then return false end
     end
@@ -352,7 +352,7 @@ function PARSER_FUNCS:parse_element(skip_opening_tag)
             if not elem.content then
                 elem.content = {}
             end
-            
+
             content_idx = content_idx + 1
             elem.content[content_idx] = tok.value or tok.type
         end
@@ -486,9 +486,9 @@ function nxml.parse(data)
     local data_len = #data
     local tok = new_tokenizer(str_normalize(data), data_len)
     local parser = new_parser(tok)
-    
+
     local elem = parser:parse_element(false)
-    
+
     if not elem or (elem.errors and #elem.errors > 0) then
         error("parser encountered errors")
     end
@@ -500,9 +500,9 @@ function nxml.parse_many(data)
     local data_len = #data
     local tok = new_tokenizer(str_normalize(data), data_len)
     local parser = new_parser(tok)
-    
+
     local elems = parser:parse_elements(false)
-    
+
     for i = 1, #elems do
         local elem = elems[i]
 

@@ -47,14 +47,14 @@ local function getColorComponents(color)
     return r, g, b
 end
 
-local function wrapText(gui, text, maxWidth, senderWidth)
+local function wrapText(msg, maxWidth, senderWidth)
     local wrappedLines = {}
     local currentLine = ""
     local isFirstLine = true
     local i = 1
 
-    while i <= #text do
-        local char = text:sub(i, i)
+    while i <= #msg do
+        local char = msg:sub(i, i)
         local newLine = currentLine .. char
         local lineWidth = GuiGetTextDimensions(gui, newLine)
 
@@ -87,7 +87,7 @@ end
 
 local function saveMessage(sender, message, color, colorAlt)
     local senderWidth = sender ~= "" and calculateTextWidth(string.format("%s: ", sender)) or 0
-    local wrappedMessage = wrapText(gui, message or "", visibleChars, senderWidth)
+    local wrappedMessage = wrapText(message or "", visibleChars, senderWidth)
 
     local isFirstLine = true
     for _, line in ipairs(wrappedMessage) do
@@ -133,7 +133,7 @@ local function renderChat()
         local msg = chatMessages[i]
         if msg then
             local senderWidth = msg.sender ~= "" and calculateTextWidth(string.format("%s: ", msg.sender)) or 0
-            local wrappedMessage = wrapText(gui, msg.message or "", visibleChars, senderWidth)
+            local wrappedMessage = wrapText(msg.message or "", visibleChars, senderWidth)
 
             local senderRendered = false
             for _, line in ipairs(wrappedMessage) do
@@ -172,7 +172,7 @@ local function renderTextInput()
         GuiColorSetForNextWidget(gui, 0.5, 0.5, 0.5, 1)
         GuiText(gui, 64, startY, "Message *")
     else
-        local wrappedMessage = wrapText(gui, text or "", visibleChars, 0)
+        local wrappedMessage = wrapText(text or "", visibleChars, 0)
 
         local maxLines = 8
         if #wrappedMessage > maxLines then
@@ -395,7 +395,7 @@ function module.on_world_update()
                     counterL = 0
                 end
             end
-            local moveLength = (string.find(string.sub(text, cursorPos+2, -1), " ") or #text - cursorPos)
+            moveLength = (string.find(string.sub(text, cursorPos+2, -1), " ") or #text - cursorPos)
             if InputIsKeyJustDown(79) and cursorPos + moveLength < #text + 1 then --right arrow
                 cursorPos = cursorPos + moveLength
 

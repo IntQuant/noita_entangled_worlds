@@ -241,6 +241,7 @@ pub fn get_release_by_tag(client: &Client, tag: Tag) -> Result<Release, Releases
 }
 
 #[cfg(test)]
+#[serial_test::serial]
 mod test {
     use crate::releases::{get_release_by_tag, Tag};
 

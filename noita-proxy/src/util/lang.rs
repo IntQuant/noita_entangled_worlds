@@ -1,7 +1,7 @@
-use std::{collections::HashMap, sync::RwLock};
-
 use fluent_bundle::FluentValue;
 use fluent_templates::{LanguageIdentifier, Loader};
+use std::borrow::Cow;
+use std::{collections::HashMap, sync::RwLock};
 use unic_langid::langid;
 
 fluent_templates::static_loader! {
@@ -55,10 +55,10 @@ pub fn tr(text_id: &str) -> String {
         .unwrap_or_else(|| text_id.to_string())
 }
 
-pub fn tr_a(text_id: &str, args: &[(&str, FluentValue)]) -> String {
+pub fn tr_a(text_id: &str, args: &[(String, FluentValue)]) -> String {
     let mut args_hm = HashMap::new();
-    for (key, arg) in args.iter() {
-        args_hm.insert(key, arg.clone());
+    for (key, arg) in args.to_vec() {
+        args_hm.insert(Cow::from(key), arg.clone());
     }
     LOCALES
         .try_lookup_with_args(&LANG.read().unwrap(), text_id, &args_hm)

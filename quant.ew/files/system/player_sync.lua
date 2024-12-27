@@ -145,7 +145,6 @@ function module.on_world_update()
     if input_data ~= nil or pos_data ~= nil then
         local my_team
         if ctx.proxy_opt.friendly_fire and GameGetFrameNum() % 10 == 7 then
-
             my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         end
 
