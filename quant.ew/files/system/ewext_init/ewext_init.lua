@@ -10,6 +10,7 @@ local module = {}
 -- Used in ewext
 EwextSerialize = util.serialize_entity
 EwextDeserialize = util.deserialize_entity
+EwextPrintError = util.print_error
 
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()

@@ -17,7 +17,7 @@ use shared::{
     NoitaOutbound, PeerId, WorldPos,
 };
 
-use crate::{modules::ModuleCtx, my_peer_id, serialize::deserialize_entity};
+use crate::{modules::ModuleCtx, my_peer_id, print_error, serialize::deserialize_entity};
 
 use super::{serialize_entity, NetManager};
 
@@ -301,9 +301,14 @@ impl LocalDiffModel {
             },
         ) in &mut self.entity_entries
         {
-            self.tracker
+            if let Err(error) = self
+                .tracker
                 .update_entity(ctx, *gid, current, lid, (cam_x, cam_y))
-                .wrap_err("Failed to update local entity")?;
+                .wrap_err("Failed to update local entity")
+            {
+                print_error(error)?;
+                self.tracker.untrack_entity(ctx, *gid, lid)?;
+            }
         }
         Ok(())
     }

@@ -14,7 +14,7 @@ use std::{
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
-use eyre::{bail, OptionExt};
+use eyre::{bail, Context, OptionExt};
 
 use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
@@ -351,6 +351,15 @@ fn __gc(_lua: LuaState) {
     NETMANAGER.lock().unwrap().take();
     // TODO this doesn't actually work because it's a thread local
     STATE.with(|state| state.take());
+}
+
+pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
+    let lua = LuaState::current()?;
+    lua.get_global(c"EwextPrintError");
+    lua.push_string(&format!("{:?}", error));
+    lua.call(1, 0i32)
+        .wrap_err("Failed to call EwextPrintError")?;
+    Ok(())
 }
 
 /// # Safety
