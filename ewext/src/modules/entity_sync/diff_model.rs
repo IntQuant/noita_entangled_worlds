@@ -6,8 +6,7 @@ use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
-    LuaComponent, PhysicsAIComponent, PhysicsBody2Component, PhysicsBodyComponent,
-    VelocityComponent,
+    LuaComponent, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -18,12 +17,7 @@ use shared::{
     NoitaOutbound, PeerId, WorldPos,
 };
 
-use crate::{
-    modules::ModuleCtx,
-    my_peer_id,
-    phys::{get_phys_transform, set_phys_transform},
-    serialize::deserialize_entity,
-};
+use crate::{modules::ModuleCtx, my_peer_id, serialize::deserialize_entity};
 
 use super::{serialize_entity, NetManager};
 
@@ -427,7 +421,6 @@ impl LocalDiffModel {
 
 fn collect_phys_info(entity: EntityID) -> Result<Vec<PhysBodyInfo>, eyre::Error> {
     let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)?;
-
     phys_bodies
         .into_iter()
         .map(|body| -> eyre::Result<PhysBodyInfo> {
@@ -553,38 +546,22 @@ impl RemoteDiffModel {
                     }
 
                     if !entity_info.phys.is_empty() {
-                        let mut phys_info_iter = entity_info.phys.iter().filter_map(|&phys_info| {
+                        let phys_bodies =
+                            noita_api::raw::physics_body_id_get_from_entity(*entity, None)?;
+                        for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter())
+                        {
                             let (x, y) = noita_api::raw::game_pos_to_physics_pos(
-                                phys_info.x.into(),
-                                Some(phys_info.y.into()),
-                            )
-                            .ok()?;
-                            Some(PhysBodyInfo {
-                                x: x as f32,
-                                y: y as f32,
-                                ..phys_info
-                            })
-                        });
-
-                        for com in
-                            entity.iter_all_components_of_type::<PhysicsBodyComponent>(None)?
-                        {
-                            let Some(info) = phys_info_iter.next() else {
-                                break;
-                            };
-                            set_phys_transform(
-                                com, info.x, info.y, info.angle, info.vx, info.vy, info.av,
+                                p.x.into(),
+                                Some(p.y.into()),
                             )?;
-                        }
-
-                        for com in
-                            entity.iter_all_components_of_type::<PhysicsBody2Component>(None)?
-                        {
-                            let Some(info) = phys_info_iter.next() else {
-                                break;
-                            };
-                            set_phys_transform(
-                                com, info.x, info.y, info.angle, info.vx, info.vy, info.av,
+                            noita_api::raw::physics_body_id_set_transform(
+                                *physics_body_id,
+                                x,
+                                y,
+                                p.angle.into(),
+                                p.vx.into(),
+                                p.vy.into(),
+                                p.av.into(),
                             )?;
                         }
                     }
