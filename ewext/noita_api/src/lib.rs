@@ -189,7 +189,8 @@ pub mod raw {
         lua.get_global(c"ComponentGetValue2");
         lua.push_integer(component.0.into());
         lua.push_string(field);
-        lua.call(2, T::size_on_stack());
+        lua.call(2, T::size_on_stack())
+            .wrap_err("Failed to call ComponentGetValue2")?;
         let ret = T::get(lua, -1);
         lua.pop_last_n(T::size_on_stack());
         ret.wrap_err_with(|| eyre!("Getting {field} for {component:?}"))
@@ -208,7 +209,8 @@ pub mod raw {
         lua.push_integer(component.0.into());
         lua.push_string(field);
         value.put(lua);
-        lua.call((2 + T::SIZE_ON_STACK).try_into()?, 0);
+        lua.call((2 + T::SIZE_ON_STACK).try_into()?, 0)
+            .wrap_err("Failed to call ComponentSetValue2")?;
         Ok(())
     }
 
@@ -218,7 +220,8 @@ pub mod raw {
         let lua = LuaState::current()?;
         lua.get_global(c"PhysicsBodyIDGetTransform");
         lua.push_integer(body.0 as isize);
-        lua.call(1, 6);
+        lua.call(1, 6)
+            .wrap_err("Failed to call PhysicsBodyIDGetTransform")?;
         if lua.is_nil_or_none(-1) {
             Ok(None)
         } else {
@@ -240,7 +243,8 @@ pub mod raw {
         lua.get_global(c"EntityAddComponent");
         lua.push_integer(entity.raw());
         lua.push_string(C::NAME_STR);
-        lua.call(2, 1);
+        lua.call(2, 1)
+            .wrap_err("Failed to call EntityAddComponent")?;
         let c = lua.to_integer(-1);
         lua.pop_last_n(1);
         Ok(NonZero::new(c).map(ComponentID).map(C::from))

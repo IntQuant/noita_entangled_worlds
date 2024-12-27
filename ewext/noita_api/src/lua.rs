@@ -114,8 +114,16 @@ impl LuaState {
         unsafe { LUA.lua_pushnil(self.lua) }
     }
 
-    pub fn call(&self, nargs: i32, nresults: i32) {
-        unsafe { LUA.lua_call(self.lua, nargs, nresults) };
+    pub fn call(&self, nargs: i32, nresults: i32) -> eyre::Result<()> {
+        let ret = unsafe { LUA.lua_pcall(self.lua, nargs, nresults, 0) };
+        if ret == 0 {
+            Ok(())
+        } else {
+            let msg = self
+                .to_string(-1)
+                .wrap_err("Failed to get error message string")?;
+            bail!("Error while calling lua function: {}", msg)
+        }
     }
 
     pub fn get_global(&self, name: &CStr) {

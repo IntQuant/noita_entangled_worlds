@@ -285,6 +285,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
         }
     };
 
+    let call_err_msg = format!("Failed to call lua function {}", api_fn.fn_name);
     let fn_name_c = name_to_c_literal(api_fn.fn_name);
 
     let ret_count = api_fn.rets.len() as i32;
@@ -300,7 +301,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
             #(#put_args_pre)*
             #(#put_args)*
 
-            lua.call(last_non_empty+1, #ret_count);
+            lua.call(last_non_empty+1, #ret_count).wrap_err(#call_err_msg)?;
 
             let ret = LuaGetValue::get(lua, -1);
             if #ret_count > 0 {
