@@ -105,8 +105,8 @@ impl LocalDiffModelTracker {
             true
         };
 
+        let (x, y) = entity.position()?;
         if should_send_position {
-            let (x, y) = entity.position()?;
             info.x = x;
             info.y = y;
         }
