@@ -541,9 +541,13 @@ impl RemoteDiffModel {
 
     pub(crate) fn apply_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         for (lid, entity_info) in &self.entity_infos {
-            match self.tracked.get_by_left(lid) {
+            match self
+                .tracked
+                .get_by_left(lid)
+                .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
+            {
                 Some(entity) => {
-                    if entity_info.kind == EntityKind::Item && item_in_inventory(*entity)? {
+                    if entity_info.kind == EntityKind::Item && item_in_inventory(entity)? {
                         self.grab_request.push(*lid);
                     }
 
@@ -577,9 +581,9 @@ impl RemoteDiffModel {
                         }
                     }
 
-                    if !entity_info.phys.is_empty() && check_all_phys_init(*entity)? {
+                    if !entity_info.phys.is_empty() && check_all_phys_init(entity)? {
                         let phys_bodies =
-                            noita_api::raw::physics_body_id_get_from_entity(*entity, None)?;
+                            noita_api::raw::physics_body_id_get_from_entity(entity, None)?;
                         for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter())
                         {
                             let Some(p) = p else {
