@@ -18,8 +18,13 @@ util.add_cross_call("ew_place_player_on_map", function()
             local dy = math.min( math.max( ( map_y - y ) / mult_y, -240), 240 )
             local pi_x = my_x - dx * 0.5
             local pi_y = my_y - dy * 0.5
-            GameCreateSpriteForXFrames("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_map.png",
-                    pi_x, pi_y, true, 0, 0, 1, true)
+            if EntityHasTag(data.entity, "ew_notplayer") then
+                GameCreateSpriteForXFrames("mods/quant.ew/files/system/map/icon_notplayer.png",
+                        pi_x, pi_y, true, 0, 0, 1, true)
+            else
+                GameCreateSpriteForXFrames("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_map.png",
+                        pi_x, pi_y, true, 0, 0, 1, true)
+            end
         end
     end
 end)

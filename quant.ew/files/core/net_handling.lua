@@ -55,8 +55,6 @@ function net_handling.proxy.dc(_, peer_id)
     local sprite = EntityGetFirstComponentIncludingDisabled(player.entity, "SpriteComponent")
     local name = ComponentGetValue2(sprite, "image_file")
     local new = string.sub(name, 0, -5) .. "_dc.xml"
-    GamePrint(name)
-    GamePrint(new)
     ComponentSetValue2(sprite, "image_file", new)
     for _, child in ipairs(EntityGetAllChildren(player.entity) or {}) do
         if EntityGetName(child) == "notcursor"

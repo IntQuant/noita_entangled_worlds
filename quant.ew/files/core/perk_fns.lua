@@ -55,12 +55,22 @@ local function set_lukki(entity, peer_id)
         for _, sprite in ipairs(EntityGetComponent(child, "SpriteComponent") or {}) do
             local img = ComponentGetValue(sprite, "image_file")
             local new
-            if img == "data/entities/misc/perks/attack_foot/limb_a.png" then
-                new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_limb_a.png"
-            elseif img == "data/entities/misc/perks/attack_foot/limb_B.png" then
-                new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_limb_b.png"
-            elseif img == "data/entities/misc/perks/attack_foot/knee.png" then
-                new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_knee.png"
+            if EntityHasTag(entity, "ew_notplayer") then
+                if img == "data/entities/misc/perks/attack_foot/limb_a.png" then
+                    new = "mods/quant.ew/files/system/local_health/notplayer/limb_a.png"
+                elseif img == "data/entities/misc/perks/attack_foot/limb_B.png" then
+                    new = "mods/quant.ew/files/system/local_health/notplayer/limb_b.png"
+                elseif img == "data/entities/misc/perks/attack_foot/knee.png" then
+                    new = "mods/quant.ew/files/system/local_health/notplayer/knee.png"
+                end
+            else
+                if img == "data/entities/misc/perks/attack_foot/limb_a.png" then
+                    new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_limb_a.png"
+                elseif img == "data/entities/misc/perks/attack_foot/limb_B.png" then
+                    new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_limb_b.png"
+                elseif img == "data/entities/misc/perks/attack_foot/knee.png" then
+                    new = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_knee.png"
+                end
             end
             if new ~= nil then
                 ComponentSetValue(sprite, "image_file", new)
