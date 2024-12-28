@@ -1,18 +1,20 @@
-## Noita Entangled Worlds v0.32.7
+## Noita Entangled Worlds v0.32.8
 
-- parse materials better
+- if player leaves game, make them transparent
 
-- improve karl
+- fix fizzle
 
-- optimize explosions and improve correct-ness
+- ensure wands have correct ammount of mana
 
-- fix some errors
+- try to fix notplayer nametag persisting sometimes
 
-- fix chaos magic
+- try to fix notplayer erroring out for unknown reasons
+
+- make cell eaters and material converters and explosions more accurate
 
 ## Accepted pull requests
 
-- Rough Korean translation by @Alphaccca in #294
+- Added Korean option to lang.rs by @Alphaccca in #295
 ## Installation
 
 
