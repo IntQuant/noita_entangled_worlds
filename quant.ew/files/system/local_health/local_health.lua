@@ -63,7 +63,7 @@ local function remove_stuff(ent)
     if ent == nil then
         ent = ctx.my_player.entity
     end
-    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+    for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
         if not EntityHasTag(child, "perk_entity") then
             local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
             local comt = EntityGetFirstComponentIncludingDisabled(child, "LifetimeComponent")
@@ -74,15 +74,15 @@ local function remove_stuff(ent)
             end
         end
     end
-    if EntityGetFirstComponent(ctx.my_player.entity, "StatusEffectDataComponent") ~= nil then
+    if EntityGetFirstComponent(ent, "StatusEffectDataComponent") ~= nil then
         for _, effect in pairs(status_effects) do
-            if EntityGetIsAlive(ctx.my_player.entity) then
-                EntityRemoveStainStatusEffect(ctx.my_player.entity, effect.id)
-                EntityRemoveIngestionStatusEffect(ctx.my_player.entity, effect.id)
+            if EntityGetIsAlive(ent) then
+                EntityRemoveStainStatusEffect(ent, effect.id)
+                EntityRemoveIngestionStatusEffect(ent, effect.id)
             end
         end
     end
-    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+    local damage_model = EntityGetFirstComponentIncludingDisabled(ent, "DamageModelComponent")
     if damage_model ~= nil then
         ComponentSetValue2(damage_model, "mFireProbability", 0)
         ComponentSetValue2(damage_model, "mFireFramesLeft", 0)

@@ -63,6 +63,11 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
         player_fns.spawn_player_for(peer_id, pos_data.x, pos_data.y, team)
     end
     local player_data = player_fns.peer_get_player_data(peer_id)
+    if player_data.dc then
+        player_data.dc = false
+        EntityKill(player_data.entity)
+        return
+    end
 
     if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "polymorphed") then
         local my_team = tonumber(ModSettingGet("quant.ew.team")) or 0

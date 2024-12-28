@@ -64,6 +64,7 @@ function net_handling.proxy.dc(_, peer_id)
             EntityKill(child)
         end
     end
+    ctx.players[peer_id].dc = true
 end
 
 function net_handling.proxy.leave(_, peer_id)

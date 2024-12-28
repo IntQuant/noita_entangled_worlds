@@ -57,7 +57,7 @@ pub fn tr(text_id: &str) -> String {
 
 pub fn tr_a(text_id: &str, args: &[(String, FluentValue)]) -> String {
     let mut args_hm = HashMap::new();
-    for (key, arg) in args.to_vec() {
+    for (key, arg) in args.iter().cloned() {
         args_hm.insert(Cow::from(key), arg.clone());
     }
     LOCALES
