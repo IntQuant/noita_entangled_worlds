@@ -209,6 +209,10 @@ local function allow_notplayer_perk(perk_id)
         HEARTS_MORE_EXTRA_HP = true,
         REVENGE_RATS = true,
         FOOD_CLOCK = true, -- TODO, should carry over satiation buff
+        EXTRA_SHOP_ITEM = true,
+        GENOME_MORE_LOVE = true,
+        GENOME_MORE_HATRED = true,
+        GLOBAL_GORE = true,
     }
     return not ignored_perks[perk_id]
 end
