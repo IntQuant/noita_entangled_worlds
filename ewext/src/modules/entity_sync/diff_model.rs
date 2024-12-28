@@ -568,7 +568,7 @@ impl RemoteDiffModel {
                             noita_api::raw::entity_inflict_damage(
                                 entity.raw() as i32,
                                 (current_hp - entity_info.hp) as f64,
-                                "CURSE".into(),
+                                "DAMAGE_CURSE".into(),
                                 "hp sync".into(),
                                 "NONE".into(),
                                 0.0,
@@ -642,7 +642,7 @@ impl RemoteDiffModel {
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     damage.hp()? + 0.1,
-                    "CURSE".into(),
+                    "DAMAGE_CURSE".into(),
                     "kill sync".into(),
                     "NONE".into(),
                     0.0,
