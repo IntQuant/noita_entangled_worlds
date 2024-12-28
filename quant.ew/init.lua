@@ -372,8 +372,9 @@ local function on_world_pre_update_inner()
 
     GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
 
-    if not ctx.run_ended then
-        net.update()
+    net.update()
+    if ctx.run_ended then
+        return
     end
 
     local inventory_gui_comp = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
@@ -460,9 +461,11 @@ end
 local function on_world_post_update_inner()
     if ctx.my_player == nil or ctx.my_player.entity == nil then return end
 
-    if not ctx.run_ended then
-        ctx.hook.on_world_update_post()
+    if ctx.run_ended then
+        return
     end
+
+    ctx.hook.on_world_update_post()
 
     local times_wand_fired = tonumber(GlobalsGetValue("ew_wand_fired", "0"))
     GlobalsSetValue("ew_wand_fired", "0")

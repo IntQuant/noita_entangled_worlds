@@ -59,7 +59,8 @@ function net_handling.proxy.dc(_, peer_id)
     for _, child in ipairs(EntityGetAllChildren(player.entity) or {}) do
         if EntityGetName(child) == "notcursor"
                 or EntityGetName(child) == "cursor" then
-            EntityKill(child)
+            sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+            EntitySetComponentIsEnabled(child, sprite, false)
         end
     end
     ctx.players[peer_id].dc = true
@@ -186,6 +187,15 @@ function net_handling.mod.welcome(peer_id, _)
     ctx.events.new_player_just_connected = true
     if not ctx.run_ended then
         ctx.hook.on_should_send_updates()
+    end
+end
+
+function net_handling.mod.join_notify(_, name)
+    if ctx.run_ended then
+        if name[2] == "" then
+            name[2] = "new run"
+        end
+        GamePrint(name[1] .. " started gamemode " .. name[2])
     end
 end
 

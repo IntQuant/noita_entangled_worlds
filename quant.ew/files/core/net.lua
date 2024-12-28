@@ -112,16 +112,12 @@ local function handle_message(msg)
   if string.byte(msg, 1, 1) == 2 then
     local msg_l = string.sub(msg, 2)
     local res = string_split(msg_l, " ")
-    if res[1] == "ready" then
-      ready = true
-    else
-      msg_decoded = {
-        kind = "proxy",
-        key = res[1],
-        value = res[2],
-        value2 = res[3],
-      }
-    end
+    msg_decoded = {
+      kind = "proxy",
+      key = res[1],
+      value = res[2],
+      value2 = res[3],
+    }
   elseif string.byte(msg, 1, 1) == 1 then
     local peer_id_b = {string.byte(msg, 2, 2+8-1)}
     local peer_id = ""
@@ -151,10 +147,12 @@ local function handle_message(msg)
   else
     print("Unknown msg")
   end
-  if msg_decoded ~= nil and net_handling[msg_decoded.kind] ~= nil and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil then
-    if ctx.ready or msg_decoded.kind ~= "mod" then
-        util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value, msg_decoded.value2)
-    end
+  if msg_decoded ~= nil
+          and net_handling[msg_decoded.kind] ~= nil
+          and net_handling[msg_decoded.kind][msg_decoded.key] ~= nil
+          and (not ctx.run_ended or msg_decoded.key == "join_notify")
+          and (ctx.ready or msg_decoded.kind ~= "mod") then
+    util.tpcall(net_handling[msg_decoded.kind][msg_decoded.key], msg_decoded.peer_id, msg_decoded.value, msg_decoded.value2)
   end
 end
 

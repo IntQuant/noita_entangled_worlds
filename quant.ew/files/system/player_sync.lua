@@ -7,6 +7,20 @@ local last_money
 
 local was_polied = false
 
+local function undc(ent)
+    local sprite = EntityGetFirstComponentIncludingDisabled(ent, "SpriteComponent")
+    local name = ComponentGetValue2(sprite, "image_file")
+    local new = string.sub(name, 0, -8) .. ".xml"
+    ComponentSetValue2(sprite, "image_file", new)
+    for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
+        if EntityGetName(child) == "notcursor"
+                or EntityGetName(child) == "cursor" then
+            sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+            EntitySetComponentIsEnabled(child, sprite, true)
+        end
+    end
+end
+
 function rpc.send_money_and_ingestion(money, delta, ingestion_size)
     local entity = ctx.rpc_player_data.entity
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
@@ -65,7 +79,7 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     local player_data = player_fns.peer_get_player_data(peer_id)
     if player_data.dc then
         player_data.dc = false
-        EntityKill(player_data.entity)
+        undc(player_data.entity)
         return
     end
 
@@ -98,13 +112,21 @@ end
 function rpc.check_gamemode(gamemode, seed, world_num, has_won)
     local mn = np.GetGameModeNr()
     local gm = np.GetGameModeName(mn)
+    if gamemode == "save_slots_enabler" then
+        gamemode = ""
+    end
+    if gamemode == "" then
+        gamemode = "new run"
+    end
+    if gm == "save_slots_enabler" then
+        gm = ""
+    end
+    if gm == "" then
+        gm = "new run"
+    end
     local not_fine = gamemode ~= gm
     local my_seed = StatsGetValue("world_seed")
 
-    if gm == "save_slots_enabler" or gamemode == "save_slots_enabler" then
-        not_fine = not (gm == "" or gamemode == "")
-        return
-    end
     if not_fine then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different gamemode number then you")
         GamePrint("his game mode: ".. gamemode)
@@ -143,7 +165,15 @@ function rpc.update_fps(fps)
     ctx.rpc_player_data.fps = fps
 end
 
+local first = true
+
 function module.on_world_update()
+    if first then
+        local mn = np.GetGameModeNr()
+        local gm = np.GetGameModeName(mn)
+        net.send("join_notify", {ctx.my_player.name, gm})
+        first = false
+    end
     local input_data = player_fns.serialize_inputs(ctx.my_player)
     local pos_data, phys_info =  player_fns.serialize_position(ctx.my_player)
     local current_slot = player_fns.get_current_slot(ctx.my_player)
@@ -173,7 +203,7 @@ function module.on_world_update()
                             if sprite ~= nil and sprite ~= 0 then
                                 EntitySetComponentIsEnabled(child, sprite, false)
                             end
-                        else
+                        elseif not player.dc then
                             EntitySetComponentIsEnabled(child,
                                     EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
                         end
