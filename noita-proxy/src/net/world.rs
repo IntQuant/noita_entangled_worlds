@@ -1405,7 +1405,7 @@ impl WorldManager {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
-        if dx == 0 && dy == 0 {
+        if (dx == 0 && dy == 0) || ray == 0 {
             return (None, None);
         }
         let sx = if x < end_x { 1 } else { -1 };
@@ -1809,6 +1809,43 @@ impl WorldManager {
         let chunk_start_y = coord.1 * CHUNK_SIZE as i32;
         let mut all = true;
         let mut none = true;
+        let (min, max) = {
+            let (chunk_x, chunk_y) = (coord.0, coord.1);
+            let (chunkx, chunky) = (
+                x.div_euclid(CHUNK_SIZE as i32),
+                y.div_euclid(CHUNK_SIZE as i32),
+            );
+            let (adj_x1, adj_x2) = (
+                chunk_x * CHUNK_SIZE as i32,
+                (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
+            );
+            let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
+                (
+                    (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                    chunk_y * CHUNK_SIZE as i32,
+                )
+            } else {
+                (
+                    chunk_y * CHUNK_SIZE as i32,
+                    (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                )
+            };
+            let adj_dx = adj_x1 - x;
+            let adj_dy = adj_y1 - y;
+            let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+            if i.is_sign_negative() {
+                i += rays as f32
+            }
+            let adj_dx = adj_x2 - x;
+            let adj_dy = adj_y2 - y;
+            let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+            if j.is_sign_negative() {
+                j += rays as f32
+            }
+            let i = i as usize;
+            let j = j as usize;
+            (i.min(j), j.max(i))
+        };
         for icx in 0..CHUNK_SIZE as i32 {
             let cx = chunk_start_x + icx;
             let dx = cx - x;
@@ -1820,7 +1857,10 @@ impl WorldManager {
                 if i.is_sign_negative() {
                     i += rays as f32
                 }
-                if i as usize == ray && dd + dy * dy <= rs {
+                let i = i as usize;
+                if (i == ray || i == min || i == max)
+                    && dd + dy * dy <= rs
+                {
                     let px = icy as usize * CHUNK_SIZE + icx as usize;
                     if self
                         .materials
@@ -1866,7 +1906,7 @@ impl WorldManager {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
-        if dx == 0 && dy == 0 {
+        if (dx == 0 && dy == 0) || ray == 0 {
             return None;
         }
         let sx = if x < end_x { 1 } else { -1 };
@@ -2127,6 +2167,138 @@ fn test_explosion_img() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex.png").unwrap();
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_explosion_img_big() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 24;
+    for i in -w..w {
+        for j in -w..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    //let mut img = image::GrayImage::new(pixels, pixels);
+    //world._create_image(&mut img, pixels);
+    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world_explosion(vec![ExplosionData::new(
+        0, 0, 4096, 15, 64_000_000, true, true, 1, 4,
+    )]);
+    let w = 48;
+    for i in -w..w {
+        for j in -w..w {
+            let c = ChunkCoord(i, j);
+            world
+                .chunk_storage
+                .entry(c)
+                .or_insert_with(|| _brickwork.clone());
+        }
+    }
+    for (c, d) in world.explosion_pointer.clone() {
+        world.cut_through_world_explosion_chunk(
+            d.iter().map(|i| (*i, world.explosion_data[*i])).collect(),
+            c,
+        )
+    }
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img_ex_bigger.png").unwrap();
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_explosion_img_big_empty() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 24;
+    for i in -w..w {
+        for j in -w..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    //let mut img = image::GrayImage::new(pixels, pixels);
+    //world._create_image(&mut img, pixels);
+    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world_explosion(vec![ExplosionData::new(
+        0,
+        0,
+        4096,
+        15,
+        2_000_000_000,
+        true,
+        true,
+        1,
+        4,
+    )]);
+    let w = 48;
+    for i in -w..w {
+        for j in -w..w {
+            let c = ChunkCoord(i, j);
+            world
+                .chunk_storage
+                .entry(c)
+                .or_insert_with(|| _brickwork.clone());
+        }
+    }
+    for (c, d) in world.explosion_pointer.clone() {
+        world.cut_through_world_explosion_chunk(
+            d.iter().map(|i| (*i, world.explosion_data[*i])).collect(),
+            c,
+        )
+    }
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img_ex_big.png").unwrap();
 }
 #[cfg(test)]
 #[test]
