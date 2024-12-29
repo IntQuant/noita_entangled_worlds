@@ -45,6 +45,11 @@ pub(crate) enum WorldNetMessage {
         chunk: ChunkCoord,
         priority: u8,
     },
+    // asks peer for chunk for storage for explosion logic
+    GetChunk {
+        chunk: ChunkCoord,
+        priority: u8,
+    },
     // switch peer to temp authority
     LoseAuthority {
         chunk: ChunkCoord,
@@ -73,6 +78,7 @@ pub(crate) enum WorldNetMessage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
         world_num: i32,
+        priority: Option<u8>,
     },
     // When listening
     AuthorityAlreadyTaken {
@@ -193,6 +199,8 @@ pub(crate) struct WorldManager {
     world_num: i32,
     pub materials: FxHashMap<u16, (u32, u32, CellType)>,
     is_storage_recent: FxHashSet<ChunkCoord>,
+    explosion_pointer: FxHashMap<ChunkCoord, Vec<usize>>,
+    explosion_data: Vec<(ExplosionData, usize, u32)>,
 }
 
 impl WorldManager {
@@ -218,6 +226,8 @@ impl WorldManager {
             world_num: 0,
             materials: Default::default(),
             is_storage_recent: Default::default(),
+            explosion_pointer: Default::default(),
+            explosion_data: Default::default(),
         }
     }
 
@@ -573,8 +583,17 @@ impl WorldManager {
 
     fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId, priority: u8) {
         let auth = self.authority_map.get(&chunk);
-        let chunk_data = if auth.map(|a| a.0 != source).unwrap_or(true) {
+        let chunk_data = if auth
+            .map(|a| a.0 != source)
+            .unwrap_or(self.chunk_storage.contains_key(&chunk))
+        {
             self.chunk_storage.get(&chunk).cloned()
+        } else if self.explosion_pointer.contains_key(&chunk) {
+            self.emit_msg(
+                Destination::Peer(source),
+                WorldNetMessage::GetChunk { chunk, priority },
+            );
+            return;
         } else {
             None
         };
@@ -640,6 +659,15 @@ impl WorldManager {
                     }
                 }
             }
+            WorldNetMessage::GetChunk { chunk, priority } => self.emit_msg(
+                Destination::Host,
+                WorldNetMessage::UpdateStorage {
+                    chunk,
+                    chunk_data: self.outbound_model.get_chunk_data(chunk),
+                    world_num: self.world_num,
+                    priority: Some(priority),
+                },
+            ),
             WorldNetMessage::AskForAuthority { chunk, priority } => {
                 self.emit_msg(
                     Destination::Host,
@@ -709,6 +737,7 @@ impl WorldManager {
                 chunk,
                 chunk_data,
                 world_num,
+                priority,
             } => {
                 if !self.is_host {
                     warn!("{} sent RelinquishAuthority to not-host.", source);
@@ -719,6 +748,20 @@ impl WorldManager {
                 }
                 if let Some(chunk_data) = chunk_data {
                     self.chunk_storage.insert(chunk, chunk_data);
+                    if let Some(p) = priority {
+                        self.cut_through_world_explosion_chunk(
+                            self.explosion_pointer
+                                .get(&chunk)
+                                .unwrap()
+                                .iter()
+                                .map(|i| (*i, self.explosion_data[*i]))
+                                .collect(),
+                            chunk,
+                        );
+                        self.emit_got_authority(chunk, source, p)
+                    }
+                } else if priority.is_some() {
+                    warn!("{} sent give auth without chunk", source)
                 }
             }
             WorldNetMessage::RelinquishAuthority {
@@ -941,6 +984,7 @@ impl WorldManager {
                             chunk,
                             chunk_data,
                             world_num: self.world_num,
+                            priority: None,
                         },
                     );
                 } else {
@@ -1347,6 +1391,7 @@ impl WorldManager {
         }
     }
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::type_complexity)]
     fn do_ray(
         &self,
         mut x: i32,
@@ -1356,12 +1401,12 @@ impl WorldManager {
         mut ray: u32,
         d: u32,
         mult: f32,
-    ) -> Option<(i32, i32)> {
+    ) -> (Option<(i32, i32)>, Option<(Vec<ChunkCoord>, u32)>) {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
         if dx == 0 && dy == 0 {
-            return None;
+            return (None, None);
         }
         let sx = if x < end_x { 1 } else { -1 };
         let sy = if y < end_y { 1 } else { -1 };
@@ -1374,7 +1419,8 @@ impl WorldManager {
         );
         if self.is_storage_recent.contains(&last_co) {
             self.chunk_storage
-                .get(&last_co)?
+                .get(&last_co)
+                .unwrap()
                 .apply_to_chunk(&mut working_chunk);
         } else if let Some(c) = self
             .outbound_model
@@ -1385,8 +1431,10 @@ impl WorldManager {
         } else if let Some(c) = self.chunk_storage.get(&last_co) {
             c.apply_to_chunk(&mut working_chunk);
         } else {
-            return None;
+            return (None, None);
         };
+        let mut n = Vec::new();
+        let mut stop = None;
         let mut last_coord = None;
         while x != end_x || y != end_y {
             let co = ChunkCoord(
@@ -1394,7 +1442,9 @@ impl WorldManager {
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co != last_co {
-                if self.is_storage_recent.contains(&co) {
+                if !n.is_empty() {
+                    n.push(co);
+                } else if self.is_storage_recent.contains(&co) {
                     self.chunk_storage
                         .get(&co)
                         .unwrap()
@@ -1408,24 +1458,27 @@ impl WorldManager {
                 } else if let Some(c) = self.chunk_storage.get(&co) {
                     c.apply_to_chunk(&mut working_chunk)
                 } else {
-                    return last_coord;
+                    n.push(co);
+                    stop = last_coord;
                 };
                 last_co = co;
             }
 
-            let icx = x.rem_euclid(CHUNK_SIZE as i32);
-            let icy = y.rem_euclid(CHUNK_SIZE as i32);
-            let px = icy as usize * CHUNK_SIZE + icx as usize;
-            let pixel = working_chunk.pixel(px);
-            if let Some(stats) = self.materials.get(&pixel.material) {
-                let h = (stats.1 as f32 * mult) as u32;
-                if stats.0 > d || ray < h {
-                    return last_coord;
+            if stop.is_none() {
+                let icx = x.rem_euclid(CHUNK_SIZE as i32);
+                let icy = y.rem_euclid(CHUNK_SIZE as i32);
+                let px = icy as usize * CHUNK_SIZE + icx as usize;
+                let pixel = working_chunk.pixel(px);
+                if let Some(stats) = self.materials.get(&pixel.material) {
+                    let h = (stats.1 as f32 * mult) as u32;
+                    if stats.0 > d || ray < h {
+                        return (last_coord, None);
+                    }
+                    ray = ray.saturating_sub(h);
                 }
-                ray = ray.saturating_sub(h);
+                last_coord = Some((x, y));
             }
 
-            last_coord = Some((x, y));
             e2 = err;
             if e2 > -dx {
                 err -= dy;
@@ -1436,63 +1489,91 @@ impl WorldManager {
                 y += sy;
             }
         }
-        Some((x, y))
+        (stop.or(Some((x, y))), Some((n, ray)))
     }
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) {
-        let resres: Vec<(ChunkCoord, ChunkData, bool, bool)> = exp
+
+    #[allow(clippy::type_complexity)]
+    fn interior_iter(
+        &self,
+        ex: ExplosionData,
+    ) -> (
+        Vec<(ChunkCoord, ChunkData, bool, bool)>,
+        Vec<Option<(Vec<ChunkCoord>, u32)>>,
+    ) {
+        let ExplosionData {
+            x,
+            y,
+            r,
+            d,
+            ray,
+            hole,
+            liquid,
+            mat,
+            prob,
+        } = ex;
+        let rays = r.next_power_of_two().clamp(16, 1024);
+        let t = TAU / rays as f32;
+        let (results, lst) = (0..rays)
             .into_par_iter()
-            .flat_map(|ex| {
-                let ExplosionData {
-                    x,
-                    y,
-                    r,
-                    d,
-                    ray,
-                    hole,
-                    liquid,
-                    mat,
-                    prob,
-                } = ex;
-                let rays = r.next_power_of_two().clamp(16, 1024);
-                let t = TAU / rays as f32;
-                let results = (0..rays)
-                    .into_par_iter()
-                    .map(|n| {
-                        let theta = t * (n as f32 + 0.5);
-                        let end_x = x + (r as f32 * theta.cos()) as i32;
-                        let end_y = y + (r as f32 * theta.sin()) as i32;
-                        let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
-                            .cos()
-                            .recip();
-                        if let Some((ex, ey)) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
-                            let dx = ex - x;
-                            let dy = ey - y;
-                            if dx != 0 || dy != 0 {
-                                ((dx * dx + dy * dy) * 101) / 100
-                            } else {
-                                0
-                            }
-                        } else {
-                            0
-                        }
-                    })
-                    .collect();
-                self.cut_through_world_explosion_list(
-                    x, y, d, rays, results, hole, liquid, mat, prob,
-                )
+            .map(|n| {
+                let theta = t * (n as f32 + 0.5);
+                let end_x = x + (r as f32 * theta.cos()) as i32;
+                let end_y = y + (r as f32 * theta.sin()) as i32;
+                let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
+                    .cos()
+                    .recip();
+                if let (Some((ex, ey)), v) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
+                    let dx = ex - x;
+                    let dy = ey - y;
+                    if dx != 0 || dy != 0 {
+                        (((dx * dx + dy * dy) * 101) / 100, v)
+                    } else {
+                        (0, v)
+                    }
+                } else {
+                    (0, None)
+                }
             })
+            .unzip();
+        (
+            self.cut_through_world_explosion_list(x, y, d, rays, results, hole, liquid, mat, prob),
+            lst,
+        )
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) {
+        let resres: Vec<(
+            (
+                Vec<(ChunkCoord, ChunkData, bool, bool)>,
+                Vec<Option<(Vec<ChunkCoord>, u32)>>,
+            ),
+            ExplosionData,
+        )> = exp
+            .into_par_iter()
+            .map(|ex| (self.interior_iter(ex), ex))
             .collect();
-        for entry in resres {
-            if entry.3 {
-                self.chunk_storage.insert(entry.0, entry.1);
-            } else {
-                self.chunk_storage
-                    .entry(entry.0)
-                    .and_modify(|c| c.apply_delta(entry.1));
+        for ((chunks, unloaded), ex) in resres {
+            for entry in chunks {
+                if entry.3 {
+                    self.chunk_storage.insert(entry.0, entry.1);
+                } else {
+                    self.chunk_storage
+                        .entry(entry.0)
+                        .and_modify(|c| c.apply_delta(entry.1));
+                }
+                if entry.2 {
+                    self.is_storage_recent.insert(entry.0);
+                }
             }
-            if entry.2 {
-                self.is_storage_recent.insert(entry.0);
+            for (i, entry) in unloaded.iter().enumerate() {
+                if let Some(e) = entry {
+                    let n = self.explosion_data.len();
+                    self.explosion_data.push((ex, i, e.1));
+                    for coord in &e.0 {
+                        self.explosion_pointer.entry(*coord).or_default().push(n);
+                    }
+                }
             }
         }
     }
@@ -1609,6 +1690,224 @@ impl WorldManager {
             })
             .collect()
     }
+
+    #[allow(clippy::type_complexity)]
+    fn interior_iter_chunk(
+        &self,
+        ex: (ExplosionData, usize, u32),
+        chunk: ChunkCoord,
+    ) -> Option<(Option<(ChunkData, bool)>, u32)> {
+        let ExplosionData {
+            x,
+            y,
+            r,
+            d,
+            ray: _,
+            hole,
+            liquid,
+            mat,
+            prob,
+        } = ex.0;
+        let rays = r.next_power_of_two().clamp(16, 1024);
+        let t = TAU / rays as f32;
+        let theta = t * (ex.1 as f32 + 0.5);
+        let end_x = x + (r as f32 * theta.cos()) as i32;
+        let end_y = y + (r as f32 * theta.sin()) as i32;
+        let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
+            .cos()
+            .recip();
+        if let Some((enx, ey, ur)) = self.do_ray_chunk(x, y, end_x, end_y, ex.2, d, mult, chunk) {
+            let dx = enx - x;
+            let dy = ey - y;
+            if dx != 0 || dy != 0 {
+                Some((
+                    self.explosion_chunk(
+                        x,
+                        y,
+                        d,
+                        rays,
+                        ((dx * dx + dy * dy) * 101) / 100,
+                        hole,
+                        liquid,
+                        mat,
+                        prob,
+                        chunk,
+                        ex.1,
+                    ),
+                    ur,
+                ))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn cut_through_world_explosion_chunk(
+        &mut self,
+        exp: Vec<(usize, (ExplosionData, usize, u32))>,
+        chunk: ChunkCoord,
+    ) {
+        let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, u32)>)> = exp
+            .into_par_iter()
+            .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk)))
+            .collect();
+        for (i, ch) in resres {
+            if let Some((ch, u)) = ch {
+                if let Some(ch) = ch {
+                    if ch.1 {
+                        self.chunk_storage.insert(chunk, ch.0);
+                    } else {
+                        self.chunk_storage
+                            .entry(chunk)
+                            .and_modify(|c| c.apply_delta(ch.0));
+                    }
+                }
+                self.explosion_data[i].2 = u
+            } else {
+                self.explosion_data[i].2 = 0
+            }
+        }
+        self.is_storage_recent.insert(chunk);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn explosion_chunk(
+        &self,
+        x: i32,
+        y: i32,
+        d: u32,
+        rays: u32,
+        rs: i32,
+        hole: bool,
+        liquid: bool,
+        mat: u16,
+        prob: u8,
+        coord: ChunkCoord,
+        ray: usize,
+    ) -> Option<(ChunkData, bool)> {
+        let r = (rs as f64).sqrt().ceil() as i32;
+        if r == 0 {
+            return None;
+        }
+        let air_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: 0,
+        };
+        let mat_pixel = Pixel {
+            flags: world_model::chunk::PixelFlags::Normal,
+            material: mat,
+        };
+        let mut chunk = Chunk::default();
+        let mut chunk_delta = Chunk::default();
+        self.chunk_storage.get(&coord)?.apply_to_chunk(&mut chunk);
+        let chunk_start_x = coord.0 * CHUNK_SIZE as i32;
+        let chunk_start_y = coord.1 * CHUNK_SIZE as i32;
+        let mut all = true;
+        let mut none = true;
+        for icx in 0..CHUNK_SIZE as i32 {
+            let cx = chunk_start_x + icx;
+            let dx = cx - x;
+            let dd = dx * dx;
+            for icy in 0..CHUNK_SIZE as i32 {
+                let cy = chunk_start_y + icy;
+                let dy = cy - y;
+                let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
+                if i.is_sign_negative() {
+                    i += rays as f32
+                }
+                if i as usize == ray && dd + dy * dy <= rs {
+                    let px = icy as usize * CHUNK_SIZE + icx as usize;
+                    if self
+                        .materials
+                        .get(&chunk.pixel(px).material)
+                        .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
+                        .unwrap_or(true)
+                    {
+                        let mut rng = rand::thread_rng();
+                        if rng.gen_bool(prob as f64 / 100.0) {
+                            chunk_delta.set_pixel(px, mat_pixel);
+                        } else {
+                            chunk_delta.set_pixel(px, air_pixel);
+                        }
+                        none = false;
+                    } else {
+                        all = false
+                    }
+                } else {
+                    all = false
+                }
+            }
+        }
+        if none {
+            None
+        } else {
+            Some((chunk_delta.to_chunk_data(), all))
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::type_complexity)]
+    fn do_ray_chunk(
+        &self,
+        mut x: i32,
+        mut y: i32,
+        end_x: i32,
+        end_y: i32,
+        mut ray: u32,
+        d: u32,
+        mult: f32,
+        chunk: ChunkCoord,
+    ) -> Option<(i32, i32, u32)> {
+        //Bresenham's line algorithm
+        let dx = (end_x - x).abs();
+        let dy = (end_y - y).abs();
+        if dx == 0 && dy == 0 {
+            return None;
+        }
+        let sx = if x < end_x { 1 } else { -1 };
+        let sy = if y < end_y { 1 } else { -1 };
+        let mut err = if dx > dy { dx } else { -dy } / 2;
+        let mut e2;
+        let mut working_chunk = Chunk::default();
+        self.chunk_storage
+            .get(&chunk)?
+            .apply_to_chunk(&mut working_chunk);
+        let mut last_coord = None;
+        while x != end_x || y != end_y {
+            let co = ChunkCoord(
+                x.div_euclid(CHUNK_SIZE as i32),
+                y.div_euclid(CHUNK_SIZE as i32),
+            );
+            if co == chunk {
+                let icx = x.rem_euclid(CHUNK_SIZE as i32);
+                let icy = y.rem_euclid(CHUNK_SIZE as i32);
+                let px = icy as usize * CHUNK_SIZE + icx as usize;
+                let pixel = working_chunk.pixel(px);
+                if let Some(stats) = self.materials.get(&pixel.material) {
+                    let h = (stats.1 as f32 * mult) as u32;
+                    if stats.0 > d || ray < h {
+                        return last_coord;
+                    }
+                    ray = ray.saturating_sub(h);
+                }
+                last_coord = Some((x, y, 0));
+            }
+            e2 = err;
+            if e2 > -dx {
+                err -= dy;
+                x += sx;
+            }
+            if e2 < dy {
+                err += dx;
+                y += sy;
+            }
+        }
+        Some((x, y, ray))
+    }
+
     #[cfg(test)]
     pub(crate) fn _create_image(&self, image: &mut image::GrayImage, w: u32) {
         let mut working_chunk = Chunk::default();
