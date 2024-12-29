@@ -1,20 +1,22 @@
-## Noita Entangled Worlds v0.32.8
+## Noita Entangled Worlds v0.32.9
 
-- if player leaves game, make them transparent
+- have explosions work outside of render range
 
-- fix fizzle
+- fix some global perks effect duping
 
-- ensure wands have correct ammount of mana
+- remove debug game prints
 
-- try to fix notplayer nametag persisting sometimes
+- color notplayer lukki legs
 
-- try to fix notplayer erroring out for unknown reasons
+- give notplayer a map icon
 
-- make cell eaters and material converters and explosions more accurate
+- make reconnect nicer
+
+- display what gamemode people pick while in game over screen
 
 ## Accepted pull requests
 
-- Added Korean option to lang.rs by @Alphaccca in #295
+- Added Korean font, applied Korean font by @Alphaccca in #299
 ## Installation
 
 
