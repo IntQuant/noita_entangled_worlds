@@ -1518,7 +1518,7 @@ impl WorldManager {
                     let dx = ex - x;
                     let dy = ey - y;
                     if dx != 0 || dy != 0 {
-                        (((dx * dx + dy * dy) * 101) / 100, v)
+                        ((((dx * dx + dy * dy) as u64 * 101) / 100) as i32, v)
                     } else {
                         (0, v)
                     }
@@ -1720,7 +1720,7 @@ impl WorldManager {
                         y,
                         d,
                         rays,
-                        ((dx * dx + dy * dy) * 101) / 100,
+                        (((dx * dx + dy * dy) as u64 * 101) / 100) as i32,
                         hole,
                         liquid,
                         mat,
@@ -2215,7 +2215,15 @@ fn test_explosion_img_big() {
 
     let timer = std::time::Instant::now();
     world.cut_through_world_explosion(vec![ExplosionData::new(
-        0, 0, 4096, 15, 256_000_000, true, true, 1, 4,
+        0,
+        0,
+        4096,
+        15,
+        256_000_000,
+        true,
+        true,
+        1,
+        4,
     )]);
     let w = 48;
     let mut rng = thread_rng();
@@ -2309,6 +2317,70 @@ fn test_explosion_img_big_empty() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_big.png").unwrap();
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_explosion_large() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 520;
+    for i in -w..w {
+        for j in -w + 10..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    //let mut img = image::GrayImage::new(pixels, pixels);
+    //world._create_image(&mut img, pixels);
+    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world_explosion(vec![ExplosionData::new(
+        0,
+        0,
+        65536,
+        15,
+        2_000_000_000,
+        true,
+        true,
+        1,
+        4,
+    )]);
+    let w = 520;
+    let mut rng = thread_rng();
+    let mut iter = (-w..w)
+        .flat_map(|i| (-w..-w + 10).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
+        .collect::<Vec<(i32, i32)>>();
+    iter.shuffle(&mut rng);
+    for (i, j) in iter {
+        let c = ChunkCoord(i, j);
+        if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
+            e.insert(_dirt.clone());
+            if world.explosion_pointer.contains_key(&c) {
+                world.cut_through_world_explosion_chunk(c)
+            }
+        }
+    }
+    println!("total large ex milli {}", timer.elapsed().as_millis());
 }
 #[cfg(test)]
 #[test]
