@@ -1258,7 +1258,7 @@ impl App {
             .entry(FontFamily::Monospace)
             .or_default()
             .push("noto_sans_kr".to_owned());
-        
+
         ctx.set_fonts(font_definitions);
     }
 

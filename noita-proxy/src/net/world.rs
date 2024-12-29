@@ -1,5 +1,5 @@
 use bitcode::{Decode, Encode};
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -749,15 +749,7 @@ impl WorldManager {
                 if let Some(chunk_data) = chunk_data {
                     self.chunk_storage.insert(chunk, chunk_data);
                     if let Some(p) = priority {
-                        self.cut_through_world_explosion_chunk(
-                            self.explosion_pointer
-                                .get(&chunk)
-                                .unwrap()
-                                .iter()
-                                .map(|i| (*i, self.explosion_data[*i]))
-                                .collect(),
-                            chunk,
-                        );
+                        self.cut_through_world_explosion_chunk(chunk);
                         self.emit_got_authority(chunk, source, p)
                     }
                 } else if priority.is_some() {
@@ -1669,7 +1661,7 @@ impl WorldManager {
                                 .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                                 .unwrap_or(true)
                             {
-                                let mut rng = rand::thread_rng();
+                                let mut rng = thread_rng();
                                 if rng.gen_bool(prob as f64 / 100.0) {
                                     chunk_delta.set_pixel(px, mat_pixel);
                                 } else {
@@ -1739,7 +1731,7 @@ impl WorldManager {
                     ur,
                 ))
             } else {
-                None
+                Some((None, ur))
             }
         } else {
             None
@@ -1747,11 +1739,14 @@ impl WorldManager {
     }
 
     #[allow(clippy::type_complexity)]
-    pub(crate) fn cut_through_world_explosion_chunk(
-        &mut self,
-        exp: Vec<(usize, (ExplosionData, usize, u32))>,
-        chunk: ChunkCoord,
-    ) {
+    pub(crate) fn cut_through_world_explosion_chunk(&mut self, chunk: ChunkCoord) {
+        let exp: Vec<(usize, (ExplosionData, usize, u32))> = self
+            .explosion_pointer
+            .get(&chunk)
+            .unwrap()
+            .iter()
+            .map(|i| (*i, self.explosion_data[*i]))
+            .collect();
         let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, u32)>)> = exp
             .into_par_iter()
             .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk)))
@@ -1790,8 +1785,7 @@ impl WorldManager {
         coord: ChunkCoord,
         ray: usize,
     ) -> Option<(ChunkData, bool)> {
-        let r = (rs as f64).sqrt().ceil() as i32;
-        if r == 0 {
+        if rs == 0 {
             return None;
         }
         let air_pixel = Pixel {
@@ -1858,9 +1852,7 @@ impl WorldManager {
                     i += rays as f32
                 }
                 let i = i as usize;
-                if (i == ray || i == min || i == max)
-                    && dd + dy * dy <= rs
-                {
+                if (i == ray || i == min || i == max) && dd + dy * dy <= rs {
                     let px = icy as usize * CHUNK_SIZE + icx as usize;
                     if self
                         .materials
@@ -1868,7 +1860,7 @@ impl WorldManager {
                         .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                         .unwrap_or(true)
                     {
-                        let mut rng = rand::thread_rng();
+                        let mut rng = thread_rng();
                         if rng.gen_bool(prob as f64 / 100.0) {
                             chunk_delta.set_pixel(px, mat_pixel);
                         } else {
@@ -1917,25 +1909,43 @@ impl WorldManager {
         self.chunk_storage
             .get(&chunk)?
             .apply_to_chunk(&mut working_chunk);
-        let mut last_coord = None;
+        let mut count = 0;
+        let mut found = false;
+        let mut avg = 0;
+        let mut count2 = 0;
         while x != end_x || y != end_y {
             let co = ChunkCoord(
                 x.div_euclid(CHUNK_SIZE as i32),
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co == chunk {
+                found = true;
                 let icx = x.rem_euclid(CHUNK_SIZE as i32);
                 let icy = y.rem_euclid(CHUNK_SIZE as i32);
                 let px = icy as usize * CHUNK_SIZE + icx as usize;
                 let pixel = working_chunk.pixel(px);
                 if let Some(stats) = self.materials.get(&pixel.material) {
                     let h = (stats.1 as f32 * mult) as u32;
-                    if stats.0 > d || ray < h {
-                        return last_coord;
-                    }
+                    avg += h;
+                    count2 += 1;
+                    if stats.0 > d {
+                        if count2 == 1 {
+                            return Some((0, 0, ray));
+                        }
+                        return Some((x, y, 0));
+                    } else if ray < h + (count * avg) / count2 {
+                        if count2 == 1 {
+                            return Some((0, 0, ray));
+                        }
+                        ray = ray.saturating_sub(h);
+                        return Some((x, y, ray));
+                    };
                     ray = ray.saturating_sub(h);
                 }
-                last_coord = Some((x, y, 0));
+            } else if found {
+                return Some((end_x, end_y, ray));
+            } else if !self.chunk_storage.contains_key(&co) {
+                count += 1;
             }
             e2 = err;
             if e2 > -dx {
@@ -2205,23 +2215,22 @@ fn test_explosion_img_big() {
 
     let timer = std::time::Instant::now();
     world.cut_through_world_explosion(vec![ExplosionData::new(
-        0, 0, 4096, 15, 64_000_000, true, true, 1, 4,
+        0, 0, 4096, 15, 256_000_000, true, true, 1, 4,
     )]);
     let w = 48;
-    for i in -w..w {
-        for j in -w..w {
-            let c = ChunkCoord(i, j);
-            world
-                .chunk_storage
-                .entry(c)
-                .or_insert_with(|| _brickwork.clone());
+    let mut rng = thread_rng();
+    let mut iter = (-w..w)
+        .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
+        .collect::<Vec<(i32, i32)>>();
+    iter.shuffle(&mut rng);
+    for (i, j) in iter {
+        let c = ChunkCoord(i, j);
+        if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
+            e.insert(_brickwork.clone());
+            if world.explosion_pointer.contains_key(&c) {
+                world.cut_through_world_explosion_chunk(c)
+            }
         }
-    }
-    for (c, d) in world.explosion_pointer.clone() {
-        world.cut_through_world_explosion_chunk(
-            d.iter().map(|i| (*i, world.explosion_data[*i])).collect(),
-            c,
-        )
     }
     println!("total img micros {}", timer.elapsed().as_micros());
 
@@ -2230,6 +2239,8 @@ fn test_explosion_img_big() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_bigger.png").unwrap();
 }
+#[cfg(test)]
+use rand::seq::SliceRandom;
 #[cfg(test)]
 #[test]
 #[serial]
@@ -2278,20 +2289,19 @@ fn test_explosion_img_big_empty() {
         4,
     )]);
     let w = 48;
-    for i in -w..w {
-        for j in -w..w {
-            let c = ChunkCoord(i, j);
-            world
-                .chunk_storage
-                .entry(c)
-                .or_insert_with(|| _brickwork.clone());
+    let mut rng = thread_rng();
+    let mut iter = (-w..w)
+        .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
+        .collect::<Vec<(i32, i32)>>();
+    iter.shuffle(&mut rng);
+    for (i, j) in iter {
+        let c = ChunkCoord(i, j);
+        if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
+            e.insert(_brickwork.clone());
+            if world.explosion_pointer.contains_key(&c) {
+                world.cut_through_world_explosion_chunk(c)
+            }
         }
-    }
-    for (c, d) in world.explosion_pointer.clone() {
-        world.cut_through_world_explosion_chunk(
-            d.iter().map(|i| (*i, world.explosion_data[*i])).collect(),
-            c,
-        )
     }
     println!("total img micros {}", timer.elapsed().as_micros());
 
