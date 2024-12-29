@@ -1566,12 +1566,14 @@ impl WorldManager {
                     self.is_storage_recent.insert(entry.0);
                 }
             }
-            for (i, entry) in unloaded.iter().enumerate() {
-                if let Some(e) = entry {
-                    let n = self.explosion_data.len();
-                    self.explosion_data.push((ex, i, e.1));
-                    for coord in &e.0 {
-                        self.explosion_pointer.entry(*coord).or_default().push(n);
+            if self.nice_terraforming {
+                for (i, entry) in unloaded.iter().enumerate() {
+                    if let Some(e) = entry {
+                        let n = self.explosion_data.len();
+                        self.explosion_data.push((ex, i, e.1));
+                        for coord in &e.0 {
+                            self.explosion_pointer.entry(*coord).or_default().push(n);
+                        }
                     }
                 }
             }
