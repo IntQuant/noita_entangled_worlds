@@ -1209,6 +1209,11 @@ impl App {
             "noto_sans_sc".to_owned(),
             egui::FontData::from_static(include_bytes!("../assets/font/MiSans-Light.ttf")).into(),
         );
+        font_definitions.font_data.insert(
+            "noto_sans_kr".to_owned(),
+            egui::FontData::from_static(include_bytes!("../assets/font/NotoSansKR-Light.ttf"))
+                .into(),
+        );
 
         font_definitions
             .families
@@ -1243,6 +1248,17 @@ impl App {
             .or_default()
             .push("noto_sans_sc".to_owned());
 
+        font_definitions
+            .families
+            .entry(FontFamily::Proportional)
+            .or_default()
+            .push("noto_sans_kr".to_owned());
+        font_definitions
+            .families
+            .entry(FontFamily::Monospace)
+            .or_default()
+            .push("noto_sans_kr".to_owned());
+        
         ctx.set_fonts(font_definitions);
     }
 
