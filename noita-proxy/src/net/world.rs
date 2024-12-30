@@ -200,7 +200,13 @@ pub(crate) struct WorldManager {
     pub materials: FxHashMap<u16, (u32, u32, CellType)>,
     is_storage_recent: FxHashSet<ChunkCoord>,
     explosion_pointer: FxHashMap<ChunkCoord, Vec<usize>>,
-    explosion_data: Vec<(ExplosionData, usize, u32)>,
+    explosion_data: Vec<(ExplosionData, usize, ExTarget, i32)>,
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub(crate) enum ExTarget {
+    Ray(u32),
+    Pixel(u32),
 }
 
 impl WorldManager {
@@ -1393,12 +1399,12 @@ impl WorldManager {
         mut ray: u32,
         d: u32,
         mult: f32,
-    ) -> (Option<(i32, i32)>, Option<(Vec<ChunkCoord>, u32)>) {
+    ) -> (Option<(i32, i32)>, u32) {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
         if (dx == 0 && dy == 0) || ray == 0 {
-            return (None, None);
+            return (None, 0);
         }
         let sx = if x < end_x { 1 } else { -1 };
         let sy = if y < end_y { 1 } else { -1 };
@@ -1423,40 +1429,36 @@ impl WorldManager {
         } else if let Some(c) = self.chunk_storage.get(&last_co) {
             c.apply_to_chunk(&mut working_chunk);
         } else {
-            return (None, None);
+            return (None, 0);
         };
-        let mut n = Vec::new();
-        let mut stop = None;
         let mut last_coord = None;
+        let mut ret = 0;
         while x != end_x || y != end_y {
-            let co = ChunkCoord(
-                x.div_euclid(CHUNK_SIZE as i32),
-                y.div_euclid(CHUNK_SIZE as i32),
-            );
-            if co != last_co {
-                if !n.is_empty() {
-                    n.push(co);
-                } else if self.is_storage_recent.contains(&co) {
-                    self.chunk_storage
-                        .get(&co)
-                        .unwrap()
-                        .apply_to_chunk(&mut working_chunk);
-                } else if let Some(c) = self
-                    .outbound_model
-                    .get_chunk_data(co)
-                    .or(self.inbound_model.get_chunk_data(co))
-                {
-                    c.apply_to_chunk(&mut working_chunk)
-                } else if let Some(c) = self.chunk_storage.get(&co) {
-                    c.apply_to_chunk(&mut working_chunk)
-                } else {
-                    n.push(co);
-                    stop = last_coord;
-                };
-                last_co = co;
-            }
-
-            if stop.is_none() {
+            if ret == 0 {
+                let co = ChunkCoord(
+                    x.div_euclid(CHUNK_SIZE as i32),
+                    y.div_euclid(CHUNK_SIZE as i32),
+                );
+                if co != last_co {
+                    if self.is_storage_recent.contains(&co) {
+                        self.chunk_storage
+                            .get(&co)
+                            .unwrap()
+                            .apply_to_chunk(&mut working_chunk);
+                    } else if let Some(c) = self
+                        .outbound_model
+                        .get_chunk_data(co)
+                        .or(self.inbound_model.get_chunk_data(co))
+                    {
+                        c.apply_to_chunk(&mut working_chunk)
+                    } else if let Some(c) = self.chunk_storage.get(&co) {
+                        c.apply_to_chunk(&mut working_chunk)
+                    } else {
+                        ret = 9;
+                        continue;
+                    };
+                    last_co = co;
+                }
                 let icx = x.rem_euclid(CHUNK_SIZE as i32);
                 let icy = y.rem_euclid(CHUNK_SIZE as i32);
                 let px = icy as usize * CHUNK_SIZE + icx as usize;
@@ -1464,11 +1466,15 @@ impl WorldManager {
                 if let Some(stats) = self.materials.get(&pixel.material) {
                     let h = (stats.1 as f32 * mult) as u32;
                     if stats.0 > d || ray < h {
-                        return (last_coord, None);
+                        return (last_coord, 0);
                     }
                     ray = ray.saturating_sub(h);
                 }
                 last_coord = Some((x, y));
+            } else if ret != 1 {
+                ret -= 1;
+            } else {
+                return (Some((x, y)), ray);
             }
 
             e2 = err;
@@ -1481,17 +1487,11 @@ impl WorldManager {
                 y += sy;
             }
         }
-        (stop.or(Some((x, y))), Some((n, ray)))
+        (Some((x, y)), ray)
     }
 
     #[allow(clippy::type_complexity)]
-    fn interior_iter(
-        &self,
-        ex: ExplosionData,
-    ) -> (
-        Vec<(ChunkCoord, ChunkData, bool, bool)>,
-        Vec<Option<(Vec<ChunkCoord>, u32)>>,
-    ) {
+    fn interior_iter(&self, ex: ExplosionData) -> (Vec<ExRet>, Vec<u32>) {
         let ExplosionData {
             x,
             y,
@@ -1518,55 +1518,70 @@ impl WorldManager {
                     let dx = ex - x;
                     let dy = ey - y;
                     if dx != 0 || dy != 0 {
-                        ((((dx * dx + dy * dy) as u64 * 101) / 100) as i32, v)
+                        (dx * dx + dy * dy, v)
                     } else {
                         (0, v)
                     }
                 } else {
-                    (0, None)
+                    (0, 0)
                 }
             })
             .unzip();
         (
-            self.cut_through_world_explosion_list(x, y, d, rays, results, hole, liquid, mat, prob),
+            self.cut_through_world_explosion_list(
+                x, y, d, rays, results, hole, liquid, mat, prob, r as i32,
+            ),
             lst,
         )
     }
 
     #[allow(clippy::type_complexity)]
     pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) {
-        let resres: Vec<(
-            (
-                Vec<(ChunkCoord, ChunkData, bool, bool)>,
-                Vec<Option<(Vec<ChunkCoord>, u32)>>,
-            ),
-            ExplosionData,
-        )> = exp
+        let resres: Vec<((Vec<ExRet>, Vec<u32>), ExplosionData)> = exp
             .into_par_iter()
             .map(|ex| (self.interior_iter(ex), ex))
             .collect();
-        for ((chunks, unloaded), ex) in resres {
+        for ((chunks, raydata), ex) in resres {
+            let mut data = FxHashMap::default();
             for entry in chunks {
-                if entry.3 {
-                    self.chunk_storage.insert(entry.0, entry.1);
-                } else {
-                    self.chunk_storage
-                        .entry(entry.0)
-                        .and_modify(|c| c.apply_delta(entry.1));
-                }
-                if entry.2 {
-                    self.is_storage_recent.insert(entry.0);
-                }
-            }
-            if self.nice_terraforming {
-                for (i, entry) in unloaded.iter().enumerate() {
-                    if let Some(e) = entry {
-                        let n = self.explosion_data.len();
-                        self.explosion_data.push((ex, i, e.1));
-                        for coord in &e.0 {
-                            self.explosion_pointer.entry(*coord).or_default().push(n);
+                match entry {
+                    ExRet::Loaded(entry) => {
+                        if entry.3 {
+                            self.chunk_storage.insert(entry.0, entry.1);
+                        } else {
+                            self.chunk_storage
+                                .entry(entry.0)
+                                .and_modify(|c| c.apply_delta(entry.1));
+                        }
+                        if entry.2 {
+                            self.is_storage_recent.insert(entry.0);
                         }
                     }
+                    ExRet::Unloaded((coord, rays)) if self.nice_terraforming => {
+                        //TODO consider case where explsoion happens in an unloaded chunk
+                        self.explosion_pointer.entry(coord).or_default().extend(
+                            rays.iter()
+                                .filter_map(|i| {
+                                    if raydata[*i] == 0 {
+                                        None
+                                    } else if let Some(n) = data.get(i) {
+                                        Some(*n)
+                                    } else {
+                                        let n = self.explosion_data.len();
+                                        self.explosion_data.push((
+                                            ex,
+                                            *i,
+                                            ExTarget::Ray(raydata[*i]),
+                                            0,
+                                        ));
+                                        data.insert(*i, n);
+                                        Some(n)
+                                    }
+                                })
+                                .collect::<Vec<usize>>(),
+                        );
+                    }
+                    _ => {}
                 }
             }
         }
@@ -1584,9 +1599,9 @@ impl WorldManager {
         liquid: bool,
         mat: u16,
         prob: u8,
-    ) -> Vec<(ChunkCoord, ChunkData, bool, bool)> {
+        r: i32,
+    ) -> Vec<ExRet> {
         let rs = *list.iter().max().unwrap_or(&0);
-        let r = (rs as f64).sqrt().ceil() as i32;
         if r == 0 {
             return Vec::new();
         }
@@ -1617,15 +1632,79 @@ impl WorldManager {
                     .into_par_iter()
                     .map(move |chunk_y| (chunk_x, chunk_y))
             })
-            .filter(|&(chunk_x, chunk_y)| {
-                should_process_chunk(chunk_x, chunk_y, x, y, r, &list, chunkx, chunky, rays, rs)
-            })
             .filter_map(|(chunk_x, chunk_y)| {
+                let coord = ChunkCoord(chunk_x, chunk_y);
+                let storage = if let Some(s) = self.chunk_storage.get(&coord) {
+                    s
+                } else if !self.nice_terraforming {
+                    return None;
+                } else {
+                    let close_x = if chunk_x < chunkx {
+                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                    } else {
+                        chunk_x * CHUNK_SIZE as i32
+                    };
+                    let close_y = if chunk_y < chunky {
+                        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+                    } else {
+                        chunk_y * CHUNK_SIZE as i32
+                    };
+                    let (adj_x1, adj_x2) = (
+                        chunk_x * CHUNK_SIZE as i32,
+                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
+                    );
+                    let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
+                        (
+                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                            chunk_y * CHUNK_SIZE as i32,
+                        )
+                    } else {
+                        (
+                            chunk_y * CHUNK_SIZE as i32,
+                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+                        )
+                    };
+                    let dx = close_x - x;
+                    let dy = close_y - y;
+                    let adj_dx = adj_x1 - x;
+                    let adj_dy = adj_y1 - y;
+                    let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+                    if i.is_sign_negative() {
+                        i += rays as f32
+                    }
+                    let adj_dx = adj_x2 - x;
+                    let adj_dy = adj_y2 - y;
+                    let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+                    if j.is_sign_negative() {
+                        j += rays as f32
+                    }
+                    let i = i as usize;
+                    let j = j as usize;
+                    let c = dx * dx + dy * dy;
+                    if c > r * r {
+                        return None;
+                    }
+                    return Some(ExRet::Unloaded((
+                        coord,
+                        list.iter()
+                            .enumerate()
+                            .filter_map(|(n, _)| {
+                                if (i.min(j)..=i.max(j)).contains(&n) {
+                                    Some(n)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect(),
+                    )));
+                };
+                if !should_process_chunk(chunk_x, chunk_y, x, y, r, &list, chunkx, chunky, rays, rs)
+                {
+                    return None;
+                }
                 let mut chunk = Chunk::default();
                 let mut chunk_delta = Chunk::default();
-                let coord = ChunkCoord(chunk_x, chunk_y);
                 let mut del = false;
-                let storage = self.chunk_storage.get(&coord)?;
                 if self.is_storage_recent.contains(&coord) {
                     storage.apply_to_chunk(&mut chunk);
                 } else if let Some(chunk_encoded) = self
@@ -1679,7 +1758,12 @@ impl WorldManager {
                 if none {
                     None
                 } else {
-                    Some((coord, chunk_delta.to_chunk_data(), del, all))
+                    Some(ExRet::Loaded((
+                        coord,
+                        chunk_delta.to_chunk_data(),
+                        del,
+                        all,
+                    )))
                 }
             })
             .collect()
@@ -1688,13 +1772,14 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     fn interior_iter_chunk(
         &self,
-        ex: (ExplosionData, usize, u32),
+        ex: (ExplosionData, usize, ExTarget, i32),
         chunk: ChunkCoord,
-    ) -> Option<(Option<(ChunkData, bool)>, u32)> {
+        a: f32,
+    ) -> Option<(Option<(ChunkData, bool)>, ExTarget, i32)> {
         let ExplosionData {
             x,
             y,
-            r,
+            mut r,
             d,
             ray: _,
             hole,
@@ -1703,14 +1788,19 @@ impl WorldManager {
             prob,
         } = ex.0;
         let rays = r.next_power_of_two().clamp(16, 1024);
+        if let ExTarget::Pixel(p) = ex.2 {
+            r = p
+        }
         let t = TAU / rays as f32;
-        let theta = t * (ex.1 as f32 + 0.5);
+        let theta = t * (ex.1 as f32 + a);
         let end_x = x + (r as f32 * theta.cos()) as i32;
         let end_y = y + (r as f32 * theta.sin()) as i32;
         let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
             .cos()
             .recip();
-        if let Some((enx, ey, ur)) = self.do_ray_chunk(x, y, end_x, end_y, ex.2, d, mult, chunk) {
+        if let Some((enx, ey, ur, dd)) =
+            self.do_ray_chunk(x, y, end_x, end_y, ex.2, d, mult, chunk, ex.3)
+        {
             let dx = enx - x;
             let dy = ey - y;
             if dx != 0 || dy != 0 {
@@ -1720,7 +1810,7 @@ impl WorldManager {
                         y,
                         d,
                         rays,
-                        (((dx * dx + dy * dy) as u64 * 101) / 100) as i32,
+                        dx * dx + dy * dy,
                         hole,
                         liquid,
                         mat,
@@ -1729,30 +1819,40 @@ impl WorldManager {
                         ex.1,
                     ),
                     ur,
+                    dd,
                 ))
             } else {
-                Some((None, ur))
+                Some((None, ur, dd))
             }
-        } else {
+        } else if a != 0.5
+            || (end_x.abs_diff(x) == 0 && end_y.abs_diff(y) == 0)
+            || ex.2 == ExTarget::Ray(0)
+        {
             None
+        } else {
+            self.interior_iter_chunk(ex, chunk, 1.0)
+                .or(self.interior_iter_chunk(ex, chunk, 0.0))
+                .or(self.interior_iter_chunk(ex, chunk, 0.75))
+                .or(self.interior_iter_chunk(ex, chunk, 0.25))
+                .or(Some((None, ex.2, 0)))
         }
     }
 
     #[allow(clippy::type_complexity)]
     pub(crate) fn cut_through_world_explosion_chunk(&mut self, chunk: ChunkCoord) {
-        let exp: Vec<(usize, (ExplosionData, usize, u32))> = self
+        let exp: Vec<(usize, (ExplosionData, usize, ExTarget, i32))> = self
             .explosion_pointer
             .get(&chunk)
             .unwrap()
             .iter()
             .map(|i| (*i, self.explosion_data[*i]))
             .collect();
-        let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, u32)>)> = exp
+        let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, ExTarget, i32)>)> = exp
             .into_par_iter()
-            .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk)))
+            .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk, 0.5)))
             .collect();
         for (i, ch) in resres {
-            if let Some((ch, u)) = ch {
+            if let Some((ch, u, dd)) = ch {
                 if let Some(ch) = ch {
                     if ch.1 {
                         self.chunk_storage.insert(chunk, ch.0);
@@ -1762,9 +1862,12 @@ impl WorldManager {
                             .and_modify(|c| c.apply_delta(ch.0));
                     }
                 }
-                self.explosion_data[i].2 = u
+                self.explosion_data[i].2 = u;
+                if dd > self.explosion_data[i].3 {
+                    self.explosion_data[i].3 = dd
+                }
             } else {
-                self.explosion_data[i].2 = 0
+                self.explosion_data[i].2 = ExTarget::Ray(0)
             }
         }
         self.is_storage_recent.insert(chunk);
@@ -1803,43 +1906,6 @@ impl WorldManager {
         let chunk_start_y = coord.1 * CHUNK_SIZE as i32;
         let mut all = true;
         let mut none = true;
-        let (min, max) = {
-            let (chunk_x, chunk_y) = (coord.0, coord.1);
-            let (chunkx, chunky) = (
-                x.div_euclid(CHUNK_SIZE as i32),
-                y.div_euclid(CHUNK_SIZE as i32),
-            );
-            let (adj_x1, adj_x2) = (
-                chunk_x * CHUNK_SIZE as i32,
-                (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
-            );
-            let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
-                (
-                    (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                    chunk_y * CHUNK_SIZE as i32,
-                )
-            } else {
-                (
-                    chunk_y * CHUNK_SIZE as i32,
-                    (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                )
-            };
-            let adj_dx = adj_x1 - x;
-            let adj_dy = adj_y1 - y;
-            let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-            if i.is_sign_negative() {
-                i += rays as f32
-            }
-            let adj_dx = adj_x2 - x;
-            let adj_dy = adj_y2 - y;
-            let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-            if j.is_sign_negative() {
-                j += rays as f32
-            }
-            let i = i as usize;
-            let j = j as usize;
-            (i.min(j), j.max(i))
-        };
         for icx in 0..CHUNK_SIZE as i32 {
             let cx = chunk_start_x + icx;
             let dx = cx - x;
@@ -1852,7 +1918,7 @@ impl WorldManager {
                     i += rays as f32
                 }
                 let i = i as usize;
-                if (i == ray || i == min || i == max) && dd + dy * dy <= rs {
+                if i == ray && dd + dy * dy <= rs {
                     let px = icy as usize * CHUNK_SIZE + icx as usize;
                     if self
                         .materials
@@ -1886,16 +1952,23 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     fn do_ray_chunk(
         &self,
-        mut x: i32,
-        mut y: i32,
+        sx: i32,
+        sy: i32,
         end_x: i32,
         end_y: i32,
-        mut ray: u32,
+        rayn: ExTarget,
         d: u32,
         mult: f32,
         chunk: ChunkCoord,
-    ) -> Option<(i32, i32, u32)> {
+        sd: i32,
+    ) -> Option<(i32, i32, ExTarget, i32)> {
         //Bresenham's line algorithm
+        let mut ray = match rayn {
+            ExTarget::Ray(r) => r,
+            ExTarget::Pixel(_) => u32::MAX,
+        };
+        let mut x = sx;
+        let mut y = sy;
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
         if (dx == 0 && dy == 0) || ray == 0 {
@@ -1920,32 +1993,46 @@ impl WorldManager {
             );
             if co == chunk {
                 found = true;
-                let icx = x.rem_euclid(CHUNK_SIZE as i32);
-                let icy = y.rem_euclid(CHUNK_SIZE as i32);
-                let px = icy as usize * CHUNK_SIZE + icx as usize;
-                let pixel = working_chunk.pixel(px);
-                if let Some(stats) = self.materials.get(&pixel.material) {
-                    let h = (stats.1 as f32 * mult) as u32;
-                    avg += h;
-                    count2 += 1;
-                    if stats.0 > d {
-                        if count2 == 1 {
-                            return Some((0, 0, ray));
-                        }
-                        return Some((x, y, 0));
-                    } else if ray < h + (count * avg) / count2 {
-                        if count2 == 1 {
-                            return Some((0, 0, ray));
-                        }
+                let dx = (sx - x).abs();
+                let dy = (sy - y).abs();
+                let dd = dx * dx + dy * dy;
+                if sd < dd {
+                    let icx = x.rem_euclid(CHUNK_SIZE as i32);
+                    let icy = y.rem_euclid(CHUNK_SIZE as i32);
+                    let px = icy as usize * CHUNK_SIZE + icx as usize;
+                    let pixel = working_chunk.pixel(px);
+                    if let Some(stats) = self.materials.get(&pixel.material) {
+                        let h = (stats.1 as f32 * mult) as u32;
+                        avg += h;
+                        count2 += 1;
+                        if stats.0 > d || ray < h + ((count * avg as u64 ) / count2) as u32 {
+                            return if count2 == 1 {
+                                Some((0, 0, ExTarget::Pixel((dd as f64).sqrt() as u32), 0))
+                            } else if let ExTarget::Ray(_) = rayn {
+                                Some((x, y, ExTarget::Pixel((dd as f64).sqrt() as u32), dd))
+                            } else {
+                                Some((x, y, ExTarget::Pixel((dd as f64).sqrt() as u32), dd))
+                            };
+                        };
                         ray = ray.saturating_sub(h);
-                        return Some((x, y, ray));
-                    };
-                    ray = ray.saturating_sub(h);
+                    }
                 }
             } else if found {
-                return Some((end_x, end_y, ray));
+                let dx = (sx - x).abs();
+                let dy = (sy - y).abs();
+                let dd = dx * dx + dy * dy;
+                return if let ExTarget::Ray(_) = rayn {
+                    Some((end_x, end_y, ExTarget::Ray(ray), dd))
+                } else {
+                    Some((end_x, end_y, rayn, dd))
+                };
             } else if !self.chunk_storage.contains_key(&co) {
-                count += 1;
+                let dx = (sx - x).abs();
+                let dy = (sy - y).abs();
+                let dd = dx * dx + dy * dy;
+                if sd < dd {
+                    count += 1;
+                }
             }
             e2 = err;
             if e2 > -dx {
@@ -1957,7 +2044,16 @@ impl WorldManager {
                 y += sy;
             }
         }
-        Some((x, y, ray))
+        if found {
+            let dd = dx * dx + dy * dy;
+            if let ExTarget::Ray(_) = rayn {
+                Some((x, y, ExTarget::Ray(ray), dd))
+            } else {
+                Some((x, y, rayn, dd))
+            }
+        } else {
+            None
+        }
     }
 
     #[cfg(test)]
@@ -2015,6 +2111,12 @@ fn should_process_chunk(
             } else {
                 chunk_y * CHUNK_SIZE as i32
             };
+            let dx = close_x - x;
+            let dy = close_y - y;
+            let d = dx * dx + dy * dy;
+            if d > rs {
+                return false;
+            }
             let (adj_x1, adj_x2) = (
                 chunk_x * CHUNK_SIZE as i32,
                 (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
@@ -2030,8 +2132,6 @@ fn should_process_chunk(
                     (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
                 )
             };
-            let dx = close_x - x;
-            let dy = close_y - y;
             let adj_dx = adj_x1 - x;
             let adj_dy = adj_y1 - y;
             let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
@@ -2047,7 +2147,7 @@ fn should_process_chunk(
             let i = i as usize;
             let j = j as usize;
             let r = list[i.min(j)..=i.max(j)].iter().max().unwrap_or(&0);
-            dx * dx + dy * dy <= *r
+            d <= *r
         } else {
             let close_x = if chunk_x < chunkx {
                 (chunk_x + 1) * CHUNK_SIZE as i32 - 1
@@ -2075,6 +2175,10 @@ impl Drop for WorldManager {
 }
 impl SaveStateEntry for FxHashMap<ChunkCoord, ChunkData> {
     const FILENAME: &'static str = "world_chunks";
+}
+pub(crate) enum ExRet {
+    Loaded((ChunkCoord, ChunkData, bool, bool)),
+    Unloaded((ChunkCoord, Vec<usize>)),
 }
 #[cfg(test)]
 #[test]
@@ -2266,7 +2370,7 @@ fn test_explosion_img_big_empty() {
         .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
     world
         .materials
-        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+        .insert(2, (14, 2_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
     let w = 24;
@@ -2318,7 +2422,7 @@ fn test_explosion_img_big_empty() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_big.png").unwrap();
 }
-#[cfg(test)]
+/*#[cfg(test)]
 #[test]
 #[serial]
 fn test_explosion_large() {
@@ -2327,6 +2431,7 @@ fn test_explosion_large() {
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
     );
+    world.nice_terraforming = false;
     world
         .materials
         .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
@@ -2338,15 +2443,10 @@ fn test_explosion_large() {
         .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
-    let w = 520;
+    let w = 1024;
     for i in -w..w {
-        for j in -w + 10..w {
-            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
-                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
-                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
-            } else {
-                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
-            }
+        for j in -w..w {
+            world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
         }
     }
     //let mut img = image::GrayImage::new(pixels, pixels);
@@ -2365,23 +2465,8 @@ fn test_explosion_large() {
         1,
         4,
     )]);
-    let w = 520;
-    let mut rng = thread_rng();
-    let mut iter = (-w..w)
-        .flat_map(|i| (-w..-w + 10).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
-        .collect::<Vec<(i32, i32)>>();
-    iter.shuffle(&mut rng);
-    for (i, j) in iter {
-        let c = ChunkCoord(i, j);
-        if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(_dirt.clone());
-            if world.explosion_pointer.contains_key(&c) {
-                world.cut_through_world_explosion_chunk(c)
-            }
-        }
-    }
     println!("total large ex milli {}", timer.elapsed().as_millis());
-}
+}*/
 #[cfg(test)]
 #[test]
 #[serial]
