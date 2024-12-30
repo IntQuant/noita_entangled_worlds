@@ -2005,7 +2005,7 @@ impl WorldManager {
                         let h = (stats.1 as f32 * mult) as u32;
                         avg += h;
                         count2 += 1;
-                        if stats.0 > d || ray < h + ((count * avg as u64 ) / count2) as u32 {
+                        if stats.0 > d || ray < h + ((count * avg as u64) / count2) as u32 {
                             return if count2 == 1 {
                                 Some((0, 0, ExTarget::Pixel((dd as f64).sqrt() as u32), 0))
                             } else if let ExTarget::Ray(_) = rayn {

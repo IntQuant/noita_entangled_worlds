@@ -702,10 +702,12 @@ local function sync_enemy(enemy_info_raw, force_no_cull, host_fps)
                 inventory = EntityCreateNew("inventory_quick")
                 EntityAddChild(enemy_id, inventory)
             end
-            if EntityGetParent(wand) ~= 0 then
-                EntityRemoveFromParent(wand)
+            if EntityGetParent(wand) ~= inventory then
+                if EntityGetParent(wand) ~= 0 then
+                    EntityRemoveFromParent(wand)
+                end
+                EntityAddChild(inventory, wand)
             end
-            EntityAddChild(inventory, wand)
             np.SetActiveHeldEntity(enemy_id, wand, false, false)
         elseif should_wait[gid] == nil or should_wait[gid] < GameGetFrameNum() then
             item_sync.rpc.request_send_again(gid)
