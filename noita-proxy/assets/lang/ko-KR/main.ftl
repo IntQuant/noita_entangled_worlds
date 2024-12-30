@@ -35,7 +35,7 @@ player_host = 호스트
 player_me = 나
 player_player = 플레이어
 
-version_latest = (최신)
+version_latest = (최신 버전)
 version_check_failed = (업데이트 확인 불가)
 version_checking = (업데이트 확인 중)
 version_new_available = { $new_version }으로 업데이트 가능
@@ -46,8 +46,8 @@ selfupdate_receiving_rel_info = 릴리즈 정보 가져오는 중...
 selfupdate_updated = 프록시가 업데이트되었습니다! 지금 재시작 하세요.
 selfupdate_unpacking = 압축 푸는 중...
 
-noita_not_yet = 아직 준비가 되지 않았습니다. 노이타를 시작하기 전에 기다리세요.
-noita_can_connect = 노이타 연결을 준비중입니다. 노이타에서 새 게임을 시작할 시간이에요!
+noita_not_yet = 아직 시작할 준비가 되지 않았습니다. 노이타를 시작하기 전에 기다리세요.
+noita_can_connect = 노이타 연결을 기다리는 중. 노이타에서 새 게임을 시작할 시간이에요!
 noita_connected = 로컬 노이타 인스턴스 연결됨.
 
 netman_save_lobby = 로비 ID 클립보드에 복사하기
@@ -97,7 +97,7 @@ Have-perk-pools-be-independent-of-each-other = 퍽(능력)풀이 플레이어마
 Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = 호스트가 한번에 불러와두는 청크의 양. 동기화된 적과 물리적 물체들은 호스트가 불러와야 플라이언트가 볼 수 있습니다
 local_health_desc_1 = 모든 플레이어가 각자 체력을 가지고, 모든 플레이어가 사망하면 런이 종료됩니다.
 local_health_desc_2 = 리스폰을 하는 방법이 있습니다.
-Health-percent-lost-on-reviving = 다시 살아났을 때 잃는 체력 퍼센트
+Health-percent-lost-on-reviving = 다시 살아났을 때 잃는 최대 체력 퍼센트
 global_hp_loss = 체력 손실 공유
 no_material_damage = 물질로 인한 피해 없음
 perma_death = 퍼마데스
