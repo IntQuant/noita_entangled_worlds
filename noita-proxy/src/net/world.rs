@@ -200,7 +200,7 @@ pub(crate) struct WorldManager {
     pub materials: FxHashMap<u16, (u32, u32, CellType)>,
     is_storage_recent: FxHashSet<ChunkCoord>,
     explosion_pointer: FxHashMap<ChunkCoord, Vec<usize>>,
-    explosion_data: Vec<(usize, usize, ExTarget, i32)>,
+    explosion_data: Vec<(usize, usize, ExTarget, u64)>,
     explosion_heap: Vec<ExplosionData>,
 }
 
@@ -1778,10 +1778,10 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     fn interior_iter_chunk(
         &self,
-        ex: (ExplosionData, usize, ExTarget, i32),
+        ex: (ExplosionData, usize, ExTarget, u64),
         chunk: ChunkCoord,
         a: f32,
-    ) -> Option<(Option<i32>, ExTarget, i32)> {
+    ) -> Option<(Option<u64>, ExTarget, u64)> {
         let ExplosionData {
             x,
             y,
@@ -1807,8 +1807,8 @@ impl WorldManager {
         if let Some((enx, ey, ur, dd)) =
             self.do_ray_chunk(x, y, end_x, end_y, ex.2, d, mult, chunk, ex.3)
         {
-            let dx = enx - x;
-            let dy = ey - y;
+            let dx = enx.abs_diff(x) as u64;
+            let dy = ey.abs_diff(y) as u64;
             if dx != 0 || dy != 0 {
                 Some((Some(dx * dx + dy * dy), ur, dd))
             } else {
@@ -1830,13 +1830,13 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     fn explosion_chunk_get_chunk(
         &self,
-        exp: Vec<(usize, (usize, usize, ExTarget, i32))>,
+        exp: Vec<(usize, (usize, usize, ExTarget, u64))>,
         chunk: ChunkCoord,
     ) -> (
         Option<(ChunkData, bool)>,
-        Vec<(usize, Option<(Option<i32>, ExTarget, i32)>)>,
+        Vec<(usize, Option<(Option<u64>, ExTarget, u64)>)>,
     ) {
-        let data: Vec<(usize, Option<(Option<i32>, ExTarget, i32)>)> = exp
+        let data: Vec<(usize, Option<(Option<u64>, ExTarget, u64)>)> = exp
             .into_par_iter()
             .map(|ex| {
                 (
@@ -1855,7 +1855,7 @@ impl WorldManager {
 
     #[allow(clippy::type_complexity)]
     pub(crate) fn cut_through_world_explosion_chunk(&mut self, chunk: ChunkCoord) {
-        let exp: Vec<(usize, (usize, usize, ExTarget, i32))> = self
+        let exp: Vec<(usize, (usize, usize, ExTarget, u64))> = self
             .explosion_pointer
             .get(&chunk)
             .unwrap()
@@ -1892,10 +1892,10 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     pub(crate) fn explosion_chunk(
         &self,
-        data: &[(usize, Option<(Option<i32>, ExTarget, i32)>)],
+        data: &[(usize, Option<(Option<u64>, ExTarget, u64)>)],
         coord: ChunkCoord,
     ) -> Option<(ChunkData, bool)> {
-        let data: Vec<(usize, usize, i32)> = data
+        let data: Vec<(usize, usize, u64)> = data
             .iter()
             .filter_map(|(i, a)| {
                 if let Some(a) = a {
@@ -1910,11 +1910,11 @@ impl WorldManager {
                 }
             })
             .collect();
-        let mut grouped: HashMap<usize, Vec<(usize, i32)>> = HashMap::new();
+        let mut grouped: HashMap<usize, Vec<(usize, u64)>> = HashMap::new();
         for (key, a, b) in data {
             grouped.entry(key).or_default().push((a, b));
         }
-        let data: Vec<(usize, Vec<(usize, i32)>)> = grouped.into_iter().collect();
+        let data: Vec<(usize, Vec<(usize, u64)>)> = grouped.into_iter().collect();
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
@@ -1949,13 +1949,13 @@ impl WorldManager {
                     };
                     let dx = cx - x;
                     let dy = cy - y;
-                    let dd = dx * dx + dy * dy;
                     let rays = r.next_power_of_two().clamp(16, 1024);
                     let mut j = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
                     if j.is_sign_negative() {
                         j += rays as f32
                     }
                     let j = j as usize;
+                    let dd = dx as u64 * dx as u64 + dy as u64 * dy as u64;
                     if data.iter().any(|(i, r)| j == *i && dd <= *r) {
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
                         if self
@@ -1988,25 +1988,25 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     fn do_ray_chunk(
         &self,
-        sx: i32,
-        sy: i32,
+        stx: i32,
+        sty: i32,
         end_x: i32,
         end_y: i32,
         rayn: ExTarget,
         d: u32,
         mult: f32,
         chunk: ChunkCoord,
-        sd: i32,
-    ) -> Option<(i32, i32, ExTarget, i32)> {
+        sd: u64,
+    ) -> Option<(i32, i32, ExTarget, u64)> {
         //Bresenham's line algorithm
         let mut ray = match rayn {
             ExTarget::Ray(r) => r,
             ExTarget::Radius(_) => u64::MAX,
         };
-        let mut x = sx;
-        let mut y = sy;
-        let dx = (end_x - x).abs();
-        let dy = (end_y - y).abs();
+        let mut x = stx;
+        let mut y = sty;
+        let dx = end_x.abs_diff(x) as i32;
+        let dy = end_y.abs_diff(y) as i32;
         if (dx == 0 && dy == 0) || ray == 0 {
             return None;
         }
@@ -2029,8 +2029,8 @@ impl WorldManager {
             );
             if co == chunk {
                 found = true;
-                let dx = (sx - x).abs();
-                let dy = (sy - y).abs();
+                let dx = stx.abs_diff(x) as u64;
+                let dy = sty.abs_diff(y) as u64;
                 let dd = dx * dx + dy * dy;
                 if sd < dd {
                     let icx = x.rem_euclid(CHUNK_SIZE as i32);
@@ -2054,8 +2054,8 @@ impl WorldManager {
                     }
                 }
             } else if found {
-                let dx = (sx - x).abs();
-                let dy = (sy - y).abs();
+                let dx = stx.abs_diff(x) as u64;
+                let dy = sty.abs_diff(y) as u64;
                 let dd = dx * dx + dy * dy;
                 return if let ExTarget::Ray(_) = rayn {
                     Some((end_x, end_y, ExTarget::Ray(ray), dd))
@@ -2063,8 +2063,8 @@ impl WorldManager {
                     Some((end_x, end_y, rayn, dd))
                 };
             } else if !self.chunk_storage.contains_key(&co) {
-                let dx = (sx - x).abs();
-                let dy = (sy - y).abs();
+                let dx = stx.abs_diff(x) as u64;
+                let dy = sty.abs_diff(y) as u64;
                 let dd = dx * dx + dy * dy;
                 if sd < dd {
                     count += 1;
@@ -2081,7 +2081,7 @@ impl WorldManager {
             }
         }
         if found {
-            let dd = dx * dx + dy * dy;
+            let dd = dx as u64 * dx as u64 + dy as u64 * dy as u64;
             if let ExTarget::Ray(_) = rayn {
                 Some((x, y, ExTarget::Ray(ray), dd))
             } else {
@@ -2390,6 +2390,75 @@ fn test_explosion_img_big() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_bigger.png").unwrap();
+}
+/#[cfg(test)]
+#[test]
+#[serial]
+fn test_explosion_img_big_br() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 20;
+    for i in -w..w {
+        for j in -w..w {
+            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            } else {
+                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+            }
+        }
+    }
+    //let mut img = image::GrayImage::new(pixels, pixels);
+    //world._create_image(&mut img, pixels);
+    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world_explosion(vec![ExplosionData::new(
+        0,
+        0,
+        4096,
+        15,
+        256_000_000,
+        true,
+        true,
+        1,
+        4,
+    )]);
+    let w = 48;
+    let mut rng = thread_rng();
+    let mut iter = (-w..w)
+        .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
+        .collect::<Vec<(i32, i32)>>();
+    iter.shuffle(&mut rng);
+    for (i, j) in iter {
+        let c = ChunkCoord(i, j);
+        if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
+            e.insert(_brickwork.clone());
+            if world.explosion_pointer.contains_key(&c) {
+                world.cut_through_world_explosion_chunk(c)
+            }
+        }
+    }
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img_ex_bigger_br.png").unwrap();
 }
 #[cfg(test)]
 #[test]
