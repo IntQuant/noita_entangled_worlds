@@ -596,7 +596,9 @@ impl WorldManager {
             .unwrap_or(self.chunk_storage.contains_key(&chunk))
         {
             self.chunk_storage.get(&chunk).cloned()
-        } else if self.explosion_pointer.contains_key(&chunk) {
+        } else if self.explosion_pointer.contains_key(&chunk)
+            && !self.chunk_storage.contains_key(&chunk)
+        {
             self.emit_msg(
                 Destination::Peer(source),
                 WorldNetMessage::GetChunk { chunk, priority },
@@ -1742,7 +1744,9 @@ impl WorldManager {
                         if i.is_sign_negative() {
                             i += rays as f32
                         }
-                        if dd as u64 + dy as u64 * dy as u64 <= list[i as usize] {
+                        if dd as u64 + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64
+                            <= list[i as usize]
+                        {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if self
                                 .materials
@@ -1861,8 +1865,8 @@ impl WorldManager {
     pub(crate) fn cut_through_world_explosion_chunk(&mut self, chunk: ChunkCoord) {
         let exp: Vec<(usize, (usize, usize, ExTarget, u64))> = self
             .explosion_pointer
-            .get(&chunk)
-            .unwrap()
+            .remove(&chunk)
+            .unwrap_or_default()
             .iter()
             .map(|i| (*i, self.explosion_data[*i]))
             .collect();
@@ -1959,7 +1963,8 @@ impl WorldManager {
                         j += rays as f32
                     }
                     let j = j as usize;
-                    let dd = dx as u64 * dx as u64 + dy as u64 * dy as u64;
+                    let dd = dx.unsigned_abs() as u64 * dx.unsigned_abs() as u64
+                        + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64;
                     if data.iter().any(|(i, r)| j == *i && dd <= *r) {
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
                         if self
@@ -2321,8 +2326,8 @@ fn test_explosion_img() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex.png").unwrap();
-}*/
-/*#[cfg(test)]
+}
+#[cfg(test)]
 #[test]
 #[serial]
 fn test_explosion_img_big() {
@@ -2395,7 +2400,7 @@ fn test_explosion_img_big() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_bigger.png").unwrap();
 }
-/#[cfg(test)]
+#[cfg(test)]
 #[test]
 #[serial]
 fn test_explosion_img_big_br() {
@@ -2710,6 +2715,101 @@ fn test_circ_img() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_circ.png").unwrap();
+}
+#[cfg(test)]
+#[test]
+#[serial]
+fn test_explosion_img_big_many() {
+    let mut world = WorldManager::new(
+        true,
+        OmniPeerId(0),
+        SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+    );
+    world
+        .materials
+        .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+    world
+        .materials
+        .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+    world
+        .materials
+        .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+    let w = 20;
+    for i in -w..w {
+        for j in -w..w {
+            if i != -10 {
+                if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
+                    //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
+                    world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+                } else {
+                    world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
+                }
+            }
+        }
+    }
+
+    //let mut img = image::GrayImage::new(pixels, pixels);
+    //world._create_image(&mut img, pixels);
+    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
+
+    let timer = std::time::Instant::now();
+    world.cut_through_world_explosion(vec![
+        ExplosionData::new(
+            0,
+            0,
+            128,
+            15,
+            100_000_000,
+            true,
+            true,
+            1,
+            4,
+        );
+        16
+    ]);
+    world.cut_through_world_explosion(vec![
+        ExplosionData::new(1000, 5000, 128, 15, 100_000_000, true, true, 1, 4),
+        ExplosionData::new(-1000, -5000, 128, 15, 100_000_000, true, true, 1, 4),
+    ]);
+    world.cut_through_world_explosion(vec![
+        ExplosionData::new(0, 0, 4096, 15, 256_000_000, true, true, 1, 4),
+        ExplosionData::new(128 * 48, 128 * 48, 4096, 15, 256_000_000, true, true, 1, 4),
+    ]);
+    world.cut_through_world_explosion(
+        (-48..48)
+            .flat_map(|a| (-48..48).map(|b| (a, b)).collect::<Vec<(i32, i32)>>())
+            .map(|(a, b)| {
+                ExplosionData::new(a * 128, b * 128, 64, 15, 256_000_000, true, true, 1, 4)
+            })
+            .collect(),
+    );
+    let w = 48;
+    let mut rng = thread_rng();
+    let mut iter = (-w..w)
+        .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
+        .collect::<Vec<(i32, i32)>>();
+    iter.shuffle(&mut rng);
+    for (i, j) in iter {
+        let c = ChunkCoord(i, j);
+        if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
+            e.insert(if rng.gen_bool(0.2) {
+                _brickwork.clone()
+            } else {
+                _dirt.clone()
+            });
+            if world.explosion_pointer.contains_key(&c) {
+                world.cut_through_world_explosion_chunk(c)
+            }
+        }
+    }
+    println!("total img micros {}", timer.elapsed().as_micros());
+
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
+    let mut img = image::GrayImage::new(pixels, pixels);
+    world._create_image(&mut img, pixels);
+    img.save("/tmp/ew_tmp_save/img_ex_bigger_test.png").unwrap();
 }*/
 #[cfg(test)]
 use crate::net::LiquidType;
