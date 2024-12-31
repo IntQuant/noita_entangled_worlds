@@ -803,13 +803,13 @@ impl NetManager {
             Some("cut_through_world_explosion") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                let r: Option<u32> = msg.next().and_then(|s| s.parse().ok());
+                let r: Option<u64> = msg.next().and_then(|s| s.parse().ok());
                 let d: Option<u32> = msg.next().and_then(|s| s.parse().ok());
-                let ray: Option<u32> = msg.next().and_then(|s| s.parse().ok());
+                let ray: Option<u64> = msg.next().and_then(|s| s.parse().ok());
                 let hole: Option<bool> = msg.next().and_then(|s| s.parse().ok());
                 let liquid: Option<bool> = msg.next().and_then(|s| s.parse().ok());
                 let mat: Option<u16> = msg.next().and_then(|s| s.parse().ok());
-                let prob: Option<u8> = msg.next().and_then(|s| s.parse().ok());
+                let prob: Option<u64> = msg.next().and_then(|s| s.parse().ok());
                 let (
                     Some(x),
                     Some(y),
@@ -825,9 +825,17 @@ impl NetManager {
                     error!("Missing arguments in cut_through_world_expl message");
                     return;
                 };
-                state
-                    .explosion_data
-                    .push(ExplosionData::new(x, y, r, d, ray, hole, liquid, mat, prob));
+                state.explosion_data.push(ExplosionData::new(
+                    x,
+                    y,
+                    r,
+                    d,
+                    ray,
+                    hole,
+                    liquid,
+                    mat,
+                    prob.max(100) as u8,
+                ));
             }
             Some("flush_exp") => {
                 state
@@ -894,9 +902,9 @@ impl NetManager {
 pub struct ExplosionData {
     x: i32,
     y: i32,
-    r: u32,
+    r: u64,
     d: u32,
-    ray: u32,
+    ray: u64,
     hole: bool,
     liquid: bool,
     mat: u16,
@@ -907,9 +915,9 @@ impl ExplosionData {
     fn new(
         x: i32,
         y: i32,
-        r: u32,
+        r: u64,
         d: u32,
-        ray: u32,
+        ray: u64,
         hole: bool,
         liquid: bool,
         mat: u16,

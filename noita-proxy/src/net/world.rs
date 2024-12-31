@@ -206,8 +206,8 @@ pub(crate) struct WorldManager {
 
 #[derive(Copy, Clone, PartialEq)]
 pub(crate) enum ExTarget {
-    Ray(u32),
-    Pixel(u32),
+    Ray(u64),
+    Radius(u64),
 }
 
 impl WorldManager {
@@ -1190,6 +1190,7 @@ impl WorldManager {
             (lx, ly - r),
         ]
         .into_iter();
+        let r = r as u64 * r as u64;
         let chunk_storage: Vec<(ChunkCoord, ChunkData, bool)> = (min_cx..=max_cx)
             .into_par_iter()
             .flat_map(|chunk_x| {
@@ -1215,9 +1216,9 @@ impl WorldManager {
                         let dcx = cx - x;
                         let dcy = cy - y;
                         let m = ((dcx * dmx + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
-                        let dx = dcx - (m * dmx as f64) as i32;
-                        let dy = dcy - (m * dmy as f64) as i32;
-                        dx * dx + dy * dy <= r * r
+                        let dx = dcx.abs_diff((m * dmx as f64) as i32) as u64;
+                        let dy = dcy.abs_diff((m * dmy as f64) as i32) as u64;
+                        dx * dx + dy * dy <= r
                     })
                     || {
                         let (end_x, end_y) = (
@@ -1260,9 +1261,9 @@ impl WorldManager {
                         let cy = chunk_start_y + icy;
                         let dcy = cy - y;
                         let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
-                        let dx = dcx - (m * dmx as f64) as i32;
-                        let dy = dcy - (m * dmy as f64) as i32;
-                        if dx * dx + dy * dy <= r * r {
+                        let dx = dcx.abs_diff((m * dmx as f64) as i32) as u64;
+                        let dy = dcy.abs_diff((m * dmy as f64) as i32) as u64;
+                        if dx * dx + dy * dy <= r {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if self
                                 .materials
@@ -1308,6 +1309,7 @@ impl WorldManager {
             y.div_euclid(CHUNK_SIZE as i32),
         );
         let do_continue = mat.unwrap_or(0) != 0;
+        let rs = r as u64 * r as u64;
         let chunk_storage: Vec<(ChunkCoord, ChunkData, bool)> = (min_cx..=max_cx)
             .into_par_iter()
             .flat_map(|chunk_x| {
@@ -1327,9 +1329,9 @@ impl WorldManager {
                     } else {
                         chunk_y * CHUNK_SIZE as i32
                     };
-                    let dx = close_x - x;
-                    let dy = close_y - y;
-                    dx * dx + dy * dy <= r * r
+                    let dx = close_x.abs_diff(x) as u64;
+                    let dy = close_y.abs_diff(y) as u64;
+                    dx * dx + dy * dy <= rs
                 }
             })
             .filter_map(|(chunk_x, chunk_y)| {
@@ -1357,12 +1359,12 @@ impl WorldManager {
                 let mut changed = false;
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
-                    let dx = cx - x;
+                    let dx = cx.abs_diff(x) as u64;
                     let dd = dx * dx;
                     for icy in 0..CHUNK_SIZE as i32 {
                         let cy = chunk_start_y + icy;
-                        let dy = cy - y;
-                        if dd + dy * dy <= r * r {
+                        let dy = cy.abs_diff(y) as u64;
+                        if dd + dy * dy <= rs {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if self
                                 .materials
@@ -1398,10 +1400,10 @@ impl WorldManager {
         mut y: i32,
         end_x: i32,
         end_y: i32,
-        mut ray: u32,
+        mut ray: u64,
         d: u32,
         mult: f32,
-    ) -> (Option<(i32, i32)>, u32) {
+    ) -> (Option<(i32, i32)>, u64) {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
@@ -1466,7 +1468,7 @@ impl WorldManager {
                 let px = icy as usize * CHUNK_SIZE + icx as usize;
                 let pixel = working_chunk.pixel(px);
                 if let Some(stats) = self.materials.get(&pixel.material) {
-                    let h = (stats.1 as f32 * mult) as u32;
+                    let h = (stats.1 as f64 * mult as f64) as u64;
                     if stats.0 > d || ray < h {
                         return (last_coord, 0);
                     }
@@ -1493,7 +1495,7 @@ impl WorldManager {
     }
 
     #[allow(clippy::type_complexity)]
-    fn interior_iter(&self, ex: ExplosionData) -> (Vec<ExRet>, Vec<u32>) {
+    fn interior_iter(&self, ex: ExplosionData) -> (Vec<ExRet>, Vec<u64>) {
         let ExplosionData {
             x,
             y,
@@ -1511,14 +1513,14 @@ impl WorldManager {
             .into_par_iter()
             .map(|n| {
                 let theta = t * (n as f32 + 0.5);
-                let end_x = x + (r as f32 * theta.cos()) as i32;
-                let end_y = y + (r as f32 * theta.sin()) as i32;
+                let end_x = x + (r as f64 * theta.cos() as f64) as i32;
+                let end_y = y + (r as f64 * theta.sin() as f64) as i32;
                 let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
                     .cos()
                     .recip();
                 if let (Some((ex, ey)), v) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
-                    let dx = ex - x;
-                    let dy = ey - y;
+                    let dx = ex.abs_diff(x) as u64;
+                    let dy = ey.abs_diff(y) as u64;
                     if dx != 0 || dy != 0 {
                         (dx * dx + dy * dy, v)
                     } else {
@@ -1531,7 +1533,7 @@ impl WorldManager {
             .unzip();
         (
             self.cut_through_world_explosion_list(
-                x, y, d, rays, results, hole, liquid, mat, prob, r as i32,
+                x, y, d, rays, results, hole, liquid, mat, prob, r,
             ),
             lst,
         )
@@ -1539,7 +1541,7 @@ impl WorldManager {
 
     #[allow(clippy::type_complexity)]
     pub(crate) fn cut_through_world_explosion(&mut self, exp: Vec<ExplosionData>) {
-        let resres: Vec<((Vec<ExRet>, Vec<u32>), ExplosionData)> = exp
+        let resres: Vec<((Vec<ExRet>, Vec<u64>), ExplosionData)> = exp
             .into_par_iter()
             .map(|ex| (self.interior_iter(ex), ex))
             .collect();
@@ -1597,25 +1599,25 @@ impl WorldManager {
         x: i32,
         y: i32,
         d: u32,
-        rays: u32,
-        list: Vec<i32>,
+        rays: u64,
+        list: Vec<u64>,
         hole: bool,
         liquid: bool,
         mat: u16,
         prob: u8,
-        r: i32,
+        r: u64,
     ) -> Vec<ExRet> {
         let rs = *list.iter().max().unwrap_or(&0);
         if r == 0 {
             return Vec::new();
         }
         let (min_cx, max_cx) = (
-            (x - r).div_euclid(CHUNK_SIZE as i32),
-            (x + r).div_euclid(CHUNK_SIZE as i32),
+            (x - r as i32).div_euclid(CHUNK_SIZE as i32),
+            (x + r as i32).div_euclid(CHUNK_SIZE as i32),
         );
         let (min_cy, max_cy) = (
-            (y - r).div_euclid(CHUNK_SIZE as i32),
-            (y + r).div_euclid(CHUNK_SIZE as i32),
+            (y - r as i32).div_euclid(CHUNK_SIZE as i32),
+            (y + r as i32).div_euclid(CHUNK_SIZE as i32),
         );
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
@@ -1668,8 +1670,8 @@ impl WorldManager {
                             (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
                         )
                     };
-                    let dx = close_x - x;
-                    let dy = close_y - y;
+                    let dx = close_x.abs_diff(x) as u64;
+                    let dy = close_y.abs_diff(y) as u64;
                     let adj_dx = adj_x1 - x;
                     let adj_dy = adj_y1 - y;
                     let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
@@ -1736,7 +1738,7 @@ impl WorldManager {
                         if i.is_sign_negative() {
                             i += rays as f32
                         }
-                        if dd + dy * dy <= list[i as usize] {
+                        if dd as u64 + dy as u64 * dy as u64 <= list[i as usize] {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if self
                                 .materials
@@ -1792,13 +1794,13 @@ impl WorldManager {
             prob: _,
         } = ex.0;
         let rays = r.next_power_of_two().clamp(16, 1024);
-        if let ExTarget::Pixel(p) = ex.2 {
+        if let ExTarget::Radius(p) = ex.2 {
             r = p
         }
         let t = TAU / rays as f32;
         let theta = t * (ex.1 as f32 + a);
-        let end_x = x + (r as f32 * theta.cos()) as i32;
-        let end_y = y + (r as f32 * theta.sin()) as i32;
+        let end_x = x + (r as f64 * theta.cos() as f64) as i32;
+        let end_y = y + (r as f64 * theta.sin() as f64) as i32;
         let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
             .cos()
             .recip();
@@ -1999,7 +2001,7 @@ impl WorldManager {
         //Bresenham's line algorithm
         let mut ray = match rayn {
             ExTarget::Ray(r) => r,
-            ExTarget::Pixel(_) => u32::MAX,
+            ExTarget::Radius(_) => u64::MAX,
         };
         let mut x = sx;
         let mut y = sy;
@@ -2036,16 +2038,16 @@ impl WorldManager {
                     let px = icy as usize * CHUNK_SIZE + icx as usize;
                     let pixel = working_chunk.pixel(px);
                     if let Some(stats) = self.materials.get(&pixel.material) {
-                        let h = (stats.1 as f32 * mult) as u32;
+                        let h = (stats.1 as f64 * mult as f64) as u64;
                         avg += h;
                         count2 += 1;
-                        if stats.0 > d || ray < h + ((count * avg as u64) / count2) as u32 {
+                        if stats.0 > d || ray < h + ((count * avg) / count2) {
                             return if count2 == 1 {
-                                Some((0, 0, ExTarget::Pixel((dd as f64).sqrt() as u32), 0))
+                                Some((0, 0, ExTarget::Radius((dd as f64).sqrt() as u64), 0))
                             } else if let ExTarget::Ray(_) = rayn {
-                                Some((x, y, ExTarget::Pixel((dd as f64).sqrt() as u32), dd))
+                                Some((x, y, ExTarget::Radius((dd as f64).sqrt() as u64), dd))
                             } else {
-                                Some((x, y, ExTarget::Pixel((dd as f64).sqrt() as u32), dd))
+                                Some((x, y, ExTarget::Radius((dd as f64).sqrt() as u64), dd))
                             };
                         };
                         ray = ray.saturating_sub(h);
@@ -2126,15 +2128,15 @@ fn should_process_chunk(
     chunk_y: i32,
     x: i32,
     y: i32,
-    r: i32,
-    list: &[i32],
+    r: u64,
+    list: &[u64],
     chunkx: i32,
     chunky: i32,
-    rays: u32,
-    rs: i32,
+    rays: u64,
+    rs: u64,
 ) -> bool {
-    r <= CHUNK_SIZE as i32 || {
-        if r >= 8 * CHUNK_SIZE as i32 {
+    r <= CHUNK_SIZE as u64 || {
+        if r >= 8 * CHUNK_SIZE as u64 {
             let close_x = if chunk_x < chunkx {
                 (chunk_x + 1) * CHUNK_SIZE as i32 - 1
             } else {
@@ -2145,8 +2147,8 @@ fn should_process_chunk(
             } else {
                 chunk_y * CHUNK_SIZE as i32
             };
-            let dx = close_x - x;
-            let dy = close_y - y;
+            let dx = close_x.abs_diff(x) as u64;
+            let dy = close_y.abs_diff(y) as u64;
             let d = dx * dx + dy * dy;
             if d > rs {
                 return false;
@@ -2193,8 +2195,8 @@ fn should_process_chunk(
             } else {
                 chunk_y * CHUNK_SIZE as i32
             };
-            let dx = close_x - x;
-            let dy = close_y - y;
+            let dx = close_x.abs_diff(x) as u64;
+            let dy = close_y.abs_diff(y) as u64;
             dx * dx + dy * dy <= rs
         }
     }
