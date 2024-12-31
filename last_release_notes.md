@@ -1,21 +1,14 @@
-## Noita Entangled Worlds v0.32.9
+## Noita Entangled Worlds v0.32.10
 
-- have explosions work outside of render range
+- optimize explosions
 
-- fix some global perks effect duping
+- fix explosion artifacts
 
-- remove debug game prints
-
-- color notplayer lukki legs
-
-- give notplayer a map icon
-
-- make reconnect nicer
-
-- display what gamemode people pick while in game over screen
+- hopefully fix a crash in proxy
 
 ## Accepted pull requests
 
+- Minor translation changes by @Alphaccca in #300
 - Added Korean font, applied Korean font by @Alphaccca in #299
 ## Installation
 
