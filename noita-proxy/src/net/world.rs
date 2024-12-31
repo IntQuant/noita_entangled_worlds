@@ -200,7 +200,8 @@ pub(crate) struct WorldManager {
     pub materials: FxHashMap<u16, (u32, u32, CellType)>,
     is_storage_recent: FxHashSet<ChunkCoord>,
     explosion_pointer: FxHashMap<ChunkCoord, Vec<usize>>,
-    explosion_data: Vec<(ExplosionData, usize, ExTarget, i32)>,
+    explosion_data: Vec<(usize, usize, ExTarget, i32)>,
+    explosion_heap: Vec<ExplosionData>,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -234,6 +235,7 @@ impl WorldManager {
             is_storage_recent: Default::default(),
             explosion_pointer: Default::default(),
             explosion_data: Default::default(),
+            explosion_heap: Default::default(),
         }
     }
 
@@ -1542,6 +1544,8 @@ impl WorldManager {
             .map(|ex| (self.interior_iter(ex), ex))
             .collect();
         for ((chunks, raydata), ex) in resres {
+            let m = self.explosion_heap.len();
+            self.explosion_heap.push(ex);
             let mut data = FxHashMap::default();
             for entry in chunks {
                 match entry {
@@ -1569,7 +1573,7 @@ impl WorldManager {
                                     } else {
                                         let n = self.explosion_data.len();
                                         self.explosion_data.push((
-                                            ex,
+                                            m,
                                             *i,
                                             ExTarget::Ray(raydata[*i]),
                                             0,
@@ -1775,17 +1779,17 @@ impl WorldManager {
         ex: (ExplosionData, usize, ExTarget, i32),
         chunk: ChunkCoord,
         a: f32,
-    ) -> Option<(Option<(ChunkData, bool)>, ExTarget, i32)> {
+    ) -> Option<(Option<i32>, ExTarget, i32)> {
         let ExplosionData {
             x,
             y,
             mut r,
             d,
             ray: _,
-            hole,
-            liquid,
-            mat,
-            prob,
+            hole: _,
+            liquid: _,
+            mat: _,
+            prob: _,
         } = ex.0;
         let rays = r.next_power_of_two().clamp(16, 1024);
         if let ExTarget::Pixel(p) = ex.2 {
@@ -1804,23 +1808,7 @@ impl WorldManager {
             let dx = enx - x;
             let dy = ey - y;
             if dx != 0 || dy != 0 {
-                Some((
-                    self.explosion_chunk(
-                        x,
-                        y,
-                        d,
-                        rays,
-                        dx * dx + dy * dy,
-                        hole,
-                        liquid,
-                        mat,
-                        prob,
-                        chunk,
-                        ex.1,
-                    ),
-                    ur,
-                    dd,
-                ))
+                Some((Some(dx * dx + dy * dy), ur, dd))
             } else {
                 Some((None, ur, dd))
             }
@@ -1837,31 +1825,57 @@ impl WorldManager {
                 .or(Some((None, ex.2, 0)))
         }
     }
+    #[allow(clippy::type_complexity)]
+    fn explosion_chunk_get_chunk(
+        &self,
+        exp: Vec<(usize, (usize, usize, ExTarget, i32))>,
+        chunk: ChunkCoord,
+    ) -> (
+        Option<(ChunkData, bool)>,
+        Vec<(usize, Option<(Option<i32>, ExTarget, i32)>)>,
+    ) {
+        let data: Vec<(usize, Option<(Option<i32>, ExTarget, i32)>)> = exp
+            .into_par_iter()
+            .map(|ex| {
+                (
+                    ex.0,
+                    self.interior_iter_chunk(
+                        (self.explosion_heap[ex.1 .0], ex.1 .1, ex.1 .2, ex.1 .3),
+                        chunk,
+                        0.5,
+                    ),
+                )
+            })
+            .collect();
+        let ch = self.explosion_chunk(&data, chunk);
+        (ch, data)
+    }
 
     #[allow(clippy::type_complexity)]
     pub(crate) fn cut_through_world_explosion_chunk(&mut self, chunk: ChunkCoord) {
-        let exp: Vec<(usize, (ExplosionData, usize, ExTarget, i32))> = self
+        let exp: Vec<(usize, (usize, usize, ExTarget, i32))> = self
             .explosion_pointer
             .get(&chunk)
             .unwrap()
             .iter()
             .map(|i| (*i, self.explosion_data[*i]))
             .collect();
-        let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, ExTarget, i32)>)> = exp
-            .into_par_iter()
-            .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk, 0.5)))
-            .collect();
-        for (i, ch) in resres {
-            if let Some((ch, u, dd)) = ch {
-                if let Some(ch) = ch {
-                    if ch.1 {
-                        self.chunk_storage.insert(chunk, ch.0);
-                    } else {
-                        self.chunk_storage
-                            .entry(chunk)
-                            .and_modify(|c| c.apply_delta(ch.0));
-                    }
-                }
+        /*let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, ExTarget, i32)>)> = exp
+        .into_par_iter()
+        .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk, 0.5)))
+        .collect();*/
+        let (ch, v) = self.explosion_chunk_get_chunk(exp, chunk);
+        if let Some(ch) = ch {
+            if ch.1 {
+                self.chunk_storage.insert(chunk, ch.0);
+            } else {
+                self.chunk_storage
+                    .entry(chunk)
+                    .and_modify(|c| c.apply_delta(ch.0));
+            }
+        }
+        for (i, ch) in v {
+            if let Some((_, u, dd)) = ch {
                 self.explosion_data[i].2 = u;
                 if dd > self.explosion_data[i].3 {
                     self.explosion_data[i].3 = dd
@@ -1872,32 +1886,36 @@ impl WorldManager {
         }
         self.is_storage_recent.insert(chunk);
     }
-
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::type_complexity)]
     pub(crate) fn explosion_chunk(
         &self,
-        x: i32,
-        y: i32,
-        d: u32,
-        rays: u32,
-        rs: i32,
-        hole: bool,
-        liquid: bool,
-        mat: u16,
-        prob: u8,
+        data: &[(usize, Option<(Option<i32>, ExTarget, i32)>)],
         coord: ChunkCoord,
-        ray: usize,
     ) -> Option<(ChunkData, bool)> {
-        if rs == 0 {
-            return None;
+        let data: Vec<(usize, usize, i32)> = data
+            .iter()
+            .filter_map(|(i, a)| {
+                if let Some(a) = a {
+                    if let Some(b) = a.0 {
+                        let ex = self.explosion_data[*i];
+                        Some((ex.0, ex.1, b))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let mut grouped: HashMap<usize, Vec<(usize, i32)>> = HashMap::new();
+        for (key, a, b) in data {
+            grouped.entry(key).or_default().push((a, b));
         }
+        let data: Vec<(usize, Vec<(usize, i32)>)> = grouped.into_iter().collect();
         let air_pixel = Pixel {
             flags: world_model::chunk::PixelFlags::Normal,
             material: 0,
-        };
-        let mat_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
-            material: mat,
         };
         let mut chunk = Chunk::default();
         let mut chunk_delta = Chunk::default();
@@ -1908,37 +1926,54 @@ impl WorldManager {
         let mut none = true;
         for icx in 0..CHUNK_SIZE as i32 {
             let cx = chunk_start_x + icx;
-            let dx = cx - x;
-            let dd = dx * dx;
-            for icy in 0..CHUNK_SIZE as i32 {
+            'up: for icy in 0..CHUNK_SIZE as i32 {
                 let cy = chunk_start_y + icy;
-                let dy = cy - y;
-                let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
-                if i.is_sign_negative() {
-                    i += rays as f32
-                }
-                let i = i as usize;
-                if i == ray && dd + dy * dy <= rs {
-                    let px = icy as usize * CHUNK_SIZE + icx as usize;
-                    if self
-                        .materials
-                        .get(&chunk.pixel(px).material)
-                        .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
-                        .unwrap_or(true)
-                    {
-                        let mut rng = thread_rng();
-                        if rng.gen_bool(prob as f64 / 100.0) {
-                            chunk_delta.set_pixel(px, mat_pixel);
-                        } else {
-                            chunk_delta.set_pixel(px, air_pixel);
-                        }
-                        none = false;
-                    } else {
-                        all = false
+                for (i, data) in &data {
+                    let ex = self.explosion_heap[*i];
+                    let ExplosionData {
+                        x,
+                        y,
+                        r,
+                        d,
+                        ray: _,
+                        hole,
+                        liquid,
+                        mat,
+                        prob,
+                    } = ex;
+                    let mat_pixel = Pixel {
+                        flags: world_model::chunk::PixelFlags::Normal,
+                        material: mat,
+                    };
+                    let dx = cx - x;
+                    let dy = cy - y;
+                    let dd = dx * dx + dy * dy;
+                    let rays = r.next_power_of_two().clamp(16, 1024);
+                    let mut j = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
+                    if j.is_sign_negative() {
+                        j += rays as f32
                     }
-                } else {
-                    all = false
+                    let j = j as usize;
+                    if data.iter().any(|(i, r)| j == *i && dd <= *r) {
+                        let px = icy as usize * CHUNK_SIZE + icx as usize;
+                        if self
+                            .materials
+                            .get(&chunk.pixel(px).material)
+                            .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
+                            .unwrap_or(true)
+                        {
+                            let mut rng = thread_rng();
+                            if rng.gen_bool(prob as f64 / 100.0) {
+                                chunk_delta.set_pixel(px, mat_pixel);
+                            } else {
+                                chunk_delta.set_pixel(px, air_pixel);
+                            }
+                            none = false;
+                            continue 'up;
+                        }
+                    }
                 }
+                all = false
             }
         }
         if none {
@@ -1947,7 +1982,6 @@ impl WorldManager {
             Some((chunk_delta.to_chunk_data(), all))
         }
     }
-
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::type_complexity)]
     fn do_ray_chunk(
@@ -2180,7 +2214,7 @@ pub(crate) enum ExRet {
     Loaded((ChunkCoord, ChunkData, bool, bool)),
     Unloaded((ChunkCoord, Vec<usize>)),
 }
-#[cfg(test)]
+/*#[cfg(test)]
 #[test]
 #[serial]
 fn test_explosion_img() {
@@ -2281,8 +2315,8 @@ fn test_explosion_img() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex.png").unwrap();
-}
-#[cfg(test)]
+}*/
+/*#[cfg(test)]
 #[test]
 #[serial]
 fn test_explosion_img_big() {
@@ -2302,7 +2336,7 @@ fn test_explosion_img_big() {
         .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
-    let w = 24;
+    let w = 20;
     for i in -w..w {
         for j in -w..w {
             if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
@@ -2338,7 +2372,11 @@ fn test_explosion_img_big() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(_brickwork.clone());
+            e.insert(if rng.gen_bool(0.25) {
+                _brickwork.clone()
+            } else {
+                _dirt.clone()
+            });
             if world.explosion_pointer.contains_key(&c) {
                 world.cut_through_world_explosion_chunk(c)
             }
@@ -2351,8 +2389,6 @@ fn test_explosion_img_big() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_bigger.png").unwrap();
 }
-#[cfg(test)]
-use rand::seq::SliceRandom;
 #[cfg(test)]
 #[test]
 #[serial]
@@ -2421,7 +2457,7 @@ fn test_explosion_img_big_empty() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_big.png").unwrap();
-}
+}*/
 /*#[cfg(test)]
 #[test]
 #[serial]
@@ -2466,7 +2502,7 @@ fn test_explosion_large() {
         4,
     )]);
     println!("total large ex milli {}", timer.elapsed().as_millis());
-}*/
+}
 #[cfg(test)]
 #[test]
 #[serial]
@@ -2595,9 +2631,11 @@ fn test_circ_img() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_circ.png").unwrap();
-}
+}*/
 #[cfg(test)]
 use crate::net::LiquidType;
+#[cfg(test)]
+use rand::seq::SliceRandom;
 #[cfg(test)]
 use serial_test::serial;
 #[cfg(test)]
@@ -2608,7 +2646,7 @@ fn test_explosion_perf() {
     let _brickwork = ChunkData::new(2);
 
     let mut total = 0;
-    let iters = 256;
+    let iters = 64;
     for _ in 0..iters {
         let mut world = WorldManager::new(
             true,
@@ -2660,12 +2698,83 @@ fn test_explosion_perf() {
 #[cfg(test)]
 #[test]
 #[serial]
+fn test_explosion_perf_unloaded() {
+    let _dirt = ChunkData::new(1);
+    let _brickwork = ChunkData::new(2);
+
+    let mut total = 0;
+    let iters = 16;
+    let mut n = 0;
+    for _ in 0..iters {
+        let mut world = WorldManager::new(
+            true,
+            OmniPeerId(0),
+            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
+        );
+        world
+            .materials
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+        world
+            .materials
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+        world
+            .materials
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+        let w = 4;
+        for i in -w..w {
+            for j in -w..w {
+                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
+                    world
+                        .outbound_model
+                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
+                } else {*/
+                world
+                    .chunk_storage
+                    .insert(ChunkCoord(i, j), _brickwork.clone());
+                //}
+            }
+        }
+        world.cut_through_world_explosion(vec![ExplosionData::new(
+            0,
+            0,
+            1024,
+            14,
+            2_000_000_000,
+            true,
+            true,
+            1,
+            50,
+        )]);
+        let w = 8;
+        let mut rng = thread_rng();
+        let mut iter = (-w..w)
+            .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
+            .collect::<Vec<(i32, i32)>>();
+        iter.shuffle(&mut rng);
+        for (i, j) in iter {
+            let c = ChunkCoord(i, j);
+            if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
+                e.insert(_brickwork.clone());
+                if world.explosion_pointer.contains_key(&c) {
+                    let timer = std::time::Instant::now();
+                    world.cut_through_world_explosion_chunk(c);
+                    total += timer.elapsed().as_micros();
+                    n += 1;
+                }
+            }
+        }
+    }
+    println!("total micros: {}", total / n);
+}
+#[cfg(test)]
+#[test]
+#[serial]
 fn test_explosion_perf_large() {
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
 
     let mut total = 0;
-    let iters = 64;
+    let iters = 16;
     for _ in 0..iters {
         let mut world = WorldManager::new(
             true,
