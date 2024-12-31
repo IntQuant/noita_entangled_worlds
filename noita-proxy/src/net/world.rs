@@ -1433,7 +1433,7 @@ impl WorldManager {
         } else if let Some(c) = self.chunk_storage.get(&last_co) {
             c.apply_to_chunk(&mut working_chunk);
         } else {
-            return (None, 0);
+            return (None, ray);
         };
         let mut last_coord = None;
         let mut ret = 0;
@@ -1518,7 +1518,8 @@ impl WorldManager {
                 let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
                     .cos()
                     .recip();
-                if let (Some((ex, ey)), v) = self.do_ray(x, y, end_x, end_y, ray, d, mult) {
+                let (u, v) = self.do_ray(x, y, end_x, end_y, ray, d, mult);
+                if let Some((ex, ey)) = u {
                     let dx = ex.abs_diff(x) as u64;
                     let dy = ey.abs_diff(y) as u64;
                     if dx != 0 || dy != 0 {
@@ -1527,7 +1528,7 @@ impl WorldManager {
                         (0, v)
                     }
                 } else {
-                    (0, 0)
+                    (0, v)
                 }
             })
             .unzip();
@@ -1564,7 +1565,6 @@ impl WorldManager {
                         }
                     }
                     ExRet::Unloaded((coord, rays)) if self.nice_terraforming => {
-                        //TODO consider case where explsoion happens in an unloaded chunk
                         self.explosion_pointer.entry(coord).or_default().extend(
                             rays.iter()
                                 .filter_map(|i| {
@@ -1692,16 +1692,20 @@ impl WorldManager {
                     }
                     return Some(ExRet::Unloaded((
                         coord,
-                        list.iter()
-                            .enumerate()
-                            .filter_map(|(n, _)| {
-                                if (i.min(j)..=i.max(j)).contains(&n) {
-                                    Some(n)
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect(),
+                        if (chunkx, chunky) == (chunk_x, chunk_y) {
+                            (0..list.len()).collect()
+                        } else {
+                            list.iter()
+                                .enumerate()
+                                .filter_map(|(n, _)| {
+                                    if (i.min(j)..=i.max(j)).contains(&n) {
+                                        Some(n)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect()
+                        },
                     )));
                 };
                 if !should_process_chunk(chunk_x, chunk_y, x, y, r, &list, chunkx, chunky, rays, rs)
@@ -2135,7 +2139,7 @@ fn should_process_chunk(
     rays: u64,
     rs: u64,
 ) -> bool {
-    r <= CHUNK_SIZE as u64 || {
+    r <= CHUNK_SIZE as u64 || (chunkx, chunky) == (chunk_x, chunk_y) || {
         if r >= 8 * CHUNK_SIZE as u64 {
             let close_x = if chunk_x < chunkx {
                 (chunk_x + 1) * CHUNK_SIZE as i32 - 1
@@ -2480,7 +2484,7 @@ fn test_explosion_img_big_empty() {
         .insert(2, (14, 2_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
-    let w = 24;
+    /* let w = 24;
     for i in -w..w {
         for j in -w..w {
             if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
@@ -2490,7 +2494,7 @@ fn test_explosion_img_big_empty() {
                 world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
             }
         }
-    }
+    }*/
     //let mut img = image::GrayImage::new(pixels, pixels);
     //world._create_image(&mut img, pixels);
     //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
@@ -2516,7 +2520,11 @@ fn test_explosion_img_big_empty() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(_brickwork.clone());
+            if (-24..24).contains(&i) && (-24..24).contains(&j) {
+                e.insert(_dirt.clone());
+            } else {
+                e.insert(_brickwork.clone());
+            }
             if world.explosion_pointer.contains_key(&c) {
                 world.cut_through_world_explosion_chunk(c)
             }
@@ -2528,8 +2536,8 @@ fn test_explosion_img_big_empty() {
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_big.png").unwrap();
-}*/
-/*#[cfg(test)]
+}
+#[cfg(test)]
 #[test]
 #[serial]
 fn test_explosion_large() {
