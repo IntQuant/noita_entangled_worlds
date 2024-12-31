@@ -7,7 +7,7 @@ util.add_cross_call("ew_place_player_on_map", function()
         local x, y = EntityGetTransform(data.entity)
         y = y - 4
         local pw, mx = check_parallel_pos( x )
-        if pw == my_pw then
+        if pw == my_pw and not EntityHasTag(data.entity, "polymorphed_cessation") and not data.dc then
             local map_x = 0 * 512
             local map_y = 10 * 512
 

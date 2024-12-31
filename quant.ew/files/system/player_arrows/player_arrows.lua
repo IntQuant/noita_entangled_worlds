@@ -43,7 +43,8 @@ function module.on_world_update()
         if (ctx.my_id == peer_id
                 and (ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == peer_id))
                     or EntityHasTag(player_data.entity, "polymorphed_cessation")
-                    or (EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.no_notplayer) then
+                    or (EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.no_notplayer)
+                    or player_data.dc then
             goto continue
         end
         local px, py = EntityGetTransform(player_data.entity)
