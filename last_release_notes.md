@@ -1,10 +1,9 @@
-## Noita Entangled Worlds v0.32.10
+## Noita Entangled Worlds v0.32.11
 
-- optimize explosions
+- fix crash in last 2 releases
 
-- fix explosion artifacts
+- dont show arrows/map icon of disconnected players
 
-- hopefully fix a crash in proxy
 
 ## Accepted pull requests
 
