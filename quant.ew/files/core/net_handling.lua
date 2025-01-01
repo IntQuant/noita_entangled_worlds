@@ -64,6 +64,8 @@ function net_handling.proxy.dc(_, peer_id)
         end
     end
     ctx.players[peer_id].dc = true
+    EntityRemoveTag(player.entity, "ew_client")
+    EntityRemoveTag(player.entity, "ew_peer")
 end
 
 function net_handling.proxy.leave(_, peer_id)

@@ -19,6 +19,8 @@ local function undc(ent)
             EntitySetComponentIsEnabled(child, sprite, true)
         end
     end
+    EntityAddTag(ent, "ew_client")
+    EntityAddTag(ent, "ew_peer")
 end
 
 function rpc.send_money_and_ingestion(money, delta, ingestion_size)
