@@ -43,6 +43,8 @@ local allow_patching = {
     spawn_shopitem = true,
     spawn_statue = true,
     spawn_crate = true,
+    -- That one in lava lake.
+    spawn_corpse = true,
 }
 
 local function patch_fn(color, orig_fn_name)

@@ -19,7 +19,7 @@ ff78FFFF,spawn_heart,-1,-1,-1,-1
 ff50A0F0,ew_detour_spawn_wands,-3,-3,-4,-4
 ffbf26a6,spawn_portal,-1,-1,-1,-1
 ff04A977,spawn_end_portal,-1,-1,-1,-1
-ffffd171,spawn_orb,-1,-1,-1,-1
+ffffd171,ew_detour_spawn_orb,-1,-1,-1,-1
 ffffd181,spawn_perk,-1,-1,-1,-1
 ffffff81,spawn_all_perks,-1,-1,-1,-1
 ffc7eb28,ew_detour_spawn_wand_trap,-1,-1,-1,-1
