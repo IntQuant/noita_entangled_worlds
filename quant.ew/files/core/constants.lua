@@ -1,6 +1,10 @@
 local module = {}
 
 module.phys_sync_allowed = {
+    -- Base entities, just so that some properties get edited by patch_entities system
+    ["data/entities/props/music_machines/base_music_machine.xml"] = true,
+    ["data/entities/base_item_physics2.xml"] = true,
+    
     -- Starting prop
     ["data/entities/props/physics_skateboard.xml"] = true,
     ["data/entities/props/physics_minecart.xml"] = true,

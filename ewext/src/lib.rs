@@ -4,33 +4,36 @@ pub extern "C" fn _Unwind_Resume() {}
 
 use std::{
     arch::asm,
+    borrow::Cow,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
-    sync::{LazyLock, Mutex},
+    sync::{LazyLock, Mutex, OnceLock},
     thread,
     time::Instant,
 };
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
-use eyre::{bail, OptionExt};
+use bimap::BiHashMap;
+use eyre::{bail, Context, OptionExt};
 
-use modules::{entity_sync::EntitySync, Module};
+use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::{
     lua::{
         lua_bindings::{lua_State, LUA_REGISTRYINDEX},
-        LuaFnRet, LuaState, RawString, ValuesOnStack, LUA,
+        LuaFnRet, LuaGetValue, LuaState, RawString, ValuesOnStack, LUA,
     },
-    DamageModelComponent,
+    DamageModelComponent, EntityID,
 };
 use noita_api_macro::add_lua_fn;
-use shared::{NoitaInbound, ProxyKV};
+use shared::{NoitaInbound, PeerId, ProxyKV};
 
 mod addr_grabber;
 mod modules;
 mod net;
 pub mod noita;
+mod serialize;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
@@ -40,11 +43,36 @@ thread_local! {
 }
 
 static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(Default::default);
+static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
+    LazyLock::new(|| unsafe { libloading::Library::new("ewext0.dll") });
+static MY_PEER_ID: OnceLock<PeerId> = OnceLock::new();
+
+pub(crate) fn my_peer_id() -> PeerId {
+    MY_PEER_ID
+        .get()
+        .copied()
+        .expect("peer id to be set by this point")
+}
+
+#[derive(Default)]
+struct Modules {
+    entity_sync: Option<EntitySync>,
+}
 
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
-    modules: Vec<Box<dyn Module>>,
+    modules: Modules,
+    player_entity_map: BiHashMap<PeerId, EntityID>,
+}
+
+impl ExtState {
+    fn with_global<T>(f: impl FnOnce(&mut Self) -> T) -> T {
+        STATE.with(|state| {
+            let mut state = state.borrow_mut();
+            f(&mut state)
+        })
+    }
 }
 
 fn init_particle_world_state(lua: LuaState) {
@@ -126,11 +154,14 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 
     let mut kvs = Vec::new();
 
-    #[expect(clippy::while_let_loop)] // Will probably get more variants in the future
     loop {
         match netman.recv()? {
             NoitaInbound::RawMessage(msg) => kvs.push(msg.into()),
-            NoitaInbound::Ready => break,
+            NoitaInbound::Ready { my_peer_id } => {
+                let _ = MY_PEER_ID.set(my_peer_id);
+                break;
+            }
+            _ => bail!("Received unexpected value during init"),
         }
     }
 
@@ -142,13 +173,28 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
 fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
     let mut binding = NETMANAGER.lock().unwrap();
     let netmanager = binding.as_mut().unwrap();
-    Ok(match netmanager.try_recv()? {
-        Some(NoitaInbound::RawMessage(msg)) => Some(msg.into()),
-        Some(NoitaInbound::Ready) => {
-            bail!("Unexpected Ready message")
+    while let Some(msg) = netmanager.try_recv()? {
+        match msg {
+            NoitaInbound::RawMessage(vec) => return Ok(Some(vec.into())),
+            NoitaInbound::Ready { .. } => bail!("Unexpected Ready message"),
+            NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
+                let _lock = IN_MODULE_LOCK.lock().unwrap();
+                if let Some(entity_sync) = &mut state.modules.entity_sync {
+                    entity_sync.handle_proxytodes(proxy_to_des);
+                }
+            }),
+            NoitaInbound::RemoteMessage {
+                source,
+                message: shared::RemoteMessage::RemoteDes(remote_des),
+            } => ExtState::with_global(|state| {
+                let _lock = IN_MODULE_LOCK.lock().unwrap();
+                if let Some(entity_sync) = &mut state.modules.entity_sync {
+                    entity_sync.handle_remotedes(source, remote_des);
+                }
+            }),
         }
-        None => None,
-    })
+    }
+    Ok(None)
 }
 
 fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
@@ -186,16 +232,26 @@ fn on_world_initialized(lua: LuaState) {
 
     STATE.with(|state| {
         let modules = &mut state.borrow_mut().modules;
-        modules.push(Box::new(EntitySync::default()));
+        modules.entity_sync = Some(EntitySync::default());
     })
 }
 
-fn with_every_module(f: impl Fn(&mut dyn Module) -> eyre::Result<()>) -> eyre::Result<()> {
-    STATE.with(|state| {
-        let modules = &mut state.borrow_mut().modules;
+static IN_MODULE_LOCK: Mutex<()> = Mutex::new(());
+
+fn with_every_module(
+    f: impl Fn(&mut ModuleCtx, &mut dyn Module) -> eyre::Result<()>,
+) -> eyre::Result<()> {
+    let _lock = IN_MODULE_LOCK.lock().unwrap();
+    let mut temp = NETMANAGER.lock().unwrap();
+    let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+    ExtState::with_global(|state| {
+        let mut ctx = ModuleCtx {
+            net,
+            player_map: &mut state.player_entity_map,
+        };
         let mut errs = Vec::new();
-        for module in modules {
-            if let Err(e) = f(module.as_mut()) {
+        for module in state.modules.entity_sync.iter_mut() {
+            if let Err(e) = f(&mut ctx, module as &mut dyn Module) {
                 errs.push(e);
             }
         }
@@ -209,8 +265,34 @@ fn with_every_module(f: impl Fn(&mut dyn Module) -> eyre::Result<()>) -> eyre::R
     })
 }
 
+fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
+    with_every_module(|ctx, module| module.on_world_init(ctx))
+}
+
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
-    with_every_module(|module| module.on_world_update())
+    with_every_module(|ctx, module| module.on_world_update(ctx))
+}
+
+fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
+    // Could be called while we do game_shoot_projectile call, leading to a deadlock.
+    if IN_MODULE_LOCK.try_lock().is_err() {
+        return Ok(());
+    }
+    let (
+        (shooter_id, projectile_id, initial_rng, position_x),
+        (position_y, target_x, target_y, multicast_index),
+    ) = noita_api::lua::LuaGetValue::get(lua, -1)?;
+    with_every_module(|ctx, module| {
+        module.on_projectile_fired(
+            ctx,
+            shooter_id,
+            projectile_id,
+            initial_rng,
+            (position_x, position_y),
+            (target_x, target_y),
+            multicast_index,
+        )
+    })
 }
 
 fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
@@ -271,12 +353,25 @@ fn __gc(_lua: LuaState) {
     STATE.with(|state| state.take());
 }
 
+pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
+    let lua = LuaState::current()?;
+    lua.get_global(c"EwextPrintError");
+    lua.push_string(&format!("{:?}", error));
+    lua.call(1, 0i32)
+        .wrap_err("Failed to call EwextPrintError")?;
+    Ok(())
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
 #[no_mangle]
 pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
+
+    if let Err(e) = KEEP_SELF_LOADED.as_ref() {
+        println!("Got an error while loading self: {}", e);
+    }
 
     println!(
         "lua_call: 0x{:x}",
@@ -313,7 +408,52 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(netmanager_send);
         add_lua_fn!(netmanager_flush);
 
+        add_lua_fn!(module_on_world_init);
         add_lua_fn!(module_on_world_update);
+        add_lua_fn!(module_on_projectile_fired);
+
+        fn des_item_thrown(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                let mut temp = NETMANAGER.lock().unwrap();
+                let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+                entity_sync.cross_item_thrown(net, LuaGetValue::get(lua, -1)?)?;
+                Ok(())
+            })
+        }
+        add_lua_fn!(des_item_thrown);
+
+        fn des_death_notify(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                let (entity_killed, entity_responsible): (Option<EntityID>, Option<EntityID>) =
+                    LuaGetValue::get(lua, -1)?;
+                let entity_killed =
+                    entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
+                entity_sync.cross_death_notify(entity_killed, entity_responsible)?;
+                Ok(())
+            })
+        }
+        add_lua_fn!(des_death_notify);
+
+        fn register_player_entity(lua: LuaState) -> eyre::Result<()> {
+            let (peer_id, entity): (Cow<'_, str>, Option<EntityID>) = LuaGetValue::get(lua, -1)?;
+            let peer_id = PeerId::from_hex(&peer_id)?;
+            let entity = entity.ok_or_eyre("Expected a valid entity")?;
+            ExtState::with_global(|state| {
+                state.player_entity_map.insert(peer_id, entity);
+                Ok(())
+            })
+        }
+        add_lua_fn!(register_player_entity);
     }
     println!("Initializing ewext - Ok");
     1

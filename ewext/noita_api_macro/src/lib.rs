@@ -21,6 +21,9 @@ enum Typ {
     StdString,
     #[serde(rename = "vec2")]
     Vec2,
+    EntityID,
+    #[serde(rename = "int64")]
+    Int64,
     #[serde(other)]
     Other,
 }
@@ -34,8 +37,17 @@ impl Typ {
             Typ::Double => quote!(f64),
             Typ::Bool => quote!(bool),
             Typ::StdString => quote!(Cow<'_, str>),
-            Typ::Vec2 => todo!(),
+            Typ::Vec2 => quote! {(f32, f32)},
+            Typ::EntityID => quote! { Option<EntityID> },
+            Typ::Int64 => quote! { i64 },
             Typ::Other => todo!(),
+        }
+    }
+    fn as_rust_type_return(&self) -> proc_macro2::TokenStream {
+        match self {
+            Typ::StdString => quote! {Cow<'static, str>},
+            Typ::EntityID => quote! {Option<EntityID>},
+            _ => self.as_rust_type(),
         }
     }
 }
@@ -58,6 +70,8 @@ enum Typ2 {
     Obj,
     #[serde(rename = "color")]
     Color,
+    #[serde(rename = "physics_body_id")]
+    PhysicsBodyID,
 }
 
 impl Typ2 {
@@ -71,6 +85,7 @@ impl Typ2 {
             Typ2::ComponentID => quote!(ComponentID),
             Typ2::Obj => quote! {Obj},
             Typ2::Color => quote!(Color),
+            Typ2::PhysicsBodyID => quote! {PhysicsBodyID},
         }
     }
 
@@ -158,22 +173,32 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
     let component_name = format_ident!("{}", com.name);
 
     let impls = com.fields.iter().filter_map(|field| {
+        let field_name_raw = &field.field;
         let field_name_s = convert_field_name(&field.field);
         let field_name = format_ident!("{}", field_name_s);
         let field_doc = &field.desc;
         let set_method_name = format_ident!("set_{}", field_name);
         match field.typ {
-            Typ::Int | Typ::UInt | Typ::Float | Typ::Double | Typ::Bool => {
+            Typ::Int
+            | Typ::UInt
+            | Typ::Float
+            | Typ::Double
+            | Typ::Bool
+            | Typ::Vec2
+            | Typ::EntityID
+            | Typ::StdString
+            | Typ::Int64 => {
                 let field_type = field.typ.as_rust_type();
+                let field_type_ret = field.typ.as_rust_type_return();
                 Some(quote! {
                     #[doc = #field_doc]
-                    pub fn #field_name(self) -> eyre::Result<#field_type> {
+                    pub fn #field_name(self) -> eyre::Result<#field_type_ret> {
                         // This trasmute is used to reinterpret i32 as u32 in one case.
-                        raw::component_get_value(self.0, #field_name_s)
+                        raw::component_get_value(self.0, #field_name_raw)
                      }
                     #[doc = #field_doc]
                     pub fn #set_method_name(self, value: #field_type) -> eyre::Result<()> {
-                        raw::component_set_value(self.0, #field_name_s, value)
+                        raw::component_set_value(self.0, #field_name_raw, value)
                      }
                 })
             }
@@ -194,6 +219,12 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
         impl From<ComponentID> for #component_name {
             fn from(com: ComponentID) -> Self {
                 #component_name(com)
+            }
+        }
+
+        impl From<#component_name> for ComponentID {
+            fn from(com: #component_name) -> Self {
+                com.0
             }
         }
 
@@ -254,6 +285,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
         }
     };
 
+    let call_err_msg = format!("Failed to call lua function {}", api_fn.fn_name);
     let fn_name_c = name_to_c_literal(api_fn.fn_name);
 
     let ret_count = api_fn.rets.len() as i32;
@@ -269,10 +301,12 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
             #(#put_args_pre)*
             #(#put_args)*
 
-            lua.call(last_non_empty+1, #ret_count);
+            lua.call(last_non_empty+1, #ret_count).wrap_err(#call_err_msg)?;
 
             let ret = LuaGetValue::get(lua, -1);
-            lua.pop_last_n(#ret_count);
+            if #ret_count > 0 {
+                lua.pop_last_n(#ret_count);
+            }
             ret
         }
     }

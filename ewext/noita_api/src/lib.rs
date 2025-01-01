@@ -1,26 +1,77 @@
-use std::{borrow::Cow, num::NonZero};
+use std::{
+    borrow::Cow,
+    num::{NonZero, TryFromIntError},
+};
 
-use eyre::{eyre, Context};
+use eyre::{eyre, Context, OptionExt};
 
 pub mod lua;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityID(pub NonZero<isize>);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentID(pub NonZero<isize>);
 
 pub struct Obj(pub usize);
 
 pub struct Color(pub u32);
 
-pub trait Component: From<ComponentID> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PhysicsBodyID(pub i32);
+
+pub trait Component: From<ComponentID> + Into<ComponentID> {
     const NAME_STR: &'static str;
 }
 
 noita_api_macro::generate_components!();
 
 impl EntityID {
+    /// Returns true if entity is alive.
+    ///
+    /// Corresponds to EntityGetIsAlive from lua api.
+    pub fn is_alive(self) -> bool {
+        raw::entity_get_is_alive(self).unwrap_or(false)
+    }
+
+    pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::entity_add_tag(self, tag.as_ref().into())
+    }
+
+    /// Returns true if entity has a tag.
+    ///
+    /// Corresponds to EntityGetTag from lua api.
+    pub fn has_tag(self, tag: impl AsRef<str>) -> bool {
+        raw::entity_has_tag(self, tag.as_ref().into()).unwrap_or(false)
+    }
+
+    pub fn remove_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::entity_remove_tag(self, tag.as_ref().into())
+    }
+
+    pub fn kill(self) {
+        // Shouldn't ever error.
+        let _ = raw::entity_kill(self);
+    }
+
+    pub fn set_position(self, x: f32, y: f32) -> eyre::Result<()> {
+        raw::entity_set_transform(self, x as f64, Some(y as f64), None, None, None)
+    }
+
+    pub fn position(self) -> eyre::Result<(f32, f32)> {
+        let (x, y, _, _, _) = raw::entity_get_transform(self)?;
+        Ok((x as f32, y as f32))
+    }
+
+    pub fn filename(self) -> eyre::Result<String> {
+        raw::entity_get_filename(self).map(|x| x.to_string())
+    }
+
+    pub fn parent(self) -> eyre::Result<EntityID> {
+        Ok(raw::entity_get_parent(self)?.unwrap_or(self))
+    }
+
+    /// Returns the first component of this type if an entity has it.
     pub fn try_get_first_component<C: Component>(
         self,
         tag: Option<Cow<'_, str>>,
@@ -29,20 +80,102 @@ impl EntityID {
             .map(|x| x.flatten().map(Into::into))
             .wrap_err_with(|| eyre!("Failed to get first component {} for {self:?}", C::NAME_STR))
     }
+
+    pub fn try_get_first_component_including_disabled<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<Option<C>> {
+        raw::entity_get_first_component_including_disabled(self, C::NAME_STR.into(), tag)
+            .map(|x| x.flatten().map(Into::into))
+            .wrap_err_with(|| eyre!("Failed to get first component {} for {self:?}", C::NAME_STR))
+    }
+
+    /// Returns the first component of this type if an entity has it.
     pub fn get_first_component<C: Component>(self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
         self.try_get_first_component(tag)?
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
     }
+
+    pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<()> {
+        while let Some(c) = self.try_get_first_component::<C>(None)? {
+            raw::entity_remove_component(self, c.into())?;
+        }
+        Ok(())
+    }
+
+    pub fn iter_all_components_of_type<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<impl Iterator<Item = C>> {
+        Ok(raw::entity_get_component(self, C::NAME_STR.into(), tag)?
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|x| x.map(C::from)))
+    }
+
+    pub fn add_component<C: Component>(self) -> eyre::Result<C> {
+        raw::entity_add_component::<C>(self)?.ok_or_eyre("Couldn't create a component")
+    }
+
+    pub fn load(
+        filename: impl AsRef<str>,
+        pos_x: Option<f64>,
+        pos_y: Option<f64>,
+    ) -> eyre::Result<Self> {
+        raw::entity_load(filename.as_ref().into(), pos_x, pos_y)?
+            .ok_or_else(|| eyre!("Failed to spawn entity from filename {}", filename.as_ref()))
+    }
+
+    pub fn max_in_use() -> eyre::Result<Self> {
+        Ok(Self::try_from(raw::entities_get_max_id()? as isize)?)
+    }
+
+    /// Returns id+1
+    pub fn next(self) -> eyre::Result<Self> {
+        Ok(Self(NonZero::try_from(isize::from(self.0) + 1)?))
+    }
+
+    pub fn raw(self) -> isize {
+        isize::from(self.0)
+    }
+}
+
+impl TryFrom<isize> for EntityID {
+    type Error = TryFromIntError;
+
+    fn try_from(value: isize) -> Result<Self, Self::Error> {
+        NonZero::<isize>::try_from(value).map(Self)
+    }
+}
+
+impl ComponentID {
+    pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::component_add_tag(self, tag.as_ref().into())
+    }
+
+    pub fn has_tag(self, tag: impl AsRef<str>) -> bool {
+        raw::component_has_tag(self, tag.as_ref().into()).unwrap_or(false)
+    }
+
+    pub fn remove_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
+        raw::component_remove_tag(self, tag.as_ref().into())
+    }
+}
+
+pub fn game_print(value: impl AsRef<str>) {
+    let _ = raw::game_print(value.as_ref().into());
 }
 
 pub mod raw {
     use eyre::eyre;
     use eyre::Context;
 
-    use super::{Color, ComponentID, EntityID, Obj};
+    use super::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
     use crate::lua::LuaGetValue;
     use crate::lua::LuaPutValue;
+    use crate::Component;
     use std::borrow::Cow;
+    use std::num::NonZero;
 
     use crate::lua::LuaState;
 
@@ -56,7 +189,8 @@ pub mod raw {
         lua.get_global(c"ComponentGetValue2");
         lua.push_integer(component.0.into());
         lua.push_string(field);
-        lua.call(2, T::size_on_stack());
+        lua.call(2, T::size_on_stack())
+            .wrap_err("Failed to call ComponentGetValue2")?;
         let ret = T::get(lua, -1);
         lua.pop_last_n(T::size_on_stack());
         ret.wrap_err_with(|| eyre!("Getting {field} for {component:?}"))
@@ -75,7 +209,44 @@ pub mod raw {
         lua.push_integer(component.0.into());
         lua.push_string(field);
         value.put(lua);
-        lua.call(2 + T::size_on_stack(), 0);
+        lua.call((2 + T::SIZE_ON_STACK).try_into()?, 0)
+            .wrap_err("Failed to call ComponentSetValue2")?;
         Ok(())
+    }
+
+    pub fn physics_body_id_get_transform(
+        body: PhysicsBodyID,
+    ) -> eyre::Result<Option<(f32, f32, f32, f32, f32, f32)>> {
+        let lua = LuaState::current()?;
+        lua.get_global(c"PhysicsBodyIDGetTransform");
+        lua.push_integer(body.0 as isize);
+        lua.call(1, 6)
+            .wrap_err("Failed to call PhysicsBodyIDGetTransform")?;
+        if lua.is_nil_or_none(-1) {
+            Ok(None)
+        } else {
+            match LuaGetValue::get(lua, -1) {
+                Ok(ret) => {
+                    lua.pop_last_n(6);
+                    Ok(Some(ret))
+                }
+                Err(err) => {
+                    lua.pop_last_n(6);
+                    Err(err)
+                }
+            }
+        }
+    }
+
+    pub fn entity_add_component<C: Component>(entity: EntityID) -> eyre::Result<Option<C>> {
+        let lua = LuaState::current()?;
+        lua.get_global(c"EntityAddComponent");
+        lua.push_integer(entity.raw());
+        lua.push_string(C::NAME_STR);
+        lua.call(2, 1)
+            .wrap_err("Failed to call EntityAddComponent")?;
+        let c = lua.to_integer(-1);
+        lua.pop_last_n(1);
+        Ok(NonZero::new(c).map(ComponentID).map(C::from))
     }
 }

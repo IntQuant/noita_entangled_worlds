@@ -58,10 +58,10 @@ end
 local function load_modules()
     ctx.load_system("ewext_init")
 
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
+    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
-    ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
+    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
 
 
     if ctx.proxy_opt.game_mode == "shared_health" then
@@ -90,13 +90,13 @@ local function load_modules()
 
     ctx.load_system("world_sync")
 
-    ctx.load_system("spawn_hooks")
+    -- ctx.load_system("spawn_hooks")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
     ctx.load_system("perk_patches")
 
     ctx.load_system("player_tether")
 
-    ctx.load_system("kolmi")
+    -- ctx.load_system("kolmi") -- TODO
     ctx.load_system("ending")
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")
@@ -113,7 +113,7 @@ local function load_modules()
     ctx.load_system("spectate")
     ctx.load_system("effect_data_sync")
     if ctx.proxy_opt.item_dedup then
-        ctx.load_system("gen_sync")
+        -- ctx.load_system("gen_sync")
     end
     ctx.load_system("karl")
     ctx.load_system("remove_wand_sound")
@@ -138,6 +138,9 @@ local function load_modules()
     ctx.load_system("text")
     ctx.load_system("ragdoll_fix")
     ctx.load_system("explosion_cuts")
+    ctx.load_system("wang_hooks")
+    ctx.load_system("entity_sync_helper")
+    ctx.load_system("uniq_flags")
 end
 
 local function load_extra_modules()

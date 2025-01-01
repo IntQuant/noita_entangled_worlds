@@ -4902,11 +4902,79 @@
     "rets": []
   },
   {
+    "fn_name": "PhysicsBodyIDGetFromEntity",
+    "args": [
+      {
+        "name": "entity_id",
+        "typ": "entity_id",
+        "default": null
+      },
+      {
+        "name": "component_id",
+        "typ": "component_id",
+        "default": "0"
+      }
+    ],
+    "desc": "NOTE! If component_id is given, will return all the bodies linked to that component. If component_id is not given, will return all the bodies linked to the entity (with joints or through components).",
+    "rets": [
+      {
+        "name": null,
+        "typ": "physics_body_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
+    "fn_name": "PhysicsBodyIDQueryBodies",
+    "args": [
+      {
+        "name": "world_pos_min_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_min_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_max_x",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "world_pos_max_y",
+        "typ": "number",
+        "default": null
+      },
+      {
+        "name": "include_static_bodies",
+        "typ": "bool",
+        "default": "false"
+      },
+      {
+        "name": "are_these_box2d_units",
+        "typ": "bool",
+        "default": "false"
+      }
+    ],
+    "desc": "NOTE! returns an array of physics_body_id(s) of all the box2d bodies in the given area. The default coordinates are in game world space. If passing a sixth argument with true, we will assume the coordinates are in box2d units.",
+    "rets": [
+      {
+        "name": null,
+        "typ": "physics_body_id",
+        "optional": false,
+        "is_vec": true
+      }
+    ]
+  },
+  {
     "fn_name": "PhysicsBodyIDSetTransform",
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       },
       {
@@ -4948,7 +5016,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       },
       {
@@ -4980,7 +5048,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       },
       {
@@ -5012,7 +5080,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       },
       {
@@ -5029,7 +5097,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       }
     ],
@@ -5054,7 +5122,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       }
     ],
@@ -5079,7 +5147,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       },
       {
@@ -5101,7 +5169,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       }
     ],
@@ -5120,7 +5188,7 @@
     "args": [
       {
         "name": "physics_body_id",
-        "typ": "int",
+        "typ": "physics_body_id",
         "default": null
       },
       {

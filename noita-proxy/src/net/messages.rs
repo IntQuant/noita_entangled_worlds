@@ -4,12 +4,7 @@ use crate::{player_cosmetics::PlayerPngDesc, GameSettings};
 
 use super::{omni::OmniPeerId, world::WorldNetMessage};
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Destination {
-    Peer(OmniPeerId),
-    Host,
-    Broadcast,
-}
+pub(crate) type Destination = shared::Destination<OmniPeerId>;
 
 pub(crate) struct MessageRequest<T> {
     pub(crate) reliability: tangled::Reliability,
@@ -17,7 +12,7 @@ pub(crate) struct MessageRequest<T> {
     pub(crate) msg: T,
 }
 
-#[derive(Debug, Decode, Encode)]
+#[derive(Decode, Encode, Clone)]
 pub(crate) enum NetMsg {
     Welcome,
     Disconnect { id: OmniPeerId },
@@ -31,6 +26,10 @@ pub(crate) enum NetMsg {
     ModCompressed { data: Vec<u8> },
     WorldMessage(WorldNetMessage),
     PlayerColor(PlayerPngDesc, bool, Option<OmniPeerId>, String),
+    RemoteMsg(shared::RemoteMessage),
+    ForwardDesToProxy(shared::des::DesToProxy),
+    ForwardProxyToDes(shared::des::ProxyToDes),
+    NoitaDisconnected,
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

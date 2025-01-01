@@ -11,7 +11,7 @@ use std::{
 use eyre::{bail, Context, OptionExt};
 use lua_bindings::{lua_CFunction, lua_State, Lua51, LUA_GLOBALSINDEX};
 
-use crate::{Color, ComponentID, EntityID, Obj};
+use crate::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
 
 thread_local! {
     static CURRENT_LUA_STATE: Cell<Option<LuaState>> = Cell::default();
@@ -114,8 +114,16 @@ impl LuaState {
         unsafe { LUA.lua_pushnil(self.lua) }
     }
 
-    pub fn call(&self, nargs: i32, nresults: i32) {
-        unsafe { LUA.lua_call(self.lua, nargs, nresults) };
+    pub fn call(&self, nargs: i32, nresults: i32) -> eyre::Result<()> {
+        let ret = unsafe { LUA.lua_pcall(self.lua, nargs, nresults, 0) };
+        if ret == 0 {
+            Ok(())
+        } else {
+            let msg = self
+                .to_string(-1)
+                .wrap_err("Failed to get error message string")?;
+            bail!("Error while calling lua function: {}", msg)
+        }
     }
 
     pub fn get_global(&self, name: &CStr) {
@@ -153,7 +161,7 @@ impl LuaState {
         unreachable!()
     }
 
-    fn is_nil_or_none(&self, index: i32) -> bool {
+    pub fn is_nil_or_none(&self, index: i32) -> bool {
         (unsafe { LUA.lua_type(self.lua, index) }) <= 0
     }
 
@@ -163,6 +171,10 @@ impl LuaState {
 
     pub fn rawset_table(&self, table_index: i32, index_in_table: i32) {
         unsafe { LUA.lua_rawseti(self.lua, table_index, index_in_table) };
+    }
+
+    pub fn checkstack(&self, sz: i32) -> bool {
+        unsafe { LUA.lua_checkstack(self.lua, sz) > 0 }
     }
 }
 
@@ -237,19 +249,23 @@ impl LuaFnRet for RawString {
 }
 
 /// Trait for arguments that can be put on lua stack.
-pub(crate) trait LuaPutValue {
+pub trait LuaPutValue {
+    const SIZE_ON_STACK: u32 = 1;
     fn put(&self, lua: LuaState);
     fn is_non_empty(&self) -> bool {
         true
-    }
-    fn size_on_stack() -> i32 {
-        1
     }
 }
 
 impl LuaPutValue for i32 {
     fn put(&self, lua: LuaState) {
         lua.push_integer(*self as isize);
+    }
+}
+
+impl LuaPutValue for i64 {
+    fn put(&self, lua: LuaState) {
+        lua.push_number(*self as f64);
     }
 }
 
@@ -319,8 +335,15 @@ impl LuaPutValue for Obj {
     }
 }
 
+impl LuaPutValue for PhysicsBodyID {
+    fn put(&self, lua: LuaState) {
+        lua.push_integer(self.0 as isize);
+    }
+}
+
 impl<T: LuaPutValue> LuaPutValue for Option<T> {
     fn put(&self, lua: LuaState) {
+        const { assert!(T::SIZE_ON_STACK == 1) }
         match self {
             Some(val) => val.put(lua),
             None => lua.push_nil(),
@@ -335,8 +358,17 @@ impl<T: LuaPutValue> LuaPutValue for Option<T> {
     }
 }
 
+// A.k.a. vec2
+impl LuaPutValue for (f32, f32) {
+    const SIZE_ON_STACK: u32 = 2;
+    fn put(&self, lua: LuaState) {
+        lua.push_number(self.0 as f64);
+        lua.push_number(self.1 as f64);
+    }
+}
+
 /// Trait for arguments that can be retrieved from the lua stack.
-pub(crate) trait LuaGetValue {
+pub trait LuaGetValue {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
     where
         Self: Sized;
@@ -348,6 +380,15 @@ pub(crate) trait LuaGetValue {
 impl LuaGetValue for i32 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
         Ok(lua.to_integer(index) as Self)
+    }
+}
+
+impl LuaGetValue for i64 {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(lua.to_number(index) as Self)
     }
 }
 
@@ -427,6 +468,15 @@ impl LuaGetValue for Color {
     }
 }
 
+impl LuaGetValue for PhysicsBodyID {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(PhysicsBodyID(lua.to_integer(index) as i32))
+    }
+}
+
 impl<T: LuaGetValue> LuaGetValue for Option<T> {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
         Ok(if lua.is_nil_or_none(index) {
@@ -445,7 +495,7 @@ impl<T: LuaGetValue> LuaGetValue for Vec<T> {
         let len = lua.objlen(index);
         let mut res = Vec::with_capacity(len);
         for i in 1..=len {
-            lua.index_table(index, dbg!(i));
+            lua.index_table(index, i);
             let get = T::get(lua, -1);
             lua.pop_last();
             res.push(get?);

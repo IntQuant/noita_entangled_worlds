@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
-strip = true # Not having that causes wine debugger to crash.
+#strip = true # Not having that causes wine debugger to crash.
 panic = "abort"
 
 [dependencies]
@@ -19,6 +19,10 @@ noita_api_macro = {path = "noita_api_macro"}
 eyre = "0.6.12"
 noita_api = {path = "noita_api"}
 shared = {path = "../shared"}
+libloading = "0.8.6"
+rand = "0.8.5"
+rustc-hash = "2.0.0"
+bimap = "0.6.3"
 
 [features]
 #enables cross-compilation on older systems (for example, when compiling on ubuntu 20.04)

@@ -7,6 +7,11 @@ local initial_world_state_entity
 
 local module = {}
 
+-- Used in ewext
+EwextSerialize = util.serialize_entity
+EwextDeserialize = util.deserialize_entity
+EwextPrintError = util.print_error
+
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()
     ewext.on_world_initialized()
@@ -16,6 +21,7 @@ function module.on_world_initialized()
     chunk_map = tonumber(ffi.cast("intptr_t", chunk_map))
     local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
     ewext.init_particle_world_state(grid_world, chunk_map, material_list)
+    ewext.module_on_world_init()
 end
 
 local function oh_another_world_state(entity)
@@ -25,7 +31,12 @@ local function oh_another_world_state(entity)
     util.make_ephemerial(entity)
 end
 
+function module.on_client_spawned(peer_id, player_data)
+    ewext.register_player_entity(peer_id, player_data.entity)
+end
+
 function module.on_local_player_spawn()
+    ewext.register_player_entity(ctx.my_id, ctx.my_player.entity)
     initial_world_state_entity = GameGetWorldStateEntity()
     for _, ent in ipairs(EntityGetWithTag("world_state")) do
         if ent ~= GameGetWorldStateEntity() then
@@ -67,6 +78,10 @@ function module.on_world_update()
         initial_world_state_entity = GameGetWorldStateEntity()
     end
     ewext.module_on_world_update()
+end
+
+function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
+    ewext.module_on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, multicast_index)
 end
 
 return module

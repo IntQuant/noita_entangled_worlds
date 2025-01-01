@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use std::{
+    backtrace,
     fs::File,
     io::{self, BufWriter},
     panic,
@@ -66,6 +67,9 @@ async fn main() {
                 error!("Panic occured at unknown location: {payload}");
             }
         }
+
+        let trace = backtrace::Backtrace::force_capture();
+        error!("Backtrace: {}", trace);
     }));
 
     let args: Args = argh::from_env();
