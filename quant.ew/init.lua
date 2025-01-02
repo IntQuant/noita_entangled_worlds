@@ -303,6 +303,15 @@ function OnProjectileFiredPost(
     multicast_index,
     unknown3
 )
+    if EntityHasTag(shooter_id, "ew_client") then
+        local shooter_player_data = player_fns.get_player_data_by_local_entity_id(shooter_id)
+        local vel = EntityGetFirstComponentIncludingDisabled(projectile_id, "VelocityComponent")
+        if vel ~= nil then
+            local x, y = ComponentGetValue2(vel, "mVelocity")
+            local m = shooter_player_data.fps / ctx.my_player.fps
+            ComponentSetValue2(vel, x * m, y * m)
+        end
+    end
 end
 
 function OnPausedChanged(paused, is_wand_pickup)
