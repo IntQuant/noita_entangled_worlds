@@ -592,18 +592,24 @@ impl WorldManager {
     fn emit_got_authority(&mut self, chunk: ChunkCoord, source: OmniPeerId, priority: u8) {
         let auth = self.authority_map.get(&chunk);
         let chunk_data = if auth
-            .map(|a| a.0 != source)
+            .map(|a| a.0 != source) //TODO doesn't work
             .unwrap_or(self.chunk_storage.contains_key(&chunk))
         {
+            if self.explosion_pointer.contains_key(&chunk) {
+                self.cut_through_world_explosion_chunk(chunk);
+            }
             self.chunk_storage.get(&chunk).cloned()
-        } else if self.explosion_pointer.contains_key(&chunk)
-            && !self.chunk_storage.contains_key(&chunk)
-        {
-            self.emit_msg(
-                Destination::Peer(source),
-                WorldNetMessage::GetChunk { chunk, priority },
-            );
-            return;
+        } else if self.explosion_pointer.contains_key(&chunk) {
+            if !self.chunk_storage.contains_key(&chunk) {
+                self.emit_msg(
+                    Destination::Peer(source),
+                    WorldNetMessage::GetChunk { chunk, priority },
+                );
+                return;
+            } else {
+                self.cut_through_world_explosion_chunk(chunk);
+            }
+            self.chunk_storage.get(&chunk).cloned()
         } else {
             None
         };
@@ -1145,7 +1151,15 @@ impl WorldManager {
             self.chunk_storage.insert(entry.0, entry.1);
         }
     }
-    pub(crate) fn cut_through_world_line(&mut self, x: i32, y: i32, lx: i32, ly: i32, r: i32) {
+    pub(crate) fn cut_through_world_line(
+        &mut self,
+        x: i32,
+        y: i32,
+        lx: i32,
+        ly: i32,
+        r: i32,
+        chance: u8,
+    ) {
         let (min_cx, max_cx) = if x < lx {
             (
                 (x - r).div_euclid(CHUNK_SIZE as i32),
@@ -1172,7 +1186,7 @@ impl WorldManager {
         let dmx = lx - x;
         let dmy = ly - y;
         if dmx == 0 && dmy == 0 {
-            self.cut_through_world_circle(x, y, r, None);
+            self.cut_through_world_circle(x, y, r, None, 100);
             return;
         }
         let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
@@ -1255,6 +1269,7 @@ impl WorldManager {
                     return None;
                 }
                 let mut changed = false;
+                let mut rng = thread_rng();
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dcx = cx - x;
@@ -1272,6 +1287,8 @@ impl WorldManager {
                                 .get(&chunk.pixel(px).material)
                                 .map(|(_, _, cell)| cell.can_remove(true, false))
                                 .unwrap_or(true)
+                                && (chance != 0
+                                    && (chance == 100 || rng.gen_bool(chance as f64 / 100.0)))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1293,7 +1310,14 @@ impl WorldManager {
             }
         }
     }
-    pub(crate) fn cut_through_world_circle(&mut self, x: i32, y: i32, r: i32, mat: Option<u16>) {
+    pub(crate) fn cut_through_world_circle(
+        &mut self,
+        x: i32,
+        y: i32,
+        r: i32,
+        mat: Option<u16>,
+        chance: u8,
+    ) {
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
             (x + r).div_euclid(CHUNK_SIZE as i32),
@@ -1320,21 +1344,7 @@ impl WorldManager {
                     .map(move |chunk_y| (chunk_x, chunk_y))
             })
             .filter(|&(chunk_x, chunk_y)| {
-                r <= CHUNK_SIZE as i32 || {
-                    let close_x = if chunk_x < chunkx {
-                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
-                    } else {
-                        chunk_x * CHUNK_SIZE as i32
-                    };
-                    let close_y = if chunk_y < chunky {
-                        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
-                    } else {
-                        chunk_y * CHUNK_SIZE as i32
-                    };
-                    let dx = close_x.abs_diff(x) as u64;
-                    let dy = close_y.abs_diff(y) as u64;
-                    dx * dx + dy * dy <= rs
-                }
+                r <= CHUNK_SIZE as i32 || min_dist(x, y, chunkx, chunky, chunk_x, chunk_y) <= rs
             })
             .filter_map(|(chunk_x, chunk_y)| {
                 let coord = ChunkCoord(chunk_x, chunk_y);
@@ -1359,6 +1369,7 @@ impl WorldManager {
                     return None;
                 }
                 let mut changed = false;
+                let mut rng = thread_rng();
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx.abs_diff(x) as u64;
@@ -1373,6 +1384,8 @@ impl WorldManager {
                                 .get(&chunk.pixel(px).material)
                                 .map(|(_, _, cell)| cell.can_remove(true, false))
                                 .unwrap_or(true)
+                                && (chance != 0
+                                    && (chance == 100 || rng.gen_bool(chance as f64 / 100.0)))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1460,7 +1473,7 @@ impl WorldManager {
                     } else if let Some(c) = self.chunk_storage.get(&co) {
                         c.apply_to_chunk(&mut working_chunk)
                     } else {
-                        ret = 9;
+                        ret = 17;
                         continue;
                     };
                     last_co = co;
@@ -1493,7 +1506,7 @@ impl WorldManager {
                 y += sy;
             }
         }
-        (Some((x, y)), ray)
+        (Some((x, y)), 0)
     }
 
     #[allow(clippy::type_complexity)]
@@ -1511,7 +1524,7 @@ impl WorldManager {
         } = ex;
         let rays = r.next_power_of_two().clamp(16, 1024);
         let t = TAU / rays as f32;
-        let (results, lst) = (0..rays)
+        let results: Vec<(u64, u64)> = (0..rays)
             .into_par_iter()
             .map(|n| {
                 let theta = t * (n as f32 + 0.5);
@@ -1533,7 +1546,8 @@ impl WorldManager {
                     (0, v)
                 }
             })
-            .unzip();
+            .collect();
+        let lst = results.iter().map(|(_, b)| *b).collect();
         (
             self.cut_through_world_explosion_list(
                 x, y, d, rays, results, hole, liquid, mat, prob, r,
@@ -1552,45 +1566,51 @@ impl WorldManager {
             let m = self.explosion_heap.len();
             self.explosion_heap.push(ex);
             let mut data = FxHashMap::default();
+            let mut exists = false;
             for entry in chunks {
-                match entry {
-                    ExRet::Loaded(entry) => {
-                        if entry.3 {
-                            self.chunk_storage.insert(entry.0, entry.1);
-                        } else {
-                            self.chunk_storage
-                                .entry(entry.0)
-                                .and_modify(|c| c.apply_delta(entry.1));
-                        }
-                        if entry.2 {
-                            self.is_storage_recent.insert(entry.0);
-                        }
+                if let Some(entry) = entry.loaded {
+                    if entry.3 {
+                        self.chunk_storage.insert(entry.0, entry.1);
+                    } else {
+                        self.chunk_storage
+                            .entry(entry.0)
+                            .and_modify(|c| c.apply_delta(entry.1));
                     }
-                    ExRet::Unloaded((coord, rays)) if self.nice_terraforming => {
-                        self.explosion_pointer.entry(coord).or_default().extend(
-                            rays.iter()
-                                .filter_map(|i| {
-                                    if raydata[*i] == 0 {
-                                        None
-                                    } else if let Some(n) = data.get(i) {
-                                        Some(*n)
-                                    } else {
-                                        let n = self.explosion_data.len();
-                                        self.explosion_data.push((
-                                            m,
-                                            *i,
-                                            ExTarget::Ray(raydata[*i]),
-                                            0,
-                                        ));
-                                        data.insert(*i, n);
-                                        Some(n)
-                                    }
-                                })
-                                .collect::<Vec<usize>>(),
-                        );
+                    if entry.2 {
+                        self.is_storage_recent.insert(entry.0);
                     }
-                    _ => {}
                 }
+                if let Some((coord, rays)) = entry.unloaded {
+                    if self.nice_terraforming {
+                        exists = true;
+                        let lst = rays
+                            .iter()
+                            .filter_map(|i| {
+                                if raydata[*i] == 0 {
+                                    None
+                                } else if let Some(n) = data.get(i) {
+                                    Some(*n)
+                                } else {
+                                    let n = self.explosion_data.len();
+                                    self.explosion_data.push((
+                                        m,
+                                        *i,
+                                        ExTarget::Ray(raydata[*i]),
+                                        0,
+                                    ));
+                                    data.insert(*i, n);
+                                    Some(n)
+                                }
+                            })
+                            .collect::<Vec<usize>>();
+                        if !lst.is_empty() {
+                            self.explosion_pointer.entry(coord).or_default().extend(lst)
+                        }
+                    }
+                }
+            }
+            if !exists {
+                self.explosion_heap.pop();
             }
         }
     }
@@ -1602,14 +1622,14 @@ impl WorldManager {
         y: i32,
         d: u32,
         rays: u64,
-        list: Vec<u64>,
+        list: Vec<(u64, u64)>,
         hole: bool,
         liquid: bool,
         mat: u16,
         prob: u8,
         r: u64,
     ) -> Vec<ExRet> {
-        let rs = *list.iter().max().unwrap_or(&0);
+        let rs = *list.iter().map(|(a, _)| a).max().unwrap_or(&0);
         if r == 0 {
             return Vec::new();
         }
@@ -1644,76 +1664,89 @@ impl WorldManager {
                 let coord = ChunkCoord(chunk_x, chunk_y);
                 let storage = if let Some(s) = self.chunk_storage.get(&coord) {
                     s
-                } else if !self.nice_terraforming {
+                } else if !self.nice_terraforming
+                    || min_dist(x, y, chunkx, chunky, chunk_x, chunk_y) > r * r
+                {
                     return None;
                 } else {
-                    let close_x = if chunk_x < chunkx {
-                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+                    let lst: Vec<usize> = if (chunkx, chunky) == (chunk_x, chunk_y) {
+                        (0..list.len()).collect()
                     } else {
-                        chunk_x * CHUNK_SIZE as i32
+                        let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
+                        list.iter()
+                            .enumerate()
+                            .filter_map(|(n, _)| {
+                                if (i..=j).contains(&n) && list[n].1 != 0 {
+                                    Some(n)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
                     };
-                    let close_y = if chunk_y < chunky {
-                        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+                    return if lst.is_empty() {
+                        None
                     } else {
-                        chunk_y * CHUNK_SIZE as i32
+                        Some(ExRet {
+                            loaded: None,
+                            unloaded: Some((coord, lst)),
+                        })
                     };
-                    let (adj_x1, adj_x2) = (
-                        chunk_x * CHUNK_SIZE as i32,
-                        (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
-                    );
-                    let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
-                        (
-                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                            chunk_y * CHUNK_SIZE as i32,
-                        )
+                };
+                if !should_process_chunk(chunk_x, chunk_y, x, y, r, &list, chunkx, chunky, rays, rs)
+                {
+                    return if !self.nice_terraforming {
+                        None
                     } else {
-                        (
-                            chunk_y * CHUNK_SIZE as i32,
-                            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                        )
-                    };
-                    let dx = close_x.abs_diff(x) as u64;
-                    let dy = close_y.abs_diff(y) as u64;
-                    let adj_dx = adj_x1 - x;
-                    let adj_dy = adj_y1 - y;
-                    let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-                    if i.is_sign_negative() {
-                        i += rays as f32
-                    }
-                    let adj_dx = adj_x2 - x;
-                    let adj_dy = adj_y2 - y;
-                    let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-                    if j.is_sign_negative() {
-                        j += rays as f32
-                    }
-                    let i = i as usize;
-                    let j = j as usize;
-                    let c = dx * dx + dy * dy;
-                    if c > r * r {
-                        return None;
-                    }
-                    return Some(ExRet::Unloaded((
-                        coord,
-                        if (chunkx, chunky) == (chunk_x, chunk_y) {
+                        let lst: Vec<usize> = if (chunkx, chunky) == (chunk_x, chunk_y) {
                             (0..list.len()).collect()
                         } else {
+                            let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
                             list.iter()
                                 .enumerate()
                                 .filter_map(|(n, _)| {
-                                    if (i.min(j)..=i.max(j)).contains(&n) {
+                                    if (i..=j).contains(&n) && list[n].1 != 0 {
                                         Some(n)
                                     } else {
                                         None
                                     }
                                 })
                                 .collect()
-                        },
-                    )));
-                };
-                if !should_process_chunk(chunk_x, chunk_y, x, y, r, &list, chunkx, chunky, rays, rs)
-                {
-                    return None;
+                        };
+                        if lst.is_empty() {
+                            None
+                        } else {
+                            Some(ExRet {
+                                loaded: None,
+                                unloaded: Some((coord, lst)),
+                            })
+                        }
+                    };
                 }
+                let unloaded = if self.nice_terraforming {
+                    let lst: Vec<usize> = if (chunkx, chunky) == (chunk_x, chunk_y) {
+                        (0..list.len()).collect()
+                    } else {
+                        let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
+                        list.iter()
+                            .enumerate()
+                            .filter_map(|(n, _)| {
+                                if (i..=j).contains(&n) && list[n].1 != 0 {
+                                    Some(n)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
+                    };
+                    if lst.is_empty() {
+                        None
+                    } else {
+                        Some((coord, lst))
+                    }
+                } else {
+                    None
+                };
                 let mut chunk = Chunk::default();
                 let mut chunk_delta = Chunk::default();
                 let mut del = false;
@@ -1733,6 +1766,7 @@ impl WorldManager {
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                 let mut all = true;
                 let mut none = true;
+                let mut rng = thread_rng();
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx - x;
@@ -1745,7 +1779,7 @@ impl WorldManager {
                             i += rays as f32
                         }
                         if dd as u64 + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64
-                            <= list[i as usize]
+                            <= list[i as usize].0
                         {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if self
@@ -1754,8 +1788,7 @@ impl WorldManager {
                                 .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                                 .unwrap_or(true)
                             {
-                                let mut rng = thread_rng();
-                                if rng.gen_bool(prob as f64 / 100.0) {
+                                if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
                                     chunk_delta.set_pixel(px, mat_pixel);
                                 } else {
                                     chunk_delta.set_pixel(px, air_pixel);
@@ -1770,14 +1803,15 @@ impl WorldManager {
                     }
                 }
                 if none {
-                    None
+                    unloaded.map(|unloaded| ExRet {
+                        loaded: None,
+                        unloaded: Some(unloaded),
+                    })
                 } else {
-                    Some(ExRet::Loaded((
-                        coord,
-                        chunk_delta.to_chunk_data(),
-                        del,
-                        all,
-                    )))
+                    Some(ExRet {
+                        loaded: Some((coord, chunk_delta.to_chunk_data(), del, all)),
+                        unloaded,
+                    })
                 }
             })
             .collect()
@@ -1934,6 +1968,7 @@ impl WorldManager {
         let chunk_start_y = coord.1 * CHUNK_SIZE as i32;
         let mut all = true;
         let mut none = true;
+        let mut rng = thread_rng();
         for icx in 0..CHUNK_SIZE as i32 {
             let cx = chunk_start_x + icx;
             'up: for icy in 0..CHUNK_SIZE as i32 {
@@ -1973,8 +2008,7 @@ impl WorldManager {
                             .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                             .unwrap_or(true)
                         {
-                            let mut rng = thread_rng();
-                            if rng.gen_bool(prob as f64 / 100.0) {
+                            if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
                                 chunk_delta.set_pixel(px, mat_pixel);
                             } else {
                                 chunk_delta.set_pixel(px, air_pixel);
@@ -2138,75 +2172,20 @@ fn should_process_chunk(
     x: i32,
     y: i32,
     r: u64,
-    list: &[u64],
+    list: &[(u64, u64)],
     chunkx: i32,
     chunky: i32,
     rays: u64,
     rs: u64,
 ) -> bool {
     r <= CHUNK_SIZE as u64 || (chunkx, chunky) == (chunk_x, chunk_y) || {
-        if r >= 8 * CHUNK_SIZE as u64 {
-            let close_x = if chunk_x < chunkx {
-                (chunk_x + 1) * CHUNK_SIZE as i32 - 1
-            } else {
-                chunk_x * CHUNK_SIZE as i32
-            };
-            let close_y = if chunk_y < chunky {
-                (chunk_y + 1) * CHUNK_SIZE as i32 - 1
-            } else {
-                chunk_y * CHUNK_SIZE as i32
-            };
-            let dx = close_x.abs_diff(x) as u64;
-            let dy = close_y.abs_diff(y) as u64;
-            let d = dx * dx + dy * dy;
-            if d > rs {
-                return false;
+        {
+            let d = min_dist(x, y, chunkx, chunky, chunk_x, chunk_y);
+            d <= rs && {
+                let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
+                let r = list[i..=j].iter().map(|(a, _)| a).max().unwrap_or(&0);
+                d <= *r
             }
-            let (adj_x1, adj_x2) = (
-                chunk_x * CHUNK_SIZE as i32,
-                (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
-            );
-            let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
-                (
-                    (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                    chunk_y * CHUNK_SIZE as i32,
-                )
-            } else {
-                (
-                    chunk_y * CHUNK_SIZE as i32,
-                    (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
-                )
-            };
-            let adj_dx = adj_x1 - x;
-            let adj_dy = adj_y1 - y;
-            let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-            if i.is_sign_negative() {
-                i += rays as f32
-            }
-            let adj_dx = adj_x2 - x;
-            let adj_dy = adj_y2 - y;
-            let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-            if j.is_sign_negative() {
-                j += rays as f32
-            }
-            let i = i as usize;
-            let j = j as usize;
-            let r = list[i.min(j)..=i.max(j)].iter().max().unwrap_or(&0);
-            d <= *r
-        } else {
-            let close_x = if chunk_x < chunkx {
-                (chunk_x + 1) * CHUNK_SIZE as i32 - 1
-            } else {
-                chunk_x * CHUNK_SIZE as i32
-            };
-            let close_y = if chunk_y < chunky {
-                (chunk_y + 1) * CHUNK_SIZE as i32 - 1
-            } else {
-                chunk_y * CHUNK_SIZE as i32
-            };
-            let dx = close_x.abs_diff(x) as u64;
-            let dy = close_y.abs_diff(y) as u64;
-            dx * dx + dy * dy <= rs
         }
     }
 }
@@ -2221,9 +2200,62 @@ impl Drop for WorldManager {
 impl SaveStateEntry for FxHashMap<ChunkCoord, ChunkData> {
     const FILENAME: &'static str = "world_chunks";
 }
-pub(crate) enum ExRet {
-    Loaded((ChunkCoord, ChunkData, bool, bool)),
-    Unloaded((ChunkCoord, Vec<usize>)),
+pub(crate) struct ExRet {
+    loaded: Option<(ChunkCoord, ChunkData, bool, bool)>,
+    unloaded: Option<(ChunkCoord, Vec<usize>)>,
+}
+fn find_rays(
+    x: i32,
+    y: i32,
+    chunkx: i32,
+    chunky: i32,
+    chunk_x: i32,
+    chunk_y: i32,
+    rays: u64,
+) -> (usize, usize) {
+    let (adj_x1, adj_x2) = (
+        chunk_x * CHUNK_SIZE as i32,
+        (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
+    );
+    let (adj_y1, adj_y2) = if (chunk_x < chunkx) == (chunk_y < chunky) {
+        (
+            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+            chunk_y * CHUNK_SIZE as i32,
+        )
+    } else {
+        (
+            chunk_y * CHUNK_SIZE as i32,
+            (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+        )
+    };
+    let adj_dx = adj_x1 - x;
+    let adj_dy = adj_y1 - y;
+    let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+    if i.is_sign_negative() {
+        i += rays as f32
+    }
+    let adj_dx = adj_x2 - x;
+    let adj_dy = adj_y2 - y;
+    let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
+    if j.is_sign_negative() {
+        j += rays as f32
+    }
+    (i.min(j) as usize, j.max(i) as usize)
+}
+fn min_dist(x: i32, y: i32, chunkx: i32, chunky: i32, chunk_x: i32, chunk_y: i32) -> u64 {
+    let close_x = if chunk_x < chunkx {
+        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
+    } else {
+        chunk_x * CHUNK_SIZE as i32
+    };
+    let close_y = if chunk_y < chunky {
+        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
+    } else {
+        chunk_y * CHUNK_SIZE as i32
+    };
+    let dx = close_x.abs_diff(x) as u64;
+    let dy = close_y.abs_diff(y) as u64;
+    dx * dx + dy * dy
 }
 /*#[cfg(test)]
 #[test]
@@ -2383,14 +2415,14 @@ fn test_explosion_img_big() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(if rng.gen_bool(0.25) {
+            e.insert(if rng.gen_bool(0.2) {
                 _brickwork.clone()
             } else {
                 _dirt.clone()
             });
-            if world.explosion_pointer.contains_key(&c) {
-                world.cut_through_world_explosion_chunk(c)
-            }
+        }
+        if world.explosion_pointer.contains_key(&c) {
+            world.cut_through_world_explosion_chunk(c)
         }
     }
     println!("total img micros {}", timer.elapsed().as_micros());
@@ -2423,6 +2455,9 @@ fn test_explosion_img_big_br() {
     let w = 20;
     for i in -w..w {
         for j in -w..w {
+            if (4..=6).contains(&i) && (4..=6).contains(&j) {
+                continue;
+            }
             if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
                 //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
                 world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
@@ -2453,13 +2488,26 @@ fn test_explosion_img_big_br() {
         .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
         .collect::<Vec<(i32, i32)>>();
     iter.shuffle(&mut rng);
+    /*println!(
+        "{}",
+        world
+            .explosion_pointer
+            .keys()
+            .map(|a| format!("{} {}\n", a.0, a.1))
+            .collect::<Vec<String>>()
+            .concat()
+    );*/
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(_brickwork.clone());
-            if world.explosion_pointer.contains_key(&c) {
-                world.cut_through_world_explosion_chunk(c)
-            }
+            e.insert(if rng.gen_bool(0.2) {
+                _brickwork.clone()
+            } else {
+                _dirt.clone()
+            });
+        }
+        if world.explosion_pointer.contains_key(&c) {
+            world.cut_through_world_explosion_chunk(c)
         }
     }
     println!("total img micros {}", timer.elapsed().as_micros());
@@ -2525,14 +2573,14 @@ fn test_explosion_img_big_empty() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            if (-24..24).contains(&i) && (-24..24).contains(&j) {
-                e.insert(_dirt.clone());
+            e.insert(if rng.gen_bool(0.2) {
+                _brickwork.clone()
             } else {
-                e.insert(_brickwork.clone());
-            }
-            if world.explosion_pointer.contains_key(&c) {
-                world.cut_through_world_explosion_chunk(c)
-            }
+                _dirt.clone()
+            });
+        }
+        if world.explosion_pointer.contains_key(&c) {
+            world.cut_through_world_explosion_chunk(c)
         }
     }
     println!("total img micros {}", timer.elapsed().as_micros());
@@ -2666,7 +2714,7 @@ fn test_line_img() {
     let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_line(0, 0, 126, 64, 20);
+    world.cut_through_world_line(0, 0, 126, 64, 20, 50);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);
@@ -2709,7 +2757,7 @@ fn test_circ_img() {
     let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
 
     let timer = std::time::Instant::now();
-    world.cut_through_world_circle(0, 0, 540, None);
+    world.cut_through_world_circle(0, 0, 540, None, 80);
     println!("total img micros {}", timer.elapsed().as_micros());
 
     let mut img = image::GrayImage::new(pixels, pixels);
@@ -2799,9 +2847,9 @@ fn test_explosion_img_big_many() {
             } else {
                 _dirt.clone()
             });
-            if world.explosion_pointer.contains_key(&c) {
-                world.cut_through_world_explosion_chunk(c)
-            }
+        }
+        if world.explosion_pointer.contains_key(&c) {
+            world.cut_through_world_explosion_chunk(c)
         }
     }
     println!("total img micros {}", timer.elapsed().as_micros());
@@ -2933,13 +2981,17 @@ fn test_explosion_perf_unloaded() {
         for (i, j) in iter {
             let c = ChunkCoord(i, j);
             if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-                e.insert(_brickwork.clone());
-                if world.explosion_pointer.contains_key(&c) {
-                    let timer = std::time::Instant::now();
-                    world.cut_through_world_explosion_chunk(c);
-                    total += timer.elapsed().as_micros();
-                    n += 1;
-                }
+                e.insert(if rng.gen_bool(0.2) {
+                    _brickwork.clone()
+                } else {
+                    _dirt.clone()
+                });
+            }
+            if world.explosion_pointer.contains_key(&c) {
+                let timer = std::time::Instant::now();
+                world.cut_through_world_explosion_chunk(c);
+                total += timer.elapsed().as_micros();
+                n += 1;
             }
         }
     }
@@ -3041,7 +3093,7 @@ fn test_line_perf() {
             }
         }
         let timer = std::time::Instant::now();
-        world.cut_through_world_line(0, 0, 64, 64, 64);
+        world.cut_through_world_line(0, 0, 64, 64, 64, 50);
         total += timer.elapsed().as_micros();
     }
     println!("total micros: {}", total / iters);
@@ -3086,7 +3138,7 @@ fn test_circle_perf() {
             }
         }
         let timer = std::time::Instant::now();
-        world.cut_through_world_circle(0, 0, 512, None);
+        world.cut_through_world_circle(0, 0, 512, None, 80);
         total += timer.elapsed().as_micros();
     }
     println!("total micros: {}", total / iters);

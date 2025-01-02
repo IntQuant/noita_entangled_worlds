@@ -882,25 +882,38 @@ impl NetManager {
                 let lx: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let ly: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                let (Some(x), Some(y), Some(lx), Some(ly)) = (x, y, lx, ly) else {
+                let chance: Option<u64> = msg.next().and_then(|s| s.parse().ok());
+                let (Some(x), Some(y), Some(lx), Some(ly), Some(chance)) = (x, y, lx, ly, chance)
+                else {
                     error!("Missing arguments in cut_through_world_line message");
                     return;
                 };
                 let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                state
-                    .world
-                    .cut_through_world_line(x, y, lx, ly, r.unwrap_or(12));
+                state.world.cut_through_world_line(
+                    x,
+                    y,
+                    lx,
+                    ly,
+                    r.unwrap_or(12),
+                    chance.max(100) as u8,
+                );
             }
             Some("cut_through_world_circle") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let mat: Option<u16> = msg.next().and_then(|s| s.parse().ok());
+                let chance: u64 = msg
+                    .next()
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(100);
                 let (Some(x), Some(y), Some(r)) = (x, y, r) else {
                     error!("Missing arguments in cut_through_world_circle message");
                     return;
                 };
-                state.world.cut_through_world_circle(x, y, r, mat);
+                state
+                    .world
+                    .cut_through_world_circle(x, y, r, mat, chance.max(100) as u8);
             }
             Some("cut_through_world_explosion") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());

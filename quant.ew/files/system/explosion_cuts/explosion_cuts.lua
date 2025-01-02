@@ -55,8 +55,7 @@ local first = true
 local function hole(item)
     local ce = EntityGetFirstComponent(item, "CellEaterComponent")
     if ce == nil or ComponentGetValue2(ce, "only_stain")
-            or ComponentGetValue2(ce, "limited_materials")
-            or ComponentGetValue2(ce, "eat_probability") < 40 then
+            or ComponentGetValue2(ce, "limited_materials") then
         return
     end
     local r = 0
@@ -69,12 +68,14 @@ local function hole(item)
             local dy = y - ly
             r = math.sqrt(dx * dx + dy * dy)
             local inp = math.floor(x).." "..math.floor(lx)
-                    .." "..math.floor(y).." "..math.floor(ly) .. " " .. n
+                    .. " " .. math.floor(y).." "..math.floor(ly) .. " " .. n
+                    .. " " .. math.floor(ComponentGetValue2(ce, "eat_probability"))
             net.proxy_send("cut_through_world_line", inp)
         end
     else
         local inp = math.floor(x) .. " " .. math.floor(y)
                 .. " " .. math.floor(n) .. " " .. math.floor(0)
+                    .. " " .. math.floor(ComponentGetValue2(ce, "eat_probability"))
         net.proxy_send("cut_through_world_circle", inp)
     end
     hole_last[item] = {x, y}
