@@ -67,10 +67,12 @@ struct ExtState {
 }
 
 impl ExtState {
-    fn with_global<T>(f: impl FnOnce(&mut Self) -> T) -> T {
+    fn with_global<T>(f: impl FnOnce(&mut Self) -> T) -> eyre::Result<T> {
         STATE.with(|state| {
-            let mut state = state.borrow_mut();
-            f(&mut state)
+            let mut state = state
+                .try_borrow_mut()
+                .wrap_err("Failed to access ExtState")?;
+            Ok(f(&mut state))
         })
     }
 }
@@ -182,7 +184,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
                     entity_sync.handle_proxytodes(proxy_to_des);
                 }
-            }),
+            })?,
             NoitaInbound::RemoteMessage {
                 source,
                 message: shared::RemoteMessage::RemoteDes(remote_des),
@@ -191,7 +193,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
                     entity_sync.handle_remotedes(source, remote_des);
                 }
-            }),
+            })?,
         }
     }
     Ok(None)
@@ -262,7 +264,7 @@ fn with_every_module(
             bail!("Multiple errors while running ewext modules:\n{:?}", errs)
         }
         Ok(())
-    })
+    })?
 }
 
 fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
@@ -423,7 +425,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
                 entity_sync.cross_item_thrown(net, LuaGetValue::get(lua, -1)?)?;
                 Ok(())
-            })
+            })?
         }
         add_lua_fn!(des_item_thrown);
 
@@ -440,7 +442,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
                 entity_sync.cross_death_notify(entity_killed, entity_responsible)?;
                 Ok(())
-            })
+            })?
         }
         add_lua_fn!(des_death_notify);
 
@@ -451,7 +453,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             ExtState::with_global(|state| {
                 state.player_entity_map.insert(peer_id, entity);
                 Ok(())
-            })
+            })?
         }
         add_lua_fn!(register_player_entity);
     }
