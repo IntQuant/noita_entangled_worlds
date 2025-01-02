@@ -895,7 +895,7 @@ impl NetManager {
                     lx,
                     ly,
                     r.unwrap_or(12),
-                    chance.max(100) as u8,
+                    chance.min(100) as u8,
                 );
             }
             Some("cut_through_world_circle") => {
@@ -913,7 +913,7 @@ impl NetManager {
                 };
                 state
                     .world
-                    .cut_through_world_circle(x, y, r, mat, chance.max(100) as u8);
+                    .cut_through_world_circle(x, y, r, mat, chance.min(100) as u8);
             }
             Some("cut_through_world_explosion") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
@@ -949,7 +949,7 @@ impl NetManager {
                     hole,
                     liquid,
                     mat,
-                    prob.max(100) as u8,
+                    prob.min(100) as u8,
                 ));
             }
             Some("flush_exp") => {
