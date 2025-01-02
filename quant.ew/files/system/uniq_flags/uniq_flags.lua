@@ -29,7 +29,7 @@ function module.request_flag(flag)
         GameAddFlagRun(flag)
         return not res
     end
-    
+
     local current = coroutine.running()
     pending_requests[flag] = current
     rpc.request_flag(flag)

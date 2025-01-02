@@ -1,5 +1,9 @@
 local essence_list = {
-    "fire", "laser", "air", "water", "alcohol",
+    "fire",
+    "laser",
+    "air",
+    "water",
+    "alcohol",
 }
 local peer_essence_data = {}
 
@@ -9,7 +13,7 @@ local module = {}
 local function essences_on_current_player_hash()
     local ret = 0
     for _, id in ipairs(essence_list) do
-        if GameHasFlagRun("essence_"..id) then
+        if GameHasFlagRun("essence_" .. id) then
             ret = ret * 2 + 1
         else
             ret = ret * 2
@@ -21,7 +25,7 @@ end
 local function essences_on_current_player()
     local ret = {}
     for _, id in ipairs(essence_list) do
-        table.insert(ret, GameHasFlagRun("essence_"..id))
+        table.insert(ret, GameHasFlagRun("essence_" .. id))
     end
     return ret
 end
@@ -54,7 +58,7 @@ local function update_essences_on(player_data)
     for i, present in ipairs(peer_essence_data[player_data.peer_id] or {}) do
         local id = essence_list[i]
         if present then
-            local ent = EntityLoad("data/entities/misc/essences/"..id..".xml")
+            local ent = EntityLoad("data/entities/misc/essences/" .. id .. ".xml")
             EntityAddChild(player_data.entity, ent)
         end
     end

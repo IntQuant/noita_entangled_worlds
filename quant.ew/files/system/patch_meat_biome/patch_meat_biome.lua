@@ -1,4 +1,7 @@
-ModLuaFileAppend("data/scripts/misc/no_heal_in_meat_biome.lua", "mods/quant.ew/files/system/patch_meat_biome/append/biome_check.lua")
+ModLuaFileAppend(
+    "data/scripts/misc/no_heal_in_meat_biome.lua",
+    "mods/quant.ew/files/system/patch_meat_biome/append/biome_check.lua"
+)
 
 local is_in_meat_current = false
 
@@ -28,7 +31,7 @@ function module.on_world_update()
         return
     end
 
-    local is_boss_dead = GlobalsGetValue( "BOSS_MEAT_DEAD", "0" ) == "1"
+    local is_boss_dead = GlobalsGetValue("BOSS_MEAT_DEAD", "0") == "1"
     local anyone_in_meat = #(EntityGetWithTag("ew_no_heal_in_meat_biome") or {}) > 0
     anyone_in_meat = anyone_in_meat and not is_boss_dead
 

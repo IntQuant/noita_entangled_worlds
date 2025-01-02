@@ -11,7 +11,7 @@ function adjust_damage.adjust_damage(dmg, details)
             return dmg * 5
         end
     end
-    
+
     return dmg
 end
 

@@ -24,7 +24,7 @@ local function entity_changed()
             end
         end
 
-        rpc.change_entity({data = util.serialize_entity(ctx.my_player.entity)})
+        rpc.change_entity({ data = util.serialize_entity(ctx.my_player.entity) })
     else
         rpc.change_entity(nil)
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
@@ -90,8 +90,12 @@ function module.on_world_update_post()
                 local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
                 if com ~= nil then
                     local effect_name = ComponentGetValue2(com, "effect")
-                    if effect_name == "POLYMORPH" or effect_name == "POLYMORPH_RANDOM"
-                            or effect_name == "POLYMORPH_CESSATION" or effect_name == "POLYMORPH_UNSTABLE" then
+                    if
+                        effect_name == "POLYMORPH"
+                        or effect_name == "POLYMORPH_RANDOM"
+                        or effect_name == "POLYMORPH_CESSATION"
+                        or effect_name == "POLYMORPH_UNSTABLE"
+                    then
                         effect = com
                         break
                     end
@@ -118,21 +122,42 @@ function module.on_world_update_post()
         module.switch_entity(ent)
         if ctx.proxy_opt.game_mode == "local_health" then
             util.ensure_component_present(ent, "LuaComponent", "ew_player_damage", {
-                script_damage_received = "mods/quant.ew/files/system/local_health/grab_damage_message.lua"
+                script_damage_received = "mods/quant.ew/files/system/local_health/grab_damage_message.lua",
             })
         end
     end
 end
 
-function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
-    unknown1, multicast_index, unknown3)
+function module.on_projectile_fired(
+    shooter_id,
+    projectile_id,
+    initial_rng,
+    position_x,
+    position_y,
+    target_x,
+    target_y,
+    send_message,
+    unknown1,
+    multicast_index,
+    unknown3
+)
     -- Do not sync notplayer's projectiles extra time.
-    if ctx.my_player.currently_polymorphed and shooter_id == ctx.my_player.entity and not EntityHasTag(shooter_id, "player_unit") then
+    if
+        ctx.my_player.currently_polymorphed
+        and shooter_id == ctx.my_player.entity
+        and not EntityHasTag(shooter_id, "player_unit")
+    then
         local projectileComponent = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         if projectileComponent ~= nil then
-            local entity_that_shot    = ComponentGetValue2(projectileComponent, "mEntityThatShot")
+            local entity_that_shot = ComponentGetValue2(projectileComponent, "mEntityThatShot")
             if entity_that_shot == 0 then
-                rpc.replicate_projectile(util.serialize_entity(projectile_id), position_x, position_y, target_x, target_y)
+                rpc.replicate_projectile(
+                    util.serialize_entity(projectile_id),
+                    position_x,
+                    position_y,
+                    target_x,
+                    target_y
+                )
             end
             EntityAddTag(projectile_id, "ew_no_enemy_sync")
         end
@@ -147,8 +172,10 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
 end
 
 local function apply_seri_ent(player_data, seri_ent)
-    if EntityGetRootEntity(ctx.my_player.entity) == player_data.entity
-            and player_data.peer_id ~= ctx.my_player.peer_id then
+    if
+        EntityGetRootEntity(ctx.my_player.entity) == player_data.entity
+        and player_data.peer_id ~= ctx.my_player.peer_id
+    then
         potion.enable_in_world(ctx.my_player.entity)
     end
     if seri_ent ~= nil then
@@ -156,7 +183,10 @@ local function apply_seri_ent(player_data, seri_ent)
         EntityAddTag(ent, "ew_no_enemy_sync")
         EntityAddTag(ent, "ew_client")
 
-        EntityAddComponent2(ent, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        EntityAddComponent2(ent, "LuaComponent", {
+            _tags = "ew_immortal",
+            script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua",
+        })
 
         -- Remove all poly-like effects to prevent spawn of another player character when it runs out
         remove_all_effects(ent)
@@ -178,7 +208,7 @@ local function apply_seri_ent(player_data, seri_ent)
         EntityRemoveTag(ent, "player_unit")
         EntityRemoveTag(ent, "teleportable")
 
-        EntitySetName(ent, player_data.peer_id.."?")
+        EntitySetName(ent, player_data.peer_id .. "?")
 
         EntityKill(player_data.entity)
         player_fns.replace_player_entity(ent, player_data)

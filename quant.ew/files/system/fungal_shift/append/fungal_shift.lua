@@ -19,7 +19,7 @@ function fungal_shift(entity, x, y, debug_no_limits)
     old_fungal_shift(entity, x, y, debug_no_limits)
     ConvertMaterialEverywhere = old_convert_mat
     GameTextGet = old_get_text
-    local iter = tonumber(GlobalsGetValue( "fungal_shift_iteration", "0" ))
+    local iter = tonumber(GlobalsGetValue("fungal_shift_iteration", "0"))
     if changed_anything then
         CrossCall("ew_fungal_shift", iter, from_material_name)
     end

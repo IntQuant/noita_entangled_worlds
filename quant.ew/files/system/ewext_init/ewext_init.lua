@@ -25,7 +25,7 @@ function module.on_world_initialized()
 end
 
 local function oh_another_world_state(entity)
-    print("Another world state: "..entity)
+    print("Another world state: " .. entity)
     GamePrint("Another World State Entity detected")
     GamePrint("Do a 'mods > restart with enabled mods' to avoid a crash")
     util.make_ephemerial(entity)
@@ -52,12 +52,12 @@ end
 
 local function bench_fn_lua()
     local start = GameGetRealWorldTimeSinceStarted()
-    for i=1,10000 do
+    for i = 1, 10000 do
         local player = EntityGetClosestWithTag(0, 0, "player_unit")
         EntitySetTransform(player, 0, 0, 0, 1, 1)
     end
     local elapsed = GameGetRealWorldTimeSinceStarted() - start
-    GamePrint(elapsed*1000000)
+    GamePrint(elapsed * 1000000)
 end
 
 function module.on_draw_debug_window(imgui)
@@ -80,8 +80,29 @@ function module.on_world_update()
     ewext.module_on_world_update()
 end
 
-function module.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
-    ewext.module_on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, multicast_index)
+function module.on_projectile_fired(
+    shooter_id,
+    projectile_id,
+    initial_rng,
+    position_x,
+    position_y,
+    target_x,
+    target_y,
+    send_message,
+    unknown1,
+    multicast_index,
+    unknown3
+)
+    ewext.module_on_projectile_fired(
+        shooter_id,
+        projectile_id,
+        initial_rng,
+        position_x,
+        position_y,
+        target_x,
+        target_y,
+        multicast_index
+    )
 end
 
 return module

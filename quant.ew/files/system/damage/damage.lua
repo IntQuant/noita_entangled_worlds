@@ -11,7 +11,10 @@ module.recent_message = "unknown"
 module.last_damage_message = "unknown"
 
 ModLuaFileAppend("data/scripts/game_helpers.lua", "mods/quant.ew/files/system/damage/append/game_helpers.lua")
-ModTextFileSetContent("data/entities/misc/effect_hearty.xml", ModTextFileGetContent("mods/quant.ew/files/system/damage/append/hearty_effect.xml"))
+ModTextFileSetContent(
+    "data/entities/misc/effect_hearty.xml",
+    ModTextFileGetContent("mods/quant.ew/files/system/damage/append/hearty_effect.xml")
+)
 
 local function damage_received(damage, message, entity_id, add_healing_effect)
     local was_my_player = entity_id == nil or ctx.my_player.entity == entity_id
@@ -22,7 +25,7 @@ local function damage_received(damage, message, entity_id, add_healing_effect)
     module.recent_damage = module.recent_damage + damage
     if message ~= nil then
         module.recent_message = message
-        module.last_damage_message = GameTextGetTranslatedOrNot(message) .. " from "..ctx.my_player.name
+        module.last_damage_message = GameTextGetTranslatedOrNot(message) .. " from " .. ctx.my_player.name
     end
     if ctx.is_host then
         module.inflict_damage(damage)
@@ -49,15 +52,14 @@ function module.on_local_player_spawn(my_player)
     local damage_model = EntityGetFirstComponentIncludingDisabled(my_player.entity, "DamageModelComponent")
     if ctx.is_host then
         util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
-            script_damage_received = "mods/quant.ew/files/system/damage/cbs/host_adjust_received_damage.lua"
+            script_damage_received = "mods/quant.ew/files/system/damage/cbs/host_adjust_received_damage.lua",
         })
     else
         util.ensure_component_present(my_player.entity, "LuaComponent", "ew_player_damage", {
-            script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_host.lua"
+            script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_host.lua",
         })
     end
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
-
 end
 
 function module.on_world_update_client()
@@ -74,7 +76,7 @@ local last_health
 
 local function do_health_diff(hp, max_hp)
     local current_hp = util.get_ent_health(ctx.my_player.entity)
-    util.set_ent_health(ctx.my_player.entity, {hp, max_hp})
+    util.set_ent_health(ctx.my_player.entity, { hp, max_hp })
     if last_health ~= nil then
         local diff = last_health - current_hp
         if diff ~= 0 then
@@ -101,15 +103,22 @@ end
 
 function module.on_new_player_seen(new_playerdata, player_count)
     local hp = ctx.proxy_opt.health_per_player / 25
-    module.set_max_health(module.max_health()+hp)
-    module.set_health(module.health()+hp)
+    module.set_max_health(module.max_health() + hp)
+    module.set_health(module.health() + hp)
 end
 
 function module.on_client_spawned(peer_id, playerdata)
     if ctx.is_host then
-        EntityAddComponent2(playerdata.entity, "LuaComponent", {script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua"})
+        EntityAddComponent2(
+            playerdata.entity,
+            "LuaComponent",
+            { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
+        )
     else
-        EntityAddComponent2(playerdata.entity, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        EntityAddComponent2(playerdata.entity, "LuaComponent", {
+            _tags = "ew_immortal",
+            script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua",
+        })
     end
 end
 
@@ -131,7 +140,7 @@ end
 
 function module.inflict_damage(dmg)
     local hp = module.health()
-    module.set_health(math.min(math.max(hp-dmg, 0), module.max_health()))
+    module.set_health(math.min(math.max(hp - dmg, 0), module.max_health()))
 end
 
 -- Provides health capability
@@ -141,13 +150,19 @@ ctx.cap.health = {
     set_health = module.set_health,
     set_max_health = module.set_max_health,
     inflict_damage = module.inflict_damage,
-    do_game_over = function(message) do_game_over(message) rpc.trigger_game_over(message) end,
-    on_poly_death = function(message) do_game_over(message) rpc.trigger_game_over(message) end,
+    do_game_over = function(message)
+        do_game_over(message)
+        rpc.trigger_game_over(message)
+    end,
+    on_poly_death = function(message)
+        do_game_over(message)
+        rpc.trigger_game_over(message)
+    end,
 }
 
 rpc.opts_reliable()
 function rpc.deal_damage(damage, message)
-    local message_n = GameTextGetTranslatedOrNot(message) .. " ("..ctx.rpc_player_data.name..")"
+    local message_n = GameTextGetTranslatedOrNot(message) .. " (" .. ctx.rpc_player_data.name .. ")"
     module.last_damage_message = message_n
     if ctx.is_host then
         local host_entity_id = ctx.my_player.entity
@@ -161,7 +176,7 @@ function rpc.deal_damage(damage, message)
             EntitySetComponentIsEnabled(host_entity_id, protection_component_id, true)
         end
     end
-    GamePrint(string.format("Got %.2f damage: %s", damage*25, message_n))
+    GamePrint(string.format("Got %.2f damage: %s", damage * 25, message_n))
 end
 
 function rpc.update_shared_health(hp, max_hp)
@@ -177,9 +192,9 @@ end
 
 function rpc.healing_effect()
     local entity_id = ctx.rpc_player_data.entity
-    local x, y = EntityGetTransform( entity_id )
-    local entity_fx = EntityLoad( "data/entities/particles/heal_effect.xml", x, y )
-    EntityAddChild( entity_id, entity_fx )
+    local x, y = EntityGetTransform(entity_id)
+    local entity_fx = EntityLoad("data/entities/particles/heal_effect.xml", x, y)
+    EntityAddChild(entity_id, entity_fx)
 end
 
 rpc.opts_reliable()

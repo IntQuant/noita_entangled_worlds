@@ -1,4 +1,7 @@
-ModLuaFileAppend("data/scripts/streaming_integration/event_utilities.lua", "mods/quant.ew/files/system/streaming_sync/event_hook.lua")
+ModLuaFileAppend(
+    "data/scripts/streaming_integration/event_utilities.lua",
+    "mods/quant.ew/files/system/streaming_sync/event_hook.lua"
+)
 
 dofile_once("data/scripts/streaming_integration/event_list.lua")
 
@@ -9,12 +12,12 @@ local module = {}
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.remote_run_event(id)
-    for i,evt in ipairs(streaming_events) do
+    for i, evt in ipairs(streaming_events) do
         if evt.id == id then
             if evt.action_delayed ~= nil then
                 if evt.delay_timer ~= nil then
                     local p = ctx.my_player.entity
-                    add_timer_above_head( p, evt.id, evt.delay_timer )
+                    add_timer_above_head(p, evt.id, evt.delay_timer)
                 end
             elseif evt.action ~= nil then
                 evt.action(evt)
@@ -22,7 +25,9 @@ function rpc.remote_run_event(id)
             if event_weights ~= nil then
                 event_weights[i] = -1.0
             end
-            GamePrint("Incoming event "..GameTextGetTranslatedOrNot(evt.ui_name).." from "..ctx.rpc_player_data.name)
+            GamePrint(
+                "Incoming event " .. GameTextGetTranslatedOrNot(evt.ui_name) .. " from " .. ctx.rpc_player_data.name
+            )
             break
         end
     end

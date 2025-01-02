@@ -4,7 +4,9 @@ local inventory_helper = {}
 
 local function entity_is_wand(entity_id)
     local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
-    if ability_component == nil then return false end
+    if ability_component == nil then
+        return false
+    end
     return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
@@ -31,31 +33,30 @@ end
 
 function inventory_helper.get_inventory_items(player_data, inventory_name)
     local player = player_data.entity
-    if(not player)then
+    if not player then
         return {}
     end
     local inventory
 
-    local player_child_entities = EntityGetAllChildren( player )
-    if ( player_child_entities ~= nil ) then
-        for i,child_entity in ipairs( player_child_entities ) do
-            local child_entity_name = EntityGetName( child_entity )
+    local player_child_entities = EntityGetAllChildren(player)
+    if player_child_entities ~= nil then
+        for i, child_entity in ipairs(player_child_entities) do
+            local child_entity_name = EntityGetName(child_entity)
 
-            if ( child_entity_name == inventory_name ) then
+            if child_entity_name == inventory_name then
                 inventory = child_entity
             end
-
         end
     end
 
-    if(inventory == nil)then
+    if inventory == nil then
         return {}
     end
 
     local items = {}
     for i, v in ipairs(EntityGetAllChildren(inventory) or {}) do
         local item_component = EntityGetFirstComponentIncludingDisabled(v, "ItemComponent")
-        if(item_component)then
+        if item_component then
             table.insert(items, v)
         end
     end
@@ -64,12 +65,12 @@ end
 
 function inventory_helper.serialize_single_item(item)
     local x, y = EntityGetTransform(item)
-    local item_data = {util.serialize_entity(item), x, y}
+    local item_data = { util.serialize_entity(item), x, y }
     local item_cost_component = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
     if item_cost_component and item_cost_component ~= 0 then
         local cost = ComponentGetValue2(item_cost_component, "cost")
         local stealable = ComponentGetValue2(item_cost_component, "stealable")
-        item_data.shop_info = {cost, stealable}
+        item_data.shop_info = { cost, stealable }
     end
 
     return item_data
@@ -92,17 +93,17 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
         if item_data.gid == nil then
             ComponentSetValue2(item_cost_component, "stealable", false)
-            print("ERROR: why is ".. tostring(item) .. " gid nil")
+            print("ERROR: why is " .. tostring(item) .. " gid nil")
         elseif string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
             ComponentSetValue2(item_cost_component, "stealable", false)
         else
             local mx, my = GameGetCameraPos()
-            if (math.abs(mx - x) > 1024 or math.abs(my - y) > 1024) then
+            if math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 then
                 if ComponentGetValue2(item_cost_component, "stealable") then
-                    EntityAddComponent2(item, "VariableStorageComponent", {_tags = "ew_try_stealable"})
+                    EntityAddComponent2(item, "VariableStorageComponent", { _tags = "ew_try_stealable" })
                     ComponentSetValue2(item_cost_component, "stealable", false)
                 else
-                    EntityAddComponent2(eid, "VariableStorageComponent", {_tags = "ew_try_float"})
+                    EntityAddComponent2(eid, "VariableStorageComponent", { _tags = "ew_try_float" })
                 end
                 local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
                 ComponentSetValue2(vel, "gravity_y", 0)
@@ -119,7 +120,6 @@ function inventory_helper.deserialize_single_item(item_data)
             update_transform_rotation = false,
         }, "shop_cost,enabled_in_world")
     end
-
 
     return item
 end
@@ -154,42 +154,38 @@ function inventory_helper.get_item_data(player_data, fresh)
 
         local var = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg")
         if var ~= nil then
-            table.insert(wandData,
-                    {
-                        egg = ComponentGetValue2(var, "value_int"),
-                        slot_x = slot_x,
-                        slot_y = slot_y,
-                        active = (mActiveItem == item)
-                    })
-        elseif(entity_is_wand(item))then
-            table.insert(wandData,
-                    {
-                        data = inventory_helper.serialize_single_item(item),
-                        slot_x = slot_x,
-                        slot_y = slot_y,
-                        active = (mActiveItem == item),
-                        is_wand = true,
-                        old_id = item
-                    })
+            table.insert(wandData, {
+                egg = ComponentGetValue2(var, "value_int"),
+                slot_x = slot_x,
+                slot_y = slot_y,
+                active = (mActiveItem == item),
+            })
+        elseif entity_is_wand(item) then
+            table.insert(wandData, {
+                data = inventory_helper.serialize_single_item(item),
+                slot_x = slot_x,
+                slot_y = slot_y,
+                active = (mActiveItem == item),
+                is_wand = true,
+                old_id = item,
+            })
         elseif not EntityHasTag(item, "polymorphed_player") then
-            table.insert(wandData,
-                    {
-                        data = inventory_helper.serialize_single_item(item),
-                        slot_x = slot_x,
-                        slot_y = slot_y,
-                        active = (mActiveItem == item)
-                    })
+            table.insert(wandData, {
+                data = inventory_helper.serialize_single_item(item),
+                slot_x = slot_x,
+                slot_y = slot_y,
+                active = (mActiveItem == item),
+            })
         else
             local data = player_fns.get_player_data_by_local_entity_id(item)
             if data ~= nil then
                 local peer_id = data.peer_id
-                table.insert(wandData,
-                        {
-                            peer_id = peer_id,
-                            slot_x = slot_x,
-                            slot_y = slot_y,
-                            active = (mActiveItem == item)
-                        })
+                table.insert(wandData, {
+                    peer_id = peer_id,
+                    slot_x = slot_x,
+                    slot_y = slot_y,
+                    active = (mActiveItem == item),
+                })
             end
         end
     end
@@ -208,31 +204,28 @@ function inventory_helper.get_item_data(player_data, fresh)
             ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
         end
 
-
         SetRandomSeed(item + slot_x + item_x, slot_y + item_y)
 
         -- local item_id = entity.GetVariable(item, "arena_entity_id")
 
         -- GlobalsSetValue(tostring(item) .. "_item", tostring(k))
-        if(entity_is_wand(item))then
-            table.insert(spellData,
-                    {
-                        data = inventory_helper.serialize_single_item(item),
-                        -- id = item_id or (item + Random(1, 10000000)),
-                        slot_x = slot_x,
-                        slot_y = slot_y,
-                        active = (mActiveItem == item),
-                        is_wand = true
-                    })
+        if entity_is_wand(item) then
+            table.insert(spellData, {
+                data = inventory_helper.serialize_single_item(item),
+                -- id = item_id or (item + Random(1, 10000000)),
+                slot_x = slot_x,
+                slot_y = slot_y,
+                active = (mActiveItem == item),
+                is_wand = true,
+            })
         else
-            table.insert(spellData,
-                    {
-                        data = inventory_helper.serialize_single_item(item),
-                        -- id = item_id or (item + Random(1, 10000000)),
-                        slot_x = slot_x,
-                        slot_y = slot_y,
-                        active = (mActiveItem == item)
-                    })
+            table.insert(spellData, {
+                data = inventory_helper.serialize_single_item(item),
+                -- id = item_id or (item + Random(1, 10000000)),
+                slot_x = slot_x,
+                slot_y = slot_y,
+                active = (mActiveItem == item),
+            })
         end
     end
 
@@ -249,22 +242,22 @@ local function pickup_item(entity, item)
     end
     EntityAddChild(entity, item)
 
-    EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
-    EntitySetComponentsWithTagEnabled( item, "enabled_in_hand", false )
-    EntitySetComponentsWithTagEnabled( item, "enabled_in_inventory", true )
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_world", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_hand", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_inventory", true)
 
     local wand_children = EntityGetAllChildren(item) or {}
 
-    for _, _ in ipairs(wand_children)do
-        EntitySetComponentsWithTagEnabled( item, "enabled_in_world", false )
+    for _, _ in ipairs(wand_children) do
+        EntitySetComponentsWithTagEnabled(item, "enabled_in_world", false)
     end
 end
 
 local function remove_non_send(item)
     for _, com in ipairs(EntityGetAllComponents(item) or {}) do
-       if ComponentHasTag(com, "ew_remove_on_send") then
-        EntityRemoveComponent(item, com)
-       end
+        if ComponentHasTag(com, "ew_remove_on_send") then
+            EntityRemoveComponent(item, com)
+        end
     end
 end
 
@@ -280,7 +273,7 @@ local function get_item(itemInfo, inv, player, local_ent)
                 break
             end
         end
-    elseif(itemInfo.is_wand)then
+    elseif itemInfo.is_wand then
         item = inventory_helper.deserialize_single_item(itemInfo.data)
         remove_non_send(item)
         item = EZWand(item)
@@ -291,14 +284,14 @@ local function get_item(itemInfo, inv, player, local_ent)
         remove_non_send(item)
     end
 
-    if (item == nil) then
+    if item == nil then
         return
     end
 
     if itemInfo.egg ~= nil then
         pickup_item(inv, item)
         item_entity = item
-    elseif(itemInfo.is_wand)then
+    elseif itemInfo.is_wand then
         EntityAddTag(item.entity_id, "ew_client_item")
         item:PickUp(player)
         item_entity = item.entity_id
@@ -312,10 +305,10 @@ local function get_item(itemInfo, inv, player, local_ent)
         item_entity = item
     end
     local itemComp = EntityGetFirstComponentIncludingDisabled(item_entity, "ItemComponent")
-    if (itemComp ~= nil) then
+    if itemComp ~= nil then
         ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
     end
-    if (itemInfo.active) then
+    if itemInfo.active then
         active_item_entity = item_entity
     end
     if not local_ent then
@@ -352,8 +345,11 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
             local inv = EntityGetAllChildren(child)
             if inv ~= nil then
                 for _, item in pairs(inv) do
-                    if not EntityHasTag(item, "polymorphed_player")
-                            and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") == nil then
+                    if
+                        not EntityHasTag(item, "polymorphed_player")
+                        and EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg")
+                            == nil
+                    then
                         EntityKill(item)
                     end
                 end
@@ -372,8 +368,7 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
         return
     end
 
-
-    if (item_data ~= nil) then
+    if item_data ~= nil then
         local active_item_entity
 
         for _, itemInfo in ipairs(item_data) do
@@ -392,7 +387,7 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
             end
         end
 
-        if (active_item_entity ~= nil) then
+        if active_item_entity ~= nil then
             np.SetActiveHeldEntity(player, active_item_entity, false, false)
         end
     end
@@ -408,14 +403,18 @@ end
 function inventory_helper.has_inventory_changed(player_data)
     local prev_inventory = player_data.prev_inventory_hash
     local inventory_hash = 0
-    if player_data.entity == nil or not EntityGetIsAlive(player_data.entity) or GameGetAllInventoryItems(player_data.entity) == nil then
+    if
+        player_data.entity == nil
+        or not EntityGetIsAlive(player_data.entity)
+        or GameGetAllInventoryItems(player_data.entity) == nil
+    then
         return false
     end
     for _, item in ipairs(GameGetAllInventoryItems(player_data.entity) or {}) do
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         if item_comp ~= nil then
             local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
-            inventory_hash = (inventory_hash*19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
+            inventory_hash = (inventory_hash * 19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
         end
     end
     player_data.prev_inventory_hash = inventory_hash

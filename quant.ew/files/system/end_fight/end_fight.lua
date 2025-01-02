@@ -52,7 +52,7 @@ end
 
 local function teleport_random()
     SetRandomSeed(5, 5)
-    local my_num = Random(1,100)
+    local my_num = Random(1, 100)
     local keys = {}
     for key, _ in pairs(ctx.players) do
         table.insert(keys, key)
@@ -90,7 +90,7 @@ local winner
 
 rpc.opts_everywhere()
 function rpc.try_kill(x, y)
-    EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y )
+    EntityLoad("mods/quant.ew/files/system/end_fight/gold_effect.xml", x, y)
     done = true
     async(function()
         wait(300)
@@ -165,17 +165,44 @@ function end_fight.on_world_update()
                 if not GameHasFlagRun("ew_fight_started") then
                     GameAddFlagRun("ew_fight_started")
                 else
-                    EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
+                    EntityInflictDamage(
+                        ctx.my_player.entity,
+                        100000000,
+                        "DAMAGE_CURSE",
+                        "",
+                        "None",
+                        0,
+                        0,
+                        GameGetWorldStateEntity()
+                    )
                 end
                 local _, y = EntityGetTransform(ctx.my_player.entity)
                 np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", 6)
                 np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", 1)
                 if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
                     remove_game_effects()
-                    EntityInflictDamage(ctx.my_player.entity, 100000000, "DAMAGE_CURSE", "", "None", 0, 0, GameGetWorldStateEntity())
+                    EntityInflictDamage(
+                        ctx.my_player.entity,
+                        100000000,
+                        "DAMAGE_CURSE",
+                        "",
+                        "None",
+                        0,
+                        0,
+                        GameGetWorldStateEntity()
+                    )
                 else
                     remove_game_effects()
-                    EntityInflictDamage(ctx.my_player.entity, -100000000, "DAMAGE_HEALING", "", "None", 0, 0, GameGetWorldStateEntity())
+                    EntityInflictDamage(
+                        ctx.my_player.entity,
+                        -100000000,
+                        "DAMAGE_HEALING",
+                        "",
+                        "None",
+                        0,
+                        0,
+                        GameGetWorldStateEntity()
+                    )
                 end
                 GamePrintImportant("Fight for the spoils")
                 init = GameGetFrameNum() + 10
@@ -220,7 +247,7 @@ function end_fight.on_world_update()
                 if first_death[peer_id] == nil and winner ~= ctx.my_id then
                     first_death[peer_id] = true
                     local x, y = EntityGetTransform(entity)
-                    LoadRagdoll("mods/quant.ew/files/system/player/tmp/".. peer_id .."_ragdoll.txt", x, y)
+                    LoadRagdoll("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_ragdoll.txt", x, y)
                 end
             end
             ::continue::

@@ -7,34 +7,34 @@ local time_cooldown = 130
 
 local entity_id = GetUpdatedEntityID()
 local root_id = EntityGetRootEntity(entity_id)
-local pos_x, pos_y = EntityGetTransform( entity_id )
+local pos_x, pos_y = EntityGetTransform(entity_id)
 
 local function teleport(from_x, from_y, to_x, to_y)
     EntitySetTransform(root_id, to_x, to_y)
     EntityLoad("data/entities/particles/teleportation_source.xml", from_x, from_y)
     EntityLoad("data/entities/particles/teleportation_target.xml", to_x, to_y)
-    GamePlaySound("data/audio/Desktop/misc.bank","misc/teleport_use", to_x, to_y)
+    GamePlaySound("data/audio/Desktop/misc.bank", "misc/teleport_use", to_x, to_y)
 
     -- punch a hole to make sure player doesn't get stuck
-    LoadPixelScene("data/biome_impl/teleportitis_dodge_hole.png", "", to_x-3, to_y-12, "", true)
+    LoadPixelScene("data/biome_impl/teleportitis_dodge_hole.png", "", to_x - 3, to_y - 12, "", true)
 end
 
 -- toggles vfx and sets script exec time
 local function set_cooldown(on_cooldown, frames)
     EntitySetComponentsWithTagEnabled(entity_id, "teleportitis_dodge_vfx", not on_cooldown)
-    component_write( GetUpdatedComponentID(), {
+    component_write(GetUpdatedComponentID(), {
         execute_every_n_frame = frames,
         mNextExecutionTime = GameGetFrameNum() + frames,
     })
 end
 
 local my_herd = -1
-edit_component(root_id, "GenomeDataComponent", function(comp,vars)
-    my_herd = ComponentGetValue2( comp, "herd_id" )
+edit_component(root_id, "GenomeDataComponent", function(comp, vars)
+    my_herd = ComponentGetValue2(comp, "herd_id")
 end)
 
 -- look for enemy projectiles
-for _,proj_id in ipairs(EntityGetInRadiusWithTag( pos_x, pos_y, sensor_range, "projectile" )) do
+for _, proj_id in ipairs(EntityGetInRadiusWithTag(pos_x, pos_y, sensor_range, "projectile")) do
     local comp_proj = EntityGetFirstComponent(proj_id, "ProjectileComponent")
     if comp_proj ~= nil then
         local shooter_id = tonumber(ComponentGetValue(comp_proj, "mWhoShot"))
@@ -46,14 +46,14 @@ for _,proj_id in ipairs(EntityGetInRadiusWithTag( pos_x, pos_y, sensor_range, "p
 
             -- teleport direction from player aim
             local aim_comp = EntityGetFirstComponent(root_id, "SpriteComponent", "aiming_reticle")
-            component_read( aim_comp, { offset_x = 0, offset_y = 0 }, function(comp)
+            component_read(aim_comp, { offset_x = 0, offset_y = 0 }, function(comp)
                 x = comp.offset_x
                 y = comp.offset_y - 4
                 x, y = vec_normalize(x, y)
                 x, y = vec_mult(x, y, teleport_range)
                 x, y = vec_rotate(x, y, -math.pi * 0.5 * sign(x)) -- rotate 90 towards top
                 local did_hit
-                did_hit,x,y = RaytracePlatforms(pos_x, pos_y, pos_x + x, pos_y + y)
+                did_hit, x, y = RaytracePlatforms(pos_x, pos_y, pos_x + x, pos_y + y)
             end)
 
             -- reel it back a bit so we're less likely to end up inside a wall

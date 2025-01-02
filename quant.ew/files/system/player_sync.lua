@@ -1,4 +1,3 @@
-
 local rpc = net.new_rpc_namespace()
 
 local module = {}
@@ -13,8 +12,7 @@ local function undc(ent)
     local new = string.sub(name, 0, -8) .. ".xml"
     ComponentSetValue2(sprite, "image_file", new)
     for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
-        if EntityGetName(child) == "notcursor"
-                or EntityGetName(child) == "cursor" then
+        if EntityGetName(child) == "notcursor" or EntityGetName(child) == "cursor" then
             sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
             EntitySetComponentIsEnabled(child, sprite, true)
         end
@@ -30,7 +28,7 @@ function rpc.send_money_and_ingestion(money, delta, ingestion_size)
         if ctx.proxy_opt.share_gold and last_money ~= nil then
             local my_wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
             if my_wallet == nil then
-                my_wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", {money = last_money})
+                my_wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", { money = last_money })
             end
             local cm = ComponentGetValue2(my_wallet, "money")
             if cm ~= nil then
@@ -57,8 +55,7 @@ end
 local wait_on_send = 0
 
 function rpc.request_items(peer_id)
-    if ctx.my_id == peer_id
-                and wait_on_send < GameGetFrameNum() then
+    if ctx.my_id == peer_id and wait_on_send < GameGetFrameNum() then
         wait_on_send = GameGetFrameNum() + 240
         inventory_helper.has_inventory_changed(ctx.my_player)
         local inventory_state = player_fns.serialize_items(ctx.my_player)
@@ -85,7 +82,11 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
         return
     end
 
-    if team ~= nil and not GameHasFlagRun("ending_game_completed") and not EntityHasTag(player_data.entity, "polymorphed") then
+    if
+        team ~= nil
+        and not GameHasFlagRun("ending_game_completed")
+        and not EntityHasTag(player_data.entity, "polymorphed")
+    then
         local my_team = tonumber(ModSettingGet("quant.ew.team")) or 0
         if my_team ~= -1 and team ~= -1 and (team == 0 or my_team == 0 or team ~= my_team) then
             GenomeSetHerdId(player_data.entity, "player_pvp")
@@ -94,7 +95,6 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
         end
     end
 
-
     if input_data ~= nil then
         player_fns.deserialize_inputs(input_data, player_data)
     end
@@ -102,8 +102,10 @@ function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
         player_fns.deserialize_position(pos_data, phys_info, player_data)
     end
     if current_slot ~= nil then
-        if not player_fns.set_current_slot(current_slot, player_data)
-                and (wait_on_requst[player_data.peer_id] == nil or wait_on_requst[player_data.peer_id] < GameGetFrameNum()) then
+        if
+            not player_fns.set_current_slot(current_slot, player_data)
+            and (wait_on_requst[player_data.peer_id] == nil or wait_on_requst[player_data.peer_id] < GameGetFrameNum())
+        then
             print("slot empty, requesting items")
             wait_on_requst[player_data.peer_id] = GameGetFrameNum() + 300
             rpc.request_items(player_data.peer_id)
@@ -131,18 +133,18 @@ function rpc.check_gamemode(gamemode, seed, world_num, has_won)
 
     if not_fine then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different gamemode number then you")
-        GamePrint("his game mode: ".. gamemode)
-        GamePrint("your game mode: ".. gm)
+        GamePrint("his game mode: " .. gamemode)
+        GamePrint("your game mode: " .. gm)
     end
     if my_seed ~= seed then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different seed then you")
-        GamePrint("his seed: ".. seed)
-        GamePrint("your seed: ".. my_seed)
+        GamePrint("his seed: " .. seed)
+        GamePrint("your seed: " .. my_seed)
     end
     if world_num ~= ctx.proxy_opt.world_num then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different world number then you")
-        GamePrint("his num: ".. world_num)
-        GamePrint("your num: ".. ctx.proxy_opt.world_num)
+        GamePrint("his num: " .. world_num)
+        GamePrint("your num: " .. ctx.proxy_opt.world_num)
         GamePrint("world sync stops from this")
     end
     if has_won and not GameHasFlagRun("ending_game_completed") then
@@ -173,11 +175,11 @@ function module.on_world_update()
     if first then
         local mn = np.GetGameModeNr()
         local gm = np.GetGameModeName(mn)
-        net.send("join_notify", {ctx.my_player.name, gm})
+        net.send("join_notify", { ctx.my_player.name, gm })
         first = false
     end
     local input_data = player_fns.serialize_inputs(ctx.my_player)
-    local pos_data, phys_info =  player_fns.serialize_position(ctx.my_player)
+    local pos_data, phys_info = player_fns.serialize_position(ctx.my_player)
     local current_slot = player_fns.get_current_slot(ctx.my_player)
     if input_data ~= nil or pos_data ~= nil then
         local my_team
@@ -188,7 +190,12 @@ function module.on_world_update()
         rpc.player_update(input_data, pos_data, phys_info, current_slot, my_team)
         if GameGetFrameNum() % 300 == 53 then
             local n = np.GetGameModeNr()
-            rpc.check_gamemode(np.GetGameModeName(n), StatsGetValue("world_seed"), ctx.proxy_opt.world_num, GameHasFlagRun("ending_game_completed"))
+            rpc.check_gamemode(
+                np.GetGameModeName(n),
+                StatsGetValue("world_seed"),
+                ctx.proxy_opt.world_num,
+                GameHasFlagRun("ending_game_completed")
+            )
         end
     end
 
@@ -206,19 +213,26 @@ function module.on_world_update()
                                 EntitySetComponentIsEnabled(child, sprite, false)
                             end
                         elseif not player.dc then
-                            EntitySetComponentIsEnabled(child,
-                                    EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+                            EntitySetComponentIsEnabled(
+                                child,
+                                EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"),
+                                true
+                            )
                         end
                     end
                     if EntityGetName(child) == "notcursor" then
-                        EntitySetComponentIsEnabled(child, EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"), true)
+                        EntitySetComponentIsEnabled(
+                            child,
+                            EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"),
+                            true
+                        )
                     end
                 end
             end
             local x, y = EntityGetTransform(ent)
             local notplayer = EntityHasTag(ent, "ew_notplayer")
-                    and not ctx.proxy_opt.perma_death
-                    and not ctx.proxy_opt.no_notplayer
+                and not ctx.proxy_opt.perma_death
+                and not ctx.proxy_opt.no_notplayer
             if notplayer and GameHasFlagRun("ending_game_completed") then
                 goto continue
             end
@@ -242,7 +256,7 @@ function module.on_world_update()
             end
             local light = EntityGetFirstComponentIncludingDisabled(ent, "LightComponent")
             if dx * dx + dy * dy > 350 * 350 then
-                if cape ~= nil  then
+                if cape ~= nil then
                     EntityKill(cape)
                 end
                 if light ~= nil then
@@ -261,7 +275,6 @@ function module.on_world_update()
                     end
                     local cape2 = EntityLoad(player_cape_sprite_file, x, y)
                     EntityAddChild(ent, cape2)
-
                 end
             end
             ::continue::
@@ -280,7 +293,7 @@ function module.on_world_update()
         if wallet ~= nil or ingestion ~= nil then
             local delta = 0
             if wallet == nil then
-                wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", {money = last_money})
+                wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", { money = last_money })
             end
             if wallet ~= nil then
                 if last_money ~= nil then
@@ -288,8 +301,11 @@ function module.on_world_update()
                 end
                 last_money = ComponentGetValue2(wallet, "money")
             end
-            rpc.send_money_and_ingestion(last_money, delta,
-                    ingestion and ComponentGetValue2(ingestion, "ingestion_size"))
+            rpc.send_money_and_ingestion(
+                last_money,
+                delta,
+                ingestion and ComponentGetValue2(ingestion, "ingestion_size")
+            )
         end
     end
 

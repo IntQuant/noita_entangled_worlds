@@ -11,7 +11,10 @@ local entity_id = GetUpdatedEntityID()
 local pos_x, pos_y = EntityGetTransform(entity_id)
 
 local function set_fly_speed(spd)
-    component_write( EntityGetFirstComponent( entity_id, "CharacterPlatformingComponent" ), { fly_speed_mult = spd, fly_velocity_x = spd * 2 } )
+    component_write(
+        EntityGetFirstComponent(entity_id, "CharacterPlatformingComponent"),
+        { fly_speed_mult = spd, fly_velocity_x = spd * 2 }
+    )
 end
 
 local target = EntityGetClosestWithTag(pos_x, pos_y, "ew_peer")

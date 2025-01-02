@@ -1,5 +1,7 @@
-
-ModLuaFileAppend("data/scripts/items/generate_shop_item.lua", "mods/quant.ew/files/system/gen_sync/append/shop_spawn.lua")
+ModLuaFileAppend(
+    "data/scripts/items/generate_shop_item.lua",
+    "mods/quant.ew/files/system/gen_sync/append/shop_spawn.lua"
+)
 
 dofile("data/scripts/items/generate_shop_item.lua")
 
@@ -22,7 +24,7 @@ local function_registry = {
 local function run_spawn_fn(fn_name, x, y, ...)
     -- Check if we have been called already.
     -- TODO: it's probably a bad idea to use run flags for that.
-    local flag = "spwn_"..fn_name.."_"..x.."_"..y
+    local flag = "spwn_" .. fn_name .. "_" .. x .. "_" .. y
     if GameHasFlagRun(flag) then
         return
     end
@@ -50,12 +52,12 @@ local function run_spawn_fn(fn_name, x, y, ...)
         else
             local mx, my = GameGetCameraPos()
             local item_cost_component = EntityGetFirstComponentIncludingDisabled(eid, "ItemCostComponent")
-            if (math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 ) then
+            if math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 then
                 if ComponentGetValue2(item_cost_component, "stealable") then
-                    EntityAddComponent2(eid, "VariableStorageComponent", {_tags = "ew_try_stealable"})
+                    EntityAddComponent2(eid, "VariableStorageComponent", { _tags = "ew_try_stealable" })
                     ComponentSetValue2(item_cost_component, "stealable", false)
                 else
-                    EntityAddComponent2(eid, "VariableStorageComponent", {_tags = "ew_try_float"})
+                    EntityAddComponent2(eid, "VariableStorageComponent", { _tags = "ew_try_float" })
                 end
                 local vel = EntityGetFirstComponentIncludingDisabled(eid, "VelocityComponent")
                 ComponentSetValue2(vel, "gravity_y", 0)

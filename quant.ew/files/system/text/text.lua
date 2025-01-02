@@ -20,7 +20,7 @@ local maxVisibleLines = 15
 local visibleChars = 384 -- it's actually pixel width now
 local currentMessageIndex = 1
 
-local function world2gui( x, y )
+local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
 
     local gui_n = GuiCreate()
@@ -28,7 +28,8 @@ local function world2gui( x, y )
     local w, h = GuiGetScreenDimensions(gui_n)
     GuiDestroy(gui_n)
 
-    local vres_scaling_factor = w / (MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") + MagicNumbersGetValue("VIRTUAL_RESOLUTION_OFFSET_X"))
+    local vres_scaling_factor = w
+        / (MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") + MagicNumbersGetValue("VIRTUAL_RESOLUTION_OFFSET_X"))
     local cam_x, cam_y = GameGetCameraPos()
     x, y = w / 2 + vres_scaling_factor * (x - cam_x), h / 2 + vres_scaling_factor * (y - cam_y)
 
@@ -41,9 +42,9 @@ local function calculateTextWidth(msg)
 end
 
 local function getColorComponents(color)
-    local b = math.floor(color / 2^16) % 2^8
-    local g = math.floor(color / 2^8) % 2^8
-    local r = color % 2^8
+    local b = math.floor(color / 2 ^ 16) % 2 ^ 8
+    local g = math.floor(color / 2 ^ 8) % 2 ^ 8
+    local r = color % 2 ^ 8
     return r, g, b
 end
 
@@ -92,10 +93,10 @@ local function saveMessage(sender, message, color, colorAlt)
     local isFirstLine = true
     for _, line in ipairs(wrappedMessage) do
         if isFirstLine then
-            table.insert(chatMessages, {sender = sender, message = line, color = color, colorAlt = colorAlt})
+            table.insert(chatMessages, { sender = sender, message = line, color = color, colorAlt = colorAlt })
             isFirstLine = false
         else
-            table.insert(chatMessages, {sender = "", message = line, color = color, colorAlt = colorAlt})
+            table.insert(chatMessages, { sender = "", message = line, color = color, colorAlt = colorAlt })
         end
 
         if #chatMessages > maxMessages then
@@ -119,7 +120,9 @@ local function renderChat()
 
     local startY = 128
     currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - maxVisibleLines + 1)
-    if #chatMessages <= 0 then return end
+    if #chatMessages <= 0 then
+        return
+    end
 
     local startIdx = currentMessageIndex
     local endIdx = math.min(#chatMessages, startIdx + maxVisibleLines - 1)
@@ -176,7 +179,7 @@ local function renderTextInput()
 
         local maxLines = 8
         if #wrappedMessage > maxLines then
-            wrappedMessage = {unpack(wrappedMessage, 1, maxLines)}
+            wrappedMessage = { unpack(wrappedMessage, 1, maxLines) }
         end
 
         for _, line in ipairs(wrappedMessage) do
@@ -185,7 +188,7 @@ local function renderTextInput()
                 charCounter = charCounter + 1
                 lineCharCounter = lineCharCounter + 1
                 if charCounter == cursorPos then
-                    GuiText(gui, 63+calculateTextWidth(string.sub(line, 1, lineCharCounter)), startY+2, "_")
+                    GuiText(gui, 63 + calculateTextWidth(string.sub(line, 1, lineCharCounter)), startY + 2, "_")
                 end
             end
 
@@ -254,11 +257,11 @@ end
 local function create_chat_hint(hint) --maybe will make it for all hints in future if something else is added here for some reason
     local _, h = GuiGetScreenDimensions(gui)
     local _, th = GuiGetTextDimensions(gui, hint)
-    GuiText(gui, 2, h-1-th, hint)
+    GuiText(gui, 2, h - 1 - th, hint)
 end
 
 function string.insert(str1, str2, pos)
-    return str1:sub(1,pos)..str2..str1:sub(pos+1)
+    return str1:sub(1, pos) .. str2 .. str1:sub(pos + 1)
 end
 
 function module.on_world_update()
@@ -289,8 +292,11 @@ function module.on_world_update()
         end
     end
 
-    if ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 76)))
-            or ctx.is_paused or ctx.is_wand_pickup then
+    if
+        ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 76)))
+        or ctx.is_paused
+        or ctx.is_wand_pickup
+    then
         stoptext()
     end
 
@@ -315,13 +321,13 @@ function module.on_world_update()
 
         if InputIsKeyJustDown(42) and cursorPos - 1 >= 0 then --backspace
             cursorPos = cursorPos - 1
-            text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos+2, -1)
+            text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos + 2, -1)
             counterB = 10
         elseif InputIsKeyDown(42) and cursorPos - 1 >= 0 then
             counterB = counterB + 1
             if counterB == 3 then
                 cursorPos = cursorPos - 1
-                text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos+2, -1)
+                text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos + 2, -1)
                 counterB = 0
             end
             if counterB == 30 then --delay for deleting only 1 character
@@ -395,7 +401,7 @@ function module.on_world_update()
                     counterL = 0
                 end
             end
-            moveLength = (string.find(string.sub(text, cursorPos+2, -1), " ") or #text - cursorPos)
+            moveLength = (string.find(string.sub(text, cursorPos + 2, -1), " ") or #text - cursorPos)
             if InputIsKeyJustDown(79) and cursorPos + moveLength < #text + 1 then --right arrow
                 cursorPos = cursorPos + moveLength
 

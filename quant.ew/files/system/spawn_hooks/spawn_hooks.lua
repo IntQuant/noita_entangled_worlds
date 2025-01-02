@@ -1,7 +1,9 @@
 local module = {}
 
-ModLuaFileAppend("data/scripts/director_helpers.lua",
-    "mods/quant.ew/files/system/spawn_hooks/append/director_helpers.lua")
+ModLuaFileAppend(
+    "data/scripts/director_helpers.lua",
+    "mods/quant.ew/files/system/spawn_hooks/append/director_helpers.lua"
+)
 ModLuaFileAppend("data/scripts/item_spawnlists.lua", "mods/quant.ew/files/system/spawn_hooks/append/item_spawnlist.lua")
 
 local exclude = {}
@@ -65,9 +67,7 @@ end)
 
 -- Called after entity was loaded.
 -- Might be useless in some cases, as entity was already despawned/serialized due to CameraBoundComponent.
-util.add_cross_call("ew_spawn_hook_post", function(ent_path, ent)
-
-end)
+util.add_cross_call("ew_spawn_hook_post", function(ent_path, ent) end)
 
 local entity_is_enemy_cache = {}
 

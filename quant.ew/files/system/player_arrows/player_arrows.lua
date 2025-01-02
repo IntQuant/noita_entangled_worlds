@@ -6,7 +6,7 @@ local last_coords = {}
 
 -- "Borrowed" from MK VIII QF 2-puntaa NAVAL-ASE in Noita discord server.
 -- https://discord.com/channels/453998283174576133/632303734877192192/1178002118368559175
-local function world2gui( x, y )
+local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
 
     local gui_n = GuiCreate()
@@ -14,9 +14,10 @@ local function world2gui( x, y )
     local w, h = GuiGetScreenDimensions(gui_n)
     GuiDestroy(gui_n)
 
-    local vres_scaling_factor = w/( MagicNumbersGetValue( "VIRTUAL_RESOLUTION_X" ) + MagicNumbersGetValue( "VIRTUAL_RESOLUTION_OFFSET_X" ))
+    local vres_scaling_factor = w
+        / (MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") + MagicNumbersGetValue("VIRTUAL_RESOLUTION_OFFSET_X"))
     local cam_x, cam_y = GameGetCameraPos()
-    x, y = w/2 + vres_scaling_factor*( x - cam_x ), h/2 + vres_scaling_factor*( y - cam_y )
+    x, y = w / 2 + vres_scaling_factor * (x - cam_x), h / 2 + vres_scaling_factor * (y - cam_y)
 
     return x, y, vres_scaling_factor
 end
@@ -40,11 +41,12 @@ function module.on_world_update()
     local gui_id = 2
 
     for peer_id, player_data in pairs(ctx.players) do
-        if (ctx.my_id == peer_id
-                and (ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == peer_id))
-                    or EntityHasTag(player_data.entity, "polymorphed_cessation")
-                    or (EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.no_notplayer)
-                    or player_data.dc then
+        if
+            (ctx.my_id == peer_id and (ctx.spectating_over_peer_id == nil or ctx.spectating_over_peer_id == peer_id))
+            or EntityHasTag(player_data.entity, "polymorphed_cessation")
+            or (EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.no_notplayer)
+            or player_data.dc
+        then
             goto continue
         end
         local px, py = EntityGetTransform(player_data.entity)
@@ -55,7 +57,7 @@ function module.on_world_update()
                 px, py = last_coords[peer_id][1], last_coords[peer_id][2]
             end
         else
-            last_coords[peer_id] = {px, py}
+            last_coords[peer_id] = { px, py }
         end
         local player_dir_x = px - ccx
         local player_dir_y = py - ccy
@@ -106,13 +108,17 @@ function module.on_world_update()
             if EntityHasTag(player_data.entity, "ew_notplayer") then
                 is_notplayer = true
             end
-            if not is_notplayer and EntityGetIsAlive(player_data.entity) and EntityHasTag(player_data.entity, "polymorphed_player") then
+            if
+                not is_notplayer
+                and EntityGetIsAlive(player_data.entity)
+                and EntityHasTag(player_data.entity, "polymorphed_player")
+            then
                 goto continue
             end
             if is_notplayer and GameHasFlagRun("ending_game_completed") then
                 goto continue
             end
-            local x, y = world2gui(ccx+player_dir_x, ccy+player_dir_y)
+            local x, y = world2gui(ccx + player_dir_x, ccy + player_dir_y)
             local img_path
             if is_host then
                 if is_notplayer then
@@ -128,7 +134,7 @@ function module.on_world_update()
                 end
             end
             local scale = math.max(1 / 6, 0.75 - math.atan((math.sqrt(dist_sq) - tch) / 1280) / math.pi)
-            GuiImage(gui, gui_id, x, y, img_path, 1, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi/2)
+            GuiImage(gui, gui_id, x, y, img_path, 1, scale, 0, math.atan2(player_dir_y, player_dir_x) + math.pi / 2)
             gui_id = gui_id + 1
         end
 

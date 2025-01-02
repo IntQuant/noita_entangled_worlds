@@ -4,11 +4,15 @@ local module = {}
 
 -- Not actually sure what most of these do, but they clearly are weather-related, so we'll sync them anyway.
 local fields = {
-    "time", "time_total",
+    "time",
+    "time_total",
     "day_count",
-    "rain", "rain_target",
-    "fog", "fog_target",
-    "wind", "wind_speed",
+    "rain",
+    "rain_target",
+    "fog",
+    "fog_target",
+    "wind",
+    "wind_speed",
     -- "wind_speed_sin_t", "wind_speed_sin", "clouds_01_target", "clouds_02_target", "gradient_sky_alpha_target",
     -- "sky_sunset_alpha_target",
 }

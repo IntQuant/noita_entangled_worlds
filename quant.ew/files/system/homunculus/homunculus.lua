@@ -31,8 +31,8 @@ function rpc.send_positions(ho, lu)
                 EntitySetTransform(child, ho[i][1], ho[i][2])
             end
         end
-        for i=1,#ho-#h do
-            local n = EntityLoad( "data/entities/misc/homunculus.xml", ho[#h+i][1], ho[#h+i][2])
+        for i = 1, #ho - #h do
+            local n = EntityLoad("data/entities/misc/homunculus.xml", ho[#h + i][1], ho[#h + i][2])
             util.make_ephemerial(n)
             EntityAddChild(ctx.rpc_player_data.entity, n)
         end
@@ -45,14 +45,13 @@ function rpc.send_positions(ho, lu)
                 util.set_phys_info(child, lu[i][3], ctx.rpc_player_data.fps)
             end
         end
-        for i=1,#lu-#l do
-            local n = EntityLoad( "data/entities/misc/perks/lukki_minion.xml", lu[#l+i][1], lu[#l+i][2])
+        for i = 1, #lu - #l do
+            local n = EntityLoad("data/entities/misc/perks/lukki_minion.xml", lu[#l + i][1], lu[#l + i][2])
             util.set_phys_info(n, lu[i][3], ctx.rpc_player_data.fps)
-            EntityAddComponent( n, "VariableStorageComponent",
-                    {
-                        name = "owner_id",
-                        value_int = ctx.rpc_player_data.entity,
-                    })
+            EntityAddComponent(n, "VariableStorageComponent", {
+                name = "owner_id",
+                value_int = ctx.rpc_player_data.entity,
+            })
             EntityRemoveComponent(n, EntityGetFirstComponent(n, "LuaComponent"))
             EntityAddTag(n, "perk_entity")
             util.make_ephemerial(n)
@@ -64,11 +63,11 @@ function homunculus.on_world_update()
     local ho, lu = {}, {}
     for _, child in ipairs(h) do
         local x, y = EntityGetTransform(child)
-        table.insert(ho, {x, y})
+        table.insert(ho, { x, y })
     end
     for _, child in ipairs(l) do
         local x, y = EntityGetTransform(child)
-        table.insert(lu, {x, y, util.get_phys_info(child)})
+        table.insert(lu, { x, y, util.get_phys_info(child) })
     end
     if #ho ~= 0 or #lu ~= 0 then
         rpc.send_positions(ho, lu)

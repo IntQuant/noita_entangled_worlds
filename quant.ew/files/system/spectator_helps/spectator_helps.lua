@@ -22,13 +22,12 @@ function rpc.add_shield(target)
         return
     end
     if shield_entities[ctx.rpc_peer_id] == nil or shield_entities[ctx.rpc_peer_id][1] ~= target then
-        if shield_entities[ctx.rpc_peer_id] ~= nil
-                and EntityGetIsAlive(shield_entities[ctx.rpc_peer_id][2]) then
+        if shield_entities[ctx.rpc_peer_id] ~= nil and EntityGetIsAlive(shield_entities[ctx.rpc_peer_id][2]) then
             EntityKill(shield_entities[ctx.rpc_peer_id][2])
         end
         local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
         EntityAddChild(entity, ent)
-        shield_entities[ctx.rpc_peer_id] = {target, ent}
+        shield_entities[ctx.rpc_peer_id] = { target, ent }
     end
 end
 
@@ -55,7 +54,7 @@ local function is_acceptable_help_target(spectating_over)
         return false
     end
     if shield_entities[ctx.my_id] ~= nil then
-        if shield_entities[ctx.my_id][1] ~= spectating_over  then
+        if shield_entities[ctx.my_id][1] ~= spectating_over then
             rpc.del_shield()
             return false
         end
@@ -95,7 +94,11 @@ function module.on_world_update()
         if shield_entities[ctx.my_id] ~= nil and not EntityGetIsAlive(shield_entities[ctx.my_id][2]) then
             rpc.del_shield()
         end
-        if notplayer_active and ctx.spectating_over_peer_id ~= nil and is_acceptable_help_target(ctx.spectating_over_peer_id) then
+        if
+            notplayer_active
+            and ctx.spectating_over_peer_id ~= nil
+            and is_acceptable_help_target(ctx.spectating_over_peer_id)
+        then
             rpc.add_shield(ctx.spectating_over_peer_id)
         elseif last_spectate ~= nil and last_spectate ~= ctx.spectating_over_peer_id then
             rpc.del_shield()

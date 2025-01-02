@@ -67,7 +67,7 @@ util.add_cross_call("ew_item_death_notify", function(enemy_id, responsible_id)
     end
     local gid = item_sync.get_global_item_id(enemy_id)
     if gid ~= nil then
-        table.insert(dead_entities, {gid, responsible})
+        table.insert(dead_entities, { gid, responsible })
     end
 end)
 
@@ -112,7 +112,9 @@ function item_sync.get_global_item_id(item)
 end
 
 local function is_wand(ent)
-    if ent == nil or ent == 0 then return false end
+    if ent == nil or ent == 0 then
+        return false
+    end
     local ability = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
     if ability == nil then
         return false
@@ -138,9 +140,11 @@ end
 local find_by_gid_cache = {}
 function item_sync.find_by_gid(gid)
     if find_by_gid_cache[gid] ~= nil then
-        if EntityGetIsAlive(find_by_gid_cache[gid])
-                and EntityHasTag(find_by_gid_cache[gid], "ew_global_item")
-                and is_item_on_ground(find_by_gid_cache[gid]) then
+        if
+            EntityGetIsAlive(find_by_gid_cache[gid])
+            and EntityHasTag(find_by_gid_cache[gid], "ew_global_item")
+            and is_item_on_ground(find_by_gid_cache[gid])
+        then
             return find_by_gid_cache[gid]
         else
             find_by_gid_cache[gid] = nil
@@ -215,13 +219,13 @@ local function make_global(item, give_authority_to)
         return
     end
     item_sync.ensure_notify_component(item)
-    local gid_component = EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent",
-            "ew_global_item_id")
+    local gid_component =
+        EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_global_item_id")
     local gid
     if gid_component == nil then
         gid = allocate_global_id()
         if give_authority_to ~= nil then
-            gid = give_authority_to..":"..gid
+            gid = give_authority_to .. ":" .. gid
         end
         EntityAddComponent2(item, "VariableStorageComponent", {
             _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_global_item_id",
@@ -241,7 +245,7 @@ local function make_global(item, give_authority_to)
     local _, _, has_hp = util.get_ent_health(item)
     if has_hp then
         util.ensure_component_present(item, "LuaComponent", "ew_item_death_notify", {
-            script_death = "mods/quant.ew/files/resource/cbs/item_death_notify.lua"
+            script_death = "mods/quant.ew/files/resource/cbs/item_death_notify.lua",
         })
     end
 
@@ -343,7 +347,6 @@ function rpc.hand_authority_over_to(peer_id, gid)
     end
 end
 
-
 rpc.opts_reliable()
 function rpc.handle_death_data(death_data)
     for _, remote_data in ipairs(death_data) do
@@ -381,7 +384,7 @@ function rpc.handle_death_data(death_data)
             local current_hp = util.get_ent_health(enemy_id)
             local dmg = current_hp
             if dmg > 0 then
-                EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity)
+                EntityInflictDamage(enemy_id, dmg + 0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity)
             end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
@@ -406,7 +409,11 @@ local function send_item_positions(all)
         if gid ~= nil and item_sync.is_my_item(gid) and (is_item_on_ground(item) or tg) then
             local x, y = EntityGetTransform(item)
             local dx, dy = x - cx, y - cy
-            if not tg and (ignore[gid] == nil or ignore[gid] < GameGetFrameNum()) and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT then
+            if
+                not tg
+                and (ignore[gid] == nil or ignore[gid] < GameGetFrameNum())
+                and dx * dx + dy * dy > 4 * DISTANCE_LIMIT * DISTANCE_LIMIT
+            then
                 local ent = EntityGetClosestWithTag(x, y, "ew_peer")
                 local nx, ny
                 local ndx, ndy
@@ -435,35 +442,66 @@ local function send_item_positions(all)
                 end
             else
                 local phys_info = util.get_phys_info(item, true)
-                if tg or ((phys_info[1][1] ~= nil
-                        or phys_info[2][1] ~= nil
-                        or all)
-                        and (#EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
-                        or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0)) then
+                if
+                    tg
+                    or (
+                        (phys_info[1][1] ~= nil or phys_info[2][1] ~= nil or all)
+                        and (
+                            #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "ew_peer") ~= 0
+                            or #EntityGetInRadiusWithTag(x, y, DISTANCE_LIMIT, "polymorphed_player") ~= 0
+                        )
+                    )
+                then
                     local costcom = EntityGetFirstComponentIncludingDisabled(item, "ItemCostComponent")
                     local cost = 0
                     if costcom ~= nil then
                         cost = ComponentGetValue2(costcom, "cost")
                         local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
                         if math.abs(cx - x) < DISTANCE_LIMIT and math.abs(cy - y) < DISTANCE_LIMIT then
-                            if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") ~= nil then
+                            if
+                                EntityGetFirstComponentIncludingDisabled(
+                                    item,
+                                    "VariableStorageComponent",
+                                    "ew_try_stealable"
+                                ) ~= nil
+                            then
                                 ComponentSetValue2(costcom, "stealable", true)
                                 ComponentSetValue2(vel, "gravity_y", 400)
-                            elseif EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_float") ~= nil then
+                            elseif
+                                EntityGetFirstComponentIncludingDisabled(
+                                    item,
+                                    "VariableStorageComponent",
+                                    "ew_try_float"
+                                ) ~= nil
+                            then
                                 ComponentSetValue2(vel, "gravity_y", 400)
                             end
                         else
-                            if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_stealable") ~= nil then
+                            if
+                                EntityGetFirstComponentIncludingDisabled(
+                                    item,
+                                    "VariableStorageComponent",
+                                    "ew_try_stealable"
+                                ) ~= nil
+                            then
                                 ComponentSetValue2(costcom, "stealable", false)
                                 ComponentSetValue2(vel, "gravity_y", 0)
-                            elseif EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_try_float") ~= nil then
+                            elseif
+                                EntityGetFirstComponentIncludingDisabled(
+                                    item,
+                                    "VariableStorageComponent",
+                                    "ew_try_float"
+                                ) ~= nil
+                            then
                                 ComponentSetValue2(vel, "gravity_y", 0)
                             end
                         end
                     end
-                    position_data[gid] = {x, y, phys_info, cost}
+                    position_data[gid] = { x, y, phys_info, cost }
                     if EntityHasTag(item, "egg_item") then
-                        if EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") ~= nil then
+                        if
+                            EntityGetFirstComponentIncludingDisabled(item, "VariableStorageComponent", "ew_egg") ~= nil
+                        then
                             position_data[gid][5] = true
                         end
                     elseif tg then
@@ -480,7 +518,7 @@ local function send_item_positions(all)
                         local velocity = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
                         if velocity ~= nil then
                             local vx, vy = ComponentGetValue2(velocity, "mVelocity")
-                            position_data[gid][6] = {vx, vy}
+                            position_data[gid][6] = { vx, vy }
                         end
                     end
                 end
@@ -496,9 +534,13 @@ local function send_item_positions(all)
 end
 
 util.add_cross_call("ew_thrown", function(thrown_item)
-    if thrown_item ~= nil
-            and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(item_sync.get_global_item_id(thrown_item)))
-            and EntityGetFirstComponentIncludingDisabled(thrown_item, "VariableStorageComponent", "ew_egg") == nil then
+    if
+        thrown_item ~= nil
+        and (item_sync.get_global_item_id(thrown_item) == nil or item_sync.is_my_item(
+            item_sync.get_global_item_id(thrown_item)
+        ))
+        and EntityGetFirstComponentIncludingDisabled(thrown_item, "VariableStorageComponent", "ew_egg") == nil
+    then
         item_sync.make_item_global(thrown_item)
     end
 end)
@@ -607,9 +649,9 @@ function item_sync.on_draw_debug_window(imgui)
             end
             local on_ground, reason = is_item_on_ground(ent)
             if on_ground then
-                imgui.Text("On ground: "..reason)
+                imgui.Text("On ground: " .. reason)
             else
-                imgui.Text("Not on ground: "..reason)
+                imgui.Text("Not on ground: " .. reason)
             end
         end
     end
@@ -622,7 +664,7 @@ local function add_stuff_to_globalized_item(item, gid)
     if gid_c == nil then
         EntityAddComponent2(item, "VariableStorageComponent", {
             _tags = "ew_global_item_id",
-            value_string = gid
+            value_string = gid,
         })
     else
         ComponentSetValue2(gid_c, "value_string", gid)
@@ -677,7 +719,10 @@ function rpc.item_globalize(item_data)
     local damage_component = EntityGetFirstComponentIncludingDisabled(item, "DamageModelComponent")
     if damage_component and damage_component ~= 0 then
         ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)
-        EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+        EntityAddComponent2(item, "LuaComponent", {
+            _tags = "ew_immortal",
+            script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua",
+        })
     end
 end
 
@@ -742,10 +787,10 @@ function rpc.update_positions(position_data, all)
             goto continue
         end
         local x, y = el[1], el[2]
-            local name = EntityGetFilename(item)
+        local name = EntityGetFilename(item)
         local is_chest = name == "data/entities/items/pickup/utility_box.xml"
-                or name == "data/entities/items/pickup/chest_random_super.xml"
-                or name == "data/entities/items/pickup/chest_random.xml"
+            or name == "data/entities/items/pickup/chest_random_super.xml"
+            or name == "data/entities/items/pickup/chest_random.xml"
         if is_chest or el[5] ~= nil or (math.abs(x - cx) < DISTANCE_LIMIT and math.abs(y - cy) < DISTANCE_LIMIT) then
             if el[5] == nil then
                 gid_last_frame_updated[ctx.rpc_peer_id][gid] = frame[ctx.rpc_peer_id]
@@ -778,7 +823,7 @@ function rpc.update_positions(position_data, all)
                 if el[5] == true then
                     rpc.kill_egg(gid)
                 elseif el[5] ~= false then
-                    util.log("Requesting again "..gid)
+                    util.log("Requesting again " .. gid)
                     rpc.request_send_again(gid)
                     wait_for_gid[gid] = GameGetFrameNum() + 300
                 end
@@ -797,7 +842,7 @@ function rpc.request_send_again(gid)
     end
     local item = item_sync.find_by_gid(gid)
     if item == nil then
-        util.log("Requested to send item again, but this item wasn't found: "..gid)
+        util.log("Requested to send item again, but this item wasn't found: " .. gid)
         return
     end
     if wait_on_send[gid] == nil or wait_on_send[gid] < GameGetFrameNum() then
@@ -810,7 +855,7 @@ ctx.cap.item_sync = {
     globalize = item_sync.make_item_global,
     register_pickup_handler = function(handler)
         table.insert(pickup_handlers, handler)
-    end
+    end,
 }
 
 item_sync.rpc = rpc

@@ -17,39 +17,39 @@ function rpc.pet(entity_who_interacted, entity_interacted, num, hx, hy)
         entity_interacted = ctx.entity_by_remote_id[entity_interacted].id
     end
     entity_who_interacted = entity_who_interacted.entity or entity_who_interacted
-    local x, y = EntityGetTransform( entity_interacted )
+    local x, y = EntityGetTransform(entity_interacted)
 
-    edit_component( entity_interacted, "VelocityComponent", function(comp,vars)
-        ComponentSetValueVector2( comp, "mVelocity", 0, 0 )
+    edit_component(entity_interacted, "VelocityComponent", function(comp, vars)
+        ComponentSetValueVector2(comp, "mVelocity", 0, 0)
     end)
 
-    edit_component( entity_interacted, "CharacterDataComponent", function(comp,vars)
-        ComponentSetValueVector2( comp, "mVelocity", 0, 0 )
+    edit_component(entity_interacted, "CharacterDataComponent", function(comp, vars)
+        ComponentSetValueVector2(comp, "mVelocity", 0, 0)
     end)
 
-    edit_component( entity_who_interacted, "VelocityComponent", function(comp,vars)
-        ComponentSetValueVector2( comp, "mVelocity", 0, 0 )
+    edit_component(entity_who_interacted, "VelocityComponent", function(comp, vars)
+        ComponentSetValueVector2(comp, "mVelocity", 0, 0)
     end)
 
-    edit_component( entity_who_interacted, "CharacterDataComponent", function(comp,vars)
-        ComponentSetValueVector2( comp, "mVelocity", 0, 0 )
+    edit_component(entity_who_interacted, "CharacterDataComponent", function(comp, vars)
+        ComponentSetValueVector2(comp, "mVelocity", 0, 0)
     end)
 
-    SetRandomSeed( hx + rnd, hy + num )
-    rnd = Random( 1, 20 )
+    SetRandomSeed(hx + rnd, hy + num)
+    rnd = Random(1, 20)
 
-    if ( rnd ~= 13 ) then
-        GamePlayAnimation( entity_interacted, "pet", 99, "stand", 0 )
-        EntitySetComponentsWithTagEnabled( entity_interacted, "enabled_if_charmed", false )
+    if rnd ~= 13 then
+        GamePlayAnimation(entity_interacted, "pet", 99, "stand", 0)
+        EntitySetComponentsWithTagEnabled(entity_interacted, "enabled_if_charmed", false)
 
-        GamePrint( "$ui_longleg_love_msg1" )
+        GamePrint("$ui_longleg_love_msg1")
     else
-        EntityLoad( "data/entities/projectiles/explosion.xml", x, y )
+        EntityLoad("data/entities/projectiles/explosion.xml", x, y)
 
-        GamePrint( "$ui_longleg_love_msg2" )
+        GamePrint("$ui_longleg_love_msg2")
     end
 
-    GameEntityPlaySound( entity_who_interacted, "pet" )
+    GameEntityPlaySound(entity_who_interacted, "pet")
 end
 
 util.add_cross_call("ew_pet_hamis", function(x, y)

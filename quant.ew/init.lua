@@ -5,12 +5,12 @@ package.cpath = package.cpath .. ";./mods/quant.ew/?.dll"
 package.path = package.path .. ";./mods/quant.ew/?.lua"
 print(package.cpath)
 
-dofile_once( "data/scripts/lib/utilities.lua" )
+dofile_once("data/scripts/lib/utilities.lua")
 
 np.InstallShootProjectileFiredCallbacks()
 np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
-np.SilenceLogs("Warning - streaming didn\'t find any chunks it could stream away...\n")
+np.SilenceLogs("Warning - streaming didn't find any chunks it could stream away...\n")
 
 ewext = require("ewext0")
 
@@ -27,8 +27,8 @@ dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
 local version = ModDoesFileExist("mods/quant.ew/files/version.lua") and dofile_once("mods/quant.ew/files/version.lua")
-        or "unknown (dev build)"
-print("Noita EW version: "..version)
+    or "unknown (dev build)"
+print("Noita EW version: " .. version)
 
 dofile_once("data/scripts/lib/coroutines.lua")
 
@@ -63,7 +63,6 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
     -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
 
-
     if ctx.proxy_opt.game_mode == "shared_health" then
         ctx.load_system("damage")
         ctx.load_system("heart_pickups")
@@ -76,7 +75,6 @@ local function load_modules()
         ctx.load_system("spectator_helps")
         ctx.load_system("end_fight")
     end
-
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/nickname.lua")
 
@@ -168,9 +166,32 @@ local function fire()
     end
 end
 
-function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message,
-                           unknown1, multicast_index, unknown3)
-    ctx.hook.on_projectile_fired(shooter_id, projectile_id, initial_rng, position_x, position_y, target_x, target_y, send_message, unknown1, multicast_index, unknown3)
+function OnProjectileFired(
+    shooter_id,
+    projectile_id,
+    initial_rng,
+    position_x,
+    position_y,
+    target_x,
+    target_y,
+    send_message,
+    unknown1,
+    multicast_index,
+    unknown3
+)
+    ctx.hook.on_projectile_fired(
+        shooter_id,
+        projectile_id,
+        initial_rng,
+        position_x,
+        position_y,
+        target_x,
+        target_y,
+        send_message,
+        unknown1,
+        multicast_index,
+        unknown3
+    )
     if not EntityHasTag(shooter_id, "player_unit") and not EntityHasTag(shooter_id, "ew_client") then
         return -- Not fired by player, we don't care about it (for now?)
     end
@@ -188,7 +209,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     -- Was shot locally
     if shooter_id == ctx.my_player.entity then
         -- If it was an initial shot by host
-        if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
+        if entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0 then
             if tonumber(GlobalsGetValue("ew_wand_fired", "0")) ~= 0 then
                 rng = initial_rng
                 table.insert(shooter_player_data.projectile_rng_init, rng)
@@ -199,7 +220,7 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     else
-        if (entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0) then
+        if entity_that_shot == 0 and multicast_index ~= -1 and unknown3 == 0 then
             if #shooter_player_data.projectile_rng_init > 0 then
                 rng = table.remove(shooter_player_data.projectile_rng_init, 1)
             else
@@ -214,32 +235,46 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     shooter_player_data.projectile_seed_chain[projectile_id] = rng
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
         local src = ComponentGetValue2(lua, "script_source_file")
-        if src == "data/scripts/projectiles/transmutation.lua"
+        if
+            src == "data/scripts/projectiles/transmutation.lua"
             or src == "data/scripts/projectiles/random_explosion.lua"
-            or src == "data/scripts/projectiles/fizzle.lua" then
-            EntityAddComponent2(projectile_id, "VariableStorageComponent", {name = "ew_transmutation", value_int = rng})
+            or src == "data/scripts/projectiles/fizzle.lua"
+        then
+            EntityAddComponent2(
+                projectile_id,
+                "VariableStorageComponent",
+                { name = "ew_transmutation", value_int = rng }
+            )
         end
     end
     local n = EntityGetFilename(projectile_id)
     if n == "data/entities/items/pickup/egg_hollow.xml" then
-        EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags = "ew_egg", value_int = rng})
-        EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
-                                                                        value_string = shooter_player_data.peer_id .. ":" .. rng})
+        EntityAddComponent2(projectile_id, "VariableStorageComponent", { _tags = "ew_egg", value_int = rng })
+        EntityAddComponent2(
+            projectile_id,
+            "VariableStorageComponent",
+            { _tags = "ew_global_item_id", value_string = shooter_player_data.peer_id .. ":" .. rng }
+        )
         EntityAddTag(projectile_id, "ew_global_item")
         EntityAddTag(projectile_id, "ew_no_spawn")
-    elseif n == "data/entities/projectiles/deck/rock.xml"
-            or n == "data/entities/projectiles/deck/levitation_field.xml"
-            or n == "data/entities/projectiles/bomb.xml"
-            or n == "data/entities/projectiles/propane_tank.xml"
-            or n == "data/entities/projectiles/deck/disc_bullet_big.xml"
-            or n == "data/entities/projectiles/deck/disc_bullet_bigger.xml"
-            or n == "data/entities/projectiles/deck/black_hole.xml"
-            or n == "data/entities/projectiles/deck/black_hole_giga.xml"
-            or n == "data/entities/projectiles/deck/white_hole.xml"
-            or n == "data/entities/projectiles/deck/white_hole_giga.xml"
-            or EntityHasTag(projectile_id, "ew_projectile_position_sync") then
-        EntityAddComponent2(projectile_id, "VariableStorageComponent", {_tags="ew_global_item_id",
-                                                                        value_string = shooter_player_data.peer_id .. ":" .. rng})
+    elseif
+        n == "data/entities/projectiles/deck/rock.xml"
+        or n == "data/entities/projectiles/deck/levitation_field.xml"
+        or n == "data/entities/projectiles/bomb.xml"
+        or n == "data/entities/projectiles/propane_tank.xml"
+        or n == "data/entities/projectiles/deck/disc_bullet_big.xml"
+        or n == "data/entities/projectiles/deck/disc_bullet_bigger.xml"
+        or n == "data/entities/projectiles/deck/black_hole.xml"
+        or n == "data/entities/projectiles/deck/black_hole_giga.xml"
+        or n == "data/entities/projectiles/deck/white_hole.xml"
+        or n == "data/entities/projectiles/deck/white_hole_giga.xml"
+        or EntityHasTag(projectile_id, "ew_projectile_position_sync")
+    then
+        EntityAddComponent2(
+            projectile_id,
+            "VariableStorageComponent",
+            { _tags = "ew_global_item_id", value_string = shooter_player_data.peer_id .. ":" .. rng }
+        )
         if shooter_player_data.peer_id ~= ctx.my_id then
             local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
             if proj ~= nil then
@@ -255,8 +290,19 @@ function OnProjectileFired(shooter_id, projectile_id, initial_rng, position_x, p
     np.SetProjectileSpreadRNG(rng)
 end
 
-function OnProjectileFiredPost(shooter_id, projectile_id, rng, position_x, position_y, target_x, target_y, send_message,
-    unknown1, multicast_index, unknown3)
+function OnProjectileFiredPost(
+    shooter_id,
+    projectile_id,
+    rng,
+    position_x,
+    position_y,
+    target_x,
+    target_y,
+    send_message,
+    unknown1,
+    multicast_index,
+    unknown3
+)
 end
 
 function OnPausedChanged(paused, is_wand_pickup)
@@ -264,10 +310,10 @@ function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_wand_pickup = is_wand_pickup
     local players = EntityGetWithTag("player_unit") or {}
 
-    if (players[1]) then
+    if players[1] then
         np.RegisterPlayerEntityId(players[1])
         --local inventory_gui = EntityGetFirstComponentIncludingDisabled(players[1], "InventoryGuiComponent")
-        if (paused) then
+        if paused then
             --EntitySetComponentIsEnabled(players[1], inventory_gui, false)
             np.EnableInventoryGuiUpdate(false)
             np.EnablePlayerItemPickUpper(false)
@@ -292,15 +338,15 @@ local last_chunk
 
 local last_flex
 
-function OnPlayerSpawned( player_entity ) -- This runs when player entity has been created
-    print("Initial player entity: "..player_entity)
+function OnPlayerSpawned(player_entity) -- This runs when player entity has been created
+    print("Initial player entity: " .. player_entity)
 
     if GlobalsGetValue("ew_player_count", "") == "" then
         GlobalsSetValue("ew_player_count", "1")
     end
 
     local x, y = EntityGetTransform(player_entity)
-    ctx.initial_player_pos = {x=x, y=y}
+    ctx.initial_player_pos = { x = x, y = y }
 
     local my_player = player_fns.make_playerdata_for(player_entity, ctx.my_id)
     ctx.players[ctx.my_id] = my_player
@@ -311,7 +357,11 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     EntityAddTag(player_entity, "ew_peer")
 
     if not GameHasFlagRun("ew_flag_notplayer_active") then
-        EntityAddComponent2(player_entity, "LuaComponent", {script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"})
+        EntityAddComponent2(
+            player_entity,
+            "LuaComponent",
+            { script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua" }
+        )
     end
 
     net.send_welcome()
@@ -324,17 +374,26 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
     ctx.hook.on_local_player_spawn(my_player)
     ctx.hook.on_should_send_updates()
 
-    GamePrint("Noita Entangled Worlds version "..version)
+    GamePrint("Noita Entangled Worlds version " .. version)
 
     OnPausedChanged(false, false)
 
-    print("Game state entity: "..GameGetWorldStateEntity())
+    print("Game state entity: " .. GameGetWorldStateEntity())
 
     if not GameHasFlagRun("ew_flag_notplayer_active") then
         player_cosmetics(player_entity)
         player_color(player_entity)
     else
-        EntityInflictDamage(player_entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
+        EntityInflictDamage(
+            player_entity,
+            1000000,
+            "DAMAGE_CURSE",
+            "dont rejoin",
+            "NONE",
+            0,
+            0,
+            GameGetWorldStateEntity()
+        )
         GameAddFlagRun("ew_kill_player")
     end
     if ctx.host_id == ctx.my_id then
@@ -349,7 +408,7 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         local com = EntityGetFirstComponentIncludingDisabled(child, "LuaComponent")
         if com ~= nil and ComponentGetValue2(com, "script_source_file") == "data/scripts/perks/map.lua" then
             EntityRemoveComponent(child, com)
-            EntityAddComponent2(child, "LuaComponent", {script_source_file = "data/scripts/perks/map.lua"})
+            EntityAddComponent2(child, "LuaComponent", { script_source_file = "data/scripts/perks/map.lua" })
             return
         end
     end
@@ -371,7 +430,9 @@ local function change_homing(x, y)
 end
 
 local function on_world_pre_update_inner()
-    if ctx.my_player == nil or ctx.my_player.entity == nil then return end
+    if ctx.my_player == nil or ctx.my_player.entity == nil then
+        return
+    end
 
     GlobalsSetValue("ew_player_rng", tostring(GameGetFrameNum()))
 
@@ -450,7 +511,7 @@ local function on_world_pre_update_inner()
 end
 
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
-    if  net.connect_failed then
+    if net.connect_failed then
         if GameGetFrameNum() % 180 == 0 then
             GamePrint("Entangled Worlds mod is enabled, but it couldn't connect to proxy!")
             GamePrint("You need to start the proxy and join the lobby first.")
@@ -462,7 +523,9 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
 end
 
 local function on_world_post_update_inner()
-    if ctx.my_player == nil or ctx.my_player.entity == nil then return end
+    if ctx.my_player == nil or ctx.my_player.entity == nil then
+        return
+    end
 
     if ctx.run_ended then
         return
@@ -474,9 +537,15 @@ local function on_world_post_update_inner()
     GlobalsSetValue("ew_wand_fired", "0")
     local wand = player_fns.get_active_held_item(ctx.my_player.entity)
     local ability = EntityGetFirstComponentIncludingDisabled(wand, "AbilityComponent")
-    if times_wand_fired > 0
-            or (wand ~= nil and EntityHasTag(wand, "card_action")
-            and ability ~= nil and ComponentGetValue2(ability, "mCastDelayStartFrame") == GameGetFrameNum()) then
+    if
+        times_wand_fired > 0
+        or (
+            wand ~= nil
+            and EntityHasTag(wand, "card_action")
+            and ability ~= nil
+            and ComponentGetValue2(ability, "mCastDelayStartFrame") == GameGetFrameNum()
+        )
+    then
         fire()
     end
     if ability ~= nil then
@@ -487,7 +556,7 @@ local function on_world_post_update_inner()
 end
 
 function OnWorldPostUpdate() -- This is called every time the game has finished updating the world
-    if  net.connect_failed then
+    if net.connect_failed then
         return
     end
     util.tpcall(on_world_post_update_inner)
@@ -496,7 +565,6 @@ function OnWorldPostUpdate() -- This is called every time the game has finished 
 end
 
 function register_localizations(translation_file, clear_count)
-
     clear_count = clear_count or 0
 
     local loc_content = ModTextFileGetContent("data/translations/common.csv") -- Gets the original translations of the game

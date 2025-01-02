@@ -72,15 +72,15 @@ local FireWand = ffi.typeof("FireWand")
 
 local player_fns = {
     deserialize_inputs = function(message, player_data)
-        if (player_data ~= nil and player_data.entity ~= nil and EntityGetIsAlive(player_data.entity)) then
+        if player_data ~= nil and player_data.entity ~= nil and EntityGetIsAlive(player_data.entity) then
             --print(json.stringify(message))
 
             local controls_data = player_data.controls
             local controlsComp = EntityGetFirstComponentIncludingDisabled(player_data.entity, "ControlsComponent")
 
-            if(message.kick)then
+            if message.kick then
                 ComponentSetValue2(controlsComp, "mButtonDownKick", true)
-                if (not controls_data.kick) then
+                if not controls_data.kick then
                     ComponentSetValue2(controlsComp, "mButtonFrameKick", GameGetFrameNum() + 1)
                 end
                 controls_data.kick = true
@@ -91,10 +91,10 @@ local player_fns = {
 
             --EntityHelper.BlockFiring(data.players[tostring(user)].entity, true)
 
-            if(message.fire)then
+            if message.fire then
                 ComponentSetValue2(controlsComp, "mButtonDownFire", true)
-                if (not controls_data.fire) then
-                    ComponentSetValue2(controlsComp, "mButtonFrameFire", GameGetFrameNum()+1)
+                if not controls_data.fire then
+                    ComponentSetValue2(controlsComp, "mButtonFrameFire", GameGetFrameNum() + 1)
                 end
                 ComponentSetValue2(controlsComp, "mButtonLastFrameFire", GameGetFrameNum())
                 controls_data.fire = true
@@ -103,10 +103,10 @@ local player_fns = {
                 controls_data.fire = false
             end
 
-            if(message.fire2)then
+            if message.fire2 then
                 ComponentSetValue2(controlsComp, "mButtonDownFire2", true)
-                if (not controls_data.fire2) then
-                    ComponentSetValue2(controlsComp, "mButtonFrameFire2", GameGetFrameNum()+1)
+                if not controls_data.fire2 then
+                    ComponentSetValue2(controlsComp, "mButtonFrameFire2", GameGetFrameNum() + 1)
                 end
                 controls_data.fire2 = true
             else
@@ -114,9 +114,9 @@ local player_fns = {
                 controls_data.fire2 = false
             end
 
-            if(message.action)then
+            if message.action then
                 ComponentSetValue2(controlsComp, "mButtonDownAction", true)
-                if (not controls_data.action) then
+                if not controls_data.action then
                     ComponentSetValue2(controlsComp, "mButtonFrameAction", GameGetFrameNum() + 1)
                 end
                 controls_data.action = true
@@ -137,9 +137,9 @@ local player_fns = {
             --     controls_data.throw = false
             -- end
 
-            if(message.interact)then
+            if message.interact then
                 ComponentSetValue2(controlsComp, "mButtonDownInteract", true)
-                if (not controls_data.interact) then
+                if not controls_data.interact then
                     ComponentSetValue2(controlsComp, "mButtonFrameInteract", GameGetFrameNum() + 1)
                 end
                 controls_data.interact = true
@@ -148,9 +148,9 @@ local player_fns = {
                 controls_data.interact = false
             end
 
-            if(message.left)then
+            if message.left then
                 ComponentSetValue2(controlsComp, "mButtonDownLeft", true)
-                if (not controls_data.left) then
+                if not controls_data.left then
                     ComponentSetValue2(controlsComp, "mButtonFrameLeft", GameGetFrameNum() + 1)
                 end
                 controls_data.left = true
@@ -159,9 +159,9 @@ local player_fns = {
                 controls_data.left = false
             end
 
-            if(message.right)then
+            if message.right then
                 ComponentSetValue2(controlsComp, "mButtonDownRight", true)
-                if (not controls_data.right) then
+                if not controls_data.right then
                     ComponentSetValue2(controlsComp, "mButtonFrameRight", GameGetFrameNum() + 1)
                 end
                 controls_data.right = true
@@ -170,9 +170,9 @@ local player_fns = {
                 controls_data.right = false
             end
 
-            if(message.up)then
+            if message.up then
                 ComponentSetValue2(controlsComp, "mButtonDownUp", true)
-                if (not controls_data.up) then
+                if not controls_data.up then
                     ComponentSetValue2(controlsComp, "mButtonFrameUp", GameGetFrameNum() + 1)
                 end
                 controls_data.up = true
@@ -181,9 +181,9 @@ local player_fns = {
                 controls_data.up = false
             end
 
-            if(message.down)then
+            if message.down then
                 ComponentSetValue2(controlsComp, "mButtonDownDown", true)
-                if (not controls_data.down) then
+                if not controls_data.down then
                     ComponentSetValue2(controlsComp, "mButtonFrameDown", GameGetFrameNum() + 1)
                 end
                 controls_data.down = true
@@ -192,9 +192,9 @@ local player_fns = {
                 controls_data.down = false
             end
 
-            if(message.jump)then
+            if message.jump then
                 ComponentSetValue2(controlsComp, "mButtonDownJump", true)
-                if (not controls_data.jump) then
+                if not controls_data.jump then
                     ComponentSetValue2(controlsComp, "mButtonFrameJump", GameGetFrameNum() + 1)
                 end
                 controls_data.jump = true
@@ -203,9 +203,9 @@ local player_fns = {
                 controls_data.jump = false
             end
 
-            if(message.fly)then
+            if message.fly then
                 ComponentSetValue2(controlsComp, "mButtonDownFly", true)
-                if (not controls_data.fly) then
+                if not controls_data.fly then
                     ComponentSetValue2(controlsComp, "mButtonFrameFly", GameGetFrameNum() + 1)
                 end
                 controls_data.fly = true
@@ -214,9 +214,9 @@ local player_fns = {
                 controls_data.fly = false
             end
 
-            if(message.leftClick)then
+            if message.leftClick then
                 ComponentSetValue2(controlsComp, "mButtonDownLeftClick", true)
-                if (not controls_data.leftClick) then
+                if not controls_data.leftClick then
                     ComponentSetValue2(controlsComp, "mButtonFrameLeftClick", GameGetFrameNum() + 1)
                 end
                 controls_data.leftClick = true
@@ -225,9 +225,9 @@ local player_fns = {
                 controls_data.leftClick = false
             end
 
-            if(message.rightClick)then
+            if message.rightClick then
                 ComponentSetValue2(controlsComp, "mButtonDownRightClick", true)
-                if (not controls_data.rightClick) then
+                if not controls_data.rightClick then
                     ComponentSetValue2(controlsComp, "mButtonFrameRightClick", GameGetFrameNum() + 1)
                 end
                 controls_data.rightClick = true
@@ -235,7 +235,6 @@ local player_fns = {
                 ComponentSetValue2(controlsComp, "mButtonDownRightClick", false)
                 controls_data.rightClick = false
             end
-
 
             --[[
             local aim_x, aim_y = ComponentGetValue2(controls, "mAimingVector") -- float, float
@@ -254,7 +253,12 @@ local player_fns = {
             ComponentSetValue2(controlsComp, "mMousePositionRawPrev", message.mouseRawPrev_x, message.mouseRawPrev_y)
             ComponentSetValue2(controlsComp, "mMouseDelta", message.mouseDelta_x, message.mouseDelta_y)
             if message.has_gamepad then
-                ComponentSetValue2(controlsComp, "mGamepadAimingVectorRaw", message.gamepad_vector_x, message.gamepad_vector_y)
+                ComponentSetValue2(
+                    controlsComp,
+                    "mGamepadAimingVectorRaw",
+                    message.gamepad_vector_x,
+                    message.gamepad_vector_y
+                )
                 ComponentSetValue2(controlsComp, "mGamePadCursorInWorld", message.mouse_x, message.mouse_y)
             end
             ComponentSetValue2(controlsComp, "mMousePosition", message.mouse_x, message.mouse_y)
@@ -275,16 +279,15 @@ local player_fns = {
     end,
     serialize_inputs = function(player_data)
         local player = player_data.entity
-        if (player == nil) then
+        if player == nil then
             return
         end
         local controls = EntityGetFirstComponentIncludingDisabled(player, "ControlsComponent")
 
-
-        if (controls ~= nil) then
+        if controls ~= nil then
             local kick = ComponentGetValue2(controls, "mButtonDownKick") -- boolean
-            local fire = ComponentGetValue2(controls, "mButtonDownFire")  -- boolean
-            local fire2 = ComponentGetValue2(controls, "mButtonDownFire2")  -- boolean
+            local fire = ComponentGetValue2(controls, "mButtonDownFire") -- boolean
+            local fire2 = ComponentGetValue2(controls, "mButtonDownFire2") -- boolean
             local action = ComponentGetValue2(controls, "mButtonDownAction") -- boolean
             local throw = ComponentGetValue2(controls, "mButtonDownThrow") -- boolean
             local interact = ComponentGetValue2(controls, "mButtonDownInteract") -- boolean
@@ -327,7 +330,7 @@ local player_fns = {
                 host_frame_num = GameGetFrameNum()
             end
 
-            local c = Controls{
+            local c = Controls({
                 kick = kick,
                 fire = fire,
                 fire2 = fire2,
@@ -361,8 +364,8 @@ local player_fns = {
                 has_gamepad = has_gamepad,
                 my_x = my_x,
                 my_y = my_y,
-                host_frame_num = host_frame_num
-            }
+                host_frame_num = host_frame_num,
+            })
 
             return c
         end
@@ -371,7 +374,7 @@ local player_fns = {
         return {
             entity = entity_id,
             peer_id = peer_id,
-            name = "[Peer "..peer_id.."]",
+            name = "[Peer " .. peer_id .. "]",
             controls = {},
             projectile_rng_init = {},
             projectile_seed_chain = {}, -- TODO clean
@@ -383,7 +386,7 @@ local player_fns = {
             fps = 60,
             last_hit = 0,
             dc = false,
-            mutations = {ghost = false, luuki = false, rat = false, fungus = false, halo = 0}
+            mutations = { ghost = false, luuki = false, rat = false, fungus = false, halo = 0 },
         }
     end,
 }
@@ -405,7 +408,7 @@ function player_fns.serialize_position(player_data)
     player_data.pos_x = x
     player_data.pos_y = y
 
-    local c = CharacterPos{
+    local c = CharacterPos({
         frames_in_air = ComponentGetValue2(character_platforming_comp, "mFramesInAirCounter"),
         x = x,
         y = y,
@@ -413,7 +416,7 @@ function player_fns.serialize_position(player_data)
         vel_y = vel_y,
         is_on_ground = ComponentGetValue2(character_data, "is_on_ground"),
         is_on_slippery_ground = ComponentGetValue2(character_data, "is_on_slippery_ground"),
-    }
+    })
     return c, util.get_phys_info(entity, false)
 end
 
@@ -447,7 +450,6 @@ function player_fns.deserialize_position(message, phys_infos, player_data)
     end
 end
 
-
 function player_fns.serialize_items(player_data)
     local item_data, spell_data = inventory_helper.get_item_data(player_data)
     return item_data, spell_data
@@ -463,7 +465,7 @@ function player_fns.peer_has_player(peer_id)
 end
 
 function player_fns.peer_get_player_data(peer_id, dont_spawn_new)
-    if peer_id ~= ctx.my_player.peer_id and (not dont_spawn_new) and (not player_fns.peer_has_player(peer_id)) then
+    if peer_id ~= ctx.my_player.peer_id and not dont_spawn_new and (not player_fns.peer_has_player(peer_id)) then
         player_fns.spawn_player_for(peer_id, ctx.initial_player_pos.x, ctx.initial_player_pos.y)
     end
     return ctx.players[peer_id]
@@ -491,15 +493,19 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     if ctx.run_ended then
         return
     end
-    print("Spawning player for "..peer_id)
+    print("Spawning player for " .. peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
     util.make_ephemerial(new)
     LoadGameEffectEntityTo(new, "mods/quant.ew/files/system/spectate/no_tinker.xml")
 
     for _, child in ipairs(EntityGetAllChildren(new) or {}) do
-        if (EntityGetName(child) == "cursor") then
+        if EntityGetName(child) == "cursor" then
             local sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
-            ComponentSetValue2(sprite, "image_file", "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cursor.png")
+            ComponentSetValue2(
+                sprite,
+                "image_file",
+                "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cursor.png"
+            )
             break
         end
     end
@@ -524,14 +530,14 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     ctx.player_data_by_local_entity[new] = new_playerdata
     ctx.events.new_player_just_spawned = true
 
-    local global = "ew_seen_"..peer_id
+    local global = "ew_seen_" .. peer_id
     local seen = GlobalsGetValue(global, "0")
     ctx.events.new_player_seen = seen ~= "1"
     if ctx.events.new_player_seen then
         local count = tonumber(GlobalsGetValue("ew_player_count", "1")) + 1
         GlobalsSetValue("ew_player_count", tostring(count))
-        GamePrint("Player count "..count)
-        print("Player count "..count)
+        GamePrint("Player count " .. count)
+        print("Player count " .. count)
         ctx.hook.on_new_player_seen(new_playerdata, count)
     end
     GlobalsSetValue(global, "1")
@@ -547,7 +553,7 @@ function player_fns.replace_player_entity(new_entity, player_data)
         local old_entity = player_data.entity
         player_data.entity = new_entity
         ctx.player_data_by_local_entity[new_entity] = player_data
-        print("Replaced player entity: "..old_entity.." -> "..new_entity)
+        print("Replaced player entity: " .. old_entity .. " -> " .. new_entity)
     else
         player_fns.spawn_player_for(player_data.peer_id, 0, 0, player_data)
         local latest_inventory = player_data.latest_inventory
@@ -596,11 +602,11 @@ end
 
 function player_fns.get_current_slot(player_data)
     local held_item = player_fns.get_active_held_item(player_data.entity)
-    if (held_item ~= nil and held_item ~= 0) then
+    if held_item ~= nil and held_item ~= 0 then
         local item_comp = EntityGetFirstComponentIncludingDisabled(held_item, "ItemComponent")
 
         -- the hell??
-        if(item_comp == nil)then
+        if item_comp == nil then
             return
         end
 
@@ -608,16 +614,16 @@ function player_fns.get_current_slot(player_data)
         local ability_comp = EntityGetFirstComponentIncludingDisabled(held_item, "AbilityComponent")
 
         local is_wand = false
-        if(ability_comp and ComponentGetValue2(ability_comp, "use_gun_script"))then
+        if ability_comp and ComponentGetValue2(ability_comp, "use_gun_script") then
             is_wand = true
         end
-        return {is_wand, slot_x, slot_y}
+        return { is_wand, slot_x, slot_y }
     end
 end
 
 function player_fns.set_current_slot(slot_data, player_data)
     local is_wand, slot_x, slot_y = slot_data[1], slot_data[2], slot_data[3]
-    if (player_data.entity and EntityGetIsAlive(player_data.entity)) then
+    if player_data.entity and EntityGetIsAlive(player_data.entity) then
         local items = GameGetAllInventoryItems(player_data.entity) or {}
         for i, item in ipairs(items) do
             -- check id
@@ -628,16 +634,16 @@ function player_fns.set_current_slot(slot_data, player_data)
                 local ability_comp = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
 
                 local item_is_wand = false
-                if(ability_comp and ComponentGetValue2(ability_comp, "use_gun_script"))then
+                if ability_comp and ComponentGetValue2(ability_comp, "use_gun_script") then
                     item_is_wand = true
                 end
 
-                if (item_slot_x == slot_x and item_slot_y == slot_y and item_is_wand == is_wand) then
-                    local inventory2Comp = EntityGetFirstComponentIncludingDisabled(
-                        player_data.entity, "Inventory2Component")
+                if item_slot_x == slot_x and item_slot_y == slot_y and item_is_wand == is_wand then
+                    local inventory2Comp =
+                        EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
                     local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
 
-                    if (mActiveItem ~= item) then
+                    if mActiveItem ~= item then
                         np.SetActiveHeldEntity(player_data.entity, item, false, false)
                     end
                     return true
@@ -653,20 +659,20 @@ function player_fns.make_fire_data(special_seed, player_data, mana)
     local player = player_data.entity
     local wand = player_fns.get_active_held_item(player)
 
-    if (wand ~= nil) then
+    if wand ~= nil then
         local x, y, r = EntityGetTransform(wand)
-        local c = FireWand{
+        local c = FireWand({
             x = x,
             y = y,
             r = r,
             mana = mana,
             special_seed = tonumber(special_seed),
-            player_action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0"))
-        }
+            player_action_rng = tonumber(GlobalsGetValue("ew_player_action_rng", "0")),
+        })
         GlobalsSetValue("ew_player_action_rng", "0")
         local rng_init = player_data.projectile_rng_init
         player_data.projectile_rng_init = {}
-        return {rng_init, c}
+        return { rng_init, c }
     end
 end
 

@@ -46,7 +46,7 @@ function world_sync.on_world_initialized()
         c = c + 1
     end
     c = c - 1
-    print("Last material id: "..c)
+    print("Last material id: " .. c)
     world.last_material_id = c
     -- do_benchmark()
 end
@@ -77,7 +77,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
         if give_0 then
             pri = 0
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(pri)..pos_data)
+        net.proxy_bin_send(KEY_WORLD_END, string.char(pri) .. pos_data)
     elseif GameGetFrameNum() % int == 2 then
         if iter_fast == 0 then
             send_chunks(ocx + 1, ocy, chunk_map)
@@ -92,7 +92,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
             send_chunks(ocx, ocy - 1, chunk_map)
             send_chunks(ocx + 1, ocy - 1, chunk_map)
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 1, 16))..pos_data)
+        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 1, 16)) .. pos_data)
         iter_fast = iter_fast + 1
         if iter_fast == 4 then
             iter_fast = 0
@@ -156,7 +156,7 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
             send_chunks(ocx + 3, ocy - 2, chunk_map)
             send_chunks(ocx + 3, ocy - 1, chunk_map)
         end
-        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 2, 16))..pos_data)
+        net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 2, 16)) .. pos_data)
         iter_slow_2 = iter_slow_2 + 1
         if iter_slow_2 == 6 then
             iter_slow_2 = 0
@@ -184,7 +184,7 @@ function world_sync.on_world_update()
     end
     local pos_data
     if GameGetFrameNum() % int ~= 0 and GameGetFrameNum() % (int * 4) == 3 then
-        pos_data = ocx..":"..ocy..":"..cx..":"..cy..":"..n ..":"..ctx.proxy_opt.world_num
+        pos_data = ocx .. ":" .. ocy .. ":" .. cx .. ":" .. cy .. ":" .. n .. ":" .. ctx.proxy_opt.world_num
     else
         pos_data = ctx.proxy_opt.world_num
     end
@@ -207,7 +207,7 @@ local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 function world_sync.handle_world_data(datum)
     local grid_world = world_ffi.get_grid_world()
-    local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast('char const*', datum))
+    local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast("char const*", datum))
     local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
     world.decode(grid_world, header, runs)
 end

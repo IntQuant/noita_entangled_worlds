@@ -14,15 +14,15 @@ function EntityLoad(path, ...)
     return entity_load_orig(path, ...)
 end
 
-function util.string_split( s, splitter )
-    local words = {};
+function util.string_split(s, splitter)
+    local words = {}
     if s == nil or splitter == nil then
         return {}
     end
-    for word in string.gmatch( s, '([^'..splitter..']+)') do
-        table.insert( words, word );
+    for word in string.gmatch(s, "([^" .. splitter .. "]+)") do
+        table.insert(words, word)
     end
-    return words;
+    return words
 end
 
 function util.print_error(error)
@@ -36,7 +36,7 @@ function util.print_error(error)
 end
 
 function util.tpcall(fn, ...)
-    local res = {xpcall(fn, debug.traceback, ...)}
+    local res = { xpcall(fn, debug.traceback, ...) }
     if not res[1] then
         util.print_error(res[2])
     end
@@ -132,22 +132,21 @@ function util.lerp(a, b, alpha)
 end
 
 function util.set_ent_firing_blocked(entity, do_block)
-    local now = GameGetFrameNum();
+    local now = GameGetFrameNum()
     local inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
-    if(inventory2Comp ~= nil)then
+    if inventory2Comp ~= nil then
         local items = GameGetAllInventoryItems(entity)
         for _, item in ipairs(items or {}) do
-            local ability = EntityGetFirstComponentIncludingDisabled( item, "AbilityComponent" );
+            local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
             if ability then
-                if(do_block)then
-                    ComponentSetValue2( ability, "mReloadFramesLeft", 2000000 );
-                    ComponentSetValue2( ability, "mNextFrameUsable", now + 2000000 );
-                    ComponentSetValue2( ability, "mReloadNextFrameUsable", now + 2000000 );
-
+                if do_block then
+                    ComponentSetValue2(ability, "mReloadFramesLeft", 2000000)
+                    ComponentSetValue2(ability, "mNextFrameUsable", now + 2000000)
+                    ComponentSetValue2(ability, "mReloadNextFrameUsable", now + 2000000)
                 else
-                    ComponentSetValue2( ability, "mReloadFramesLeft", 0 );
-                    ComponentSetValue2( ability, "mNextFrameUsable", now );
-                    ComponentSetValue2( ability, "mReloadNextFrameUsable", now );
+                    ComponentSetValue2(ability, "mReloadFramesLeft", 0)
+                    ComponentSetValue2(ability, "mNextFrameUsable", now)
+                    ComponentSetValue2(ability, "mReloadNextFrameUsable", now)
                 end
             end
         end
@@ -157,7 +156,7 @@ end
 -- Adds this component with given data if it doesn't exist
 function util.ensure_component_present(entity, component, tag, data, tags)
     local current = EntityGetFirstComponentIncludingDisabled(entity, component, tag)
-    data._tags=tags or tag
+    data._tags = tags or tag
     if current == nil then
         EntityAddComponent2(entity, component, data)
     end
@@ -213,7 +212,7 @@ function util.replace_text_in(filename, pattern, to)
     local res_text = string.gsub(initial_text, pattern, to)
     if initial_text ~= res_text then
         ModTextFileSetContent(filename, res_text)
-        print(" Replaced text in "..filename)
+        print(" Replaced text in " .. filename)
     end
 end
 
@@ -242,19 +241,18 @@ function util.add_tag_to(filename, tag)
     -- Tag list is cached, update it.
     table.insert(current_tags, tag)
 
-
-    print(" Adding tag "..tag.." to "..filename)
+    print(" Adding tag " .. tag .. " to " .. filename)
     local content = ModTextFileGetContent(filename)
     content = string.gsub(content, "Entity(.-)>", function(inner)
         local changed_tags = false
         inner = string.gsub(inner, [[tags="(.-)"]], function(tags)
             changed_tags = true
-            return 'tags="'..tags..","..tag..'"'
+            return 'tags="' .. tags .. "," .. tag .. '"'
         end)
         if not changed_tags then
-            inner = inner..' tags="'..tag..'"'
+            inner = inner .. ' tags="' .. tag .. '"'
         end
-        return "Entity "..inner..">"
+        return "Entity " .. inner .. ">"
     end, 1)
     ModTextFileSetContent(filename, content)
 end
@@ -267,37 +265,37 @@ local type_counter = 0
 
 -- Generates struct types that are generally much more efficient to send.
 function util.make_type(typedata)
-    local name = "U"..type_counter
+    local name = "U" .. type_counter
     type_counter = type_counter + 1
 
     local inner = ""
 
     for _, var in ipairs(typedata.f32 or {}) do
-        inner = inner .. "float "..var..";\n"
+        inner = inner .. "float " .. var .. ";\n"
     end
 
     for _, var in ipairs(typedata.u8 or {}) do
-        inner = inner .. "unsigned char "..var..";\n"
+        inner = inner .. "unsigned char " .. var .. ";\n"
     end
 
     for _, var in ipairs(typedata.u32 or {}) do
-        inner = inner .. "unsigned int "..var..";\n"
+        inner = inner .. "unsigned int " .. var .. ";\n"
     end
 
     for _, var in ipairs(typedata.bool or {}) do
-        inner = inner .. "bool "..var..";\n"
+        inner = inner .. "bool " .. var .. ";\n"
     end
 
     for _, var in ipairs(typedata.vecbool or {}) do
-        inner = inner .. "bool "..var.."[16];\n"
+        inner = inner .. "bool " .. var .. "[16];\n"
     end
 
     for _, var in ipairs(typedata.vecfloat or {}) do
-        inner = inner .. "float "..var.."[32];\n"
+        inner = inner .. "float " .. var .. "[32];\n"
     end
 
     for _, var in ipairs(typedata.peer_id or {}) do
-        inner = inner .. "char "..var.."[16];\n"
+        inner = inner .. "char " .. var .. "[16];\n"
     end
 
     ffi.cdef([[
@@ -307,7 +305,7 @@ function util.make_type(typedata)
     } ]] .. name .. [[;
     #pragma pack(pop)
     ]])
-    local typ = ffi.typeof(name);
+    local typ = ffi.typeof(name)
     return typ
 end
 
@@ -327,7 +325,8 @@ function util.serialize_entity(ent)
 end
 
 function util.is_world_state_entity_like(ent)
-    return EntityHasTag(ent, "world_state") or EntityGetFirstComponentIncludingDisabled(ent, "WorldStateComponent") ~= nil
+    return EntityHasTag(ent, "world_state")
+        or EntityGetFirstComponentIncludingDisabled(ent, "WorldStateComponent") ~= nil
 end
 
 function util.deserialize_entity(ent_data, x, y)
@@ -366,36 +365,36 @@ end)
 local FULL_TURN = math.pi * 2
 
 local PhysData = util.make_type({
-    f32 = {"x", "y", "vx", "vy", "vr"},
+    f32 = { "x", "y", "vx", "vy", "vr" },
     -- We should be able to cram rotation into 1 byte.
-    u8 = {"r"}
+    u8 = { "r" },
 })
 
 -- Variant of PhysData for when we don't have any motion.
 local PhysDataNoMotion = util.make_type({
-    f32 = {"x", "y"},
+    f32 = { "x", "y" },
     -- We should be able to cram rotation into 1 byte.
-    u8 = {"r"}
+    u8 = { "r" },
 })
 
 local function serialize_phys_component(phys_component)
     local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
     px, py = PhysicsPosToGamePos(px, py)
     if math.abs(pvx) < 0.01 and math.abs(pvy) < 0.01 and math.abs(pvr) < 0.01 then
-        return PhysDataNoMotion {
+        return PhysDataNoMotion({
             x = px,
             y = py,
             r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
-        }
+        })
     else
-        return PhysData {
+        return PhysData({
             x = px,
             y = py,
             r = math.floor((pr % FULL_TURN) / FULL_TURN * 255),
             vx = pvx,
             vy = pvy,
             vr = pvr,
-        }
+        })
     end
 end
 
@@ -405,7 +404,15 @@ local function deserialize_phys_component(phys_component, phys_info, fps)
         np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
     else
         local m = fps / ctx.my_player.fps
-        np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, phys_info.vx * m, phys_info.vy * m, phys_info.vr * m)
+        np.PhysBodySetTransform(
+            phys_component,
+            x,
+            y,
+            phys_info.r / 255 * FULL_TURN,
+            phys_info.vx * m,
+            phys_info.vy * m,
+            phys_info.vr * m
+        )
     end
 end
 
@@ -417,7 +424,7 @@ function util.get_phys_info(entity, kill)
             local ret, info = pcall(serialize_phys_component, phys_component)
             if not ret and kill then
                 EntityKill(entity)
-                return {{}, {}}
+                return { {}, {} }
             end
             table.insert(phys_info, info)
         end
@@ -430,7 +437,7 @@ function util.get_phys_info(entity, kill)
                 local ret, info = pcall(serialize_phys_component, phys_component)
                 if not ret and kill then
                     EntityKill(entity)
-                    return {{}, {}}
+                    return { {}, {} }
                 end
                 table.insert(phys_info_2, info)
             else
@@ -438,7 +445,7 @@ function util.get_phys_info(entity, kill)
             end
         end
     end
-    return {phys_info, phys_info_2}
+    return { phys_info, phys_info_2 }
 end
 
 function util.set_phys_info(entity, data, fps)
@@ -453,9 +460,13 @@ function util.set_phys_info(entity, data, fps)
     end
     for i, phys_component in ipairs(EntityGetComponent(entity, "PhysicsBody2Component") or {}) do
         local phys_info = phys_infos_2[i]
-        if phys_component ~= nil and phys_component ~= 0 and phys_info ~= nil
-                -- A physics body doesn't exist otherwise, causing a crash
-                and ComponentGetValue2(phys_component, "mInitialized") then
+        if
+            phys_component ~= nil
+            and phys_component ~= 0
+            and phys_info ~= nil
+            -- A physics body doesn't exist otherwise, causing a crash
+            and ComponentGetValue2(phys_component, "mInitialized")
+        then
             pcall(deserialize_phys_component, phys_component, phys_info, fps)
             has_set = true
         end
@@ -471,10 +482,9 @@ function util.run_in_new_context(code)
         script_source_file = "mods/quant.ew/files/resource/cbs/util_runner.lua",
         execute_on_added = true,
         remove_after_executed = true,
-        vm_type = "ONE_PER_COMPONENT_INSTANCE"
+        vm_type = "ONE_PER_COMPONENT_INSTANCE",
     })
     EntityKill(entity)
 end
-
 
 return util

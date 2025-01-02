@@ -1,12 +1,14 @@
 function damage_received(damage, message, entity_thats_responsible, is_fatal, projectile_thats_responsible)
-    if entity_thats_responsible == GameGetWorldStateEntity()
-            or (projectile_thats_responsible ~= nil and projectile_thats_responsible ~= 0)
-            or EntityHasTag(entity_thats_responsible, "ew_peer") then
+    if
+        entity_thats_responsible == GameGetWorldStateEntity()
+        or (projectile_thats_responsible ~= nil and projectile_thats_responsible ~= 0)
+        or EntityHasTag(entity_thats_responsible, "ew_peer")
+    then
         return
     end
 
     -- Change our health back
-    local entity_id = GetUpdatedEntityID();
+    local entity_id = GetUpdatedEntityID()
 
     local dtypes = GetDamageDetails().damage_types
     -- Only handle melee damage that way.

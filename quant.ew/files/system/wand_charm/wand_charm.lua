@@ -5,7 +5,11 @@ rpc.opts_reliable()
 function rpc.charm(gid)
     local item = item_sync.find_by_gid(gid)
     if item ~= nil then
-        EntityAddComponent2(item, "LuaComponent", {script_source_file = "mods/quant.ew/files/system/wand_charm/charm.lua", remove_after_executed = true})
+        EntityAddComponent2(
+            item,
+            "LuaComponent",
+            { script_source_file = "mods/quant.ew/files/system/wand_charm/charm.lua", remove_after_executed = true }
+        )
     end
 end
 util.add_cross_call("ew_charm_sync", function(id)

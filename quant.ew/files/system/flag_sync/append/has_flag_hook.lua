@@ -13,6 +13,6 @@ function HasFlagPersistent(flag)
 end
 
 function AddFlagPersistent(flag)
-    GameAddFlagRun("ew_pf_"..flag)
+    GameAddFlagRun("ew_pf_" .. flag)
     return old_add_flag(flag)
 end

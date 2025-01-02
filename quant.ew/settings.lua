@@ -8,7 +8,6 @@ local function early_init()
     end
 end
 
-
 dofile("data/scripts/lib/mod_settings.lua") -- see this file for documentation on some of the features.
 
 -- This file can't access other files from this or other mods in all circumstances.
@@ -23,16 +22,14 @@ dofile("data/scripts/lib/mod_settings.lua") -- see this file for documentation o
 -- until the player starts a new game.
 -- ModSettingSetNextValue() will set the buffered value, that will later become visible via ModSettingGet(), unless the setting scope is MOD_SETTING_SCOPE_RUNTIME.
 
-function mod_setting_change_callback( mod_id, gui, in_main_menu, setting, old_value, new_value  )
-    print( tostring(new_value) )
+function mod_setting_change_callback(mod_id, gui, in_main_menu, setting, old_value, new_value)
+    print(tostring(new_value))
 end
 
 local mod_id = "quant.ew" -- This should match the name of your mod's folder.
 local prfx = mod_id .. "."
 mod_settings_version = 1 -- This is a magic global that can be used to migrate settings to new mod versions. call mod_settings_get_version() before mod_settings_update() to get the old value.
-mod_settings =
-{
-}
+mod_settings = {}
 
 --KEY SWITCHER IS FROM NOITA FAIR MOD <3 thx
 --- gather keycodes from game file
@@ -50,7 +47,9 @@ local keycodes = gather_key_codes()
 
 local function pending_input()
     for code, _ in pairs(keycodes) do
-        if InputIsKeyJustDown(code) then return code end
+        if InputIsKeyJustDown(code) then
+            return code
+        end
     end
 end
 
@@ -80,7 +79,9 @@ local function ui_get_input(_, gui, _, im_id, setting)
     if hovered then
         GuiTooltip(gui, setting.ui_description, GameTextGetTranslatedOrNot("$menuoptions_reset_keyboard"))
         GuiColorSetForNextWidget(gui, 1, 1, 0.7, 1)
-        if InputIsMouseButtonJustDown(1) then setting.is_waiting_for_input = true end
+        if InputIsMouseButtonJustDown(1) then
+            setting.is_waiting_for_input = true
+        end
         if InputIsMouseButtonJustDown(2) or InputIsMouseButtonJustDown(3) then
             GamePlaySound("ui", "ui/button_click", 0, 0)
             ModSettingSetNextValue(setting_id, setting.value_default, false)
@@ -172,64 +173,69 @@ local function build_settings()
                     value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
-            }},            {category_id = "ui",
-                            ui_name = "ui",
-                            ui_description = "ui",
-                            settings = {
-                                {
-                                    id = "notext",
-                                    ui_name = "no text",
-                                    ui_description = ":c",
-                                    value_default = false,
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                                {
-                                    id = "nochathint",
-                                    ui_name = "no chat hint",
-                                    ui_description = ":c",
-                                    value_default = true,
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                                {
-                                    id = "textcolor",
-                                    ui_name = "chat nickname brightening",
-                                    ui_description = "0 - player primary color, 255 - white, default - 63",
-                                    value_default = 0,
-                                    value_min = 0,
-                                    value_max = 255,
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                                {
-                                    id = "textaltcolor",
-                                    ui_name = "chat message brightening",
-                                    ui_description = "0 - player secondary color, 255 - white, default - 191",
-                                    value_default = 255,
-                                    value_min = 0,
-                                    value_max = 255,
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                                {
-                                    id = "ping_life",
-                                    ui_name = "ping lifetime",
-                                    ui_description = "in seconds",
-                                    value_default = "6.0",
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                                {
-                                    id = "ping_size",
-                                    ui_name = "ping extra size",
-                                    ui_description = "in pixels",
-                                    value_default = "0.0",
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                                {
-                                    id = "disable_cursors",
-                                    ui_name = "disable others cursors",
-                                    ui_description = "bool",
-                                    value_default = false,
-                                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                                },
-                            }},{
+            },
+        },
+        {
+            category_id = "ui",
+            ui_name = "ui",
+            ui_description = "ui",
+            settings = {
+                {
+                    id = "notext",
+                    ui_name = "no text",
+                    ui_description = ":c",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "nochathint",
+                    ui_name = "no chat hint",
+                    ui_description = ":c",
+                    value_default = true,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "textcolor",
+                    ui_name = "chat nickname brightening",
+                    ui_description = "0 - player primary color, 255 - white, default - 63",
+                    value_default = 0,
+                    value_min = 0,
+                    value_max = 255,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "textaltcolor",
+                    ui_name = "chat message brightening",
+                    ui_description = "0 - player secondary color, 255 - white, default - 191",
+                    value_default = 255,
+                    value_min = 0,
+                    value_max = 255,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "ping_life",
+                    ui_name = "ping lifetime",
+                    ui_description = "in seconds",
+                    value_default = "6.0",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "ping_size",
+                    ui_name = "ping extra size",
+                    ui_description = "in pixels",
+                    value_default = "0.0",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "disable_cursors",
+                    ui_name = "disable others cursors",
+                    ui_description = "bool",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+            },
+        },
+        {
             category_id = "misc",
             ui_name = "misc",
             ui_description = "misc",
@@ -304,9 +310,8 @@ local function build_settings()
                     value_default = "0",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
-            }
-        }
-
+            },
+        },
     }
     return settings
 end
@@ -318,7 +323,7 @@ mod_settings = build_settings()
 --         - before mod initialization when starting a new game (init_scope will be MOD_SETTING_SCOPE_NEW_GAME)
 --        - when entering the game after a restart (init_scope will be MOD_SETTING_SCOPE_RESTART)
 --        - at the end of an update when mod settings have been changed via ModSettingsSetNextValue() and the game is unpaused (init_scope will be MOD_SETTINGS_SCOPE_RUNTIME)
-function ModSettingsUpdate( init_scope )
+function ModSettingsUpdate(init_scope)
     --local old_version = mod_settings_get_version( mod_id ) -- This can be used to migrate some settings between mod versions.
     mod_settings = build_settings()
     mod_settings_update(mod_id, mod_settings, init_scope)
@@ -335,10 +340,10 @@ end
 -- At the moment it is fine to simply return 0 or 1 in a custom implementation, but we don't guarantee that will be the case in the future.
 -- This function is called every frame when in the settings menu.
 function ModSettingsGuiCount()
-    return mod_settings_gui_count( mod_id, mod_settings )
+    return mod_settings_gui_count(mod_id, mod_settings)
 end
 
 -- This function is called to display the settings UI for this mod. Your mod's settings wont be visible in the mod settings menu if this function isn't defined correctly.
-function ModSettingsGui( gui, in_main_menu )
-    mod_settings_gui( mod_id, mod_settings, gui, in_main_menu )
+function ModSettingsGui(gui, in_main_menu)
+    mod_settings_gui(mod_id, mod_settings, gui, in_main_menu)
 end

@@ -1,3 +1,3 @@
-function OnPlayerDied( player_entity )
+function OnPlayerDied(player_entity)
     print("Default death handling prevented")
 end

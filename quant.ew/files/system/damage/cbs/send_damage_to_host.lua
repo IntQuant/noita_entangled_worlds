@@ -5,14 +5,14 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
     if entity_thats_responsible == GameGetWorldStateEntity() then
         return
     end
-    
+
     -- Change our health back
-    local entity_id = GetUpdatedEntityID();
-    local damageModelComponent = EntityGetFirstComponentIncludingDisabled( entity_id, "DamageModelComponent" )
+    local entity_id = GetUpdatedEntityID()
+    local damageModelComponent = EntityGetFirstComponentIncludingDisabled(entity_id, "DamageModelComponent")
     if damageModelComponent ~= nil then
-        local health = ComponentGetValue2( damageModelComponent, "hp" )
+        local health = ComponentGetValue2(damageModelComponent, "hp")
         if health then
-            ComponentSetValue2( damageModelComponent, "hp", math.max(health + damage, 0.01) )
+            ComponentSetValue2(damageModelComponent, "hp", math.max(health + damage, 0.01))
         end
     end
 

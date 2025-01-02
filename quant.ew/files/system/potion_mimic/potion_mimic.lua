@@ -20,7 +20,10 @@ function rpc.got_thrown(peer_id, vx, vy)
     else
         local immortal = EntityGetFirstComponentIncludingDisabled(item, "LuaComponent", "ew_immortal")
         if immortal == 0 then
-            EntityAddComponent2(item, "LuaComponent", {_tags="ew_immortal", script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua"})
+            EntityAddComponent2(item, "LuaComponent", {
+                _tags = "ew_immortal",
+                script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua",
+            })
         end
         local damage_component = EntityGetFirstComponentIncludingDisabled(item, "DamageModelComponent")
         if damage_component and damage_component ~= 0 then
@@ -45,7 +48,7 @@ function rpc.ensure_held(peer_id)
         local ent = ctx.my_player.entity
         local inv
         for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
-            if EntityGetName( child ) == "inventory_quick" then
+            if EntityGetName(child) == "inventory_quick" then
                 inv = child
                 break
             end
@@ -73,8 +76,12 @@ function potion.on_world_update()
             local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
             if com ~= nil then
                 local effect_name = ComponentGetValue2(com, "effect")
-                if effect_name == "POLYMORPH" or effect_name == "POLYMORPH_RANDOM"
-                        or effect_name == "POLYMORPH_CESSATION" or effect_name == "POLYMORPH_UNSTABLE" then
+                if
+                    effect_name == "POLYMORPH"
+                    or effect_name == "POLYMORPH_RANDOM"
+                    or effect_name == "POLYMORPH_CESSATION"
+                    or effect_name == "POLYMORPH_UNSTABLE"
+                then
                     effect = com
                     break
                 end

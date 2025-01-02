@@ -2,8 +2,8 @@
 
 function split_string(inputstr, sep)
     sep = sep or "%s"
-    local t= {}
-    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    local t = {}
+    for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
         table.insert(t, str)
     end
     return t
@@ -26,7 +26,7 @@ local function add_new_genome(genome_name, default_relation_ab, default_relation
             output = output .. line .. "," .. genome_name .. "\r\n"
         else
             local herd = line:match("([%w_-]+),")
-            output = output .. line .. ","..(relations[herd] or default_relation_ba).."\r\n"
+            output = output .. line .. "," .. (relations[herd] or default_relation_ba) .. "\r\n"
             table.insert(genome_order, herd)
         end
     end
@@ -46,7 +46,7 @@ content = add_new_genome("notplayer", 1000, 1000, 1000, {
 })
 
 content = add_new_genome("player_pvp", 0, 0, 0, {
-    player = -1000
+    player = -1000,
 })
 
 ModTextFileSetContent("data/genome_relations.csv", content)

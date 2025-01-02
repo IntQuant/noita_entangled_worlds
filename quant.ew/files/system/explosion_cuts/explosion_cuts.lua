@@ -41,10 +41,20 @@ local function send_mats()
                     liquid_static = element.attr.liquid_static or p[5]
                 end
             end
-            info[element.attr.name] = {dur, hp, cell_type, liquid_sand, liquid_static}
-            inp = inp .. mats[element.attr.name] .. " "
-                    .. dur .. " " .. hp .. " "
-                    .. cell_type .. " " .. tostring(liquid_sand) .. " " .. tostring(liquid_static) .. " "
+            info[element.attr.name] = { dur, hp, cell_type, liquid_sand, liquid_static }
+            inp = inp
+                .. mats[element.attr.name]
+                .. " "
+                .. dur
+                .. " "
+                .. hp
+                .. " "
+                .. cell_type
+                .. " "
+                .. tostring(liquid_sand)
+                .. " "
+                .. tostring(liquid_static)
+                .. " "
         end
     end
     net.proxy_send("material_list", string.sub(inp, 0, -2))
@@ -54,8 +64,7 @@ local first = true
 
 local function hole(item)
     local ce = EntityGetFirstComponent(item, "CellEaterComponent")
-    if ce == nil or ComponentGetValue2(ce, "only_stain")
-            or ComponentGetValue2(ce, "limited_materials") then
+    if ce == nil or ComponentGetValue2(ce, "only_stain") or ComponentGetValue2(ce, "limited_materials") then
         return
     end
     local r = 0
@@ -67,37 +76,57 @@ local function hole(item)
             local dx = x - lx
             local dy = y - ly
             r = math.sqrt(dx * dx + dy * dy)
-            local inp = math.floor(x).." "..math.floor(lx)
-                    .. " " .. math.floor(y).." "..math.floor(ly) .. " " .. n
-                    .. " " .. math.floor(ComponentGetValue2(ce, "eat_probability"))
+            local inp = math.floor(x)
+                .. " "
+                .. math.floor(lx)
+                .. " "
+                .. math.floor(y)
+                .. " "
+                .. math.floor(ly)
+                .. " "
+                .. n
+                .. " "
+                .. math.floor(ComponentGetValue2(ce, "eat_probability"))
             net.proxy_send("cut_through_world_line", inp)
         end
     else
-        local inp = math.floor(x) .. " " .. math.floor(y)
-                .. " " .. math.floor(n) .. " " .. math.floor(0)
-                    .. " " .. math.floor(ComponentGetValue2(ce, "eat_probability"))
+        local inp = math.floor(x)
+            .. " "
+            .. math.floor(y)
+            .. " "
+            .. math.floor(n)
+            .. " "
+            .. math.floor(0)
+            .. " "
+            .. math.floor(ComponentGetValue2(ce, "eat_probability"))
         net.proxy_send("cut_through_world_circle", inp)
     end
-    hole_last[item] = {x, y}
+    hole_last[item] = { x, y }
     return r
 end
 
 local function update(ent)
     local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-    if proj ~= nil and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode")) then
+    if
+        proj ~= nil
+        and (ComponentGetValue2(proj, "on_death_explode") or ComponentGetValue2(proj, "on_lifetime_out_explode"))
+    then
         local x, y = EntityGetTransform(ent)
         local r = ComponentObjectGetValue2(proj, "config_explosion", "explosion_radius")
         if r > 4 then
             if alive[ent] == nil then
                 alive[ent] = {}
             end
-            alive[ent].expl = {x, y, r,
-                               ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
-                               ComponentObjectGetValue2(proj, "config_explosion", "ray_energy"),
-                               ComponentObjectGetValue2(proj, "config_explosion", "hole_enabled"),
-                               ComponentObjectGetValue2(proj, "config_explosion", "hole_destroy_liquid"),
-                               ComponentObjectGetValue2(proj, "config_explosion", "create_cell_material"),
-                               ComponentObjectGetValue2(proj, "config_explosion", "create_cell_probability")
+            alive[ent].expl = {
+                x,
+                y,
+                r,
+                ComponentObjectGetValue2(proj, "config_explosion", "max_durability_to_destroy"),
+                ComponentObjectGetValue2(proj, "config_explosion", "ray_energy"),
+                ComponentObjectGetValue2(proj, "config_explosion", "hole_enabled"),
+                ComponentObjectGetValue2(proj, "config_explosion", "hole_destroy_liquid"),
+                ComponentObjectGetValue2(proj, "config_explosion", "create_cell_material"),
+                ComponentObjectGetValue2(proj, "config_explosion", "create_cell_probability"),
             }
         elseif alive[ent] ~= nil and alive[ent].expl ~= nil then
             alive[ent].expl = nil
@@ -109,7 +138,7 @@ local function update(ent)
         if alive[ent] == nil then
             alive[ent] = {}
         end
-        alive[ent].del = {x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material")}
+        alive[ent].del = { x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material") }
     end
     local l = hole(ent)
     if l ~= nil then
@@ -125,7 +154,7 @@ function rpc.check_mats(new_mats, ping)
     local is_true = false
     for a, b in pairs(mats) do
         if b ~= new_mats[a] then
-            GamePrint("MATERIALS DIFFER BETWEEN YOU AND ".. ctx.rpc_player_data.name ..", CHECK MOD ORDER")
+            GamePrint("MATERIALS DIFFER BETWEEN YOU AND " .. ctx.rpc_player_data.name .. ", CHECK MOD ORDER")
             is_true = true
         end
     end
@@ -152,17 +181,35 @@ function mod.on_world_update()
             if count1 > 0 then
                 if data.expl ~= nil then
                     count1 = count1 - data.expl[3]
-                    local inp = math.floor(data.expl[1]) .. " " .. math.floor(data.expl[2])
-                            .. " " .. math.floor(data.expl[3]) .. " " .. math.floor(data.expl[4]) .. " " .. math.floor(data.expl[5])
-                    .. " " .. tostring(data.expl[6]).. " " .. tostring(data.expl[7])
-                            .. " " .. (mats[data.expl[8] or "air"] or 0) .. " " .. math.floor(data.expl[9])
+                    local inp = math.floor(data.expl[1])
+                        .. " "
+                        .. math.floor(data.expl[2])
+                        .. " "
+                        .. math.floor(data.expl[3])
+                        .. " "
+                        .. math.floor(data.expl[4])
+                        .. " "
+                        .. math.floor(data.expl[5])
+                        .. " "
+                        .. tostring(data.expl[6])
+                        .. " "
+                        .. tostring(data.expl[7])
+                        .. " "
+                        .. (mats[data.expl[8] or "air"] or 0)
+                        .. " "
+                        .. math.floor(data.expl[9])
                     net.proxy_send("cut_through_world_explosion", inp)
                     exists = true
                 end
                 if data.del ~= nil then
                     count1 = count1 - data.del[3]
-                    local inp = math.floor(data.del[1]) .. " " .. math.floor(data.del[2])
-                            .. " " .. math.floor(data.del[3]) .. " " .. math.floor(data.del[4])
+                    local inp = math.floor(data.del[1])
+                        .. " "
+                        .. math.floor(data.del[2])
+                        .. " "
+                        .. math.floor(data.del[3])
+                        .. " "
+                        .. math.floor(data.del[4])
                     net.proxy_send("cut_through_world_circle", inp)
                 end
                 alive[ent] = nil

@@ -17,7 +17,7 @@ function net_handling.proxy.seed(_, value)
 end
 
 function net_handling.proxy.peer_id(_, value)
-    print("My peer_id: "..value)
+    print("My peer_id: " .. value)
     ctx.my_id = value
     ctx.is_host = ctx.my_id == ctx.host_id
 end
@@ -32,7 +32,7 @@ function net_handling.proxy.host_id(_, value)
 end
 
 function net_handling.proxy.proxy_opt(_, key, value)
-    print("Proxy opt [str]: "..key.." = "..tostring(value))
+    print("Proxy opt [str]: " .. key .. " = " .. tostring(value))
     ctx.proxy_opt[key] = value
 end
 
@@ -41,15 +41,17 @@ function net_handling.proxy.proxy_opt_num(_, key, value)
 end
 
 function net_handling.proxy.proxy_opt_bool(_, key, value)
-    print("Proxy opt [bool]: "..key.." = "..value)
+    print("Proxy opt [bool]: " .. key .. " = " .. value)
     ctx.proxy_opt[key] = value == "true"
 end
 
 function net_handling.proxy.dc(_, peer_id)
     local player = ctx.players[peer_id]
-    if player == nil or player.entity == nil
-            or (EntityHasTag(player.entity, "ew_notplayer")
-            and (ctx.proxy_opt.no_notplayer or ctx.proxy_opt.perma_death)) then
+    if
+        player == nil
+        or player.entity == nil
+        or (EntityHasTag(player.entity, "ew_notplayer") and (ctx.proxy_opt.no_notplayer or ctx.proxy_opt.perma_death))
+    then
         return
     end
     local sprite = EntityGetFirstComponentIncludingDisabled(player.entity, "SpriteComponent")
@@ -57,8 +59,7 @@ function net_handling.proxy.dc(_, peer_id)
     local new = string.sub(name, 0, -5) .. "_dc.xml"
     ComponentSetValue2(sprite, "image_file", new)
     for _, child in ipairs(EntityGetAllChildren(player.entity) or {}) do
-        if EntityGetName(child) == "notcursor"
-                or EntityGetName(child) == "cursor" then
+        if EntityGetName(child) == "notcursor" or EntityGetName(child) == "cursor" then
             sprite = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
             EntitySetComponentIsEnabled(child, sprite, false)
         end
@@ -71,11 +72,11 @@ end
 function net_handling.proxy.leave(_, peer_id)
     local player = ctx.players[peer_id]
     if player ~= nil then
-        GamePrint("Player "..player.name.." left")
+        GamePrint("Player " .. player.name .. " left")
         EntityKill(player.entity)
         ctx.players[peer_id] = nil
     else
-        GamePrint("Player "..peer_id.." left")
+        GamePrint("Player " .. peer_id .. " left")
     end
 end
 
@@ -131,7 +132,7 @@ function net_handling.mod.fire(peer_id, fire_data)
 
     GlobalsSetValue("ew_shooter_rng_" .. tostring(peer_id), tostring(message.special_seed))
 
-    GlobalsSetValue("ew_action_rng_"..tostring(peer_id), tostring(message.player_action_rng))
+    GlobalsSetValue("ew_action_rng_" .. tostring(peer_id), tostring(message.player_action_rng))
 
     player_data.projectile_rng_init = rng
 
@@ -140,7 +141,7 @@ function net_handling.mod.fire(peer_id, fire_data)
     if controlsComp ~= nil then
         local inventory2Comp = EntityGetFirstComponentIncludingDisabled(entity, "Inventory2Component")
 
-        if (inventory2Comp == nil) then
+        if inventory2Comp == nil then
             return
         end
 
@@ -148,8 +149,10 @@ function net_handling.mod.fire(peer_id, fire_data)
 
         if mActiveItem ~= nil then
             local ability = EntityGetFirstComponentIncludingDisabled(mActiveItem, "AbilityComponent")
-            if EntityHasTag(mActiveItem, "card_action")
-                    or (ability ~= nil and ComponentGetValue2(ability, "use_gun_script")) then
+            if
+                EntityHasTag(mActiveItem, "card_action")
+                or (ability ~= nil and ComponentGetValue2(ability, "use_gun_script"))
+            then
                 local aimNormal_x, aimNormal_y = ComponentGetValue2(controlsComp, "mAimingVectorNormalized")
                 local aim_x, aim_y = ComponentGetValue2(controlsComp, "mAimingVector")
                 local firing = ComponentGetValue2(controlsComp, "mButtonDownFire")

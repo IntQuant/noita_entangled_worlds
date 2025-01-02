@@ -2,7 +2,9 @@ local wandfinder = {}
 
 local function entity_is_wand(entity_id)
     local ability_component = EntityGetFirstComponentIncludingDisabled(entity_id, "AbilityComponent")
-    if ability_component == nil then return false end
+    if ability_component == nil then
+        return false
+    end
     return ComponentGetValue2(ability_component, "use_gun_script") == true
 end
 
@@ -27,12 +29,12 @@ function wandfinder.find_attack_wand(dont_do)
             return wands[Random(1, #wands)], true
         end
     end
-    local largest = {-1, -1}
+    local largest = { -1, -1 }
     for _, wand in ipairs(wands) do
         local ability = EntityGetFirstComponentIncludingDisabled(wand, "AbilityComponent")
         local fire_count = ComponentGetValue2(ability, "stat_times_player_has_shot")
         if fire_count > largest[2] then
-            largest = {wand, fire_count}
+            largest = { wand, fire_count }
         end
     end
     if largest[1] == -1 then

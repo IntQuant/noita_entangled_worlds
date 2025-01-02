@@ -34,18 +34,25 @@ function rpc.send_karl(x, y, vx, vy, t, jet, rgb1, rgb2)
         players_karl = EntityLoad("data/entities/buildings/racing_cart.xml", x, y)
         util.make_ephemerial(players_karl)
         EntitySetTransform(players_karl, x, y, t)
-        EntityAddComponent2(players_karl, "VariableStorageComponent", {_tags = "ew_karl", value_string = ctx.rpc_peer_id})
+        EntityAddComponent2(
+            players_karl,
+            "VariableStorageComponent",
+            { _tags = "ew_karl", value_string = ctx.rpc_peer_id }
+        )
         for _, com in ipairs(EntityGetComponent(players_karl, "LuaComponent")) do
             if ComponentGetValue2(com, "script_source_file") == "data/scripts/buildings/racing_cart_move.lua" then
                 EntityRemoveComponent(players_karl, com)
-            elseif ComponentGetValue2(com, "script_collision_trigger_hit") == "data/scripts/buildings/racing_cart_checkpoint.lua" then
+            elseif
+                ComponentGetValue2(com, "script_collision_trigger_hit")
+                == "data/scripts/buildings/racing_cart_checkpoint.lua"
+            then
                 EntityRemoveComponent(players_karl, com)
             end
         end
         local particle = EntityGetComponentIncludingDisabled(players_karl, "ParticleEmitterComponent")
-        local rgbc = rgb2 + 128 * 2^24
+        local rgbc = rgb2 + 128 * 2 ^ 24
         ComponentSetValue2(particle[1], "color", rgbc)
-        rgbc = rgb1 + 128 * 2^24
+        rgbc = rgb1 + 128 * 2 ^ 24
         ComponentSetValue2(particle[2], "color", rgbc)
     else
         EntitySetTransform(players_karl, x, y, t)
@@ -73,13 +80,13 @@ local function draw_leaderboards_gui()
                 end
                 i = i + 1
             end
-            table.insert(times, i, {peer_time, player_fns.nickname_of_peer(peer_id)})
+            table.insert(times, i, { peer_time, player_fns.nickname_of_peer(peer_id) })
         end
     end
     if #times ~= 0 then
         GuiText(gui, text_x, text_y - 10, "Lap times")
         for _, data in ipairs(times) do
-            GuiText(gui, text_x, text_y, string.format("%-16s %.02fs", data[2], data[1]/60))
+            GuiText(gui, text_x, text_y, string.format("%-16s %.02fs", data[2], data[1] / 60))
             text_y = text_y + 10
         end
     end
@@ -112,9 +119,9 @@ function karl.on_world_update()
                 if com == nil then
                     my_karl = entity
                     local particle = EntityGetComponentIncludingDisabled(my_karl, "ParticleEmitterComponent")
-                    local rgbc = ctx.proxy_opt.mina_color_alt + 128 * 2^24
+                    local rgbc = ctx.proxy_opt.mina_color_alt + 128 * 2 ^ 24
                     ComponentSetValue2(particle[1], "color", rgbc)
-                    rgbc = ctx.proxy_opt.mina_color + 128 * 2^24
+                    rgbc = ctx.proxy_opt.mina_color + 128 * 2 ^ 24
                     ComponentSetValue2(particle[2], "color", rgbc)
                     break
                 end
@@ -124,7 +131,8 @@ function karl.on_world_update()
         local x, y, t = EntityGetTransform(my_karl)
         local vel = EntityGetFirstComponentIncludingDisabled(my_karl, "VelocityComponent")
         local vx, vy = ComponentGetValue2(vel, "mVelocity")
-        local jet = ComponentGetIsEnabled(EntityGetFirstComponentIncludingDisabled(my_karl, "SpriteParticleEmitterComponent"))
+        local jet =
+            ComponentGetIsEnabled(EntityGetFirstComponentIncludingDisabled(my_karl, "SpriteParticleEmitterComponent"))
         rpc.send_karl(x, y, vx, vy, t, jet, ctx.proxy_opt.mina_color, ctx.proxy_opt.mina_color_alt)
 
         local stopwatch_best = EntityGetClosestWithTag(x, y, "stopwatch_best_lap")
@@ -141,10 +149,9 @@ function karl.on_world_update()
     -- Center of the race track
     local center_x, center_y = 3200, 2312
     local x, y, w, h = GameGetCameraBounds()
-    if x < center_x and center_x < x + w  and y < center_y and center_y < y+h then
+    if x < center_x and center_x < x + w and y < center_y and center_y < y + h then
         draw_leaderboards_gui()
     end
-
 end
 
 return karl

@@ -2,9 +2,19 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-util.replace_text_in("data/entities/animals/boss_centipede/sampo.xml", "data/entities/animals/boss_centipede/ending/sampo_start_ending_sequence.lua", "mods/quant.ew/files/system/ending/ending_sequence.lua")
-ModLuaFileAppend("data/entities/animals/boss_centipede/boss_centipede_before_fight.lua", "mods/quant.ew/files/system/ending/update_fix.lua")
-ModLuaFileAppend("data/entities/animals/boss_centipede/boss_centipede_update.lua", "mods/quant.ew/files/system/ending/update_fix.lua")
+util.replace_text_in(
+    "data/entities/animals/boss_centipede/sampo.xml",
+    "data/entities/animals/boss_centipede/ending/sampo_start_ending_sequence.lua",
+    "mods/quant.ew/files/system/ending/ending_sequence.lua"
+)
+ModLuaFileAppend(
+    "data/entities/animals/boss_centipede/boss_centipede_before_fight.lua",
+    "mods/quant.ew/files/system/ending/update_fix.lua"
+)
+ModLuaFileAppend(
+    "data/entities/animals/boss_centipede/boss_centipede_update.lua",
+    "mods/quant.ew/files/system/ending/update_fix.lua"
+)
 util.replace_text_in("data/entities/animals/boss_centipede/boss_centipede_shield.lua", "player_unit", "ew_peer")
 
 local function float()
@@ -18,7 +28,16 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     local died = false
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         died = true
-        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "revive", "NONE", 0, 0, GameGetWorldStateEntity())
+        EntityInflictDamage(
+            ctx.my_player.entity,
+            1000000,
+            "DAMAGE_CURSE",
+            "revive",
+            "NONE",
+            0,
+            0,
+            GameGetWorldStateEntity()
+        )
     end
     async(function()
         if died then

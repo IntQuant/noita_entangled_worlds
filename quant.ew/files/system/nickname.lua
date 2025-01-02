@@ -2,7 +2,7 @@ local rpc = net.new_rpc_namespace()
 
 local nickname = {}
 
-function nickname.parse( font_filename )
+function nickname.parse(font_filename)
     local id_width = {}
 
     local file = ModTextFileGetContent(font_filename)
@@ -13,38 +13,38 @@ function nickname.parse( font_filename )
     local width = 0
 
     for k, split in ipairs(util.string_split(file, "%s")) do
-      --print(string.sub(line, 2, 9))
+        --print(string.sub(line, 2, 9))
 
-      if (split == "</QuadChar>") then
-        quad_open = false
-        id_width[id] = width
-      end
-      if (split == "</WordSpace>") then
-        space_open = false
-      end
-
-      if (space_open == true) then
-        id_width["space"] = tonumber(split)
-      end
-
-      if (quad_open == true) then
-        if (string.sub(split, 1, 3) == "id=") then
-            id = tonumber(string.sub(split, 5, -2))
-            --id = string.sub(v, 5, -2)
+        if split == "</QuadChar>" then
+            quad_open = false
+            id_width[id] = width
         end
-        if (string.sub(split, 1, 6) == "width=") then
-            width = tonumber(string.sub(split, 8, -2))
-            --width = string.sub(v, 8, -2)
+        if split == "</WordSpace>" then
+            space_open = false
         end
-      end
 
-      if (split == "<QuadChar") then
-        quad_open = true
-      end
+        if space_open == true then
+            id_width["space"] = tonumber(split)
+        end
 
-      if (split == "<WordSpace>") then
-        space_open = true
-      end
+        if quad_open == true then
+            if string.sub(split, 1, 3) == "id=" then
+                id = tonumber(string.sub(split, 5, -2))
+                --id = string.sub(v, 5, -2)
+            end
+            if string.sub(split, 1, 6) == "width=" then
+                width = tonumber(string.sub(split, 8, -2))
+                --width = string.sub(v, 8, -2)
+            end
+        end
+
+        if split == "<QuadChar" then
+            quad_open = true
+        end
+
+        if split == "<WordSpace>" then
+            space_open = true
+        end
     end
 
     return id_width
@@ -53,10 +53,9 @@ end
 function nickname.calculate_textwidth(text, font)
     local textwidth = 0
 
-    for i = 1,string.len(text),1
-    do
-        local l = string.sub( text, i, i)
-        if (l == " ") then
+    for i = 1, string.len(text), 1 do
+        local l = string.sub(text, i, i)
+        if l == " " then
             textwidth = textwidth + font["space"]
         else
             local c_id = string.byte(l)
@@ -68,17 +67,19 @@ function nickname.calculate_textwidth(text, font)
 end
 
 function nickname.add_label(player_entity, text, font_filename, scale, alpha)
-    if not EntityGetIsAlive(player_entity)
-            or EntityHasTag(player_entity, "polymorphed_cessation")
-            or EntityHasTag(player_entity, "polymorphed_player") then
+    if
+        not EntityGetIsAlive(player_entity)
+        or EntityHasTag(player_entity, "polymorphed_cessation")
+        or EntityHasTag(player_entity, "polymorphed_player")
+    then
         return
     end
     local prev_nickname = EntityGetFirstComponentIncludingDisabled(player_entity, "SpriteComponent", "ew_nickname")
     if prev_nickname ~= nil then
-      EntityRemoveComponent(player_entity, prev_nickname)
+        EntityRemoveComponent(player_entity, prev_nickname)
     end
 
-    if (scale == nil) then
+    if scale == nil then
         scale = 1
     end
     if alpha == nil then
@@ -88,46 +89,45 @@ function nickname.add_label(player_entity, text, font_filename, scale, alpha)
     local textwidth = nickname.calculate_textwidth(text, font)
 
     local nickname_component = EntityAddComponent2(player_entity, "SpriteComponent", {
-        _tags="ew_nickname",
-        image_file=font_filename,
-        is_text_sprite=true,
-        offset_x=textwidth*0.5,
-        offset_y=13 + 12/scale,
-        update_transform=true,
-        update_transform_rotation=false,
+        _tags = "ew_nickname",
+        image_file = font_filename,
+        is_text_sprite = true,
+        offset_x = textwidth * 0.5,
+        offset_y = 13 + 12 / scale,
+        update_transform = true,
+        update_transform_rotation = false,
         fog_of_war_hole = true,
-        text=text,
-        z_index=1,
-        alpha=alpha,
+        text = text,
+        z_index = 1,
+        alpha = alpha,
         emissive = true,
-        has_special_scale=true,
+        has_special_scale = true,
         special_scale_x = scale,
         special_scale_y = scale,
     })
 
     return nickname_component
-
 end
 
 function nickname.on_local_player_spawn(my_player)
-  if ctx.proxy_opt.name ~= nil then
-    my_player.name = ctx.proxy_opt.name
-  end
+    if ctx.proxy_opt.name ~= nil then
+        my_player.name = ctx.proxy_opt.name
+    end
 end
 
 function nickname.on_client_spawned(peer_id, player_data)
-    if player_data.name == "[Peer "..peer_id.."]" then
+    if player_data.name == "[Peer " .. peer_id .. "]" then
         rpc.send_name(ctx.proxy_opt.name, true)
     end
     nickname.add_label(player_data.entity, player_data.name, "data/fonts/font_pixel_white.xml", 0.75)
 end
 
 function nickname.on_should_send_updates()
-  print("Should send nickname update")
-  if ctx.proxy_opt.name ~= nil then
-    print("Sending name "..ctx.proxy_opt.name)
-    rpc.send_name(ctx.proxy_opt.name)
-  end
+    print("Should send nickname update")
+    if ctx.proxy_opt.name ~= nil then
+        print("Sending name " .. ctx.proxy_opt.name)
+        rpc.send_name(ctx.proxy_opt.name)
+    end
 end
 
 rpc.opts_reliable()

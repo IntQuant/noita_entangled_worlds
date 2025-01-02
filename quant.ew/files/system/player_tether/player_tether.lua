@@ -102,33 +102,37 @@ end
 
 local function not_in_hm(x, y)
     if np.GetGameModeNr() == 2 then
-        local list = {1198, 3758, 6318, 10414}
+        local list = { 1198, 3758, 6318, 10414 }
         local in_hm = in_normal_hm(list, x, y)
-        return not in_hm, not (in_hm or is_in_box(1536, 2726, 12798, 13312, x, y))
+        return not in_hm,
+            not (in_hm or is_in_box(1536, 2726, 12798, 13312, x, y))
                 or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
-        local list = {1198, 2734, 6318, 10414}
+        local list = { 1198, 2734, 6318, 10414 }
         local in_hm = in_normal_hm(list, x, y)
-        return not in_hm, not (in_hm or is_in_box(1536, 2726, 12798, 13312, x, y))
+        return not in_hm,
+            not (in_hm or is_in_box(1536, 2726, 12798, 13312, x, y))
                 or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
     else
-        local list = {1198, 2734, 4782, 6318, 8366, 10414}
+        local list = { 1198, 2734, 4782, 6318, 8366, 10414 }
         local in_hm = in_normal_hm(list, x, y)
-        return not in_hm, not (in_hm
-                or is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
-                or is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
-                or is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
-                or is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
-                or is_in_box(8700, 11300, 3550, 10240, x, y) --tower
-                or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
-        )
+        return not in_hm,
+            not (
+                    in_hm
+                    or is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
+                    or is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
+                    or is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
+                    or is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
+                    or is_in_box(8700, 11300, 3550, 10240, x, y) --tower
+                    or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
+                )
     end
 end
 
 local no_tether = false
 
 local function is_suitable_target(entity)
-    return EntityGetIsAlive(entity) and not EntityHasTag(entity,"polymorphed")
+    return EntityGetIsAlive(entity) and not EntityHasTag(entity, "polymorphed")
 end
 
 local function set_tether_length(length, entity)
@@ -258,16 +262,21 @@ function module.on_world_update()
             end
             return
         end
-        if (ctx.proxy_opt.perma_death or ctx.proxy_opt.no_notplayer) and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive) then
+        if
+            (ctx.proxy_opt.perma_death or ctx.proxy_opt.no_notplayer)
+            and (not ctx.my_player.status.is_alive or not host_playerdata.is_alive)
+        then
             return
         end
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
         if is_in_box(9200, 11000, 4000, 8300, x2, y2) then
             ignore_tower = true
         end
-        if np.GetGameModeNr() ~= 2
-                and tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) == 0
-                and is_in_box(9200, 11000, 8300, 9800, x2, y2) then
+        if
+            np.GetGameModeNr() ~= 2
+            and tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) == 0
+            and is_in_box(9200, 11000, 8300, 9800, x2, y2)
+        then
             local any_not = false
             for _, player in pairs(ctx.players) do
                 local x, y = EntityGetTransform(player.entity)
@@ -299,11 +308,19 @@ function module.on_world_update()
         if x1 == nil or x2 == nil then
             return
         end
-        if host_playerdata == nil
-                or (not is_suitable_target(host_playerdata.entity)
-                    and not (not not_in_normal_area(x1, y1) and not not_in_normal_area(x2, y2) and position_to_area_number(x1, y1) > position_to_area_number(x2, y2)))
-                or not is_suitable_target(ctx.my_player.entity) then
-            if host_playerdata ~= nil and host_playerdata.entity ~= nil and EntityGetIsAlive(host_playerdata.entity) then
+        if
+            host_playerdata == nil
+            or (not is_suitable_target(host_playerdata.entity) and not (not not_in_normal_area(x1, y1) and not not_in_normal_area(
+                x2,
+                y2
+            ) and position_to_area_number(x1, y1) > position_to_area_number(x2, y2)))
+            or not is_suitable_target(ctx.my_player.entity)
+        then
+            if
+                host_playerdata ~= nil
+                and host_playerdata.entity ~= nil
+                and EntityGetIsAlive(host_playerdata.entity)
+            then
                 no_tether = true
                 tether_enable(false, host_playerdata.entity)
                 was_notplayer = true
@@ -315,16 +332,24 @@ function module.on_world_update()
         if host_pw ~= my_pw then
             return
         end
-        local dx = x1-x2
-        local dy = y1-y2
-        local dist_sq = dx*dx + dy*dy
+        local dx = x1 - x2
+        local dy = y1 - y2
+        local dist_sq = dx * dx + dy * dy
         local not_actual_hm, not_hm = not_in_hm(x1, y1)
         local _, i_not_in_hm = not_in_hm(x2, y2)
         local host_mx, host_my = host_playerdata.mouse_x, host_playerdata.mouse_y
         local dxm, dym = host_mx - x2, host_my - y2
-        if x1 ~= nil and x2 ~= nil and (not_hm or (not not_actual_hm and y1 < y2)) and i_not_in_hm
-                and (tether_length < 512 or dxm * dxm + dym * dym > tether_length * tether_length / 2) then
-            if host_playerdata.last_hit + 10 < GameGetFrameNum() and ctx.my_player.last_hit + 10 < GameGetFrameNum() then
+        if
+            x1 ~= nil
+            and x2 ~= nil
+            and (not_hm or (not not_actual_hm and y1 < y2))
+            and i_not_in_hm
+            and (tether_length < 512 or dxm * dxm + dym * dym > tether_length * tether_length / 2)
+        then
+            if
+                host_playerdata.last_hit + 10 < GameGetFrameNum()
+                and ctx.my_player.last_hit + 10 < GameGetFrameNum()
+            then
                 if no_tether then
                     tether_enable(true, host_playerdata.entity)
                     no_tether = false
@@ -338,7 +363,11 @@ function module.on_world_update()
                 if dist_sq > tether_length_3 * tether_length_3 then
                     local x, y = x1, y1
                     local my_pos, given = position_to_area_number(x2, y2)
-                    if not not_in_normal_area(x, y) and not not_in_normal_area(x2, y2) and position_to_area_number(x, y) > my_pos then
+                    if
+                        not not_in_normal_area(x, y)
+                        and not not_in_normal_area(x2, y2)
+                        and position_to_area_number(x, y) > my_pos
+                    then
                         x, y = new_pos(given)
                     end
                     EntitySetTransform(ctx.my_player.entity, x, y)

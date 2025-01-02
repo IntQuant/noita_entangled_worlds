@@ -14,11 +14,15 @@ local function start_chase()
 end
 
 local target = EntityGetClosestWithTag(pos_x, pos_y, "ew_peer")
-if not target or target == 0 then return end
+if not target or target == 0 then
+    return
+end
 
 local tx, ty = EntityGetTransform(target)
 local dist = get_distance(tx, ty, pos_x, pos_y)
-if dist > max_range then return end -- too far
+if dist > max_range then
+    return
+end -- too far
 if dist < min_range then
     -- very near
     start_chase()
@@ -27,4 +31,6 @@ end
 
 -- check los
 local did_hit = RaytraceSurfaces(pos_x, pos_y, tx, ty)
-if not did_hit then start_chase() end
+if not did_hit then
+    start_chase()
+end

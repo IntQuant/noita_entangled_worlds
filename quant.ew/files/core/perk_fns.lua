@@ -83,7 +83,7 @@ function perk_fns.get_my_perks()
     lazyload()
     local perks = {}
     local got_twwe
-    for i=1, #perk_list do
+    for i = 1, #perk_list do
         local perk_id = perk_list[i].id
         local perk_flag_name = get_perk_picked_flag_name(perk_id)
         local perk_count = tonumber(GlobalsGetValue(perk_flag_name .. "_PICKUP_COUNT", "0"))
@@ -119,30 +119,34 @@ local function give_one_perk(entity_who_picked, perk_info, count, allow_globals,
     if perk_info.ui_icon ~= nil then
         local icon = EntityCreateNew()
         EntityAddTag(icon, "perk_entity")
-        EntityAddComponent2(icon, "UIIconComponent", {icon_sprite_file = perk_info.ui_icon, name = perk_info.ui_name, description = perk_info.ui_description})
+        EntityAddComponent2(
+            icon,
+            "UIIconComponent",
+            { icon_sprite_file = perk_info.ui_icon, name = perk_info.ui_name, description = perk_info.ui_description }
+        )
         EntityAddChild(entity_who_picked, icon)
     end
 
     if not perks_to_ignore[perk_info.id] or (allow_globals and global_perks[perk_info.id]) then
         -- add game effect
         if perk_info.game_effect ~= nil then
-            local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect, true )
+            local game_effect_comp, ent = GetGameEffectLoadTo(entity_who_picked, perk_info.game_effect, true)
             if game_effect_comp ~= nil then
-                ComponentSetValue( game_effect_comp, "frames", "-1" )
-                EntityAddTag( ent, "perk_entity" )
+                ComponentSetValue(game_effect_comp, "frames", "-1")
+                EntityAddTag(ent, "perk_entity")
             end
         end
 
         if perk_info.game_effect2 ~= nil then
-            local game_effect_comp, ent = GetGameEffectLoadTo( entity_who_picked, perk_info.game_effect2, true )
+            local game_effect_comp, ent = GetGameEffectLoadTo(entity_who_picked, perk_info.game_effect2, true)
             if game_effect_comp ~= nil then
-                ComponentSetValue( game_effect_comp, "frames", "-1" )
-                EntityAddTag( ent, "perk_entity" )
+                ComponentSetValue(game_effect_comp, "frames", "-1")
+                EntityAddTag(ent, "perk_entity")
             end
         end
 
         if perk_info.func ~= nil then
-            perk_info.func( 0, entity_who_picked, "", count )
+            perk_info.func(0, entity_who_picked, "", count)
             if perk_info.id == "ATTACK_FOOT" and peer_id ~= nil then
                 set_lukki(entity_who_picked, peer_id)
             end
@@ -151,14 +155,14 @@ local function give_one_perk(entity_who_picked, perk_info, count, allow_globals,
         local no_remove = perk_info.do_not_remove or false
 
         -- particle effect only applied once
-        if perk_info.particle_effect ~= nil and ( count <= 1 ) then
-            local particle_id = EntityLoad( "data/entities/particles/perks/" .. perk_info.particle_effect .. ".xml" )
+        if perk_info.particle_effect ~= nil and (count <= 1) then
+            local particle_id = EntityLoad("data/entities/particles/perks/" .. perk_info.particle_effect .. ".xml")
 
-            if ( no_remove == false ) then
-                EntityAddTag( particle_id, "perk_entity" )
+            if no_remove == false then
+                EntityAddTag(particle_id, "perk_entity")
             end
 
-            EntityAddChild( entity_who_picked, particle_id )
+            EntityAddChild(entity_who_picked, particle_id)
         end
     end
     if perk_info.id == "EDIT_WANDS_EVERYWHERE" then
@@ -188,12 +192,12 @@ function perk_fns.update_perks(perk_data, player_data)
         if diff ~= 0 then
             local perk_info = get_perk_with_id(perk_list, perk_id)
             if perk_info == nil then
-                print("Unknown perk id: "..perk_id)
+                print("Unknown perk id: " .. perk_id)
                 goto continue
             end
             if diff > 0 then
                 print("Player " .. player_data.name .. " got perk " .. GameTextGetTranslatedOrNot(perk_info.ui_name))
-                for i=current+1, count do
+                for i = current + 1, count do
                     if give_one_perk(entity, perk_info, i, false, player_data.peer_id) then
                         player_data.twwe = true
                     end
@@ -220,12 +224,12 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
         if diff ~= 0 then
             local perk_info = get_perk_with_id(perk_list, perk_id)
             if perk_info == nil then
-                print("Unknown perk id: "..perk_id)
+                print("Unknown perk id: " .. perk_id)
                 goto continue
             end
             if diff > 0 then
                 if allow_perk(perk_info.id) then
-                    for i=current+1, count do
+                    for i = current + 1, count do
                         give_one_perk(entity, perk_info, i, true)
                     end
                 end
@@ -261,9 +265,11 @@ function perk_fns.on_world_update()
         end
         first = false
     end
-    if GameGetFrameNum() % 60 == 40
-            and (wait_for_globals == nil or GameGetFrameNum() > wait_for_globals)
-            and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+    if
+        GameGetFrameNum() % 60 == 40
+        and (wait_for_globals == nil or GameGetFrameNum() > wait_for_globals)
+        and not EntityHasTag(ctx.my_player.entity, "ew_notplayer")
+    then
         wait_for_globals = nil
         for perk_id, num in pairs(to_spawn) do
             local n = perk_fns.get_my_perks()[perk_id] or 0

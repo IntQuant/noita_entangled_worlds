@@ -3,12 +3,12 @@ local rpc = net.new_rpc_namespace()
 local tapion = {}
 
 function rpc.set_helpless(anger)
-    GlobalsSetValue( "HELPLESS_KILLS", tostring(anger) )
+    GlobalsSetValue("HELPLESS_KILLS", tostring(anger))
 end
 
 function tapion.on_world_update()
     if ctx.is_host and GameGetFrameNum() % 60 == 57 then
-        rpc.set_helpless(tonumber(GlobalsGetValue( "HELPLESS_KILLS", "1" )))
+        rpc.set_helpless(tonumber(GlobalsGetValue("HELPLESS_KILLS", "1")))
     end
 end
 

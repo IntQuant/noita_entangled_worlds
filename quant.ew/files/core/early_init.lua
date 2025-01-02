@@ -18,10 +18,10 @@ local uses_persistent_flags = {
     "data/scripts/magic/moon_altar.lua",
     "data/scripts/biome_modifiers.lua",
     "data/scripts/biomes/scale.lua",
-    
+
     -- The tree shows your progress, should be fine to not sync it
     -- "data/scripts/biomes/mountain_tree.lua",
-    
+
     -- The following also modify flags.
     -- "data/scripts/animals/boss_dragon_death.lua",
     -- "data/scripts/buildings/huussi.lua",

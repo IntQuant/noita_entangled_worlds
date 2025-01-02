@@ -10,7 +10,7 @@ rpc.opts_reliable()
 -- This rpc will also get called locally.
 rpc.opts_everywhere()
 function rpc.send_hi()
-    GamePrint("Hi from "..ew_api.rpc_player_data().name)
+    GamePrint("Hi from " .. ew_api.rpc_player_data().name)
 end
 
 local module = {}
