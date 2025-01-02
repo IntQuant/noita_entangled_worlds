@@ -13,7 +13,9 @@ local function teleport(from_x, from_y, to_x, to_y)
     EntitySetTransform(root_id, to_x, to_y)
     EntityLoad("data/entities/particles/teleportation_source.xml", from_x, from_y)
     EntityLoad("data/entities/particles/teleportation_target.xml", to_x, to_y)
-    GamePlaySound("data/audio/Desktop/misc.bank", "misc/teleport_use", to_x, to_y)
+    if EntityHasTag(root_id, "player_unit") then
+        GamePlaySound("data/audio/Desktop/misc.bank", "misc/teleport_use", to_x, to_y)
+    end
 
     -- punch a hole to make sure player doesn't get stuck
     LoadPixelScene("data/biome_impl/teleportitis_dodge_hole.png", "", to_x - 3, to_y - 12, "", true)
