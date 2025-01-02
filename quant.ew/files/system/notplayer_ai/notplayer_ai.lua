@@ -34,8 +34,8 @@ local bad_mats = {
     "mimic_liquid",
     "void_liquid",
     "magic_liquid_weakness",
-    --                "magic_liquid_teleportation",
-    --                "magic_liquid_unstable_teleportation",
+    --"magic_liquid_teleportation",
+    --"magic_liquid_unstable_teleportation",
     "beer",
     "alcohol",
     "sima",
@@ -53,7 +53,7 @@ local good_mats = {
     "magic_liquid_mana_regeneration",
     "magic_liquid_faster_levitation_and_movement",
     "magic_liquid_hp_regeneration",
-    --                 "magic_liquid_invisibility",
+    --"magic_liquid_invisibility",
     "magic_liquid_faster_levitation",
     "magic_liquid_hp_regeneration_unstable",
 }
@@ -1288,7 +1288,7 @@ local function hold_something()
             state.had_potion = true
         end
         state.bathe = not target_is_ambrosia
-    elseif (has_bad_potion or state.bad_potion ~= nil) and tablet and state.bad_potions[i] ~= nil then
+    elseif (has_bad_potion or state.bad_potion ~= nil or tablet) and state.bad_potions[i] ~= nil then
         state.expected_held = state.bad_potions[i]
         if EntityHasTag(state.bad_potions[i], "potion") then
             state.had_potion = true
