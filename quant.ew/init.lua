@@ -239,6 +239,7 @@ function OnProjectileFired(
             src == "data/scripts/projectiles/transmutation.lua"
             or src == "data/scripts/projectiles/random_explosion.lua"
             or src == "data/scripts/projectiles/fizzle.lua"
+            or src == "data/scripts/projectiles/teleport_cast.lua"
         then
             EntityAddComponent2(
                 projectile_id,
