@@ -882,20 +882,19 @@ impl NetManager {
                 let lx: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let ly: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                let chance: Option<u64> = msg.next().and_then(|s| s.parse().ok());
-                let (Some(x), Some(y), Some(lx), Some(ly), Some(chance)) = (x, y, lx, ly, chance)
-                else {
+                let (Some(x), Some(y), Some(lx), Some(ly)) = (x, y, lx, ly) else {
                     error!("Missing arguments in cut_through_world_line message");
                     return;
                 };
                 let r: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let chance: Option<u64> = msg.next().and_then(|s| s.parse().ok());
                 state.world.cut_through_world_line(
                     x,
                     y,
                     lx,
                     ly,
                     r.unwrap_or(12),
-                    chance.min(100) as u8,
+                    chance.unwrap_or(100).min(100) as u8,
                 );
             }
             Some("cut_through_world_circle") => {

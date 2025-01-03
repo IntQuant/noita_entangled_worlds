@@ -48,7 +48,7 @@ impl Pixel {
         let raw = if self.flags == PixelFlags::Unknown {
             CompactPixel::UNKNOWN_RAW
         } else {
-            material << 1 | flag_bit
+            (material << 1) | flag_bit
         };
         CompactPixel(NonZeroU16::new(raw).unwrap())
     }

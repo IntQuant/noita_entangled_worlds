@@ -70,12 +70,17 @@ impl ChunkData {
     }
 
     pub(crate) fn apply_to_chunk(&self, chunk: &mut Chunk) {
+        let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
         let mut offset = 0;
         for run in &self.runs {
             let pixel = run.data;
-            for _ in 0..run.length {
-                chunk.set_compact_pixel(offset, pixel);
-                offset += 1;
+            if pixel != nil {
+                for _ in 0..run.length {
+                    chunk.set_compact_pixel(offset, pixel);
+                    offset += 1;
+                }
+            } else {
+                offset += run.length as usize
             }
         }
     }

@@ -1114,7 +1114,7 @@ impl WorldManager {
         let end = x + radius;
 
         let air_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
+            flags: PixelFlags::Normal,
             material: 0,
         };
         let chunk_storage: Vec<(ChunkCoord, ChunkData)> = self
@@ -1160,6 +1160,9 @@ impl WorldManager {
         r: i32,
         chance: u8,
     ) {
+        if chance == 0 {
+            return;
+        }
         let (min_cx, max_cx) = if x < lx {
             (
                 (x - r).div_euclid(CHUNK_SIZE as i32),
@@ -1186,12 +1189,14 @@ impl WorldManager {
         let dmx = lx - x;
         let dmy = ly - y;
         if dmx == 0 && dmy == 0 {
-            self.cut_through_world_circle(x, y, r, None, 100);
+            self.cut_through_world_circle(x, y, r, None, chance);
             return;
         }
-        let dm2 = ((dmx * dmx + dmy * dmy) as f64).recip();
+        let dm2 = ((dmx.unsigned_abs() as u64 * dmx.unsigned_abs() as u64
+            + dmy.unsigned_abs() as u64 * dmy.unsigned_abs() as u64) as f64)
+            .recip();
         let air_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
+            flags: PixelFlags::Normal,
             material: 0,
         };
         let close_check = max_cx == min_cx || max_cy == min_cy;
@@ -1231,7 +1236,11 @@ impl WorldManager {
                     .any(|(cx, cy)| {
                         let dcx = cx - x;
                         let dcy = cy - y;
-                        let m = ((dcx * dmx + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                        let m = ((dcx.unsigned_abs() as u64 * dmx.unsigned_abs() as u64
+                            + dcy.unsigned_abs() as u64 * dmy.unsigned_abs() as u64)
+                            as f64
+                            * dm2)
+                            .clamp(0.0, 1.0);
                         let dx = dcx.abs_diff((m * dmx as f64) as i32) as u64;
                         let dy = dcy.abs_diff((m * dmy as f64) as i32) as u64;
                         dx * dx + dy * dy <= r
@@ -1252,6 +1261,7 @@ impl WorldManager {
                 let mut chunk = Chunk::default();
                 let coord = ChunkCoord(chunk_x, chunk_y);
                 let mut del = false;
+                let mut no_info = false;
                 if self.is_storage_recent.contains(&coord) {
                     if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk)
@@ -1267,28 +1277,34 @@ impl WorldManager {
                     chunk_encoded.apply_to_chunk(&mut chunk)
                 } else if !self.nice_terraforming {
                     return None;
+                } else {
+                    no_info = true;
                 }
                 let mut changed = false;
                 let mut rng = thread_rng();
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dcx = cx - x;
-                    let dx2 = dcx * dmx;
+                    let dx2 = dcx.unsigned_abs() as u64 * dmx.unsigned_abs() as u64;
                     for icy in 0..CHUNK_SIZE as i32 {
                         let cy = chunk_start_y + icy;
                         let dcy = cy - y;
-                        let m = ((dx2 + dcy * dmy) as f64 * dm2).clamp(0.0, 1.0);
+                        let m = ((dx2 + dcy.unsigned_abs() as u64 * dmy.unsigned_abs() as u64)
+                            as f64
+                            * dm2)
+                            .clamp(0.0, 1.0);
                         let dx = dcx.abs_diff((m * dmx as f64) as i32) as u64;
                         let dy = dcy.abs_diff((m * dmy as f64) as i32) as u64;
                         if dx * dx + dy * dy <= r {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            if self
-                                .materials
-                                .get(&chunk.pixel(px).material)
-                                .map(|(_, _, cell)| cell.can_remove(true, false))
-                                .unwrap_or(true)
-                                && (chance != 0
-                                    && (chance == 100 || rng.gen_bool(chance as f64 / 100.0)))
+                            if (no_info
+                                || chunk.pixel(px).flags == PixelFlags::Unknown
+                                || self
+                                    .materials
+                                    .get(&chunk.pixel(px).material)
+                                    .map(|(_, _, cell)| cell.can_remove(true, false))
+                                    .unwrap_or(true))
+                                && (chance == 100 || rng.gen_bool(chance as f64 / 100.0))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1318,6 +1334,9 @@ impl WorldManager {
         mat: Option<u16>,
         chance: u8,
     ) {
+        if chance == 0 {
+            return;
+        }
         let (min_cx, max_cx) = (
             (x - r).div_euclid(CHUNK_SIZE as i32),
             (x + r).div_euclid(CHUNK_SIZE as i32),
@@ -1327,7 +1346,7 @@ impl WorldManager {
             (y + r).div_euclid(CHUNK_SIZE as i32),
         );
         let air_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
+            flags: PixelFlags::Normal,
             material: mat.unwrap_or(0),
         };
         let (chunkx, chunky) = (
@@ -1352,6 +1371,7 @@ impl WorldManager {
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                 let mut chunk = Chunk::default();
                 let mut del = false;
+                let mut no_info = false;
                 if self.is_storage_recent.contains(&coord) {
                     if let Some(chunk_encoded) = self.chunk_storage.get(&coord) {
                         chunk_encoded.apply_to_chunk(&mut chunk)
@@ -1367,6 +1387,8 @@ impl WorldManager {
                     chunk_encoded.apply_to_chunk(&mut chunk)
                 } else if do_continue || !self.nice_terraforming {
                     return None;
+                } else {
+                    no_info = true;
                 }
                 let mut changed = false;
                 let mut rng = thread_rng();
@@ -1379,13 +1401,14 @@ impl WorldManager {
                         let dy = cy.abs_diff(y) as u64;
                         if dd + dy * dy <= rs {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
-                            if self
-                                .materials
-                                .get(&chunk.pixel(px).material)
-                                .map(|(_, _, cell)| cell.can_remove(true, false))
-                                .unwrap_or(true)
-                                && (chance != 0
-                                    && (chance == 100 || rng.gen_bool(chance as f64 / 100.0)))
+                            if (no_info
+                                || chunk.pixel(px).flags == PixelFlags::Unknown
+                                || self
+                                    .materials
+                                    .get(&chunk.pixel(px).material)
+                                    .map(|(_, _, cell)| cell.can_remove(true, false))
+                                    .unwrap_or(true))
+                                && (chance == 100 || rng.gen_bool(chance as f64 / 100.0))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1642,11 +1665,11 @@ impl WorldManager {
             (y + r as i32).div_euclid(CHUNK_SIZE as i32),
         );
         let air_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
+            flags: PixelFlags::Normal,
             material: 0,
         };
         let mat_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
+            flags: PixelFlags::Normal,
             material: mat,
         };
         let (chunkx, chunky) = (
@@ -1958,7 +1981,7 @@ impl WorldManager {
         }
         let data: Vec<(usize, Vec<(usize, u64)>)> = grouped.into_iter().collect();
         let air_pixel = Pixel {
-            flags: world_model::chunk::PixelFlags::Normal,
+            flags: PixelFlags::Normal,
             material: 0,
         };
         let mut chunk = Chunk::default();
@@ -1987,7 +2010,7 @@ impl WorldManager {
                         prob,
                     } = ex;
                     let mat_pixel = Pixel {
-                        flags: world_model::chunk::PixelFlags::Normal,
+                        flags: PixelFlags::Normal,
                         material: mat,
                     };
                     let dx = cx - x;
@@ -2698,7 +2721,7 @@ fn test_line_img() {
         .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
-    let w = 48;
+    let w = 24;
     for i in -w..w {
         for j in -w..w {
             if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
@@ -2711,11 +2734,55 @@ fn test_line_img() {
             }
         }
     }
-    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
 
     let timer = std::time::Instant::now();
+    world.cut_through_world_line(
+        128 * -50,
+        128 * -50 + 512,
+        128 * 50,
+        128 * 50 + 512,
+        128,
+        98,
+    );
+    for i in 0..64 {
+        let sx = 128 * -50;
+        let sy = 128 * 50 + 512;
+        world.cut_through_world_line(
+            sx + (i - 1) * 100,
+            sy - (i - 1) * 100,
+            sx + i * 100,
+            sy - i * 100,
+            128,
+            98,
+        );
+    }
     world.cut_through_world_line(0, 0, 126, 64, 20, 50);
+    world.cut_through_world_line(100, 0, 226, -164, 20, 0);
+    world.cut_through_world_line(-100, 0, 26, 164, 20, 100);
     println!("total img micros {}", timer.elapsed().as_micros());
+
+    let w = 48;
+    for i in -w..w {
+        for j in -w..w {
+            if (-24..24).contains(&j) && (-24..24).contains(&i) {
+                continue;
+            }
+            let c = ChunkCoord(i, j);
+            if let Some(ch) = world.chunk_storage.get(&c) {
+                world
+                    .outbound_model
+                    .apply_chunk_data(c, &_brickwork.clone());
+                world.outbound_model.apply_chunk_data(c, ch);
+                world
+                    .chunk_storage
+                    .insert(c, world.outbound_model.get_chunk_data(c).unwrap().clone());
+                world.outbound_model.forget_chunk(c);
+            } else {
+                world.chunk_storage.insert(c, _brickwork.clone());
+            }
+        }
+    }
+    let pixels = (w * 2 * CHUNK_SIZE as i32) as u32;
 
     let mut img = image::GrayImage::new(pixels, pixels);
     world._create_image(&mut img, pixels);
@@ -2859,6 +2926,7 @@ fn test_explosion_img_big_many() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_bigger_test.png").unwrap();
 }*/
+use crate::net::world::world_model::chunk::PixelFlags;
 #[cfg(test)]
 use crate::net::LiquidType;
 #[cfg(test)]

@@ -105,7 +105,7 @@ local function hole(item)
     return r
 end
 
-local function update(ent)
+local function update(ent, count)
     local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
     if
         proj ~= nil
@@ -140,12 +140,15 @@ local function update(ent)
         end
         alive[ent].del = { x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material") }
     end
-    local l = hole(ent)
-    if l ~= nil then
-        if alive[ent] == nil then
-            alive[ent] = {}
+    local l
+    if count > 0 then
+        l = hole(ent)
+        if l ~= nil then
+            if alive[ent] == nil then
+                alive[ent] = {}
+            end
+            alive[ent].eater = true
         end
-        alive[ent].eater = true
     end
     return l or 0
 end
@@ -215,14 +218,14 @@ function mod.on_world_update()
                 alive[ent] = nil
                 hole_last[ent] = nil
             end
-        elseif count2 > 0 then
-            count2 = count2 - update(ent)
+        else
+            count2 = count2 - update(ent, count2)
         end
     end
     local n = EntitiesGetMaxID()
     for ent = last + 1, n do
         if EntityGetIsAlive(ent) then
-            update(ent)
+            update(ent, 1)
         end
     end
     if exists then
