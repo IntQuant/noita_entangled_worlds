@@ -1441,12 +1441,12 @@ impl WorldManager {
         mut ray: u64,
         d: u32,
         mult: f32,
-    ) -> (Option<(i32, i32)>, u64) {
+    ) -> (Option<(i32, i32)>, u64, Option<ChunkCoord>) {
         //Bresenham's line algorithm
         let dx = (end_x - x).abs();
         let dy = (end_y - y).abs();
         if (dx == 0 && dy == 0) || ray == 0 {
-            return (None, 0);
+            return (None, 0, None);
         }
         let sx = if x < end_x { 1 } else { -1 };
         let sy = if y < end_y { 1 } else { -1 };
@@ -1471,7 +1471,7 @@ impl WorldManager {
         } else if let Some(c) = self.chunk_storage.get(&last_co) {
             c.apply_to_chunk(&mut working_chunk);
         } else {
-            return (None, ray);
+            return (None, ray, None);
         };
         let mut last_coord = None;
         let mut ret = 0;
@@ -1508,7 +1508,7 @@ impl WorldManager {
                 if let Some(stats) = self.materials.get(&pixel.material) {
                     let h = (stats.1 as f64 * mult as f64) as u64;
                     if stats.0 > d || ray < h {
-                        return (last_coord, 0);
+                        return (last_coord, 0, None);
                     }
                     ray = ray.saturating_sub(h);
                 }
@@ -1516,7 +1516,7 @@ impl WorldManager {
             } else if ret != 1 {
                 ret -= 1;
             } else {
-                return (Some((x, y)), ray);
+                return (Some((x, y)), ray, Some(last_co));
             }
 
             e2 = err;
@@ -1529,7 +1529,7 @@ impl WorldManager {
                 y += sy;
             }
         }
-        (Some((x, y)), 0)
+        (Some((x, y)), 0, None)
     }
 
     #[allow(clippy::type_complexity)]
@@ -1547,7 +1547,7 @@ impl WorldManager {
         } = ex;
         let rays = r.next_power_of_two().clamp(16, 1024);
         let t = TAU / rays as f32;
-        let results: Vec<(u64, u64)> = (0..rays)
+        let results: Vec<(u64, u64, Option<ChunkCoord>)> = (0..rays)
             .into_par_iter()
             .map(|n| {
                 let theta = t * (n as f32 + 0.5);
@@ -1556,21 +1556,25 @@ impl WorldManager {
                 let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
                     .cos()
                     .recip();
-                let (u, v) = self.do_ray(x, y, end_x, end_y, ray, d, mult);
-                if let Some((ex, ey)) = u {
-                    let dx = ex.abs_diff(x) as u64;
-                    let dy = ey.abs_diff(y) as u64;
-                    if dx != 0 || dy != 0 {
-                        (dx * dx + dy * dy, v)
+                let (u, v, c) = self.do_ray(x, y, end_x, end_y, ray, d, mult);
+                (
+                    if let Some((ex, ey)) = u {
+                        let dx = ex.abs_diff(x) as u64;
+                        let dy = ey.abs_diff(y) as u64;
+                        if dx != 0 || dy != 0 {
+                            dx * dx + dy * dy
+                        } else {
+                            0
+                        }
                     } else {
-                        (0, v)
-                    }
-                } else {
-                    (0, v)
-                }
+                        0
+                    },
+                    v,
+                    c,
+                )
             })
             .collect();
-        let lst = results.iter().map(|(_, b)| *b).collect();
+        let lst = results.iter().map(|(_, b, _)| *b).collect();
         (
             self.cut_through_world_explosion_list(
                 x, y, d, rays, results, hole, liquid, mat, prob, r,
@@ -1645,14 +1649,15 @@ impl WorldManager {
         y: i32,
         d: u32,
         rays: u64,
-        list: Vec<(u64, u64)>,
+        list: Vec<(u64, u64, Option<ChunkCoord>)>,
         hole: bool,
         liquid: bool,
         mat: u16,
         prob: u8,
         r: u64,
     ) -> Vec<ExRet> {
-        let rs = *list.iter().map(|(a, _)| a).max().unwrap_or(&0);
+        let rads = list.iter().map(|(a, _, _)| *a).collect::<Vec<u64>>();
+        let rs = *rads.iter().max().unwrap_or(&0);
         if r == 0 {
             return Vec::new();
         }
@@ -1676,6 +1681,15 @@ impl WorldManager {
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
         );
+        fn is_contained(sx: i32, sy: i32, ix: i32, iy: i32, cx: i32, cy: i32) -> bool {
+            if ix == cx && iy == cy {
+                false
+            } else {
+                let a = if ix > sx { cx >= ix } else { cx <= ix };
+                let b = if iy > sy { cy >= iy } else { cy <= iy };
+                a && b
+            }
+        }
         (min_cx..=max_cx)
             .into_par_iter()
             .flat_map(|chunk_x| {
@@ -1698,8 +1712,8 @@ impl WorldManager {
                         let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
                         list.iter()
                             .enumerate()
-                            .filter_map(|(n, _)| {
-                                if (i..=j).contains(&n) && list[n].1 != 0 {
+                            .filter_map(|(n, (_, r, _))| {
+                                if (i..=j).contains(&n) && r != &0 {
                                     Some(n)
                                 } else {
                                     None
@@ -1716,26 +1730,23 @@ impl WorldManager {
                         })
                     };
                 };
-                if !should_process_chunk(chunk_x, chunk_y, x, y, r, &list, chunkx, chunky, rays, rs)
+                if !should_process_chunk(chunk_x, chunk_y, x, y, r, &rads, chunkx, chunky, rays, rs)
                 {
                     return if !self.nice_terraforming {
                         None
                     } else {
-                        let lst: Vec<usize> = if (chunkx, chunky) == (chunk_x, chunk_y) {
-                            (0..list.len()).collect()
-                        } else {
-                            let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
-                            list.iter()
-                                .enumerate()
-                                .filter_map(|(n, _)| {
-                                    if (i..=j).contains(&n) && list[n].1 != 0 {
-                                        Some(n)
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect()
-                        };
+                        let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
+                        let lst: Vec<usize> = list
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(n, (_, r, _))| {
+                                if (i..=j).contains(&n) && r != &0 {
+                                    Some(n)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
                         if lst.is_empty() {
                             None
                         } else {
@@ -1746,22 +1757,26 @@ impl WorldManager {
                         }
                     };
                 }
-                let unloaded = if self.nice_terraforming {
-                    let lst: Vec<usize> = if (chunkx, chunky) == (chunk_x, chunk_y) {
-                        (0..list.len()).collect()
-                    } else {
-                        let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
-                        list.iter()
-                            .enumerate()
-                            .filter_map(|(n, _)| {
-                                if (i..=j).contains(&n) && list[n].1 != 0 {
+                let unloaded = if self.nice_terraforming && (chunkx, chunky) != (chunk_x, chunk_y) {
+                    let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
+                    let lst: Vec<usize> = list
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(n, (_, r, c))| {
+                            if let Some(c) = c {
+                                if (i..=j).contains(&n)
+                                    && r != &0
+                                    && is_contained(chunkx, chunky, c.0, c.1, chunk_x, chunk_y)
+                                {
                                     Some(n)
                                 } else {
                                     None
                                 }
-                            })
-                            .collect()
-                    };
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
                     if lst.is_empty() {
                         None
                     } else {
@@ -1927,10 +1942,6 @@ impl WorldManager {
             .iter()
             .map(|i| (*i, self.explosion_data[*i]))
             .collect();
-        /*let resres: Vec<(usize, Option<(Option<(ChunkData, bool)>, ExTarget, i32)>)> = exp
-        .into_par_iter()
-        .map(|ex| (ex.0, self.interior_iter_chunk(ex.1, chunk, 0.5)))
-        .collect();*/
         let (ch, v) = self.explosion_chunk_get_chunk(exp, chunk);
         if let Some(ch) = ch {
             if ch.1 {
@@ -2195,7 +2206,7 @@ fn should_process_chunk(
     x: i32,
     y: i32,
     r: u64,
-    list: &[(u64, u64)],
+    list: &[u64],
     chunkx: i32,
     chunky: i32,
     rays: u64,
@@ -2206,7 +2217,7 @@ fn should_process_chunk(
             let d = min_dist(x, y, chunkx, chunky, chunk_x, chunk_y);
             d <= rs && {
                 let (i, j) = find_rays(x, y, chunkx, chunky, chunk_x, chunk_y, rays);
-                let r = list[i..=j].iter().map(|(a, _)| a).max().unwrap_or(&0);
+                let r = list[i..=j].iter().max().unwrap_or(&0);
                 d <= *r
             }
         }
@@ -2511,15 +2522,6 @@ fn test_explosion_img_big_br() {
         .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
         .collect::<Vec<(i32, i32)>>();
     iter.shuffle(&mut rng);
-    /*println!(
-        "{}",
-        world
-            .explosion_pointer
-            .keys()
-            .map(|a| format!("{} {}\n", a.0, a.1))
-            .collect::<Vec<String>>()
-            .concat()
-    );*/
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
@@ -2560,20 +2562,6 @@ fn test_explosion_img_big_empty() {
         .insert(2, (14, 2_000, CellType::Liquid(LiquidType::Static)));
     let _dirt = ChunkData::new(1);
     let _brickwork = ChunkData::new(2);
-    /* let w = 24;
-    for i in -w..w {
-        for j in -w..w {
-            if (-4..=-3).contains(&i) && (-4..=4).contains(&j) {
-                //world.outbound_model.apply_chunk_data(ChunkCoord(i, j), &_brickwork.clone());
-                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
-            } else {
-                world.chunk_storage.insert(ChunkCoord(i, j), _dirt.clone());
-            }
-        }
-    }*/
-    //let mut img = image::GrayImage::new(pixels, pixels);
-    //world._create_image(&mut img, pixels);
-    //img.save("/tmp/ew_tmp_save/img1.png").unwrap();
 
     let timer = std::time::Instant::now();
     world.cut_through_world_explosion(vec![ExplosionData::new(
@@ -2960,15 +2948,9 @@ fn test_explosion_perf() {
         let w = 48;
         for i in -w..w {
             for j in -w..w {
-                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                    world
-                        .outbound_model
-                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
-                } else {*/
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
-                //}
             }
         }
         let timer = std::time::Instant::now();
@@ -3018,15 +3000,9 @@ fn test_explosion_perf_unloaded() {
         let w = 4;
         for i in -w..w {
             for j in -w..w {
-                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                    world
-                        .outbound_model
-                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
-                } else {*/
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
-                //}
             }
         }
         world.cut_through_world_explosion(vec![ExplosionData::new(
@@ -3092,15 +3068,9 @@ fn test_explosion_perf_large() {
         let w = 48;
         for i in -w..w {
             for j in -w..w {
-                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                    world
-                        .outbound_model
-                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
-                } else {*/
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
-                //}
             }
         }
         let timer = std::time::Instant::now();
@@ -3149,15 +3119,9 @@ fn test_line_perf() {
         let w = 48;
         for i in -w..w {
             for j in -w..w {
-                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                    world
-                        .outbound_model
-                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
-                } else {*/
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
-                //}
             }
         }
         let timer = std::time::Instant::now();
@@ -3194,15 +3158,9 @@ fn test_circle_perf() {
         let w = 48;
         for i in -w..w {
             for j in -w..w {
-                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                    world
-                        .outbound_model
-                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
-                } else {*/
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
-                //}
             }
         }
         let timer = std::time::Instant::now();
@@ -3239,15 +3197,9 @@ fn test_cut_perf() {
         let w = 48;
         for i in -w..w {
             for j in -w..w {
-                /*if (-4..=4).contains(&i) && (-4..=4).contains(&j) {
-                    world
-                        .outbound_model
-                        .apply_chunk_data(ChunkCoord(i, j), &_brickwork);
-                } else {*/
                 world
                     .chunk_storage
                     .insert(ChunkCoord(i, j), _brickwork.clone());
-                //}
             }
         }
         let timer = std::time::Instant::now();
