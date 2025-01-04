@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::f32::consts::TAU;
 use std::{env, mem};
 use tracing::{debug, info, warn};
+use wide::f32x8;
 use world_model::{
     chunk::{Chunk, Pixel},
     ChunkCoord, ChunkData, ChunkDelta, WorldModel, CHUNK_SIZE,
@@ -1805,6 +1806,7 @@ impl WorldManager {
                 let mut all = true;
                 let mut none = true;
                 let mut rng = thread_rng();
+                let atan: Vec<f32> = compute_atans(chunk_start_x, chunk_start_y, rays as f32, x, y);
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx - x;
@@ -1812,14 +1814,12 @@ impl WorldManager {
                     for icy in 0..CHUNK_SIZE as i32 {
                         let cy = chunk_start_y + icy;
                         let dy = cy - y;
-                        let mut i = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
-                        if i.is_sign_negative() {
-                            i += rays as f32
-                        }
-                        if dd as u64 + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64
-                            <= list[i as usize].0
-                        {
-                            let px = icy as usize * CHUNK_SIZE + icx as usize;
+                        let px = icy as usize * CHUNK_SIZE + icx as usize;
+                        if (dx == 0 && dy == 0) || {
+                            let i = (atan[px] % rays as f32) as usize;
+                            dd as u64 + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64
+                                <= list[i].0
+                        } {
                             if self
                                 .materials
                                 .get(&chunk.pixel(px).material)
@@ -2003,11 +2003,30 @@ impl WorldManager {
         let mut all = true;
         let mut none = true;
         let mut rng = thread_rng();
+        let atan: Vec<Vec<f32>> = (0..data.len())
+            .map(|i| {
+                let ex = self.explosion_heap[i];
+                let ExplosionData {
+                    x,
+                    y,
+                    r,
+                    d: _,
+                    ray: _,
+                    hole: _,
+                    liquid: _,
+                    mat: _,
+                    prob: _,
+                } = ex;
+                let rays = r.next_power_of_two().clamp(16, 1024);
+                compute_atans(chunk_start_x, chunk_start_y, rays as f32, x, y)
+            })
+            .collect();
         for icx in 0..CHUNK_SIZE as i32 {
             let cx = chunk_start_x + icx;
             'up: for icy in 0..CHUNK_SIZE as i32 {
                 let cy = chunk_start_y + icy;
-                for (i, data) in &data {
+                let px = icy as usize * CHUNK_SIZE + icx as usize;
+                for ((i, data), atan) in data.iter().zip(&atan) {
                     let ex = self.explosion_heap[*i];
                     let ExplosionData {
                         x,
@@ -2026,30 +2045,25 @@ impl WorldManager {
                     };
                     let dx = cx - x;
                     let dy = cy - y;
-                    let rays = r.next_power_of_two().clamp(16, 1024);
-                    let mut j = rays as f32 * (dy as f32).atan2(dx as f32) / TAU;
-                    if j.is_sign_negative() {
-                        j += rays as f32
-                    }
-                    let j = j as usize;
-                    let dd = dx.unsigned_abs() as u64 * dx.unsigned_abs() as u64
-                        + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64;
-                    if data.iter().any(|(i, r)| j == *i && dd <= *r) {
-                        let px = icy as usize * CHUNK_SIZE + icx as usize;
-                        if self
-                            .materials
-                            .get(&chunk.pixel(px).material)
-                            .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
-                            .unwrap_or(true)
-                        {
-                            if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
-                                chunk_delta.set_pixel(px, mat_pixel);
-                            } else {
-                                chunk_delta.set_pixel(px, air_pixel);
-                            }
-                            none = false;
-                            continue 'up;
+                    if ((dx == 0 && dy == 0) || {
+                        let rays = r.next_power_of_two().clamp(16, 1024);
+                        let j = (atan[px] % rays as f32) as usize;
+                        let dd = dx.unsigned_abs() as u64 * dx.unsigned_abs() as u64
+                            + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64;
+                        data.iter().any(|(i, r)| j == *i && dd <= *r)
+                    }) && self
+                        .materials
+                        .get(&chunk.pixel(px).material)
+                        .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
+                        .unwrap_or(true)
+                    {
+                        if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
+                            chunk_delta.set_pixel(px, mat_pixel);
+                        } else {
+                            chunk_delta.set_pixel(px, air_pixel);
                         }
+                        none = false;
+                        continue 'up;
                     }
                 }
                 all = false
@@ -2264,17 +2278,13 @@ fn find_rays(
     };
     let adj_dx = adj_x1 - x;
     let adj_dy = adj_y1 - y;
-    let mut i = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-    if i.is_sign_negative() {
-        i += rays as f32
-    }
+    let i =
+        ((rays as f32 * (1.0 + (adj_dy as f32).atan2(adj_dx as f32) / TAU)) % rays as f32) as usize;
     let adj_dx = adj_x2 - x;
     let adj_dy = adj_y2 - y;
-    let mut j = rays as f32 * (adj_dy as f32).atan2(adj_dx as f32) / TAU;
-    if j.is_sign_negative() {
-        j += rays as f32
-    }
-    (i.min(j) as usize, j.max(i) as usize)
+    let j =
+        ((rays as f32 * (1.0 + (adj_dy as f32).atan2(adj_dx as f32) / TAU)) % rays as f32) as usize;
+    (i.min(j), j.max(i))
 }
 fn min_dist(x: i32, y: i32, chunkx: i32, chunky: i32, chunk_x: i32, chunk_y: i32) -> u64 {
     let close_x = if chunk_x < chunkx {
@@ -2290,6 +2300,34 @@ fn min_dist(x: i32, y: i32, chunkx: i32, chunky: i32, chunk_x: i32, chunk_y: i32
     let dx = close_x.abs_diff(x) as u64;
     let dy = close_y.abs_diff(y) as u64;
     dx * dx + dy * dy
+}
+fn compute_atans(
+    chunk_start_x: i32,
+    chunk_start_y: i32,
+    rays: f32,
+    x_offset: i32,
+    y_offset: i32,
+) -> Vec<f32> {
+    let mut result = Vec::with_capacity(CHUNK_SIZE * CHUNK_SIZE);
+    for icy in 0..CHUNK_SIZE as i32 {
+        let y_base = (chunk_start_y + icy - y_offset) as f32;
+        let y = f32x8::splat(y_base);
+        for icx in (0..CHUNK_SIZE as i32).step_by(8) {
+            let x = f32x8::from([
+                (chunk_start_x + icx - x_offset) as f32,
+                (chunk_start_x + icx - x_offset + 1) as f32,
+                (chunk_start_x + icx - x_offset + 2) as f32,
+                (chunk_start_x + icx - x_offset + 3) as f32,
+                (chunk_start_x + icx - x_offset + 4) as f32,
+                (chunk_start_x + icx - x_offset + 5) as f32,
+                (chunk_start_x + icx - x_offset + 6) as f32,
+                (chunk_start_x + icx - x_offset + 7) as f32,
+            ]);
+            let atan_values = rays * (1.0 + y.atan2(x) / TAU);
+            result.extend_from_slice(&atan_values.to_array());
+        }
+    }
+    result
 }
 /*#[cfg(test)]
 #[test]

@@ -25,7 +25,7 @@ impl ParticleWorldState {
         }
         // Deref 3/3
         let pixel_array = unsafe { chunk.cast::<*const c_void>().read() };
-        let pixel = unsafe { pixel_array.offset(((y & 511) << 9 | x & 511) * 4) };
+        let pixel = unsafe { pixel_array.offset((((y & 511) << 9) | x & 511) * 4) };
         if pixel.is_null() {
             return None;
         }

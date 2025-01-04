@@ -92,7 +92,7 @@ impl EntitySync {
                 continue;
             }
             if self.should_be_tracked(entity)? {
-                let gid = shared::des::Gid(rand::random());
+                let gid = Gid(rand::random());
                 self.local_diff_model
                     .track_and_upload_entity(ctx.net, entity, gid)?;
             }

@@ -17,6 +17,7 @@ egui_extras = { version = "0.30.0", features = ["all_loaders"] }
 #egui_plot = "0.29.0"
 image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 
+wide = "0.7.30"
 rayon = "1.10.0"
 ron = "0.8.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

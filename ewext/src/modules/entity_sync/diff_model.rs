@@ -148,7 +148,7 @@ impl LocalDiffModelTracker {
         lid: Lid,
     ) -> Result<(), eyre::Error> {
         self.pending_removal.push(lid);
-        ctx.net.send(&shared::NoitaOutbound::DesToProxy(
+        ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::DeleteEntity(gid),
         ))?;
 
@@ -187,13 +187,13 @@ impl LocalDiffModelTracker {
     ) -> eyre::Result<()> {
         let entity = self.entity_by_lid(lid)?;
         let (x, y) = entity.position()?;
-        ctx.net.send(&shared::NoitaOutbound::DesToProxy(
+        ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
                 gid,
                 pos: WorldPos::from_f32(x, y),
             }]),
         ))?;
-        ctx.net.send(&shared::NoitaOutbound::DesToProxy(
+        ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
         self.pending_removal.push(lid);

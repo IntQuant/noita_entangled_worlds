@@ -1,3 +1,4 @@
+#[allow(clippy::repr_packed_without_abi)]
 #[repr(packed)]
 pub(crate) struct NoitaPixelRun {
     pub(crate) length: u16,
