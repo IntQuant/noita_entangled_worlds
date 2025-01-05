@@ -2003,9 +2003,10 @@ impl WorldManager {
         let mut all = true;
         let mut none = true;
         let mut rng = thread_rng();
-        let atan: Vec<Vec<f32>> = (0..data.len())
-            .map(|i| {
-                let ex = self.explosion_heap[i];
+        let data: Vec<(usize, &Vec<(usize, u64)>, Vec<f32>)> = data
+            .iter()
+            .map(|(i, data)| {
+                let ex = self.explosion_heap[*i];
                 let ExplosionData {
                     x,
                     y,
@@ -2018,7 +2019,11 @@ impl WorldManager {
                     prob: _,
                 } = ex;
                 let rays = r.next_power_of_two().clamp(16, 1024);
-                compute_atans(chunk_start_x, chunk_start_y, rays as f32, x, y)
+                (
+                    *i,
+                    data,
+                    compute_atans(chunk_start_x, chunk_start_y, rays as f32, x, y),
+                )
             })
             .collect();
         for icx in 0..CHUNK_SIZE as i32 {
@@ -2026,7 +2031,7 @@ impl WorldManager {
             'up: for icy in 0..CHUNK_SIZE as i32 {
                 let cy = chunk_start_y + icy;
                 let px = icy as usize * CHUNK_SIZE + icx as usize;
-                for ((i, data), atan) in data.iter().zip(&atan) {
+                for (i, data, atan) in &data {
                     let ex = self.explosion_heap[*i];
                     let ExplosionData {
                         x,
@@ -2310,18 +2315,19 @@ fn compute_atans(
 ) -> Vec<f32> {
     let mut result = Vec::with_capacity(CHUNK_SIZE * CHUNK_SIZE);
     for icy in 0..CHUNK_SIZE as i32 {
-        let y_base = (chunk_start_y + icy - y_offset) as f32;
-        let y = f32x8::splat(y_base);
+        let dy = chunk_start_y + icy - y_offset;
+        let y = f32x8::splat(dy as f32);
         for icx in (0..CHUNK_SIZE as i32).step_by(8) {
+            let dx = chunk_start_x + icx - x_offset;
             let x = f32x8::from([
-                (chunk_start_x + icx - x_offset) as f32,
-                (chunk_start_x + icx - x_offset + 1) as f32,
-                (chunk_start_x + icx - x_offset + 2) as f32,
-                (chunk_start_x + icx - x_offset + 3) as f32,
-                (chunk_start_x + icx - x_offset + 4) as f32,
-                (chunk_start_x + icx - x_offset + 5) as f32,
-                (chunk_start_x + icx - x_offset + 6) as f32,
-                (chunk_start_x + icx - x_offset + 7) as f32,
+                dx as f32,
+                (dx + 1) as f32,
+                (dx + 2) as f32,
+                (dx + 3) as f32,
+                (dx + 4) as f32,
+                (dx + 5) as f32,
+                (dx + 6) as f32,
+                (dx + 7) as f32,
             ]);
             let atan_values = rays * (1.0 + y.atan2(x) / TAU);
             result.extend_from_slice(&atan_values.to_array());
