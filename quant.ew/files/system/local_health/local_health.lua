@@ -119,13 +119,13 @@ local function end_poly_effect(ent)
                 or effect == "POLYMORPH_CESSATION"
             then
                 serialized = ComponentGetValue2(game_effect_comp, "mSerializedData")
-                if serialized ~= nil then
+                if serialized ~= nil and string.len(serialized) ~= 0 then
                     break
                 end
             end
         end
     end
-    if serialized == nil then
+    if serialized == nil or string.len(serialized) == 0 then
         return
     end
     local x, y = EntityGetTransform(ent)
@@ -414,7 +414,7 @@ local function player_died()
         end
     end
 
-    polymorph.switch_entity(ent + 1)
+    polymorph.switch_entity(ent + 1, true)
 
     remove_healthbar_locally()
     inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
@@ -501,6 +501,8 @@ local first = true
 
 local gui = GuiCreate()
 
+local wait = false
+
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
@@ -531,17 +533,15 @@ function module.on_world_update()
     end
 
     local hp_new, max_hp_new, has_hp = util.get_ent_health(ctx.my_player.entity)
-    if not ctx.my_player.currently_polymorphed and has_hp then
-        if hp_new <= 0 then
-            -- Restore the player back to small amount of hp.
-            local new_hp = 3 * max_hp_new / 20
-            if ctx.proxy_opt.no_notplayer then
-                new_hp = new_hp * 5
-            end
-            local final_hp = math.max(new_hp, math.min(2 / 5, max_hp_new))
-            util.set_ent_health(ctx.my_player.entity, { final_hp, max_hp_new })
-            player_died()
+    if not ctx.my_player.currently_polymorphed and has_hp and hp_new <= 0 then
+        -- Restore the player back to small amount of hp.
+        local new_hp = 3 * max_hp_new / 20
+        if ctx.proxy_opt.no_notplayer then
+            new_hp = new_hp * 5
         end
+        local final_hp = math.max(new_hp, math.min(2 / 5, max_hp_new))
+        util.set_ent_health(ctx.my_player.entity, { final_hp, max_hp_new })
+        player_died()
     end
     if ctx.proxy_opt.no_notplayer and first and notplayer_active then
         GuiStartFrame(gui)
@@ -549,6 +549,15 @@ function module.on_world_update()
         local note = "find potion mimic player at last point of death, throw at full hp to revive"
         local tw, th = GuiGetTextDimensions(gui, note)
         GuiText(gui, w - 2 - tw, h - 1 - th, note)
+    end
+    if notplayer_active and hp_new <= 0 then
+        if wait then
+            ctx.cap.health.on_poly_death()
+        else
+            wait = true
+        end
+    else
+        wait = false
     end
 end
 
@@ -658,11 +667,10 @@ ctx.cap.health = {
             if controls ~= nil then
                 ComponentSetValue2(controls, "enabled", true)
             end
-            async(function()
-                wait(1)
-                if GameHasFlagRun("ew_kill_player") then
-                    GameRemoveFlagRun("ew_kill_player")
-                    polymorph.switch_entity(ctx.my_player.entity)
+            if GameHasFlagRun("ew_kill_player") then
+                GameRemoveFlagRun("ew_kill_player")
+                polymorph.switch_entity(ctx.my_player.entity)
+                async(function()
                     wait(1)
                     if GameHasFlagRun("ending_game_completed") then
                         EntityInflictDamage(
@@ -687,13 +695,15 @@ ctx.cap.health = {
                             GameGetWorldStateEntity()
                         )
                     end
-                else
-                    do_switch_effect(true)
-                    polymorph.switch_entity(ctx.my_player.entity)
-                end
-                reduce_hp()
-                spectate.disable_throwing(false, ctx.my_player.entity)
-                set_gold(gold)
+                end)
+            else
+                do_switch_effect(true)
+                polymorph.switch_entity(ctx.my_player.entity)
+            end
+            reduce_hp()
+            spectate.disable_throwing(false, ctx.my_player.entity)
+            set_gold(gold)
+            async(function()
                 wait(1)
                 rpc.reset_nick()
             end)

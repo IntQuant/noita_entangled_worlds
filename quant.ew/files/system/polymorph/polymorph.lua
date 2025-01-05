@@ -4,10 +4,12 @@ local rpc = net.new_rpc_namespace()
 
 local module = {}
 
-local function entity_changed()
+local function entity_changed(force)
+    if force == nil then
+        force = false
+    end
     local currently_polymorphed = EntityGetName(ctx.my_player.entity) ~= "DEBUG_NAME:player"
-    print(tostring(currently_polymorphed))
-    ctx.my_player.currently_polymorphed = currently_polymorphed
+    ctx.my_player.currently_polymorphed = currently_polymorphed or force
     if currently_polymorphed then
         local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         if damage_model ~= nil then
@@ -75,10 +77,10 @@ function module.on_world_update()
     end
 end
 
-function module.switch_entity(ent)
+function module.switch_entity(ent, force)
     player_fns.replace_player_entity(ent, ctx.my_player)
     EntityAddTag(ent, "ew_no_enemy_sync")
-    entity_changed()
+    entity_changed(force)
 end
 
 function module.on_world_update_post()
