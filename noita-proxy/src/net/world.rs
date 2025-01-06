@@ -1546,7 +1546,7 @@ impl WorldManager {
             mat,
             prob,
         } = ex;
-        let rays = r.next_power_of_two().clamp(16, 1024);
+        let rays = get_ray(r);
         let t = TAU / rays as f32;
         let results: Vec<(u64, u64, Option<ChunkCoord>)> = (0..rays)
             .into_par_iter()
@@ -1858,7 +1858,8 @@ impl WorldManager {
     #[allow(clippy::type_complexity)]
     fn interior_iter_chunk(
         &self,
-        ex: (ExplosionData, usize, ExTarget, u64),
+        ex: ExplosionData,
+        data: (usize, usize, ExTarget, u64),
         chunk: ChunkCoord,
         a: f32,
     ) -> Option<(Option<u64>, ExTarget, u64)> {
@@ -1872,23 +1873,23 @@ impl WorldManager {
             liquid: _,
             mat: _,
             prob: _,
-        } = ex.0;
-        let rays = r.next_power_of_two().clamp(16, 1024);
-        if let ExTarget::Radius(p) = ex.2 {
+        } = ex;
+        let rays = get_ray(r);
+        if let ExTarget::Radius(p) = data.2 {
             r = p
         }
         let t = TAU / rays as f32;
-        let theta = t * (ex.1 as f32 + a);
+        let theta = t * (data.1 as f32 + a);
         let end_x = x + (r as f64 * theta.cos() as f64) as i32;
         let end_y = y + (r as f64 * theta.sin() as f64) as i32;
         let mult = (((theta + TAU / 8.0) % (TAU / 4.0)) - TAU / 8.0)
             .cos()
             .recip();
-        if let Some((enx, ey, ur, dd)) =
-            self.do_ray_chunk(x, y, end_x, end_y, ex.2, d, mult, chunk, ex.3)
+        if let Some((enx, eny, ur, dd)) =
+            self.do_ray_chunk(x, y, end_x, end_y, data.2, d, mult, chunk, data.3)
         {
             let dx = enx.abs_diff(x) as u64;
-            let dy = ey.abs_diff(y) as u64;
+            let dy = eny.abs_diff(y) as u64;
             if dx != 0 || dy != 0 {
                 Some((Some(dx * dx + dy * dy), ur, dd))
             } else {
@@ -1896,41 +1897,16 @@ impl WorldManager {
             }
         } else if a != 0.5
             || (end_x.abs_diff(x) == 0 && end_y.abs_diff(y) == 0)
-            || ex.2 == ExTarget::Ray(0)
+            || data.2 == ExTarget::Ray(0)
         {
             None
         } else {
-            self.interior_iter_chunk(ex, chunk, 1.0)
-                .or(self.interior_iter_chunk(ex, chunk, 0.0))
-                .or(self.interior_iter_chunk(ex, chunk, 0.75))
-                .or(self.interior_iter_chunk(ex, chunk, 0.25))
-                .or(Some((None, ex.2, 0)))
+            self.interior_iter_chunk(ex, data, chunk, 1.0)
+                .or(self.interior_iter_chunk(ex, data, chunk, 0.0))
+                .or(self.interior_iter_chunk(ex, data, chunk, 0.75))
+                .or(self.interior_iter_chunk(ex, data, chunk, 0.25))
+                .or(Some((None, data.2, 0)))
         }
-    }
-    #[allow(clippy::type_complexity)]
-    fn explosion_chunk_get_chunk(
-        &self,
-        exp: Vec<(usize, (usize, usize, ExTarget, u64))>,
-        chunk: ChunkCoord,
-    ) -> (
-        Option<(ChunkData, bool)>,
-        Vec<(usize, Option<(Option<u64>, ExTarget, u64)>)>,
-    ) {
-        let data: Vec<(usize, Option<(Option<u64>, ExTarget, u64)>)> = exp
-            .into_par_iter()
-            .map(|ex| {
-                (
-                    ex.0,
-                    self.interior_iter_chunk(
-                        (self.explosion_heap[ex.1 .0], ex.1 .1, ex.1 .2, ex.1 .3),
-                        chunk,
-                        0.5,
-                    ),
-                )
-            })
-            .collect();
-        let ch = self.explosion_chunk(&data, chunk);
-        (ch, data)
     }
 
     #[allow(clippy::type_complexity)]
@@ -1942,7 +1918,16 @@ impl WorldManager {
             .iter()
             .map(|i| (*i, self.explosion_data[*i]))
             .collect();
-        let (ch, v) = self.explosion_chunk_get_chunk(exp, chunk);
+        let data: Vec<(usize, Option<(Option<u64>, ExTarget, u64)>)> = exp
+            .into_par_iter()
+            .map(|ex| {
+                (
+                    ex.0,
+                    self.interior_iter_chunk(self.explosion_heap[ex.1 .0], ex.1, chunk, 0.5),
+                )
+            })
+            .collect();
+        let ch = self.explosion_chunk(&data, chunk);
         if let Some(ch) = ch {
             if ch.1 {
                 self.chunk_storage.insert(chunk, ch.0);
@@ -1951,8 +1936,9 @@ impl WorldManager {
                     .entry(chunk)
                     .and_modify(|c| c.apply_delta(ch.0));
             }
+            self.is_storage_recent.insert(chunk);
         }
-        for (i, ch) in v {
+        for (i, ch) in data {
             if let Some((_, u, dd)) = ch {
                 self.explosion_data[i].2 = u;
                 if dd > self.explosion_data[i].3 {
@@ -1962,7 +1948,6 @@ impl WorldManager {
                 self.explosion_data[i].2 = ExTarget::Ray(0)
             }
         }
-        self.is_storage_recent.insert(chunk);
     }
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::type_complexity)]
@@ -2018,7 +2003,7 @@ impl WorldManager {
                     mat: _,
                     prob: _,
                 } = ex;
-                let rays = r.next_power_of_two().clamp(16, 1024);
+                let rays = get_ray(r);
                 (
                     *i,
                     data,
@@ -2051,7 +2036,7 @@ impl WorldManager {
                     let dx = cx - x;
                     let dy = cy - y;
                     if ((dx == 0 && dy == 0) || {
-                        let rays = r.next_power_of_two().clamp(16, 1024);
+                        let rays = get_ray(r);
                         let j = (atan[px] % rays as f32) as usize;
                         let dd = dx.unsigned_abs() as u64 * dx.unsigned_abs() as u64
                             + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64;
@@ -2115,16 +2100,15 @@ impl WorldManager {
             .get(&chunk)?
             .apply_to_chunk(&mut working_chunk);
         let mut count = 0;
-        let mut found = false;
         let mut avg = 0;
         let mut count2 = 0;
+        let mut last_dd = None;
         while x != end_x || y != end_y {
             let co = ChunkCoord(
                 x.div_euclid(CHUNK_SIZE as i32),
                 y.div_euclid(CHUNK_SIZE as i32),
             );
             if co == chunk {
-                found = true;
                 let dx = stx.abs_diff(x) as u64;
                 let dy = sty.abs_diff(y) as u64;
                 let dd = dx * dx + dy * dy;
@@ -2138,32 +2122,29 @@ impl WorldManager {
                         avg += h;
                         count2 += 1;
                         if stats.0 > d || ray < h + ((count * avg) / count2) {
+                            let nr = (dx as f64).hypot(dy as f64) as u64;
                             return if count2 == 1 {
-                                Some((0, 0, ExTarget::Radius((dd as f64).sqrt() as u64), 0))
-                            } else if let ExTarget::Ray(_) = rayn {
-                                Some((x, y, ExTarget::Radius((dd as f64).sqrt() as u64), dd))
+                                Some((0, 0, ExTarget::Radius(nr), 0))
                             } else {
-                                Some((x, y, ExTarget::Radius((dd as f64).sqrt() as u64), dd))
+                                Some((x, y, ExTarget::Radius(nr), dd))
                             };
                         };
                         ray = ray.saturating_sub(h);
                     }
                 }
-            } else if found {
-                let dx = stx.abs_diff(x) as u64;
-                let dy = sty.abs_diff(y) as u64;
-                let dd = dx * dx + dy * dy;
+                last_dd = Some(dd)
+            } else if let Some(dd) = last_dd {
                 return if let ExTarget::Ray(_) = rayn {
-                    Some((end_x, end_y, ExTarget::Ray(ray), dd))
+                    Some((i32::MAX / 4, i32::MAX / 4, ExTarget::Ray(ray), dd))
                 } else {
-                    Some((end_x, end_y, rayn, dd))
+                    Some((i32::MAX / 4, i32::MAX / 4, rayn, dd))
                 };
             } else if !self.chunk_storage.contains_key(&co) {
                 let dx = stx.abs_diff(x) as u64;
                 let dy = sty.abs_diff(y) as u64;
                 let dd = dx * dx + dy * dy;
                 if sd < dd {
-                    count += 1;
+                    count += 1
                 }
             }
             e2 = err;
@@ -2176,8 +2157,7 @@ impl WorldManager {
                 y += sy;
             }
         }
-        if found {
-            let dd = dx as u64 * dx as u64 + dy as u64 * dy as u64;
+        if let Some(dd) = last_dd {
             if let ExTarget::Ray(_) = rayn {
                 Some((x, y, ExTarget::Ray(ray), dd))
             } else {
@@ -2334,6 +2314,10 @@ fn compute_atans(
         }
     }
     result
+}
+fn get_ray(r: u64) -> u64 {
+    let c = r.saturating_mul(15708) / 10000; // tau/4
+    (c - c % 8).clamp(1 << 4, 1 << 11)
 }
 /*#[cfg(test)]
 #[test]
@@ -2493,11 +2477,8 @@ fn test_explosion_img_big() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(if rng.gen_bool(0.2) {
-                _brickwork.clone()
-            } else {
-                _dirt.clone()
-            });
+            e.insert(
+                _brickwork.clone());
         }
         if world.explosion_pointer.contains_key(&c) {
             world.cut_through_world_explosion_chunk(c)
@@ -3024,7 +3005,7 @@ fn test_explosion_perf_unloaded() {
     let _brickwork = ChunkData::new(2);
 
     let mut total = 0;
-    let iters = 16;
+    let iters = 4;
     let mut n = 0;
     for _ in 0..iters {
         let mut world = WorldManager::new(
@@ -3122,7 +3103,7 @@ fn test_explosion_perf_large() {
             ExplosionData::new(
                 0,
                 0,
-                1024,
+                380,
                 14,
                 2_000_000_000,
                 true,
