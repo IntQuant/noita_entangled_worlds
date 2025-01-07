@@ -630,8 +630,8 @@
         in_world="1">
     </BossHealthBarComponent>
 
-  <StreamingKeepAliveComponent>
-  </StreamingKeepAliveComponent>
+  <!--<StreamingKeepAliveComponent>
+  </StreamingKeepAliveComponent>-->>
 
   <LuaComponent _tags="ew_remove_on_send" script_wand_fired = "mods/quant.ew/files/resource/cbs/count_times_wand_fired.lua"/>
 
