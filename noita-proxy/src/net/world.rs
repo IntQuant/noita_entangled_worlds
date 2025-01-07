@@ -6,7 +6,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
-use std::{env, mem};
+use std::{cmp, env, mem};
 use tracing::{debug, info, warn};
 use wide::f32x8;
 use world_model::{
@@ -209,6 +209,7 @@ pub(crate) struct WorldManager {
 pub(crate) enum ExTarget {
     Ray(u64),
     Radius(u64),
+    RayRad((u64, u64)),
 }
 
 impl WorldManager {
@@ -1877,6 +1878,11 @@ impl WorldManager {
         let rays = get_ray(r);
         if let ExTarget::Radius(p) = data.2 {
             r = p
+        } else if let ExTarget::RayRad((_, p)) = data.2 {
+            r = p
+        }
+        if r == 0 {
+            return None;
         }
         let t = TAU / rays as f32;
         let theta = t * (data.1 as f32 + a);
@@ -1886,7 +1892,7 @@ impl WorldManager {
             .cos()
             .recip();
         if let Some((enx, eny, ur, dd)) =
-            self.do_ray_chunk(x, y, end_x, end_y, data.2, d, mult, chunk, data.3)
+            self.do_ray_chunk(x, y, end_x, end_y, data.2, d, mult, chunk, data.3, r)
         {
             let dx = enx.abs_diff(x) as u64;
             let dy = eny.abs_diff(y) as u64;
@@ -1895,10 +1901,7 @@ impl WorldManager {
             } else {
                 Some((None, ur, dd))
             }
-        } else if a != 0.5
-            || (end_x.abs_diff(x) == 0 && end_y.abs_diff(y) == 0)
-            || data.2 == ExTarget::Ray(0)
-        {
+        } else if a != 0.5 || (end_x.abs_diff(x) == 0 && end_y.abs_diff(y) == 0) {
             None
         } else {
             self.interior_iter_chunk(ex, data, chunk, 1.0)
@@ -1945,7 +1948,7 @@ impl WorldManager {
                     self.explosion_data[i].3 = dd
                 }
             } else {
-                self.explosion_data[i].2 = ExTarget::Ray(0)
+                self.explosion_data[i].2 = ExTarget::Radius(0)
             }
         }
     }
@@ -2078,12 +2081,29 @@ impl WorldManager {
         mult: f32,
         chunk: ChunkCoord,
         sd: u64,
+        r: u64,
     ) -> Option<(i32, i32, ExTarget, u64)> {
         //Bresenham's line algorithm
+        if r == 0
+            || min_dist(
+                stx,
+                sty,
+                stx.div_euclid(CHUNK_SIZE as i32),
+                sty.div_euclid(CHUNK_SIZE as i32),
+                chunk.0,
+                chunk.1,
+            ) > r * r
+        {
+            return None;
+        }
         let mut ray = match rayn {
-            ExTarget::Ray(r) => r,
+            ExTarget::Ray(ray) => ray,
             ExTarget::Radius(_) => u64::MAX,
+            ExTarget::RayRad((ray, _)) => ray,
         };
+        if ray == 0 {
+            return None;
+        }
         let mut x = stx;
         let mut y = sty;
         let dx = end_x.abs_diff(x) as i32;
@@ -2124,7 +2144,7 @@ impl WorldManager {
                         if stats.0 > d || ray < h + ((count * avg) / count2) {
                             let nr = (dx as f64).hypot(dy as f64) as u64;
                             return if count2 == 1 {
-                                Some((0, 0, ExTarget::Radius(nr), 0))
+                                Some((0, 0, ExTarget::RayRad((ray, nr)), 0))
                             } else {
                                 Some((x, y, ExTarget::Radius(nr), dd))
                             };
@@ -2135,7 +2155,19 @@ impl WorldManager {
                 last_dd = Some(dd)
             } else if let Some(dd) = last_dd {
                 return if let ExTarget::Ray(_) = rayn {
-                    Some((i32::MAX / 4, i32::MAX / 4, ExTarget::Ray(ray), dd))
+                    Some((
+                        i32::MAX / 4,
+                        i32::MAX / 4,
+                        ExTarget::Ray(ray.saturating_sub((count * avg) / count2.max(1))),
+                        dd,
+                    ))
+                } else if let ExTarget::RayRad((_, r)) = rayn {
+                    Some((
+                        i32::MAX / 4,
+                        i32::MAX / 4,
+                        ExTarget::RayRad((ray.saturating_sub((count * avg) / count2.max(1)), r)),
+                        dd,
+                    ))
                 } else {
                     Some((i32::MAX / 4, i32::MAX / 4, rayn, dd))
                 };
@@ -2159,7 +2191,19 @@ impl WorldManager {
         }
         if let Some(dd) = last_dd {
             if let ExTarget::Ray(_) = rayn {
-                Some((x, y, ExTarget::Ray(ray), dd))
+                Some((
+                    x,
+                    y,
+                    ExTarget::Ray(ray.saturating_sub((count * avg) / count2.max(1))),
+                    dd,
+                ))
+            } else if let ExTarget::RayRad((_, r)) = rayn {
+                Some((
+                    x,
+                    y,
+                    ExTarget::RayRad((ray.saturating_sub((count * avg) / count2.max(1)), r)),
+                    dd,
+                ))
             } else {
                 Some((x, y, rayn, dd))
             }
@@ -2272,15 +2316,15 @@ fn find_rays(
     (i.min(j), j.max(i))
 }
 fn min_dist(x: i32, y: i32, chunkx: i32, chunky: i32, chunk_x: i32, chunk_y: i32) -> u64 {
-    let close_x = if chunk_x < chunkx {
-        (chunk_x + 1) * CHUNK_SIZE as i32 - 1
-    } else {
-        chunk_x * CHUNK_SIZE as i32
+    let close_x = match chunkx.cmp(&chunk_x) {
+        cmp::Ordering::Equal => x,
+        cmp::Ordering::Greater => (chunk_x + 1) * CHUNK_SIZE as i32 - 1,
+        cmp::Ordering::Less => chunk_x * CHUNK_SIZE as i32,
     };
-    let close_y = if chunk_y < chunky {
-        (chunk_y + 1) * CHUNK_SIZE as i32 - 1
-    } else {
-        chunk_y * CHUNK_SIZE as i32
+    let close_y = match chunky.cmp(&chunk_y) {
+        cmp::Ordering::Equal => y,
+        cmp::Ordering::Greater => (chunk_y + 1) * CHUNK_SIZE as i32 - 1,
+        cmp::Ordering::Less => chunk_y * CHUNK_SIZE as i32,
     };
     let dx = close_x.abs_diff(x) as u64;
     let dy = close_y.abs_diff(y) as u64;
@@ -2462,7 +2506,7 @@ fn test_explosion_img_big() {
         0,
         4096,
         15,
-        256_000_000,
+        1_024_000_000,
         true,
         true,
         1,
@@ -2477,8 +2521,7 @@ fn test_explosion_img_big() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(
-                _brickwork.clone());
+            e.insert(_brickwork.clone());
         }
         if world.explosion_pointer.contains_key(&c) {
             world.cut_through_world_explosion_chunk(c)
