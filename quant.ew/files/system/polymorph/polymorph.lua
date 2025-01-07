@@ -32,6 +32,9 @@ local function entity_changed(force)
         local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
         ComponentSetValue2(controls, "enabled", not ctx.is_texting)
     end
+    if EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "StreamingKeepAliveComponent") == nil then
+        EntityAddComponent2(ctx.my_player.entity, "StreamingKeepAliveComponent")
+    end
     ctx.hook.on_local_player_polymorphed(currently_polymorphed)
 end
 
@@ -233,6 +236,10 @@ rpc.opts_reliable()
 function rpc.change_entity(seri_ent)
     last_seri_ent[ctx.rpc_peer_id] = seri_ent
     apply_seri_ent(ctx.rpc_player_data, seri_ent)
+    local stream = EntityGetFirstComponentIncludingDisabled(ctx.rpc_player_data.entity, "StreamingKeepAliveComponent")
+    if stream ~= nil then
+        EntityRemoveComponent(ctx.rpc_player_data.entity, stream)
+    end
 end
 
 function module.on_client_spawned(peer_id, player_data)

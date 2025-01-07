@@ -16,8 +16,6 @@ local cam_target
 
 local inventory_target
 
-local was_notplayer = false
-
 local has_switched = false
 
 local attached = false
@@ -300,14 +298,17 @@ end
 
 local last_len
 
+local last_ent
+
 function spectate.on_world_update()
     if ctx.run_ended then
         return
     end
-    if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
-        was_notplayer = true
-    elseif was_notplayer then
-        was_notplayer = false
+    if last_ent == nil then
+        last_ent = ctx.my_player.entity
+    end
+    if last_ent ~= ctx.my_player.entity then
+        last_ent = ctx.my_player.entity
         camera_player_id, camera_player = get_me()
         re_cam = true
     end
