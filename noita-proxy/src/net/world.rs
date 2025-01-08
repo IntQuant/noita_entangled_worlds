@@ -1654,7 +1654,7 @@ impl WorldManager {
         list: Vec<(u64, u64, Option<ChunkCoord>)>,
         hole: bool,
         liquid: bool,
-        mat: u16,
+        mat: Pixel,
         prob: u8,
         r: u64,
     ) -> Vec<ExRet> {
@@ -1674,10 +1674,6 @@ impl WorldManager {
         let air_pixel = Pixel {
             flags: PixelFlags::Normal,
             material: 0,
-        };
-        let mat_pixel = Pixel {
-            flags: PixelFlags::Normal,
-            material: mat,
         };
         let (chunkx, chunky) = (
             x.div_euclid(CHUNK_SIZE as i32),
@@ -1828,7 +1824,7 @@ impl WorldManager {
                                 .unwrap_or(true)
                             {
                                 if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
-                                    chunk_delta.set_pixel(px, mat_pixel);
+                                    chunk_delta.set_pixel(px, mat);
                                 } else {
                                     chunk_delta.set_pixel(px, air_pixel);
                                 }
@@ -2032,10 +2028,6 @@ impl WorldManager {
                         mat,
                         prob,
                     } = ex;
-                    let mat_pixel = Pixel {
-                        flags: PixelFlags::Normal,
-                        material: mat,
-                    };
                     let dx = cx - x;
                     let dy = cy - y;
                     if ((dx == 0 && dy == 0) || {
@@ -2051,7 +2043,7 @@ impl WorldManager {
                         .unwrap_or(true)
                     {
                         if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
-                            chunk_delta.set_pixel(px, mat_pixel);
+                            chunk_delta.set_pixel(px, mat);
                         } else {
                             chunk_delta.set_pixel(px, air_pixel);
                         }

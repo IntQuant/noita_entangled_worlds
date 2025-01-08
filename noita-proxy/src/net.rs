@@ -28,6 +28,7 @@ use tangled::Reliability;
 use tracing::{error, info, warn};
 
 use crate::mod_manager::{get_mods, ModmanagerSettings};
+use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
@@ -1022,7 +1023,7 @@ pub struct ExplosionData {
     ray: u64,
     hole: bool,
     liquid: bool,
-    mat: u16,
+    mat: Pixel,
     prob: u8,
 }
 impl ExplosionData {
@@ -1046,7 +1047,10 @@ impl ExplosionData {
             ray,
             hole,
             liquid,
-            mat,
+            mat: Pixel {
+                flags: PixelFlags::Normal,
+                material: mat,
+            },
             prob,
         }
     }
