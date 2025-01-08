@@ -24,6 +24,8 @@ enum Typ {
     EntityID,
     #[serde(rename = "int64")]
     Int64,
+    #[serde(rename = "GAME_EFFECT::Enum")]
+    GameEffectEnum,
     #[serde(other)]
     Other,
 }
@@ -40,6 +42,7 @@ impl Typ {
             Typ::Vec2 => quote! {(f32, f32)},
             Typ::EntityID => quote! { Option<EntityID> },
             Typ::Int64 => quote! { i64 },
+            Typ::GameEffectEnum => quote! { GameEffectEnum },
             Typ::Other => todo!(),
         }
     }
@@ -179,15 +182,8 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
         let field_doc = &field.desc;
         let set_method_name = format_ident!("set_{}", field_name);
         match field.typ {
-            Typ::Int
-            | Typ::UInt
-            | Typ::Float
-            | Typ::Double
-            | Typ::Bool
-            | Typ::Vec2
-            | Typ::EntityID
-            | Typ::StdString
-            | Typ::Int64 => {
+            Typ::Other => None,
+            _ => {
                 let field_type = field.typ.as_rust_type();
                 let field_type_ret = field.typ.as_rust_type_return();
                 Some(quote! {
@@ -202,7 +198,6 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
                      }
                 })
             }
-            _ => None,
         }
     });
 

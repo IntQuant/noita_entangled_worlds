@@ -5,13 +5,14 @@ use std::{
     cell::Cell,
     ffi::{c_char, c_int, CStr},
     mem, slice,
+    str::FromStr,
     sync::LazyLock,
 };
 
 use eyre::{bail, Context, OptionExt};
 use lua_bindings::{lua_CFunction, lua_State, Lua51, LUA_GLOBALSINDEX};
 
-use crate::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
+use crate::{Color, ComponentID, EntityID, GameEffectEnum, Obj, PhysicsBodyID};
 
 thread_local! {
     static CURRENT_LUA_STATE: Cell<Option<LuaState>> = Cell::default();
@@ -367,6 +368,12 @@ impl LuaPutValue for (f32, f32) {
     }
 }
 
+impl LuaPutValue for GameEffectEnum {
+    fn put(&self, lua: LuaState) {
+        lua.push_string(self.into());
+    }
+}
+
 /// Trait for arguments that can be retrieved from the lua stack.
 pub trait LuaGetValue {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
@@ -501,6 +508,12 @@ impl<T: LuaGetValue> LuaGetValue for Vec<T> {
             res.push(get?);
         }
         Ok(res)
+    }
+}
+
+impl LuaGetValue for GameEffectEnum {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        Ok(GameEffectEnum::from_str(&lua.to_string(index)?)?)
     }
 }
 
