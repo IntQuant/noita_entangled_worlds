@@ -142,13 +142,17 @@ impl EntityID {
     }
 
     pub fn children(self) -> Vec<EntityID> {
-        raw::entity_get_all_children(self, None).unwrap_or(None).unwrap_or(Vec::new()).iter().filter_map(|a| *a).collect()
+        raw::entity_get_all_children(self, None)
+            .unwrap_or(None)
+            .unwrap_or(Vec::new())
+            .iter()
+            .filter_map(|a| *a)
+            .collect()
     }
 
     pub fn get_game_effects(self) -> Option<Vec<GameEffectData>> {
         let mut effects = Vec::new();
-        for ent in self.children()
-        {
+        for ent in self.children() {
             if ent.has_tag("projectile") {
                 if let Ok(data) = serialize::serialize_entity(ent) {
                     effects.push(GameEffectData::Projectile(data))
@@ -172,7 +176,7 @@ impl EntityID {
 
     pub fn set_game_effects(self, game_effect: Option<Vec<GameEffectData>>) {
         if !self.is_alive() {
-            return
+            return;
         }
         if let Some(_game_effect) = game_effect {
             todo!()
@@ -185,7 +189,7 @@ impl EntityID {
 
     pub fn set_current_stains(self, current_stains: Option<Vec<bool>>) {
         if !self.is_alive() {
-            return
+            return;
         }
         if let Some(_current_stains) = current_stains {
             todo!()

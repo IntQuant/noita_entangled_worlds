@@ -1,6 +1,6 @@
-use eyre::{Context, OptionExt};
-use crate::EntityID;
 use crate::lua::{LuaGetValue, LuaPutValue, LuaState};
+use crate::EntityID;
+use eyre::{Context, OptionExt};
 pub fn serialize_entity(entity: EntityID) -> eyre::Result<Vec<u8>> {
     let lua = LuaState::current()?;
     lua.get_global(c"EwextSerialize");

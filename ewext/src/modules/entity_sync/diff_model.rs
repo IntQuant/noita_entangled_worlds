@@ -2,13 +2,13 @@ use std::mem;
 
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt};
+use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
     LuaComponent, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
 };
-use noita_api::serialize::{deserialize_entity, serialize_entity};
 use rustc_hash::FxHashMap;
 use shared::{
     des::{
