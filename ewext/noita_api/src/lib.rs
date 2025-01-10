@@ -4,9 +4,11 @@ use std::{
 };
 
 use eyre::{eyre, Context, OptionExt};
-use strum::{EnumString, IntoStaticStr};
+use shared::{GameEffectData, GameEffectEnum};
+use crate::lua::{LuaGetValue, LuaPutValue};
 
 pub mod lua;
+pub mod serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityID(pub NonZero<isize>);
@@ -23,98 +25,6 @@ pub struct PhysicsBodyID(pub i32);
 
 pub trait Component: From<ComponentID> + Into<ComponentID> {
     const NAME_STR: &'static str;
-}
-#[derive(EnumString, IntoStaticStr)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub enum GameEffectEnum {
-    None,
-    Electrocution,
-    Frozen,
-    OnFire,
-    Poison,
-    Berserk,
-    Charm,
-    Polymorph,
-    PolymorphRandom,
-    Blindness,
-    Telepathy,
-    Teleportation,
-    Regeneration,
-    Levitation,
-    MovementSlower,
-    Farts,
-    Drunk,
-    BreathUnderwater,
-    Radioactive,
-    Wet,
-    Oiled,
-    Bloody,
-    Slimy,
-    CriticalHitBoost,
-    Confusion,
-    MeleeCounter,
-    WormAttractor,
-    WormDetractor,
-    FoodPoisoning,
-    FriendThundermage,
-    FriendFiremage,
-    InternalFire,
-    InternalIce,
-    Jarate,
-    Knockback,
-    KnockbackImmunity,
-    MovementSlower2X,
-    MovementFaster,
-    StainsDropFaster,
-    SavingGrace,
-    DamageMultiplier,
-    HealingBlood,
-    Respawn,
-    ProtectionFire,
-    ProtectionRadioactivity,
-    ProtectionExplosion,
-    ProtectionMelee,
-    ProtectionElectricity,
-    Teleportitis,
-    StainlessArmour,
-    GlobalGore,
-    EditWandsEverywhere,
-    ExplodingCorpseShots,
-    ExplodingCorpse,
-    ExtraMoney,
-    ExtraMoneyTrickKill,
-    HoverBoost,
-    ProjectileHoming,
-    AbilityActionsMaterialized,
-    NoDamageFlash,
-    NoSlimeSlowdown,
-    MovementFaster2X,
-    NoWandEditing,
-    LowHpDamageBoost,
-    FasterLevitation,
-    StunProtectionElectricity,
-    StunProtectionFreeze,
-    IronStomach,
-    ProtectionAll,
-    Invisibility,
-    RemoveFogOfWar,
-    ManaRegeneration,
-    ProtectionDuringTeleport,
-    ProtectionPolymorph,
-    ProtectionFreeze,
-    FrozenSpeedUp,
-    UnstableTeleportation,
-    PolymorphUnstable,
-    Custom,
-    AllergyRadioactive,
-    RainbowFarts,
-    Weakness,
-    ProtectionFoodPoisoning,
-    NoHeal,
-    ProtectionEdges,
-    ProtectionProjectile,
-    PolymorphCessation,
-    _Last,
 }
 
 noita_api_macro::generate_components!();
@@ -230,6 +140,57 @@ impl EntityID {
 
     pub fn raw(self) -> isize {
         isize::from(self.0)
+    }
+
+    pub fn children(self) -> Vec<EntityID> {
+        raw::entity_get_all_children(self, None).unwrap_or(None).unwrap_or(Vec::new()).iter().filter_map(|a| *a).collect()
+    }
+
+    pub fn get_game_effects(self) -> Option<Vec<GameEffectData>> {
+        let mut effects = Vec::new();
+        for ent in self.children()
+        {
+            if ent.has_tag("projectile") {
+                if let Ok(data) = serialize::serialize_entity(ent) {
+                    effects.push(GameEffectData::Projectile(data))
+                }
+            } else if let Ok(effect) = ent.get_first_component::<GameEffectComponent>(None) {
+                let name = effect.effect().unwrap();
+                effects.push(if name == GameEffectEnum::Custom {
+                    let name = effect.custom_effect_id().unwrap();
+                    GameEffectData::Custom(name.into())
+                } else {
+                    GameEffectData::Normal(name)
+                })
+            }
+        }
+        if effects.is_empty() {
+            None
+        } else {
+            Some(effects)
+        }
+    }
+
+    pub fn set_game_effects(self, game_effect: Option<Vec<GameEffectData>>) {
+        if !self.is_alive() {
+            return
+        }
+        if let Some(game_effect) = game_effect {
+            return
+        }
+    }
+
+    pub fn get_current_stains(self) -> Option<Vec<bool>> {
+        todo!()
+    }
+
+    pub fn set_current_stains(self, current_stains: Option<Vec<bool>>) {
+        if !self.is_alive() {
+            return
+        }
+        if let Some(current_stains) = current_stains {
+            todo!()
+        }
     }
 }
 

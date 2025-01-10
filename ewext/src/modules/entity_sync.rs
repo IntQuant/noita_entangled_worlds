@@ -9,6 +9,7 @@ use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::{game_print, EntityID, ProjectileComponent};
+use noita_api::serialize::serialize_entity;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
@@ -17,8 +18,6 @@ use shared::{
     },
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
-
-use crate::serialize::serialize_entity;
 
 use super::{Module, NetManager};
 

@@ -1,10 +1,7 @@
 use eyre::{Context, OptionExt};
-use noita_api::{
-    lua::{LuaGetValue, LuaPutValue, LuaState},
-    EntityID,
-};
-
-pub(crate) fn serialize_entity(entity: EntityID) -> eyre::Result<Vec<u8>> {
+use crate::EntityID;
+use crate::lua::{LuaGetValue, LuaPutValue, LuaState};
+pub fn serialize_entity(entity: EntityID) -> eyre::Result<Vec<u8>> {
     let lua = LuaState::current()?;
     lua.get_global(c"EwextSerialize");
     entity.put(lua);
@@ -32,6 +29,6 @@ pub(crate) fn try_deserialize_entity(
     Ok(res)
 }
 
-pub(crate) fn deserialize_entity(entity_data: &[u8], x: f32, y: f32) -> eyre::Result<EntityID> {
+pub fn deserialize_entity(entity_data: &[u8], x: f32, y: f32) -> eyre::Result<EntityID> {
     try_deserialize_entity(entity_data, x, y)?.ok_or_eyre("Failed to deserialize entity")
 }

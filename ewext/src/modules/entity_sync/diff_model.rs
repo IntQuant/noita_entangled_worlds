@@ -8,6 +8,7 @@ use noita_api::{
     ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
     LuaComponent, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
 };
+use noita_api::serialize::{deserialize_entity, serialize_entity};
 use rustc_hash::FxHashMap;
 use shared::{
     des::{
@@ -17,9 +18,9 @@ use shared::{
     NoitaOutbound, PeerId, WorldPos,
 };
 
-use crate::{modules::ModuleCtx, my_peer_id, print_error, serialize::deserialize_entity};
+use crate::{modules::ModuleCtx, my_peer_id, print_error};
 
-use super::{serialize_entity, NetManager};
+use super::NetManager;
 
 pub(crate) static DES_TAG: &str = "ew_des";
 pub(crate) static DES_SCRIPTS_TAG: &str = "ew_des_lua";
@@ -243,9 +244,11 @@ impl LocalDiffModel {
                     y,
                     vx: 0.0,
                     vy: 0.0,
-                    hp: 1.0,
+                    hp: 1.0, //TODO should be actual data?
                     phys: Vec::new(),
                     cost: 0,
+                    game_effects: Vec::new(),
+                    current_stains: Vec::new(),
                 },
                 gid,
             },

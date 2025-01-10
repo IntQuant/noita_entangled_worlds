@@ -7,3 +7,4 @@ edition = "2021"
 bitcode = "0.6.3"
 eyre = "0.6.12"
 tracing = "0.1.41"
+strum = { version = "0.26.3", features = ["derive"] }

@@ -236,9 +236,12 @@ rpc.opts_reliable()
 function rpc.change_entity(seri_ent)
     last_seri_ent[ctx.rpc_peer_id] = seri_ent
     apply_seri_ent(ctx.rpc_player_data, seri_ent)
-    local stream = EntityGetFirstComponentIncludingDisabled(ctx.rpc_player_data.entity, "StreamingKeepAliveComponent")
-    if stream ~= nil then
-        EntityRemoveComponent(ctx.rpc_player_data.entity, stream)
+    if ctx.rpc_player_data ~= nil then
+        local stream =
+            EntityGetFirstComponentIncludingDisabled(ctx.rpc_player_data.entity, "StreamingKeepAliveComponent")
+        if stream ~= nil then
+            EntityRemoveComponent(ctx.rpc_player_data.entity, stream)
+        end
     end
 end
 

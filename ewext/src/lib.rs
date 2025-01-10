@@ -33,7 +33,6 @@ mod addr_grabber;
 mod modules;
 mod net;
 pub mod noita;
-mod serialize;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {

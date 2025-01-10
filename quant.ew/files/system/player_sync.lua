@@ -317,7 +317,8 @@ function module.on_world_update()
         end
     end
 
-    if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+    GamePrint(tostring(has_twwe_locally) .. " " .. tostring(ctx.my_player.twwe))
+    if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
         if not ctx.my_player.twwe then
             local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
             local found = false
@@ -343,7 +344,20 @@ function module.on_world_update()
                 has_twwe_locally = nil
             end
         elseif has_twwe_locally ~= nil then
-            EntityKill(has_twwe_locally)
+            if EntityGetIsAlive(has_twwe_locally) then
+                EntityKill(has_twwe_locally)
+            else
+                for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+                    local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+                    if
+                        ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
+                        and not EntityHasTag(ent, "perk_entity")
+                    then
+                        EntityKill(ent)
+                        break
+                    end
+                end
+            end
             has_twwe_locally = nil
         end
     end

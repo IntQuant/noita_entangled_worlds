@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
 
-use crate::{PeerId, WorldPos};
+use crate::{GameEffectData, PeerId, WorldPos};
 
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
 pub const AUTHORITY_RADIUS: f32 = 600.0;
@@ -85,6 +85,8 @@ pub struct EntityInfo {
     pub hp: f32,
     pub phys: Vec<Option<PhysBodyInfo>>,
     pub cost: i64,
+    pub game_effects: Vec<GameEffectData>,
+    pub current_stains: Vec<bool>,
 }
 
 #[derive(Encode, Decode, Clone)]
