@@ -18,7 +18,7 @@ function not_in_normal_area(x, y)
     return not (-5646 < x and x < 5120 and -1400 < y and y < 14336) and not is_in_box(5632, 7168, 14336, 15872, x, y)
 end
 
-function position_to_area_number(x, y)
+function position_to_area_number(x, y, is_dead)
     if np.GetGameModeNr() == 2 then
         if y < 1199 then
             return 1, 1199
@@ -56,7 +56,9 @@ function position_to_area_number(x, y)
             return 7
         end
     else
-        if y < 1199 then
+        if is_in_box(3584 - 512, 3584 + 1024, 512, 3584, x, y) and is_dead then
+            return 3, 4783
+        elseif y < 1199 then
             return 1, 1199
         elseif y < 2735 then
             return 2, 2735

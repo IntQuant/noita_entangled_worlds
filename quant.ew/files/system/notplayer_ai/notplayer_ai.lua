@@ -1079,15 +1079,8 @@ local function teleport_to_area(area)
 end
 
 local function teleport_to_next_hm()
-    --BiomeMapGetName()
-    --BIOME_MAP
-    --MagicNumbersGetValue
-    --ModIsEnabled("nightmare"), np.GetGameModeNr() == 3
-    --tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0
-
     -- main x area -5646 < x < 5120
     -- main y area -1400 < y < 14336
-
     -- 1st area, y < 1104, exit  191,  1514
     -- 2nd area, y < 2640, exit  191,  3066
     -- 3rd area, y < 4688, exit  191,  5114
@@ -1095,7 +1088,6 @@ local function teleport_to_next_hm()
     -- 5th area, y < 8272, exit  191,  8696
     -- 6th area, y < 10320, exit 191,  10730
     -- 7th area, y < 12880, exit 3244, 13084
-
     local my_area_num = -1
     local others_area_num = 100
     for peer_id, player_data in pairs(ctx.players) do
@@ -1105,7 +1097,7 @@ local function teleport_to_next_hm()
             return
         end
         if peer_id == ctx.my_id then
-            my_area_num = position_to_area_number(x, y)
+            my_area_num = position_to_area_number(x, y, true)
         elseif is_suitable_target(player) then
             local area_num = position_to_area_number(x, y)
             if area_num < others_area_num then
@@ -1119,17 +1111,12 @@ local function teleport_to_next_hm()
 end
 
 local function teleport_outside_cursed()
-    --17370 < x < 18470
-    --53210 < x
-    --14074, -820
-    --35840
-    --1100
-    if np.GetGameModeNr() == 3 then
+    if np.GetGameModeNr() == 2 then
         return
     end
     local x, _ = EntityGetTransform(ctx.my_player.entity)
-    local how_far_right = (x - (17370 + 550)) % 35840
-    if how_far_right <= 550 or how_far_right >= (35840 - 550) then
+    local how_far_right = (x - (BiomeMapGetSize() * 256)) % (BiomeMapGetSize() * 512)
+    if how_far_right <= 512 or how_far_right >= (BiomeMapGetSize() * 512) - 512 then
         async(function()
             EntitySetTransform(ctx.my_player.entity, 14074, -820)
             wait(30)
