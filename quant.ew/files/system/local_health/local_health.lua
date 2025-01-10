@@ -550,7 +550,7 @@ function module.on_world_update()
         local tw, th = GuiGetTextDimensions(gui, note)
         GuiText(gui, w - 2 - tw, h - 1 - th, note)
     end
-    if notplayer_active and hp_new <= 0 then
+    if not ctx.proxy_opt.no_notplayer and not ctx.proxy_opt.perma_death and notplayer_active and hp_new <= 0 then
         if wait then
             ctx.cap.health.on_poly_death()
         else

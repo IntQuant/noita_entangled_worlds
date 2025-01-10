@@ -317,7 +317,6 @@ function module.on_world_update()
         end
     end
 
-    GamePrint(tostring(has_twwe_locally) .. " " .. tostring(ctx.my_player.twwe))
     if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
         if not ctx.my_player.twwe then
             local my_x, my_y = EntityGetTransform(ctx.my_player.entity)

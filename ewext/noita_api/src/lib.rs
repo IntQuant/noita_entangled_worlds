@@ -5,7 +5,6 @@ use std::{
 
 use eyre::{eyre, Context, OptionExt};
 use shared::{GameEffectData, GameEffectEnum};
-use crate::lua::{LuaGetValue, LuaPutValue};
 
 pub mod lua;
 pub mod serialize;
@@ -175,8 +174,8 @@ impl EntityID {
         if !self.is_alive() {
             return
         }
-        if let Some(game_effect) = game_effect {
-            return
+        if let Some(_game_effect) = game_effect {
+            todo!()
         }
     }
 
@@ -188,7 +187,7 @@ impl EntityID {
         if !self.is_alive() {
             return
         }
-        if let Some(current_stains) = current_stains {
+        if let Some(_current_stains) = current_stains {
             todo!()
         }
     }
