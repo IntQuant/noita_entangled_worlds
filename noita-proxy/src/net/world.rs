@@ -1306,7 +1306,8 @@ impl WorldManager {
                                     .get(&chunk.pixel(px).material)
                                     .map(|(_, _, cell)| cell.can_remove(true, false))
                                     .unwrap_or(true))
-                                && (chance == 100 || rng.gen_bool(chance as f64 / 100.0))
+                                && (chance == 100
+                                    || rng.gen_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1410,7 +1411,8 @@ impl WorldManager {
                                     .get(&chunk.pixel(px).material)
                                     .map(|(_, _, cell)| cell.can_remove(true, false))
                                     .unwrap_or(true))
-                                && (chance == 100 || rng.gen_bool(chance as f64 / 100.0))
+                                && (chance == 100
+                                    || rng.gen_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1823,7 +1825,10 @@ impl WorldManager {
                                 .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                                 .unwrap_or(true)
                             {
-                                if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
+                                if prob != 0
+                                    && (prob == 100
+                                        || rng.gen_bool((prob as f64 / 100.0).clamp(0.0, 1.0)))
+                                {
                                     chunk_delta.set_pixel(px, mat);
                                 } else {
                                     chunk_delta.set_pixel(px, air_pixel);
@@ -2042,7 +2047,9 @@ impl WorldManager {
                         .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
                         .unwrap_or(true)
                     {
-                        if prob != 0 && (prob == 100 || rng.gen_bool(prob as f64 / 100.0)) {
+                        if prob != 0
+                            && (prob == 100 || rng.gen_bool((prob as f64 / 100.0).clamp(0.0, 1.0)))
+                        {
                             chunk_delta.set_pixel(px, mat);
                         } else {
                             chunk_delta.set_pixel(px, air_pixel);
