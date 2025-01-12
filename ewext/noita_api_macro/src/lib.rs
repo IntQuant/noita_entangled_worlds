@@ -284,6 +284,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
     let ret_count = api_fn.rets.len() as i32;
 
     quote! {
+        #[allow(clippy::too_many_arguments)]
         #[doc = #fn_doc]
         pub fn #fn_name(#(#args,)*) -> eyre::Result<#ret_type> {
             let lua = LuaState::current()?;
