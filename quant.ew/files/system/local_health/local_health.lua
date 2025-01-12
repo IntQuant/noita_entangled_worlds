@@ -463,6 +463,7 @@ local function do_game_over(message)
                     if damage_model ~= nil then
                         ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
                         ComponentSetValue2(damage_model, "ui_report_damage", false)
+                        ComponentSetValue2(damage_model, "hp", 2 ^ -128)
                         EntityInflictDamage(
                             ctx.my_player.entity,
                             1000000,
@@ -673,8 +674,6 @@ ctx.cap.health = {
                 polymorph.switch_entity(ctx.my_player.entity)
                 async(function()
                     wait(1)
-                    local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
-                    ComponentSetValue2(damage, "ui_report_damage", false)
                     if GameHasFlagRun("ending_game_completed") then
                         EntityInflictDamage(
                             ctx.my_player.entity,
@@ -687,6 +686,11 @@ ctx.cap.health = {
                             GameGetWorldStateEntity()
                         )
                     else
+                        local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
+                        if damage ~= nil then
+                            ComponentSetValue2(damage, "ui_report_damage", false)
+                            ComponentSetValue2(damage, "hp", 2 ^ -128)
+                        end
                         EntityInflictDamage(
                             ctx.my_player.entity,
                             1000000,
