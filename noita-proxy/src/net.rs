@@ -140,8 +140,7 @@ pub struct NetManager {
     pub actual_noita_port: AtomicU16,
     pub active_mods: Mutex<Vec<String>>,
     pub nicknames: Mutex<HashMap<OmniPeerId, String>>,
-    #[allow(clippy::type_complexity)]
-    pub minas: Mutex<HashMap<OmniPeerId, ImageBuffer<Rgba<u8>, Vec<u8>>>>,
+    pub minas: Mutex<HashMap<OmniPeerId, RgbaImage>>,
     pub new_desc: Mutex<Option<PlayerPngDesc>>,
     loopback_channel: (
         crossbeam::channel::Sender<NetMsg>,
