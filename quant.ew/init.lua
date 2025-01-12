@@ -394,6 +394,8 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
         player_cosmetics(player_entity)
         player_color(player_entity)
     else
+        local damage = ComponentGetValue2(player_entity, "DamageModelComponent")
+        ComponentSetValue2(damage, "ui_report_damage", false)
         EntityInflictDamage(
             player_entity,
             1000000,

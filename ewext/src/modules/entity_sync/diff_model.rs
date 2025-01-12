@@ -647,6 +647,8 @@ impl RemoteDiffModel {
 
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 damage.set_wait_for_kill_flag_on_death(false)?;
+                damage.set_ui_report_damage(false)?;
+                damage.set_hp(f64::MIN_POSITIVE)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     damage.hp()? + 0.1,
