@@ -16,10 +16,16 @@ pub struct Gid(pub u64);
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Lid(pub u32);
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, PartialEq)]
 pub enum EntitySpawnInfo {
     Filename(String),
     Serialized { serialized_at: i32, data: Vec<u8> },
+}
+
+impl Default for EntitySpawnInfo {
+    fn default() -> Self {
+        Self::Filename(String::new())
+    }
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -66,20 +72,22 @@ pub struct PhysBodyInfo {
     pub av: f32,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
 pub enum EntityKind {
     /// Normal entity, replicated with a filename.
+    #[default]
     Normal,
     // Item entity, can be picked up.
     Item,
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, PartialEq, Default)]
 pub struct EntityInfo {
     pub spawn_info: EntitySpawnInfo,
     pub kind: EntityKind,
     pub x: f32,
     pub y: f32,
+    pub r: f32,
     pub vx: f32,
     pub vy: f32,
     pub hp: f32,
@@ -97,6 +105,7 @@ pub enum EntityUpdate {
     Init(EntityInfo),
     // TODO diffing for position
     SetPosition(f32, f32),
+    SetRotation(f32),
     SetVelocity(f32, f32),
     SetHp(f32),
     SetPhysInfo(Vec<Option<PhysBodyInfo>>),

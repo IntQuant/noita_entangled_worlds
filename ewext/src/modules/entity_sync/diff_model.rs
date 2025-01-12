@@ -97,20 +97,27 @@ impl LocalDiffModelTracker {
             return Ok(());
         }
 
-        let should_send_position = if info.kind == EntityKind::Item {
+        let should_send_position =
             if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
                 !com.play_hover_animation()?
             } else {
                 true
-            }
-        } else {
-            true
-        };
+            };
 
         let (x, y) = entity.position()?;
         if should_send_position {
-            info.x = x;
-            info.y = y;
+            (info.x, info.y) = (x, y);
+        }
+
+        let should_send_rotation =
+            if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
+                !com.play_spinning_animation()?
+            } else {
+                true
+            };
+
+        if should_send_rotation {
+            info.r = entity.rotation()?
         }
 
         // Check if entity went out of range, remove and release authority if it did.
@@ -121,9 +128,7 @@ impl LocalDiffModelTracker {
         }
 
         if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
-            let (vx, vy) = vel.m_velocity()?;
-            info.vx = vx;
-            info.vy = vy;
+            (info.vx, info.vy) = vel.m_velocity()?;
         }
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
             let hp = damage.hp()?;
@@ -255,6 +260,7 @@ impl LocalDiffModel {
                     kind: entity_kind,
                     x,
                     y,
+                    r: 0.0,
                     vx: 0.0,
                     vy: 0.0,
                     hp: 1.0, //TODO should be actual data?
@@ -519,40 +525,23 @@ fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>
 impl RemoteDiffModel {
     pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) {
         let mut current_lid = Lid(0);
+        let empty_data = &mut EntityInfo::default();
+        let mut ent_data = &mut EntityInfo::default();
         for entry in diff.iter().cloned() {
             match entry {
-                EntityUpdate::CurrentEntity(lid) => current_lid = lid,
+                EntityUpdate::CurrentEntity(lid) => {
+                    current_lid = lid;
+                    ent_data = self
+                        .entity_infos
+                        .get_mut(&current_lid)
+                        .unwrap_or(empty_data)
+                }
                 EntityUpdate::Init(entity_entry) => {
                     self.entity_infos.insert(current_lid, entity_entry);
-                }
-                EntityUpdate::SetPosition(x, y) => {
-                    let Some(ent_data) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    ent_data.x = x;
-                    ent_data.y = y;
-                }
-                EntityUpdate::SetVelocity(vx, vy) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.vx = vx;
-                    entity_info.vy = vy;
-                }
-                EntityUpdate::SetHp(hp) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.hp = hp;
-                }
-                EntityUpdate::SetPhysInfo(vec) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.phys = vec.clone();
-                }
-                EntityUpdate::RemoveEntity(lid) => {
-                    self.pending_remove.push(lid);
+                    ent_data = self
+                        .entity_infos
+                        .get_mut(&current_lid)
+                        .unwrap_or(empty_data)
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
@@ -563,37 +552,26 @@ impl RemoteDiffModel {
                         }
                     }
                     self.entity_infos.remove(&lid);
+                    ent_data = empty_data;
                 }
-                EntityUpdate::KillEntity {
-                    lid,
-                    responsible_peer,
-                } => {
-                    self.pending_death_notify.push((lid, responsible_peer));
-                }
-                EntityUpdate::SetCost(cost) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.cost = cost;
-                }
-                EntityUpdate::SetStains(stains) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.current_stains = stains;
-                }
-                EntityUpdate::SetGameEffects(effects) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.game_effects = effects;
-                }
-                EntityUpdate::SetAnimations(animations) => {
-                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
-                        continue;
-                    };
-                    entity_info.animations = animations;
-                }
+                entry if *ent_data != EntityInfo::default() => match entry {
+                    EntityUpdate::SetPosition(x, y) => (ent_data.x, ent_data.y) = (x, y),
+                    EntityUpdate::SetRotation(r) => ent_data.r = r,
+                    EntityUpdate::SetVelocity(vx, vy) => (ent_data.vx, ent_data.vy) = (vx, vy),
+                    EntityUpdate::SetHp(hp) => ent_data.hp = hp,
+                    EntityUpdate::SetPhysInfo(vec) => ent_data.phys = vec,
+                    EntityUpdate::SetCost(cost) => ent_data.cost = cost,
+                    EntityUpdate::SetStains(stains) => ent_data.current_stains = stains,
+                    EntityUpdate::SetGameEffects(effects) => ent_data.game_effects = effects,
+                    EntityUpdate::SetAnimations(animations) => ent_data.animations = animations,
+                    EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
+                    EntityUpdate::KillEntity {
+                        lid,
+                        responsible_peer, //TODO make sure entity exists
+                    } => self.pending_death_notify.push((lid, responsible_peer)),
+                    _ => {}
+                },
+                _ => {}
             }
         }
     }
@@ -610,7 +588,7 @@ impl RemoteDiffModel {
                         self.grab_request.push(*lid);
                     }
 
-                    entity.set_position(entity_info.x, entity_info.y)?;
+                    entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
                     if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
                         vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
                     }

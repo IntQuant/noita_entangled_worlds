@@ -57,13 +57,18 @@ impl EntityID {
         let _ = raw::entity_kill(self);
     }
 
-    pub fn set_position(self, x: f32, y: f32) -> eyre::Result<()> {
-        raw::entity_set_transform(self, x as f64, Some(y as f64), None, None, None)
+    pub fn set_position(self, x: f32, y: f32, r: Option<f32>) -> eyre::Result<()> {
+        raw::entity_set_transform(self, x as f64, Some(y as f64), r.map(|a| a as f64), None, None)
     }
 
     pub fn position(self) -> eyre::Result<(f32, f32)> {
         let (x, y, _, _, _) = raw::entity_get_transform(self)?;
         Ok((x as f32, y as f32))
+    }
+
+    pub fn rotation(self) -> eyre::Result<f32> {
+        let (_, _, r, _, _) = raw::entity_get_transform(self)?;
+        Ok(r as f32)
     }
 
     pub fn filename(self) -> eyre::Result<String> {
