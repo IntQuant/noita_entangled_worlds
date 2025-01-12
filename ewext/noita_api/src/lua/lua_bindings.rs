@@ -700,6 +700,8 @@ pub struct Lua51 {
         libloading::Error,
     >,
 }
+
+#[allow(clippy::missing_safety_doc)]
 impl Lua51 {
     pub unsafe fn new<P>(path: P) -> Result<Self, libloading::Error>
     where

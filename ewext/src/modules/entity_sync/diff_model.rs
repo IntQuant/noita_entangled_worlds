@@ -7,7 +7,7 @@ use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
-    LuaComponent, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
+    LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -457,22 +457,27 @@ fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>
         .into_iter()
         .map(|body| -> eyre::Result<Option<PhysBodyInfo>> {
             Ok(
-                noita_api::raw::physics_body_id_get_transform(body)?.and_then(
-                    |(x, y, angle, vx, vy, av)| {
-                        let (x, y) =
-                            noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))
-                                .ok()?;
+                noita_api::raw::physics_body_id_get_transform(body)?.and_then(|data| {
+                    let PhysData {
+                        x,
+                        y,
+                        angle,
+                        vx,
+                        vy,
+                        av,
+                    } = data;
+                    let (x, y) =
+                        noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into())).ok()?;
 
-                        Some(PhysBodyInfo {
-                            x: x as f32,
-                            y: y as f32,
-                            angle,
-                            vx,
-                            vy,
-                            av,
-                        })
-                    },
-                ),
+                    Some(PhysBodyInfo {
+                        x: x as f32,
+                        y: y as f32,
+                        angle,
+                        vx,
+                        vy,
+                        av,
+                    })
+                }),
             )
         })
         .collect::<eyre::Result<Vec<_>>>()

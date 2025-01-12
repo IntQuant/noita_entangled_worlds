@@ -68,8 +68,8 @@ impl LuaState {
         }
         let slice = unsafe { slice::from_raw_parts(buf as *const u8, size) };
 
-        Ok(String::from_utf8(slice.to_owned())
-            .wrap_err("Attempting to get lua string, expecting it to be utf-8")?)
+        String::from_utf8(slice.to_owned())
+            .wrap_err("Attempting to get lua string, expecting it to be utf-8")
     }
 
     pub fn to_raw_string(&self, index: i32) -> eyre::Result<Vec<u8>> {
@@ -278,7 +278,7 @@ impl LuaPutValue for isize {
 
 impl LuaPutValue for u32 {
     fn put(&self, lua: LuaState) {
-        lua.push_integer(unsafe { mem::transmute::<_, i32>(*self) as isize });
+        lua.push_integer(unsafe { mem::transmute::<u32, i32>(*self) as isize });
     }
 }
 
@@ -407,7 +407,7 @@ impl LuaGetValue for isize {
 
 impl LuaGetValue for u32 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
-        Ok(unsafe { mem::transmute(lua.to_integer(index) as i32) })
+        Ok(unsafe { mem::transmute::<i32, u32>(lua.to_integer(index) as i32) })
     }
 }
 

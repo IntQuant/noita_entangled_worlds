@@ -144,7 +144,7 @@ impl EntityID {
     pub fn children(self) -> Vec<EntityID> {
         raw::entity_get_all_children(self, None)
             .unwrap_or(None)
-            .unwrap_or(Vec::new())
+            .unwrap_or_default()
             .iter()
             .filter_map(|a| *a)
             .collect()
@@ -227,7 +227,7 @@ pub mod raw {
     use eyre::eyre;
     use eyre::Context;
 
-    use super::{Color, ComponentID, EntityID, Obj, PhysicsBodyID};
+    use super::{Color, ComponentID, EntityID, Obj, PhysData, PhysicsBodyID};
     use crate::lua::LuaGetValue;
     use crate::lua::LuaPutValue;
     use crate::Component;
@@ -271,9 +271,7 @@ pub mod raw {
         Ok(())
     }
 
-    pub fn physics_body_id_get_transform(
-        body: PhysicsBodyID,
-    ) -> eyre::Result<Option<(f32, f32, f32, f32, f32, f32)>> {
+    pub fn physics_body_id_get_transform(body: PhysicsBodyID) -> eyre::Result<Option<PhysData>> {
         let lua = LuaState::current()?;
         lua.get_global(c"PhysicsBodyIDGetTransform");
         lua.push_integer(body.0 as isize);
@@ -284,8 +282,16 @@ pub mod raw {
         } else {
             match LuaGetValue::get(lua, -1) {
                 Ok(ret) => {
+                    let ret: (f32, f32, f32, f32, f32, f32) = ret;
                     lua.pop_last_n(6);
-                    Ok(Some(ret))
+                    Ok(Some(PhysData {
+                        x: ret.0,
+                        y: ret.1,
+                        angle: ret.2,
+                        vx: ret.3,
+                        vy: ret.4,
+                        av: ret.5,
+                    }))
                 }
                 Err(err) => {
                     lua.pop_last_n(6);
@@ -306,4 +312,12 @@ pub mod raw {
         lua.pop_last_n(1);
         Ok(NonZero::new(c).map(ComponentID).map(C::from))
     }
+}
+pub struct PhysData {
+    pub x: f32,
+    pub y: f32,
+    pub angle: f32,
+    pub vx: f32,
+    pub vy: f32,
+    pub av: f32,
 }

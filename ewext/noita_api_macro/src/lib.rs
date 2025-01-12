@@ -270,14 +270,12 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
 
     let ret_type = if api_fn.rets.is_empty() {
         quote! { () }
+    } else if api_fn.rets.len() == 1 {
+        let ret = api_fn.rets.first().unwrap();
+        ret.as_rust_type_return()
     } else {
-        if api_fn.rets.len() == 1 {
-            let ret = api_fn.rets.first().unwrap();
-            ret.as_rust_type_return()
-        } else {
-            let ret_types = api_fn.rets.iter().map(|ret| ret.as_rust_type_return());
-            quote! { ( #(#ret_types),* ) }
-        }
+        let ret_types = api_fn.rets.iter().map(|ret| ret.as_rust_type_return());
+        quote! { ( #(#ret_types),* ) }
     };
 
     let call_err_msg = format!("Failed to call lua function {}", api_fn.fn_name);
