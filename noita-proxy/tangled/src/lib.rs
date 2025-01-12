@@ -8,10 +8,9 @@ use connection_manager::{
 
 pub use error::NetError;
 
-const DATAGRAM_MAX_LEN: usize = 30000; // TODO this probably should be 1500
-
 /// Maximum size of a message which fits into a single datagram.
-pub const MAX_MESSAGE_LEN: usize = DATAGRAM_MAX_LEN - 100;
+/// Somewhat arbitrary, but if it gets this large something probably went wrong.
+pub const MAX_MESSAGE_LEN: usize = 2 * 1024 * 1024 * 1024;
 
 mod common;
 mod connection_manager;
@@ -90,9 +89,6 @@ impl Peer {
         data: Vec<u8>,
         reliability: Reliability,
     ) -> Result<(), NetError> {
-        if data.len() > MAX_MESSAGE_LEN {
-            return Err(NetError::MessageTooLong);
-        }
         self.shared
             .outbound_messages_s
             .send(OutboundMessage {

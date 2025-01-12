@@ -177,7 +177,10 @@ impl NetManager {
             let _ = self.loopback_channel.0.send(msg.clone());
         } else {
             let encoded = lz4_flex::compress_prepend_size(&bitcode::encode(msg));
-            self.peer.send(peer, encoded.clone(), reliability).ok(); // TODO log
+            let len = encoded.len();
+            if let Err(err) = self.peer.send(peer, encoded.clone(), reliability) {
+                warn!("Error while sending message of len {}: {}", len, err)
+            }
         }
     }
 
@@ -708,10 +711,6 @@ impl NetManager {
         state.try_ms_write(&NoitaInbound::Ready {
             my_peer_id: self.peer.my_id().into(),
         });
-        // TODO? those are currently ignored by mod
-        for id in self.peer.iter_peer_ids() {
-            state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
-        }
         info!("Settings sent")
     }
 
