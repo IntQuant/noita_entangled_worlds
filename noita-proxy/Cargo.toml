@@ -31,7 +31,7 @@ steamworks = "0.11.0"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 clipboard = "0.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }
-reqwest = { version = "0.12.4", features = ["blocking", "json", "http2", "rustls-tls-native-roots", "charset"], default-features = false}
+reqwest = { version = "0.12.12", features = ["blocking", "json"]}
 poll-promise = "0.3.0"
 zip = "2.2.0"
 self-replace = "1.3.7"
