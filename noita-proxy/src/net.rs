@@ -63,12 +63,6 @@ pub(crate) fn ws_encode_mod(peer: OmniPeerId, data: &[u8]) -> NoitaInbound {
     NoitaInbound::RawMessage(buf)
 }
 
-pub struct DebugMarker {
-    pub x: f64,
-    pub y: f64,
-    pub message: String,
-}
-
 #[derive(Encode, Decode)]
 pub(crate) struct RunInfo {
     pub(crate) seed: u64,
@@ -131,7 +125,6 @@ pub struct NetManager {
     pub world_info: WorldInfo,
     pub enable_recorder: AtomicBool,
     pub end_run: AtomicBool,
-    pub debug_markers: Mutex<Vec<DebugMarker>>,
     pub ban_list: Mutex<Vec<OmniPeerId>>,
     pub kick_list: Mutex<Vec<OmniPeerId>>,
     pub no_more_players: AtomicBool,
@@ -163,7 +156,6 @@ impl NetManager {
             world_info: Default::default(),
             enable_recorder: AtomicBool::new(false),
             end_run: AtomicBool::new(false),
-            debug_markers: Default::default(),
             ban_list: Default::default(),
             kick_list: Default::default(),
             no_more_players: AtomicBool::new(false),
@@ -415,8 +407,6 @@ impl NetManager {
                 self.do_message_request(msg)
             }
             state.world.update();
-            // TODO maybe shouldn't be always enabled.
-            *self.debug_markers.lock().unwrap() = state.world.get_debug_markers();
 
             let updates = state.world.get_noita_updates();
             for update in updates {

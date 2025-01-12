@@ -21,7 +21,7 @@ use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 use super::{
     messages::{Destination, MessageRequest},
     omni::OmniPeerId,
-    CellType, DebugMarker, ExplosionData,
+    CellType, ExplosionData,
 };
 
 pub mod world_info;
@@ -1076,32 +1076,6 @@ impl WorldManager {
         for message in pending_messages {
             self.emit_msg(Destination::Broadcast, message)
         }
-    }
-
-    pub(crate) fn get_debug_markers(&self) -> Vec<DebugMarker> {
-        self.chunk_state
-            .iter()
-            .map(|(&chunk, state)| {
-                let message = match state {
-                    ChunkState::RequestAuthority { .. } => "req auth",
-                    ChunkState::WaitingForAuthority => "wai auth",
-                    ChunkState::Listening { .. } => "list",
-                    ChunkState::Authority { .. } => "auth",
-                    ChunkState::UnloadPending => "unl",
-                    ChunkState::Transfer => "tran",
-                    ChunkState::WantToGetAuth { .. } => "want auth",
-                };
-                let mut priority = String::new();
-                if let Some(n) = self.authority_map.get(&chunk).copied() {
-                    priority = n.1.to_string()
-                }
-                DebugMarker {
-                    x: (chunk.0 * 128) as f64,
-                    y: (chunk.1 * 128) as f64,
-                    message: message.to_owned() + &priority,
-                }
-            })
-            .collect()
     }
 
     pub(crate) fn cut_through_world(&mut self, x: i32, y_min: i32, y_max: i32, radius: i32) {
