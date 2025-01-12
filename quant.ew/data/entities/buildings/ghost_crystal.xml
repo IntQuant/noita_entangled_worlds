@@ -1,6 +1,6 @@
 <Entity
   name="unknown"
-  tags="hittable,mortal,ew_enemy_sync_extra" >
+  tags="hittable,mortal,ew_synced" >
 
   <DamageModelComponent
     _enabled="1"

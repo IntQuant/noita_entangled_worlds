@@ -72,8 +72,37 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
 
 impl EntitySync {
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
-        let should_be_tracked =
-            entity.has_tag("enemy") || entity.has_tag("ew_synced") || entity_is_item(entity)?;
+        let file_name = entity.filename().unwrap_or_default();
+        let should_be_tracked = [
+            "enemy",
+            "ew_synced",
+            "plague_rat",
+            "seed_f",
+            "seed_e",
+            "seed_d",
+            "seed_c",
+            "perk_fungus_tiny",
+            "helpless_animal",
+        ]
+        .iter()
+        .any(|tag| entity.has_tag(tag))
+            || [
+                "data/entities/buildings/essence_eater.xml",
+                "data/entities/animals/boss_fish/fish_giga.xml",
+                "data/entities/buildings/spittrap_left.xml",
+                "data/entities/buildings/spittrap_right.xml",
+                "data/entities/buildings/thundertrap_left.xml",
+                "data/entities/buildings/thundertrap_right.xml",
+                "data/entities/buildings/arrowtrap_left.xml",
+                "data/entities/buildings/arrowtrap_right.xml",
+                "data/entities/buildings/firetrap_left.xml",
+                "data/entities/buildings/firetrap_right.xml",
+                "data/entities/buildings/statue_trap_left.xml",
+                "data/entities/buildings/statue_trap_right.xml",
+            ]
+            .iter()
+            .any(|name| name == &file_name)
+            || entity_is_item(entity)?;
 
         Ok(should_be_tracked && !entity_is_excluded(entity)?)
     }

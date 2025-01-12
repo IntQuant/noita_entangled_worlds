@@ -373,7 +373,7 @@ impl LocalDiffModel {
                 last.phys = current.phys.clone();
                 had_any_delta = true;
             }
-            
+
             if current.cost != last.cost {
                 res.push(EntityUpdate::SetCost(current.cost));
                 last.cost = current.cost;
@@ -627,7 +627,7 @@ impl RemoteDiffModel {
                             noita_api::raw::entity_inflict_damage(
                                 entity.raw() as i32,
                                 (current_hp - entity_info.hp) as f64,
-                                "DAMAGE_CURSE".into(),
+                                "DAMAGE_CURSE".into(), //TODO should be enum
                                 "hp sync".into(),
                                 "NONE".into(),
                                 0.0,
@@ -715,7 +715,7 @@ impl RemoteDiffModel {
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     damage.hp()? + 0.1,
-                    "DAMAGE_CURSE".into(),
+                    "DAMAGE_CURSE".into(), //TODO should be enum
                     "kill sync".into(),
                     "NONE".into(),
                     0.0,
@@ -780,7 +780,7 @@ impl RemoteDiffModel {
             entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))
         {
             for sprite in sprites {
-                sprite.0.remove_tag("character")?
+                sprite.remove_tag("character")?
             }
         }
 
