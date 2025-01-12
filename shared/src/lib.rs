@@ -148,7 +148,7 @@ pub enum GameEffectEnum {
     _Last,
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, PartialEq)]
 pub enum GameEffectData {
     Normal(GameEffectEnum),
     Custom(String),

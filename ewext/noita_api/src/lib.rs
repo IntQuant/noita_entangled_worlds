@@ -174,25 +174,26 @@ impl EntityID {
         }
     }
 
-    pub fn set_game_effects(self, game_effect: Option<Vec<GameEffectData>>) {
+    pub fn set_game_effects(self, game_effect: &Option<Vec<GameEffectData>>) {
         if !self.is_alive() {
             return;
         }
         if let Some(_game_effect) = game_effect {
-            todo!()
+            //todo!()
         }
     }
 
     pub fn get_current_stains(self) -> Option<Vec<bool>> {
-        todo!()
+        //todo!()
+        None
     }
 
-    pub fn set_current_stains(self, current_stains: Option<Vec<bool>>) {
+    pub fn set_current_stains(self, current_stains: &Option<Vec<bool>>) {
         if !self.is_alive() {
             return;
         }
         if let Some(_current_stains) = current_stains {
-            todo!()
+            //todo!()
         }
     }
 }

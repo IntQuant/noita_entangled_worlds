@@ -7,7 +7,8 @@ use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
-    LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, VelocityComponent,
+    LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
+    VelocityComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -139,6 +140,18 @@ impl LocalDiffModelTracker {
             info.cost = 0;
         }
 
+        info.game_effects = entity.get_game_effects();
+
+        info.current_stains = entity.get_current_stains();
+
+        if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
+            info.animations = sprites
+                .map(|sprite| sprite.rect_animation().unwrap_or("".into()).to_string())
+                .collect();
+        } else {
+            info.animations.clear()
+        }
+
         Ok(())
     }
 
@@ -247,8 +260,9 @@ impl LocalDiffModel {
                     hp: 1.0, //TODO should be actual data?
                     phys: Vec::new(),
                     cost: 0,
-                    game_effects: Vec::new(),
-                    current_stains: Vec::new(),
+                    game_effects: None,
+                    current_stains: None,
+                    animations: Vec::new(),
                 },
                 gid,
             },
@@ -359,9 +373,28 @@ impl LocalDiffModel {
                 last.phys = current.phys.clone();
                 had_any_delta = true;
             }
+            
             if current.cost != last.cost {
                 res.push(EntityUpdate::SetCost(current.cost));
                 last.cost = current.cost;
+                had_any_delta = true;
+            }
+
+            if current.current_stains != last.current_stains {
+                res.push(EntityUpdate::SetStains(current.current_stains.clone()));
+                last.current_stains = current.current_stains.clone();
+                had_any_delta = true;
+            }
+
+            if current.game_effects != last.game_effects {
+                res.push(EntityUpdate::SetGameEffects(current.game_effects.clone()));
+                last.game_effects = current.game_effects.clone();
+                had_any_delta = true;
+            }
+
+            if current.animations != last.animations {
+                res.push(EntityUpdate::SetAnimations(current.animations.clone()));
+                last.animations = current.animations.clone();
                 had_any_delta = true;
             }
 
@@ -486,31 +519,31 @@ fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>
 impl RemoteDiffModel {
     pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) {
         let mut current_lid = Lid(0);
-        for entry in diff {
+        for entry in diff.iter().cloned() {
             match entry {
-                EntityUpdate::CurrentEntity(lid) => current_lid = *lid,
+                EntityUpdate::CurrentEntity(lid) => current_lid = lid,
                 EntityUpdate::Init(entity_entry) => {
-                    self.entity_infos.insert(current_lid, entity_entry.clone());
+                    self.entity_infos.insert(current_lid, entity_entry);
                 }
                 EntityUpdate::SetPosition(x, y) => {
                     let Some(ent_data) = self.entity_infos.get_mut(&current_lid) else {
                         continue;
                     };
-                    ent_data.x = *x;
-                    ent_data.y = *y;
+                    ent_data.x = x;
+                    ent_data.y = y;
                 }
                 EntityUpdate::SetVelocity(vx, vy) => {
                     let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
                         continue;
                     };
-                    entity_info.vx = *vx;
-                    entity_info.vy = *vy;
+                    entity_info.vx = vx;
+                    entity_info.vy = vy;
                 }
                 EntityUpdate::SetHp(hp) => {
                     let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
                         continue;
                     };
-                    entity_info.hp = *hp;
+                    entity_info.hp = hp;
                 }
                 EntityUpdate::SetPhysInfo(vec) => {
                     let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
@@ -519,29 +552,47 @@ impl RemoteDiffModel {
                     entity_info.phys = vec.clone();
                 }
                 EntityUpdate::RemoveEntity(lid) => {
-                    self.pending_remove.push(*lid);
+                    self.pending_remove.push(lid);
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
-                    if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
-                        if *peer_id != my_peer_id() {
+                    if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
+                        if peer_id != my_peer_id() {
                             safe_entitykill(entity);
                         } else {
                             self.backtrack.push(entity);
                         }
                     }
-                    self.entity_infos.remove(lid);
+                    self.entity_infos.remove(&lid);
                 }
                 EntityUpdate::KillEntity {
                     lid,
                     responsible_peer,
                 } => {
-                    self.pending_death_notify.push((*lid, *responsible_peer));
+                    self.pending_death_notify.push((lid, responsible_peer));
                 }
                 EntityUpdate::SetCost(cost) => {
                     let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
                         continue;
                     };
-                    entity_info.cost = *cost;
+                    entity_info.cost = cost;
+                }
+                EntityUpdate::SetStains(stains) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.current_stains = stains;
+                }
+                EntityUpdate::SetGameEffects(effects) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.game_effects = effects;
+                }
+                EntityUpdate::SetAnimations(animations) => {
+                    let Some(entity_info) = self.entity_infos.get_mut(&current_lid) else {
+                        continue;
+                    };
+                    entity_info.animations = animations;
                 }
             }
         }
@@ -615,6 +666,18 @@ impl RemoteDiffModel {
 
                     if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
                         cost.set_cost(entity_info.cost)?;
+                    }
+
+                    entity.set_game_effects(&entity_info.game_effects);
+
+                    entity.set_current_stains(&entity_info.current_stains);
+
+                    if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None)
+                    {
+                        for (sprite, animation) in sprites.zip(entity_info.animations.iter()) {
+                            sprite.set_rect_animation(animation.into())?;
+                            sprite.set_next_rect_animation(animation.into())?;
+                        }
                     }
                 }
                 None => {
@@ -711,6 +774,14 @@ impl RemoteDiffModel {
 
         if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
             itemc.set_stealable(false)?;
+        }
+
+        if let Ok(sprites) =
+            entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))
+        {
+            for sprite in sprites {
+                sprite.0.remove_tag("character")?
+            }
         }
 
         Ok(())

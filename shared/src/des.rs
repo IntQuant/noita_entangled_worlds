@@ -85,8 +85,9 @@ pub struct EntityInfo {
     pub hp: f32,
     pub phys: Vec<Option<PhysBodyInfo>>,
     pub cost: i64,
-    pub game_effects: Vec<GameEffectData>,
-    pub current_stains: Vec<bool>,
+    pub game_effects: Option<Vec<GameEffectData>>,
+    pub current_stains: Option<Vec<bool>>,
+    pub animations: Vec<String>,
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -107,6 +108,9 @@ pub enum EntityUpdate {
         responsible_peer: Option<PeerId>,
     },
     SetCost(i64),
+    SetStains(Option<Vec<bool>>),
+    SetGameEffects(Option<Vec<GameEffectData>>),
+    SetAnimations(Vec<String>),
 }
 
 #[derive(Encode, Decode, Clone)]
