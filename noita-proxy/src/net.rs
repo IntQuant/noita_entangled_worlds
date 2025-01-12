@@ -407,12 +407,6 @@ impl NetManager {
                     Ok(None) => break,
                     Err(err) => {
                         warn!("Game closed (Lost connection to noita instance: {})", err);
-                        self.broadcast(
-                            &NetMsg::Disconnect {
-                                id: self.peer.my_id(),
-                            },
-                            Reliability::Reliable,
-                        );
                         state.had_a_disconnect = true;
                         state.ms = None;
                     }
@@ -532,9 +526,6 @@ impl NetManager {
             }
             NetMsg::Mods { mods } => *self.active_mods.lock().unwrap() = mods,
             NetMsg::Welcome => {}
-            NetMsg::Disconnect { id } => {
-                state.try_ms_write(&ws_encode_proxy("dc", id.as_hex()));
-            }
             NetMsg::PeerDisconnected { id } => {
                 info!("player kicked: {}", id);
                 state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
@@ -596,7 +587,10 @@ impl NetManager {
             NetMsg::ForwardProxyToDes(proxy_to_des) => {
                 state.try_ms_write(&NoitaInbound::ProxyToDes(proxy_to_des));
             }
-            NetMsg::NoitaDisconnected => state.des.noita_disconnected(src),
+            NetMsg::NoitaDisconnected => {
+                state.des.noita_disconnected(src);
+                state.try_ms_write(&ws_encode_proxy("dc", src.as_hex()));
+            }
         }
     }
 
