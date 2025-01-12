@@ -223,6 +223,14 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
             }
         }
 
+        impl std::ops::Deref for #component_name {
+            type Target = ComponentID;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
         impl #component_name {
             #(#impls)*
         }

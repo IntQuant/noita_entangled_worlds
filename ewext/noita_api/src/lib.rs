@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     num::{NonZero, TryFromIntError},
+    ops::Deref,
 };
 
 use eyre::{eyre, Context, OptionExt};
@@ -22,7 +23,7 @@ pub struct Color(pub u32);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicsBodyID(pub i32);
 
-pub trait Component: From<ComponentID> + Into<ComponentID> {
+pub trait Component: From<ComponentID> + Into<ComponentID> + Deref<Target = ComponentID> {
     const NAME_STR: &'static str;
 }
 
