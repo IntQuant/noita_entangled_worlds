@@ -154,8 +154,8 @@ impl EntityID {
         isize::from(self.0)
     }
 
-    pub fn children(self) -> Vec<EntityID> {
-        raw::entity_get_all_children(self, None)
+    pub fn children(self, tag: Option<Cow<'_, str>>) -> Vec<EntityID> {
+        raw::entity_get_all_children(self, tag)
             .unwrap_or(None)
             .unwrap_or_default()
             .iter()
@@ -165,7 +165,7 @@ impl EntityID {
 
     pub fn get_game_effects(self) -> Option<Vec<GameEffectData>> {
         let mut effects = Vec::new();
-        for ent in self.children() {
+        for ent in self.children(None) {
             if ent.has_tag("projectile") {
                 if let Ok(data) = serialize::serialize_entity(ent) {
                     effects.push(GameEffectData::Projectile(data))
@@ -196,18 +196,28 @@ impl EntityID {
         }
     }
 
-    pub fn get_current_stains(self) -> Option<Vec<bool>> {
+    pub fn get_current_stains(self) -> u64 {
         //todo!()
-        None
+        0
     }
 
-    pub fn set_current_stains(self, current_stains: &Option<Vec<bool>>) {
-        if !self.is_alive() {
+    pub fn set_current_stains(self, _current_stains: u64) {
+        /*if !self.is_alive() {
             return;
-        }
-        if let Some(_current_stains) = current_stains {
-            //todo!()
-        }
+        }*/
+        //todo!()
+    }
+
+    pub fn set_components_with_tag_enabled(
+        self,
+        tag: Cow<'_, str>,
+        enabled: bool,
+    ) -> eyre::Result<()> {
+        raw::entity_set_components_with_tag_enabled(self, tag, enabled)
+    }
+
+    pub fn remove_component(self, component_id: ComponentID) -> eyre::Result<()> {
+        raw::entity_remove_component(self, component_id)
     }
 }
 

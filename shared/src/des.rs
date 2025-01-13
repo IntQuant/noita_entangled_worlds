@@ -93,15 +93,15 @@ pub struct EntityInfo {
     pub phys: Vec<Option<PhysBodyInfo>>,
     pub cost: i64,
     pub game_effects: Option<Vec<GameEffectData>>,
-    pub current_stains: Option<Vec<bool>>,
-    pub animations: Vec<String>,
+    pub current_stains: u64,
+    pub animations: Vec<u16>,
     pub wand: Option<Gid>,
     pub cull: bool,
-    pub death_triggers: Vec<String>,
+    pub death_trigger: bool,
     pub laser: PeerId,
-    pub limbs: Vec<f64>,
+    pub limbs: Vec<(f32, f32)>,
     pub kolmi_enabled: bool,
-    pub mom_orbs: Vec<bool>,
+    pub mom_orbs: u8,
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -123,14 +123,14 @@ pub enum EntityUpdate {
         responsible_peer: Option<PeerId>,
     },
     SetCost(i64),
-    SetStains(Option<Vec<bool>>),
+    SetStains(u64),
     SetGameEffects(Option<Vec<GameEffectData>>),
-    SetAnimations(Vec<String>),
+    SetAnimations(Vec<u16>),
     SetWand(Option<Gid>),
     SetLaser(PeerId),
-    SetLimbs(Vec<f64>),
+    SetLimbs(Vec<(f32, f32)>),
     SetKolmiEnabled(bool),
-    SetMomOrbs(Vec<bool>),
+    SetMomOrbs(u8),
 }
 
 #[derive(Encode, Decode, Clone)]

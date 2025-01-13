@@ -5,10 +5,10 @@ use eyre::{Context, OptionExt};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
-    CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
-    ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
-    LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
-    VelocityComponent, WormComponent,
+    BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent,
+    EntityID, ExplodeOnDamageComponent, IKLimbComponent, ItemComponent, ItemCostComponent,
+    ItemPickUpperComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
+    SpriteComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -120,6 +120,25 @@ impl LocalDiffModelTracker {
             info.r = entity.rotation()?
         }
 
+        info.kolmi_enabled = entity.has_tag("boss_centipede")
+            && entity
+                .try_get_first_component::<BossHealthBarComponent>(Some(
+                    "disabled_at_start".into(),
+                ))?
+                .is_some();
+
+        info.limbs = entity
+            .children(Some("foot".into()))
+            .iter()
+            .filter_map(|ent| {
+                if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
+                    limb.end_position().ok()
+                } else {
+                    None
+                }
+            })
+            .collect();
+
         // Check if entity went out of range, remove and release authority if it did.
         if (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2) {
             self.release_authority(ctx, gid, lid)
@@ -155,7 +174,26 @@ impl LocalDiffModelTracker {
 
         if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
             info.animations = sprites
-                .map(|sprite| sprite.rect_animation().unwrap_or("".into()).to_string())
+                .filter_map(|sprite| {
+                    if let Ok(file) = sprite.image_file() {
+                        if let Ok(text) = noita_api::raw::mod_text_file_get_content(file) {
+                            let mut split = text.split("name=\"");
+                            split.next();
+                            let data: Vec<&str> =
+                                split.filter_map(|piece| piece.split("\"").next()).collect();
+                            let animation = sprite.rect_animation().unwrap_or("".into());
+                            Some(
+                                data.iter()
+                                    .position(|name| name == &animation)
+                                    .unwrap_or(usize::MAX) as u16,
+                            )
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
                 .collect();
         } else {
             info.animations.clear()
@@ -271,15 +309,15 @@ impl LocalDiffModel {
                     phys: Vec::new(),
                     cost: 0,
                     game_effects: None,
-                    current_stains: None,
+                    current_stains: 0,
                     animations: Vec::new(),
                     wand: None,
                     cull: false,
-                    death_triggers: vec![],
+                    death_trigger: false,
                     laser: Default::default(),
                     limbs: vec![],
                     kolmi_enabled: false,
-                    mom_orbs: vec![],
+                    mom_orbs: 0,
                 },
                 gid,
             },
@@ -417,7 +455,7 @@ impl LocalDiffModel {
             diff(
                 &current.current_stains,
                 &mut last.current_stains,
-                EntityUpdate::SetStains(current.current_stains.clone()),
+                EntityUpdate::SetStains(current.current_stains),
                 &mut res,
                 &mut had_any_delta,
             );
@@ -466,7 +504,7 @@ impl LocalDiffModel {
             diff(
                 &current.mom_orbs,
                 &mut last.mom_orbs,
-                EntityUpdate::SetMomOrbs(current.mom_orbs.clone()),
+                EntityUpdate::SetMomOrbs(current.mom_orbs),
                 &mut res,
                 &mut had_any_delta,
             );
@@ -661,6 +699,32 @@ impl RemoteDiffModel {
                     if entity_info.kind == EntityKind::Item && item_in_inventory(entity)? {
                         self.grab_request.push(*lid);
                     }
+                    if entity_info.kolmi_enabled {
+                        if entity
+                            .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                            .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
+                        {
+                            for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+                                if lua.script_death()?.is_empty() {
+                                    entity.remove_component(*lua)?
+                                }
+                            }
+                            entity
+                                .add_component::<VariableStorageComponent>()?
+                                .set_name("ew_has_started".into())?;
+                        }
+                        entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                        entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                    }
+                    for (ent, (x, y)) in entity
+                        .children(Some("foot".into()))
+                        .iter()
+                        .zip(&entity_info.limbs)
+                    {
+                        if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
+                            limb.set_end_position((*x, *y))?;
+                        }
+                    }
                     if entity_info.phys.is_empty() || entity_info.kolmi_enabled {
                         entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
                         if let Some(vel) =
@@ -735,13 +799,24 @@ impl RemoteDiffModel {
 
                     entity.set_game_effects(&entity_info.game_effects);
 
-                    entity.set_current_stains(&entity_info.current_stains);
+                    entity.set_current_stains(entity_info.current_stains);
 
                     if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None)
                     {
                         for (sprite, animation) in sprites.zip(entity_info.animations.iter()) {
-                            sprite.set_rect_animation(animation.into())?;
-                            sprite.set_next_rect_animation(animation.into())?;
+                            if *animation == u16::MAX {
+                                continue;
+                            }
+                            let file = sprite.image_file()?;
+                            let text = noita_api::raw::mod_text_file_get_content(file)?;
+                            let mut split = text.split("name=\"");
+                            split.next();
+                            let data: Vec<&str> =
+                                split.filter_map(|piece| piece.split("\"").next()).collect();
+                            if data.len() > *animation as usize {
+                                sprite.set_rect_animation(data[*animation as usize].into())?;
+                                sprite.set_next_rect_animation(data[*animation as usize].into())?;
+                            }
                         }
                     }
                 }
