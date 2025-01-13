@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use bitcode::{Decode, Encode};
-
 use crate::{GameEffectData, PeerId, WorldPos};
+use bitcode::{Decode, Encode};
 
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
 pub const AUTHORITY_RADIUS: f32 = 600.0;
@@ -96,13 +95,20 @@ pub struct EntityInfo {
     pub game_effects: Option<Vec<GameEffectData>>,
     pub current_stains: Option<Vec<bool>>,
     pub animations: Vec<String>,
+    pub wand: Option<Gid>,
+    pub cull: bool,
+    pub death_triggers: Vec<String>,
+    pub laser: PeerId,
+    pub limbs: Vec<f64>,
+    pub kolmi_enabled: bool,
+    pub mom_orbs: Vec<bool>,
 }
 
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
-    Init(EntityInfo),
+    Init(Box<EntityInfo>),
     // TODO diffing for position
     SetPosition(f32, f32),
     SetRotation(f32),
@@ -120,6 +126,11 @@ pub enum EntityUpdate {
     SetStains(Option<Vec<bool>>),
     SetGameEffects(Option<Vec<GameEffectData>>),
     SetAnimations(Vec<String>),
+    SetWand(Option<Gid>),
+    SetLaser(PeerId),
+    SetLimbs(Vec<f64>),
+    SetKolmiEnabled(bool),
+    SetMomOrbs(Vec<bool>),
 }
 
 #[derive(Encode, Decode, Clone)]

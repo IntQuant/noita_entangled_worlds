@@ -4,11 +4,11 @@ use bimap::BiHashMap;
 use eyre::{Context, OptionExt};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
-    game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
     CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
     LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
-    VelocityComponent,
+    VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -127,7 +127,11 @@ impl LocalDiffModelTracker {
             return Ok(());
         }
 
-        if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+        if let Some(worm) = entity.try_get_first_component::<BossDragonComponent>(None)? {
+            (info.vx, info.vy) = worm.m_target_vec()?;
+        } else if let Some(worm) = entity.try_get_first_component::<WormComponent>(None)? {
+            (info.vx, info.vy) = worm.m_target_vec()?;
+        } else if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
             (info.vx, info.vy) = vel.m_velocity()?;
         }
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
@@ -269,6 +273,13 @@ impl LocalDiffModel {
                     game_effects: None,
                     current_stains: None,
                     animations: Vec::new(),
+                    wand: None,
+                    cull: false,
+                    death_triggers: vec![],
+                    laser: Default::default(),
+                    limbs: vec![],
+                    kolmi_enabled: false,
+                    mom_orbs: vec![],
                 },
                 gid,
             },
@@ -345,64 +356,120 @@ impl LocalDiffModel {
                 current,
                 gid: _,
             },
-        ) in &mut self.entity_entries
+        ) in self.entity_entries.iter_mut()
         {
             res.push(EntityUpdate::CurrentEntity(lid));
             let Some(last) = last.as_mut() else {
-                res.push(EntityUpdate::Init(current.clone()));
                 *last = Some(current.clone());
+                res.push(EntityUpdate::Init(Box::from(current.clone())));
                 continue;
             };
             let mut had_any_delta = false;
-            if current.x != last.x || current.y != last.y {
-                res.push(EntityUpdate::SetPosition(current.x, current.y));
-                last.x = current.x;
-                last.y = current.y;
-                had_any_delta = true;
-            }
 
-            if current.vx != last.vx || current.vy != last.vy {
-                res.push(EntityUpdate::SetVelocity(current.vx, current.vy));
-                last.vx = current.vx;
-                last.vy = current.vy;
-                had_any_delta = true;
+            fn diff<T: PartialEq + Clone>(
+                current: &T,
+                last: &mut T,
+                update: EntityUpdate,
+                res: &mut Vec<EntityUpdate>,
+                had_any_delta: &mut bool,
+            ) {
+                if current != last {
+                    res.push(update);
+                    *last = current.clone();
+                    *had_any_delta = true;
+                }
             }
-
-            if current.hp != last.hp {
-                res.push(EntityUpdate::SetHp(current.hp));
-                last.hp = current.hp;
-                had_any_delta = true;
-            }
-
-            if current.phys != last.phys {
-                res.push(EntityUpdate::SetPhysInfo(current.phys.clone()));
-                last.phys = current.phys.clone();
-                had_any_delta = true;
-            }
-
-            if current.cost != last.cost {
-                res.push(EntityUpdate::SetCost(current.cost));
-                last.cost = current.cost;
-                had_any_delta = true;
-            }
-
-            if current.current_stains != last.current_stains {
-                res.push(EntityUpdate::SetStains(current.current_stains.clone()));
-                last.current_stains = current.current_stains.clone();
-                had_any_delta = true;
-            }
-
-            if current.game_effects != last.game_effects {
-                res.push(EntityUpdate::SetGameEffects(current.game_effects.clone()));
-                last.game_effects = current.game_effects.clone();
-                had_any_delta = true;
-            }
-
-            if current.animations != last.animations {
-                res.push(EntityUpdate::SetAnimations(current.animations.clone()));
-                last.animations = current.animations.clone();
-                had_any_delta = true;
-            }
+            diff(
+                &(current.x, current.y),
+                &mut (last.x, last.y),
+                EntityUpdate::SetPosition(current.x, current.y),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &(current.vx, current.vy),
+                &mut (last.vx, last.vy),
+                EntityUpdate::SetVelocity(current.vx, current.vy),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.hp,
+                &mut last.hp,
+                EntityUpdate::SetHp(current.hp),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.phys,
+                &mut last.phys,
+                EntityUpdate::SetPhysInfo(current.phys.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.cost,
+                &mut last.cost,
+                EntityUpdate::SetCost(current.cost),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.current_stains,
+                &mut last.current_stains,
+                EntityUpdate::SetStains(current.current_stains.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.game_effects,
+                &mut last.game_effects,
+                EntityUpdate::SetGameEffects(current.game_effects.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.animations,
+                &mut last.animations,
+                EntityUpdate::SetAnimations(current.animations.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.wand,
+                &mut last.wand,
+                EntityUpdate::SetWand(current.wand),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.laser,
+                &mut last.laser,
+                EntityUpdate::SetLaser(current.laser),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.limbs,
+                &mut last.limbs,
+                EntityUpdate::SetLimbs(current.limbs.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.kolmi_enabled,
+                &mut last.kolmi_enabled,
+                EntityUpdate::SetKolmiEnabled(current.kolmi_enabled),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.mom_orbs,
+                &mut last.mom_orbs,
+                EntityUpdate::SetMomOrbs(current.mom_orbs.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
 
             // Remove the CurrentEntity thing because it's not necessary.
             if !had_any_delta {
@@ -537,7 +604,7 @@ impl RemoteDiffModel {
                         .unwrap_or(empty_data)
                 }
                 EntityUpdate::Init(entity_entry) => {
-                    self.entity_infos.insert(current_lid, entity_entry);
+                    self.entity_infos.insert(current_lid, *entity_entry);
                     ent_data = self
                         .entity_infos
                         .get_mut(&current_lid)
@@ -569,7 +636,14 @@ impl RemoteDiffModel {
                         lid,
                         responsible_peer, //TODO make sure entity exists
                     } => self.pending_death_notify.push((lid, responsible_peer)),
-                    _ => {}
+                    EntityUpdate::SetWand(gid) => ent_data.wand = gid,
+                    EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
+                    EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
+                    EntityUpdate::SetKolmiEnabled(enabled) => ent_data.kolmi_enabled = enabled,
+                    EntityUpdate::SetMomOrbs(orbs) => ent_data.mom_orbs = orbs,
+                    EntityUpdate::CurrentEntity(_)
+                    | EntityUpdate::Init(_)
+                    | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },
                 _ => {}
             }
@@ -587,16 +661,29 @@ impl RemoteDiffModel {
                     if entity_info.kind == EntityKind::Item && item_in_inventory(entity)? {
                         self.grab_request.push(*lid);
                     }
-
-                    entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
-                    if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
-                        vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                    if entity_info.phys.is_empty() || entity_info.kolmi_enabled {
+                        entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
+                        if let Some(vel) =
+                            entity.try_get_first_component::<VelocityComponent>(None)?
+                        {
+                            vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                        }
+                        if let Some(worm) =
+                            entity.try_get_first_component::<BossDragonComponent>(None)?
+                        {
+                            worm.set_m_target_vec((entity_info.vx, entity_info.vy))?;
+                        } else if let Some(worm) =
+                            entity.try_get_first_component::<WormComponent>(None)?
+                        {
+                            worm.set_m_target_vec((entity_info.vx, entity_info.vy))?;
+                        } else if let Some(vel) =
+                            entity.try_get_first_component::<CharacterDataComponent>(None)?
+                        {
+                            vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                        }
                     }
-                    if let Some(vel) =
-                        entity.try_get_first_component::<CharacterDataComponent>(None)?
-                    {
-                        vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
-                    }
+                    //local m = host_fps / ctx.my_player.fps TODO
+                    //vx, vy = vx * m, vy * m
                     if let Some(damage) =
                         entity.try_get_first_component::<DamageModelComponent>(None)?
                     {

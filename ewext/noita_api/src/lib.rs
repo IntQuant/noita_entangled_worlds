@@ -58,7 +58,14 @@ impl EntityID {
     }
 
     pub fn set_position(self, x: f32, y: f32, r: Option<f32>) -> eyre::Result<()> {
-        raw::entity_set_transform(self, x as f64, Some(y as f64), r.map(|a| a as f64), None, None)
+        raw::entity_set_transform(
+            self,
+            x as f64,
+            Some(y as f64),
+            r.map(|a| a as f64),
+            None,
+            None,
+        )
     }
 
     pub fn position(self) -> eyre::Result<(f32, f32)> {

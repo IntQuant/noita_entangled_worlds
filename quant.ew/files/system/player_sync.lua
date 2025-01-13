@@ -337,13 +337,15 @@ function module.on_world_update()
                 if has_twwe_locally == nil then
                     has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml")
                     EntityAddChild(ctx.my_player.entity, has_twwe_locally)
+                    GameAddFlagRun("ew_twwe_share")
                 end
             elseif has_twwe_locally ~= nil then
                 EntityKill(has_twwe_locally)
                 has_twwe_locally = nil
             end
-        elseif has_twwe_locally ~= nil then
-            if EntityGetIsAlive(has_twwe_locally) then
+        elseif has_twwe_locally ~= nil or GameHasFlagRun("ew_twwe_share") then
+            GameRemoveFlagRun("ew_twwe_share")
+            if has_twwe_locally ~= nil and EntityGetIsAlive(has_twwe_locally) then
                 EntityKill(has_twwe_locally)
             else
                 for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
