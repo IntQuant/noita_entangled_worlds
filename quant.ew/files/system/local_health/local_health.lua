@@ -503,8 +503,6 @@ local first = true
 
 local gui = GuiCreate()
 
-local wait = false
-
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
@@ -551,15 +549,6 @@ function module.on_world_update()
         local note = "find potion mimic player at last point of death, throw at full hp to revive"
         local tw, th = GuiGetTextDimensions(gui, note)
         GuiText(gui, w - 2 - tw, h - 1 - th, note)
-    end
-    if not ctx.proxy_opt.no_notplayer and not ctx.proxy_opt.perma_death and notplayer_active and hp_new <= 0 then
-        if wait then
-            ctx.cap.health.on_poly_death()
-        else
-            wait = true
-        end
-    else
-        wait = false
     end
 end
 
