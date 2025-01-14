@@ -323,6 +323,22 @@ impl LocalDiffModel {
             )
         })?;
 
+        let cull = entity
+            .try_get_first_component::<BossHealthBarComponent>(None)?
+            .is_none()
+            && entity
+                .try_get_first_component::<WormComponent>(None)?
+                .is_none()
+            && !entity.has_tag("seed_f")
+            && !entity.has_tag("seed_e")
+            && !entity.has_tag("seed_d")
+            && !entity.has_tag("seed_c")
+            && entity.filename()? != "data/entities/buildings/essence_eater.xml";
+
+        let drops_gold = entity
+            .iter_all_components_of_type::<LuaComponent>(None)?
+            .any(|lua| lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()));
+
         self.entity_entries.insert(
             lid,
             EntityEntryPair {
@@ -342,8 +358,8 @@ impl LocalDiffModel {
                     current_stains: 0,
                     animations: Vec::new(),
                     wand: None,
-                    cull: false,
-                    death_trigger: false,
+                    cull,
+                    drops_gold,
                     laser: Default::default(),
                     limbs: vec![],
                     kolmi_enabled: false,
@@ -856,7 +872,7 @@ impl RemoteDiffModel {
                         entity_info.x,
                         entity_info.y,
                     )?;
-                    self.init_remote_entity(entity)?;
+                    self.init_remote_entity(entity, entity_info.drops_gold)?;
                     self.tracked.insert(*lid, entity);
                 }
             }
@@ -918,7 +934,7 @@ impl RemoteDiffModel {
     /// Modifies a newly spawned entity so it can be synced properly.
     /// Removes components that shouldn't be on entities that were replicated from a remote,
     /// generally because they interfere with things we're supposed to sync.
-    fn init_remote_entity(&self, entity: EntityID) -> eyre::Result<()> {
+    fn init_remote_entity(&self, entity: EntityID, drops_gold: bool) -> eyre::Result<()> {
         entity.remove_all_components_of_type::<CameraBoundComponent>()?;
         entity.remove_all_components_of_type::<AnimalAIComponent>()?;
         entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
@@ -951,6 +967,15 @@ impl RemoteDiffModel {
         {
             for sprite in sprites {
                 sprite.remove_tag("character")?
+            }
+        }
+
+        if !drops_gold {
+            for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+                if lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()) {
+                    entity.remove_component(*lua)?;
+                    break;
+                }
             }
         }
 

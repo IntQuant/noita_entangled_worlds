@@ -97,7 +97,7 @@ pub struct EntityInfo {
     pub animations: Vec<u16>,
     pub wand: Option<Gid>,
     pub cull: bool,
-    pub death_trigger: bool,
+    pub drops_gold: bool,
     pub laser: PeerId,
     pub limbs: Vec<(f32, f32)>,
     pub kolmi_enabled: bool,
