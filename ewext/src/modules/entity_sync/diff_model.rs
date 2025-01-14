@@ -120,12 +120,42 @@ impl LocalDiffModelTracker {
             info.r = entity.rotation()?
         }
 
+        if entity.has_tag("boss_wizard") {
+            for ent in entity.children(None) {
+                if ent.has_tag("touchmagic_immunity") {
+                    if let Ok(var) = ent.get_first_component::<VariableStorageComponent>(None) {
+                        if let Ok(n) = var.value_int() {
+                            if (info.mom_orbs & (1 << (n as u8))) == 0 {
+                                ent.kill()
+                            }
+                        }
+                    }
+                }
+            }
+        }
         info.kolmi_enabled = entity.has_tag("boss_centipede")
             && entity
                 .try_get_first_component::<BossHealthBarComponent>(Some(
                     "disabled_at_start".into(),
                 ))?
                 .is_some();
+
+        if entity.has_tag("boss_wizard") {
+            info.mom_orbs = entity
+                .children(None)
+                .iter()
+                .filter_map(|ent| {
+                    if ent.has_tag("touchmagic_immunity") {
+                        let var = ent
+                            .get_first_component::<VariableStorageComponent>(None)
+                            .ok()?;
+                        Some(1 << var.value_int().ok()?)
+                    } else {
+                        None
+                    }
+                })
+                .sum()
+        }
 
         info.limbs = entity
             .children(Some("foot".into()))
