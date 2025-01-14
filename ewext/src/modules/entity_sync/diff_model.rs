@@ -6,9 +6,10 @@ use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
     BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent,
-    EntityID, ExplodeOnDamageComponent, IKLimbComponent, ItemComponent, ItemCostComponent,
-    ItemPickUpperComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
-    SpriteComponent, VariableStorageComponent, VelocityComponent, WormComponent,
+    EntityID, ExplodeOnDamageComponent, IKLimbComponent, Inventory2Component, ItemComponent,
+    ItemCostComponent, ItemPickUpperComponent, LuaComponent, PhysData, PhysicsAIComponent,
+    PhysicsBody2Component, SpriteComponent, VariableStorageComponent, VelocityComponent,
+    WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -120,17 +121,11 @@ impl LocalDiffModelTracker {
             info.r = entity.rotation()?
         }
 
-        if entity.has_tag("boss_wizard") {
-            for ent in entity.children(None) {
-                if ent.has_tag("touchmagic_immunity") {
-                    if let Ok(var) = ent.get_first_component::<VariableStorageComponent>(None) {
-                        if let Ok(n) = var.value_int() {
-                            if (info.mom_orbs & (1 << (n as u8))) == 0 {
-                                ent.kill()
-                            }
-                        }
-                    }
-                }
+        if let Some(inv) =
+            entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
+        {
+            if let Some(wand) = inv.m_actual_active_item()? {
+                //info.wand = self.tracked.get_by_right(&wand).copied()
             }
         }
         info.kolmi_enabled = entity.has_tag("boss_centipede")
@@ -158,7 +153,7 @@ impl LocalDiffModelTracker {
         }
 
         info.limbs = entity
-            .children(Some("foot".into()))
+            .children(None)
             .iter()
             .filter_map(|ent| {
                 if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
@@ -596,6 +591,11 @@ impl LocalDiffModel {
         self.tracker.pending_authority.push(full_entity_data);
     }
 
+    pub(crate) fn gid_by_entity(&self, entity: EntityID) -> Option<Gid> {
+        let lid = self.tracker.tracked.get_by_right(&entity)?;
+        Some(self.entity_entries.get(lid)?.gid)
+    }
+
     pub(crate) fn full_entity_data_for(&self, lid: Lid) -> Option<FullEntityData> {
         let entry_pair = self.entity_entries.get(&lid)?;
         Some(FullEntityData {
@@ -747,6 +747,21 @@ impl RemoteDiffModel {
                     if entity_info.kind == EntityKind::Item && item_in_inventory(entity)? {
                         self.grab_request.push(*lid);
                     }
+                    if entity.has_tag("boss_wizard") {
+                        for ent in entity.children(None) {
+                            if ent.has_tag("touchmagic_immunity") {
+                                if let Ok(var) =
+                                    ent.get_first_component::<VariableStorageComponent>(None)
+                                {
+                                    if let Ok(n) = var.value_int() {
+                                        if (entity_info.mom_orbs & (1 << (n as u8))) == 0 {
+                                            ent.kill()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if entity_info.kolmi_enabled {
                         if entity
                             .iter_all_components_of_type::<VariableStorageComponent>(None)?
@@ -765,8 +780,9 @@ impl RemoteDiffModel {
                         entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
                     }
                     for (ent, (x, y)) in entity
-                        .children(Some("foot".into()))
+                        .children(None)
                         .iter()
+                        .filter(|ent| ent.get_first_component::<IKLimbComponent>(None).is_ok())
                         .zip(&entity_info.limbs)
                     {
                         if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
