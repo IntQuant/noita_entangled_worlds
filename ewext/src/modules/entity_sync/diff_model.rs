@@ -170,7 +170,9 @@ impl LocalDiffModelTracker {
             .collect();
 
         // Check if entity went out of range, remove and release authority if it did.
-        if (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2) {
+        if info.can_unload
+            && (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2)
+        {
             self.release_authority(ctx, gid, lid)
                 .wrap_err("Failed to release authority")?;
             return Ok(());
@@ -323,7 +325,7 @@ impl LocalDiffModel {
             )
         })?;
 
-        let cull = entity
+        let can_unload = entity
             .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
             .is_none()
             && entity
@@ -358,7 +360,7 @@ impl LocalDiffModel {
                     current_stains: 0,
                     animations: Vec::new(),
                     wand: None,
-                    cull,
+                    can_unload,
                     drops_gold,
                     laser: Default::default(),
                     limbs: vec![],
