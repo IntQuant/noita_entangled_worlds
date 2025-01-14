@@ -324,7 +324,7 @@ impl LocalDiffModel {
         })?;
 
         let cull = entity
-            .try_get_first_component::<BossHealthBarComponent>(None)?
+            .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
             .is_none()
             && entity
                 .try_get_first_component::<WormComponent>(None)?
@@ -351,7 +351,7 @@ impl LocalDiffModel {
                     r: 0.0,
                     vx: 0.0,
                     vy: 0.0,
-                    hp: 1.0, //TODO should be actual data?
+                    hp: 1.0,
                     phys: Vec::new(),
                     cost: 0,
                     game_effects: None,
