@@ -35,13 +35,14 @@ impl LangDesc {
     }
 }
 
-pub static LANGS: [LangDesc; 7] = [
+pub static LANGS: [LangDesc; 8] = [
     LangDesc::new("English", langid!("en-US")),
-    LangDesc::new("Русский", langid!("ru-RU")),
-    LangDesc::new("日本語", langid!("ja-JP")),
-    LangDesc::new("简体中文", langid!("zh-CN")),
-    LangDesc::new("Português", langid!("pt-BR")),
     LangDesc::new("Deutsch", langid!("de-DE")),
+    LangDesc::new("Français", langid!("fr-FR")),
+    LangDesc::new("Português", langid!("pt-BR")),
+    LangDesc::new("Русский", langid!("ru-RU")),
+    LangDesc::new("简体中文", langid!("zh-CN")),
+    LangDesc::new("日本語", langid!("ja-JP")),
     LangDesc::new("한국어", langid!("ko-KR")),
 ];
 
