@@ -10,6 +10,7 @@ use noita_api::{
     StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
+use shared::des::TRANSFER_RADIUS;
 use shared::{
     des::{
         EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
@@ -180,12 +181,20 @@ impl LocalDiffModelTracker {
             .collect();
 
         // Check if entity went out of range, remove and release authority if it did.
-        if !info.is_global
-            && (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2)
-        {
-            self.release_authority(ctx, gid, lid)
-                .wrap_err("Failed to release authority")?;
-            return Ok(());
+        let is_beyond_authority =
+            (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2);
+        if is_beyond_authority {
+            if info.is_global {
+                if let Some(peer) = ctx.locate_player_within_except_me(x, y, TRANSFER_RADIUS)? {
+                    self.transfer_authority_to(ctx, gid, lid, peer)
+                        .wrap_err("Failed to transfer authority")?;
+                    return Ok(());
+                }
+            } else {
+                self.release_authority(ctx, gid, lid)
+                    .wrap_err("Failed to release authority")?;
+                return Ok(());
+            }
         }
 
         if let Some(worm) = entity.try_get_first_component::<BossDragonComponent>(None)? {
@@ -291,12 +300,12 @@ impl LocalDiffModelTracker {
             .ok_or_eyre("Expected to find a corresponding entity")?)
     }
 
-    fn release_authority(
+    fn _release_authority_update_data(
         &mut self,
         ctx: &mut ModuleCtx<'_>,
         gid: Gid,
         lid: Lid,
-    ) -> eyre::Result<()> {
+    ) -> Result<EntityID, eyre::Error> {
         let entity = self.entity_by_lid(lid)?;
         let (x, y) = entity.position()?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
@@ -305,8 +314,34 @@ impl LocalDiffModelTracker {
                 pos: WorldPos::from_f32(x, y),
             }]),
         ))?;
+        Ok(entity)
+    }
+
+    fn release_authority(
+        &mut self,
+        ctx: &mut ModuleCtx<'_>,
+        gid: Gid,
+        lid: Lid,
+    ) -> eyre::Result<()> {
+        let entity = self._release_authority_update_data(ctx, gid, lid)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
+        ))?;
+        self.pending_removal.push(lid);
+        safe_entitykill(entity);
+        Ok(())
+    }
+
+    fn transfer_authority_to(
+        &mut self,
+        ctx: &mut ModuleCtx<'_>,
+        gid: Gid,
+        lid: Lid,
+        peer: PeerId,
+    ) -> eyre::Result<()> {
+        let entity = self._release_authority_update_data(ctx, gid, lid)?;
+        ctx.net.send(&NoitaOutbound::DesToProxy(
+            shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
         self.pending_removal.push(lid);
         safe_entitykill(entity);

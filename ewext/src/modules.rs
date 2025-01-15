@@ -3,13 +3,34 @@ use eyre::Ok;
 use noita_api::EntityID;
 use shared::PeerId;
 
-use crate::net::NetManager;
+use crate::{my_peer_id, net::NetManager};
 
 pub(crate) mod entity_sync;
 
 pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
+}
+impl ModuleCtx<'_> {
+    pub(crate) fn locate_player_within_except_me(
+        &self,
+        x: f32,
+        y: f32,
+        radius: f32,
+    ) -> eyre::Result<Option<PeerId>> {
+        let mut res = None;
+        for (peer, entity) in self.player_map.iter() {
+            if *peer == my_peer_id() {
+                continue;
+            }
+            let (ex, ey) = entity.position()?;
+            if (x - ex).powi(2) + (y - ey).powi(2) < radius.powi(2) {
+                res = Some(*peer);
+                break;
+            }
+        }
+        Ok(res)
+    }
 }
 
 pub(crate) trait Module {

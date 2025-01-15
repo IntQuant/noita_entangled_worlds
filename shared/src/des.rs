@@ -4,6 +4,7 @@ use crate::{GameEffectData, PeerId, WorldPos};
 use bitcode::{Decode, Encode};
 
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
+pub const TRANSFER_RADIUS: f32 = 500.0;
 pub const AUTHORITY_RADIUS: f32 = 600.0;
 pub const INTEREST_REQUEST_RADIUS: i32 = 900;
 
@@ -47,6 +48,7 @@ pub enum DesToProxy {
     ReleaseAuthority(Gid),
     RequestAuthority { pos: WorldPos, radius: i32 },
     UpdatePositions(Vec<UpdatePosition>),
+    TransferAuthorityTo(Gid, PeerId),
 }
 
 #[derive(Encode, Decode, Clone)]
