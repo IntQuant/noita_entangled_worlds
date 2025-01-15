@@ -6,8 +6,8 @@ use noita_api::{
     BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent,
     EntityID, ExplodeOnDamageComponent, IKLimbComponent, IKLimbWalkerComponent,
     Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent, LuaComponent,
-    PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent, VariableStorageComponent,
-    VelocityComponent, WormComponent,
+    PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
+    StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -1058,6 +1058,16 @@ impl RemoteDiffModel {
                     break;
                 }
             }
+        }
+
+        if entity
+            .try_get_first_component::<BossDragonComponent>(None)?
+            .is_some()
+            && entity
+                .try_get_first_component::<StreamingKeepAliveComponent>(None)?
+                .is_none()
+        {
+            entity.add_component::<StreamingKeepAliveComponent>()?;
         }
 
         Ok(())

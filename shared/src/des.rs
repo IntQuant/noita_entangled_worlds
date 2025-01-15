@@ -102,6 +102,7 @@ pub struct EntityInfo {
     pub limbs: Vec<(f32, f32)>,
     pub kolmi_enabled: bool,
     pub mom_orbs: u8,
+    //pub sun_essences_list: u8, TODO should exist
 }
 
 #[derive(Encode, Decode, Clone)]
