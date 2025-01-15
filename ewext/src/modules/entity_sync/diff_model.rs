@@ -383,6 +383,16 @@ impl LocalDiffModel {
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(Wrapping(lid.0).0 as i32)?;
 
+        if entity
+            .try_get_first_component::<BossDragonComponent>(None)?
+            .is_some()
+            && entity
+                .try_get_first_component::<StreamingKeepAliveComponent>(None)?
+                .is_none()
+        {
+            entity.add_component::<StreamingKeepAliveComponent>()?;
+        }
+
         let is_global = !(entity
             .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
             .is_none()
@@ -1102,16 +1112,6 @@ impl RemoteDiffModel {
                     break;
                 }
             }
-        }
-
-        if entity
-            .try_get_first_component::<BossDragonComponent>(None)?
-            .is_some()
-            && entity
-                .try_get_first_component::<StreamingKeepAliveComponent>(None)?
-                .is_none()
-        {
-            entity.add_component::<StreamingKeepAliveComponent>()?;
         }
 
         Ok(())
