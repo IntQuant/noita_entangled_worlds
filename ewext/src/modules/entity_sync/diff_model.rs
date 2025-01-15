@@ -393,17 +393,12 @@ impl LocalDiffModel {
             entity.add_component::<StreamingKeepAliveComponent>()?;
         }
 
-        let is_global = !(entity
+        let is_global = entity
             .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
-            .is_none()
-            && entity
-                .try_get_first_component::<WormComponent>(None)?
-                .is_none()
-            && !entity.has_tag("seed_f")
-            && !entity.has_tag("seed_e")
-            && !entity.has_tag("seed_d")
-            && !entity.has_tag("seed_c")
-            && entity.filename()? != "data/entities/buildings/essence_eater.xml");
+            .is_some()
+            || entity
+                .try_get_first_component::<StreamingKeepAliveComponent>(None)?
+                .is_some();
 
         let drops_gold = entity
             .iter_all_components_of_type::<LuaComponent>(None)?
