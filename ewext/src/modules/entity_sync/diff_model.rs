@@ -180,7 +180,7 @@ impl LocalDiffModelTracker {
             .collect();
 
         // Check if entity went out of range, remove and release authority if it did.
-        if info.is_global
+        if !info.is_global
             && (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2)
         {
             self.release_authority(ctx, gid, lid)
@@ -348,7 +348,7 @@ impl LocalDiffModel {
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(Wrapping(lid.0).0 as i32)?;
 
-        let is_global = entity
+        let is_global = !(entity
             .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
             .is_none()
             && entity
@@ -358,7 +358,7 @@ impl LocalDiffModel {
             && !entity.has_tag("seed_e")
             && !entity.has_tag("seed_d")
             && !entity.has_tag("seed_c")
-            && entity.filename()? != "data/entities/buildings/essence_eater.xml";
+            && entity.filename()? != "data/entities/buildings/essence_eater.xml");
 
         let drops_gold = entity
             .iter_all_components_of_type::<LuaComponent>(None)?
@@ -456,12 +456,8 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn make_diff(
-        &mut self,
-        ctx: &mut ModuleCtx,
-    ) -> (Vec<EntityUpdate>, Vec<EntityUpdate>) {
-        let mut res_local = Vec::new();
-        let mut res_global = Vec::new();
+    pub(crate) fn make_diff(&mut self, ctx: &mut ModuleCtx) -> Vec<EntityUpdate> {
+        let mut res = Vec::new();
         for (
             &lid,
             EntityEntryPair {
@@ -471,12 +467,6 @@ impl LocalDiffModel {
             },
         ) in self.entity_entries.iter_mut()
         {
-            let res = if current.is_global {
-                &mut res_local
-            } else {
-                &mut res_global
-            };
-
             res.push(EntityUpdate::CurrentEntity(lid));
             let Some(last) = last.as_mut() else {
                 *last = Some(current.clone());
@@ -502,91 +492,91 @@ impl LocalDiffModel {
                 &(current.x, current.y),
                 &mut (last.x, last.y),
                 EntityUpdate::SetPosition(current.x, current.y),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &(current.vx, current.vy),
                 &mut (last.vx, last.vy),
                 EntityUpdate::SetVelocity(current.vx, current.vy),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.hp,
                 &mut last.hp,
                 EntityUpdate::SetHp(current.hp),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.phys,
                 &mut last.phys,
                 EntityUpdate::SetPhysInfo(current.phys.clone()),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.cost,
                 &mut last.cost,
                 EntityUpdate::SetCost(current.cost),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.current_stains,
                 &mut last.current_stains,
                 EntityUpdate::SetStains(current.current_stains),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.game_effects,
                 &mut last.game_effects,
                 EntityUpdate::SetGameEffects(current.game_effects.clone()),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.animations,
                 &mut last.animations,
                 EntityUpdate::SetAnimations(current.animations.clone()),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.wand,
                 &mut last.wand,
                 EntityUpdate::SetWand(current.wand),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.laser,
                 &mut last.laser,
                 EntityUpdate::SetLaser(current.laser),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.limbs,
                 &mut last.limbs,
                 EntityUpdate::SetLimbs(current.limbs.clone()),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.kolmi_enabled,
                 &mut last.kolmi_enabled,
                 EntityUpdate::SetKolmiEnabled(current.kolmi_enabled),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
             diff(
                 &current.mom_orbs,
                 &mut last.mom_orbs,
                 EntityUpdate::SetMomOrbs(current.mom_orbs),
-                res,
+                &mut res,
                 &mut had_any_delta,
             );
 
@@ -596,15 +586,7 @@ impl LocalDiffModel {
             }
         }
         for (lid, peer) in self.tracker.pending_localize.drain(..) {
-            let Some(entry) = self.entity_entries.get(&lid) else {
-                continue;
-            };
-            let update = EntityUpdate::LocalizeEntity(lid, peer);
-            if entry.current.is_global {
-                res_global.push(update);
-            } else {
-                res_local.push(update);
-            }
+            res.push(EntityUpdate::LocalizeEntity(lid, peer));
         }
 
         for (killed, responsible) in self.tracker.pending_death_notify.drain(..) {
@@ -614,35 +596,19 @@ impl LocalDiffModel {
             let Some(lid) = self.tracker.tracked.get_by_right(&killed).copied() else {
                 continue;
             };
-            let Some(entry) = self.entity_entries.get(&lid) else {
-                continue;
-            };
-            let update = EntityUpdate::KillEntity {
+            res.push(EntityUpdate::KillEntity {
                 lid,
                 responsible_peer,
-            };
-            if entry.current.is_global {
-                res_global.push(update);
-            } else {
-                res_local.push(update);
-            }
+            });
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
-            let update = EntityUpdate::RemoveEntity(lid);
-            let Some(entry) = self.entity_entries.get(&lid) else {
-                continue;
-            };
-            if entry.current.is_global {
-                res_global.push(update);
-            } else {
-                res_local.push(update);
-            }
+            res.push(EntityUpdate::RemoveEntity(lid));
             // "Untrack" entity
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
         }
-        (res_local, res_global)
+        res
     }
 
     pub(crate) fn lid_by_entity(&self, entity: EntityID) -> Option<Lid> {
