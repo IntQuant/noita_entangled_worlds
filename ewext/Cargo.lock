@@ -207,6 +207,7 @@ dependencies = [
  "libloading",
  "noita_api_macro",
  "shared",
+ "strum",
 ]
 
 [[package]]

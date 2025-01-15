@@ -15,7 +15,7 @@ use shared::{
         EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
         PhysBodyInfo, ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
     },
-    NoitaOutbound, PeerId, WorldPos,
+    GameEffectData, NoitaOutbound, PeerId, WorldPos,
 };
 use std::mem;
 use std::num::Wrapping;
@@ -210,7 +210,11 @@ impl LocalDiffModelTracker {
             info.cost = 0;
         }
 
-        info.game_effects = entity.get_game_effects();
+        info.game_effects = entity.get_game_effects().map(|e| {
+            e.iter()
+                .map(|(e, _)| e.clone())
+                .collect::<Vec<GameEffectData>>()
+        });
 
         info.current_stains = entity.get_current_stains();
 
@@ -344,7 +348,7 @@ impl LocalDiffModel {
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(Wrapping(lid.0).0 as i32)?;
 
-        let can_unload = entity
+        let is_global = entity
             .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
             .is_none()
             && entity
@@ -379,7 +383,7 @@ impl LocalDiffModel {
                     current_stains: 0,
                     animations: Vec::new(),
                     wand: None,
-                    is_global: can_unload,
+                    is_global,
                     drops_gold,
                     laser: Default::default(),
                     limbs: vec![],
@@ -467,7 +471,7 @@ impl LocalDiffModel {
             },
         ) in self.entity_entries.iter_mut()
         {
-            let mut res = if current.is_global {
+            let res = if current.is_global {
                 &mut res_local
             } else {
                 &mut res_global
@@ -498,91 +502,91 @@ impl LocalDiffModel {
                 &(current.x, current.y),
                 &mut (last.x, last.y),
                 EntityUpdate::SetPosition(current.x, current.y),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &(current.vx, current.vy),
                 &mut (last.vx, last.vy),
                 EntityUpdate::SetVelocity(current.vx, current.vy),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.hp,
                 &mut last.hp,
                 EntityUpdate::SetHp(current.hp),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.phys,
                 &mut last.phys,
                 EntityUpdate::SetPhysInfo(current.phys.clone()),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.cost,
                 &mut last.cost,
                 EntityUpdate::SetCost(current.cost),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.current_stains,
                 &mut last.current_stains,
                 EntityUpdate::SetStains(current.current_stains),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.game_effects,
                 &mut last.game_effects,
                 EntityUpdate::SetGameEffects(current.game_effects.clone()),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.animations,
                 &mut last.animations,
                 EntityUpdate::SetAnimations(current.animations.clone()),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.wand,
                 &mut last.wand,
                 EntityUpdate::SetWand(current.wand),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.laser,
                 &mut last.laser,
                 EntityUpdate::SetLaser(current.laser),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.limbs,
                 &mut last.limbs,
                 EntityUpdate::SetLimbs(current.limbs.clone()),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.kolmi_enabled,
                 &mut last.kolmi_enabled,
                 EntityUpdate::SetKolmiEnabled(current.kolmi_enabled),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
             diff(
                 &current.mom_orbs,
                 &mut last.mom_orbs,
                 EntityUpdate::SetMomOrbs(current.mom_orbs),
-                &mut res,
+                res,
                 &mut had_any_delta,
             );
 

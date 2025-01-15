@@ -1,4 +1,5 @@
 use bitcode::{Decode, Encode};
+use std::num::NonZero;
 
 pub mod message_socket;
 
@@ -152,5 +153,5 @@ pub enum GameEffectEnum {
 pub enum GameEffectData {
     Normal(GameEffectEnum),
     Custom(String),
-    Projectile(Vec<u8>),
+    Projectile((NonZero<isize>, Vec<u8>)),
 }
