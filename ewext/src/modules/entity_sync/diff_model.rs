@@ -1,15 +1,13 @@
-use std::mem;
-
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
     BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent,
-    EntityID, ExplodeOnDamageComponent, IKLimbComponent, Inventory2Component, ItemComponent,
-    ItemCostComponent, ItemPickUpperComponent, LuaComponent, PhysData, PhysicsAIComponent,
-    PhysicsBody2Component, SpriteComponent, VariableStorageComponent, VelocityComponent,
-    WormComponent,
+    EntityID, ExplodeOnDamageComponent, IKLimbComponent, IKLimbWalkerComponent,
+    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent, LuaComponent,
+    PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent, VariableStorageComponent,
+    VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::{
@@ -19,6 +17,8 @@ use shared::{
     },
     NoitaOutbound, PeerId, WorldPos,
 };
+use std::mem;
+use std::num::Wrapping;
 
 use crate::{modules::ModuleCtx, my_peer_id, print_error};
 
@@ -125,7 +125,22 @@ impl LocalDiffModelTracker {
             entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
         {
             if let Some(wand) = inv.m_actual_active_item()? {
-                //info.wand = self.tracked.get_by_right(&wand).copied()
+                if let Some(gid) = wand
+                    .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                    .find_map(|var| {
+                        if var.name().ok()? == "ew_gid_lid" {
+                            Some(var.value_string().ok()?.parse::<u64>().ok()?)
+                        } else {
+                            None
+                        }
+                    })
+                {
+                    info.wand = Some(Gid(gid))
+                } else {
+                    //TODO should track the wand
+                }
+            } else {
+                info.wand = None
             }
         }
         info.kolmi_enabled = entity.has_tag("boss_centipede")
@@ -319,6 +334,10 @@ impl LocalDiffModel {
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
         })?;
+        let var = entity.add_component::<VariableStorageComponent>()?;
+        var.set_name("ew_gid_lid".into())?;
+        var.set_value_string(gid.0.to_string().into())?;
+        var.set_value_int(Wrapping(lid.0).0 as i32)?;
 
         let can_unload = entity
             .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
@@ -591,11 +610,6 @@ impl LocalDiffModel {
         self.tracker.pending_authority.push(full_entity_data);
     }
 
-    pub(crate) fn gid_by_entity(&self, entity: EntityID) -> Option<Gid> {
-        let lid = self.tracker.tracked.get_by_right(&entity)?;
-        Some(self.entity_entries.get(lid)?.gid)
-    }
-
     pub(crate) fn full_entity_data_for(&self, lid: Lid) -> Option<FullEntityData> {
         let entry_pair = self.entity_entries.get(&lid)?;
         Some(FullEntityData {
@@ -762,22 +776,55 @@ impl RemoteDiffModel {
                             }
                         }
                     }
-                    if entity_info.kolmi_enabled {
-                        if entity
+                    if let Some(gid) = entity_info.wand {
+                        let inv = if let Some(inv) = entity
+                            .try_get_first_component_including_disabled::<Inventory2Component>(
+                                None,
+                            )? {
+                            inv
+                        } else {
+                            entity.add_component::<Inventory2Component>()?
+                        };
+                        let mut stop = false;
+                        if let Some(wand) = inv.m_actual_active_item()? {
+                            if let Some(tgid) = wand
+                                .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                                .find_map(|var| {
+                                    if var.name().ok()? == "ew_gid_lid" {
+                                        Some(var.value_string().ok()?.parse::<u64>().ok()?)
+                                    } else {
+                                        None
+                                    }
+                                })
+                            {
+                                if gid != Gid(tgid) {
+                                    wand.kill()
+                                } else {
+                                    stop = true
+                                }
+                            } else {
+                                wand.kill()
+                            }
+                        }
+                        if !stop {
+                            //TODO spawn and grab wand
+                        }
+                    }
+                    if entity_info.kolmi_enabled
+                        && entity
                             .iter_all_components_of_type::<VariableStorageComponent>(None)?
                             .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
-                        {
-                            for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
-                                if lua.script_death()?.is_empty() {
-                                    entity.remove_component(*lua)?
-                                }
-                            }
-                            entity
-                                .add_component::<VariableStorageComponent>()?
-                                .set_name("ew_has_started".into())?;
-                        }
+                    {
                         entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                         entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                        entity.remove_all_components_of_type::<LuaComponent>()?;
+                        entity
+                            .add_component::<VariableStorageComponent>()?
+                            .set_name("ew_has_started".into())?;
+                        entity
+                            .children(Some("protection".into()))
+                            .iter()
+                            .for_each(|ent| ent.kill());
                     }
                     for (ent, (x, y)) in entity
                         .children(None)
@@ -788,6 +835,9 @@ impl RemoteDiffModel {
                         if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
                             limb.set_end_position((*x, *y))?;
                         }
+                        if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
+                            entity.remove_component(limb.0)?
+                        };
                     }
                     if entity_info.phys.is_empty() || entity_info.kolmi_enabled {
                         entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
