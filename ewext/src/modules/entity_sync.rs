@@ -6,7 +6,7 @@
 use std::sync::{Arc, LazyLock};
 
 use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
-use eyre::{Context, OptionExt};
+use eyre::{Context, ContextCompat, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
 use noita_api::{game_print, EntityID, ProjectileComponent};
@@ -18,7 +18,7 @@ use shared::{
     },
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
-
+use crate::my_peer_id;
 use super::{Module, NetManager};
 
 mod diff_model;
@@ -183,6 +183,16 @@ impl EntitySync {
     ) -> eyre::Result<()> {
         self.local_diff_model
             .death_notify(entity_killed, entity_responsible);
+        Ok(())
+    }
+
+    pub(crate) fn sync_projectile(&mut self,entity: EntityID, gid: Gid, peer: PeerId) -> eyre::Result<()> {
+        if peer == my_peer_id() {
+            self.local_diff_model.give_gid(gid);
+            self.local_diff_model.track_entity(entity, gid)?;
+        } else {
+            self.remote_models.get_mut(&peer).wrap_err("no peer")?.wait_for_gid(entity, gid);
+        }
         Ok(())
     }
 }

@@ -11,7 +11,7 @@ use std::{
     thread,
     time::Instant,
 };
-
+use std::num::NonZero;
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
 use eyre::{bail, Context, OptionExt};
@@ -28,7 +28,7 @@ use noita_api::{
 };
 use noita_api_macro::add_lua_fn;
 use shared::{NoitaInbound, PeerId, ProxyKV};
-
+use shared::des::Gid;
 mod addr_grabber;
 mod modules;
 mod net;
@@ -412,6 +412,20 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         add_lua_fn!(module_on_world_init);
         add_lua_fn!(module_on_world_update);
         add_lua_fn!(module_on_projectile_fired);
+
+        fn sync_projectile(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity = lua.to_string(1)?.parse::<isize>()?;
+                let peer = lua.to_string(2)?.parse::<u64>()?;
+                let rng = lua.to_string(3)?.parse::<i32>()?;
+                let gid = peer.overflowing_mul(rng.try_into()?).0;
+                let entity_sync = state.modules.entity_sync.as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                entity_sync.sync_projectile(EntityID(NonZero::try_from(entity)?), Gid(gid), PeerId(peer))?;
+                Ok(())
+            })?
+        }
+        add_lua_fn!(sync_projectile);
 
         fn des_item_thrown(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {

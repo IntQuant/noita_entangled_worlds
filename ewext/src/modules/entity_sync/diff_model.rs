@@ -9,7 +9,7 @@ use noita_api::{
     PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
     StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
 use shared::{
     des::{
@@ -19,10 +19,7 @@ use shared::{
     GameEffectData, NoitaOutbound, PeerId, WorldPos,
 };
 use std::mem;
-use std::num::Wrapping;
-
 use crate::{modules::ModuleCtx, my_peer_id, print_error};
-
 use super::NetManager;
 
 pub(crate) static DES_TAG: &str = "ew_des";
@@ -36,6 +33,7 @@ struct EntityEntryPair {
 
 struct LocalDiffModelTracker {
     tracked: BiHashMap<Lid, EntityID>,
+    give_gid: FxHashSet<Gid>,
     pending_removal: Vec<Lid>,
     pending_authority: Vec<FullEntityData>,
     pending_localize: Vec<(Lid, PeerId)>,
@@ -54,6 +52,7 @@ pub(crate) struct LocalDiffModel {
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
     entity_infos: FxHashMap<Lid, EntityInfo>,
+    waiting_for_lid: FxHashMap<Gid, EntityID>,
     /// Entities that we want to track again. Typically when we move authority locally from a different peer.
     backtrack: Vec<EntityID>,
     grab_request: Vec<Lid>,
@@ -68,6 +67,7 @@ impl Default for LocalDiffModel {
             entity_entries: Default::default(),
             tracker: LocalDiffModelTracker {
                 tracked: Default::default(),
+                give_gid: Default::default(),
                 pending_removal: Vec::with_capacity(16),
                 pending_authority: Vec::new(),
                 pending_localize: Vec::with_capacity(4),
@@ -350,6 +350,9 @@ impl LocalDiffModelTracker {
 }
 
 impl LocalDiffModel {
+    pub(crate) fn give_gid(&mut self, gid: Gid) {
+        self.tracker.give_gid.insert(gid);
+    }
     fn alloc_lid(&mut self) -> Lid {
         let ret = self.next_lid;
         self.next_lid.0 += 1;
@@ -381,7 +384,7 @@ impl LocalDiffModel {
         let var = entity.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         var.set_value_string(gid.0.to_string().into())?;
-        var.set_value_int(Wrapping(lid.0).0 as i32)?;
+        var.set_value_int(lid.0.try_into()?)?;
 
         if entity
             .try_get_first_component::<BossDragonComponent>(None)?
@@ -503,13 +506,16 @@ impl LocalDiffModel {
             EntityEntryPair {
                 last,
                 current,
-                gid: _,
+                gid,
             },
         ) in self.entity_entries.iter_mut()
         {
             res.push(EntityUpdate::CurrentEntity(lid));
             let Some(last) = last.as_mut() else {
                 *last = Some(current.clone());
+                if self.tracker.give_gid.remove(gid) {
+                    res.push(EntityUpdate::SendGid(*gid));
+                }
                 res.push(EntityUpdate::Init(Box::from(current.clone())));
                 continue;
             };
@@ -739,6 +745,9 @@ fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>
 }
 
 impl RemoteDiffModel {
+    pub(crate) fn wait_for_gid(&mut self, entity: EntityID, gid: Gid) {
+        self.waiting_for_lid.insert(gid, entity);
+    }
     pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) {
         let mut current_lid = Lid(0);
         let empty_data = &mut EntityInfo::default();
@@ -751,6 +760,11 @@ impl RemoteDiffModel {
                         .entity_infos
                         .get_mut(&current_lid)
                         .unwrap_or(empty_data)
+                }
+                EntityUpdate::SendGid(gid) => {
+                    if let Some(ent) = self.waiting_for_lid.remove(&gid) {
+                        self.tracked.insert(current_lid, ent);
+                    }
                 }
                 EntityUpdate::Init(entity_entry) => {
                     self.entity_infos.insert(current_lid, *entity_entry);
@@ -791,6 +805,7 @@ impl RemoteDiffModel {
                     EntityUpdate::SetKolmiEnabled(enabled) => ent_data.kolmi_enabled = enabled,
                     EntityUpdate::SetMomOrbs(orbs) => ent_data.mom_orbs = orbs,
                     EntityUpdate::CurrentEntity(_)
+                    | EntityUpdate::SendGid(_)
                     | EntityUpdate::Init(_)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },

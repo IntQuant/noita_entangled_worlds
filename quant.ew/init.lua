@@ -271,11 +271,11 @@ function OnProjectileFired(
         or n == "data/entities/projectiles/deck/white_hole_giga.xml"
         or EntityHasTag(projectile_id, "ew_projectile_position_sync")
     then
-        EntityAddComponent2(
-            projectile_id,
-            "VariableStorageComponent",
-            { _tags = "ew_global_item_id", value_string = shooter_player_data.peer_id .. ":" .. rng }
-        )
+        local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
+        if body ~= nil then
+            ComponentSetValue2(body, "destroy_body_if_entity_destroyed", true)
+        end
+        ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
         if shooter_player_data.peer_id ~= ctx.my_id then
             local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
             if proj ~= nil then

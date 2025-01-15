@@ -111,6 +111,7 @@ pub struct EntityInfo {
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
+    SendGid(Gid),
     Init(Box<EntityInfo>),
     // TODO diffing for position
     SetPosition(f32, f32),
