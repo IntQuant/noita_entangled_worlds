@@ -231,7 +231,7 @@ impl Module for EntitySync {
                 game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();
             }
-            let diff = self.local_diff_model.make_diff(ctx);
+            let (diff_local, diff_global) = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
             for peer in self.interest_tracker.iter_interested() {
                 send_remotedes(
@@ -244,9 +244,15 @@ impl Module for EntitySync {
                     ctx,
                     true,
                     Destination::Peer(peer),
-                    RemoteDes::EntityUpdate(diff.clone()),
+                    RemoteDes::EntityUpdate(diff_local.clone()),
                 )?;
             }
+            send_remotedes(
+                ctx,
+                true,
+                Destination::Broadcast,
+                RemoteDes::EntityUpdate(diff_global),
+            )?;
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         } else {
             for (owner, remote_model) in &mut self.remote_models {

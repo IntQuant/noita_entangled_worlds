@@ -180,7 +180,7 @@ impl LocalDiffModelTracker {
             .collect();
 
         // Check if entity went out of range, remove and release authority if it did.
-        if info.can_unload
+        if info.is_global
             && (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2)
         {
             self.release_authority(ctx, gid, lid)
@@ -379,7 +379,7 @@ impl LocalDiffModel {
                     current_stains: 0,
                     animations: Vec::new(),
                     wand: None,
-                    can_unload,
+                    is_global: can_unload,
                     drops_gold,
                     laser: Default::default(),
                     limbs: vec![],
@@ -452,8 +452,12 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn make_diff(&mut self, ctx: &mut ModuleCtx) -> Vec<EntityUpdate> {
-        let mut res = Vec::new();
+    pub(crate) fn make_diff(
+        &mut self,
+        ctx: &mut ModuleCtx,
+    ) -> (Vec<EntityUpdate>, Vec<EntityUpdate>) {
+        let mut res_local = Vec::new();
+        let mut res_global = Vec::new();
         for (
             &lid,
             EntityEntryPair {
@@ -463,6 +467,12 @@ impl LocalDiffModel {
             },
         ) in self.entity_entries.iter_mut()
         {
+            let mut res = if current.is_global {
+                &mut res_local
+            } else {
+                &mut res_global
+            };
+
             res.push(EntityUpdate::CurrentEntity(lid));
             let Some(last) = last.as_mut() else {
                 *last = Some(current.clone());
@@ -582,7 +592,15 @@ impl LocalDiffModel {
             }
         }
         for (lid, peer) in self.tracker.pending_localize.drain(..) {
-            res.push(EntityUpdate::LocalizeEntity(lid, peer));
+            let Some(entry) = self.entity_entries.get(&lid) else {
+                continue;
+            };
+            let update = EntityUpdate::LocalizeEntity(lid, peer);
+            if entry.current.is_global {
+                res_global.push(update);
+            } else {
+                res_local.push(update);
+            }
         }
 
         for (killed, responsible) in self.tracker.pending_death_notify.drain(..) {
@@ -592,19 +610,35 @@ impl LocalDiffModel {
             let Some(lid) = self.tracker.tracked.get_by_right(&killed).copied() else {
                 continue;
             };
-            res.push(EntityUpdate::KillEntity {
+            let Some(entry) = self.entity_entries.get(&lid) else {
+                continue;
+            };
+            let update = EntityUpdate::KillEntity {
                 lid,
                 responsible_peer,
-            });
+            };
+            if entry.current.is_global {
+                res_global.push(update);
+            } else {
+                res_local.push(update);
+            }
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
-            res.push(EntityUpdate::RemoveEntity(lid));
+            let update = EntityUpdate::RemoveEntity(lid);
+            let Some(entry) = self.entity_entries.get(&lid) else {
+                continue;
+            };
+            if entry.current.is_global {
+                res_global.push(update);
+            } else {
+                res_local.push(update);
+            }
             // "Untrack" entity
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
         }
-        res
+        (res_local, res_global)
     }
 
     pub(crate) fn lid_by_entity(&self, entity: EntityID) -> Option<Lid> {

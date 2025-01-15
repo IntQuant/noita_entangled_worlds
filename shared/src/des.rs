@@ -96,7 +96,7 @@ pub struct EntityInfo {
     pub current_stains: u64,
     pub animations: Vec<u16>,
     pub wand: Option<Gid>,
-    pub can_unload: bool,
+    pub is_global: bool,
     pub drops_gold: bool,
     pub laser: PeerId,
     pub limbs: Vec<(f32, f32)>,
