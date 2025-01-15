@@ -779,6 +779,11 @@ impl RemoteDiffModel {
                                     if let Ok(n) = var.value_int() {
                                         if (entity_info.mom_orbs & (1 << (n as u8))) == 0 {
                                             ent.kill()
+                                        } else if let Ok(damage) =
+                                            ent.get_first_component::<DamageModelComponent>(None)
+                                        {
+                                            damage.set_wait_for_kill_flag_on_death(true)?;
+                                            damage.set_hp(damage.max_hp()?)?;
                                         }
                                     }
                                 }
