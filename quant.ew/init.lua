@@ -94,7 +94,7 @@ local function load_modules()
 
     ctx.load_system("player_tether")
 
-    -- ctx.load_system("kolmi") -- TODO
+    ctx.load_system("kolmi")
     ctx.load_system("ending")
     ctx.load_system("spell_patches")
     ctx.load_system("enemy_scaling")

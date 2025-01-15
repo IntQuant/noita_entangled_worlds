@@ -90,7 +90,7 @@ function rpc.kolmi_shield(is_on, orbcount)
     switch_shield(kolmi, is_on)
 end
 
-util.add_cross_call("ew_sampo_spawned", function()
+--[[util.add_cross_call("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
     if sampo_ent == nil or sampo_ent == 0 then
         -- In case sampo wasn't actually spawned.
@@ -101,11 +101,11 @@ util.add_cross_call("ew_sampo_spawned", function()
         local pickup_component = EntityGetFirstComponentIncludingDisabled(sampo_ent, "LuaComponent")
         -- Remove it as to not handle pickup twice.
         EntityRemoveComponent(sampo_ent, pickup_component)
-        ctx.cap.item_sync.globalize(sampo_ent)
+        --ctx.cap.item_sync.globalize(sampo_ent)
     else
         EntityKill(sampo_ent)
     end
-end)
+end)]]
 
 util.add_cross_call("ew_kolmi_spawn_portal", rpc.spawn_portal)
 
@@ -113,7 +113,7 @@ util.add_cross_call("ew_kolmi_anim", rpc.kolmi_anim)
 
 util.add_cross_call("ew_kolmi_shield", rpc.kolmi_shield)
 
-ctx.cap.item_sync.register_pickup_handler(function(item_id)
+--[[ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
         -- Check if it's the first time we pick it up to avoid that sound on later pickups.
         if not GameHasFlagRun("ew_sampo_picked") then
@@ -125,6 +125,6 @@ ctx.cap.item_sync.register_pickup_handler(function(item_id)
             rpc.kolmi_shield(true, orbcount)
         end
     end
-end)
+end)]]
 
 return module

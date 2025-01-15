@@ -218,17 +218,22 @@ impl LocalDiffModelTracker {
             info.animations = sprites
                 .filter_map(|sprite| {
                     if let Ok(file) = sprite.image_file() {
-                        if let Ok(text) = noita_api::raw::mod_text_file_get_content(file) {
-                            let mut split = text.split("name=\"");
-                            split.next();
-                            let data: Vec<&str> =
-                                split.filter_map(|piece| piece.split("\"").next()).collect();
-                            let animation = sprite.rect_animation().unwrap_or("".into());
-                            Some(
-                                data.iter()
-                                    .position(|name| name == &animation)
-                                    .unwrap_or(usize::MAX) as u16,
-                            )
+                        if file.ends_with(".xml") {
+                            if let Ok(text) = noita_api::raw::mod_text_file_get_content(file) {
+                                let mut split = text.split("name=\"");
+                                split.next();
+                                let data: Vec<&str> =
+                                    split.filter_map(|piece| piece.split("\"").next()).collect();
+                                let animation = sprite.rect_animation().unwrap_or("".into());
+                                Some(
+                                    data.iter()
+                                        .position(|name| name == &animation)
+                                        .unwrap_or(usize::MAX)
+                                        as u16,
+                                )
+                            } else {
+                                None
+                            }
                         } else {
                             None
                         }
@@ -917,7 +922,15 @@ impl RemoteDiffModel {
 
                     if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None)
                     {
-                        for (sprite, animation) in sprites.zip(entity_info.animations.iter()) {
+                        for (sprite, animation) in sprites
+                            .filter(|sprite| {
+                                sprite
+                                    .image_file()
+                                    .map(|c| c.ends_with(".xml"))
+                                    .unwrap_or(false)
+                            })
+                            .zip(entity_info.animations.iter())
+                        {
                             if *animation == u16::MAX {
                                 continue;
                             }
