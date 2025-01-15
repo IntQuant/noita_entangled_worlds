@@ -1,13 +1,17 @@
+use super::NetManager;
+use crate::{modules::ModuleCtx, my_peer_id, print_error, ExtState};
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt};
+use noita_api::raw::raytrace_platforms;
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
     BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent,
     EntityID, ExplodeOnDamageComponent, IKLimbComponent, IKLimbWalkerComponent,
-    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent, LuaComponent,
-    PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
-    StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
+    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
+    LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
+    SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent,
+    WormComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
@@ -19,8 +23,6 @@ use shared::{
     GameEffectData, NoitaOutbound, PeerId, WorldPos,
 };
 use std::mem;
-use crate::{modules::ModuleCtx, my_peer_id, print_error};
-use super::NetManager;
 
 pub(crate) static DES_TAG: &str = "ew_des";
 pub(crate) static DES_SCRIPTS_TAG: &str = "ew_des_lua";
@@ -52,6 +54,7 @@ pub(crate) struct LocalDiffModel {
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
     entity_infos: FxHashMap<Lid, EntityInfo>,
+    lid_to_gid: FxHashMap<Lid, Gid>,
     waiting_for_lid: FxHashMap<Gid, EntityID>,
     /// Entities that we want to track again. Typically when we move authority locally from a different peer.
     backtrack: Vec<EntityID>,
@@ -230,26 +233,19 @@ impl LocalDiffModelTracker {
         if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
             info.animations = sprites
                 .filter_map(|sprite| {
-                    if let Ok(file) = sprite.image_file() {
-                        if file.ends_with(".xml") {
-                            if let Ok(text) = noita_api::raw::mod_text_file_get_content(file) {
-                                let mut split = text.split("name=\"");
-                                split.next();
-                                let data: Vec<&str> =
-                                    split.filter_map(|piece| piece.split("\"").next()).collect();
-                                let animation = sprite.rect_animation().unwrap_or("".into());
-                                Some(
-                                    data.iter()
-                                        .position(|name| name == &animation)
-                                        .unwrap_or(usize::MAX)
-                                        as u16,
-                                )
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
+                    let file = sprite.image_file().ok()?;
+                    if file.ends_with(".xml") {
+                        let text = noita_api::raw::mod_text_file_get_content(file).ok()?;
+                        let mut split = text.split("name=\"");
+                        split.next();
+                        let data: Vec<&str> =
+                            split.filter_map(|piece| piece.split("\"").next()).collect();
+                        let animation = sprite.rect_animation().unwrap_or("".into());
+                        Some(
+                            data.iter()
+                                .position(|name| name == &animation)
+                                .unwrap_or(usize::MAX) as u16,
+                        )
                     } else {
                         None
                     }
@@ -257,6 +253,23 @@ impl LocalDiffModelTracker {
                 .collect();
         } else {
             info.animations.clear()
+        }
+
+        info.laser = None;
+        if !entity
+            .iter_all_components_of_type::<SpriteComponent>(Some("laser_sight".into()))?
+            .collect::<Vec<SpriteComponent>>()
+            .is_empty()
+            && &entity.name()? != "$animal_turret"
+        {
+            let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
+            if let Some(target) = ai.m_greatest_prey()? {
+                if let Ok(var) = target
+                    .get_first_component::<VariableStorageComponent>(Some("ew_peer_id".into()))
+                {
+                    info.laser = Some(PeerId(var.value_string()?.parse::<u64>()?))
+                }
+            }
         }
 
         Ok(())
@@ -501,22 +514,11 @@ impl LocalDiffModel {
 
     pub(crate) fn make_diff(&mut self, ctx: &mut ModuleCtx) -> Vec<EntityUpdate> {
         let mut res = Vec::new();
-        for (
-            &lid,
-            EntityEntryPair {
-                last,
-                current,
-                gid,
-            },
-        ) in self.entity_entries.iter_mut()
-        {
+        for (&lid, EntityEntryPair { last, current, gid }) in self.entity_entries.iter_mut() {
             res.push(EntityUpdate::CurrentEntity(lid));
             let Some(last) = last.as_mut() else {
                 *last = Some(current.clone());
-                if self.tracker.give_gid.remove(gid) {
-                    res.push(EntityUpdate::SendGid(*gid));
-                }
-                res.push(EntityUpdate::Init(Box::from(current.clone())));
+                res.push(EntityUpdate::Init(Box::from(current.clone()), *gid));
                 continue;
             };
             let mut had_any_delta = false;
@@ -761,12 +763,11 @@ impl RemoteDiffModel {
                         .get_mut(&current_lid)
                         .unwrap_or(empty_data)
                 }
-                EntityUpdate::SendGid(gid) => {
+                EntityUpdate::Init(entity_entry, gid) => {
                     if let Some(ent) = self.waiting_for_lid.remove(&gid) {
                         self.tracked.insert(current_lid, ent);
                     }
-                }
-                EntityUpdate::Init(entity_entry) => {
+                    self.lid_to_gid.insert(current_lid, gid);
                     self.entity_infos.insert(current_lid, *entity_entry);
                     ent_data = self
                         .entity_infos
@@ -805,8 +806,7 @@ impl RemoteDiffModel {
                     EntityUpdate::SetKolmiEnabled(enabled) => ent_data.kolmi_enabled = enabled,
                     EntityUpdate::SetMomOrbs(orbs) => ent_data.mom_orbs = orbs,
                     EntityUpdate::CurrentEntity(_)
-                    | EntityUpdate::SendGid(_)
-                    | EntityUpdate::Init(_)
+                    | EntityUpdate::Init(_, _)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },
                 _ => {}
@@ -1010,6 +1010,51 @@ impl RemoteDiffModel {
                             }
                         }
                     }
+                    let laser = entity.try_get_first_component::<LaserEmitterComponent>(None)?;
+                    if let Some(peer) = entity_info.laser {
+                        let laser = if let Some(laser) = laser {
+                            laser
+                        } else {
+                            let laser = entity.add_component::<LaserEmitterComponent>()?;
+                            laser.object_set_value::<i32>(
+                                "laser",
+                                "max_cell_durability_to_destroy",
+                                0,
+                            )?;
+                            laser.object_set_value::<i32>("laser", "damage_to_cells", 0)?;
+                            laser.object_set_value::<i32>("laser", "max_length", 1024)?;
+                            laser.object_set_value::<i32>("laser", "beam_radius", 0)?;
+                            laser.object_set_value::<i32>("laser", "beam_particle_chance", 75)?;
+                            laser.object_set_value::<i32>("laser", "beam_particle_fade", 0)?;
+                            laser.object_set_value::<i32>("laser", "hit_particle_chance", 0)?;
+                            laser.object_set_value::<bool>("laser", "audio_enabled", false)?;
+                            laser.object_set_value::<i32>("laser", "damage_to_entities", 0)?;
+                            laser.object_set_value::<i32>("laser", "beam_particle_type", 225)?;
+                            laser
+                        };
+                        ExtState::with_global(|state| {
+                            if let Some(ent) = state.player_entity_map.get_by_left(&peer) {
+                                let (x, y) = entity.position()?;
+                                let (tx, ty) = ent.position()?;
+                                if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0
+                                {
+                                    laser.set_is_emitting(true)?;
+                                    let (dx, dy) = (tx - x, ty - y);
+                                    let theta = dy.atan2(dx);
+                                    laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
+                                    laser.object_set_value::<f32>(
+                                        "laser",
+                                        "max_length",
+                                        dx.hypot(dy),
+                                    )?;
+                                }
+                            }
+                            let a: eyre::Result<()> = Ok(());
+                            a
+                        })??;
+                    } else if let Some(laser) = laser {
+                        laser.set_is_emitting(false)?;
+                    }
                 }
                 None => {
                     let entity = spawn_entity_by_data(
@@ -1017,7 +1062,7 @@ impl RemoteDiffModel {
                         entity_info.x,
                         entity_info.y,
                     )?;
-                    self.init_remote_entity(entity, entity_info.drops_gold)?;
+                    self.init_remote_entity(entity, *lid, entity_info.drops_gold)?;
                     self.tracked.insert(*lid, entity);
                 }
             }
@@ -1079,7 +1124,7 @@ impl RemoteDiffModel {
     /// Modifies a newly spawned entity so it can be synced properly.
     /// Removes components that shouldn't be on entities that were replicated from a remote,
     /// generally because they interfere with things we're supposed to sync.
-    fn init_remote_entity(&self, entity: EntityID, drops_gold: bool) -> eyre::Result<()> {
+    fn init_remote_entity(&self, entity: EntityID, lid: Lid, drops_gold: bool) -> eyre::Result<()> {
         entity.remove_all_components_of_type::<CameraBoundComponent>()?;
         entity.remove_all_components_of_type::<AnimalAIComponent>()?;
         entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
@@ -1123,6 +1168,13 @@ impl RemoteDiffModel {
                 }
             }
         }
+
+        let var = entity.add_component::<VariableStorageComponent>()?;
+        var.set_name("ew_gid_lid".into())?;
+        if let Some(gid) = self.lid_to_gid.get(&lid) {
+            var.set_value_string(gid.0.to_string().into())?;
+        }
+        var.set_value_int(lid.0.try_into()?)?;
 
         Ok(())
     }

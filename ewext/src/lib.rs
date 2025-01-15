@@ -2,6 +2,10 @@
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() {}
 
+use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
+use bimap::BiHashMap;
+use eyre::{bail, Context, OptionExt};
+use std::num::NonZero;
 use std::{
     arch::asm,
     borrow::Cow,
@@ -11,10 +15,6 @@ use std::{
     thread,
     time::Instant,
 };
-use std::num::NonZero;
-use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
-use bimap::BiHashMap;
-use eyre::{bail, Context, OptionExt};
 
 use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
@@ -27,8 +27,8 @@ use noita_api::{
     DamageModelComponent, EntityID,
 };
 use noita_api_macro::add_lua_fn;
-use shared::{NoitaInbound, PeerId, ProxyKV};
 use shared::des::Gid;
+use shared::{NoitaInbound, PeerId, ProxyKV};
 mod addr_grabber;
 mod modules;
 mod net;
@@ -419,9 +419,16 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 let peer = lua.to_string(2)?.parse::<u64>()?;
                 let rng = lua.to_string(3)?.parse::<i32>()?;
                 let gid = peer.overflowing_mul(rng.try_into()?).0;
-                let entity_sync = state.modules.entity_sync.as_mut()
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                entity_sync.sync_projectile(EntityID(NonZero::try_from(entity)?), Gid(gid), PeerId(peer))?;
+                entity_sync.sync_projectile(
+                    EntityID(NonZero::try_from(entity)?),
+                    Gid(gid),
+                    PeerId(peer),
+                )?;
                 Ok(())
             })?
         }

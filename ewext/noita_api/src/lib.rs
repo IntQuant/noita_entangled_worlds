@@ -6,6 +6,7 @@ use std::{
     num::{NonZero, TryFromIntError},
     ops::Deref,
 };
+use crate::lua::LuaPutValue;
 pub mod lua;
 pub mod serialize;
 
@@ -34,6 +35,10 @@ impl EntityID {
     /// Corresponds to EntityGetIsAlive from lua api.
     pub fn is_alive(self) -> bool {
         raw::entity_get_is_alive(self).unwrap_or(false)
+    }
+    
+    pub fn name(self) -> eyre::Result<String> {
+        raw::entity_get_name(self).map(|s| s.to_string())
     }
 
     pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
@@ -360,6 +365,15 @@ impl ComponentID {
     pub fn remove_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
         raw::component_remove_tag(self, tag.as_ref().into())
     }
+
+    pub fn object_set_value<T>(self, object: &str, key: &str, value: T) -> eyre::Result<()>
+    where
+        T: LuaPutValue
+    {
+        raw::component_object_set_value::<T>(
+            self, object, key, value)?;
+        Ok(())
+    }
 }
 
 pub fn game_print(value: impl AsRef<str>) {
@@ -414,6 +428,27 @@ pub mod raw {
         Ok(())
     }
 
+    pub(crate) fn component_object_set_value<T>(
+        component: ComponentID,
+        object: &str,
+        field: &str,
+        value: T,
+    ) -> eyre::Result<()>
+    where
+        T: LuaPutValue,
+    {
+        let lua = LuaState::current()?;
+        lua.get_global(c"ComponentObjectSetValue2");
+        lua.push_integer(component.0.into());
+        lua.push_string(object);
+        lua.push_string(field);
+        value.put(lua);
+        lua.call((2 + T::SIZE_ON_STACK).try_into()?, 0)
+            .wrap_err("Failed to call ComponentObjectSetValue2")?;
+        Ok(())
+    }
+
+    
     pub fn physics_body_id_get_transform(body: PhysicsBodyID) -> eyre::Result<Option<PhysData>> {
         let lua = LuaState::current()?;
         lua.get_global(c"PhysicsBodyIDGetTransform");

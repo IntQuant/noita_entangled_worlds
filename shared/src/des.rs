@@ -100,7 +100,7 @@ pub struct EntityInfo {
     pub wand: Option<Gid>,
     pub is_global: bool,
     pub drops_gold: bool,
-    pub laser: PeerId,
+    pub laser: Option<PeerId>,
     pub limbs: Vec<(f32, f32)>,
     pub kolmi_enabled: bool,
     pub mom_orbs: u8,
@@ -111,8 +111,7 @@ pub struct EntityInfo {
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
-    SendGid(Gid),
-    Init(Box<EntityInfo>),
+    Init(Box<EntityInfo>, Gid),
     // TODO diffing for position
     SetPosition(f32, f32),
     SetRotation(f32),
@@ -131,7 +130,7 @@ pub enum EntityUpdate {
     SetGameEffects(Option<Vec<GameEffectData>>),
     SetAnimations(Vec<u16>),
     SetWand(Option<Gid>),
-    SetLaser(PeerId),
+    SetLaser(Option<PeerId>),
     SetLimbs(Vec<(f32, f32)>),
     SetKolmiEnabled(bool),
     SetMomOrbs(u8),
