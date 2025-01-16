@@ -315,7 +315,9 @@ function OnProjectileFiredPost(
     end
 end
 
-util.add_cross_call("ew_is_wand_pickup", function() return ctx.is_wand_pickup end)
+util.add_cross_call("ew_is_wand_pickup", function()
+    return ctx.is_wand_pickup
+end)
 
 function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_paused = paused

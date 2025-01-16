@@ -194,10 +194,7 @@ impl EntityID {
                             effects.push((GameEffectData::Custom(file), ent))
                         } else if let Ok(data) = serialize::serialize_entity(ent) {
                             let n = ent.filename().unwrap_or(String::new());
-                            effects.push((
-                                GameEffectData::Projectile((n, data)),
-                                ent,
-                            ))
+                            effects.push((GameEffectData::Projectile((n, data)), ent))
                         }
                     } else if let Ok(data) = serialize::serialize_entity(ent) {
                         let n = ent.filename().unwrap_or(String::new());

@@ -1,5 +1,4 @@
 use bitcode::{Decode, Encode};
-use std::num::NonZero;
 
 pub mod message_socket;
 
