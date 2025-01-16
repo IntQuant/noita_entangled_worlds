@@ -1,8 +1,8 @@
 use super::NetManager;
 use crate::{modules::ModuleCtx, my_peer_id, print_error, ExtState};
 use bimap::BiHashMap;
-use eyre::{Context, OptionExt};
-use noita_api::raw::raytrace_platforms;
+use eyre::{Context, ContextCompat, OptionExt};
+use noita_api::raw::{entity_create_new, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
@@ -139,9 +139,9 @@ impl LocalDiffModelTracker {
                         }
                     })
                 {
-                    info.wand = Some(Gid(gid))
+                    info.wand = Some((Gid(gid), serialize_entity(wand)?));
                 } else {
-                    //TODO should track the wand
+                    info.wand = Some((Gid(0), serialize_entity(wand)?));
                 }
             } else {
                 info.wand = None
@@ -536,6 +536,11 @@ impl LocalDiffModel {
                     *had_any_delta = true;
                 }
             }
+            if current.wand.clone().map(|(g, _)| g) != last.wand.clone().map(|(g, _)| g) {
+                res.push(EntityUpdate::SetWand(current.wand.clone()));
+                last.wand = current.wand.clone();
+                had_any_delta = true;
+            }
             diff(
                 &(current.x, current.y),
                 &mut (last.x, last.y),
@@ -589,13 +594,6 @@ impl LocalDiffModel {
                 &current.animations,
                 &mut last.animations,
                 EntityUpdate::SetAnimations(current.animations.clone()),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.wand,
-                &mut last.wand,
-                EntityUpdate::SetWand(current.wand),
                 &mut res,
                 &mut had_any_delta,
             );
@@ -845,7 +843,7 @@ impl RemoteDiffModel {
                             }
                         }
                     }
-                    if let Some(gid) = entity_info.wand {
+                    if let Some((gid, seri)) = &entity_info.wand {
                         let inv = if let Some(inv) = entity
                             .try_get_first_component_including_disabled::<Inventory2Component>(
                                 None,
@@ -866,7 +864,7 @@ impl RemoteDiffModel {
                                     }
                                 })
                             {
-                                if gid != Gid(tgid) {
+                                if *gid != Gid(tgid) {
                                     wand.kill()
                                 } else {
                                     stop = true
@@ -876,7 +874,25 @@ impl RemoteDiffModel {
                             }
                         }
                         if !stop {
-                            //TODO spawn and grab wand
+                            let (x, y) = entity.position()?;
+                            let wand = deserialize_entity(seri, x, y)?;
+                            let quick = if let Some(quick) =
+                                entity.children(None).iter().find_map(|a| {
+                                    if a.name().ok()? == "inventory_quick" {
+                                        Some(a)
+                                    } else {
+                                        None
+                                    }
+                                }) {
+                                *quick
+                            } else {
+                                let quick = entity_create_new(Some("inventory_quick".into()))?
+                                    .wrap_err("unreachable")?;
+                                entity.add_child(quick);
+                                quick
+                            };
+                            quick.add_child(wand);
+                            //TODO set active item?
                         }
                     }
                     if entity_info.kolmi_enabled
