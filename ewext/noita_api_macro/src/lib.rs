@@ -21,6 +21,8 @@ enum Typ {
     StdString,
     #[serde(rename = "vec2")]
     Vec2,
+    #[serde(rename = "vec_float")]
+    VectorFloat,
     EntityID,
     #[serde(rename = "int64")]
     Int64,
@@ -40,6 +42,7 @@ impl Typ {
             Typ::Bool => quote!(bool),
             Typ::StdString => quote!(Cow<'_, str>),
             Typ::Vec2 => quote! {(f32, f32)},
+            Typ::VectorFloat => quote! {Vec<f32>},
             Typ::EntityID => quote! { Option<EntityID> },
             Typ::Int64 => quote! { i64 },
             Typ::GameEffectEnum => quote! { GameEffectEnum },

@@ -228,7 +228,7 @@ impl LocalDiffModelTracker {
                 .collect::<Vec<GameEffectData>>()
         });
 
-        info.current_stains = entity.get_current_stains();
+        info.current_stains = entity.get_current_stains()?;
 
         if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
             info.animations = sprites
@@ -998,7 +998,7 @@ impl RemoteDiffModel {
 
                     entity.set_game_effects(&entity_info.game_effects);
 
-                    entity.set_current_stains(entity_info.current_stains);
+                    entity.set_current_stains(entity_info.current_stains)?;
 
                     if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None)
                     {

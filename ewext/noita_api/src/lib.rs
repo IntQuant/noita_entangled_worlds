@@ -203,9 +203,6 @@ impl EntityID {
     }
 
     pub fn set_game_effects(self, game_effect: &Option<Vec<GameEffectData>>) {
-        if !self.is_alive() {
-            return;
-        }
         fn set_frames(ent: EntityID) -> eyre::Result<()> {
             if let Some(effect) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)?
@@ -320,16 +317,27 @@ impl EntityID {
         let _ = raw::entity_add_child(self.0.get() as i32, child.0.get() as i32);
     }
 
-    pub fn get_current_stains(self) -> u64 {
-        //todo!()
-        0
+    pub fn get_current_stains(self) -> eyre::Result<u64> {
+        let mut current = 0;
+        if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
+            for (i, v) in status.0.stain_effects()?.iter().enumerate() {
+                if *v >= 0.15 {
+                    current += 1 << i
+                }
+            }
+        }
+        Ok(current)
     }
 
-    pub fn set_current_stains(self, _current_stains: u64) {
-        /*if !self.is_alive() {
-            return;
-        }*/
-        //todo!()
+    pub fn set_current_stains(self, current_stains: u64) -> eyre::Result<()> {
+        if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
+            for (i, v) in status.0.stain_effects()?.iter().enumerate() {
+                if *v >= 0.15 && current_stains & (1 << i) == 0 {
+                    raw::entity_remove_stain_status_effect(self.0.get() as i32, i.to_string().into(), None)?
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn set_components_with_tag_enabled(
@@ -373,6 +381,10 @@ impl ComponentID {
         raw::component_object_set_value::<T>(
             self, object, key, value)?;
         Ok(())
+    }
+    
+    pub fn stain_effects(self) -> eyre::Result<Vec<f32>> {
+        raw::component_get_value(self, "stain_effects")
     }
 }
 
