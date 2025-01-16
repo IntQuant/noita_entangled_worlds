@@ -36,7 +36,7 @@ impl EntityID {
     pub fn is_alive(self) -> bool {
         raw::entity_get_is_alive(self).unwrap_or(false)
     }
-    
+
     pub fn name(self) -> eyre::Result<String> {
         raw::entity_get_name(self).map(|s| s.to_string())
     }
@@ -382,7 +382,7 @@ impl ComponentID {
             self, object, key, value)?;
         Ok(())
     }
-    
+
     pub fn stain_effects(self) -> eyre::Result<Vec<f32>> {
         raw::component_get_value(self, "stain_effects")
     }
@@ -460,7 +460,7 @@ pub mod raw {
         Ok(())
     }
 
-    
+
     pub fn physics_body_id_get_transform(body: PhysicsBodyID) -> eyre::Result<Option<PhysData>> {
         let lua = LuaState::current()?;
         lua.get_global(c"PhysicsBodyIDGetTransform");
