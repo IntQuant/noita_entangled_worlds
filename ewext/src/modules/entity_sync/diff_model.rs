@@ -1301,11 +1301,14 @@ fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
 }
 
 fn safe_entitykill(entity: EntityID) {
-    let is_wand = entity
-        .try_get_first_component_including_disabled::<AbilityComponent>(None)
-        .transpose()
-        .is_some();
-    if is_wand {
+    let is_wand = entity.try_get_first_component_including_disabled::<AbilityComponent>(None);
+    if is_wand
+        .map(|a| {
+            a.map(|b| b.use_gun_script().unwrap_or(false))
+                .unwrap_or(false)
+        })
+        .unwrap_or(false)
+    {
         let _ = _safe_wandkill(entity);
     } else {
         entity.kill();
