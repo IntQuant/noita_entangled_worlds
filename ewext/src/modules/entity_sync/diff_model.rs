@@ -921,7 +921,7 @@ impl RemoteDiffModel {
                             limb.set_end_position((*x, *y))?;
                         }
                         if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
-                            entity.remove_component(limb.0)?
+                            entity.remove_component(*limb)?
                         };
                     }
                     if entity_info.phys.is_empty() || entity_info.kolmi_enabled {
@@ -1280,10 +1280,10 @@ fn with_entity_scripts<T>(
         .transpose()
         .unwrap_or_else(|| {
             let component = entity.add_component::<LuaComponent>()?;
-            component.0.add_tag(DES_SCRIPTS_TAG)?;
-            component.0.add_tag("enabled_in_inventory")?;
-            component.0.add_tag("enabled_in_world")?;
-            component.0.add_tag("enabled_in_hand")?;
+            component.add_tag(DES_SCRIPTS_TAG)?;
+            component.add_tag("enabled_in_inventory")?;
+            component.add_tag("enabled_in_world")?;
+            component.add_tag("enabled_in_hand")?;
             Ok(component)
         })?;
     f(component)
