@@ -5,13 +5,13 @@ use eyre::{Context, ContextCompat, OptionExt};
 use noita_api::raw::{entity_create_new, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
-    game_print, AIAttackComponent, AdvancedFishAIComponent, AnimalAIComponent, BossDragonComponent,
-    BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent,
-    EntityID, ExplodeOnDamageComponent, IKLimbComponent, IKLimbWalkerComponent,
-    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
-    LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
-    SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent,
-    WormComponent,
+    game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    BossDragonComponent, BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent,
+    DamageModelComponent, EntityID, ExplodeOnDamageComponent, IKLimbComponent,
+    IKLimbWalkerComponent, Inventory2Component, ItemComponent, ItemCostComponent,
+    ItemPickUpperComponent, LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent,
+    PhysicsBody2Component, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent,
+    VelocityComponent, WormComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
@@ -1289,7 +1289,25 @@ fn with_entity_scripts<T>(
     f(component)
 }
 
+/// If it's a wand, it might be in a pickup screen currently, and deleting it will crash the game.
+fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
+    let lc = entity.add_component::<LuaComponent>()?;
+    lc.set_script_source_file(
+        "mods/quant.ew/files/system/entity_sync_helper/scripts/killself.lua".into(),
+    )?;
+    lc.set_execute_on_added(false)?;
+    lc.set_m_next_execution_time(noita_api::raw::game_get_frame_num()? + 1)?;
+    Ok(())
+}
+
 fn safe_entitykill(entity: EntityID) {
-    // TODO
-    entity.kill();
+    let is_wand = entity
+        .try_get_first_component_including_disabled::<AbilityComponent>(None)
+        .transpose()
+        .is_some();
+    if is_wand {
+        let _ = _safe_wandkill(entity);
+    } else {
+        entity.kill();
+    }
 }
