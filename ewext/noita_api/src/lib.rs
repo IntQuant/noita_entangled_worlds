@@ -1,12 +1,13 @@
+use crate::lua::LuaPutValue;
 use crate::serialize::deserialize_entity;
 use eyre::{eyre, Context, OptionExt};
 use shared::{GameEffectData, GameEffectEnum};
+use std::collections::HashMap;
 use std::{
     borrow::Cow,
     num::{NonZero, TryFromIntError},
     ops::Deref,
 };
-use crate::lua::LuaPutValue;
 pub mod lua;
 pub mod serialize;
 
@@ -169,10 +170,17 @@ impl EntityID {
 
     pub fn get_game_effects(self) -> Option<Vec<(GameEffectData, EntityID)>> {
         let mut effects = Vec::new();
+        let mut name_to_n: HashMap<String, i32> = HashMap::default();
         for ent in self.children(None) {
             if ent.has_tag("projectile") {
                 if let Ok(data) = serialize::serialize_entity(ent) {
-                    effects.push((GameEffectData::Projectile((ent.0, data)), ent))
+                    let n = ent.filename().unwrap_or(String::new());
+                    let num = name_to_n.entry(n.clone()).or_insert(0);
+                    *num += 1;
+                    effects.push((
+                        GameEffectData::Projectile((format!("{}{}", n, num), data)),
+                        ent,
+                    ));
                 }
             } else if let Some(effect) = ent
                 .try_get_first_component_including_disabled::<GameEffectComponent>(None)
@@ -185,10 +193,20 @@ impl EntityID {
                         if !file.is_empty() {
                             effects.push((GameEffectData::Custom(file), ent))
                         } else if let Ok(data) = serialize::serialize_entity(ent) {
-                            effects.push((GameEffectData::Projectile((ent.0, data)), ent))
+                            let n = ent.filename().unwrap_or(String::new());
+                            effects.push((
+                                GameEffectData::Projectile((n, data)),
+                                ent,
+                            ))
                         }
                     } else if let Ok(data) = serialize::serialize_entity(ent) {
-                        effects.push((GameEffectData::Projectile((ent.0, data)), ent))
+                        let n = ent.filename().unwrap_or(String::new());
+                        let num = name_to_n.entry(n.clone()).or_insert(0);
+                        *num += 1;
+                        effects.push((
+                            GameEffectData::Projectile((format!("{}{}", n, num), data)),
+                            ent,
+                        ))
                     }
                 } else {
                     effects.push((GameEffectData::Normal(name), ent))
@@ -231,21 +249,17 @@ impl EntityID {
             }
             let local_effects = self.get_game_effects().unwrap_or_default();
             for effect in game_effect {
-                if let Some(ent) = local_effects.iter().find_map(|(e, ent)| {
-                    if match (e, effect) {
-                        (GameEffectData::Normal(e1), GameEffectData::Normal(e2)) => e1 == e2,
-                        (GameEffectData::Custom(e1), GameEffectData::Custom(e2)) => e1 == e2,
-                        (
-                            GameEffectData::Projectile((e1, _)),
-                            GameEffectData::Projectile((e2, _)),
-                        ) => e1 == e2,
-                        _ => false,
-                    } {
-                        Some(ent)
-                    } else {
-                        None
-                    }
-                }) {
+                if let Some(ent) =
+                    local_effects.iter().find_map(
+                        |(e, ent)| {
+                            if e == effect {
+                                Some(ent)
+                            } else {
+                                None
+                            }
+                        },
+                    )
+                {
                     let _ = set_frames(*ent);
                 } else {
                     let ent = match effect {
@@ -286,14 +300,7 @@ impl EntityID {
             }
             let local_effects = self.get_game_effects().unwrap_or_default();
             for (effect, ent) in local_effects {
-                if game_effect.iter().all(|e| match (e, effect.clone()) {
-                    (GameEffectData::Normal(e1), GameEffectData::Normal(e2)) => *e1 != e2,
-                    (GameEffectData::Custom(e1), GameEffectData::Custom(e2)) => *e1 != e2,
-                    (GameEffectData::Projectile((e1, _)), GameEffectData::Projectile((e2, _))) => {
-                        *e1 != e2
-                    }
-                    _ => true,
-                }) {
+                if game_effect.iter().all(|e| *e != effect) {
                     ent.kill()
                 }
             }
@@ -333,7 +340,11 @@ impl EntityID {
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
             for (i, v) in status.0.stain_effects()?.iter().enumerate() {
                 if *v >= 0.15 && current_stains & (1 << i) == 0 {
-                    raw::entity_remove_stain_status_effect(self.0.get() as i32, i.to_string().into(), None)?
+                    raw::entity_remove_stain_status_effect(
+                        self.0.get() as i32,
+                        i.to_string().into(),
+                        None,
+                    )?
                 }
             }
         }
@@ -376,10 +387,9 @@ impl ComponentID {
 
     pub fn object_set_value<T>(self, object: &str, key: &str, value: T) -> eyre::Result<()>
     where
-        T: LuaPutValue
+        T: LuaPutValue,
     {
-        raw::component_object_set_value::<T>(
-            self, object, key, value)?;
+        raw::component_object_set_value::<T>(self, object, key, value)?;
         Ok(())
     }
 
@@ -459,7 +469,6 @@ pub mod raw {
             .wrap_err("Failed to call ComponentObjectSetValue2")?;
         Ok(())
     }
-
 
     pub fn physics_body_id_get_transform(body: PhysicsBodyID) -> eyre::Result<Option<PhysData>> {
         let lua = LuaState::current()?;

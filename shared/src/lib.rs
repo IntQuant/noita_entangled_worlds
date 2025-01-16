@@ -149,9 +149,19 @@ pub enum GameEffectEnum {
     _Last,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq)]
+#[derive(Encode, Decode, Clone)]
 pub enum GameEffectData {
     Normal(GameEffectEnum),
     Custom(String),
-    Projectile((NonZero<isize>, Vec<u8>)),
+    Projectile((String, Vec<u8>)),
+}
+impl PartialEq for GameEffectData {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (GameEffectData::Normal(e1), GameEffectData::Normal(e2)) => e1 == e2,
+            (GameEffectData::Custom(e1), GameEffectData::Custom(e2)) => e1 == e2,
+            (GameEffectData::Projectile((e1, _)), GameEffectData::Projectile((e2, _))) => e1 == e2,
+            _ => false,
+        }
+    }
 }
