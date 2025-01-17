@@ -12,6 +12,7 @@ use eframe::egui::{
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{set_current_locale, tr, LANGS};
+use lobby_code::{LobbyCode, LobbyError, LobbyKind};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{
     omni::PeerVariant,
@@ -51,6 +52,7 @@ use crate::player_cosmetics::{
     player_skin_display_color_picker, shift_hue,
 };
 pub use bookkeeping::{mod_manager, releases, self_update};
+mod lobby_code;
 pub mod net;
 mod player_cosmetics;
 
@@ -1184,11 +1186,34 @@ impl App {
         );
     }
 
-    fn connect_to_steam_lobby(&mut self, lobby_id: String) {
-        let id = lobby_id.trim().parse().map(LobbyId::from_raw);
-        match id {
-            Ok(id) => self.start_steam_connect(id),
-            Err(_error) => self.notify_error(tr("connect_steam_connect_invalid_lobby_id")),
+    fn connect_to_steam_lobby(&mut self, lobby_id_raw: String) {
+        let lobby = LobbyCode::parse(&lobby_id_raw);
+
+        match lobby {
+            Ok(lobby) => {
+                let my_lobby_kind = self.my_lobby_kind();
+                if my_lobby_kind == lobby.kind {
+                    self.start_steam_connect(lobby.code)
+                } else {
+                    self.notify_error(format!(
+                        "Mismathing modes: Host is in {:?} mode, you're in {:?} mode",
+                        lobby.kind, my_lobby_kind
+                    ));
+                }
+            }
+            Err(LobbyError::NotALobbyCode) => {
+                self.notify_error(tr("connect_steam_connect_invalid_lobby_id"))
+            }
+            Err(LobbyError::CodeVersionMismatch) => self
+                .notify_error("Lobby code was created by a newer version of proxy. Please update"),
+        }
+    }
+
+    fn my_lobby_kind(&mut self) -> LobbyKind {
+        if self.app_saved_state.spacewars {
+            LobbyKind::Gog
+        } else {
+            LobbyKind::Steam
         }
     }
 
@@ -1271,6 +1296,7 @@ impl App {
     }
 
     fn show_lobby(&mut self, ctx: &Context) {
+        let kind = self.my_lobby_kind();
         let AppState::ConnectedLobby {
             netman,
             noita_launcher,
@@ -1357,7 +1383,8 @@ impl App {
                     if netman.peer.is_steam() {
                         if let Some(id) = netman.peer.lobby_id() {
                             if ui.button(tr("netman_save_lobby")).clicked() {
-                                ui.output_mut(|o| o.copied_text = id.raw().to_string());
+                                let lobby_code = LobbyCode { kind, code: id };
+                                ui.output_mut(|o| o.copied_text = lobby_code.serialize());
                             }
                         }
                     }
