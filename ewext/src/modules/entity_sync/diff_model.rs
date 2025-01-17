@@ -4,7 +4,15 @@ use bimap::BiHashMap;
 use eyre::{Context, ContextCompat, OptionExt};
 use noita_api::raw::{entity_create_new, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
-use noita_api::{game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent, AudioComponent, BossDragonComponent, BossHealthBarComponent, CameraBoundComponent, CharacterDataComponent, DamageModelComponent, EntityID, ExplodeOnDamageComponent, IKLimbComponent, IKLimbWalkerComponent, Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent};
+use noita_api::{
+    game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    AudioComponent, BossDragonComponent, BossHealthBarComponent, CameraBoundComponent,
+    CharacterDataComponent, DamageModelComponent, EntityID, ExplodeOnDamageComponent,
+    IKLimbComponent, IKLimbWalkerComponent, Inventory2Component, ItemComponent, ItemCostComponent,
+    ItemPickUpperComponent, LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent,
+    PhysicsBody2Component, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent,
+    VelocityComponent, WormComponent,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
 use shared::{
