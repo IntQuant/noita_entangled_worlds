@@ -20,6 +20,7 @@ pub enum LobbyError {
 
 impl LobbyCode {
     const VERSION: char = '0';
+    const BASE: u64 = 0x0186000000000000;
 
     pub fn parse(raw: &str) -> Result<Self, LobbyError> {
         let raw = raw.trim();
@@ -40,12 +41,12 @@ impl LobbyCode {
             }
         };
 
-        let lobby_hex = &raw[3..3 + 16];
+        let lobby_hex = &raw[3..raw.len() - 1];
         let code = u64::from_str_radix(lobby_hex, 16).map_err(|_| LobbyError::NotALobbyCode)?;
 
         Ok(LobbyCode {
             kind,
-            code: LobbyId::from_raw(code),
+            code: LobbyId::from_raw(code.wrapping_add(Self::BASE)),
         })
     }
 
@@ -54,7 +55,12 @@ impl LobbyCode {
             LobbyKind::Steam => 's',
             LobbyKind::Gog => 'g',
         };
-        format!("e{}{}{:016x}w", Self::VERSION, dat, self.code.raw())
+        format!(
+            "e{}{}{:x}w",
+            Self::VERSION,
+            dat,
+            self.code.raw().wrapping_sub(Self::BASE)
+        )
     }
 }
 
@@ -68,19 +74,19 @@ mod test {
     fn test_serialize() {
         let code = LobbyCode {
             kind: super::LobbyKind::Steam,
-            code: LobbyId::from_raw(100),
+            code: LobbyId::from_raw(LobbyCode::BASE + 100),
         };
-        assert_eq!(code.serialize(), "e0s0000000000000064w");
+        assert_eq!(code.serialize(), "e0s64w");
     }
 
     #[test]
     fn test_deserialize() {
-        let code = LobbyCode::parse("e0s0000000000000064w");
+        let code = LobbyCode::parse("e0s64w");
         assert_eq!(
             code,
             Ok(LobbyCode {
                 kind: super::LobbyKind::Steam,
-                code: LobbyId::from_raw(100),
+                code: LobbyId::from_raw(LobbyCode::BASE + 100),
             })
         );
     }
