@@ -283,16 +283,7 @@ impl LocalDiffModelTracker {
         {
             let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
             if let Some(target) = ai.m_greatest_prey()? {
-                game_print(target.0.to_string());
-                if let Some(var) = target
-                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                        None,
-                    )?
-                    .find(|var| var.name().unwrap_or("".into()) == "ew_peer_id")
-                {
-                    game_print(var.value_string()?);
-                    info.laser = Some(PeerId::from_hex(&var.value_string()?)?)
-                }
+                info.laser = ctx.player_map.get_by_right(&target).copied()
             }
         }
 
@@ -418,10 +409,18 @@ impl LocalDiffModel {
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
         })?;
+        entity
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+            .for_each(|var| {
+                if var.name().unwrap_or("".into()) == "ew_gid_lid" {
+                    let _ = entity.remove_component(*var);
+                }
+            });
         let var = entity.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
+        var.set_value_bool(true)?;
 
         if entity
             .try_get_first_component::<BossDragonComponent>(None)?
@@ -1089,7 +1088,6 @@ impl RemoteDiffModel {
                             laser
                         };
                         if let Some(ent) = ctx.player_map.get_by_left(&peer) {
-                            game_print(ent.0.to_string());
                             let (x, y) = entity.position()?;
                             let (tx, ty) = ent.position()?;
                             if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0 {
@@ -1223,12 +1221,20 @@ impl RemoteDiffModel {
             }
         }
 
+        entity
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+            .for_each(|var| {
+                if var.name().unwrap_or("".into()) == "ew_gid_lid" {
+                    let _ = entity.remove_component(*var);
+                }
+            });
         let var = entity.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         if let Some(gid) = self.lid_to_gid.get(&lid) {
             var.set_value_string(gid.0.to_string().into())?;
         }
         var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
+        var.set_value_bool(false)?;
 
         Ok(())
     }

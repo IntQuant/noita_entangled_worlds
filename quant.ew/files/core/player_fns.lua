@@ -496,7 +496,6 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     print("Spawning player for " .. peer_id)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
     util.make_ephemerial(new)
-    EntityAddComponent2(new, "VariableStorageComponent", { name = "ew_peer_id", value_string = peer_id })
     LoadGameEffectEntityTo(new, "mods/quant.ew/files/system/spectate/no_tinker.xml")
 
     for _, child in ipairs(EntityGetAllChildren(new) or {}) do
