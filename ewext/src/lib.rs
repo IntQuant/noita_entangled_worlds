@@ -5,17 +5,6 @@ pub extern "C" fn _Unwind_Resume() {}
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
 use eyre::{bail, Context, OptionExt};
-use std::num::NonZero;
-use std::{
-    arch::asm,
-    borrow::Cow,
-    cell::{LazyCell, RefCell},
-    ffi::{c_int, c_void},
-    sync::{LazyLock, Mutex, OnceLock},
-    thread,
-    time::Instant,
-};
-
 use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
@@ -27,8 +16,19 @@ use noita_api::{
     DamageModelComponent, EntityID,
 };
 use noita_api_macro::add_lua_fn;
+use rustc_hash::FxHashMap;
 use shared::des::Gid;
 use shared::{NoitaInbound, PeerId, ProxyKV};
+use std::num::NonZero;
+use std::{
+    arch::asm,
+    borrow::Cow,
+    cell::{LazyCell, RefCell},
+    ffi::{c_int, c_void},
+    sync::{LazyLock, Mutex, OnceLock},
+    thread,
+    time::Instant,
+};
 mod addr_grabber;
 mod modules;
 mod net;
@@ -63,6 +63,7 @@ struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
     modules: Modules,
     player_entity_map: BiHashMap<PeerId, EntityID>,
+    fps_by_player: FxHashMap<PeerId, u8>,
     sync_rate: i32,
 }
 
@@ -250,6 +251,7 @@ fn with_every_module(
         let mut ctx = ModuleCtx {
             net,
             player_map: &mut state.player_entity_map,
+            fps_by_player: &mut state.fps_by_player,
             sync_rate: state.sync_rate,
         };
         let mut errs = Vec::new();
@@ -419,7 +421,8 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             ExtState::with_global(|state| {
                 let entity = lua.to_string(1)?.parse::<isize>()?;
                 let mut peer = lua.to_string(2)?.parse::<u64>()?;
-                let mut rng: u64 = u32::from_ne_bytes(lua.to_string(3)?.parse::<i32>()?.to_ne_bytes()) as u64;
+                let mut rng: u64 =
+                    u32::from_ne_bytes(lua.to_string(3)?.parse::<i32>()?.to_ne_bytes()) as u64;
                 if rng == 0 {
                     rng = 1;
                 }
@@ -488,11 +491,21 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         fn send_sync_rate(lua: LuaState) -> eyre::Result<()> {
             let rate = lua.to_string(1)?.parse::<i32>()?;
             ExtState::with_global(|state| {
-                state.sync_rate = rate.max(1).min(60);
+                state.sync_rate = rate.clamp(1, 60);
                 Ok(())
             })?
         }
         add_lua_fn!(send_sync_rate);
+
+        fn set_player_fps(lua: LuaState) -> eyre::Result<()> {
+            let peer = PeerId::from_hex(&lua.to_string(1)?)?;
+            let fps = lua.to_string(2)?.parse::<u8>()?;
+            ExtState::with_global(|state| {
+                state.fps_by_player.insert(peer, fps);
+                Ok(())
+            })?
+        }
+        add_lua_fn!(set_player_fps);
     }
     println!("Initializing ewext - Ok");
     1

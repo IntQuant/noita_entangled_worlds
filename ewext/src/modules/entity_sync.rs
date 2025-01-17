@@ -146,7 +146,7 @@ impl EntitySync {
             RemoteDes::EntityUpdate(vec) => {
                 self.remote_models
                     .entry(source)
-                    .or_default()
+                    .or_insert(RemoteDiffModel::new(source))
                     .apply_diff(&vec);
             }
             RemoteDes::ExitedInterest => {
@@ -156,7 +156,7 @@ impl EntitySync {
             RemoteDes::Projectiles(vec) => {
                 self.remote_models
                     .entry(source)
-                    .or_default()
+                    .or_insert(RemoteDiffModel::new(source))
                     .spawn_projectiles(&vec);
             }
             RemoteDes::RequestGrab(lid) => {

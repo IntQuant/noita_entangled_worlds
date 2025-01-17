@@ -50,7 +50,6 @@ pub(crate) struct LocalDiffModel {
     tracker: LocalDiffModelTracker,
 }
 
-#[derive(Default)]
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
     entity_infos: FxHashMap<Lid, EntityInfo>,
@@ -61,6 +60,23 @@ pub(crate) struct RemoteDiffModel {
     grab_request: Vec<Lid>,
     pending_remove: Vec<Lid>,
     pending_death_notify: Vec<(Lid, Option<PeerId>)>,
+    peer_id: PeerId,
+}
+
+impl RemoteDiffModel {
+    pub fn new(peer_id: PeerId) -> Self {
+        Self {
+            tracked: Default::default(),
+            entity_infos: Default::default(),
+            lid_to_gid: Default::default(),
+            waiting_for_lid: Default::default(),
+            backtrack: Default::default(),
+            grab_request: Default::default(),
+            pending_remove: Default::default(),
+            pending_death_notify: Default::default(),
+            peer_id,
+        }
+    }
 }
 
 impl Default for LocalDiffModel {
@@ -275,7 +291,7 @@ impl LocalDiffModelTracker {
                     .find(|var| var.name().unwrap_or("".into()) == "ew_peer_id")
                 {
                     game_print(var.value_string()?);
-                    info.laser = Some(PeerId(var.value_string()?.parse::<u64>()?))
+                    info.laser = Some(PeerId::from_hex(&var.value_string()?)?)
                 }
             }
         }
@@ -947,29 +963,30 @@ impl RemoteDiffModel {
                             entity.remove_component(*limb)?
                         };
                     }
+                    let m = *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32
+                        / *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32;
+                    let (vx, vy) = (entity_info.vx * m, entity_info.vy * m);
                     if entity_info.phys.is_empty() || entity_info.kolmi_enabled {
                         entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
                         if let Some(vel) =
                             entity.try_get_first_component::<VelocityComponent>(None)?
                         {
-                            vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                            vel.set_m_velocity((vx, vy))?;
                         }
                         if let Some(worm) =
                             entity.try_get_first_component::<BossDragonComponent>(None)?
                         {
-                            worm.set_m_target_vec((entity_info.vx, entity_info.vy))?;
+                            worm.set_m_target_vec((vx, vy))?;
                         } else if let Some(worm) =
                             entity.try_get_first_component::<WormComponent>(None)?
                         {
-                            worm.set_m_target_vec((entity_info.vx, entity_info.vy))?;
+                            worm.set_m_target_vec((vx, vy))?;
                         } else if let Some(vel) =
                             entity.try_get_first_component::<CharacterDataComponent>(None)?
                         {
-                            vel.set_m_velocity((entity_info.vx, entity_info.vy))?;
+                            vel.set_m_velocity((vx, vy))?;
                         }
                     }
-                    //local m = host_fps / ctx.my_player.fps TODO
-                    //vx, vy = vx * m, vy * m
                     if let Some(damage) =
                         entity.try_get_first_component::<DamageModelComponent>(None)?
                     {
@@ -1008,9 +1025,9 @@ impl RemoteDiffModel {
                                 x,
                                 y,
                                 p.angle.into(),
-                                p.vx.into(),
-                                p.vy.into(),
-                                p.av.into(),
+                                (p.vx * m).into(),
+                                (p.vy * m).into(),
+                                (p.av * m).into(),
                             )?;
                         }
                     }

@@ -166,6 +166,7 @@ local function update_fps()
 end
 
 function rpc.update_fps(fps)
+    ewext.set_player_fps(ctx.rpc_peer_id, fps)
     ctx.rpc_player_data.fps = fps
 end
 
@@ -313,6 +314,7 @@ function module.on_world_update()
         local last = ctx.my_player.fps
         update_fps()
         if ctx.my_player.fps ~= last then
+            ewext.set_player_fps(ctx.my_id, ctx.my_player.fps)
             rpc.update_fps(ctx.my_player.fps)
         end
     end

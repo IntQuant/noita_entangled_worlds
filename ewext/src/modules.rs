@@ -1,6 +1,7 @@
 use bimap::BiHashMap;
 use eyre::Ok;
 use noita_api::EntityID;
+use rustc_hash::FxHashMap;
 use shared::PeerId;
 
 use crate::{my_peer_id, net::NetManager};
@@ -10,6 +11,7 @@ pub(crate) mod entity_sync;
 pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
+    pub(crate) fps_by_player: &'a mut FxHashMap<PeerId, u8>,
     pub(crate) sync_rate: i32,
 }
 impl ModuleCtx<'_> {
