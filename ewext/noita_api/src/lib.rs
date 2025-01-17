@@ -133,6 +133,16 @@ impl EntityID {
             .filter_map(|x| x.map(C::from)))
     }
 
+    pub fn iter_all_components_of_type_including_disabled<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<impl Iterator<Item = C>> {
+        Ok(raw::entity_get_component_including_disabled(self, C::NAME_STR.into(), tag)?
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|x| x.map(C::from)))
+    }
+
     pub fn add_component<C: Component>(self) -> eyre::Result<C> {
         raw::entity_add_component::<C>(self)?.ok_or_eyre("Couldn't create a component")
     }

@@ -128,9 +128,11 @@ impl LocalDiffModelTracker {
         if let Some(inv) =
             entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
         {
-            if let Some(wand) = inv.m_actual_active_item()? {
+            info.wand = if let Some(wand) = inv.m_actual_active_item()? {
                 if let Some(gid) = wand
-                    .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                        None,
+                    )?
                     .find_map(|var| {
                         if var.name().ok()? == "ew_gid_lid" {
                             Some(var.value_string().ok()?.parse::<u64>().ok()?)
@@ -139,13 +141,13 @@ impl LocalDiffModelTracker {
                         }
                     })
                 {
-                    info.wand = Some((Gid(gid), serialize_entity(wand)?));
+                    Some((Some(Gid(gid)), serialize_entity(wand)?))
                 } else {
-                    info.wand = Some((Gid(0), serialize_entity(wand)?));
+                    Some((None, serialize_entity(wand)?))
                 }
             } else {
-                info.wand = None
-            }
+                None
+            };
         }
         info.kolmi_enabled = entity.has_tag("boss_centipede")
             && entity
@@ -855,7 +857,7 @@ impl RemoteDiffModel {
                         let mut stop = false;
                         if let Some(wand) = inv.m_actual_active_item()? {
                             if let Some(tgid) = wand
-                                .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
                                 .find_map(|var| {
                                     if var.name().ok()? == "ew_gid_lid" {
                                         Some(var.value_string().ok()?.parse::<u64>().ok()?)
@@ -864,11 +866,16 @@ impl RemoteDiffModel {
                                     }
                                 })
                             {
-                                if *gid != Gid(tgid) {
+                                if *gid != Some(Gid(tgid)) {
                                     wand.kill()
                                 } else {
                                     stop = true
                                 }
+                            } else if wand
+                                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+                                .any(|p| p.name().ok().unwrap_or("".into()) == "ew_spawned_wand")
+                            {
+                                stop = true
                             } else {
                                 wand.kill()
                             }
@@ -876,6 +883,10 @@ impl RemoteDiffModel {
                         if !stop {
                             let (x, y) = entity.position()?;
                             let wand = deserialize_entity(seri, x, y)?;
+                            if gid.is_none() {
+                                let var = wand.add_component::<VariableStorageComponent>()?;
+                                var.set_name("ew_spawned_wand".into())?; //TODO should be killed
+                            }
                             let quick = if let Some(quick) =
                                 entity.children(None).iter().find_map(|a| {
                                     if a.name().ok()? == "inventory_quick" {
@@ -894,10 +905,16 @@ impl RemoteDiffModel {
                             quick.add_child(wand);
                             //TODO set active item?
                         }
+                    } else if let Some(inv) = entity
+                        .try_get_first_component_including_disabled::<Inventory2Component>(None)?
+                    {
+                        if let Some(wand) = inv.m_actual_active_item()? {
+                            wand.kill()
+                        }
                     }
                     if entity_info.kolmi_enabled
                         && entity
-                            .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
                             .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
                     {
                         entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;

@@ -97,7 +97,7 @@ pub struct EntityInfo {
     pub game_effects: Option<Vec<GameEffectData>>,
     pub current_stains: u64,
     pub animations: Vec<u16>,
-    pub wand: Option<(Gid, Vec<u8>)>,
+    pub wand: Option<(Option<Gid>, Vec<u8>)>,
     pub is_global: bool,
     pub drops_gold: bool,
     pub laser: Option<PeerId>,
@@ -106,7 +106,8 @@ pub struct EntityInfo {
     pub mom_orbs: u8,
     //pub sun_essences_list: u8, TODO should exist
 }
-
+//TODO potion break sound
+//TODO get rid of ew_flag_this_is_host in quant.ew/data
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
@@ -129,7 +130,7 @@ pub enum EntityUpdate {
     SetStains(u64),
     SetGameEffects(Option<Vec<GameEffectData>>),
     SetAnimations(Vec<u16>),
-    SetWand(Option<(Gid, Vec<u8>)>),
+    SetWand(Option<(Option<Gid>, Vec<u8>)>),
     SetLaser(Option<PeerId>),
     SetLimbs(Vec<(f32, f32)>),
     SetKolmiEnabled(bool),
