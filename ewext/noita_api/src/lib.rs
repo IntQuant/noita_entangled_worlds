@@ -116,6 +116,14 @@ impl EntityID {
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
     }
 
+    pub fn get_first_component_including_disabled<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<C> {
+        self.try_get_first_component_including_disabled(tag)?
+            .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
+    }
+
     pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<()> {
         while let Some(c) = self.try_get_first_component::<C>(None)? {
             raw::entity_remove_component(self, c.into())?;
@@ -137,10 +145,12 @@ impl EntityID {
         self,
         tag: Option<Cow<'_, str>>,
     ) -> eyre::Result<impl Iterator<Item = C>> {
-        Ok(raw::entity_get_component_including_disabled(self, C::NAME_STR.into(), tag)?
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|x| x.map(C::from)))
+        Ok(
+            raw::entity_get_component_including_disabled(self, C::NAME_STR.into(), tag)?
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|x| x.map(C::from)),
+        )
     }
 
     pub fn add_component<C: Component>(self) -> eyre::Result<C> {
@@ -472,7 +482,7 @@ pub mod raw {
         lua.push_string(object);
         lua.push_string(field);
         value.put(lua);
-        lua.call((2 + T::SIZE_ON_STACK).try_into()?, 0)
+        lua.call((3 + T::SIZE_ON_STACK).try_into()?, 0)
             .wrap_err("Failed to call ComponentObjectSetValue2")?;
         Ok(())
     }

@@ -1,5 +1,5 @@
 use super::NetManager;
-use crate::{modules::ModuleCtx, my_peer_id, print_error, ExtState};
+use crate::{modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{Context, ContextCompat, OptionExt};
 use noita_api::raw::{entity_create_new, raytrace_platforms};
@@ -163,7 +163,9 @@ impl LocalDiffModelTracker {
                 .filter_map(|ent| {
                     if ent.has_tag("touchmagic_immunity") {
                         let var = ent
-                            .get_first_component::<VariableStorageComponent>(None)
+                            .get_first_component_including_disabled::<VariableStorageComponent>(
+                                None,
+                            )
                             .ok()?;
                         Some(1 << var.value_int().ok()?)
                     } else {
@@ -258,17 +260,21 @@ impl LocalDiffModelTracker {
         }
 
         info.laser = None;
-        if !entity
-            .iter_all_components_of_type::<SpriteComponent>(Some("laser_sight".into()))?
-            .collect::<Vec<SpriteComponent>>()
-            .is_empty()
+        if entity
+            .try_get_first_component::<SpriteComponent>(Some("laser_sight".into()))?
+            .is_some()
             && &entity.name()? != "$animal_turret"
         {
             let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
             if let Some(target) = ai.m_greatest_prey()? {
-                if let Ok(var) = target
-                    .get_first_component::<VariableStorageComponent>(Some("ew_peer_id".into()))
+                game_print(target.0.to_string());
+                if let Some(var) = target
+                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                        None,
+                    )?
+                    .find(|var| var.name().unwrap_or("".into()) == "ew_peer_id")
                 {
+                    game_print(var.value_string()?);
                     info.laser = Some(PeerId(var.value_string()?.parse::<u64>()?))
                 }
             }
@@ -829,7 +835,7 @@ impl RemoteDiffModel {
                         for ent in entity.children(None) {
                             if ent.has_tag("touchmagic_immunity") {
                                 if let Ok(var) =
-                                    ent.get_first_component::<VariableStorageComponent>(None)
+                                    ent.get_first_component_including_disabled::<VariableStorageComponent>(None)
                                 {
                                     if let Ok(n) = var.value_int() {
                                         if (entity_info.mom_orbs & (1 << (n as u8))) == 0 {
@@ -1065,26 +1071,24 @@ impl RemoteDiffModel {
                             laser.object_set_value::<i32>("laser", "beam_particle_type", 225)?;
                             laser
                         };
-                        ExtState::with_global(|state| {
-                            if let Some(ent) = state.player_entity_map.get_by_left(&peer) {
-                                let (x, y) = entity.position()?;
-                                let (tx, ty) = ent.position()?;
-                                if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0
-                                {
-                                    laser.set_is_emitting(true)?;
-                                    let (dx, dy) = (tx - x, ty - y);
-                                    let theta = dy.atan2(dx);
-                                    laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
-                                    laser.object_set_value::<f32>(
-                                        "laser",
-                                        "max_length",
-                                        dx.hypot(dy),
-                                    )?;
-                                }
+                        if let Some(ent) = ctx.player_map.get_by_left(&peer) {
+                            game_print(ent.0.to_string());
+                            let (x, y) = entity.position()?;
+                            let (tx, ty) = ent.position()?;
+                            if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0 {
+                                laser.set_is_emitting(true)?;
+                                let (dx, dy) = (tx - x, ty - y);
+                                let theta = dy.atan2(dx);
+                                laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
+                                laser.object_set_value::<f32>(
+                                    "laser",
+                                    "max_length",
+                                    dx.hypot(dy),
+                                )?;
+                            } else {
+                                laser.set_is_emitting(false)?;
                             }
-                            let a: eyre::Result<()> = Ok(());
-                            a
-                        })??;
+                        }
                     } else if let Some(laser) = laser {
                         laser.set_is_emitting(false)?;
                     }

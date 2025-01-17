@@ -368,6 +368,7 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
     ctx.player_data_by_local_entity[player_entity] = my_player
     ctx.ready = true
     ctx.my_player = my_player
+    EntityAddComponent2(player_entity, "VariableStorageComponent", { name = "ew_peer_id", value_string = ctx.my_id })
 
     EntityAddTag(player_entity, "ew_peer")
 
