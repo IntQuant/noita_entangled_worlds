@@ -241,7 +241,7 @@ impl Module for EntitySync {
 
         self.local_diff_model.update_pending_authority()?;
 
-        if frame_num % ctx.sync_rate == 0 {
+        if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 0 {
             self.local_diff_model
                 .update_tracked_entities(ctx)
                 .wrap_err("Failed to update locally tracked entities")?;
@@ -266,7 +266,7 @@ impl Module for EntitySync {
                 )?;
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
-        } else if frame_num % ctx.sync_rate == 1 {
+        } else if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 1 {
             for (owner, remote_model) in &mut self.remote_models {
                 remote_model
                     .apply_entities(ctx)
