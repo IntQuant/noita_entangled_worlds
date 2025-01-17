@@ -419,7 +419,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             ExtState::with_global(|state| {
                 let entity = lua.to_string(1)?.parse::<isize>()?;
                 let mut peer = lua.to_string(2)?.parse::<u64>()?;
-                let mut rng: u64 = lua.to_string(3)?.parse::<i32>()?.try_into()?;
+                let mut rng: u64 = u32::from_ne_bytes(lua.to_string(3)?.parse::<i32>()?.to_ne_bytes()) as u64;
                 if rng == 0 {
                     rng = 1;
                 }

@@ -405,7 +405,7 @@ impl LocalDiffModel {
         let var = entity.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         var.set_value_string(gid.0.to_string().into())?;
-        var.set_value_int(lid.0.try_into()?)?;
+        var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
 
         if entity
             .try_get_first_component::<BossDragonComponent>(None)?
@@ -1211,7 +1211,7 @@ impl RemoteDiffModel {
         if let Some(gid) = self.lid_to_gid.get(&lid) {
             var.set_value_string(gid.0.to_string().into())?;
         }
-        var.set_value_int(lid.0.try_into()?)?;
+        var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
 
         Ok(())
     }
