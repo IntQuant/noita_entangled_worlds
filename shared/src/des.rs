@@ -106,7 +106,6 @@ pub struct EntityInfo {
     pub mom_orbs: u8,
     //pub sun_essences_list: u8, TODO should exist
 }
-//TODO potion break sound
 //TODO get rid of ew_flag_this_is_host in quant.ew/data
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
