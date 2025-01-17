@@ -1270,7 +1270,6 @@ fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::
         EntitySpawnInfo::Filename(filename) => {
             EntityID::load(filename, Some(x as f64), Some(y as f64))
         }
-        // TODO handle things like wand recharge time.
         EntitySpawnInfo::Serialized {
             serialized_at: _,
             data,

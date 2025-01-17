@@ -228,7 +228,7 @@ local wait_on_send
 function module.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
         if ctx.is_host then
-            local new_range = tonumber(ModSettingGet("quant.ew.tether_range") or 0) or 0
+            local new_range = tonumber(ModSettingGet("quant.ew.tetherrange") or 0) or 0
             if tether_length ~= new_range and new_range ~= nil then
                 if wait_on_send == nil then
                     wait_on_send = GameGetFrameNum() + 60

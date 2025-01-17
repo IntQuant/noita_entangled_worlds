@@ -241,13 +241,6 @@ local function build_settings()
             ui_description = "misc",
             settings = {
                 {
-                    id = "chunk_target",
-                    ui_name = "chunk target",
-                    ui_description = "attempts to keep this many chunks loaded, host only, vanilla default is 12",
-                    value_default = "24",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
                     id = "flex",
                     ui_name = "flexible updates",
                     ui_description = "some esotaric chunk thing, may help performance, buggy",
@@ -255,24 +248,17 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
-                    id = "tether_range",
+                    id = "tetherrange",
                     ui_name = "tether range",
                     ui_description = "radius in pixels, 0 for disabled",
-                    value_default = "2048",
+                    value_default = "0",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
-                    id = "enemy_sync",
-                    ui_name = "enemy sync interval",
-                    ui_description = "host only, every N frames enemys are synced, try 3 if laggy",
+                    id = "entity_sync",
+                    ui_name = "entity sync interval",
+                    ui_description = "every N frames entitys under your authority are synced",
                     value_default = "2",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "item_sync",
-                    ui_name = "item sync interval",
-                    ui_description = "every N frames physics items are synced, try 5 if laggy",
-                    value_default = "4",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
@@ -282,13 +268,13 @@ local function build_settings()
                     value_default = "4",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
-                {
+                --[[                {
                     id = "rocks",
                     ui_name = "cap of special item entities to be synced",
                     ui_description = "max amount of proj to be synced, -1 for infinite",
                     value_default = "16",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
+                },TODO]]
                 {
                     id = "explosions",
                     ui_name = "amount of radii of explosions can be handled in 1 frame",

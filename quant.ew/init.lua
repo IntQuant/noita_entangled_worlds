@@ -250,6 +250,7 @@ function OnProjectileFired(
     end
     local n = EntityGetFilename(projectile_id)
     if n == "data/entities/items/pickup/egg_hollow.xml" then
+        --TODO
         EntityAddComponent2(projectile_id, "VariableStorageComponent", { _tags = "ew_egg", value_int = rng })
         EntityAddComponent2(
             projectile_id,
@@ -531,6 +532,8 @@ local function on_world_pre_update_inner()
     wake_up_waiting_threads(1)
 end
 
+local entity_sync
+
 function OnWorldPreUpdate() -- This is called every time the game is about to start updating the world
     if net.connect_failed then
         if GameGetFrameNum() % 180 == 0 then
@@ -541,6 +544,11 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
         return
     end
     util.tpcall(on_world_pre_update_inner)
+    local n = math.floor(tonumber(ModSettingGet("quant.ew.enemy_sync") or 2) + 0.5)
+    if entity_sync ~= n then
+        entity_sync = n
+        ewext.send_sync_rate(entity_sync)
+    end
 end
 
 local function on_world_post_update_inner()

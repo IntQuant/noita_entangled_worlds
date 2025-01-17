@@ -63,6 +63,7 @@ struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
     modules: Modules,
     player_entity_map: BiHashMap<PeerId, EntityID>,
+    sync_rate: i32,
 }
 
 impl ExtState {
@@ -249,6 +250,7 @@ fn with_every_module(
         let mut ctx = ModuleCtx {
             net,
             player_map: &mut state.player_entity_map,
+            sync_rate: state.sync_rate,
         };
         let mut errs = Vec::new();
         for module in state.modules.entity_sync.iter_mut() {
@@ -416,9 +418,15 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         fn sync_projectile(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
                 let entity = lua.to_string(1)?.parse::<isize>()?;
-                let peer = lua.to_string(2)?.parse::<u64>()?;
-                let rng = lua.to_string(3)?.parse::<i32>()?;
-                let gid = peer.overflowing_mul(rng.try_into()?).0;
+                let mut peer = lua.to_string(2)?.parse::<u64>()?;
+                let mut rng: u64 = lua.to_string(3)?.parse::<i32>()?.try_into()?;
+                if rng == 0 {
+                    rng = 1;
+                }
+                while peer == 0 {
+                    peer = peer.overflowing_add(rng).0
+                }
+                let gid = peer.overflowing_mul(rng).0;
                 let entity_sync = state
                     .modules
                     .entity_sync
@@ -476,6 +484,15 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             })?
         }
         add_lua_fn!(register_player_entity);
+
+        fn send_sync_rate(lua: LuaState) -> eyre::Result<()> {
+            let rate = lua.to_string(1)?.parse::<i32>()?;
+            ExtState::with_global(|state| {
+                state.sync_rate = rate;
+                Ok(())
+            })?
+        }
+        add_lua_fn!(send_sync_rate);
     }
     println!("Initializing ewext - Ok");
     1

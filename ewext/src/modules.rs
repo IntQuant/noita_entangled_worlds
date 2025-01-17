@@ -10,6 +10,7 @@ pub(crate) mod entity_sync;
 pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
+    pub(crate) sync_rate: i32,
 }
 impl ModuleCtx<'_> {
     pub(crate) fn locate_player_within_except_me(

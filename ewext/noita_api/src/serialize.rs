@@ -1,5 +1,5 @@
 use crate::lua::{LuaGetValue, LuaPutValue, LuaState};
-use crate::EntityID;
+use crate::{AbilityComponent, EntityID};
 use eyre::{Context, OptionExt};
 pub fn serialize_entity(entity: EntityID) -> eyre::Result<Vec<u8>> {
     let lua = LuaState::current()?;
@@ -30,5 +30,14 @@ pub(crate) fn try_deserialize_entity(
 }
 
 pub fn deserialize_entity(entity_data: &[u8], x: f32, y: f32) -> eyre::Result<EntityID> {
-    try_deserialize_entity(entity_data, x, y)?.ok_or_eyre("Failed to deserialize entity")
+    let ent =
+        try_deserialize_entity(entity_data, x, y)?.ok_or_eyre("Failed to deserialize entity")?;
+    if let Some(ability) =
+        ent.try_get_first_component_including_disabled::<AbilityComponent>(None)?
+    {
+        ability.set_m_next_frame_usable(0)?;
+        ability.set_m_reload_next_frame_usable(0)?;
+        ability.set_m_cast_delay_start_frame(0)?;
+    }
+    Ok(ent)
 }
