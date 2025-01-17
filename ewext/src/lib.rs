@@ -488,7 +488,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         fn send_sync_rate(lua: LuaState) -> eyre::Result<()> {
             let rate = lua.to_string(1)?.parse::<i32>()?;
             ExtState::with_global(|state| {
-                state.sync_rate = rate;
+                state.sync_rate = rate.max(1).min(60);
                 Ok(())
             })?
         }
