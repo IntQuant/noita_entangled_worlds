@@ -207,6 +207,20 @@ impl LuaFnRet for () {
     }
 }
 
+impl LuaFnRet for bool {
+    fn do_return(self, lua: LuaState) -> c_int {
+        lua.push_bool(self);
+        1
+    }
+}
+
+impl LuaFnRet for EntityID {
+    fn do_return(self, lua: LuaState) -> c_int {
+        lua.push_integer(self.0.into());
+        1
+    }
+}
+
 impl<R: LuaFnRet> LuaFnRet for eyre::Result<R> {
     fn do_return(self, lua: LuaState) -> c_int {
         match self {

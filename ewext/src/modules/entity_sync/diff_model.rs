@@ -49,7 +49,18 @@ pub(crate) struct LocalDiffModel {
     entity_entries: FxHashMap<Lid, EntityEntryPair>,
     tracker: LocalDiffModelTracker,
 }
-
+impl LocalDiffModel {
+    /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
+        self.entity_entries.iter().any(|(_, e)| e.gid == gid)
+    }*/
+    pub(crate) fn find_by_gid(&self, gid: Gid) -> Option<EntityID> {
+        self.entity_entries
+            .iter()
+            .find(|(_, e)| e.gid == gid)
+            .map(|e| self.tracker.entity_by_lid(*e.0))?
+            .ok()
+    }
+}
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,
     entity_infos: FxHashMap<Lid, EntityInfo>,
@@ -76,6 +87,16 @@ impl RemoteDiffModel {
             pending_death_notify: Default::default(),
             peer_id,
         }
+    }
+    /*pub fn has_gid(&self, gid: Gid) -> bool {
+        self.lid_to_gid.iter().any(|(_, g)| *g == gid)
+    }*/
+    pub(crate) fn find_by_gid(&self, gid: Gid) -> Option<EntityID> {
+        self.lid_to_gid
+            .iter()
+            .find(|(_, g)| **g == gid)
+            .map(|l| self.tracked.get_by_left(l.0))?
+            .copied()
     }
 }
 
@@ -321,7 +342,7 @@ impl LocalDiffModelTracker {
         Ok(())
     }
 
-    fn entity_by_lid(&mut self, lid: Lid) -> eyre::Result<EntityID> {
+    fn entity_by_lid(&self, lid: Lid) -> eyre::Result<EntityID> {
         Ok(*self
             .tracked
             .get_by_left(&lid)

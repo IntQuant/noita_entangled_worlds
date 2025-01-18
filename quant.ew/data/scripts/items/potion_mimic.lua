@@ -1,7 +1,14 @@
 dofile_once("data/scripts/lib/utilities.lua")
 
 function spawn_leggy(entity_item)
-    if not GameHasFlagRun("ew_flag_this_is_host") then
+    local entity_id = GetUpdatedEntityID()
+    local var
+    for v in EntityGetComponent(entity_id, "VariableStorageComponent") do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            var = v
+        end
+    end
+    if var ~= nil and not ComponentGetValue2(var, "value_bool") then
         return
     end
     local x, y = EntityGetTransform(entity_item)

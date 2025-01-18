@@ -1,4 +1,4 @@
-use crate::lua::LuaPutValue;
+use crate::lua::{LuaGetValue, LuaPutValue};
 use crate::serialize::deserialize_entity;
 use eyre::{eyre, Context, OptionExt};
 use shared::{GameEffectData, GameEffectEnum};
@@ -344,7 +344,7 @@ impl EntityID {
     pub fn get_current_stains(self) -> eyre::Result<u64> {
         let mut current = 0;
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            for (i, v) in status.0.stain_effects()?.iter().enumerate() {
+            for (i, v) in status.stain_effects()?.iter().enumerate() {
                 if *v >= 0.15 {
                     current += 1 << i
                 }
@@ -355,7 +355,7 @@ impl EntityID {
 
     pub fn set_current_stains(self, current_stains: u64) -> eyre::Result<()> {
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            for (i, v) in status.0.stain_effects()?.iter().enumerate() {
+            for (i, v) in status.stain_effects()?.iter().enumerate() {
                 if *v >= 0.15 && current_stains & (1 << i) == 0 {
                     raw::entity_remove_stain_status_effect(
                         self.0.get() as i32,
@@ -410,8 +410,17 @@ impl ComponentID {
         Ok(())
     }
 
+    pub fn object_get_value<T>(self, object: &str, key: &str) -> eyre::Result<T>
+    where
+        T: LuaGetValue,
+    {
+        raw::component_object_get_value::<T>(self, object, key)
+    }
+}
+
+impl StatusEffectDataComponent {
     pub fn stain_effects(self) -> eyre::Result<Vec<f32>> {
-        raw::component_get_value(self, "stain_effects")
+        raw::component_get_value(self.0, "stain_effects")
     }
 }
 
@@ -447,6 +456,26 @@ pub mod raw {
         let ret = T::get(lua, -1);
         lua.pop_last_n(T::size_on_stack());
         ret.wrap_err_with(|| eyre!("Getting {field} for {component:?}"))
+    }
+
+    pub(crate) fn component_object_get_value<T>(
+        component: ComponentID,
+        object: &str,
+        field: &str,
+    ) -> eyre::Result<T>
+    where
+        T: LuaGetValue,
+    {
+        let lua = LuaState::current()?;
+        lua.get_global(c"ComponentObjectGetValue2");
+        lua.push_integer(component.0.into());
+        lua.push_string(object);
+        lua.push_string(field);
+        lua.call(3, T::size_on_stack())
+            .wrap_err("Failed to call ComponentObjectGetValue2")?;
+        let ret = T::get(lua, -1);
+        lua.pop_last_n(T::size_on_stack());
+        ret.wrap_err_with(|| eyre!("Getting {field} from {object} for {component:?}"))
     }
 
     pub(crate) fn component_set_value<T>(

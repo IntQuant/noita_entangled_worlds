@@ -47,7 +47,16 @@ pub(crate) struct EntitySync {
 
     pending_fired_projectiles: Arc<Vec<ProjectileFired>>,
 }
-
+impl EntitySync {
+    /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
+        self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
+    }*/
+    pub(crate) fn find_by_gid(&self, gid: Gid) -> Option<EntityID> {
+        self.local_diff_model
+            .find_by_gid(gid)
+            .or(self.remote_models.values().find_map(|r| r.find_by_gid(gid)))
+    }
+}
 impl Default for EntitySync {
     fn default() -> Self {
         Self {

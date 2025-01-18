@@ -4,7 +4,7 @@ pub extern "C" fn _Unwind_Resume() {}
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
-use eyre::{bail, Context, OptionExt};
+use eyre::{bail, Context, ContextCompat, OptionExt};
 use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
@@ -514,6 +514,21 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             })?
         }
         add_lua_fn!(set_player_fps);
+
+        fn find_by_gid(lua: LuaState) -> eyre::Result<EntityID> {
+            ExtState::with_global(|state| {
+                let gid = lua.to_string(1)?.parse::<u64>()?;
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                entity_sync
+                    .find_by_gid(Gid(gid))
+                    .wrap_err("cant find entity")
+            })?
+        }
+        add_lua_fn!(find_by_gid);
     }
     println!("Initializing ewext - Ok");
     1
