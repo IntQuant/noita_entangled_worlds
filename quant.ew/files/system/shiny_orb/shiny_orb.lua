@@ -30,7 +30,13 @@ util.add_cross_call("ew_kicked_orb", function(entity, entity_who_kicked, greed)
         return
     end
     local x, y = EntityGetTransform(entity)
-    local gid = EntityGetFirstComponentIncludingDisabled(id, "VariableStorageComponent", "ew_gid_lid")
+    local gid
+    for _, v in ipairs(EntityGetComponent(entity, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
     if gid ~= nil then
         rpc.kicked_orb(ComponentGetValue2(gid, "value_string"), x + entity, y - GameGetFrameNum(), greed)
     end

@@ -12,7 +12,13 @@ function rpc.charm(gid)
     end
 end
 util.add_cross_call("ew_charm_sync", function(id)
-    local gid = EntityGetFirstComponentIncludingDisabled(id, "VariableStorageComponent", "ew_gid_lid")
+    local gid
+    for _, v in ipairs(EntityGetComponent(id, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
     if gid ~= nil then
         rpc.charm(ComponentGetValue2(gid, "value_string"))
     end

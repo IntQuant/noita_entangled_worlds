@@ -1,11 +1,14 @@
 local entity_id = GetUpdatedEntityID()
-local var
-for _, v in ipairs(EntityGetComponent(entity_id, "VariableStorageComponent")) do
+local gid
+for _, v in ipairs(EntityGetComponent(entity_id, "VariableStorageComponent") or {}) do
+    GamePrint(ComponentGetValue2(v, "name"))
     if ComponentGetValue2(v, "name") == "ew_gid_lid" then
-        var = v
+        gid = v
+        break
     end
 end
-if var ~= nil and not ComponentGetValue2(var, "value_bool") then
+if gid ~= nil and not ComponentGetValue2(gid, "value_bool") then
+    EntityRemoveComponent(entity_id, GetUpdatedComponentID())
     return
 end
 
@@ -37,3 +40,4 @@ end
 if has_item == false then
     EntityKill(entity_ghost)
 end
+EntityRemoveComponent(entity_id, GetUpdatedComponentID())

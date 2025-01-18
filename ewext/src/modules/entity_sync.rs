@@ -8,7 +8,7 @@ use std::sync::{Arc, LazyLock};
 use super::{Module, NetManager};
 use crate::my_peer_id;
 use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
-use eyre::{Context, ContextCompat, OptionExt};
+use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
 use noita_api::{game_print, EntityID, ProjectileComponent};
@@ -204,11 +204,8 @@ impl EntitySync {
         if peer == my_peer_id() {
             self.local_diff_model.give_gid(gid);
             self.local_diff_model.track_entity(entity, gid)?;
-        } else {
-            self.remote_models
-                .get_mut(&peer)
-                .wrap_err("no peer")?
-                .wait_for_gid(entity, gid);
+        } else if let Some(remote) = self.remote_models.get_mut(&peer) {
+            remote.wait_for_gid(entity, gid);
         }
         Ok(())
     }

@@ -23,7 +23,7 @@ use shared::{
     GameEffectData, NoitaOutbound, PeerId, WorldPos,
 };
 use std::mem;
-
+use std::num::NonZero;
 pub(crate) static DES_TAG: &str = "ew_des";
 pub(crate) static DES_SCRIPTS_TAG: &str = "ew_des_lua";
 
@@ -931,6 +931,9 @@ impl RemoteDiffModel {
                         if !stop {
                             let (x, y) = entity.position()?;
                             let wand = deserialize_entity(seri, x, y)?;
+                            if let Some(pickup) = entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)? {
+                                pickup.set_only_pick_this_entity(Some(wand))?;
+                            }
                             if gid.is_none() {
                                 let var = wand.add_component::<VariableStorageComponent>()?;
                                 var.set_name("ew_spawned_wand".into())?;
@@ -938,6 +941,7 @@ impl RemoteDiffModel {
                             let quick = if let Some(quick) =
                                 entity.children(None).iter().find_map(|a| {
                                     if a.name().ok()? == "inventory_quick" {
+                                        a.children(None).iter().for_each(|e| e.kill());
                                         Some(a)
                                     } else {
                                         None
@@ -957,7 +961,14 @@ impl RemoteDiffModel {
                                 )?
                             {
                                 ability.set_drop_as_item_on_death(false)?;
-                            };
+                            }
+                            if let Some(item) = wand
+                                .try_get_first_component_including_disabled::<ItemComponent>(None)?
+                            {
+                                item.set_remove_default_child_actions_on_death(true)?;
+                                item.set_remove_on_death_if_empty(true)?;
+                                item.set_remove_on_death(true)?;
+                            }
                             //TODO set active item?
                         }
                     } else if let Some(inv) = entity
@@ -1179,13 +1190,18 @@ impl RemoteDiffModel {
             let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
                 continue;
             };
-
             if let Some(explosion) =
                 entity.try_get_first_component::<ExplodeOnDamageComponent>(None)?
             {
                 explosion.set_explode_on_death_percent(1.0)?;
             }
-
+            if let Some(inv) = entity
+                .children(None)
+                .iter()
+                .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
+            {
+                inv.children(None).iter().for_each(|e| e.kill())
+            }
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 damage.set_wait_for_kill_flag_on_death(false)?;
                 damage.set_ui_report_damage(false)?;
@@ -1204,7 +1220,6 @@ impl RemoteDiffModel {
                     None,
                 )?;
             }
-
             postpone_remove.push(lid);
         }
 
@@ -1232,7 +1247,6 @@ impl RemoteDiffModel {
         entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
         entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
         entity.remove_all_components_of_type::<AIAttackComponent>()?;
-        entity.remove_all_components_of_type::<ItemPickUpperComponent>()?;
 
         entity.add_tag(DES_TAG)?;
         entity.add_tag("polymorphable_NOT")?;
@@ -1270,6 +1284,12 @@ impl RemoteDiffModel {
                 }
             }
         }
+        if let Some(pickup) =
+            entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
+        {
+            pickup.set_drop_items_on_death(false)?;
+            pickup.set_only_pick_this_entity(Some(EntityID(NonZero::new(1).unwrap())))?;
+        }
 
         entity
             .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
@@ -1278,6 +1298,7 @@ impl RemoteDiffModel {
                     let _ = entity.remove_component(*var);
                 }
             });
+
         let var = entity.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         if let Some(gid) = self.lid_to_gid.get(&lid) {
@@ -1285,7 +1306,6 @@ impl RemoteDiffModel {
         }
         var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
         var.set_value_bool(false)?;
-
         Ok(())
     }
 
@@ -1405,6 +1425,13 @@ fn safe_entitykill(entity: EntityID) {
     {
         let _ = _safe_wandkill(entity);
     } else {
+        if let Some(inv) = entity
+            .children(None)
+            .iter()
+            .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
+        {
+            inv.children(None).iter().for_each(|e| e.kill())
+        }
         entity.kill();
     }
 }
