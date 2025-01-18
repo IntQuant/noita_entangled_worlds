@@ -924,6 +924,11 @@ impl RemoteDiffModel {
                                 quick
                             };
                             quick.add_child(wand);
+                            wand.try_get_first_component::<AbilityComponent>(None)?
+                                .iter()
+                                .for_each(|a| {
+                                    let _ = a.set_drop_as_item_on_death(false);
+                                });
                             //TODO set active item?
                         }
                     } else if let Some(inv) = entity
