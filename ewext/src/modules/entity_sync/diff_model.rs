@@ -933,7 +933,7 @@ impl RemoteDiffModel {
                             let wand = deserialize_entity(seri, x, y)?;
                             if gid.is_none() {
                                 let var = wand.add_component::<VariableStorageComponent>()?;
-                                var.set_name("ew_spawned_wand".into())?; //TODO should be killed
+                                var.set_name("ew_spawned_wand".into())?;
                             }
                             let quick = if let Some(quick) =
                                 entity.children(None).iter().find_map(|a| {
@@ -951,19 +951,21 @@ impl RemoteDiffModel {
                                 quick
                             };
                             quick.add_child(wand);
-                            wand.try_get_first_component::<AbilityComponent>(None)?
-                                .iter()
-                                .for_each(|a| {
-                                    let _ = a.set_drop_as_item_on_death(false);
-                                });
+                            if let Some(ability) = wand
+                                .try_get_first_component_including_disabled::<AbilityComponent>(
+                                    None,
+                                )?
+                            {
+                                ability.set_drop_as_item_on_death(false)?;
+                            };
                             //TODO set active item?
                         }
                     } else if let Some(inv) = entity
-                        .try_get_first_component_including_disabled::<Inventory2Component>(None)?
+                        .children(None)
+                        .iter()
+                        .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
                     {
-                        if let Some(wand) = inv.m_actual_active_item()? {
-                            wand.kill()
-                        }
+                        inv.children(None).iter().for_each(|e| e.kill())
                     }
                     if entity_info.is_enabled {
                         if entity
@@ -980,17 +982,19 @@ impl RemoteDiffModel {
                                 .children(Some("protection".into()))
                                 .iter()
                                 .for_each(|ent| ent.kill());
-                        } else if entity.try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
-            .iter().any(|var| var.name().unwrap_or("".into()) == "active") {
+                        } else if let Some(var) = entity.try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+            .iter().find(|var| var.name().unwrap_or("".into()) == "active") {
+                            var.set_value_int(1)?;
                             entity.set_components_with_tag_enabled("activate".into(), true)?
                         }
-                    } else if entity
+                    } else if let Some(var) = entity
                         .try_get_first_component_including_disabled::<VariableStorageComponent>(
                             None,
                         )?
                         .iter()
-                        .any(|var| var.name().unwrap_or("".into()) == "active")
+                        .find(|var| var.name().unwrap_or("".into()) == "active")
                     {
+                        var.set_value_int(0)?;
                         entity.set_components_with_tag_enabled("activate".into(), false)?
                     }
                     for (ent, (x, y)) in entity

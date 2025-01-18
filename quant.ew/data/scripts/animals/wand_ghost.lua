@@ -1,6 +1,6 @@
 local entity_id = GetUpdatedEntityID()
 local var
-for v in EntityGetComponent(entity_id, "VariableStorageComponent") do
+for _, v in ipairs(EntityGetComponent(entity_id, "VariableStorageComponent")) do
     if ComponentGetValue2(v, "name") == "ew_gid_lid" then
         var = v
     end
