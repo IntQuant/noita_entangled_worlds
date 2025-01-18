@@ -275,7 +275,8 @@ impl Module for EntitySync {
                 )?;
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
-        } else if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 1 {
+        }
+        if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 1 {
             for (owner, remote_model) in &mut self.remote_models {
                 remote_model
                     .apply_entities(ctx)

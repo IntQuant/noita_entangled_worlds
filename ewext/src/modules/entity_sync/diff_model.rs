@@ -186,15 +186,21 @@ impl LocalDiffModelTracker {
                 None
             };
         }
-        info.kolmi_enabled = entity.has_tag("boss_centipede")
+        info.is_enabled = (entity.has_tag("boss_centipede")
             && entity
                 .try_get_first_component::<BossHealthBarComponent>(Some(
                     "disabled_at_start".into(),
                 ))?
-                .is_some();
+                .is_some())
+            || entity
+                .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+                .iter()
+                .any(|var| {
+                    var.name().unwrap_or("".into()) == "active" && var.value_int().unwrap_or(0) == 1
+                });
 
         if entity.has_tag("boss_wizard") {
-            info.mom_orbs = entity
+            info.counter = entity
                 .children(None)
                 .iter()
                 .filter_map(|ent| {
@@ -487,8 +493,8 @@ impl LocalDiffModel {
                     drops_gold,
                     laser: Default::default(),
                     limbs: vec![],
-                    kolmi_enabled: false,
-                    mom_orbs: 0,
+                    is_enabled: false,
+                    counter: 0,
                 },
                 gid,
             },
@@ -656,16 +662,16 @@ impl LocalDiffModel {
                 &mut had_any_delta,
             );
             diff(
-                &current.kolmi_enabled,
-                &mut last.kolmi_enabled,
-                EntityUpdate::SetKolmiEnabled(current.kolmi_enabled),
+                &current.is_enabled,
+                &mut last.is_enabled,
+                EntityUpdate::SetIsEnabled(current.is_enabled),
                 &mut res,
                 &mut had_any_delta,
             );
             diff(
-                &current.mom_orbs,
-                &mut last.mom_orbs,
-                EntityUpdate::SetMomOrbs(current.mom_orbs),
+                &current.counter,
+                &mut last.counter,
+                EntityUpdate::SetCounter(current.counter),
                 &mut res,
                 &mut had_any_delta,
             );
@@ -845,8 +851,8 @@ impl RemoteDiffModel {
                     EntityUpdate::SetWand(gid) => ent_data.wand = gid,
                     EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
                     EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
-                    EntityUpdate::SetKolmiEnabled(enabled) => ent_data.kolmi_enabled = enabled,
-                    EntityUpdate::SetMomOrbs(orbs) => ent_data.mom_orbs = orbs,
+                    EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
+                    EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
                     EntityUpdate::CurrentEntity(_)
                     | EntityUpdate::Init(_, _)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
@@ -874,7 +880,7 @@ impl RemoteDiffModel {
                                     ent.get_first_component_including_disabled::<VariableStorageComponent>(None)
                                 {
                                     if let Ok(n) = var.value_int() {
-                                        if (entity_info.mom_orbs & (1 << (n as u8))) == 0 {
+                                        if (entity_info.counter & (1 << (n as u8))) == 0 {
                                             ent.kill()
                                         } else if let Ok(damage) =
                                             ent.get_first_component::<DamageModelComponent>(None)
@@ -959,21 +965,33 @@ impl RemoteDiffModel {
                             wand.kill()
                         }
                     }
-                    if entity_info.kolmi_enabled
-                        && entity
+                    if entity_info.is_enabled {
+                        if entity
                             .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
                             .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
+                        {
+                            entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                            entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                            entity.remove_all_components_of_type::<LuaComponent>()?;
+                            entity
+                                .add_component::<VariableStorageComponent>()?
+                                .set_name("ew_has_started".into())?;
+                            entity
+                                .children(Some("protection".into()))
+                                .iter()
+                                .for_each(|ent| ent.kill());
+                        } else if entity.try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+            .iter().any(|var| var.name().unwrap_or("".into()) == "active") {
+                            entity.set_components_with_tag_enabled("activate".into(), true)?
+                        }
+                    } else if entity
+                        .try_get_first_component_including_disabled::<VariableStorageComponent>(
+                            None,
+                        )?
+                        .iter()
+                        .any(|var| var.name().unwrap_or("".into()) == "active")
                     {
-                        entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
-                        entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
-                        entity.remove_all_components_of_type::<LuaComponent>()?;
-                        entity
-                            .add_component::<VariableStorageComponent>()?
-                            .set_name("ew_has_started".into())?;
-                        entity
-                            .children(Some("protection".into()))
-                            .iter()
-                            .for_each(|ent| ent.kill());
+                        entity.set_components_with_tag_enabled("activate".into(), false)?
                     }
                     for (ent, (x, y)) in entity
                         .children(None)
@@ -991,7 +1009,9 @@ impl RemoteDiffModel {
                     let m = *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32
                         / *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32;
                     let (vx, vy) = (entity_info.vx * m, entity_info.vy * m);
-                    if entity_info.phys.is_empty() || entity_info.kolmi_enabled {
+                    if entity_info.phys.is_empty()
+                        || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
+                    {
                         entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
                         if let Some(vel) =
                             entity.try_get_first_component::<VelocityComponent>(None)?

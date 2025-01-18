@@ -102,9 +102,8 @@ pub struct EntityInfo {
     pub drops_gold: bool,
     pub laser: Option<PeerId>,
     pub limbs: Vec<(f32, f32)>,
-    pub kolmi_enabled: bool,
-    pub mom_orbs: u8,
-    //pub sun_essences_list: u8, TODO should exist
+    pub is_enabled: bool, //for kolmi/runestones/etc
+    pub counter: u8,      //for mom orbs/sun essences/etc
 }
 //TODO get rid of ew_flag_this_is_host in quant.ew/data
 #[derive(Encode, Decode, Clone)]
@@ -132,8 +131,8 @@ pub enum EntityUpdate {
     SetWand(Option<(Option<Gid>, Vec<u8>)>),
     SetLaser(Option<PeerId>),
     SetLimbs(Vec<(f32, f32)>),
-    SetKolmiEnabled(bool),
-    SetMomOrbs(u8),
+    SetIsEnabled(bool),
+    SetCounter(u8),
 }
 
 #[derive(Encode, Decode, Clone)]
