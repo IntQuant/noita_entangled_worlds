@@ -109,6 +109,9 @@ pub struct EntityInfo {
 //TODO authority transfers should serialize entities probably
 //TODO kivi/mom/spirit might deal double damage
 //TODO sync x scale direction as a bool probably
+//TODO shop wands jittery
+//TODO host melee damage from clients enemies
+//TODO fish rotate
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
