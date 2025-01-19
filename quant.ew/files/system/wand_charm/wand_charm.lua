@@ -20,6 +20,7 @@ util.add_cross_call("ew_charm_sync", function(id)
         end
     end
     if gid ~= nil then
+        ewext.notrack(gid)
         rpc.charm(ComponentGetValue2(gid, "value_string"))
     end
 end)
