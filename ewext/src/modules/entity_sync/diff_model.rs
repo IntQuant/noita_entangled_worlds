@@ -1439,12 +1439,19 @@ impl RemoteDiffModel {
             itemc.set_stealable(false)?;
         }
 
-        if !drops_gold {
-            for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
-                if lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()) {
-                    entity.remove_component(*lua)?;
-                    break;
-                }
+        for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+            if (!drops_gold
+                && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
+                || [
+                    "data/scripts/animals/leader_damage.lua",
+                    "data/scripts/animals/giantshooter_death.lua",
+                    "data/scripts/animals/blob_damage.lua",
+                ]
+                .contains(&&*lua.script_damage_received()?)
+                || lua.script_source_file()?
+                    == "data/scripts/props/suspended_container_physics_objects.lua"
+            {
+                entity.remove_component(*lua)?;
             }
         }
         if let Some(pickup) =

@@ -112,11 +112,7 @@ pub struct EntityInfo {
 //TODO stevari
 //TODO authority transfers should serialize entities probably
 //TODO kivi/mom/spirit might deal double damage
-//TODO rocks dupe
-//TODO enemies spawning enemies dupe
 //TODO radioactive barrel dupe
-//TODO wand pickup range
-//TODO wand selling
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
