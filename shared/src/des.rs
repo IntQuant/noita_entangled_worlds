@@ -96,12 +96,15 @@ pub struct EntityInfo {
     pub cost: i64,
     pub game_effects: Vec<GameEffectData>,
     pub current_stains: u64,
+    pub animations: Vec<u16>,
     pub wand: Option<(Option<Gid>, Vec<u8>)>,
     pub is_global: bool,
     pub drops_gold: bool,
     pub limbs: Vec<(f32, f32)>,
     pub ai_state: i32,
+    pub laser: Option<PeerId>,
     pub ai_rotation: f32,
+    pub facing_direction: bool,
     pub is_enabled: bool, //for kolmi/runestones/etc
     pub counter: u8,      //for mom orbs/dragon has death script/etc
                           //pub synced_var: Vec<(String, i32, f32, bool)>, for mod compat maybe
@@ -109,7 +112,6 @@ pub struct EntityInfo {
 //TODO stevari
 //TODO authority transfers should serialize entities probably
 //TODO kivi/mom/spirit might deal double damage
-//TODO sync x scale direction as a bool probably
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
@@ -129,7 +131,10 @@ pub enum EntityUpdate {
         responsible_peer: Option<PeerId>,
     },
     SetCost(i64),
+    SetLaser(Option<PeerId>),
     SetStains(u64),
+    SetFacingDirection(bool),
+    SetAnimations(Vec<u16>),
     SetGameEffects(Vec<GameEffectData>),
     SetWand(Option<(Option<Gid>, Vec<u8>)>),
     SetAiRotation(f32),

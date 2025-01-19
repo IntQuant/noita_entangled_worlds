@@ -73,6 +73,11 @@ impl EntityID {
         )
     }
 
+    pub fn transform(self) -> eyre::Result<(f32, f32, f32, f32, f32)> {
+        let (a, b, c, d, e) = raw::entity_get_transform(self)?;
+        Ok((a as f32, b as f32, c as f32, d as f32, e as f32))
+    }
+
     pub fn position(self) -> eyre::Result<(f32, f32)> {
         let (x, y, _, _, _) = raw::entity_get_transform(self)?;
         Ok((x as f32, y as f32))
@@ -125,7 +130,7 @@ impl EntityID {
     }
 
     pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<()> {
-        while let Some(c) = self.try_get_first_component::<C>(None)? {
+        while let Some(c) = self.try_get_first_component_including_disabled::<C>(None)? {
             raw::entity_remove_component(self, c.into())?;
         }
         Ok(())
