@@ -2,16 +2,15 @@ use super::NetManager;
 use crate::{modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{Context, ContextCompat, OptionExt};
-use noita_api::raw::{entity_create_new, raytrace_platforms};
+use noita_api::raw::entity_create_new;
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
     AudioComponent, BossDragonComponent, BossHealthBarComponent, CameraBoundComponent,
     CharacterDataComponent, DamageModelComponent, EntityID, ExplodeOnDamageComponent,
     IKLimbComponent, IKLimbWalkerComponent, Inventory2Component, ItemComponent, ItemCostComponent,
-    ItemPickUpperComponent, LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent,
-    PhysicsBody2Component, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent,
-    VelocityComponent, WormComponent,
+    ItemPickUpperComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
+    StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
@@ -186,6 +185,12 @@ impl LocalDiffModelTracker {
                 None
             };
         }
+        if let Some(ai) =
+            entity.try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
+        {
+            info.ai_state = ai.ai_state()?;
+            info.ai_rotation = ai.m_ranged_attack_current_aim_angle()?;
+        }
         info.is_enabled = (entity.has_tag("boss_centipede")
             && entity
                 .try_get_first_component::<BossHealthBarComponent>(Some(
@@ -284,50 +289,13 @@ impl LocalDiffModelTracker {
             info.cost = 0;
         }
 
-        info.game_effects = entity.get_game_effects().map(|e| {
-            e.iter()
-                .map(|(e, _)| e.clone())
-                .collect::<Vec<GameEffectData>>()
-        });
+        info.game_effects = entity
+            .get_game_effects()
+            .iter()
+            .map(|(e, _)| e.clone())
+            .collect::<Vec<GameEffectData>>();
 
         info.current_stains = entity.get_current_stains()?;
-
-        if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
-            info.animations = sprites
-                .filter_map(|sprite| {
-                    let file = sprite.image_file().ok()?;
-                    if file.ends_with(".xml") {
-                        let text = noita_api::raw::mod_text_file_get_content(file).ok()?;
-                        let mut split = text.split("name=\"");
-                        split.next();
-                        let data: Vec<&str> =
-                            split.filter_map(|piece| piece.split("\"").next()).collect();
-                        let animation = sprite.rect_animation().unwrap_or("".into());
-                        Some(
-                            data.iter()
-                                .position(|name| name == &animation)
-                                .unwrap_or(usize::MAX) as u16,
-                        )
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-        } else {
-            info.animations.clear()
-        }
-
-        info.laser = None;
-        if entity
-            .try_get_first_component::<SpriteComponent>(Some("laser_sight".into()))?
-            .is_some()
-            && &entity.name()? != "$animal_turret"
-        {
-            let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
-            if let Some(target) = ai.m_greatest_prey()? {
-                info.laser = ctx.player_map.get_by_right(&target).copied()
-            }
-        }
 
         Ok(())
     }
@@ -500,13 +468,13 @@ impl LocalDiffModel {
                     hp: 1.0,
                     phys: Vec::new(),
                     cost: 0,
-                    game_effects: None,
+                    game_effects: Vec::new(),
                     current_stains: 0,
-                    animations: Vec::new(),
                     wand: None,
                     is_global,
                     drops_gold,
-                    laser: Default::default(),
+                    ai_rotation: 0.0,
+                    ai_state: 0,
                     limbs: vec![],
                     is_enabled: false,
                     counter: 0,
@@ -656,16 +624,16 @@ impl LocalDiffModel {
                 &mut had_any_delta,
             );
             diff(
-                &current.animations,
-                &mut last.animations,
-                EntityUpdate::SetAnimations(current.animations.clone()),
+                &current.ai_rotation,
+                &mut last.ai_rotation,
+                EntityUpdate::SetAiRotation(current.ai_rotation),
                 &mut res,
                 &mut had_any_delta,
             );
             diff(
-                &current.laser,
-                &mut last.laser,
-                EntityUpdate::SetLaser(current.laser),
+                &current.ai_state,
+                &mut last.ai_state,
+                EntityUpdate::SetAiState(current.ai_state),
                 &mut res,
                 &mut had_any_delta,
             );
@@ -857,14 +825,14 @@ impl RemoteDiffModel {
                     EntityUpdate::SetCost(cost) => ent_data.cost = cost,
                     EntityUpdate::SetStains(stains) => ent_data.current_stains = stains,
                     EntityUpdate::SetGameEffects(effects) => ent_data.game_effects = effects,
-                    EntityUpdate::SetAnimations(animations) => ent_data.animations = animations,
+                    EntityUpdate::SetAiState(state) => ent_data.ai_state = state,
                     EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
                     EntityUpdate::KillEntity {
                         lid,
                         responsible_peer, //TODO make sure entity exists
                     } => self.pending_death_notify.push((lid, responsible_peer)),
                     EntityUpdate::SetWand(gid) => ent_data.wand = gid,
-                    EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
+                    EntityUpdate::SetAiRotation(rot) => ent_data.ai_rotation = rot,
                     EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
                     EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
                     EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
@@ -1128,73 +1096,11 @@ impl RemoteDiffModel {
 
                     entity.set_current_stains(entity_info.current_stains)?;
 
-                    if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None)
+                    if let Some(ai) = entity
+                        .try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
                     {
-                        for (sprite, animation) in sprites
-                            .filter(|sprite| {
-                                sprite
-                                    .image_file()
-                                    .map(|c| c.ends_with(".xml"))
-                                    .unwrap_or(false)
-                            })
-                            .zip(entity_info.animations.iter())
-                        {
-                            if *animation == u16::MAX {
-                                continue;
-                            }
-                            let file = sprite.image_file()?;
-                            let text = noita_api::raw::mod_text_file_get_content(file)?;
-                            let mut split = text.split("name=\"");
-                            split.next();
-                            let data: Vec<&str> =
-                                split.filter_map(|piece| piece.split("\"").next()).collect();
-                            if data.len() > *animation as usize {
-                                sprite.set_rect_animation(data[*animation as usize].into())?;
-                                sprite.set_next_rect_animation(data[*animation as usize].into())?;
-                            }
-                        }
-                    }
-                    let laser = entity.try_get_first_component::<LaserEmitterComponent>(None)?;
-                    if let Some(peer) = entity_info.laser {
-                        let laser = if let Some(laser) = laser {
-                            laser
-                        } else {
-                            let laser = entity.add_component::<LaserEmitterComponent>()?;
-                            laser.object_set_value::<i32>(
-                                "laser",
-                                "max_cell_durability_to_destroy",
-                                0,
-                            )?;
-                            laser.object_set_value::<i32>("laser", "damage_to_cells", 0)?;
-                            laser.object_set_value::<i32>("laser", "max_length", 1024)?;
-                            laser.object_set_value::<i32>("laser", "beam_radius", 0)?;
-                            laser.object_set_value::<i32>("laser", "beam_particle_chance", 75)?;
-                            laser.object_set_value::<i32>("laser", "beam_particle_fade", 0)?;
-                            laser.object_set_value::<i32>("laser", "hit_particle_chance", 0)?;
-                            laser.object_set_value::<bool>("laser", "audio_enabled", false)?;
-                            laser.object_set_value::<i32>("laser", "damage_to_entities", 0)?;
-                            laser.object_set_value::<i32>("laser", "beam_particle_type", 225)?;
-                            laser
-                        };
-                        if let Some(ent) = ctx.player_map.get_by_left(&peer) {
-                            let (x, y) = entity.position()?;
-                            let (tx, ty) = ent.position()?;
-                            if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0 {
-                                laser.set_is_emitting(true)?;
-                                let (dx, dy) = (tx - x, ty - y);
-                                let theta = dy.atan2(dx);
-                                laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
-                                laser.object_set_value::<f32>(
-                                    "laser",
-                                    "max_length",
-                                    dx.hypot(dy),
-                                )?;
-                            } else {
-                                laser.set_is_emitting(false)?;
-                            }
-                        }
-                    } else if let Some(laser) = laser {
-                        laser.set_is_emitting(false)?;
+                        ai.set_ai_state(entity_info.ai_state)?;
+                        ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
                     }
                 }
                 None => {
@@ -1271,10 +1177,34 @@ impl RemoteDiffModel {
     /// generally because they interfere with things we're supposed to sync.
     fn init_remote_entity(&self, entity: EntityID, lid: Lid, drops_gold: bool) -> eyre::Result<()> {
         entity.remove_all_components_of_type::<CameraBoundComponent>()?;
-        entity.remove_all_components_of_type::<AnimalAIComponent>()?;
         entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
         entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
-        entity.remove_all_components_of_type::<AIAttackComponent>()?;
+        for ai in
+            entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)?
+        {
+            ai.set_attack_ranged_entity_count_max(0)?;
+            ai.set_attack_ranged_entity_count_min(0)?;
+        }
+        for ai in
+            entity.iter_all_components_of_type_including_disabled::<AnimalAIComponent>(None)?
+        {
+            ai.set_attack_ranged_entity_count_max(0)?;
+            ai.set_attack_ranged_entity_count_min(0)?;
+            ai.set_attack_melee_damage_min(0.0)?;
+            ai.set_attack_melee_damage_max(0.0)?;
+            ai.set_attack_dash_damage(0.0)?;
+            ai.set_ai_state_timer(i32::MAX)?;
+            ai.set_attack_ranged_state_duration_frames(i32::MAX)?;
+            ai.set_keep_state_alive_when_enabled(true)?;
+        }
+        entity
+            .try_get_first_component_including_disabled::<WormComponent>(None)?
+            .iter()
+            .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
+        entity
+            .try_get_first_component_including_disabled::<BossDragonComponent>(None)?
+            .iter()
+            .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
 
         entity.add_tag(DES_TAG)?;
         entity.add_tag("polymorphable_NOT")?;
@@ -1294,14 +1224,6 @@ impl RemoteDiffModel {
 
         if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
             itemc.set_stealable(false)?;
-        }
-
-        if let Ok(sprites) =
-            entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))
-        {
-            for sprite in sprites {
-                sprite.remove_tag("character")?
-            }
         }
 
         if !drops_gold {

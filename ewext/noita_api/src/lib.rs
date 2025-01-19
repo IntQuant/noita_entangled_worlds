@@ -188,7 +188,7 @@ impl EntityID {
             .collect()
     }
 
-    pub fn get_game_effects(self) -> Option<Vec<(GameEffectData, EntityID)>> {
+    pub fn get_game_effects(self) -> Vec<(GameEffectData, EntityID)> {
         let mut effects = Vec::new();
         let mut name_to_n: HashMap<String, i32> = HashMap::default();
         for ent in self.children(None) {
@@ -202,9 +202,8 @@ impl EntityID {
                         ent,
                     ));
                 }
-            } else if let Some(effect) = ent
-                .try_get_first_component_including_disabled::<GameEffectComponent>(None)
-                .ok()?
+            } else if let Ok(Some(effect)) =
+                ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)
             {
                 let name = effect.effect().unwrap();
 
@@ -230,14 +229,10 @@ impl EntityID {
                 }
             }
         }
-        if effects.is_empty() {
-            None
-        } else {
-            Some(effects)
-        }
+        effects
     }
 
-    pub fn set_game_effects(self, game_effect: &Option<Vec<GameEffectData>>) {
+    pub fn set_game_effects(self, game_effect: &[GameEffectData]) {
         fn set_frames(ent: EntityID) -> eyre::Result<()> {
             if let Some(effect) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)?
@@ -255,93 +250,84 @@ impl EntityID {
             }
             Ok(())
         }
-        if let Some(game_effect) = game_effect {
-            let local_effects = self.get_game_effects().unwrap_or_default();
-            for (i, (e1, ent)) in local_effects.iter().enumerate() {
-                for (j, (e2, _)) in local_effects.iter().enumerate() {
-                    if i < j && e1 == e2 {
-                        ent.kill()
-                    }
-                }
-            }
-            let local_effects = self.get_game_effects().unwrap_or_default();
-            for effect in game_effect {
-                if let Some(ent) =
-                    local_effects.iter().find_map(
-                        |(e, ent)| {
-                            if e == effect {
-                                Some(ent)
-                            } else {
-                                None
-                            }
-                        },
-                    )
-                {
-                    let _ = set_frames(*ent);
-                } else {
-                    let ent = match effect {
-                        GameEffectData::Normal(e) => {
-                            let e: &str = e.into();
-                            if let Ok(ent) = NonZero::try_from(
-                                raw::get_game_effect_load_to(self, e.into(), true)
-                                    .unwrap_or_default()
-                                    .1 as isize,
-                            ) {
-                                EntityID(ent)
-                            } else {
-                                continue;
-                            }
-                        }
-                        GameEffectData::Custom(file) => {
-                            let (x, y) = self.position().unwrap_or_default();
-                            if let Ok(Some(ent)) =
-                                raw::entity_load(file.into(), Some(x as f64), Some(y as f64))
-                            {
-                                self.add_child(ent);
-                                ent
-                            } else {
-                                continue;
-                            }
-                        }
-                        GameEffectData::Projectile((_, data)) => {
-                            let (x, y) = self.position().unwrap_or_default();
-                            if let Ok(ent) = deserialize_entity(data, x, y) {
-                                self.add_child(ent);
-                                ent
-                            } else {
-                                continue;
-                            }
-                        }
-                    };
-                    let _ = set_frames(ent);
-                }
-            }
-            let local_effects = self.get_game_effects().unwrap_or_default();
-            for (effect, ent) in local_effects {
-                if game_effect.iter().all(|e| *e != effect) {
+        let local_effects = self.get_game_effects();
+        for (i, (e1, ent)) in local_effects.iter().enumerate() {
+            for (j, (e2, _)) in local_effects.iter().enumerate() {
+                if i < j && e1 == e2 {
                     ent.kill()
                 }
             }
-            if let Ok(damage) = self.get_first_component::<DamageModelComponent>(None) {
-                if game_effect
+        }
+        let local_effects = self.get_game_effects();
+        for effect in game_effect {
+            if let Some(ent) =
+                local_effects
                     .iter()
-                    .any(|e| e == &GameEffectData::Normal(GameEffectEnum::OnFire))
-                {
-                    let _ = damage.set_m_fire_probability(100);
-                    let _ = damage.set_m_fire_probability(1600);
-                    let _ = damage.set_m_fire_probability(1600);
-                } else {
-                    let _ = damage.set_m_fire_probability(0);
-                    let _ = damage.set_m_fire_probability(0);
-                    let _ = damage.set_m_fire_probability(0);
-                }
+                    .find_map(|(e, ent)| if e == effect { Some(ent) } else { None })
+            {
+                let _ = set_frames(*ent);
+            } else {
+                let ent = match effect {
+                    GameEffectData::Normal(e) => {
+                        let e: &str = e.into();
+                        if let Ok(ent) = NonZero::try_from(
+                            raw::get_game_effect_load_to(self, e.into(), true)
+                                .unwrap_or_default()
+                                .1 as isize,
+                        ) {
+                            EntityID(ent)
+                        } else {
+                            continue;
+                        }
+                    }
+                    GameEffectData::Custom(file) => {
+                        let (x, y) = self.position().unwrap_or_default();
+                        if let Ok(Some(ent)) =
+                            raw::entity_load(file.into(), Some(x as f64), Some(y as f64))
+                        {
+                            self.add_child(ent);
+                            ent
+                        } else {
+                            continue;
+                        }
+                    }
+                    GameEffectData::Projectile((_, data)) => {
+                        let (x, y) = self.position().unwrap_or_default();
+                        if let Ok(ent) = deserialize_entity(data, x, y) {
+                            self.add_child(ent);
+                            ent
+                        } else {
+                            continue;
+                        }
+                    }
+                };
+                let _ = set_frames(ent);
+            }
+        }
+        let local_effects = self.get_game_effects();
+        for (effect, ent) in local_effects {
+            if game_effect.iter().all(|e| *e != effect) {
+                ent.kill()
+            }
+        }
+        if let Ok(damage) = self.get_first_component::<DamageModelComponent>(None) {
+            if game_effect
+                .iter()
+                .any(|e| e == &GameEffectData::Normal(GameEffectEnum::OnFire))
+            {
+                let _ = damage.set_m_fire_probability(100);
+                let _ = damage.set_m_fire_probability(1600);
+                let _ = damage.set_m_fire_probability(1600);
+            } else {
+                let _ = damage.set_m_fire_probability(0);
+                let _ = damage.set_m_fire_probability(0);
+                let _ = damage.set_m_fire_probability(0);
             }
         }
     }
     pub fn add_child(self, child: EntityID) {
         let _ = raw::entity_add_child(self.0.get() as i32, child.0.get() as i32);
     }
-
     pub fn get_current_stains(self) -> eyre::Result<u64> {
         let mut current = 0;
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
