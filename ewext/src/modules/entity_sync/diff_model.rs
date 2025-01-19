@@ -1030,6 +1030,7 @@ impl RemoteDiffModel {
                             lua.set_execute_every_n_frame(1)?;
                             lua.set_execute_times(-1)?;
                             wand.set_component_enabled(*lua, true)?;
+                            lua.add_tag("enabled_in_world")?;
                             let quick = if let Some(quick) =
                                 entity.children(None).iter().find_map(|a| {
                                     if a.name().ok()? == "inventory_quick" {
