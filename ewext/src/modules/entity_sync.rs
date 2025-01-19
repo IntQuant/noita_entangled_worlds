@@ -47,11 +47,20 @@ pub(crate) struct EntitySync {
 
     pending_fired_projectiles: Arc<Vec<ProjectileFired>>,
     dont_kill: FxHashSet<EntityID>,
+    dont_track: FxHashSet<EntityID>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
     }*/
+    pub(crate) fn track_entity(&mut self, net: &mut NetManager, ent: EntityID) {
+        let _ = self
+            .local_diff_model
+            .track_and_upload_entity(net, ent, Gid(rand::random()));
+    }
+    pub(crate) fn notrack_entity(&mut self, ent: EntityID) {
+        self.dont_track.insert(ent);
+    }
     pub(crate) fn find_by_gid(&self, gid: Gid) -> Option<EntityID> {
         self.local_diff_model
             .find_by_gid(gid)
@@ -69,6 +78,7 @@ impl Default for EntitySync {
 
             pending_fired_projectiles: Vec::new().into(),
             dont_kill: Default::default(),
+            dont_track: Default::default(),
         }
     }
 }
@@ -112,8 +122,9 @@ impl EntitySync {
                 "data/entities/buildings/statue_trap_right.xml",
                 "data/entities/animals/boss_limbs/boss_limbs_trigger.xml",
                 "data/entities/animals/boss_spirit/spawner.xml",
-                "data/entities/misc/orb_07_pitcheck_b.xml", //TODO no wang sync
-                "data/entities/buildings/maggotspot.xml",   //TODO no wang sync
+                "data/entities/misc/orb_07_pitcheck_a.xml",
+                "data/entities/misc/orb_07_pitcheck_b.xml",
+                "data/entities/buildings/maggotspot.xml",
                 "data/entities/buildings/dragonspot.xml",
                 "data/entities/buildings/wizardcave_gate.xml",
             ]
@@ -128,7 +139,7 @@ impl EntitySync {
         let max_entity = EntityID::max_in_use()?;
         for i in (self.look_current_entity.raw() + 1)..=max_entity.raw() {
             let entity = EntityID::try_from(i)?;
-            if !entity.is_alive() {
+            if !entity.is_alive() || self.dont_track.remove(&entity) {
                 continue;
             }
             if entity.has_tag(DES_TAG) && !self.dont_kill.remove(&entity) {

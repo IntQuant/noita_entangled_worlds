@@ -12,7 +12,7 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
 
     local dtypes = GetDamageDetails().damage_types
     -- Only handle melee damage that way.
-    if dtypes == 1 then
+    if dtypes == 1 and CrossCall("ew_do_i_own", entity_thats_responsible) then
         -- Damage the client
         CrossCall("ew_ds_client_damaged", EntityGetName(entity_id), damage, message)
     end

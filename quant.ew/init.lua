@@ -56,6 +56,7 @@ if GameHasFlagRun("ending_game_completed") then
 end
 
 local function load_modules()
+    ctx.load_system("uniq_flags")
     ctx.load_system("ewext_init")
 
     -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
@@ -138,7 +139,6 @@ local function load_modules()
     ctx.load_system("explosion_cuts")
     ctx.load_system("wang_hooks")
     ctx.load_system("entity_sync_helper")
-    ctx.load_system("uniq_flags")
 end
 
 local function load_extra_modules()

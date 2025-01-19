@@ -292,7 +292,7 @@ local function get_item(itemInfo, inv, player, local_ent)
         pickup_item(inv, item)
         item_entity = item
     elseif itemInfo.is_wand then
-        EntityAddTag(item.entity_id, "ew_client_item")
+        --EntityAddTag(item.entity_id, "ew_client_item")
         item:PickUp(player)
         item_entity = item.entity_id
     elseif itemInfo.peer_id ~= nil then
@@ -300,16 +300,14 @@ local function get_item(itemInfo, inv, player, local_ent)
         item_entity = item
         np.SetActiveHeldEntity(player, item, false, false)
     else
-        EntityAddTag(item, "ew_client_item")
+        --EntityAddTag(item, "ew_client_item")
         pickup_item(inv, item)
         item_entity = item
     end
+    ewext.notrack(item_entity)
     local itemComp = EntityGetFirstComponentIncludingDisabled(item_entity, "ItemComponent")
     if itemComp ~= nil then
         ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
-    end
-    if itemInfo.active then
-        active_item_entity = item_entity
     end
     if not local_ent then
         if itemInfo.egg == nil then
@@ -321,6 +319,9 @@ local function get_item(itemInfo, inv, player, local_ent)
         if notify ~= nil then
             EntityRemoveComponent(item_entity, notify)
         end
+    end
+    if itemInfo.active then
+        return item_entity
     end
 end
 
@@ -372,7 +373,10 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
         local active_item_entity
 
         for _, itemInfo in ipairs(item_data) do
-            get_item(itemInfo, inv_quick, player, local_ent)
+            local e = get_item(itemInfo, inv_quick, player, local_ent)
+            if e ~= nil then
+                active_item_entity = e
+            end
         end
 
         if spells ~= nil then

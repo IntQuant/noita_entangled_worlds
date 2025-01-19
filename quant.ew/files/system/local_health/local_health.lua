@@ -160,16 +160,6 @@ local function do_switch_effect(short)
     end
 end
 
-local function remove_inventory_tags()
-    if not EntityGetIsAlive(ctx.my_player.entity) then
-        return
-    end
-    local items = GameGetAllInventoryItems(ctx.my_player.entity)
-    for _, item in ipairs(items or {}) do
-        EntityRemoveTag(item, "ew_client_item")
-    end
-end
-
 local function remove_inventory()
     local children = EntityGetAllChildren(ctx.my_player.entity)
     for _, child in pairs(children or {}) do
@@ -428,7 +418,6 @@ local function player_died()
         end
     end
     reset_cast_state_if_has_any_other_item(ctx.my_player)
-    remove_inventory_tags()
     perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
     util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
     util.set_ent_health_cap(ctx.my_player.entity, cap)
@@ -576,13 +565,11 @@ function module.on_new_player_seen(new_playerdata, player_count) end
 
 function module.on_client_spawned(peer_id, playerdata)
     playerdata.status = { is_alive = true }
-    if ctx.is_host then
-        EntityAddComponent2(
-            playerdata.entity,
-            "LuaComponent",
-            { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
-        )
-    end
+    EntityAddComponent2(
+        playerdata.entity,
+        "LuaComponent",
+        { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
+    )
     local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
@@ -648,7 +635,6 @@ ctx.cap.health = {
             ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
             remove_stuff()
             inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
-            remove_inventory_tags()
             local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
             if controls ~= nil then
                 ComponentSetValue2(controls, "enabled", true)

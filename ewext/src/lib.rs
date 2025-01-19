@@ -478,6 +478,40 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         }
         add_lua_fn!(des_death_notify);
 
+        fn notrack(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                let entity_killed: Option<EntityID> = LuaGetValue::get(lua, -1)?;
+                let entity_killed =
+                    entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
+                entity_sync.notrack_entity(entity_killed);
+                Ok(())
+            })?
+        }
+        add_lua_fn!(notrack);
+
+        fn track(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                let entity_killed: Option<EntityID> = LuaGetValue::get(lua, -1)?;
+                let entity_killed =
+                    entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
+                let mut temp = NETMANAGER.lock().unwrap();
+                let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+                entity_sync.track_entity(net, entity_killed);
+                Ok(())
+            })?
+        }
+        add_lua_fn!(track);
+
         fn register_player_entity(lua: LuaState) -> eyre::Result<()> {
             let (peer_id, entity): (Cow<'_, str>, Option<EntityID>) = LuaGetValue::get(lua, -1)?;
             let peer_id = PeerId::from_hex(&peer_id)?;

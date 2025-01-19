@@ -112,13 +112,12 @@ function module.on_new_player_seen(new_playerdata, player_count)
 end
 
 function module.on_client_spawned(peer_id, playerdata)
-    if ctx.is_host then
-        EntityAddComponent2(
-            playerdata.entity,
-            "LuaComponent",
-            { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
-        )
-    else
+    EntityAddComponent2(
+        playerdata.entity,
+        "LuaComponent",
+        { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
+    )
+    if not ctx.is_host then
         EntityAddComponent2(playerdata.entity, "LuaComponent", {
             _tags = "ew_immortal",
             script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua",

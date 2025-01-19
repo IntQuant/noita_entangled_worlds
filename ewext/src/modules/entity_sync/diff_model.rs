@@ -150,7 +150,7 @@ impl LocalDiffModelTracker {
 
         let should_send_rotation =
             if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
-                !com.play_spinning_animation()?
+                !com.play_spinning_animation()? || com.play_hover_animation()?
             } else {
                 true
             };
@@ -591,6 +591,13 @@ impl LocalDiffModel {
                 &mut had_any_delta,
             );
             diff(
+                &current.r,
+                &mut last.r,
+                EntityUpdate::SetRotation(current.r),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
                 &current.phys,
                 &mut last.phys,
                 EntityUpdate::SetPhysInfo(current.phys.clone()),
@@ -1018,7 +1025,33 @@ impl RemoteDiffModel {
                     if entity_info.phys.is_empty()
                         || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
                     {
-                        entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
+                        let should_send_position = if let Some(com) =
+                            entity.try_get_first_component::<ItemComponent>(None)?
+                        {
+                            !com.play_hover_animation()?
+                        } else {
+                            true
+                        };
+
+                        let should_send_rotation = if let Some(com) =
+                            entity.try_get_first_component::<ItemComponent>(None)?
+                        {
+                            !com.play_spinning_animation()? || com.play_hover_animation()?
+                        } else {
+                            true
+                        };
+                        if should_send_rotation && should_send_position {
+                            entity.set_position(
+                                entity_info.x,
+                                entity_info.y,
+                                Some(entity_info.r),
+                            )?;
+                        } else if should_send_position {
+                            entity.set_position(entity_info.x, entity_info.y, None)?;
+                        } else if should_send_rotation {
+                            let (x, y) = entity.position()?;
+                            entity.set_position(x, y, Some(entity_info.r))?;
+                        }
                         if let Some(vel) =
                             entity.try_get_first_component::<VelocityComponent>(None)?
                         {
