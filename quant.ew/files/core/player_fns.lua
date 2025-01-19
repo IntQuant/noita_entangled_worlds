@@ -440,6 +440,7 @@ function player_fns.deserialize_position(message, phys_infos, player_data)
     ComponentSetValue2(platforming_comp, "jump_velocity_y", 0)
     ComponentSetValue2(platforming_comp, "fly_speed_mult", 0)
     ComponentSetValue2(platforming_comp, "fly_speed_change_spd", 0)
+    ComponentSetValue2(platforming_comp, "mIsPrecisionJumping", false)
 
     ComponentSetValue2(velocity_comp, "gravity_y", 0)
 

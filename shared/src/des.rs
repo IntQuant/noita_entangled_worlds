@@ -109,10 +109,7 @@ pub struct EntityInfo {
     pub counter: u8,      //for mom orbs/dragon has death script/etc
                           //pub synced_var: Vec<(String, i32, f32, bool)>, for mod compat maybe
 }
-//TODO stevari
 //TODO authority transfers should serialize entities probably
-//TODO kivi/mom/spirit might deal double damage
-//TODO radioactive barrel dupe
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.

@@ -379,6 +379,10 @@ impl EntityID {
         raw::entity_set_components_with_tag_enabled(self, tag, enabled)
     }
 
+    pub fn set_component_enabled(self, com: ComponentID, enabled: bool) -> eyre::Result<()> {
+        raw::entity_set_component_is_enabled(self, com, enabled)
+    }
+
     pub fn remove_component(self, component_id: ComponentID) -> eyre::Result<()> {
         raw::entity_remove_component(self, component_id)
     }

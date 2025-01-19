@@ -1025,6 +1025,11 @@ impl RemoteDiffModel {
                                 let var = wand.add_component::<VariableStorageComponent>()?;
                                 var.set_name("ew_spawned_wand".into())?;
                             }
+                            let lua = wand.add_component::<LuaComponent>()?;
+                            lua.set_script_source_file("mods/quant.ew/files/system/entity_sync_helper/scripts/kill_on_drop.lua".into())?;
+                            lua.set_execute_every_n_frame(1)?;
+                            lua.set_execute_times(-1)?;
+                            wand.set_component_enabled(*lua, true)?;
                             let quick = if let Some(quick) =
                                 entity.children(None).iter().find_map(|a| {
                                     if a.name().ok()? == "inventory_quick" {
