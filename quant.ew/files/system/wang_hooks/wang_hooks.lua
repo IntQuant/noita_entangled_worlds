@@ -54,6 +54,10 @@ local allow_patching = {
     spawn_crate = true,
     -- That one in lava lake.
     spawn_corpse = true,
+    spawn_boss_limbs_trigger = true,
+    spawn_spirit_spawner = true,
+    spawn_dragonspot = true,
+    spawn_gate = true,
 }
 
 local function patch_fn(color, orig_fn_name)
