@@ -108,9 +108,14 @@ impl EntitySync {
                 "data/entities/buildings/firetrap_right.xml",
                 "data/entities/buildings/statue_trap_left.xml",
                 "data/entities/buildings/statue_trap_right.xml",
+                "data/entities/animals/boss_limbs/boss_limbs_trigger.xml",
+                "data/entities/animals/boss_spirit/spawner.xml",
+                "data/entities/misc/orb_07_pitcheck_b.xml", //TODO no wang sync
+                "data/entities/buildings/maggotspot.xml",   //TODO no wang sync
+                "data/entities/buildings/dragonspot.xml",
+                "data/entities/buildings/wizardcave_gate.xml",
             ]
-            .iter()
-            .any(|name| name == &file_name)
+            .contains(&file_name.as_str())
             || entity_is_item(entity)?;
 
         Ok(should_be_tracked && !entity_is_excluded(entity)?)

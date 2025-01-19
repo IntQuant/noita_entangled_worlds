@@ -216,6 +216,21 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .sum()
+        /*} else if entity.filename()? == *"data/entities/buildings/wizardcave_gate.xml" {
+        info.counter = entity
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+            .find(|var| var.name().ok() == Some("egg_count".into()))
+            .map(|var| var.value_int())
+            .unwrap_or(Ok(0))? as u8*/
+        } else if entity.has_tag("boss_dragon")
+            && entity
+                .iter_all_components_of_type::<LuaComponent>(None)?
+                .any(|lua| {
+                    lua.script_death().ok()
+                        == Some("data/scripts/animals/boss_dragon_death.lua".into())
+                })
+        {
+            info.counter = 1
         }
 
         info.limbs = entity
@@ -892,7 +907,20 @@ impl RemoteDiffModel {
                                 }
                             }
                         }
+                    } else if entity.has_tag("boss_dragon")
+                        && entity_info.counter == 1
+                        && entity
+                            .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
+                            .all(|lua| {
+                                lua.script_death().ok()
+                                    != Some("data/scripts/animals/boss_dragon_death.lua".into())
+                            })
+                    {
+                        let lua = entity.add_component::<LuaComponent>()?;
+                        lua.set_script_death("data/scripts/animals/boss_dragon_death.lua".into())?;
+                        lua.set_execute_every_n_frame(-1)?;
                     }
+
                     if let Some((gid, seri)) = &entity_info.wand {
                         let inv = if let Some(inv) = entity
                             .try_get_first_component_including_disabled::<Inventory2Component>(

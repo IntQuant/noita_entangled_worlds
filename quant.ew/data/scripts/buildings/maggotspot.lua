@@ -1,10 +1,10 @@
 dofile_once("data/scripts/lib/utilities.lua")
 
-if not GameHasFlagRun("ew_flag_this_is_host") then
+local entity_id = GetUpdatedEntityID()
+if not CrossCall("ew_do_i_own", entity_id) then
+    EntityKill(entity_id)
     return
 end
-
-local entity_id = GetUpdatedEntityID()
 local pos_x, pos_y = EntityGetTransform(entity_id)
 
 local t = EntityGetInRadiusWithTag(pos_x, pos_y, 220, "ew_peer")

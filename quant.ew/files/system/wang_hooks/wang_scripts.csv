@@ -28,3 +28,7 @@ ff2768DE,ew_detour_spawn_wand_trap_electricity_source,-1,-1,-1,-1
 ff2768DF,ew_detour_spawn_wand_trap_electricity,-1,-1,-1,-1
 ff6b4f9b,spawn_moon,-1,-1,-1,-1
 ffd7b3e8,spawn_collapse,-1,-1,-1,-1
+ff905ecc,ew_detour_spawn_boss_limbs_trigger,-1,-1,-1,-1
+ff57ac68,ew_detour_spawn_spirit_spawner,-1,-1,-1,-1
+ff943030,ew_detour_spawn_dragonspot,-1,-1,-1,-1
+ffc29e29,ew_detour_spawn_gate,-1,-1,-1,-1

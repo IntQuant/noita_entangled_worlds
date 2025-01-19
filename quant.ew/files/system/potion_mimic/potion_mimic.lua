@@ -18,13 +18,6 @@ function rpc.got_thrown(peer_id, vx, vy)
         local px, py, pr, pvx, pvy, pvr = np.PhysBodyGetTransform(phys_component)
         np.PhysBodySetTransform(phys_component, px, py, pr, pvx + vx, pvy + vy, pvr)
     else
-        local immortal = EntityGetFirstComponentIncludingDisabled(item, "LuaComponent", "ew_immortal")
-        if immortal == 0 then
-            EntityAddComponent2(item, "LuaComponent", {
-                _tags = "ew_immortal",
-                script_damage_about_to_be_received = "mods/quant.ew/files/resource/cbs/immortal.lua",
-            })
-        end
         local damage_component = EntityGetFirstComponentIncludingDisabled(item, "DamageModelComponent")
         if damage_component and damage_component ~= 0 then
             ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", true)

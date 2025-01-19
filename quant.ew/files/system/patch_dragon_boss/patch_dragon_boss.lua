@@ -1,14 +1,14 @@
-local uniq_flags = dofile_once("mods/quant.ew/files/system/uniq_flags/uniq_flags.lua")
+--[[local uniq_flags = dofile_once("mods/quant.ew/files/system/uniq_flags/uniq_flags.lua")
 
 ModLuaFileAppend(
     "data/scripts/buildings/dragonspot.lua",
     "mods/quant.ew/files/system/patch_dragon_boss/dragonspot_script.lua"
-)
+)]]
 util.replace_text_in("data/entities/buildings/dragonspot.xml", "player_unit", "ew_peer")
 
 local module = {}
 
-local function spawn_dragon_boss(entity_id)
+--[[local function spawn_dragon_boss(entity_id)
     local pos_x, pos_y = EntityGetTransform(entity_id)
 
     local eid = EntityLoad("data/entities/animals/boss_dragon.xml", pos_x, pos_y)
@@ -29,6 +29,6 @@ util.add_cross_call("ew_spawn_dragon_boss", function(entity_id)
         end
         EntityKill(entity_id)
     end)
-end)
+end)]]
 
 return module

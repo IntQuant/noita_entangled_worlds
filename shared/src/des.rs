@@ -103,9 +103,11 @@ pub struct EntityInfo {
     pub laser: Option<PeerId>,
     pub limbs: Vec<(f32, f32)>,
     pub is_enabled: bool, //for kolmi/runestones/etc
-    pub counter: u8,      //for mom orbs/sun essences/etc
+    pub counter: u8,      //for mom orbs/dragon has death script/etc
 }
-//TODO get rid of ew_flag_this_is_host in quant.ew/data
+//TODO stevari
+//TODO authority transfers should serialize entities probably
+//TODO kivi/mom/spirit might deal double damage
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.

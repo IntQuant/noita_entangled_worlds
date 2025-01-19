@@ -1,6 +1,6 @@
 local uniq_flags = dofile_once("mods/quant.ew/files/system/uniq_flags/uniq_flags.lua")
 
-local rpc = net.new_rpc_namespace()
+--local rpc = net.new_rpc_namespace()
 
 local module = {}
 

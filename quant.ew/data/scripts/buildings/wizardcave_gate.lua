@@ -87,7 +87,7 @@ for _, id in ipairs(EntityGetInRadiusWithTag(x, y, 70, "egg_item")) do
         EntityKill(id)
 
         -- check egg count
-        if GameHasFlagRun("ew_flag_this_is_host") then
+        if CrossCall("ew_do_i_own", entity_id) then
             component_readwrite(
                 get_variable_storage_component(entity_id, "egg_count"),
                 { value_int = 0 },
@@ -107,9 +107,7 @@ for _, id in ipairs(EntityGetInRadiusWithTag(x, y, 70, "egg_item")) do
                         GameTriggerMusicFadeOutAndDequeueAll(3.0)
                         GameTriggerMusicEvent("music/oneshot/04", true, x_orig, y_orig)
                         -- remove self
-                        if GameHasFlagRun("ew_flag_this_is_host") then
-                            CrossCall("ew_spawn_gate")
-                        end
+                        CrossCall("ew_spawn_gate")
                         EntityKill(entity_id)
                         return
                     end
