@@ -420,16 +420,17 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
         fn sync_projectile(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
                 let entity = lua.to_string(1)?.parse::<isize>()?;
-                let mut peer = lua.to_string(2)?.parse::<u64>()?;
+                let peer = PeerId::from_hex(&lua.to_string(2)?)?;
                 let mut rng: u64 =
                     u32::from_ne_bytes(lua.to_string(3)?.parse::<i32>()?.to_ne_bytes()) as u64;
                 if rng == 0 {
                     rng = 1;
                 }
-                while peer == 0 {
-                    peer = peer.overflowing_add(rng).0
+                let mut peer_n = peer.0;
+                while peer_n == 0 {
+                    peer_n = peer_n.overflowing_add(rng).0
                 }
-                let gid = peer.overflowing_mul(rng).0;
+                let gid = peer_n.overflowing_mul(rng).0;
                 let entity_sync = state
                     .modules
                     .entity_sync
@@ -438,7 +439,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 entity_sync.sync_projectile(
                     EntityID(NonZero::try_from(entity)?),
                     Gid(gid),
-                    PeerId(peer),
+                    peer,
                 )?;
                 Ok(())
             })?

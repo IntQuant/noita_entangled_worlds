@@ -104,6 +104,7 @@ pub struct EntityInfo {
     pub ai_rotation: f32,
     pub is_enabled: bool, //for kolmi/runestones/etc
     pub counter: u8,      //for mom orbs/dragon has death script/etc
+                          //pub synced_var: Vec<(String, i32, f32, bool)>, for mod compat maybe
 }
 //TODO stevari
 //TODO authority transfers should serialize entities probably

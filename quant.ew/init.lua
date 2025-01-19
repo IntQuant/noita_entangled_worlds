@@ -252,13 +252,11 @@ function OnProjectileFired(
     if n == "data/entities/items/pickup/egg_hollow.xml" then
         --TODO
         EntityAddComponent2(projectile_id, "VariableStorageComponent", { _tags = "ew_egg", value_int = rng })
-        EntityAddComponent2(
-            projectile_id,
-            "VariableStorageComponent",
-            { _tags = "ew_global_item_id", value_string = shooter_player_data.peer_id .. ":" .. rng }
-        )
-        EntityAddTag(projectile_id, "ew_global_item")
-        EntityAddTag(projectile_id, "ew_no_spawn")
+        local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
+        if body ~= nil then
+            ComponentSetValue2(body, "destroy_body_if_entity_destroyed", true)
+        end
+        ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
     elseif
         n == "data/entities/projectiles/deck/rock.xml"
         or n == "data/entities/projectiles/deck/levitation_field.xml"
@@ -286,8 +284,8 @@ function OnProjectileFired(
                 end
             end
         end
-        EntityAddTag(projectile_id, "ew_global_item")
-        EntityAddTag(projectile_id, "ew_no_spawn")
+        --EntityAddTag(projectile_id, "ew_global_item")
+        --EntityAddTag(projectile_id, "ew_no_spawn")
     end
     np.SetProjectileSpreadRNG(rng)
 end

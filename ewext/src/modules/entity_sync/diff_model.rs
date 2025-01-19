@@ -12,7 +12,7 @@ use noita_api::{
     ItemPickUpperComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
     StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use shared::des::TRANSFER_RADIUS;
 use shared::{
     des::{
@@ -34,7 +34,6 @@ struct EntityEntryPair {
 
 struct LocalDiffModelTracker {
     tracked: BiHashMap<Lid, EntityID>,
-    give_gid: FxHashSet<Gid>,
     pending_removal: Vec<Lid>,
     pending_authority: Vec<FullEntityData>,
     pending_localize: Vec<(Lid, PeerId)>,
@@ -106,7 +105,6 @@ impl Default for LocalDiffModel {
             entity_entries: Default::default(),
             tracker: LocalDiffModelTracker {
                 tracked: Default::default(),
-                give_gid: Default::default(),
                 pending_removal: Vec::with_capacity(16),
                 pending_authority: Vec::new(),
                 pending_localize: Vec::with_capacity(4),
@@ -388,9 +386,6 @@ impl LocalDiffModelTracker {
 }
 
 impl LocalDiffModel {
-    pub(crate) fn give_gid(&mut self, gid: Gid) {
-        self.tracker.give_gid.insert(gid);
-    }
     fn alloc_lid(&mut self) -> Lid {
         let ret = self.next_lid;
         self.next_lid.0 += 1;

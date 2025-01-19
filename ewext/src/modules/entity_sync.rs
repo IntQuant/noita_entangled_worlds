@@ -11,7 +11,7 @@ use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
-use noita_api::{game_print, EntityID, ProjectileComponent};
+use noita_api::{EntityID, ProjectileComponent};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
@@ -46,6 +46,7 @@ pub(crate) struct EntitySync {
     remote_models: FxHashMap<PeerId, RemoteDiffModel>,
 
     pending_fired_projectiles: Arc<Vec<ProjectileFired>>,
+    dont_kill: FxHashSet<EntityID>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -67,6 +68,7 @@ impl Default for EntitySync {
             remote_models: Default::default(),
 
             pending_fired_projectiles: Vec::new().into(),
+            dont_kill: Default::default(),
         }
     }
 }
@@ -129,7 +131,7 @@ impl EntitySync {
             if !entity.is_alive() {
                 continue;
             }
-            if entity.has_tag(DES_TAG) {
+            if entity.has_tag(DES_TAG) && !self.dont_kill.remove(&entity) {
                 entity.kill();
                 continue;
             }
@@ -207,7 +209,7 @@ impl EntitySync {
         peer: PeerId,
     ) -> eyre::Result<()> {
         if peer == my_peer_id() {
-            self.local_diff_model.give_gid(gid);
+            self.dont_kill.insert(entity);
             self.local_diff_model.track_entity(entity, gid)?;
         } else if let Some(remote) = self.remote_models.get_mut(&peer) {
             remote.wait_for_gid(entity, gid);
@@ -257,7 +259,7 @@ impl Module for EntitySync {
                 .update_tracked_entities(ctx)
                 .wrap_err("Failed to update locally tracked entities")?;
             if self.interest_tracker.got_any_new_interested() {
-                game_print("Got new interested");
+                //game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();
             }
             let diff = self.local_diff_model.make_diff(ctx);
