@@ -58,6 +58,9 @@ local allow_patching = {
     spawn_spirit_spawner = true,
     spawn_dragonspot = true,
     spawn_gate = true,
+    spawn_essence = true,
+    spawn_friend = true,
+    spawn_killer = true,
 }
 
 local function patch_fn(color, orig_fn_name)
