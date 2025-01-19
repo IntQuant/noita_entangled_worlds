@@ -212,31 +212,35 @@ impl EntityID {
             {
                 let name = effect.effect().unwrap();
 
-                if name == GameEffectEnum::Custom {
-                    if let Ok(file) = ent.filename() {
-                        if !file.is_empty() {
-                            effects.push((GameEffectData::Custom(file), ent))
+                match name {
+                    GameEffectEnum::Custom => {
+                        if let Ok(file) = ent.filename() {
+                            if !file.is_empty() {
+                                effects.push((GameEffectData::Custom(file), ent))
+                            } else if let Ok(data) = serialize::serialize_entity(ent) {
+                                let n = ent.filename().unwrap_or(String::new());
+                                effects.push((GameEffectData::Projectile((n, data)), ent))
+                            }
                         } else if let Ok(data) = serialize::serialize_entity(ent) {
                             let n = ent.filename().unwrap_or(String::new());
-                            effects.push((GameEffectData::Projectile((n, data)), ent))
+                            let num = name_to_n.entry(n.clone()).or_insert(0);
+                            *num += 1;
+                            effects.push((
+                                GameEffectData::Projectile((format!("{}{}", n, num), data)),
+                                ent,
+                            ))
                         }
-                    } else if let Ok(data) = serialize::serialize_entity(ent) {
-                        let n = ent.filename().unwrap_or(String::new());
-                        let num = name_to_n.entry(n.clone()).or_insert(0);
-                        *num += 1;
-                        effects.push((
-                            GameEffectData::Projectile((format!("{}{}", n, num), data)),
-                            ent,
-                        ))
                     }
-                } else {
-                    effects.push((GameEffectData::Normal(name), ent))
+                    GameEffectEnum::Polymorph
+                    | GameEffectEnum::PolymorphRandom
+                    | GameEffectEnum::PolymorphUnstable
+                    | GameEffectEnum::PolymorphCessation => {}
+                    _ => effects.push((GameEffectData::Normal(name), ent)),
                 }
             }
         }
         effects
     }
-
     pub fn set_game_effects(self, game_effect: &[GameEffectData]) {
         fn set_frames(ent: EntityID) -> eyre::Result<()> {
             if let Some(effect) =
@@ -257,6 +261,16 @@ impl EntityID {
         }
         let local_effects = self.get_game_effects();
         for (i, (e1, ent)) in local_effects.iter().enumerate() {
+            if let GameEffectData::Normal(e1) = e1 {
+                if *e1 == GameEffectEnum::Polymorph
+                    || *e1 == GameEffectEnum::PolymorphRandom
+                    || *e1 == GameEffectEnum::PolymorphUnstable
+                    || *e1 == GameEffectEnum::PolymorphCessation
+                {
+                    ent.kill();
+                    continue;
+                }
+            }
             for (j, (e2, _)) in local_effects.iter().enumerate() {
                 if i < j && e1 == e2 {
                     ent.kill()

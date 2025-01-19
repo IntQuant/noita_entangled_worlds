@@ -510,6 +510,7 @@ function module.on_world_update()
             if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
                 GameRemoveFlagRun("ew_flag_notplayer_active")
                 EntityKill(ent)
+                EntityRemoveFromParent(ctx.my_player.entity)
                 ent = end_poly_effect(ctx.my_player.entity)
                 remove_stuff(ent)
                 polymorph.switch_entity(ent)
