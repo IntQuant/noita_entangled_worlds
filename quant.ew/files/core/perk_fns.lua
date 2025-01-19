@@ -15,7 +15,6 @@ local perks_to_ignore = {
     EXTRA_PERK = true,
     FASTER_WANDS = true,
     EXTRA_MANA = true,
-    TELEKINESIS = true,
     HEARTS_MORE_EXTRA_HP = true,
     MAP = true,
     ADVENTURER = true,
@@ -163,6 +162,12 @@ local function give_one_perk(entity_who_picked, perk_info, count, allow_globals,
             end
 
             EntityAddChild(entity_who_picked, particle_id)
+        end
+    end
+    if perk_info.id == "TELEKINESIS" then
+        local tele = EntityGetFirstComponent(entity_who_picked, "TelekinesisComponent")
+        if tele ~= nil then
+            ComponentSetValue2(tele, "kick_to_use", false)
         end
     end
     if perk_info.id == "EDIT_WANDS_EVERYWHERE" then

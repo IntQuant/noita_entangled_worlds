@@ -19,14 +19,6 @@ if ctx.proxy_opt.game_mode == "shared_health" then
     --ModLuaFileAppend("data/scripts/perks/perk_list.lua", "mods/quant.ew/files/system/perk_patches/append/perks_local.lua")
 end
 
-if not ctx.is_host or not ctx.proxy_opt.randomize_perks then
-    --print("Hiding telekinesis")
-    ModLuaFileAppend(
-        "data/scripts/perks/perk_list.lua",
-        "mods/quant.ew/files/system/perk_patches/append/perks_no_telekinesis.lua"
-    )
-end
-
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.modify_max_hp(percent_amount, do_heal)

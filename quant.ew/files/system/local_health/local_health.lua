@@ -210,6 +210,7 @@ local function allow_notplayer_perk(perk_id)
         GAMBLE = true,
         PERKS_LOTTERY = true,
         MEGA_BEAM_STONE = true,
+        TELEKINESIS = true,
         ALWAYS_CAST = true,
         EXTRA_SLOTS = true,
         EXTRA_PERK = true,

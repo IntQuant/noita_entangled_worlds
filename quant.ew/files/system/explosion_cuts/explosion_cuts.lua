@@ -227,7 +227,7 @@ function mod.on_world_update()
         if EntityGetIsAlive(ent) then
             update(ent, 1)
             local com = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
-            if ComponentGetValue2(com, "use_gun_script") then
+            if com ~= nil and ComponentGetValue2(com, "use_gun_script") then
                 com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
                 if com ~= nil then
                     ComponentSetValue2(com, "item_pickup_radius", 256)
