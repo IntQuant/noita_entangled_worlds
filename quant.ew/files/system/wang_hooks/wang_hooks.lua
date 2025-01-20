@@ -63,6 +63,16 @@ local allow_patching = {
     spawn_killer = true,
     spawn_hanging_prop = true,
     spawn_worm_deflector = true,
+    spawn_potion_mimic_empty = true,
+    spawn_potion_mimic = true,
+    spawn_book_barren = true,
+    spawn_potion_beer = true,
+    spawn_potion_milk = true,
+    spawn_scorpion = true,
+    spawn_puzzle_potion_mimics = true,
+    spawn_boss = true,
+    spawn_book = true,
+    spawn_secret = true,
 }
 
 local function patch_fn(color, orig_fn_name)
