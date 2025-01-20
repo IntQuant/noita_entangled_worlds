@@ -8,10 +8,11 @@ use noita_api::{
     game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
     AudioComponent, BossDragonComponent, BossHealthBarComponent, CameraBoundComponent,
     CharacterDataComponent, CharacterPlatformingComponent, DamageModelComponent, EntityID,
-    ExplodeOnDamageComponent, IKLimbComponent, IKLimbWalkerComponent, Inventory2Component,
-    ItemComponent, ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent, LuaComponent,
-    PhysData, PhysicsAIComponent, PhysicsBody2Component, SpriteComponent,
-    StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
+    ExplodeOnDamageComponent, GhostComponent, IKLimbComponent, IKLimbWalkerComponent,
+    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
+    LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
+    SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent,
+    WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::des::TRANSFER_RADIUS;
@@ -1470,6 +1471,12 @@ impl RemoteDiffModel {
         {
             pickup.set_drop_items_on_death(false)?;
             pickup.set_only_pick_this_entity(Some(EntityID(NonZero::new(1).unwrap())))?;
+        }
+
+        if let Some(ghost) =
+            entity.try_get_first_component_including_disabled::<GhostComponent>(None)?
+        {
+            ghost.set_die_if_no_home(false)?;
         }
 
         entity
