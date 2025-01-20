@@ -84,11 +84,13 @@ impl Default for EntitySync {
 }
 
 fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
+    let good = "data/entities/items/wands/wand_good/wand_good_";
     let filename = entity.filename()?;
     Ok(entity.has_tag("ew_no_enemy_sync")
         || entity.has_tag("polymorphed_player")
         || entity.has_tag("gold_nugget")
-        || ENTITY_EXCLUDES.contains(&filename))
+        || ENTITY_EXCLUDES.contains(&filename)
+        || filename.starts_with(good))
 }
 
 impl EntitySync {
@@ -104,6 +106,7 @@ impl EntitySync {
             "seed_c",
             "perk_fungus_tiny",
             "helpless_animal",
+            "nest",
         ]
         .iter()
         .any(|tag| entity.has_tag(tag))
