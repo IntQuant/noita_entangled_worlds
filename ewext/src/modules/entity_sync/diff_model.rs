@@ -97,6 +97,11 @@ impl RemoteDiffModel {
             .map(|l| self.tracked.get_by_left(l.0))?
             .copied()
     }
+    pub(crate) fn remove_entities(&self) {
+        for (_, ent) in self.tracked.iter() {
+            safe_entitykill(*ent)
+        }
+    }
 }
 
 impl Default for LocalDiffModel {

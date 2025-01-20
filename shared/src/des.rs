@@ -55,6 +55,7 @@ pub enum DesToProxy {
 pub enum ProxyToDes {
     /// Got authority over entity.
     GotAuthority(FullEntityData),
+    RemoveEntities(PeerId),
 }
 
 #[derive(Encode, Decode, Clone)]

@@ -24,9 +24,6 @@ use std::{
 };
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
-use tangled::Reliability;
-use tracing::{error, info, warn};
-
 use crate::mod_manager::{get_mods, ModmanagerSettings};
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
@@ -34,6 +31,9 @@ use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
     DefaultSettings, GameMode, GameSettings, LocalHealthMode,
 };
+use shared::des::ProxyToDes;
+use tangled::Reliability;
+use tracing::{error, info, warn};
 mod des;
 pub mod messages;
 mod proxy_opt;
@@ -581,6 +581,9 @@ impl NetManager {
             }
             NetMsg::NoitaDisconnected => {
                 state.des.noita_disconnected(src);
+                state.try_ms_write(&NoitaInbound::ProxyToDes(ProxyToDes::RemoveEntities(
+                    src.into(),
+                )));
                 state.try_ms_write(&ws_encode_proxy("dc", src.as_hex()));
             }
         }

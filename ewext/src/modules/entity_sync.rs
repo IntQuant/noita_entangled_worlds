@@ -162,6 +162,11 @@ impl EntitySync {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
             }
+            shared::des::ProxyToDes::RemoveEntities(peer) => {
+                if let Some(remote) = self.remote_models.remove(&peer) {
+                    remote.remove_entities()
+                }
+            }
         }
     }
 
