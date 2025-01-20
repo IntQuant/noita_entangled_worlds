@@ -641,6 +641,7 @@ pub struct App {
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
+    running_on_steamdeck: bool,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -785,6 +786,7 @@ impl App {
             appearance,
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
+            running_on_steamdeck,
         }
     }
 
@@ -1011,6 +1013,9 @@ impl App {
                             }
                             if self.show_host_settings {
                                 self.app_saved_state.game_settings.show_editor(ui, true)
+                            }
+                            if self.running_on_steamdeck && ui.button("Close Proxy").clicked() {
+                                std::process::exit(0)
                             }
                         });
                     });
