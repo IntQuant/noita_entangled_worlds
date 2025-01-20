@@ -62,6 +62,7 @@ local allow_patching = {
     spawn_friend = true,
     spawn_killer = true,
     spawn_hanging_prop = true,
+    spawn_worm_deflector = true,
 }
 
 local function patch_fn(color, orig_fn_name)

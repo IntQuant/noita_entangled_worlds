@@ -98,8 +98,8 @@ module.phys_sync_allowed = {
     ["data/entities/props/temple_statue_02.xml"] = true,
     --["data/entities/props/physics/temple_lantern.xml"] = true,
     ["data/entities/buildings/physics_worm_deflector_base.xml"] = true,
-    --["data/entities/buildings/physics_worm_deflector_crystal.xml"] = true,
-    --["data/entities/misc/greed_curse/greed_crystal.xml"] = true,
+    ["data/entities/buildings/physics_worm_deflector_crystal.xml"] = true,
+    ["data/entities/misc/greed_curse/greed_crystal.xml"] = true,
     --["data/entities/props/physics/lantern_small.xml"] = true,
 
     -- Traps
