@@ -1460,8 +1460,8 @@ impl RemoteDiffModel {
                     "data/scripts/animals/blob_damage.lua",
                 ]
                 .contains(&&*lua.script_damage_received()?)
-                || lua.script_source_file()?
-                    == "data/scripts/props/suspended_container_physics_objects.lua"
+                || ["data/scripts/props/suspended_container_physics_objects.lua"]
+                    .contains(&&*lua.script_source_file()?)
             {
                 entity.remove_component(*lua)?;
             }

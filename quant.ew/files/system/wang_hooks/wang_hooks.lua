@@ -73,6 +73,12 @@ local allow_patching = {
     spawn_boss = true,
     spawn_book = true,
     spawn_secret = true,
+    spawn_fruit = true,
+    spawn_specialshop = true,
+    spawn_rock1 = true,
+    spawn_rock2 = true,
+    spawn_prize = true,
+    --spawn_chest = true,
 }
 
 local function patch_fn(color, orig_fn_name)

@@ -74,6 +74,7 @@ function module.on_world_update()
                 or f == "data/entities/props/music_machines/music_machine_02.xml"
                 or f == "data/entities/props/music_machines/music_machine_03.xml"
                 or f == "data/entities/animals/boss_fish/fish_giga.xml"
+                or f == "data/entities/buildings/chest_steel.xml"
             then
                 local x, y = EntityGetTransform(ent)
                 local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
@@ -84,5 +85,32 @@ function module.on_world_update()
     end
     last = n
 end
+
+rpc.opts_reliable()
+rpc.opts_everywhere()
+function rpc.request_moon_flag_slow(x, y, dark)
+    if ctx.is_host then
+        local flag = "ew_moon_spawn" .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
+        local res = GameHasFlagRun(flag)
+        GameAddFlagRun(flag)
+        rpc.got_flag_moon_slow(ctx.rpc_peer_id, res, x, y, dark)
+    end
+end
+
+rpc.opts_reliable()
+rpc.opts_everywhere()
+function rpc.got_flag_moon_slow(peer_id, state, x, y, dark)
+    if peer_id == ctx.my_id and not state then
+        if dark then
+            EntityLoad("data/entities/items/pickup/sun/newsun_dark.xml", x, y)
+        else
+            EntityLoad("data/entities/items/pickup/sun/newsun.xml", x, y)
+        end
+    end
+end
+
+util.add_cross_call("ew_moon_spawn", function(x, y, dark)
+    rpc.request_moon_flag_slow(x, y, dark)
+end)
 
 return module
