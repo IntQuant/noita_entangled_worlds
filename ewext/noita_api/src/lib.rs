@@ -59,6 +59,10 @@ impl EntityID {
 
     pub fn kill(self) {
         // Shouldn't ever error.
+        for id in raw::physics_body_id_get_from_entity(self, None).unwrap_or_default() {
+            let n = 17000.0;
+            let _ = raw::physics_body_id_set_transform(id, n, n, 0.0, 0.0, 0.0, 0.0);
+        }
         let _ = raw::entity_kill(self);
     }
 
