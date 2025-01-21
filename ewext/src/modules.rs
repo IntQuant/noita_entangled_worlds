@@ -1,7 +1,8 @@
 use bimap::BiHashMap;
 use eyre::Ok;
 use noita_api::EntityID;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
+use shared::des::Gid;
 use shared::PeerId;
 
 use crate::{my_peer_id, net::NetManager};
@@ -13,6 +14,7 @@ pub(crate) struct ModuleCtx<'a> {
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
     pub(crate) fps_by_player: &'a mut FxHashMap<PeerId, u8>,
     pub(crate) sync_rate: i32,
+    pub(crate) dont_spawn: &'a FxHashSet<Gid>,
 }
 impl ModuleCtx<'_> {
     pub(crate) fn locate_player_within_except_me(

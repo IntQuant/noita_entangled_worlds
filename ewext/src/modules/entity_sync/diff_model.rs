@@ -1316,6 +1316,11 @@ impl RemoteDiffModel {
                     }
                 }
                 None => {
+                    if let Some(gid) = self.lid_to_gid.get(lid) {
+                        if ctx.dont_spawn.contains(gid) {
+                            continue;
+                        }
+                    }
                     let entity = spawn_entity_by_data(
                         &entity_info.spawn_info,
                         entity_info.x,

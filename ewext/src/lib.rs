@@ -16,7 +16,7 @@ use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
 };
 use noita_api_macro::add_lua_fn;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::Gid;
 use shared::{NoitaInbound, PeerId, ProxyKV};
 use std::num::NonZero;
@@ -64,6 +64,7 @@ struct ExtState {
     modules: Modules,
     player_entity_map: BiHashMap<PeerId, EntityID>,
     fps_by_player: FxHashMap<PeerId, u8>,
+    dont_spawn: FxHashSet<Gid>,
     sync_rate: i32,
 }
 
@@ -253,6 +254,7 @@ fn with_every_module(
             player_map: &mut state.player_entity_map,
             fps_by_player: &mut state.fps_by_player,
             sync_rate: state.sync_rate,
+            dont_spawn: &state.dont_spawn,
         };
         let mut errs = Vec::new();
         for module in state.modules.entity_sync.iter_mut() {
@@ -562,6 +564,22 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             })?
         }
         add_lua_fn!(find_by_gid);
+
+        fn des_chest_opened(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let entity = EntityID(NonZero::try_from(lua.to_string(1)?.parse::<isize>()?)?);
+                let entity_sync = state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .ok_or_eyre("No entity sync module loaded")?;
+                if let Some(gid) = entity_sync.register_chest(entity)? {
+                    state.dont_spawn.insert(gid);
+                }
+                Ok(())
+            })?
+        }
+        add_lua_fn!(des_chest_opened);
     }
     println!("Initializing ewext - Ok");
     1

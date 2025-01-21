@@ -1,3 +1,11 @@
+ModLuaFileAppend("data/scripts/items/utility_box.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/items/chest_random.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/buildings/chest_steel.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/items/chest_random_super.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/buildings/chest_light.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/scripts/buildings/chest_dark.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+ModLuaFileAppend("data/biome_impl/static_tile/chest_darkness.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
+
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
 -- Add extra entities to entity sync
@@ -27,6 +35,10 @@ end)
 
 util.add_cross_call("ew_death_notify", function(entity, responsible)
     ewext.des_death_notify(entity, responsible)
+end)
+
+util.add_cross_call("ew_chest_opened", function(entity)
+    ewext.des_chest_opened(entity)
 end)
 
 return {}

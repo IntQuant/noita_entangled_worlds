@@ -11,10 +11,10 @@ local function frame()
 end
 
 rpc.opts_everywhere()
-function rpc.pet(entity_who_interacted, entity_interacted, num, hx, hy)
-    local rnd = entity_interacted
-    if not ctx.is_host then
-        entity_interacted = ctx.entity_by_remote_id[entity_interacted].id
+function rpc.pet(entity_who_interacted, gid, num, hx, hy)
+    local entity_interacted = ewext.find_by_gid(gid)
+    if entity_interacted == nil then
+        return
     end
     entity_who_interacted = entity_who_interacted.entity or entity_who_interacted
     local x, y = EntityGetTransform(entity_interacted)
@@ -35,7 +35,7 @@ function rpc.pet(entity_who_interacted, entity_interacted, num, hx, hy)
         ComponentSetValueVector2(comp, "mVelocity", 0, 0)
     end)
 
-    SetRandomSeed(hx + rnd, hy + num)
+    SetRandomSeed(hx, hy + num)
     rnd = Random(1, 20)
 
     if rnd ~= 13 then
@@ -52,16 +52,18 @@ function rpc.pet(entity_who_interacted, entity_interacted, num, hx, hy)
     GameEntityPlaySound(entity_who_interacted, "pet")
 end
 
-util.add_cross_call("ew_pet_hamis", function(x, y)
-    local hx, hy = EntityGetTransform(y)
-    local ent = y
-    for a, b in pairs(ctx.entity_by_remote_id) do
-        if b.id == y then
-            ent = a
+util.add_cross_call("ew_pet_hamis", function(x, ent)
+    local hx, hy = EntityGetTransform(ent)
+    local gid
+    for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
             break
         end
     end
-    rpc.pet(ctx.player_data_by_local_entity[x] or x, ent, frame(), hx, hy)
+    if gid ~= nil then
+        rpc.pet(ctx.player_data_by_local_entity[x] or x, ComponentGetValue2(gid, "value_string"), frame(), hx, hy)
+    end
 end)
 
 return {}
