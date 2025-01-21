@@ -11,7 +11,7 @@ use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
-use noita_api::{EntityID, ProjectileComponent};
+use noita_api::{game_print, EntityID, ProjectileComponent, VariableStorageComponent};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
@@ -47,6 +47,7 @@ pub(crate) struct EntitySync {
 
     pending_fired_projectiles: Arc<Vec<ProjectileFired>>,
     dont_kill: FxHashSet<EntityID>,
+    dont_kill_by_gid: FxHashSet<Gid>,
     dont_track: FxHashSet<EntityID>,
 }
 impl EntitySync {
@@ -78,6 +79,7 @@ impl Default for EntitySync {
 
             pending_fired_projectiles: Vec::new().into(),
             dont_kill: Default::default(),
+            dont_kill_by_gid: Default::default(),
             dont_track: Default::default(),
         }
     }
@@ -145,7 +147,27 @@ impl EntitySync {
             if !entity.is_alive() || self.dont_track.remove(&entity) {
                 continue;
             }
-            if entity.has_tag(DES_TAG) && !self.dont_kill.remove(&entity) {
+            if let Some(gid) = entity.handle_poly() {
+                game_print(gid.0.to_string());
+                game_print(self.local_diff_model.find_by_gid(gid).is_some().to_string());
+                self.dont_kill_by_gid.insert(gid);
+            }
+            if entity.has_tag(DES_TAG)
+                && !self.dont_kill.remove(&entity)
+                && entity
+                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                        None,
+                    )?
+                    .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
+                    .map(|var| {
+                        if let Ok(n) = var.value_string().unwrap().parse::<u64>() {
+                            !self.dont_kill_by_gid.remove(&Gid(n))
+                        } else {
+                            true
+                        }
+                    })
+                    .unwrap_or(true)
+            {
                 entity.kill();
                 continue;
             }
@@ -169,6 +191,9 @@ impl EntitySync {
                 if let Some(remote) = self.remote_models.remove(&peer) {
                     remote.remove_entities()
                 }
+            }
+            shared::des::ProxyToDes::DeleteEntity(entity) => {
+                EntityID(entity).kill();
             }
         }
     }

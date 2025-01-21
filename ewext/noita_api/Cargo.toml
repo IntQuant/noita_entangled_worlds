@@ -9,3 +9,4 @@ libloading = "0.8.5"
 noita_api_macro = {path = "../noita_api_macro"}
 shared = {path = "../../shared"}
 strum = "0.26.3"
+base64 = "0.22.1"

@@ -1,6 +1,8 @@
 use crate::lua::{LuaGetValue, LuaPutValue};
 use crate::serialize::deserialize_entity;
+use base64::Engine;
 use eyre::{eyre, Context, OptionExt};
+use shared::des::Gid;
 use shared::{GameEffectData, GameEffectEnum};
 use std::collections::HashMap;
 use std::{
@@ -13,7 +15,6 @@ pub mod serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityID(pub NonZero<isize>);
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentID(pub NonZero<isize>);
 
@@ -40,6 +41,54 @@ impl EntityID {
 
     pub fn name(self) -> eyre::Result<String> {
         raw::entity_get_name(self).map(|s| s.to_string())
+    }
+
+    pub fn handle_poly(&self) -> Option<Gid> {
+        for ent in self.children(None) {
+            if let Ok(Some(effect)) =
+                ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)
+            {
+                let name = effect.effect().unwrap();
+                match name {
+                    GameEffectEnum::Polymorph
+                    | GameEffectEnum::PolymorphRandom
+                    | GameEffectEnum::PolymorphUnstable
+                    | GameEffectEnum::PolymorphCessation => {
+                        if let Ok(data) =
+                            raw::component_get_value::<Cow<str>>(effect.0, "mSerializedData")
+                        {
+                            if data.is_empty() {
+                                return None;
+                            }
+                            if let Ok(data) =
+                                base64::engine::general_purpose::STANDARD.decode(data.to_string())
+                            {
+                                let data = String::from_utf8_lossy(&data)
+                                    .chars()
+                                    .filter(|c| c.is_ascii_alphanumeric())
+                                    .collect::<String>();
+                                let mut data = data.split("VariableStorageComponentewgidlid");
+                                let _ = data.next();
+                                if let Some(data) = data.next() {
+                                    let mut gid = String::new();
+                                    for c in data.chars() {
+                                        if c.is_numeric() {
+                                            gid.push(c)
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                    return Some(Gid(gid.parse::<u64>().ok()?));
+                                }
+                            }
+                        }
+                        return None;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        None
     }
 
     pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {

@@ -1,3 +1,4 @@
+use std::num::NonZero;
 use std::sync::Arc;
 
 use crate::{GameEffectData, PeerId, WorldPos};
@@ -44,7 +45,7 @@ pub struct UpdatePosition {
 #[derive(Encode, Decode, Clone)]
 pub enum DesToProxy {
     InitOrUpdateEntity(FullEntityData),
-    DeleteEntity(Gid),
+    DeleteEntity(Gid, Option<NonZero<isize>>),
     ReleaseAuthority(Gid),
     RequestAuthority { pos: WorldPos, radius: i32 },
     UpdatePositions(Vec<UpdatePosition>),
@@ -56,8 +57,8 @@ pub enum ProxyToDes {
     /// Got authority over entity.
     GotAuthority(FullEntityData),
     RemoveEntities(PeerId),
+    DeleteEntity(NonZero<isize>),
 }
-
 #[derive(Encode, Decode, Clone)]
 pub struct InterestRequest {
     pub pos: WorldPos,

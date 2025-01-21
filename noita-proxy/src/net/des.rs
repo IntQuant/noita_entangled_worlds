@@ -76,9 +76,14 @@ impl DesManager {
                     .entities
                     .insert(full_entity_data.gid, full_entity_data);
             }
-            DesToProxy::DeleteEntity(gid) => {
-                self.authority.remove(&gid);
-                self.entity_storage.entities.remove(&gid);
+            DesToProxy::DeleteEntity(gid, ent) => {
+                if self.entity_storage.entities.contains_key(&gid) {
+                    self.authority.remove(&gid);
+                    self.entity_storage.entities.remove(&gid);
+                } else if let Some(ent) = ent {
+                    self.pending_messages
+                        .push((source, ProxyToDes::DeleteEntity(ent)));
+                }
             }
             DesToProxy::ReleaseAuthority(gid) => {
                 self.authority.remove(&gid);

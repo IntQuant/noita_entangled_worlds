@@ -134,7 +134,7 @@ impl LocalDiffModelTracker {
         let entity = self.entity_by_lid(lid)?;
 
         if !entity.is_alive() {
-            self.untrack_entity(ctx, gid, lid)?;
+            self.untrack_entity(ctx, gid, lid, None)?;
             return Ok(());
         }
         let item_and_was_picked = info.kind == EntityKind::Item && item_in_inventory(entity)?;
@@ -362,10 +362,11 @@ impl LocalDiffModelTracker {
         ctx: &mut ModuleCtx<'_>,
         gid: Gid,
         lid: Lid,
+        ent: Option<NonZero<isize>>,
     ) -> Result<(), eyre::Error> {
         self.pending_removal.push(lid);
         ctx.net.send(&NoitaOutbound::DesToProxy(
-            shared::des::DesToProxy::DeleteEntity(gid),
+            shared::des::DesToProxy::DeleteEntity(gid, ent),
         ))?;
 
         Ok(())
@@ -378,7 +379,7 @@ impl LocalDiffModelTracker {
         lid: Lid,
         entity: EntityID,
     ) -> Result<(), eyre::Error> {
-        self.untrack_entity(ctx, gid, lid)?;
+        self.untrack_entity(ctx, gid, lid, Some(entity.0))?;
         entity.remove_tag(DES_TAG)?;
         with_entity_scripts(entity, |luac| {
             luac.set_script_throw_item(
@@ -596,7 +597,7 @@ impl LocalDiffModel {
                 .wrap_err("Failed to update local entity")
             {
                 print_error(error)?;
-                self.tracker.untrack_entity(ctx, *gid, lid)?;
+                self.tracker.untrack_entity(ctx, *gid, lid, None)?;
             }
         }
         Ok(())
@@ -1601,6 +1602,10 @@ fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
     lc.set_script_source_file(
         "mods/quant.ew/files/system/entity_sync_helper/scripts/killself.lua".into(),
     )?;
+    entity.set_component_enabled(*lc, true)?;
+    lc.add_tag("enabled_in_inventory")?;
+    lc.add_tag("enabled_in_world")?;
+    lc.add_tag("enabled_in_hand")?;
     lc.set_execute_on_added(false)?;
     lc.set_m_next_execution_time(noita_api::raw::game_get_frame_num()? + 1)?;
     Ok(())
