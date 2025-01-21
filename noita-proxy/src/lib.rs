@@ -654,6 +654,7 @@ pub struct App {
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
     running_on_steamdeck: bool,
+    copied_lobby: bool,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -799,6 +800,7 @@ impl App {
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
             running_on_steamdeck,
+            copied_lobby: true,
         }
     }
 
@@ -865,6 +867,7 @@ impl App {
     }
 
     fn change_state_to_netman(&mut self, netman: Arc<net::NetManager>, player_path: PathBuf) {
+        self.copied_lobby = false;
         let handle = netman.clone().start(player_path);
         self.state = AppState::ConnectedLobby {
             netman: NetManStopOnDrop(netman, Some(handle)),
@@ -1399,10 +1402,13 @@ impl App {
                 ConnectedMenu::Normal => {
                     if netman.peer.is_steam() {
                         if let Some(id) = netman.peer.lobby_id() {
-                            if ui.button(tr("netman_save_lobby")).clicked() {
+                            if ui.button(tr("netman_save_lobby")).clicked() || !self.copied_lobby {
                                 let lobby_code = LobbyCode { kind, code: id };
                                 ui.output_mut(|o| o.copied_text = lobby_code.serialize());
+                                self.copied_lobby = true;
                             }
+                        } else {
+                            ui.label("No lobby created yet");
                         }
                     }
                     self.appearance.mina_color_picker(
