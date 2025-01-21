@@ -90,6 +90,7 @@ connect_settings_autostart = Lancer le jeu automatiquement
 
 ## Game settings
 
+Player-have-same-starting-loadout = Player have same starting loadout
 connect_settings_spacewars = Autorise à utiliser le Steam network même s'ils n'ont pas le jeu sur Steam, dans le cas où vous avez la version GOG du jeu. Tous les joueurs ont besoin d'avoir cette option d'activer pour qu'elle marche, relancer votre Proxy pour qu'elle prenne effet.
 Health-per-player = Points de Vie par joueur
 Enable-friendly-fire = Activer le tir allié, permet la création d'équipe dans les paramètres du jeu

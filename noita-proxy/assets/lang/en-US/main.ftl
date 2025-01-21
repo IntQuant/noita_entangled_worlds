@@ -90,6 +90,7 @@ connect_settings_autostart = Start the game automatically
 
 ## Game settings
 
+Player-have-same-starting-loadout = Players have the same starting loadout
 connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
 Health-per-player = Health per player
 Enable-friendly-fire = Enable friendly fire, allows picking teams in game settings

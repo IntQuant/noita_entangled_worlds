@@ -90,6 +90,7 @@ connect_settings_autostart = 노이타를 자동으로 시작
 
 ## Game settings
 
+Player-have-same-starting-loadout = Player have same starting loadout
 connect_settings_spacewars = 노이타를 스팀에서 소유하지 않아도 스팀 네트워킹을 사용하게 합니다.GOG 버전이라면 사용하세요. 모든 플레이어가 켜놓아야 합니다. 프록시를 재시작해서 적용하세요.
 Health-per-player = 플레이어당 체력
 Enable-friendly-fire = 아군 오사를 활성화하고, 설정에서 팀을 고르게 합니다

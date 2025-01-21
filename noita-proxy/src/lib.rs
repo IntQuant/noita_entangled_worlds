@@ -94,6 +94,7 @@ pub struct GameSettings {
     physics_damage: Option<bool>,
     share_gold: Option<bool>,
     nice_terraforming: Option<bool>,
+    same_loadout: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -279,6 +280,15 @@ impl GameSettings {
                     game_settings.share_gold = Some(temp)
                 }
             }
+            {
+                let mut temp = game_settings.same_loadout.unwrap_or(def.same_loadout);
+                if ui
+                    .checkbox(&mut temp, tr("Player-have-same-starting-loadout"))
+                    .changed()
+                {
+                    game_settings.same_loadout = Some(temp)
+                }
+            }
             ui.add_space(10.0);
             ui.label("Perks");
             {
@@ -344,6 +354,7 @@ pub struct DefaultSettings {
     physics_damage: bool,
     share_gold: bool,
     nice_terraforming: bool,
+    same_loadout: bool,
 }
 
 impl Default for DefaultSettings {
@@ -366,6 +377,7 @@ impl Default for DefaultSettings {
             physics_damage: true,
             share_gold: false,
             nice_terraforming: true,
+            same_loadout: false,
         }
     }
 }

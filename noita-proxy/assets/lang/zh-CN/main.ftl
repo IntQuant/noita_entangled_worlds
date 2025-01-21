@@ -89,6 +89,7 @@ connect_settings_autostart = 自动启动游戏
 
 ## Game settings
 
+Player-have-same-starting-loadout = Player have same starting loadout
 connect_settings_spacewars = 允许使用Steam网络联机，即使你没有在Steam上购买游戏，如果你有GOG版本的游戏。所有玩家都需要勾选此选项才能生效，重启noita-proxy以生效
 Health-per-player = 每个玩家的生命值
 Enable-friendly-fire = 启用队友伤害
