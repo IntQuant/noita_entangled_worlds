@@ -54,8 +54,12 @@ impl InterestTracker {
         self.lost_interest.drain(..)
     }
 
-    pub(crate) fn iter_interested(&mut self) -> impl Iterator<Item = PeerId> + '_ {
+    pub(crate) fn iter_interested(&self) -> impl Iterator<Item = PeerId> + '_ {
         self.interested_peers.iter().copied()
+    }
+
+    pub(crate) fn contains(&self, peer_id: PeerId) -> bool {
+        self.interested_peers.contains(&peer_id)
     }
 
     pub(crate) fn reset_interest_for(&mut self, source: PeerId) {

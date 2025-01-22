@@ -17,8 +17,8 @@ use noita_api::{
 };
 use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::des::Gid;
-use shared::{des, NoitaInbound, NoitaOutbound, PeerId, ProxyKV};
+use shared::des::{Gid, RemoteDes};
+use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, ProxyKV, SpawnOnce, WorldPos};
 use std::num::NonZero;
 use std::{
     arch::asm,
@@ -184,9 +184,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    if let Ok(Some(gid)) = entity_sync.handle_proxytodes(proxy_to_des) {
-                        state.dont_spawn.insert(gid);
-                    }
+                    entity_sync.handle_proxytodes(proxy_to_des);
                 }
             })?,
             NoitaInbound::RemoteMessage {
@@ -195,7 +193,9 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             } => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    entity_sync.handle_remotedes(source, remote_des);
+                    if let Ok(Some(gid)) = entity_sync.handle_remotedes(source, remote_des) {
+                        state.dont_spawn.insert(gid);
+                    }
                 }
             })?,
         }
@@ -472,11 +472,26 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     .entity_sync
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                let (entity_killed, entity_responsible): (Option<EntityID>, Option<EntityID>) =
-                    LuaGetValue::get(lua, -1)?;
+                #[allow(clippy::type_complexity)]
+                let (entity_killed, x, y, file, entity_responsible): (
+                    Option<EntityID>,
+                    Option<f64>,
+                    Option<f64>,
+                    Option<Cow<'_, str>>,
+                    Option<EntityID>,
+                ) = LuaGetValue::get(lua, -1)?;
                 let entity_killed =
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
-                entity_sync.cross_death_notify(entity_killed, entity_responsible)?;
+                let file = file.ok_or_eyre("Expected to have a valid file")?;
+                let x = x.ok_or_eyre("Expected to have a valid pos")?;
+                let y = y.ok_or_eyre("Expected to have a valid pos")?;
+                let pos = WorldPos::from_f64(x, y);
+                entity_sync.cross_death_notify(
+                    entity_killed,
+                    pos,
+                    file.to_string(),
+                    entity_responsible,
+                )?;
                 Ok(())
             })?
         }
@@ -569,7 +584,10 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
 
         fn des_chest_opened(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let entity = EntityID(NonZero::try_from(lua.to_string(1)?.parse::<isize>()?)?);
+                let x = lua.to_string(1)?.parse::<f64>()?;
+                let y = lua.to_string(2)?.parse::<f64>()?;
+                let file = lua.to_string(3)?.to_string();
+                let entity = EntityID(NonZero::try_from(lua.to_string(4)?.parse::<isize>()?)?);
                 let entity_sync = state
                     .modules
                     .entity_sync
@@ -579,11 +597,33 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     state.dont_spawn.insert(gid);
                     let mut temp = NETMANAGER.lock().unwrap();
                     let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
-                    net.send(&NoitaOutbound::DesToProxy(des::DesToProxy::ChestOpen(gid)))?;
+                    for (has_interest, peer) in
+                        entity_sync.iter_peers(state.player_entity_map.clone())
+                    {
+                        if has_interest {
+                            let _ = net.send(&NoitaOutbound::RemoteMessage {
+                                reliable: true,
+                                destination: Destination::Peer(peer),
+                                message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpen(
+                                    gid,
+                                )),
+                            });
+                        } else {
+                            let _ = net.send(&NoitaOutbound::RemoteMessage {
+                                reliable: true,
+                                destination: Destination::Peer(peer),
+                                message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
+                                    WorldPos::from_f64(x, y),
+                                    SpawnOnce::Chest(file.clone()),
+                                )),
+                            });
+                        }
+                    }
                 }
                 Ok(())
             })?
         }
+
         add_lua_fn!(des_chest_opened);
     }
     println!("Initializing ewext - Ok");

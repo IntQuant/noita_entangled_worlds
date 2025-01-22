@@ -1,7 +1,7 @@
 use std::num::NonZero;
 use std::sync::Arc;
 
-use crate::{GameEffectData, PeerId, WorldPos};
+use crate::{GameEffectData, PeerId, SpawnOnce, WorldPos};
 use bitcode::{Decode, Encode};
 
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
@@ -50,7 +50,6 @@ pub enum DesToProxy {
     RequestAuthority { pos: WorldPos, radius: i32 },
     UpdatePositions(Vec<UpdatePosition>),
     TransferAuthorityTo(Gid, PeerId),
-    ChestOpen(Gid),
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -59,7 +58,6 @@ pub enum ProxyToDes {
     GotAuthority(FullEntityData),
     RemoveEntities(PeerId),
     DeleteEntity(NonZero<isize>),
-    TriggerChest(Gid),
 }
 #[derive(Encode, Decode, Clone)]
 pub struct InterestRequest {
@@ -155,6 +153,9 @@ pub enum RemoteDes {
     ExitedInterest,
     Projectiles(Arc<Vec<ProjectileFired>>),
     RequestGrab(Lid),
+    DeadEntities(Vec<(WorldPos, SpawnOnce)>),
+    SpawnOnce(WorldPos, SpawnOnce),
+    ChestOpen(Gid),
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

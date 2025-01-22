@@ -26,6 +26,13 @@ pub struct ModMessage {
 }
 
 #[derive(Encode, Decode, Clone)]
+pub enum SpawnOnce {
+    Enemy(String, Option<PeerId>),
+    BrokenWand(String),
+    Chest(String),
+}
+
+#[derive(Encode, Decode, Clone)]
 pub enum RemoteMessage {
     RemoteDes(des::RemoteDes),
 }

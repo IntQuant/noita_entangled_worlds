@@ -3,15 +3,16 @@
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
-use std::sync::{Arc, LazyLock};
-
 use super::{Module, NetManager};
 use crate::my_peer_id;
+use bimap::BiHashMap;
 use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
-use noita_api::{EntityID, LuaComponent, ProjectileComponent, VariableStorageComponent};
+use noita_api::{
+    DamageModelComponent, EntityID, LuaComponent, ProjectileComponent, VariableStorageComponent,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
@@ -20,6 +21,7 @@ use shared::{
     },
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
+use std::sync::{Arc, LazyLock};
 
 mod diff_model;
 mod interest;
@@ -49,6 +51,7 @@ pub(crate) struct EntitySync {
     dont_kill: FxHashSet<EntityID>,
     dont_kill_by_gid: FxHashSet<Gid>,
     dont_track: FxHashSet<EntityID>,
+    spawn_once: Vec<(WorldPos, shared::SpawnOnce)>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -92,6 +95,7 @@ impl Default for EntitySync {
             dont_kill: Default::default(),
             dont_kill_by_gid: Default::default(),
             dont_track: Default::default(),
+            spawn_once: Default::default(),
         }
     }
 }
@@ -107,6 +111,12 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
 }
 
 impl EntitySync {
+    pub fn iter_peers(&self, player_map: BiHashMap<PeerId, EntityID>) -> Vec<(bool, PeerId)> {
+        player_map
+            .left_values()
+            .map(|p| (self.interest_tracker.contains(*p), *p))
+            .collect::<Vec<(bool, PeerId)>>()
+    }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
         let file_name = entity.filename().unwrap_or_default();
         let should_be_tracked = [
@@ -191,10 +201,7 @@ impl EntitySync {
         Ok(())
     }
 
-    pub(crate) fn handle_proxytodes(
-        &mut self,
-        proxy_to_des: shared::des::ProxyToDes,
-    ) -> eyre::Result<Option<Gid>> {
+    pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
@@ -207,7 +214,16 @@ impl EntitySync {
             shared::des::ProxyToDes::DeleteEntity(entity) => {
                 EntityID(entity).kill();
             }
-            shared::des::ProxyToDes::TriggerChest(gid) => {
+        }
+    }
+
+    pub(crate) fn handle_remotedes(
+        &mut self,
+        source: PeerId,
+        remote_des: RemoteDes,
+    ) -> eyre::Result<Option<Gid>> {
+        match remote_des {
+            RemoteDes::ChestOpen(gid) => {
                 if let Some(ent) = self.find_by_gid(gid) {
                     if let Some(file) = ent
                         .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
@@ -223,12 +239,8 @@ impl EntitySync {
                 }
                 return Ok(Some(gid));
             }
-        }
-        Ok(None)
-    }
-
-    pub(crate) fn handle_remotedes(&mut self, source: PeerId, remote_des: RemoteDes) {
-        match remote_des {
+            RemoteDes::SpawnOnce(pos, data) => self.spawn_once.push((pos, data)),
+            RemoteDes::DeadEntities(vec) => self.spawn_once.extend(vec),
             RemoteDes::InterestRequest(interest_request) => self
                 .interest_tracker
                 .handle_interest_request(source, interest_request),
@@ -252,6 +264,7 @@ impl EntitySync {
                 self.local_diff_model.entity_grabbed(source, lid);
             }
         }
+        Ok(None)
     }
 
     pub(crate) fn cross_item_thrown(
@@ -268,10 +281,12 @@ impl EntitySync {
     pub(crate) fn cross_death_notify(
         &mut self,
         entity_killed: EntityID,
+        pos: WorldPos,
+        file: String,
         entity_responsible: Option<EntityID>,
     ) -> eyre::Result<()> {
         self.local_diff_model
-            .death_notify(entity_killed, entity_responsible);
+            .death_notify(entity_killed, pos, file, entity_responsible);
         Ok(())
     }
 
@@ -325,6 +340,69 @@ impl Module for EntitySync {
             )?;
         }
 
+        let mut i = self.spawn_once.len();
+        while i != 0 {
+            i -= 1;
+            let (pos, data) = &self.spawn_once[i];
+            if pos.contains(x, y, 512 + 256) {
+                match data {
+                    shared::SpawnOnce::Enemy(file, offending_peer) => {
+                        if let Ok(Some(entity)) =
+                            noita_api::raw::entity_load(file.into(), Some(x), Some(y))
+                        {
+                            if let Some(damage) =
+                                entity.try_get_first_component::<DamageModelComponent>(None)?
+                            {
+                                damage.set_wait_for_kill_flag_on_death(false)?; //TODO deal with this better
+                                damage.set_ui_report_damage(false)?;
+                                damage.set_hp(f32::MIN_POSITIVE as f64)?;
+                                let responsible_entity = offending_peer
+                                    .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                                    .copied();
+                                noita_api::raw::entity_inflict_damage(
+                                    entity.raw() as i32,
+                                    damage.hp()? + 0.1,
+                                    "DAMAGE_CURSE".into(), //TODO should be enum
+                                    "kill sync".into(),
+                                    "NONE".into(),
+                                    0.0,
+                                    0.0,
+                                    responsible_entity.map(|e| e.raw() as i32),
+                                    None,
+                                    None,
+                                    None,
+                                )?;
+                            }
+                        }
+                    }
+                    shared::SpawnOnce::Chest(file) => {
+                        if let Ok(Some(ent)) =
+                            noita_api::raw::entity_load(file.into(), Some(x), Some(y))
+                        {
+                            if let Some(file) = ent
+                                .iter_all_components_of_type_including_disabled::<LuaComponent>(
+                                    None,
+                                )?
+                                .find(|l| {
+                                    !l.script_physics_body_modified()
+                                        .unwrap_or("".into())
+                                        .is_empty()
+                                })
+                                .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
+                            {
+                                ent.add_lua_init_component::<LuaComponent>(&file)?;
+                            }
+                        }
+                    }
+                    shared::SpawnOnce::BrokenWand(_file) => {
+                        todo!()
+                    }
+                }
+                self.spawn_once.remove(i);
+                i += 1;
+            }
+        }
+
         self.local_diff_model.update_pending_authority()?;
 
         if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 0 {
@@ -335,7 +413,7 @@ impl Module for EntitySync {
                 //game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();
             }
-            let diff = self.local_diff_model.make_diff(ctx);
+            let (diff, dead) = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
             for peer in self.interest_tracker.iter_interested() {
                 send_remotedes(
@@ -350,6 +428,16 @@ impl Module for EntitySync {
                     Destination::Peer(peer),
                     RemoteDes::EntityUpdate(diff.clone()),
                 )?;
+            }
+            for peer in ctx.player_map.clone().left_values() {
+                if !self.interest_tracker.contains(*peer) {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(*peer),
+                        RemoteDes::DeadEntities(dead.clone()),
+                    )?;
+                }
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         }

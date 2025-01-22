@@ -1,7 +1,8 @@
 local old = on_open
 function on_open(entity_item, dont)
     if dont == nil then
-        CrossCall("ew_chest_opened", entity_item)
+        local x, y = EntityGetTransform(entity_item)
+        CrossCall("ew_chest_opened", x, y, EntityGetFilename(entity_item), entity_item)
     end
     old(entity_item)
 end

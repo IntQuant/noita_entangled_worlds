@@ -21,7 +21,7 @@ use shared::{
         EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
         PhysBodyInfo, ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
     },
-    GameEffectData, NoitaOutbound, PeerId, WorldPos,
+    GameEffectData, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
 };
 use std::mem;
 use std::num::NonZero;
@@ -40,7 +40,7 @@ struct LocalDiffModelTracker {
     pending_authority: Vec<FullEntityData>,
     pending_localize: Vec<(Lid, PeerId)>,
     /// Stores pairs of entity killed and optionally the responsible entity.
-    pending_death_notify: Vec<(EntityID, Option<EntityID>)>,
+    pending_death_notify: Vec<(EntityID, WorldPos, String, Option<EntityID>)>,
     authority_radius: f32,
 }
 
@@ -603,7 +603,10 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn make_diff(&mut self, ctx: &mut ModuleCtx) -> Vec<EntityUpdate> {
+    pub(crate) fn make_diff(
+        &mut self,
+        ctx: &mut ModuleCtx,
+    ) -> (Vec<EntityUpdate>, Vec<(WorldPos, SpawnOnce)>) {
         let mut res = Vec::new();
         for (&lid, EntityEntryPair { last, current, gid }) in self.entity_entries.iter_mut() {
             res.push(EntityUpdate::CurrentEntity(lid));
@@ -761,7 +764,8 @@ impl LocalDiffModel {
             res.push(EntityUpdate::LocalizeEntity(lid, peer));
         }
 
-        for (killed, responsible) in self.tracker.pending_death_notify.drain(..) {
+        let mut dead = Vec::new();
+        for (killed, pos, file, responsible) in self.tracker.pending_death_notify.drain(..) {
             let responsible_peer = responsible
                 .and_then(|ent| ctx.player_map.get_by_right(&ent))
                 .copied();
@@ -772,6 +776,7 @@ impl LocalDiffModel {
                 lid,
                 responsible_peer,
             });
+            dead.push((pos, SpawnOnce::Enemy(file, responsible_peer)));
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
@@ -780,7 +785,7 @@ impl LocalDiffModel {
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
         }
-        res
+        (res, dead)
     }
 
     pub(crate) fn lid_by_entity(&self, entity: EntityID) -> Option<Lid> {
@@ -820,11 +825,13 @@ impl LocalDiffModel {
     pub(crate) fn death_notify(
         &mut self,
         entity_killed: EntityID,
+        pos: WorldPos,
+        file: String,
         entity_responsible: Option<EntityID>,
     ) {
         self.tracker
             .pending_death_notify
-            .push((entity_killed, entity_responsible))
+            .push((entity_killed, pos, file, entity_responsible))
     }
 }
 
@@ -1354,7 +1361,7 @@ impl RemoteDiffModel {
                 inv.children(None).iter().for_each(|e| e.kill())
             }
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
-                damage.set_wait_for_kill_flag_on_death(false)?;
+                damage.set_wait_for_kill_flag_on_death(false)?; //TODO deal with this better
                 damage.set_ui_report_damage(false)?;
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(

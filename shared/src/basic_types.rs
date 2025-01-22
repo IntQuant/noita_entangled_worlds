@@ -25,6 +25,12 @@ impl WorldPos {
     pub fn as_array(&self) -> [i64; 2] {
         [self.x as i64, self.y as i64]
     }
+
+    pub fn contains(self, x: f64, y: f64, dist: u32) -> bool {
+        let dx = self.x.abs_diff(x as i32);
+        let dy = self.y.abs_diff(y as i32);
+        dx * dx + dy * dy < dist * dist
+    }
 }
 
 #[derive(Debug, Encode, Decode, Hash, PartialEq, Eq, Clone, Copy, Default)]

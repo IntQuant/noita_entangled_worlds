@@ -429,11 +429,6 @@ impl NetManager {
                 self.send(dest, &NetMsg::ForwardProxyToDes(msg), Reliability::Reliable);
             }
 
-            let des_broadcasts = state.des.pending_broadcasts();
-            for msg in des_broadcasts {
-                self.broadcast(&NetMsg::ForwardProxyToDes(msg), Reliability::Reliable);
-            }
-
             // Don't do excessive busy-waiting;
             let min_update_time = Duration::from_millis(1);
             let elapsed = last_iter.elapsed();
