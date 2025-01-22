@@ -31,8 +31,7 @@ pub struct MessageSocket<Inbound, Outbound> {
 
 impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbound, Outbound> {
     pub fn new(socket: TcpStream) -> eyre::Result<Self> {
-        socket.set_nodelay(true)?;
-        socket.set_write_timeout(Some(Duration::from_secs(3)))?;
+        socket.set_write_timeout(Some(Duration::from_secs(10)))?;
         let (sender, recv_messages) = mpsc::channel();
         let reader_thread = Some(thread::spawn({
             let socket = socket.try_clone()?;
