@@ -40,7 +40,7 @@ struct LocalDiffModelTracker {
     pending_authority: Vec<FullEntityData>,
     pending_localize: Vec<(Lid, PeerId)>,
     /// Stores pairs of entity killed and optionally the responsible entity.
-    pending_death_notify: Vec<(EntityID, WorldPos, String, Option<EntityID>)>,
+    pending_death_notify: Vec<(EntityID, bool, bool, WorldPos, String, Option<EntityID>)>,
     authority_radius: f32,
 }
 
@@ -70,7 +70,7 @@ pub(crate) struct RemoteDiffModel {
     backtrack: Vec<EntityID>,
     grab_request: Vec<Lid>,
     pending_remove: Vec<Lid>,
-    pending_death_notify: Vec<(Lid, Option<PeerId>)>,
+    pending_death_notify: Vec<(Lid, bool, Option<PeerId>)>,
     peer_id: PeerId,
 }
 
@@ -765,7 +765,9 @@ impl LocalDiffModel {
         }
 
         let mut dead = Vec::new();
-        for (killed, pos, file, responsible) in self.tracker.pending_death_notify.drain(..) {
+        for (killed, wait_on_kill, drops_gold, pos, file, responsible) in
+            self.tracker.pending_death_notify.drain(..)
+        {
             let responsible_peer = responsible
                 .and_then(|ent| ctx.player_map.get_by_right(&ent))
                 .copied();
@@ -774,9 +776,10 @@ impl LocalDiffModel {
             };
             res.push(EntityUpdate::KillEntity {
                 lid,
+                wait_on_kill,
                 responsible_peer,
             });
-            dead.push((pos, SpawnOnce::Enemy(file, responsible_peer)));
+            dead.push((pos, SpawnOnce::Enemy(file, drops_gold, responsible_peer)));
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
@@ -825,13 +828,20 @@ impl LocalDiffModel {
     pub(crate) fn death_notify(
         &mut self,
         entity_killed: EntityID,
+        wait_on_kill: bool,
+        drops_gold: bool,
         pos: WorldPos,
         file: String,
         entity_responsible: Option<EntityID>,
     ) {
-        self.tracker
-            .pending_death_notify
-            .push((entity_killed, pos, file, entity_responsible))
+        self.tracker.pending_death_notify.push((
+            entity_killed,
+            wait_on_kill,
+            drops_gold,
+            pos,
+            file,
+            entity_responsible,
+        ))
     }
 }
 
@@ -933,8 +943,11 @@ impl RemoteDiffModel {
                     EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
                     EntityUpdate::KillEntity {
                         lid,
+                        wait_on_kill,
                         responsible_peer, //TODO make sure entity exists
-                    } => self.pending_death_notify.push((lid, responsible_peer)),
+                    } => self
+                        .pending_death_notify
+                        .push((lid, wait_on_kill, responsible_peer)),
                     EntityUpdate::SetWand(gid) => ent_data.wand = gid,
                     EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
                     EntityUpdate::SetAiRotation(rot) => ent_data.ai_rotation = rot,
@@ -1333,7 +1346,12 @@ impl RemoteDiffModel {
                         entity_info.x,
                         entity_info.y,
                     )?;
-                    self.init_remote_entity(entity, *lid, entity_info.drops_gold)?;
+                    init_remote_entity(
+                        entity,
+                        Some(*lid),
+                        self.lid_to_gid.get(lid).copied(),
+                        entity_info.drops_gold,
+                    )?;
                     self.tracked.insert(*lid, entity);
                 }
             }
@@ -1341,7 +1359,7 @@ impl RemoteDiffModel {
 
         let mut postpone_remove = Vec::new();
 
-        for (lid, responsible) in self.pending_death_notify.drain(..) {
+        for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
                 .copied();
@@ -1361,7 +1379,9 @@ impl RemoteDiffModel {
                 inv.children(None).iter().for_each(|e| e.kill())
             }
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
-                damage.set_wait_for_kill_flag_on_death(false)?; //TODO deal with this better
+                if !wait_on_kill {
+                    damage.set_wait_for_kill_flag_on_death(false)?;
+                }
                 damage.set_ui_report_damage(false)?;
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
@@ -1393,128 +1413,6 @@ impl RemoteDiffModel {
 
         self.pending_remove.extend_from_slice(&postpone_remove);
 
-        Ok(())
-    }
-
-    /// Modifies a newly spawned entity so it can be synced properly.
-    /// Removes components that shouldn't be on entities that were replicated from a remote,
-    /// generally because they interfere with things we're supposed to sync.
-    fn init_remote_entity(&self, entity: EntityID, lid: Lid, drops_gold: bool) -> eyre::Result<()> {
-        entity.remove_all_components_of_type::<CameraBoundComponent>()?;
-        entity.remove_all_components_of_type::<CharacterPlatformingComponent>()?;
-        entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
-        entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
-        let mut any = false;
-        for ai in
-            entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)?
-        {
-            any = any || ai.attack_ranged_aim_rotation_enabled()?;
-            ai.set_attack_ranged_entity_count_max(0)?;
-            ai.set_attack_ranged_entity_count_min(0)?;
-        }
-        for ai in
-            entity.iter_all_components_of_type_including_disabled::<AnimalAIComponent>(None)?
-        {
-            any = any || ai.attack_ranged_aim_rotation_enabled()?;
-            ai.set_attack_ranged_entity_count_max(0)?;
-            ai.set_attack_ranged_entity_count_min(0)?;
-            ai.set_attack_melee_damage_min(0.0)?;
-            ai.set_attack_melee_damage_max(0.0)?;
-            ai.set_attack_dash_damage(0.0)?;
-            ai.set_ai_state_timer(i32::MAX)?;
-            ai.set_attack_ranged_state_duration_frames(i32::MAX)?;
-            ai.set_keep_state_alive_when_enabled(true)?;
-        }
-        if !any {
-            entity.remove_all_components_of_type::<AnimalAIComponent>()?;
-            entity.remove_all_components_of_type::<AIAttackComponent>()?;
-            for sprite in
-                entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))?
-            {
-                sprite.remove_tag("character")?;
-                sprite.set_has_special_scale(true)?;
-            }
-        }
-        entity
-            .try_get_first_component_including_disabled::<WormComponent>(None)?
-            .iter()
-            .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
-        entity
-            .try_get_first_component_including_disabled::<BossDragonComponent>(None)?
-            .iter()
-            .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
-
-        entity.add_tag(DES_TAG)?;
-        entity.add_tag("polymorphable_NOT")?;
-        if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
-            damage.set_wait_for_kill_flag_on_death(true)?;
-        }
-
-        for pb2 in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
-            pb2.set_destroy_body_if_entity_destroyed(true)?;
-        }
-
-        for expl in entity.iter_all_components_of_type::<ExplodeOnDamageComponent>(None)? {
-            expl.set_explode_on_damage_percent(0.0)?;
-            expl.set_explode_on_death_percent(0.0)?;
-            expl.set_physics_body_modified_death_probability(0.0)?;
-        }
-
-        if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
-            itemc.set_stealable(false)?;
-        }
-
-        for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
-            if (!drops_gold
-                && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
-                || [
-                    "data/scripts/animals/leader_damage.lua",
-                    "data/scripts/animals/giantshooter_death.lua",
-                    "data/scripts/animals/blob_damage.lua",
-                ]
-                .contains(&&*lua.script_damage_received()?)
-                || [
-                    "data/scripts/props/suspended_container_physics_objects.lua",
-                    "data/scripts/buildings/firebugnest.lua",
-                    "data/scripts/buildings/flynest.lua",
-                    "data/scripts/buildings/spidernest.lua",
-                ]
-                .contains(&&*lua.script_source_file()?)
-            {
-                entity.remove_component(*lua)?;
-            }
-        }
-        if let Some(pickup) =
-            entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
-        {
-            pickup.set_drop_items_on_death(false)?;
-            pickup.set_only_pick_this_entity(Some(EntityID(NonZero::new(1).unwrap())))?;
-        }
-
-        if let Some(ghost) =
-            entity.try_get_first_component_including_disabled::<GhostComponent>(None)?
-        {
-            ghost.set_die_if_no_home(false)?;
-        }
-
-        entity
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-            .for_each(|var| {
-                let name = var.name().unwrap_or("".into());
-                if name == "ew_gid_lid" {
-                    let _ = entity.remove_component(*var);
-                } else if name == "throw_time" {
-                    let _ = var.set_value_int(game_get_frame_num().unwrap_or(0));
-                }
-            });
-
-        let var = entity.add_component::<VariableStorageComponent>()?;
-        var.set_name("ew_gid_lid".into())?;
-        if let Some(gid) = self.lid_to_gid.get(&lid) {
-            var.set_value_string(gid.0.to_string().into())?;
-        }
-        var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
-        var.set_value_bool(false)?;
         Ok(())
     }
 
@@ -1552,6 +1450,133 @@ impl RemoteDiffModel {
     pub(crate) fn drain_grab_request(&mut self) -> impl Iterator<Item = Lid> + '_ {
         self.grab_request.drain(..)
     }
+}
+
+/// Modifies a newly spawned entity so it can be synced properly.
+/// Removes components that shouldn't be on entities that were replicated from a remote,
+/// generally because they interfere with things we're supposed to sync.
+pub fn init_remote_entity(
+    entity: EntityID,
+    lid: Option<Lid>,
+    gid: Option<Gid>,
+    drops_gold: bool,
+) -> eyre::Result<()> {
+    entity.remove_all_components_of_type::<CameraBoundComponent>()?;
+    entity.remove_all_components_of_type::<CharacterPlatformingComponent>()?;
+    entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
+    entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
+    let mut any = false;
+    for ai in entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)? {
+        any = any || ai.attack_ranged_aim_rotation_enabled()?;
+        ai.set_attack_ranged_entity_count_max(0)?;
+        ai.set_attack_ranged_entity_count_min(0)?;
+    }
+    for ai in entity.iter_all_components_of_type_including_disabled::<AnimalAIComponent>(None)? {
+        any = any || ai.attack_ranged_aim_rotation_enabled()?;
+        ai.set_attack_ranged_entity_count_max(0)?;
+        ai.set_attack_ranged_entity_count_min(0)?;
+        ai.set_attack_melee_damage_min(0.0)?;
+        ai.set_attack_melee_damage_max(0.0)?;
+        ai.set_attack_dash_damage(0.0)?;
+        ai.set_ai_state_timer(i32::MAX)?;
+        ai.set_attack_ranged_state_duration_frames(i32::MAX)?;
+        ai.set_keep_state_alive_when_enabled(true)?;
+    }
+    if !any {
+        entity.remove_all_components_of_type::<AnimalAIComponent>()?;
+        entity.remove_all_components_of_type::<AIAttackComponent>()?;
+        for sprite in
+            entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))?
+        {
+            sprite.remove_tag("character")?;
+            sprite.set_has_special_scale(true)?;
+        }
+    }
+    entity
+        .try_get_first_component_including_disabled::<WormComponent>(None)?
+        .iter()
+        .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
+    entity
+        .try_get_first_component_including_disabled::<BossDragonComponent>(None)?
+        .iter()
+        .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
+
+    entity.add_tag(DES_TAG)?;
+    entity.add_tag("polymorphable_NOT")?;
+    if lid.is_some() {
+        if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+            damage.set_wait_for_kill_flag_on_death(true)?;
+        }
+    }
+
+    for pb2 in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
+        pb2.set_destroy_body_if_entity_destroyed(true)?; //TODO why??
+    }
+
+    for expl in entity.iter_all_components_of_type::<ExplodeOnDamageComponent>(None)? {
+        expl.set_explode_on_damage_percent(0.0)?;
+        expl.set_explode_on_death_percent(0.0)?;
+        expl.set_physics_body_modified_death_probability(0.0)?;
+    }
+
+    if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+        itemc.set_stealable(false)?;
+    }
+
+    for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+        if (!drops_gold
+            && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
+            || [
+                "data/scripts/animals/leader_damage.lua",
+                "data/scripts/animals/giantshooter_death.lua",
+                "data/scripts/animals/blob_damage.lua",
+            ]
+            .contains(&&*lua.script_damage_received()?)
+            || [
+                "data/scripts/props/suspended_container_physics_objects.lua",
+                "data/scripts/buildings/firebugnest.lua",
+                "data/scripts/buildings/flynest.lua",
+                "data/scripts/buildings/spidernest.lua",
+            ]
+            .contains(&&*lua.script_source_file()?)
+        {
+            entity.remove_component(*lua)?;
+        }
+    }
+    if let Some(pickup) =
+        entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
+    {
+        pickup.set_drop_items_on_death(false)?;
+        pickup.set_only_pick_this_entity(Some(EntityID(NonZero::new(1).unwrap())))?;
+    }
+
+    if let Some(ghost) =
+        entity.try_get_first_component_including_disabled::<GhostComponent>(None)?
+    {
+        ghost.set_die_if_no_home(false)?;
+    }
+
+    entity
+        .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+        .for_each(|var| {
+            let name = var.name().unwrap_or("".into());
+            if name == "ew_gid_lid" {
+                let _ = entity.remove_component(*var);
+            } else if name == "throw_time" {
+                let _ = var.set_value_int(game_get_frame_num().unwrap_or(0));
+            }
+        });
+
+    if let Some(lid) = lid {
+        let var = entity.add_component::<VariableStorageComponent>()?;
+        var.set_name("ew_gid_lid".into())?;
+        if let Some(gid) = gid {
+            var.set_value_string(gid.0.to_string().into())?;
+        }
+        var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
+        var.set_value_bool(false)?;
+    }
+    Ok(())
 }
 
 fn item_in_inventory(entity: EntityID) -> Result<bool, eyre::Error> {

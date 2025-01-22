@@ -128,6 +128,7 @@ pub enum EntityUpdate {
     LocalizeEntity(Lid, PeerId),
     KillEntity {
         lid: Lid,
+        wait_on_kill: bool,
         responsible_peer: Option<PeerId>,
     },
     SetCost(i64),

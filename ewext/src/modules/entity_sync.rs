@@ -281,12 +281,20 @@ impl EntitySync {
     pub(crate) fn cross_death_notify(
         &mut self,
         entity_killed: EntityID,
+        wait_on_kill: bool,
+        drops_gold: bool,
         pos: WorldPos,
         file: String,
         entity_responsible: Option<EntityID>,
     ) -> eyre::Result<()> {
-        self.local_diff_model
-            .death_notify(entity_killed, pos, file, entity_responsible);
+        self.local_diff_model.death_notify(
+            entity_killed,
+            wait_on_kill,
+            drops_gold,
+            pos,
+            file,
+            entity_responsible,
+        );
         Ok(())
     }
 
@@ -346,14 +354,15 @@ impl Module for EntitySync {
             let (pos, data) = &self.spawn_once[i];
             if pos.contains(x, y, 512 + 256) {
                 match data {
-                    shared::SpawnOnce::Enemy(file, offending_peer) => {
+                    shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
                         if let Ok(Some(entity)) =
                             noita_api::raw::entity_load(file.into(), Some(x), Some(y))
                         {
+                            diff_model::init_remote_entity(entity, None, None, *drops_gold)?;
                             if let Some(damage) =
                                 entity.try_get_first_component::<DamageModelComponent>(None)?
                             {
-                                damage.set_wait_for_kill_flag_on_death(false)?; //TODO deal with this better
+                                damage.set_wait_for_kill_flag_on_death(false)?;
                                 damage.set_ui_report_damage(false)?;
                                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                                 let responsible_entity = offending_peer
@@ -394,7 +403,7 @@ impl Module for EntitySync {
                             }
                         }
                     }
-                    shared::SpawnOnce::BrokenWand(_file) => {
+                    shared::SpawnOnce::BrokenWand => {
                         todo!()
                     }
                 }

@@ -33,8 +33,8 @@ util.add_cross_call("ew_thrown", function(thrown_item)
     end
 end)
 
-util.add_cross_call("ew_death_notify", function(entity, responsible)
-    ewext.des_death_notify(entity, responsible)
+util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, drops_gold, x, y, file, responsible)
+    ewext.des_death_notify(entity, wait_on_kill, drops_gold, x, y, file, responsible)
 end)
 
 util.add_cross_call("ew_chest_opened", function(x, y, file, entity)

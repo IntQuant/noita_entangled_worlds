@@ -625,6 +625,37 @@ impl<
     }
 }
 
+impl<
+        T0: LuaGetValue,
+        T1: LuaGetValue,
+        T2: LuaGetValue,
+        T3: LuaGetValue,
+        T4: LuaGetValue,
+        T5: LuaGetValue,
+        T6: LuaGetValue,
+    > LuaGetValue for (T0, T1, T2, T3, T4, T5, T6)
+{
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
+    where
+        Self: Sized,
+    {
+        let prev = <(T0, T1, T2, T3, T4, T5)>::get(lua, index - T6::size_on_stack())?;
+        Ok((
+            prev.0,
+            prev.1,
+            prev.2,
+            prev.3,
+            prev.4,
+            prev.5,
+            T6::get(lua, index)?,
+        ))
+    }
+
+    fn size_on_stack() -> i32 {
+        <(T0, T1, T2, T3, T4, T5)>::size_on_stack() + T6::size_on_stack()
+    }
+}
+
 impl LuaGetValue for (bool, bool, bool, f64, f64, f64, f64, f64, f64, f64, f64) {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
         Ok((

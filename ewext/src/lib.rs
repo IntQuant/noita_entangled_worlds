@@ -473,8 +473,10 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
                 #[allow(clippy::type_complexity)]
-                let (entity_killed, x, y, file, entity_responsible): (
+                let (entity_killed, wait_on_kill, drops_gold, x, y, file, entity_responsible): (
                     Option<EntityID>,
+                    Option<bool>,
+                    Option<bool>,
                     Option<f64>,
                     Option<f64>,
                     Option<Cow<'_, str>>,
@@ -483,11 +485,15 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 let entity_killed =
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
                 let file = file.ok_or_eyre("Expected to have a valid file")?;
+                let wait_on_kill = wait_on_kill.ok_or_eyre("Expected to have a valid pos")?;
+                let drops_gold = drops_gold.ok_or_eyre("Expected to have a valid pos")?;
                 let x = x.ok_or_eyre("Expected to have a valid pos")?;
                 let y = y.ok_or_eyre("Expected to have a valid pos")?;
                 let pos = WorldPos::from_f64(x, y);
                 entity_sync.cross_death_notify(
                     entity_killed,
+                    wait_on_kill,
+                    drops_gold,
                     pos,
                     file.to_string(),
                     entity_responsible,
