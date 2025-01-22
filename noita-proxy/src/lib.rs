@@ -655,6 +655,7 @@ pub struct App {
     show_host_settings: bool,
     running_on_steamdeck: bool,
     copied_lobby: bool,
+    my_lobby_kind: LobbyKind,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -782,6 +783,13 @@ impl App {
         } else {
             RgbaImage::new(1, 1)
         };
+
+        let my_lobby_kind = if saved_state.spacewars {
+            LobbyKind::Gog
+        } else {
+            LobbyKind::Steam
+        };
+
         Self {
             state,
             modmanager: Modmanager::default(),
@@ -801,6 +809,7 @@ impl App {
             show_host_settings: false,
             running_on_steamdeck,
             copied_lobby: true,
+            my_lobby_kind,
         }
     }
 
@@ -1211,13 +1220,12 @@ impl App {
 
         match lobby {
             Ok(lobby) => {
-                let my_lobby_kind = self.my_lobby_kind();
-                if my_lobby_kind == lobby.kind {
+                if self.my_lobby_kind == lobby.kind {
                     self.start_steam_connect(lobby.code)
                 } else {
                     self.notify_error(format!(
                         "Mismathing modes: Host is in {:?} mode, you're in {:?} mode",
-                        lobby.kind, my_lobby_kind
+                        lobby.kind, self.my_lobby_kind
                     ));
                 }
             }
@@ -1226,14 +1234,6 @@ impl App {
             }
             Err(LobbyError::CodeVersionMismatch) => self
                 .notify_error("Lobby code was created by a newer version of proxy. Please update"),
-        }
-    }
-
-    fn my_lobby_kind(&mut self) -> LobbyKind {
-        if self.app_saved_state.spacewars {
-            LobbyKind::Gog
-        } else {
-            LobbyKind::Steam
         }
     }
 
@@ -1316,7 +1316,6 @@ impl App {
     }
 
     fn show_lobby(&mut self, ctx: &Context) {
-        let kind = self.my_lobby_kind();
         let AppState::ConnectedLobby {
             netman,
             noita_launcher,
@@ -1403,7 +1402,10 @@ impl App {
                     if netman.peer.is_steam() {
                         if let Some(id) = netman.peer.lobby_id() {
                             if ui.button(tr("netman_save_lobby")).clicked() || !self.copied_lobby {
-                                let lobby_code = LobbyCode { kind, code: id };
+                                let lobby_code = LobbyCode {
+                                    kind: self.my_lobby_kind,
+                                    code: id,
+                                };
                                 ui.output_mut(|o| o.copied_text = lobby_code.serialize());
                                 self.copied_lobby = true;
                             }
