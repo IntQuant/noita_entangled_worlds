@@ -64,6 +64,7 @@ function module.on_world_update()
     for ent = last + 1, n do
         if EntityGetIsAlive(ent) and not EntityHasTag(ent, "ew_des") then
             local f = EntityGetFilename(ent)
+            local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
             if
                 f == "data/entities/misc/orb_07_pitcheck_b.xml"
                 or f == "data/entities/misc/orb_07_pitcheck_a.xml"
@@ -74,10 +75,14 @@ function module.on_world_update()
                 or f == "data/entities/props/music_machines/music_machine_02.xml"
                 or f == "data/entities/props/music_machines/music_machine_03.xml"
                 or f == "data/entities/animals/boss_fish/fish_giga.xml"
-                or f == "data/entities/buildings/chest_steel.xml"
             then
                 local x, y = EntityGetTransform(ent)
                 local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
+                ewext.notrack(ent)
+                rpc.request_flag_slow(flag, ent)
+            elseif seed ~= nil then
+                local x, y = ComponentGetValue2(seed, "pos_x"), ComponentGetValue2(seed, "pos_y")
+                local flag = f .. ":" .. x .. ":" .. y
                 ewext.notrack(ent)
                 rpc.request_flag_slow(flag, ent)
             end

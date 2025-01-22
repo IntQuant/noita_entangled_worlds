@@ -18,7 +18,7 @@ use noita_api::{
 use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::Gid;
-use shared::{NoitaInbound, PeerId, ProxyKV};
+use shared::{des, NoitaInbound, NoitaOutbound, PeerId, ProxyKV};
 use std::num::NonZero;
 use std::{
     arch::asm,
@@ -184,7 +184,9 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    entity_sync.handle_proxytodes(proxy_to_des);
+                    if let Ok(Some(gid)) = entity_sync.handle_proxytodes(proxy_to_des) {
+                        state.dont_spawn.insert(gid);
+                    }
                 }
             })?,
             NoitaInbound::RemoteMessage {
@@ -575,6 +577,9 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     .ok_or_eyre("No entity sync module loaded")?;
                 if let Some(gid) = entity_sync.register_chest(entity)? {
                     state.dont_spawn.insert(gid);
+                    let mut temp = NETMANAGER.lock().unwrap();
+                    let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+                    net.send(&NoitaOutbound::DesToProxy(des::DesToProxy::ChestOpen(gid)))?;
                 }
                 Ok(())
             })?

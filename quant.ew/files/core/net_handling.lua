@@ -209,7 +209,7 @@ function net_handling.proxy.end_run(_, _)
     local damage = ComponentGetValue2(entity, "DamageModelComponent")
     if damage ~= nil then
         ComponentSetValue2(damage, "ui_report_damage", false)
-        ComponentSetValue2(damage, "hp", 2 ^ -128)
+        ComponentSetValue2(damage, "hp", 2 ^ -38)
     end
     if entity ~= nil and EntityGetIsAlive(entity) and not EntityHasTag(entity, "ew_notplayer") then
         EntityInflictDamage(entity, 1000000, "DAMAGE_CURSE", "Run Ended", "NONE", 0, 0, GameGetWorldStateEntity())

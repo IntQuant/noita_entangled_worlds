@@ -31,7 +31,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
         local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
         if damage ~= nil then
             ComponentSetValue2(damage, "ui_report_damage", false)
-            ComponentSetValue2(damage, "hp", 2 ^ -128)
+            ComponentSetValue2(damage, "hp", 2 ^ -38)
         end
         EntityInflictDamage(
             ctx.my_player.entity,

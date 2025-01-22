@@ -50,6 +50,7 @@ pub enum DesToProxy {
     RequestAuthority { pos: WorldPos, radius: i32 },
     UpdatePositions(Vec<UpdatePosition>),
     TransferAuthorityTo(Gid, PeerId),
+    ChestOpen(Gid),
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -58,6 +59,7 @@ pub enum ProxyToDes {
     GotAuthority(FullEntityData),
     RemoveEntities(PeerId),
     DeleteEntity(NonZero<isize>),
+    TriggerChest(Gid),
 }
 #[derive(Encode, Decode, Clone)]
 pub struct InterestRequest {

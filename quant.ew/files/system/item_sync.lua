@@ -374,7 +374,7 @@ function rpc.handle_death_data(death_data)
             if damage_component and damage_component ~= 0 then
                 ComponentSetValue2(damage_component, "wait_for_kill_flag_on_death", false)
                 ComponentSetValue2(damage_component, "ui_report_damage", false)
-                ComponentSetValue2(damage_component, "hp", 2 ^ -128)
+                ComponentSetValue2(damage_component, "hp", 2 ^ -38)
             end
 
             -- Enable explosion back

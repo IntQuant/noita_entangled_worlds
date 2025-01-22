@@ -292,7 +292,7 @@ impl LocalDiffModelTracker {
         }
 
         info.game_effects = entity
-            .get_game_effects()
+            .get_game_effects()?
             .iter()
             .map(|(e, _)| e.clone())
             .collect::<Vec<GameEffectData>>();
@@ -1221,7 +1221,7 @@ impl RemoteDiffModel {
                         cost.set_cost(entity_info.cost)?;
                     }
 
-                    entity.set_game_effects(&entity_info.game_effects);
+                    entity.set_game_effects(&entity_info.game_effects)?;
 
                     entity.set_current_stains(entity_info.current_stains)?;
 
@@ -1356,7 +1356,7 @@ impl RemoteDiffModel {
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 damage.set_wait_for_kill_flag_on_death(false)?;
                 damage.set_ui_report_damage(false)?;
-                damage.set_hp(f64::MIN_POSITIVE)?;
+                damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     damage.hp()? + 0.1,

@@ -43,12 +43,12 @@ impl EntityID {
         raw::entity_get_name(self).map(|s| s.to_string())
     }
 
-    pub fn handle_poly(&self) -> Option<Gid> {
+    pub fn handle_poly(&self) -> eyre::Result<Option<Gid>> {
         for ent in self.children(None) {
             if let Ok(Some(effect)) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)
             {
-                let name = effect.effect().unwrap();
+                let name = effect.effect()?;
                 match name {
                     GameEffectEnum::Polymorph
                     | GameEffectEnum::PolymorphRandom
@@ -58,7 +58,7 @@ impl EntityID {
                             raw::component_get_value::<Cow<str>>(effect.0, "mSerializedData")
                         {
                             if data.is_empty() {
-                                return None;
+                                return Ok(None);
                             }
                             if let Ok(data) =
                                 base64::engine::general_purpose::STANDARD.decode(data.to_string())
@@ -78,17 +78,17 @@ impl EntityID {
                                             break;
                                         }
                                     }
-                                    return Some(Gid(gid.parse::<u64>().ok()?));
+                                    return Ok(Some(Gid(gid.parse::<u64>()?)));
                                 }
                             }
                         }
-                        return None;
+                        return Ok(None);
                     }
                     _ => {}
                 }
             }
         }
-        None
+        Ok(None)
     }
 
     pub fn add_tag(self, tag: impl AsRef<str>) -> eyre::Result<()> {
@@ -108,9 +108,13 @@ impl EntityID {
 
     pub fn kill(self) {
         // Shouldn't ever error.
-        for id in raw::physics_body_id_get_from_entity(self, None).unwrap_or_default() {
-            let n = 17000.0;
-            let _ = raw::physics_body_id_set_transform(id, n, n, 0.0, 0.0, 0.0, 0.0);
+        for (i, id) in raw::physics_body_id_get_from_entity(self, None)
+            .unwrap_or_default()
+            .iter()
+            .enumerate()
+        {
+            let n = 17000.0 + (64.0 * (self.0.get() as usize + i) as f64);
+            let _ = raw::physics_body_id_set_transform(*id, n, n, 0.0, 0.0, 0.0, 0.0);
         }
         let _ = raw::entity_kill(self);
     }
@@ -215,6 +219,11 @@ impl EntityID {
         raw::entity_add_component::<C>(self)?.ok_or_eyre("Couldn't create a component")
     }
 
+    pub fn add_lua_init_component<C: Component>(self, file: &str) -> eyre::Result<C> {
+        raw::entity_add_lua_init_component::<C>(self, file)?
+            .ok_or_eyre("Couldn't create a component")
+    }
+
     pub fn load(
         filename: impl AsRef<str>,
         pos_x: Option<f64>,
@@ -246,7 +255,7 @@ impl EntityID {
             .collect()
     }
 
-    pub fn get_game_effects(self) -> Vec<(GameEffectData, EntityID)> {
+    pub fn get_game_effects(self) -> eyre::Result<Vec<(GameEffectData, EntityID)>> {
         let mut effects = Vec::new();
         let mut name_to_n: HashMap<String, i32> = HashMap::default();
         for ent in self.children(None) {
@@ -263,8 +272,7 @@ impl EntityID {
             } else if let Ok(Some(effect)) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)
             {
-                let name = effect.effect().unwrap();
-
+                let name = effect.effect()?;
                 match name {
                     GameEffectEnum::Custom => {
                         if let Ok(file) = ent.filename() {
@@ -292,9 +300,9 @@ impl EntityID {
                 }
             }
         }
-        effects
+        Ok(effects)
     }
-    pub fn set_game_effects(self, game_effect: &[GameEffectData]) {
+    pub fn set_game_effects(self, game_effect: &[GameEffectData]) -> eyre::Result<()> {
         fn set_frames(ent: EntityID) -> eyre::Result<()> {
             if let Some(effect) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)?
@@ -312,7 +320,7 @@ impl EntityID {
             }
             Ok(())
         }
-        let local_effects = self.get_game_effects();
+        let local_effects = self.get_game_effects()?;
         for (i, (e1, ent)) in local_effects.iter().enumerate() {
             if let GameEffectData::Normal(e1) = e1 {
                 if *e1 == GameEffectEnum::Polymorph
@@ -330,7 +338,7 @@ impl EntityID {
                 }
             }
         }
-        let local_effects = self.get_game_effects();
+        let local_effects = self.get_game_effects()?;
         for effect in game_effect {
             if let Some(ent) =
                 local_effects
@@ -376,7 +384,7 @@ impl EntityID {
                 let _ = set_frames(ent);
             }
         }
-        let local_effects = self.get_game_effects();
+        let local_effects = self.get_game_effects()?;
         for (effect, ent) in local_effects {
             if game_effect.iter().all(|e| *e != effect) {
                 ent.kill()
@@ -396,6 +404,7 @@ impl EntityID {
                 let _ = damage.set_m_fire_probability(0);
             }
         }
+        Ok(())
     }
     pub fn add_child(self, child: EntityID) {
         let _ = raw::entity_add_child(self.0.get() as i32, child.0.get() as i32);
@@ -623,11 +632,26 @@ pub mod raw {
 
     pub fn entity_add_component<C: Component>(entity: EntityID) -> eyre::Result<Option<C>> {
         let lua = LuaState::current()?;
-        lua.get_global(c"EntityAddComponent");
+        lua.get_global(c"EntityAddComponent2");
         lua.push_integer(entity.raw());
         lua.push_string(C::NAME_STR);
         lua.call(2, 1)
-            .wrap_err("Failed to call EntityAddComponent")?;
+            .wrap_err("Failed to call EntityAddComponent2")?;
+        let c = lua.to_integer(-1);
+        lua.pop_last_n(1);
+        Ok(NonZero::new(c).map(ComponentID).map(C::from))
+    }
+
+    pub fn entity_add_lua_init_component<C: Component>(
+        entity: EntityID,
+        file: &str,
+    ) -> eyre::Result<Option<C>> {
+        let lua = LuaState::current()?;
+        lua.get_global(c"EwextAddInitLuaComponent");
+        lua.push_integer(entity.raw());
+        lua.push_string(file);
+        lua.call(2, 1)
+            .wrap_err("Failed to call EntityAddComponent2")?;
         let c = lua.to_integer(-1);
         lua.pop_last_n(1);
         Ok(NonZero::new(c).map(ComponentID).map(C::from))

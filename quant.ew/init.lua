@@ -414,7 +414,7 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
         local damage = ComponentGetValue2(player_entity, "DamageModelComponent")
         if damage ~= nil then
             ComponentSetValue2(damage, "ui_report_damage", false)
-            ComponentSetValue2(damage, "hp", 2 ^ -128)
+            ComponentSetValue2(damage, "hp", 2 ^ -38)
         end
         EntityInflictDamage(
             player_entity,

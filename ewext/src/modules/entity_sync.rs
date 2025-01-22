@@ -11,7 +11,7 @@ use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
-use noita_api::{EntityID, ProjectileComponent, VariableStorageComponent};
+use noita_api::{EntityID, LuaComponent, ProjectileComponent, VariableStorageComponent};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
@@ -158,7 +158,7 @@ impl EntitySync {
             if !entity.is_alive() || self.dont_track.remove(&entity) {
                 continue;
             }
-            if let Some(gid) = entity.handle_poly() {
+            if let Ok(Some(gid)) = entity.handle_poly() {
                 self.dont_kill_by_gid.insert(gid);
             }
             if entity.has_tag(DES_TAG)
@@ -169,7 +169,7 @@ impl EntitySync {
                     )?
                     .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
                     .map(|var| {
-                        if let Ok(n) = var.value_string().unwrap().parse::<u64>() {
+                        if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
                             !self.dont_kill_by_gid.remove(&Gid(n))
                         } else {
                             true
@@ -191,7 +191,10 @@ impl EntitySync {
         Ok(())
     }
 
-    pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
+    pub(crate) fn handle_proxytodes(
+        &mut self,
+        proxy_to_des: shared::des::ProxyToDes,
+    ) -> eyre::Result<Option<Gid>> {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
@@ -204,7 +207,24 @@ impl EntitySync {
             shared::des::ProxyToDes::DeleteEntity(entity) => {
                 EntityID(entity).kill();
             }
+            shared::des::ProxyToDes::TriggerChest(gid) => {
+                if let Some(ent) = self.find_by_gid(gid) {
+                    if let Some(file) = ent
+                        .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
+                        .find(|l| {
+                            !l.script_physics_body_modified()
+                                .unwrap_or("".into())
+                                .is_empty()
+                        })
+                        .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
+                    {
+                        ent.add_lua_init_component::<LuaComponent>(&file)?;
+                    }
+                }
+                return Ok(Some(gid));
+            }
         }
+        Ok(None)
     }
 
     pub(crate) fn handle_remotedes(&mut self, source: PeerId, remote_des: RemoteDes) {

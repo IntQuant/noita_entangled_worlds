@@ -11,6 +11,13 @@ local module = {}
 EwextSerialize = util.serialize_entity
 EwextDeserialize = util.deserialize_entity
 EwextPrintError = util.print_error
+function EwextAddInitLuaComponent(entity, file)
+    return EntityAddComponent2(entity, "LuaComponent", {
+        script_source_file = file,
+        execute_on_added = true,
+        call_init_function = true,
+    })
+end
 
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()

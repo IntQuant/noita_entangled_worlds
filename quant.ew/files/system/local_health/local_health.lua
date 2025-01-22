@@ -453,7 +453,7 @@ local function do_game_over(message)
                     if damage_model ~= nil then
                         ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
                         ComponentSetValue2(damage_model, "ui_report_damage", false)
-                        ComponentSetValue2(damage_model, "hp", 2 ^ -128)
+                        ComponentSetValue2(damage_model, "hp", 2 ^ -38)
                         EntityInflictDamage(
                             ctx.my_player.entity,
                             1000000,
@@ -661,7 +661,7 @@ ctx.cap.health = {
                         local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
                         if damage ~= nil then
                             ComponentSetValue2(damage, "ui_report_damage", false)
-                            ComponentSetValue2(damage, "hp", 2 ^ -128)
+                            ComponentSetValue2(damage, "hp", 2 ^ -38)
                         end
                         EntityInflictDamage(
                             ctx.my_player.entity,

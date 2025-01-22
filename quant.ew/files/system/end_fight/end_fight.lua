@@ -168,7 +168,7 @@ function end_fight.on_world_update()
                     local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
                     if damage ~= nil then
                         ComponentSetValue2(damage, "ui_report_damage", false)
-                        ComponentSetValue2(damage, "hp", 2 ^ -128)
+                        ComponentSetValue2(damage, "hp", 2 ^ -38)
                     end
                     EntityInflictDamage(
                         ctx.my_player.entity,
@@ -189,7 +189,7 @@ function end_fight.on_world_update()
                     local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
                     if damage ~= nil then
                         ComponentSetValue2(damage, "ui_report_damage", false)
-                        ComponentSetValue2(damage, "hp", 2 ^ -128)
+                        ComponentSetValue2(damage, "hp", 2 ^ -38)
                     end
                     EntityInflictDamage(
                         ctx.my_player.entity,
