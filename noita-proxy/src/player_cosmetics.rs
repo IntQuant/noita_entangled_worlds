@@ -393,7 +393,7 @@ pub fn create_player_png(
     if ragdoll_path.exists() {
         remove_file(ragdoll_path.clone()).unwrap()
     }
-    let mut ragdoll = File::create_new(ragdoll_path).unwrap();
+    let mut ragdoll = File::create(ragdoll_path).unwrap();
     let mut files = String::new();
     for s in [
         "head.png",

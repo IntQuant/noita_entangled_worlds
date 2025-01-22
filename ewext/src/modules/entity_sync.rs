@@ -11,7 +11,7 @@ use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
-use noita_api::{game_print, EntityID, ProjectileComponent, VariableStorageComponent};
+use noita_api::{EntityID, ProjectileComponent, VariableStorageComponent};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
     des::{
@@ -159,8 +159,6 @@ impl EntitySync {
                 continue;
             }
             if let Some(gid) = entity.handle_poly() {
-                game_print(gid.0.to_string());
-                game_print(self.local_diff_model.find_by_gid(gid).is_some().to_string());
                 self.dont_kill_by_gid.insert(gid);
             }
             if entity.has_tag(DES_TAG)
