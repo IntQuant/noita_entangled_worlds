@@ -2,7 +2,7 @@ use super::NetManager;
 use crate::{modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{Context, ContextCompat, OptionExt};
-use noita_api::raw::{entity_create_new, raytrace_platforms};
+use noita_api::raw::{entity_create_new, game_get_frame_num, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
@@ -1493,8 +1493,11 @@ impl RemoteDiffModel {
         entity
             .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
             .for_each(|var| {
-                if var.name().unwrap_or("".into()) == "ew_gid_lid" {
+                let name = var.name().unwrap_or("".into());
+                if name == "ew_gid_lid" {
                     let _ = entity.remove_component(*var);
+                } else if name == "throw_time" {
+                    let _ = var.set_value_int(game_get_frame_num().unwrap_or(0));
                 }
             });
 

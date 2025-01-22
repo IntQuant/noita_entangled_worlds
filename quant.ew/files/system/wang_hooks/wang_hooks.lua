@@ -78,6 +78,8 @@ local allow_patching = {
     spawn_rock1 = true,
     spawn_rock2 = true,
     spawn_prize = true,
+    spawn_physics_fungus = true,
+    spawn_physics_acid_fungus = true,
     --spawn_chest = true,
 }
 

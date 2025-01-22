@@ -65,6 +65,8 @@ function module.on_world_update()
         if EntityGetIsAlive(ent) and not EntityHasTag(ent, "ew_des") then
             local f = EntityGetFilename(ent)
             local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
+            local x, y = EntityGetTransform(ent)
+            local lx, ly = math.floor(x / 64), math.floor(y / 64)
             if
                 f == "data/entities/misc/orb_07_pitcheck_b.xml"
                 or f == "data/entities/misc/orb_07_pitcheck_a.xml"
@@ -76,12 +78,23 @@ function module.on_world_update()
                 or f == "data/entities/props/music_machines/music_machine_03.xml"
                 or f == "data/entities/animals/boss_fish/fish_giga.xml"
             then
-                local x, y = EntityGetTransform(ent)
                 local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
                 ewext.notrack(ent)
                 rpc.request_flag_slow(flag, ent)
+            elseif
+                (
+                    f == "data/entities/props/physics_fungus.xml"
+                    and (lx == -29 or lx == -28 or lx == -27)
+                    and (ly == -20 or ly == -19)
+                )
+                or (f == "data/entities/props/physics_fungus_big.xml" and lx == -29 and ly == -20)
+                or (f == "data/entities/props/physics_fungus_small.xml" and lx == -27 and ly == -19)
+                or (f == "data/entities/items/pickup/evil_eye.xml" and lx == -39 and ly == -4)
+            then
+                local flag = f .. ":" .. lx .. ":" .. ly
+                ewext.notrack(ent)
+                rpc.request_flag_slow(flag, ent)
             elseif seed ~= nil then
-                local x, y = ComponentGetValue2(seed, "pos_x"), ComponentGetValue2(seed, "pos_y")
                 local flag = f .. ":" .. x .. ":" .. y
                 ewext.notrack(ent)
                 rpc.request_flag_slow(flag, ent)
