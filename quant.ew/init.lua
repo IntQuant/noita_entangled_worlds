@@ -332,6 +332,12 @@ util.add_cross_call("ew_do_i_own", function(ent)
     return gid == nil or ComponentGetValue2(gid, "value_bool")
 end)
 
+local cross_force_send_inventory = false
+
+util.add_cross_call("ew_api_force_send_inventory", function()
+    cross_force_send_inventory = true
+end)
+
 function OnPausedChanged(paused, is_wand_pickup)
     ctx.is_paused = paused
     ctx.is_wand_pickup = is_wand_pickup
@@ -500,7 +506,8 @@ local function on_world_pre_update_inner()
     end
 
     local sha_check = GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)
-    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or sha_check then
+    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or sha_check or cross_force_send_inventory then
+        cross_force_send_inventory = false
         local inventory_state, spells = player_fns.serialize_items(ctx.my_player)
         if inventory_state ~= nil then
             net.send_player_inventory(inventory_state, spells)

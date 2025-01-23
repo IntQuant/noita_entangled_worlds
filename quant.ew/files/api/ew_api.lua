@@ -1,3 +1,5 @@
+-- Parts of EW api that are guaranteed to be stable and can be used only from ew lua context.
+
 local ew_api = {}
 
 -- Creates an rpc namespace. See ew_api_example for how to use it.
