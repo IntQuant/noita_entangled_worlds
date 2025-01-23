@@ -1790,8 +1790,7 @@ impl WorldManager {
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
                         if (dx == 0 && dy == 0) || {
                             let i = (atan[px] % rays as f32) as usize;
-                            dd + dy * dy
-                                <= list[i].0
+                            dd + dy * dy <= list[i].0
                         } {
                             if self
                                 .materials
@@ -2012,8 +2011,7 @@ impl WorldManager {
                     if ((dx == 0 && dy == 0) || {
                         let rays = get_ray(r);
                         let j = (atan[px] % rays as f32) as usize;
-                        let dd = dx * dx
-                            + dy * dy;
+                        let dd = dx * dx + dy * dy;
                         data.iter().any(|(i, r)| j == *i && dd <= *r)
                     }) && self
                         .materials

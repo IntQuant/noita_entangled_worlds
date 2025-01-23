@@ -23,3 +23,5 @@ function module.on_world_update()
 end
 
 return module
+-- Real implementation examples:
+-- https://github.com/Conga0/Apotheosis/pull/45/commits/ebc4544a3614736d6e394a953ba58fa229e6aa81x
