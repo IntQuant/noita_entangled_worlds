@@ -10,7 +10,11 @@ function death(damage_type_bit_field, damage_message, entity_thats_responsible, 
     for _, lua in ipairs(EntityGetComponent(ent, "LuaComponent") or {}) do
         if ComponentGetValue2(lua, "script_death") == "data/scripts/items/drop_money.lua" then
             drops_gold = true
+            break
         end
+    end
+    if EntityGetFirstComponentIncludingDisabled(ent, "VariableStorageComponent", "no_gold_drop") ~= nil then
+        drops_gold = false
     end
     CrossCall("ew_death_notify", ent, wait_on_kill, drops_gold, x, y, EntityGetFilename(ent), entity_thats_responsible)
 end

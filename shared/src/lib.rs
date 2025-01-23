@@ -28,8 +28,7 @@ pub struct ModMessage {
 #[derive(Encode, Decode, Clone)]
 pub enum SpawnOnce {
     Enemy(String, bool, Option<PeerId>),
-    Chest(String),
-    BrokenWand,
+    Chest(String, f32, f32),
 }
 
 #[derive(Encode, Decode, Clone)]

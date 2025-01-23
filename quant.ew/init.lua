@@ -568,7 +568,7 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
         return
     end
     util.tpcall(on_world_pre_update_inner)
-    local n = math.floor(tonumber(ModSettingGet("quant.ew.enemy_sync") or 2) + 0.5)
+    local n = math.floor(tonumber(ModSettingGet("quant.ew.entity_sync") or 2) or 2 + 0.5)
     if entity_sync ~= n then
         entity_sync = n
         ewext.send_sync_rate(entity_sync)

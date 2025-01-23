@@ -11,7 +11,8 @@ use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, EntityID, LuaComponent, ProjectileComponent, VariableStorageComponent,
+    DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent, ProjectileComponent,
+    VariableStorageComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::{
@@ -357,64 +358,67 @@ impl Module for EntitySync {
         let mut i = self.spawn_once.len();
         while i != 0 {
             i -= 1;
-            let (pos, data) = &self.spawn_once[i];
-            if pos.contains(x, y, 512 + 256) {
-                match data {
-                    shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
-                        if let Ok(Some(entity)) =
-                            noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                        {
-                            diff_model::init_remote_entity(entity, None, None, *drops_gold)?;
-                            if let Some(damage) =
-                                entity.try_get_first_component::<DamageModelComponent>(None)?
+            if i < self.spawn_once.len() {
+                let (pos, data) = &self.spawn_once[i];
+                if pos.contains(x, y, 512 + 256) {
+                    let (x, y) = (pos.x as f64, pos.y as f64);
+                    match data {
+                        shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
+                            if let Ok(Some(entity)) =
+                                noita_api::raw::entity_load(file.into(), Some(x), Some(y))
                             {
-                                damage.set_wait_for_kill_flag_on_death(false)?;
-                                damage.set_ui_report_damage(false)?;
-                                damage.set_hp(f32::MIN_POSITIVE as f64)?;
-                                let responsible_entity = offending_peer
-                                    .and_then(|peer| ctx.player_map.get_by_left(&peer))
-                                    .copied();
-                                noita_api::raw::entity_inflict_damage(
-                                    entity.raw() as i32,
-                                    damage.hp()? + 0.1,
-                                    "DAMAGE_CURSE".into(), //TODO should be enum
-                                    "kill sync".into(),
-                                    "NONE".into(),
-                                    0.0,
-                                    0.0,
-                                    responsible_entity.map(|e| e.raw() as i32),
-                                    None,
-                                    None,
-                                    None,
-                                )?;
+                                diff_model::init_remote_entity(entity, None, None, *drops_gold)?;
+                                if let Some(damage) =
+                                    entity.try_get_first_component::<DamageModelComponent>(None)?
+                                {
+                                    damage.set_ui_report_damage(false)?;
+                                    damage.set_hp(f32::MIN_POSITIVE as f64)?;
+                                    let responsible_entity = offending_peer
+                                        .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                                        .copied();
+                                    noita_api::raw::entity_inflict_damage(
+                                        entity.raw() as i32,
+                                        damage.hp()? + 0.1,
+                                        "DAMAGE_CURSE".into(), //TODO should be enum
+                                        "kill sync".into(),
+                                        "NONE".into(),
+                                        0.0,
+                                        0.0,
+                                        responsible_entity.map(|e| e.raw() as i32),
+                                        None,
+                                        None,
+                                        None,
+                                    )?;
+                                }
+                            }
+                        }
+                        shared::SpawnOnce::Chest(file, rx, ry) => {
+                            if let Ok(Some(ent)) =
+                                noita_api::raw::entity_load(file.into(), Some(x), Some(y))
+                            {
+                                if let Some(file) = ent
+                                    .iter_all_components_of_type_including_disabled::<LuaComponent>(
+                                        None,
+                                    )?
+                                    .find(|l| {
+                                        !l.script_physics_body_modified()
+                                            .unwrap_or("".into())
+                                            .is_empty()
+                                    })
+                                    .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
+                                {
+                                    if let Some(seed) = ent.try_get_first_component_including_disabled::<PositionSeedComponent>(None)? {
+                                        seed.set_pos_x(*rx)?;
+                                        seed.set_pos_y(*ry)?;
+                                    }
+                                    ent.add_lua_init_component::<LuaComponent>(&file)?;
+                                }
                             }
                         }
                     }
-                    shared::SpawnOnce::Chest(file) => {
-                        if let Ok(Some(ent)) =
-                            noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                        {
-                            if let Some(file) = ent
-                                .iter_all_components_of_type_including_disabled::<LuaComponent>(
-                                    None,
-                                )?
-                                .find(|l| {
-                                    !l.script_physics_body_modified()
-                                        .unwrap_or("".into())
-                                        .is_empty()
-                                })
-                                .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
-                            {
-                                ent.add_lua_init_component::<LuaComponent>(&file)?;
-                            }
-                        }
-                    }
-                    shared::SpawnOnce::BrokenWand => {
-                        todo!()
-                    }
+                    self.spawn_once.remove(i);
+                    i += 1;
                 }
-                self.spawn_once.remove(i);
-                i += 1;
             }
         }
 

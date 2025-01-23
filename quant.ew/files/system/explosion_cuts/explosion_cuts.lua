@@ -177,8 +177,8 @@ function mod.on_world_update()
     if not ctx.is_host then
         return
     end
-    local count1 = tonumber(ModSettingGet("quant.ew.explosions") or 128)
-    local count2 = tonumber(ModSettingGet("quant.ew.cell_eater") or 64)
+    local count1 = tonumber(ModSettingGet("quant.ew.explosions") or 128) or 128
+    local count2 = tonumber(ModSettingGet("quant.ew.cell_eater") or 64) or 64
     for ent, data in pairs(alive) do
         if not EntityGetIsAlive(ent) then
             if count1 > 0 then

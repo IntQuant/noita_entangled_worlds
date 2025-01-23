@@ -592,8 +592,10 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
             ExtState::with_global(|state| {
                 let x = lua.to_string(1)?.parse::<f64>()?;
                 let y = lua.to_string(2)?.parse::<f64>()?;
-                let file = lua.to_string(3)?.to_string();
-                let entity = EntityID(NonZero::try_from(lua.to_string(4)?.parse::<isize>()?)?);
+                let rx = lua.to_string(3)?.parse::<f32>()?;
+                let ry = lua.to_string(4)?.parse::<f32>()?;
+                let file = lua.to_string(5)?.to_string();
+                let entity = EntityID(NonZero::try_from(lua.to_string(6)?.parse::<isize>()?)?);
                 let entity_sync = state
                     .modules
                     .entity_sync
@@ -620,7 +622,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                                 destination: Destination::Peer(peer),
                                 message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
                                     WorldPos::from_f64(x, y),
-                                    SpawnOnce::Chest(file.clone()),
+                                    SpawnOnce::Chest(file.clone(), rx, ry),
                                 )),
                             });
                         }
