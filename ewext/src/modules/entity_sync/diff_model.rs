@@ -298,30 +298,20 @@ impl LocalDiffModelTracker {
             .map(|(e, _)| e.clone())
             .collect::<Vec<GameEffectData>>();
 
-        let filename = entity.filename()?;
-        info.current_stains = if [
-            "data/entities/items/pickup/physics_die.xml",
-            "data/entities/items/pickup/physics_die_greed.xml",
-        ]
-        .contains(&&*filename)
-        {
-            if entity
-                .get_var("rolling")
-                .map(|v| v.value_int().unwrap_or(0) < 8)
-                .unwrap_or(false)
-                && entity
-                    .try_get_first_component::<SpriteComponent>(Some("enable_in_world".into()))?
-                    .map(|s| s.rect_animation().unwrap_or("".into()) == "roll")
-                    .unwrap_or(false)
-            {
+        info.current_stains = if let Some(var) = entity.get_var("rolling") {
+            if var.value_int()? == 0 {
                 let rng = rand::random::<i32>();
-                let var = entity.add_component::<VariableStorageComponent>()?;
-                var.set_name("ew_rng".into())?;
+                let var = entity.get_var_or_default("ew_rng")?;
                 var.set_value_int(rng)?;
                 let bytes = rng.to_le_bytes();
                 u64::from_le_bytes([0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]])
             } else {
-                info.current_stains
+                let bytes = info.current_stains.to_le_bytes();
+                if bytes[0] == 0 {
+                    u64::from_le_bytes([1, 0, 0, 0, bytes[4], bytes[5], bytes[6], bytes[7]])
+                } else {
+                    info.current_stains
+                }
             }
         } else {
             entity.get_current_stains()?
@@ -493,7 +483,7 @@ impl LocalDiffModel {
         let spawn_info = match entity_kind {
             EntityKind::Normal => EntitySpawnInfo::Filename(entity.filename()?),
             EntityKind::Item => EntitySpawnInfo::Serialized {
-                serialized_at: noita_api::raw::game_get_frame_num()?,
+                serialized_at: game_get_frame_num()?,
                 data: serialize_entity(entity)?,
             },
         };
@@ -1275,20 +1265,37 @@ impl RemoteDiffModel {
 
                     entity.set_game_effects(&entity_info.game_effects)?;
 
-                    let filename = entity.filename()?;
-                    if [
-                        "data/entities/items/pickup/physics_die.xml",
-                        "data/entities/items/pickup/physics_die_greed.xml",
-                    ]
-                    .contains(&&*filename)
-                    {
-                        if entity.iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?.all(|var| var.name().unwrap_or("".into()) != "ew_rng") {
-                            let var = entity.add_component::<VariableStorageComponent>()?;
-                            var.set_name("ew_rng".into())?;
-                            let bytes = entity_info.current_stains.to_le_bytes();
-                            let bytes: [u8; 4] = [bytes[4], bytes[5], bytes[6], bytes[7]];
-                            let rng = i32::from_le_bytes(bytes);
-                            var.set_value_int(rng)?;
+                    if entity.get_var("rolling").is_some() {
+                        let var = entity.get_var_or_default("ew_rng")?;
+                        let bytes = entity_info.current_stains.to_le_bytes();
+                        let is_rolling = bytes[0];
+                        let bytes: [u8; 4] = [bytes[4], bytes[5], bytes[6], bytes[7]];
+                        let rng = i32::from_le_bytes(bytes);
+                        var.set_value_int(rng)?;
+                        let var = entity.get_var_or_default("rolling")?;
+                        if is_rolling == 1 {
+                            if var.value_int()? == 0 {
+                                var.set_value_int(4)?;
+                                entity
+                                    .iter_all_components_of_type::<SpriteComponent>(None)?
+                                    .for_each(|s| {
+                                        let _ = s.set_rect_animation("roll".into());
+                                    })
+                            } else if var.value_int()? == 8 {
+                                let (x, y) = entity.position()?;
+                                if !noita_api::raw::entity_get_in_radius_with_tag(
+                                    x as f64,
+                                    y as f64,
+                                    480.0,
+                                    "player_unit".into(),
+                                )?
+                                .is_empty()
+                                {
+                                    game_print("$item_die_roll");
+                                }
+                            }
+                        } else {
+                            var.set_value_int(0)?;
                         }
                     } else {
                         entity.set_current_stains(entity_info.current_stains)?;
@@ -1578,6 +1585,7 @@ pub fn init_remote_entity(
                 "data/scripts/animals/leader_damage.lua",
                 "data/scripts/animals/giantshooter_death.lua",
                 "data/scripts/animals/blob_damage.lua",
+                "data/scripts/items/die_roll.lua",
             ]
             .contains(&&*lua.script_damage_received()?)
             || [
@@ -1587,6 +1595,8 @@ pub fn init_remote_entity(
                 "data/scripts/buildings/spidernest.lua",
             ]
             .contains(&&*lua.script_source_file()?)
+            || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_enabled_changed()?)
+            || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_kick()?)
         {
             entity.remove_component(*lua)?;
         }
@@ -1623,7 +1633,7 @@ pub fn init_remote_entity(
             if name == "ew_gid_lid" {
                 let _ = entity.remove_component(*var);
             } else if name == "throw_time" {
-                let _ = var.set_value_int(game_get_frame_num().unwrap_or(0));
+                let _ = var.set_value_int(game_get_frame_num().unwrap_or(0) - 4);
             }
         });
 

@@ -225,6 +225,16 @@ impl EntityID {
             .unwrap_or(None)
     }
 
+    pub fn get_var_or_default(self, name: &str) -> eyre::Result<VariableStorageComponent> {
+        if let Some(var) = self.get_var(name) {
+            Ok(var)
+        } else {
+            let var = self.add_component::<VariableStorageComponent>()?;
+            var.set_name(name.into())?;
+            Ok(var)
+        }
+    }
+
     pub fn add_lua_init_component<C: Component>(self, file: &str) -> eyre::Result<C> {
         raw::entity_add_lua_init_component::<C>(self, file)?
             .ok_or_eyre("Couldn't create a component")
