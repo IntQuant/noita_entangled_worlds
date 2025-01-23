@@ -219,6 +219,12 @@ impl EntityID {
         raw::entity_add_component::<C>(self)?.ok_or_eyre("Couldn't create a component")
     }
 
+    pub fn get_var(self, name: &str) -> Option<VariableStorageComponent> {
+        self.iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)
+            .map(|mut i| i.find(|var| var.name().unwrap_or("".into()) == name))
+            .unwrap_or(None)
+    }
+
     pub fn add_lua_init_component<C: Component>(self, file: &str) -> eyre::Result<C> {
         raw::entity_add_lua_init_component::<C>(self, file)?
             .ok_or_eyre("Couldn't create a component")

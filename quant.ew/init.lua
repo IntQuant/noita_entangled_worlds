@@ -142,6 +142,7 @@ local function load_modules()
     ctx.load_system("wang_hooks")
     ctx.load_system("entity_sync_helper")
     ctx.load_system("telekenisis")
+    ctx.load_system("dice")
 end
 
 local function load_extra_modules()
@@ -506,7 +507,12 @@ local function on_world_pre_update_inner()
     end
 
     local sha_check = GameGetFrameNum() % 5 == 0 and inventory_helper.has_inventory_changed(ctx.my_player)
-    if ctx.events.new_player_just_connected or ctx.events.inventory_maybe_just_changed or sha_check or cross_force_send_inventory then
+    if
+        ctx.events.new_player_just_connected
+        or ctx.events.inventory_maybe_just_changed
+        or sha_check
+        or cross_force_send_inventory
+    then
         cross_force_send_inventory = false
         local inventory_state, spells = player_fns.serialize_items(ctx.my_player)
         if inventory_state ~= nil then

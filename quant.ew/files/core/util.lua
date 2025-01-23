@@ -35,6 +35,18 @@ function util.print_error(error)
     print("---err end---")
 end
 
+function util.prepend(file, target, text)
+    local content = ModTextFileGetContent(file)
+    local first, last = content:find(target, 0, true)
+    if not first then
+        return
+    end
+    local before = content:sub(1, first - 1)
+    local after = content:sub(last + 1)
+    local new = before .. text .. after
+    ModTextFileSetContent(file, new)
+end
+
 function util.tpcall(fn, ...)
     local res = { xpcall(fn, debug.traceback, ...) }
     if not res[1] then

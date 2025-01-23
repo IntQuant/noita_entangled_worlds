@@ -298,7 +298,34 @@ impl LocalDiffModelTracker {
             .map(|(e, _)| e.clone())
             .collect::<Vec<GameEffectData>>();
 
-        info.current_stains = entity.get_current_stains()?;
+        let filename = entity.filename()?;
+        info.current_stains = if [
+            "data/entities/items/pickup/physics_die.xml",
+            "data/entities/items/pickup/physics_die_greed.xml",
+        ]
+        .contains(&&*filename)
+        {
+            if entity
+                .get_var("rolling")
+                .map(|v| v.value_int().unwrap_or(0) < 8)
+                .unwrap_or(false)
+                && entity
+                    .try_get_first_component::<SpriteComponent>(Some("enable_in_world".into()))?
+                    .map(|s| s.rect_animation().unwrap_or("".into()) == "roll")
+                    .unwrap_or(false)
+            {
+                let rng = rand::random::<i32>();
+                let var = entity.add_component::<VariableStorageComponent>()?;
+                var.set_name("ew_rng".into())?;
+                var.set_value_int(rng)?;
+                let bytes = rng.to_le_bytes();
+                u64::from_le_bytes([0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]])
+            } else {
+                info.current_stains
+            }
+        } else {
+            entity.get_current_stains()?
+        };
 
         let mut any = false;
         for ai in
@@ -485,7 +512,7 @@ impl LocalDiffModel {
         let var = entity.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         var.set_value_string(gid.0.to_string().into())?;
-        var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
+        var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(true)?;
 
         if entity
@@ -507,7 +534,10 @@ impl LocalDiffModel {
 
         let drops_gold = entity
             .iter_all_components_of_type::<LuaComponent>(None)?
-            .any(|lua| lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()));
+            .any(|lua| lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
+            && entity
+                .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                .all(|var| !var.has_tag("no_gold_drop"));
 
         self.entity_entries.insert(
             lid,
@@ -1245,8 +1275,24 @@ impl RemoteDiffModel {
 
                     entity.set_game_effects(&entity_info.game_effects)?;
 
-                    entity.set_current_stains(entity_info.current_stains)?;
-
+                    let filename = entity.filename()?;
+                    if [
+                        "data/entities/items/pickup/physics_die.xml",
+                        "data/entities/items/pickup/physics_die_greed.xml",
+                    ]
+                    .contains(&&*filename)
+                    {
+                        if entity.iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?.all(|var| var.name().unwrap_or("".into()) != "ew_rng") {
+                            let var = entity.add_component::<VariableStorageComponent>()?;
+                            var.set_name("ew_rng".into())?;
+                            let bytes = entity_info.current_stains.to_le_bytes();
+                            let bytes: [u8; 4] = [bytes[4], bytes[5], bytes[6], bytes[7]];
+                            let rng = i32::from_le_bytes(bytes);
+                            var.set_value_int(rng)?;
+                        }
+                    } else {
+                        entity.set_current_stains(entity_info.current_stains)?;
+                    }
                     if let Some(ai) = entity
                         .try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
                     {
@@ -1587,7 +1633,7 @@ pub fn init_remote_entity(
         if let Some(gid) = gid {
             var.set_value_string(gid.0.to_string().into())?;
         }
-        var.set_value_int(i32::from_ne_bytes(lid.0.to_ne_bytes()))?;
+        var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(false)?;
     }
     Ok(())

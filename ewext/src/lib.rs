@@ -426,7 +426,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 let entity = lua.to_string(1)?.parse::<isize>()?;
                 let peer = PeerId::from_hex(&lua.to_string(2)?)?;
                 let mut rng: u64 =
-                    u32::from_ne_bytes(lua.to_string(3)?.parse::<i32>()?.to_ne_bytes()) as u64;
+                    u32::from_le_bytes(lua.to_string(3)?.parse::<i32>()?.to_le_bytes()) as u64;
                 if rng == 0 {
                     rng = 1;
                 }
