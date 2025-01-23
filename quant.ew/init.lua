@@ -270,6 +270,7 @@ function OnProjectileFired(
         or n == "data/entities/projectiles/deck/black_hole_giga.xml"
         or n == "data/entities/projectiles/deck/white_hole.xml"
         or n == "data/entities/projectiles/deck/white_hole_giga.xml"
+        or string.sub(n, 31) == "data/entities/items/pickup/egg_"
         or EntityHasTag(projectile_id, "ew_projectile_position_sync")
     then
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")

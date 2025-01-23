@@ -23,6 +23,7 @@ use shared::{
     },
     GameEffectData, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
 };
+use std::borrow::Cow;
 use std::mem;
 use std::num::NonZero;
 pub(crate) static DES_TAG: &str = "ew_des";
@@ -907,6 +908,7 @@ impl RemoteDiffModel {
                 EntityUpdate::Init(entity_entry, gid) => {
                     if let Some(ent) = self.waiting_for_lid.remove(&gid) {
                         self.tracked.insert(current_lid, ent);
+                        let _ = init_remote_entity(ent, Some(current_lid), Some(gid), false);
                     }
                     self.lid_to_gid.insert(current_lid, gid);
                     self.entity_infos.insert(current_lid, *entity_entry);
@@ -1510,7 +1512,7 @@ pub fn init_remote_entity(
     }
 
     for pb2 in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
-        pb2.set_destroy_body_if_entity_destroyed(true)?; //TODO why??
+        pb2.set_destroy_body_if_entity_destroyed(true)?;
     }
 
     for expl in entity.iter_all_components_of_type::<ExplodeOnDamageComponent>(None)? {
@@ -1554,6 +1556,18 @@ pub fn init_remote_entity(
         entity.try_get_first_component_including_disabled::<GhostComponent>(None)?
     {
         ghost.set_die_if_no_home(false)?;
+    }
+
+    if entity.has_tag("egg_item") {
+        if let Some(explosion) =
+            entity.try_get_first_component_including_disabled::<ExplodeOnDamageComponent>(None)?
+        {
+            explosion.object_set_value::<Cow<'_, str>>(
+                "config_explosion",
+                "load_this_entity",
+                "".into(),
+            )?
+        }
     }
 
     entity
