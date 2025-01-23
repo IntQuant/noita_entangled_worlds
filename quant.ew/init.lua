@@ -111,9 +111,9 @@ local function load_modules()
     ctx.load_system("essence_sync")
     ctx.load_system("spectate")
     ctx.load_system("effect_data_sync")
-    if ctx.proxy_opt.item_dedup then
-        -- ctx.load_system("gen_sync")
-    end
+    -- if ctx.proxy_opt.item_dedup then
+    -- ctx.load_system("gen_sync")
+    -- end
     ctx.load_system("karl")
     ctx.load_system("remove_wand_sound")
     if ctx.proxy_opt.randomize_perks then
@@ -270,7 +270,7 @@ function OnProjectileFired(
         or n == "data/entities/projectiles/deck/black_hole_giga.xml"
         or n == "data/entities/projectiles/deck/white_hole.xml"
         or n == "data/entities/projectiles/deck/white_hole_giga.xml"
-        or string.sub(n, 31) == "data/entities/items/pickup/egg_"
+        or string.sub(n, 1, 31) == "data/entities/items/pickup/egg_"
         or EntityHasTag(projectile_id, "ew_projectile_position_sync")
     then
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")

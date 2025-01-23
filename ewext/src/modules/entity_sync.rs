@@ -114,7 +114,13 @@ impl EntitySync {
     pub fn iter_peers(&self, player_map: BiHashMap<PeerId, EntityID>) -> Vec<(bool, PeerId)> {
         player_map
             .left_values()
-            .map(|p| (self.interest_tracker.contains(*p), *p))
+            .filter_map(|p| {
+                if *p != my_peer_id() {
+                    Some((self.interest_tracker.contains(*p), *p))
+                } else {
+                    None
+                }
+            })
             .collect::<Vec<(bool, PeerId)>>()
     }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
@@ -439,7 +445,7 @@ impl Module for EntitySync {
                 )?;
             }
             for peer in ctx.player_map.clone().left_values() {
-                if !self.interest_tracker.contains(*peer) {
+                if !self.interest_tracker.contains(*peer) && *peer != my_peer_id() {
                     send_remotedes(
                         ctx,
                         true,

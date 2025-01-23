@@ -53,6 +53,8 @@ local function body_to_ent(id)
     end
 end
 
+local sent_track_req = {}
+
 function tele.on_world_update()
     local n = EntitiesGetMaxID()
     for ent = last + 1, n do
@@ -78,24 +80,29 @@ function tele.on_world_update()
         if ComponentGetValue2(com, "mState") ~= 0 then
             local body = ComponentGetValue(com, "mBodyID")
             local ent, num = body_to_ent(tonumber(body))
-            local gid
-            for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
-                if ComponentGetValue2(v, "name") == "ew_gid_lid" then
-                    gid = v
-                    break
+            if ent ~= nil then
+                local gid
+                for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
+                    if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+                        gid = v
+                        break
+                    end
                 end
-            end
-            if gid ~= nil then
-                has_tele = true
-                rpc.send_tele(
-                    ComponentGetValue2(gid, "value_string"),
-                    num,
-                    ComponentGetValue2(com, "mStartBodyMaxExtent"),
-                    ComponentGetValue2(com, "mStartAimAngle"),
-                    ComponentGetValue2(com, "mStartBodyAngle"),
-                    ComponentGetValue2(com, "mStartBodyDistance"),
-                    ComponentGetValue2(com, "mMinBodyDistance")
-                )
+                if gid ~= nil then
+                    has_tele = true
+                    rpc.send_tele(
+                        ComponentGetValue2(gid, "value_string"),
+                        num,
+                        ComponentGetValue2(com, "mStartBodyMaxExtent"),
+                        ComponentGetValue2(com, "mStartAimAngle"),
+                        ComponentGetValue2(com, "mStartBodyAngle"),
+                        ComponentGetValue2(com, "mStartBodyDistance"),
+                        ComponentGetValue2(com, "mMinBodyDistance")
+                    )
+                elseif not table.contains(sent_track_req, ent) then
+                    table.insert(sent_track_req, ent)
+                    ewext.track(ent)
+                end
             end
         elseif has_tele then
             has_tele = false

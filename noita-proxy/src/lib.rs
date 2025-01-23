@@ -79,7 +79,7 @@ pub struct GameSettings {
     world_num: u16,
     debug_mode: Option<bool>,
     use_constant_seed: bool,
-    item_dedup: Option<bool>,
+    // item_dedup: Option<bool>, TODO
     enemy_hp_mult: Option<f32>,
     game_mode: Option<GameMode>,
     friendly_fire: Option<bool>,
@@ -236,7 +236,7 @@ impl GameSettings {
                     ui.add(DragValue::new(&mut game_settings.seed));
                 }
             });
-            {
+            /*{
                 let mut temp = game_settings.item_dedup.unwrap_or(def.item_dedup);
                 if ui
                     .checkbox(&mut temp, tr("connect_settings_item_dedup"))
@@ -244,7 +244,7 @@ impl GameSettings {
                 {
                     game_settings.item_dedup = Some(temp)
                 }
-            }
+            }TODO*/
             {
                 let mut temp = game_settings
                     .nice_terraforming
@@ -340,7 +340,7 @@ impl GameSettings {
 }
 pub struct DefaultSettings {
     debug_mode: bool,
-    item_dedup: bool,
+    //item_dedup: bool,
     enemy_hp_mult: f32,
     game_mode: GameMode,
     friendly_fire: bool,
@@ -361,7 +361,7 @@ impl Default for DefaultSettings {
     fn default() -> Self {
         DefaultSettings {
             debug_mode: false,
-            item_dedup: true,
+            //item_dedup: true,
             randomize_perks: true,
             enemy_hp_mult: 1.0,
             game_mode: GameMode::LocalHealth(LocalHealthMode::Normal),

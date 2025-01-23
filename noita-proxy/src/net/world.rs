@@ -1782,15 +1782,15 @@ impl WorldManager {
                 let atan: Vec<f32> = compute_atans(chunk_start_x, chunk_start_y, rays as f32, x, y);
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
-                    let dx = cx - x;
+                    let dx = cx.abs_diff(x) as u64;
                     let dd = dx * dx;
                     for icy in 0..CHUNK_SIZE as i32 {
                         let cy = chunk_start_y + icy;
-                        let dy = cy - y;
+                        let dy = cy.abs_diff(y) as u64;
                         let px = icy as usize * CHUNK_SIZE + icx as usize;
                         if (dx == 0 && dy == 0) || {
                             let i = (atan[px] % rays as f32) as usize;
-                            dd as u64 + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64
+                            dd + dy * dy
                                 <= list[i].0
                         } {
                             if self
@@ -2007,13 +2007,13 @@ impl WorldManager {
                         mat,
                         prob,
                     } = ex;
-                    let dx = cx - x;
-                    let dy = cy - y;
+                    let dx = cx.abs_diff(x) as u64;
+                    let dy = cy.abs_diff(y) as u64;
                     if ((dx == 0 && dy == 0) || {
                         let rays = get_ray(r);
                         let j = (atan[px] % rays as f32) as usize;
-                        let dd = dx.unsigned_abs() as u64 * dx.unsigned_abs() as u64
-                            + dy.unsigned_abs() as u64 * dy.unsigned_abs() as u64;
+                        let dd = dx * dx
+                            + dy * dy;
                         data.iter().any(|(i, r)| j == *i && dd <= *r)
                     }) && self
                         .materials

@@ -640,7 +640,7 @@ impl NetManager {
             settings.same_loadout.unwrap_or(def.same_loadout),
         );
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
-        state.try_ws_write_option("item_dedup", settings.item_dedup.unwrap_or(def.item_dedup));
+        // state.try_ws_write_option("item_dedup", settings.item_dedup.unwrap_or(def.item_dedup)); TODO
         state.try_ws_write_option(
             "randomize_perks",
             settings.randomize_perks.unwrap_or(def.randomize_perks),
