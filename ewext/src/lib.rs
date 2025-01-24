@@ -19,16 +19,16 @@ use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, ProxyKV, SpawnOnce, WorldPos};
-use std::num::NonZero;
 use std::{
     arch::asm,
     borrow::Cow,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
-    sync::{LazyLock, Mutex, OnceLock},
+    sync::{LazyLock, Mutex, OnceLock, TryLockError},
     thread,
     time::Instant,
 };
+use std::{num::NonZero, sync::MutexGuard};
 mod addr_grabber;
 mod modules;
 mod net;
@@ -41,10 +41,21 @@ thread_local! {
     });
 }
 
+/// This has a mutex because noita could call us from different threads.
+/// It's not expected that several threads try to lock this at once.
 static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(Default::default);
+
 static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
     LazyLock::new(|| unsafe { libloading::Library::new("ewext0.dll") });
 static MY_PEER_ID: OnceLock<PeerId> = OnceLock::new();
+
+fn try_lock_netmanager() -> eyre::Result<MutexGuard<'static, Option<NetManager>>> {
+    match NETMANAGER.try_lock() {
+        Ok(netman) => Ok(netman),
+        Err(TryLockError::WouldBlock) => bail!("Netmanager mutex already locked"),
+        Err(TryLockError::Poisoned(_)) => bail!("Netnamager mutex poisoned"),
+    }
+}
 
 pub(crate) fn my_peer_id() -> PeerId {
     MY_PEER_ID
@@ -169,13 +180,13 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
         }
     }
 
-    *NETMANAGER.lock().unwrap() = Some(netman);
+    *try_lock_netmanager()? = Some(netman);
     println!("Ok!");
     Ok(kvs)
 }
 
 fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
-    let mut binding = NETMANAGER.lock().unwrap();
+    let mut binding = try_lock_netmanager()?;
     let netmanager = binding.as_mut().unwrap();
     while let Some(msg) = netmanager.try_recv()? {
         match msg {
@@ -205,7 +216,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
 
 fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
     let arg = lua.to_raw_string(1)?;
-    let mut binding = NETMANAGER.lock().unwrap();
+    let mut binding = try_lock_netmanager()?;
     let netmanager = binding.as_mut().unwrap();
     netmanager.send(&shared::NoitaOutbound::Raw(arg))?;
 
@@ -213,7 +224,7 @@ fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
 }
 
 fn netmanager_flush(_lua: LuaState) -> eyre::Result<()> {
-    let mut binding = NETMANAGER.lock().unwrap();
+    let mut binding = try_lock_netmanager()?;
     let netmanager = binding.as_mut().unwrap();
     netmanager.flush()
 }
@@ -248,7 +259,7 @@ fn with_every_module(
     f: impl Fn(&mut ModuleCtx, &mut dyn Module) -> eyre::Result<()>,
 ) -> eyre::Result<()> {
     let _lock = IN_MODULE_LOCK.lock().unwrap();
-    let mut temp = NETMANAGER.lock().unwrap();
+    let mut temp = try_lock_netmanager()?;
     let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
     ExtState::with_global(|state| {
         let mut ctx = ModuleCtx {
@@ -457,7 +468,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     .entity_sync
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                let mut temp = NETMANAGER.lock().unwrap();
+                let mut temp = try_lock_netmanager()?;
                 let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
                 entity_sync.cross_item_thrown(net, LuaGetValue::get(lua, -1)?)?;
                 Ok(())
@@ -529,7 +540,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                 let entity_killed: Option<EntityID> = LuaGetValue::get(lua, -1)?;
                 let entity_killed =
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
-                let mut temp = NETMANAGER.lock().unwrap();
+                let mut temp = try_lock_netmanager()?;
                 let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
                 entity_sync.track_entity(net, entity_killed);
                 Ok(())
@@ -603,7 +614,7 @@ pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
                     .ok_or_eyre("No entity sync module loaded")?;
                 if let Some(gid) = entity_sync.register_chest(entity)? {
                     state.dont_spawn.insert(gid);
-                    let mut temp = NETMANAGER.lock().unwrap();
+                    let mut temp = try_lock_netmanager()?;
                     let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
                     for (has_interest, peer) in
                         entity_sync.iter_peers(state.player_entity_map.clone())
