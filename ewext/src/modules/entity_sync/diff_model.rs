@@ -61,6 +61,19 @@ impl LocalDiffModel {
             .map(|e| self.tracker.entity_by_lid(*e.0))?
             .ok()
     }
+    pub(crate) fn get_pos_data(&self) -> Vec<UpdatePosition> {
+        self.entity_entries.values().map(|p| {
+            let EntityEntryPair {
+                current,
+                gid,
+                ..
+            } = p;
+            UpdatePosition{
+                gid: *gid,
+                pos: WorldPos::from_f32(current.x, current.y)
+            }
+        }).collect()
+    }
 }
 pub(crate) struct RemoteDiffModel {
     tracked: BiHashMap<Lid, EntityID>,

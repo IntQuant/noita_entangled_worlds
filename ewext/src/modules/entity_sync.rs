@@ -23,7 +23,7 @@ use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
 use std::sync::{Arc, LazyLock};
-
+use shared::des::DesToProxy::UpdatePositions;
 mod diff_model;
 mod interest;
 
@@ -491,7 +491,8 @@ impl Module for EntitySync {
                     radius: REQUEST_AUTHORITY_RADIUS,
                 },
             ))?;
-            // TODO also send positions periodically.
+            let pos_data = self.local_diff_model.get_pos_data();
+            ctx.net.send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
