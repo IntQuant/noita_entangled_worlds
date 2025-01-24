@@ -186,11 +186,13 @@ impl EntityID {
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
     }
 
-    pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<()> {
+    pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<bool> {
+        let mut is_some = false;
         while let Some(c) = self.try_get_first_component_including_disabled::<C>(None)? {
+            is_some = true;
             raw::entity_remove_component(self, c.into())?;
         }
-        Ok(())
+        Ok(is_some)
     }
 
     pub fn iter_all_components_of_type<C: Component>(

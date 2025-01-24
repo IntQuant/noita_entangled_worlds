@@ -100,6 +100,7 @@ pub enum GameEffectEnum {
     Jarate,
     Knockback,
     KnockbackImmunity,
+    #[strum(serialize = "MOVEMENT_SLOWER_2X")]
     MovementSlower2X,
     MovementFaster,
     StainsDropFaster,
@@ -125,6 +126,7 @@ pub enum GameEffectEnum {
     AbilityActionsMaterialized,
     NoDamageFlash,
     NoSlimeSlowdown,
+    #[strum(serialize = "MOVEMENT_FASTER_2X")]
     MovementFaster2X,
     NoWandEditing,
     LowHpDamageBoost,
@@ -151,6 +153,7 @@ pub enum GameEffectEnum {
     ProtectionEdges,
     ProtectionProjectile,
     PolymorphCessation,
+    #[strum(serialize = "_LAST")]
     _Last,
 }
 

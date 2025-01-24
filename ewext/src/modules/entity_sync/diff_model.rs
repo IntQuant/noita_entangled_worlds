@@ -62,17 +62,16 @@ impl LocalDiffModel {
             .ok()
     }
     pub(crate) fn get_pos_data(&self) -> Vec<UpdatePosition> {
-        self.entity_entries.values().map(|p| {
-            let EntityEntryPair {
-                current,
-                gid,
-                ..
-            } = p;
-            UpdatePosition{
-                gid: *gid,
-                pos: WorldPos::from_f32(current.x, current.y)
-            }
-        }).collect()
+        self.entity_entries
+            .values()
+            .map(|p| {
+                let EntityEntryPair { current, gid, .. } = p;
+                UpdatePosition {
+                    gid: *gid,
+                    pos: WorldPos::from_f32(current.x, current.y),
+                }
+            })
+            .collect()
     }
 }
 pub(crate) struct RemoteDiffModel {
@@ -485,7 +484,8 @@ impl LocalDiffModel {
 
     pub(crate) fn track_entity(&mut self, entity: EntityID, gid: Gid) -> eyre::Result<Lid> {
         let lid = self.alloc_lid();
-        entity.remove_all_components_of_type::<CameraBoundComponent>()?;
+        let should_not_serialize =
+            entity.remove_all_components_of_type::<CameraBoundComponent>()?;
         entity.add_tag(DES_TAG)?;
 
         self.tracker.tracked.insert(lid, entity);
@@ -494,8 +494,10 @@ impl LocalDiffModel {
 
         let entity_kind = classify_entity(entity)?;
         let spawn_info = match entity_kind {
-            EntityKind::Normal => EntitySpawnInfo::Filename(entity.filename()?),
-            EntityKind::Item => EntitySpawnInfo::Serialized {
+            EntityKind::Normal if should_not_serialize => {
+                EntitySpawnInfo::Filename(entity.filename()?)
+            }
+            _ => EntitySpawnInfo::Serialized {
                 serialized_at: game_get_frame_num()?,
                 data: serialize_entity(entity)?,
             },

@@ -15,6 +15,7 @@ use noita_api::{
     VariableStorageComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use shared::des::DesToProxy::UpdatePositions;
 use shared::{
     des::{
         Gid, InterestRequest, ProjectileFired, RemoteDes, INTEREST_REQUEST_RADIUS,
@@ -23,7 +24,6 @@ use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
 use std::sync::{Arc, LazyLock};
-use shared::des::DesToProxy::UpdatePositions;
 mod diff_model;
 mod interest;
 
@@ -492,7 +492,8 @@ impl Module for EntitySync {
                 },
             ))?;
             let pos_data = self.local_diff_model.get_pos_data();
-            ctx.net.send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
+            ctx.net
+                .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
