@@ -7,6 +7,7 @@ local world_ffi = {}
 
 local ffi = require("ffi")
 
+local np = require("noitapatcher")
 local world_info = np.GetWorldInfo()
 
 if not world_info then
