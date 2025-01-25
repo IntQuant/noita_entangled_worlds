@@ -328,16 +328,7 @@ util.add_cross_call("ew_is_wand_pickup", function()
     return ctx.is_wand_pickup
 end)
 
-util.add_cross_call("ew_do_i_own", function(ent)
-    local gid
-    for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
-        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
-            gid = v
-            break
-        end
-    end
-    return gid == nil or ComponentGetValue2(gid, "value_bool")
-end)
+util.add_cross_call("ew_do_i_own", util.do_i_own)
 
 local cross_force_send_inventory = false
 

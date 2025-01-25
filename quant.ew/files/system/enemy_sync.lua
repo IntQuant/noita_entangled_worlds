@@ -409,7 +409,7 @@ function enemy_sync.client_cleanup()
 end
 
 function enemy_sync.on_world_update_host()
-    local rt = math.floor(tonumber(ModSettingGet("quant.ew.enemy_sync") or 2) + 0.5)
+    local rt = math.floor(tonumber(ModSettingGet("quant.ew.enemy_sync") or 2) or 2 + 0.5)
     local n = 0
     if rt == 3 then
         n = 2

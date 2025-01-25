@@ -23,6 +23,9 @@ function rpc.send_tele(body_gid, n, extent, aimangle, bodyangle, distance, mindi
         local ent = ewext.find_by_gid(body_gid)
         if ent ~= nil then
             local body_id = PhysicsBodyIDGetFromEntity(ent)[n]
+            if body_id == nil then
+                return
+            end
             if not table.contains(who_has_tele, ctx.rpc_peer_id) then
                 table.insert(who_has_tele, ctx.rpc_peer_id)
                 ComponentSetValue2(com, "mState", 1)

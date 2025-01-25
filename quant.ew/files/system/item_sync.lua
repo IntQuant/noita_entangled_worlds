@@ -509,7 +509,7 @@ local function send_item_positions(all)
                     elseif tg then
                         local f = EntityGetFilename(item)
                         if cap[f] == nil then
-                            cap[f] = ModSettingGet("quant.ew.rocks") or 16
+                            cap[f] = tonumber(ModSettingGet("quant.ew.rocks") or 16) or 16
                         end
                         if cap[f] == 0 then
                             position_data[gid] = nil
@@ -587,7 +587,7 @@ function item_sync.on_world_update()
             end
         end
     end
-    local rt = math.floor(tonumber(ModSettingGet("quant.ew.item_sync") or 4) + 0.5)
+    local rt = math.floor(tonumber(ModSettingGet("quant.ew.item_sync") or 4) or 4 + 0.5)
     local n = 0
     if rt == 5 then
         n = 3

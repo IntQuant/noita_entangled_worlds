@@ -47,6 +47,17 @@ function util.prepend(file, target, text)
     ModTextFileSetContent(file, new)
 end
 
+function util.do_i_own(ent)
+    local gid
+    for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
+    return gid == nil or ComponentGetValue2(gid, "value_bool")
+end
+
 function util.tpcall(fn, ...)
     local res = { xpcall(fn, debug.traceback, ...) }
     if not res[1] then
