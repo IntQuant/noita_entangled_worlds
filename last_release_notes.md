@@ -1,14 +1,9 @@
-## Noita Entangled Worlds v0.32.11
+## Noita Entangled Worlds v0.32.12
 
-- fix crash in last 2 releases
+- Fix crash on new Noita version.
+- Fix negative notplayer health.
+- (Hopefully) fix the noita<->proxy connection issue.
 
-- dont show arrows/map icon of disconnected players
-
-
-## Accepted pull requests
-
-- Minor translation changes by @Alphaccca in #300
-- Added Korean font, applied Korean font by @Alphaccca in #299
 ## Installation
 
 
