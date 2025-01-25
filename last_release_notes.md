@@ -1,4 +1,4 @@
-## Noita Entangled Worlds v0.32.12
+## Noita Entangled Worlds v0.32.13
 
 - Fix crash on new Noita version.
 - Fix negative notplayer health.
@@ -10,7 +10,6 @@ Note that those aren't part of this release.
 
 - Add French language support(fr-FR) by @leBourreau in #308
 - Distributed entity sync (DES) & World generator sync (wang_sync) by @IntQuant in #301
-
 ## Installation
 
 
