@@ -23,7 +23,9 @@ local v
 for _, player in ipairs(targets) do
     if not EntityHasTag(player, "ew_notplayer") then
         local px, py = EntityGetTransform(player)
-        local r = px * px + py * py
+        local dx = px - x
+        local dy = py - y
+        local r = dx * dx + dy * dy
         if closest == nil or r < closest then
             closest = r
             v = player

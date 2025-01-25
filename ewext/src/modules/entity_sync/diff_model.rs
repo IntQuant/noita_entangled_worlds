@@ -11,8 +11,8 @@ use noita_api::{
     ExplodeOnDamageComponent, GhostComponent, IKLimbComponent, IKLimbWalkerComponent,
     Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
     LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
-    SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent,
-    WormComponent,
+    PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent,
+    VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::des::TRANSFER_RADIUS;
@@ -484,8 +484,21 @@ impl LocalDiffModel {
 
     pub(crate) fn track_entity(&mut self, entity: EntityID, gid: Gid) -> eyre::Result<Lid> {
         let lid = self.alloc_lid();
-        let should_not_serialize =
-            entity.remove_all_components_of_type::<CameraBoundComponent>()?;
+        let should_not_serialize = entity
+            .remove_all_components_of_type::<CameraBoundComponent>()?
+            || !noita_api::raw::physics_body_id_get_from_entity(entity, None)
+                .unwrap_or_default()
+                .len()
+                != entity
+                    .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(None)
+                    .iter()
+                    .len()
+                    + entity
+                        .iter_all_components_of_type_including_disabled::<PhysicsBody2Component>(
+                            None,
+                        )
+                        .iter()
+                        .len();
         entity.add_tag(DES_TAG)?;
 
         self.tracker.tracked.insert(lid, entity);
@@ -1604,7 +1617,6 @@ pub fn init_remote_entity(
             ]
             .contains(&&*lua.script_damage_received()?)
             || [
-                "data/scripts/props/suspended_container_physics_objects.lua",
                 "data/scripts/buildings/firebugnest.lua",
                 "data/scripts/buildings/flynest.lua",
                 "data/scripts/buildings/spidernest.lua",
@@ -1682,7 +1694,15 @@ impl Drop for RemoteDiffModel {
 fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::Result<EntityID> {
     match entity_data {
         EntitySpawnInfo::Filename(filename) => {
-            EntityID::load(filename, Some(x as f64), Some(y as f64))
+            let ent = EntityID::load(filename, Some(x as f64), Some(y as f64))?;
+            for lua in ent.iter_all_components_of_type::<LuaComponent>(None)? {
+                if ["data/scripts/props/suspended_container_physics_objects.lua"]
+                    .contains(&&*lua.script_source_file()?)
+                {
+                    ent.remove_component(*lua)?;
+                }
+            }
+            Ok(ent)
         }
         EntitySpawnInfo::Serialized {
             serialized_at: _,

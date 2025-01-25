@@ -83,6 +83,7 @@ local allow_patching = {
     --spawn_chest = true,
     spawn_bbqbox = true,
     spawn_trapwand = true,
+    spawn_turret = true,
     spawn_fungi = true,
     spawn_robots = true,
     spawn_nest = true,

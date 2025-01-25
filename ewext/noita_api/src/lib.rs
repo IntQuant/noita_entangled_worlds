@@ -125,17 +125,30 @@ impl EntityID {
                     let _ = raw::component_set_value(*com, "mState", 0);
                 }
             }
-            for (i, id) in body_id.iter().enumerate() {
-                let n = 17000.0;
-                let _ = raw::physics_body_id_set_transform(
-                    *id,
-                    n + 64.0 * self.0.get() as f64,
-                    n + 64.0 * i as f64,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                );
+            if body_id.len()
+                != self
+                    .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(None)
+                    .iter()
+                    .len()
+                    + self
+                        .iter_all_components_of_type_including_disabled::<PhysicsBody2Component>(
+                            None,
+                        )
+                        .iter()
+                        .len()
+            {
+                for (i, id) in body_id.iter().enumerate() {
+                    let n = 17000.0;
+                    let _ = raw::physics_body_id_set_transform(
+                        *id,
+                        n + 64.0 * self.0.get() as f64,
+                        n + 64.0 * i as f64,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    );
+                }
             }
         }
         let _ = raw::entity_kill(self);

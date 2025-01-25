@@ -494,7 +494,7 @@ impl LuaGetValue for PhysicsBodyID {
     where
         Self: Sized,
     {
-        Ok(PhysicsBodyID(lua.to_integer(index) as i32))
+        Ok(PhysicsBodyID(lua.to_number(index) as i32))
     }
 }
 
