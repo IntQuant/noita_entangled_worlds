@@ -108,13 +108,35 @@ impl EntityID {
 
     pub fn kill(self) {
         // Shouldn't ever error.
-        for (i, id) in raw::physics_body_id_get_from_entity(self, None)
-            .unwrap_or_default()
-            .iter()
-            .enumerate()
-        {
-            let n = 17000.0 + (64.0 * (self.0.get() as usize + i) as f64);
-            let _ = raw::physics_body_id_set_transform(*id, n, n, 0.0, 0.0, 0.0, 0.0);
+        let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
+        if !body_id.is_empty() {
+            for com in raw::entity_get_with_tag("ew_peer".into())
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|e| {
+                    e.map(|e| {
+                        e.try_get_first_component_including_disabled::<TelekinesisComponent>(None)
+                    })
+                })
+                .flatten()
+                .flatten()
+            {
+                if body_id.contains(&com.get_body_id()) {
+                    let _ = raw::component_set_value(*com, "mState", 0);
+                }
+            }
+            for (i, id) in body_id.iter().enumerate() {
+                let n = 17000.0;
+                let _ = raw::physics_body_id_set_transform(
+                    *id,
+                    n + 64.0 * self.0.get() as f64,
+                    n + 64.0 * i as f64,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                );
+            }
         }
         let _ = raw::entity_kill(self);
     }
@@ -526,6 +548,12 @@ impl StatusEffectDataComponent {
     }
 }
 
+impl TelekinesisComponent {
+    pub fn get_body_id(self) -> PhysicsBodyID {
+        raw::component_get_value_old::<PhysicsBodyID>(*self, "mBodyID").unwrap_or(PhysicsBodyID(0))
+    }
+}
+
 pub fn game_print(value: impl AsRef<str>) {
     let _ = raw::game_print(value.as_ref().into());
 }
@@ -555,6 +583,21 @@ pub mod raw {
         lua.push_string(field);
         lua.call(2, T::size_on_stack())
             .wrap_err("Failed to call ComponentGetValue2")?;
+        let ret = T::get(lua, -1);
+        lua.pop_last_n(T::size_on_stack());
+        ret.wrap_err_with(|| eyre!("Getting {field} for {component:?}"))
+    }
+
+    pub(crate) fn component_get_value_old<T>(component: ComponentID, field: &str) -> eyre::Result<T>
+    where
+        T: LuaGetValue,
+    {
+        let lua = LuaState::current()?;
+        lua.get_global(c"ComponentGetValue");
+        lua.push_integer(component.0.into());
+        lua.push_string(field);
+        lua.call(2, T::size_on_stack())
+            .wrap_err("Failed to call ComponentGetValue")?;
         let ret = T::get(lua, -1);
         lua.pop_last_n(T::size_on_stack());
         ret.wrap_err_with(|| eyre!("Getting {field} for {component:?}"))

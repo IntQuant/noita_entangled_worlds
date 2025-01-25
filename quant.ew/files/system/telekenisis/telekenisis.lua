@@ -1,6 +1,7 @@
 local rpc = net.new_rpc_namespace()
 local tele = {}
 local who_has_tele = {}
+local is_holding
 
 rpc.opts_reliable()
 function rpc.end_tele()
@@ -29,6 +30,12 @@ function rpc.send_tele(body_gid, n, extent, aimangle, bodyangle, distance, mindi
             if not table.contains(who_has_tele, ctx.rpc_peer_id) then
                 table.insert(who_has_tele, ctx.rpc_peer_id)
                 ComponentSetValue2(com, "mState", 1)
+                if is_holding == ent then
+                    local mycom = EntityGetFirstComponent(ctx.my_player.entity, "TelekinesisComponent")
+                    if mycom ~= nil then
+                        ComponentSetValue2(mycom, "mState", 0)
+                    end
+                end
             end
             ComponentSetValue(com, "mBodyID", body_id)
             ComponentSetValue2(com, "mStartBodyMaxExtent", extent)
@@ -92,6 +99,7 @@ function tele.on_world_update()
                     end
                 end
                 if gid ~= nil then
+                    is_holding = ent
                     has_tele = true
                     rpc.send_tele(
                         ComponentGetValue2(gid, "value_string"),
