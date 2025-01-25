@@ -773,6 +773,10 @@ function rpc.handle_death_data(death_data)
             if dmg > 0 then
                 EntityInflictDamage(enemy_id, dmg+0.1, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity)
             end
+                            local damage = EntityGetFirstComponentIncludingDisabled(enemy_id, "DamageModelComponent")
+        if damage ~= nil then
+            ComponentSetValue2(damage, "hp", 2 ^ - 32)
+        end
 
             EntityInflictDamage(enemy_id, 1000000000, "DAMAGE_CURSE", "", "NONE", 0, 0, responsible_entity) -- Just to be sure
             if not remote_data[3] then

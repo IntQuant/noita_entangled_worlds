@@ -331,6 +331,10 @@ function OnPlayerSpawned( player_entity ) -- This runs when player entity has be
         player_cosmetics(player_entity)
         player_color(player_entity)
     else
+                            local damage = EntityGetFirstComponentIncludingDisabled(player_entity, "DamageModelComponent")
+        if damage ~= nil then
+            ComponentSetValue2(damage, "hp", 2 ^ - 32)
+        end
         EntityInflictDamage(player_entity, 1000000, "DAMAGE_CURSE", "dont rejoin", "NONE", 0, 0, GameGetWorldStateEntity())
         GameAddFlagRun("ew_kill_player")
     end

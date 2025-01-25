@@ -18,6 +18,10 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     local died = false
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         died = true
+                            local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        if damage ~= nil then
+            ComponentSetValue2(damage, "hp", 2 ^ - 32)
+        end
         EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", "revive", "NONE", 0, 0, GameGetWorldStateEntity())
     end
     async(function()

@@ -40,6 +40,11 @@ local function do_game_over(message)
 
     local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+            local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        if damage ~= nil then
+            ComponentSetValue2(damage, "hp", 2 ^ - 32)
+        end
+
     EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
     GameTriggerGameOver()
     EntityKill(ctx.my_player.entity)

@@ -202,6 +202,10 @@ end
 function net_handling.proxy.end_run(_, _)
     local entity = ctx.my_player.entity
     if entity ~= nil and EntityGetIsAlive(entity) and not EntityHasTag(entity, "ew_notplayer") then
+        local damage = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
+        if damage ~= nil then
+            ComponentSetValue2(damage, "hp", 2 ^ - 32)
+        end
         EntityInflictDamage(entity, 1000000, "DAMAGE_CURSE", "Run Ended", "NONE", 0, 0, GameGetWorldStateEntity())
     end
     ctx.run_ended = true
