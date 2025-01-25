@@ -287,7 +287,7 @@ fn generate_code_for_api_fn(api_fn: ApiFn) -> proc_macro2::TokenStream {
     };
 
     let call_err_msg = format!("Failed to call lua function {}", api_fn.fn_name);
-    let fn_name_c = name_to_c_literal(api_fn.fn_name);
+    let fn_name_c = name_to_c_literal(&api_fn.fn_name);
 
     let ret_count = api_fn.rets.len() as i32;
 
@@ -329,12 +329,15 @@ pub fn add_lua_fn(item: TokenStream) -> TokenStream {
     let fn_name = tokens.next().unwrap().to_string();
     let fn_name_ident = format_ident!("{fn_name}");
     let bridge_fn_name = format_ident!("{fn_name}_lua_bridge");
-    let fn_name_c = name_to_c_literal(fn_name);
+    let fn_name_c = name_to_c_literal(&fn_name);
     quote! {
         unsafe extern "C" fn #bridge_fn_name(lua: *mut lua_State) -> c_int {
+            //println!("ewext call {}", #fn_name);
             let lua_state = noita_api::lua::LuaState::new(lua);
             lua_state.make_current();
-            noita_api::lua::LuaFnRet::do_return(#fn_name_ident(lua_state), lua_state)
+            let ret = noita_api::lua::LuaFnRet::do_return(#fn_name_ident(lua_state), lua_state);
+            //println!("ewext endcall {}", #fn_name);
+            ret
         }
 
         LUA.lua_pushcclosure(lua, Some(#bridge_fn_name), 0);
@@ -343,6 +346,6 @@ pub fn add_lua_fn(item: TokenStream) -> TokenStream {
     .into()
 }
 
-fn name_to_c_literal(name: String) -> proc_macro2::Literal {
+fn name_to_c_literal(name: &str) -> proc_macro2::Literal {
     proc_macro2::Literal::c_string(CString::new(name).unwrap().as_c_str())
 }
