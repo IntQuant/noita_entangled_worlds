@@ -85,10 +85,10 @@ end
 ---@return EncodedArea? encoded_area returns an EncodedArea or nil if the area could not be encoded
 ---@see decode
 function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_area)
-    start_x = ffi.cast("int32_t", start_x)
-    start_y = ffi.cast("int32_t", start_y)
-    end_x = ffi.cast("int32_t", end_x)
-    end_y = ffi.cast("int32_t", end_y)
+    start_x = ffi.cast('int32_t', start_x)
+    start_y = ffi.cast('int32_t', start_y)
+    end_x = ffi.cast('int32_t', end_x)
+    end_y = ffi.cast('int32_t', end_y)
     ---@cast start_x integer
     ---@cast start_y integer
     ---@cast end_x integer
@@ -185,6 +185,8 @@ function world.encode_area(chunk_map, start_x, start_y, end_x, end_y, encoded_ar
     return encoded_area
 end
 
+local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
+
 ---Load an encoded area back into the world.
 ---@param grid_world unknown
 ---@param header EncodedAreaHeader header of the encoded area
@@ -224,8 +226,7 @@ function world.decode(grid_world, header, pixel_runs)
                 end
 
                 if current_material ~= new_material and new_material ~= 0 then
-                    local pixel =
-                        world_ffi.construct_cell(grid_world, x, y, world_ffi.get_material_ptr(new_material), nil)
+                    local pixel = world_ffi.construct_cell(grid_world, x, y, world_ffi.get_material_ptr(new_material), nil)
                     if pixel == nil then
                         -- TODO: This can happen when the material texture has a
                         -- transparent pixel at the given coordinate. There's

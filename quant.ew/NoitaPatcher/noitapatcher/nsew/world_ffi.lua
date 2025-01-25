@@ -7,6 +7,7 @@ local world_ffi = {}
 
 local ffi = require("ffi")
 
+local np = require("noitapatcher")
 local world_info = np.GetWorldInfo()
 
 if not world_info then
@@ -400,8 +401,8 @@ local CellData_ptr = ffi.typeof("struct CellData*")
 ---```
 function world_ffi.get_material_ptr(id)
     local game_global = ffi.cast("char*", gg_ptr)
-    local cell_factory = ffi.cast("char**", (game_global + 0x18))[0]
-    local begin = ffi.cast("char**", cell_factory + 0x18)[0]
+    local cell_factory = ffi.cast('char**', (game_global + 0x18))[0]
+    local begin = ffi.cast('char**', cell_factory + 0x18)[0]
     local ptr = begin + celldata_size * id
     return ffi.cast(CellData_ptr, ptr) --[[@as CellData]]
 end
@@ -415,9 +416,9 @@ end
 ---See: `world_ffi.get_material_ptr`
 function world_ffi.get_material_id(material)
     local game_global = ffi.cast("char*", gg_ptr)
-    local cell_factory = ffi.cast("char**", (game_global + 0x18))[0]
-    local begin = ffi.cast("char**", cell_factory + 0x18)[0]
-    local offset = ffi.cast("char*", material) - begin
+    local cell_factory = ffi.cast('char**', (game_global + 0x18))[0]
+    local begin = ffi.cast('char**', cell_factory + 0x18)[0]
+    local offset = ffi.cast('char*', material) - begin
     return offset / celldata_size
 end
 
