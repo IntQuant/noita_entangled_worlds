@@ -81,6 +81,22 @@ local allow_patching = {
     spawn_physics_fungus = true,
     spawn_physics_acid_fungus = true,
     --spawn_chest = true,
+    spawn_bbqbox = true,
+    spawn_trapwand = true,
+    spawn_fungi = true,
+    spawn_robots = true,
+    spawn_nest = true,
+    spawn_mouth = true,
+    spawn_fungitrap = true,
+    spawn_bunker = true,
+    spawn_bunker2 = true,
+    spawn_statue_hand = true,
+    spawn_burning_barrel = true,
+    spawn_electricity_trap = true,
+    spawn_fish = true,
+    --spawn_stones = true,
+    --spawn_skulls = true,
+    spawn_scavenger_party = true,
 }
 
 local function patch_fn(color, orig_fn_name)

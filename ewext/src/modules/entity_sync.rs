@@ -160,6 +160,10 @@ impl EntitySync {
                 "data/entities/buildings/maggotspot.xml",
                 "data/entities/buildings/dragonspot.xml",
                 "data/entities/buildings/wizardcave_gate.xml",
+                "data/entities/buildings/wallmouth.xml",
+                "data/entities/buildings/walleye.xml",
+                "data/entities/buildings/bunker.xml",
+                "data/entities/buildings/bunker2.xml",
             ]
             .contains(&file_name.as_str())
             || entity_is_item(entity)?;
@@ -525,7 +529,14 @@ impl Module for EntitySync {
             return Ok(());
         };
 
-        if proj_component.m_entity_that_shot()?.is_some() {
+        let filename = projectile.filename()?;
+        if proj_component.m_entity_that_shot()?.is_some()
+            || [
+                "data/entities/animals/boss_wizard/summon.xml",
+                "data/entities/projectiles/bat.xml",
+            ]
+            .contains(&&*filename)
+        {
             return Ok(());
         }
 

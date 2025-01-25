@@ -253,8 +253,10 @@ function OnProjectileFired(
         end
     end
     local n = EntityGetFilename(projectile_id)
-    if n == "data/entities/items/pickup/egg_hollow.xml"
-        or string.sub(n, 1, 31) == "data/entities/items/pickup/egg_" then
+    if
+        n == "data/entities/items/pickup/egg_hollow.xml"
+        or string.sub(n, 1, 31) == "data/entities/items/pickup/egg_"
+    then
         EntityAddComponent2(projectile_id, "VariableStorageComponent", { _tags = "ew_egg", value_int = rng })
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
         if body ~= nil then

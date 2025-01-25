@@ -1608,6 +1608,8 @@ pub fn init_remote_entity(
                 "data/scripts/buildings/firebugnest.lua",
                 "data/scripts/buildings/flynest.lua",
                 "data/scripts/buildings/spidernest.lua",
+                "data/scripts/buildings/bunker2_check.lua",
+                "data/scripts/buildings/bunker_check.lua",
             ]
             .contains(&&*lua.script_source_file()?)
             || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_enabled_changed()?)
