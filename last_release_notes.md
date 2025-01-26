@@ -1,14 +1,56 @@
-## Noita Entangled Worlds v0.32.11
+## Noita Entangled Worlds v1.0.0
 
-- fix crash in last 2 releases
+- Allow enemies/items spawning regardless of where host is, improving performance and visuals also
 
-- dont show arrows/map icon of disconnected players
+- likely fix most issues with shops
 
+- remove chunk target, dedup option, disable tether by default
+
+- remove streaming keep alive from clients for likely better performance and stability
+
+- changes to notplayer ai
+
+- fix some issues with unloaded terraforming, and better performance
+
+- scale projectile velocity to player fps
+
+- dont player sound effect from teleportitus dodge on clients
+
+- fix teleport cast not syncing correctly and with notplayer
+
+- fix a tinker with wands everywhere glitch
+
+- make notplayer teleport a bit better
+
+- fix some negative hp things and dont report some meaningless debug damage numbers
+
+- sync worms nicer
+
+- fix wands held by enemys
+
+- sync aiming position of tanks and tank-like
+
+- sync runestone state
+
+- sync chaos/greed die
+
+- dont dupe wand charm money
+
+- fix chains not being removed(most of the time)
+
+- fix telekenesis and enable for everyone not just host
+
+- add close button on steamdeck
+
+- sync and dont duplicate more objects
+
+- fix some boss ai not working correctly
+
+- dont dupe ice skull attack so much
 
 ## Accepted pull requests
 
-- Minor translation changes by @Alphaccca in #300
-- Added Korean font, applied Korean font by @Alphaccca in #299
+- 📃 docs: update Chinese lang by @LuoTianOrange in #321
 ## Installation
 
 
