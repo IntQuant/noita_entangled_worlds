@@ -434,10 +434,6 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
         )
         GameAddFlagRun("ew_kill_player")
     end
-    if ctx.host_id == ctx.my_id then
-        last_chunk = tonumber(ModSettingGet("quant.ew.chunk_target") or 24) or 24
-        np.MagicNumbersSetValue("STREAMING_CHUNK_TARGET", last_chunk)
-    end
     last_flex = ModSettingGet("quant.ew.flex")
     np.MagicNumbersSetValue("GRID_FLEXIBLE_MAX_UPDATES", last_flex)
     local controls_component = EntityGetFirstComponentIncludingDisabled(player_entity, "ControlsComponent")
