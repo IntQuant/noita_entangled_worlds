@@ -1739,6 +1739,7 @@ fn with_entity_scripts<T>(
             component.add_tag("enabled_in_inventory")?;
             component.add_tag("enabled_in_world")?;
             component.add_tag("enabled_in_hand")?;
+            component.add_tag("ew_remove_on_send")?;
             Ok(component)
         })?;
     f(component)
