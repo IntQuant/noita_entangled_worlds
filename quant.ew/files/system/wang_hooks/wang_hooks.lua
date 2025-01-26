@@ -98,6 +98,20 @@ local allow_patching = {
     --spawn_stones = true,
     --spawn_skulls = true,
     spawn_scavenger_party = true,
+    load_furniture = true,
+    load_furniture_bunk = true,
+    spawn_bigfish = true,
+    spawn_cook = true,
+    spawn_ghost_crystal = true,
+    spawn_rainbow_card = true,
+    spawn_reward_wands = true,
+    spawn_scavengers = true,
+    spawn_small_animals = true,
+    spawn_swing_puzzle_box = true,
+    spawn_vasta_or_vihta = true,
+    spawn_wheel = true,
+    spawn_wheel_small = true,
+    spawn_wheel_tiny = true,
 }
 
 local function patch_fn(color, orig_fn_name)
