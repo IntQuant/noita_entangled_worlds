@@ -1637,10 +1637,15 @@ pub fn init_remote_entity(
                 "data/scripts/buildings/spidernest.lua",
                 "data/scripts/buildings/bunker2_check.lua",
                 "data/scripts/buildings/bunker_check.lua",
+                "data/scripts/buildings/statue_hand_state.lua",
             ]
             .contains(&&*lua.script_source_file()?)
             || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_enabled_changed()?)
-            || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_kick()?)
+            || [
+                "data/scripts/items/die_roll.lua",
+                "data/scripts/buildings/statue_hand_modified.lua",
+            ]
+            .contains(&&*lua.script_kick()?)
         {
             entity.remove_component(*lua)?;
         }

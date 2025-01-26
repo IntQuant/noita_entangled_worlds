@@ -537,6 +537,7 @@ impl Module for EntitySync {
                 "data/entities/projectiles/bat.xml",
                 "data/entities/items/pickup/potion_aggressive.xml",
                 "data/entities/projectiles/pebble.xml",
+                "data/entities/projectiles/cocktail.xml",
             ]
             .contains(&&*filename)
         {

@@ -51,7 +51,9 @@ local mod = {}
 
 function mod.on_world_update_post()
     for _, ent in ipairs(thrown) do
-        ewext.des_item_thrown(ent)
+        if EntityGetIsAlive(ent) then
+            ewext.des_item_thrown(ent)
+        end
     end
     for _, data in ipairs(dead) do
         ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6], data[7])
