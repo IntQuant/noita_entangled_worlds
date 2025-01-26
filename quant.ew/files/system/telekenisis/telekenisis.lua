@@ -22,9 +22,17 @@ function rpc.send_tele(body_gid, n, extent, aimangle, bodyangle, distance, mindi
     local com = EntityGetFirstComponent(ctx.rpc_player_data.entity, "TelekinesisComponent")
     if com ~= nil then
         local ent = ewext.find_by_gid(body_gid)
-        if ent ~= nil then
+        local x, y = EntityGetTransform(ent)
+        local cx, cy = GameGetCameraPos()
+        local dx, dy = math.abs(x - cx), math.abs(y - cy)
+        if
+            ent ~= nil
+            and dx <= MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") / 2
+            and dy <= MagicNumbersGetValue("VIRTUAL_RESOLUTION_Y") / 2
+        then
             local body_id = PhysicsBodyIDGetFromEntity(ent)[n]
             if body_id == nil then
+                ComponentSetValue2(com, "mState", 0)
                 return
             end
             if not table.contains(who_has_tele, ctx.rpc_peer_id) then
@@ -33,8 +41,9 @@ function rpc.send_tele(body_gid, n, extent, aimangle, bodyangle, distance, mindi
                 if is_holding == ent then
                     local mycom = EntityGetFirstComponent(ctx.my_player.entity, "TelekinesisComponent")
                     if mycom ~= nil then
-                        ComponentSetValue2(mycom, "mState", 0)
+                        ComponentSetValue2(mycom, "mInteract", true)
                     end
+                    is_holding = nil
                 end
             end
             ComponentSetValue(com, "mBodyID", body_id)
@@ -43,7 +52,11 @@ function rpc.send_tele(body_gid, n, extent, aimangle, bodyangle, distance, mindi
             ComponentSetValue2(com, "mStartBodyAngle", bodyangle)
             ComponentSetValue2(com, "mStartBodyDistance", distance)
             ComponentSetValue2(com, "mMinBodyDistance", mindistance)
+        else
+            ComponentSetValue2(com, "mState", 0)
         end
+    else
+        ComponentSetValue2(com, "mState", 0)
     end
 end
 

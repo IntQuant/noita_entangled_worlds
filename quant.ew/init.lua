@@ -141,7 +141,7 @@ local function load_modules()
     ctx.load_system("explosion_cuts")
     ctx.load_system("wang_hooks")
     ctx.load_system("entity_sync_helper")
-    --ctx.load_system("telekenisis")
+    ctx.load_system("telekenisis")
     ctx.load_system("dice")
 end
 
