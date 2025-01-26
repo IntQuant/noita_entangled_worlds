@@ -51,7 +51,6 @@ local mod = {}
 
 function mod.on_world_update_post()
     for _, ent in ipairs(thrown) do
-        GamePrint(ent)
         ewext.des_item_thrown(ent)
     end
     for _, data in ipairs(dead) do

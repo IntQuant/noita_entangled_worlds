@@ -112,7 +112,7 @@ function tele.on_world_update()
         if ComponentGetValue2(com, "mState") ~= 0 then
             local body = ComponentGetValue(com, "mBodyID")
             local ent, num = body_to_ent(tonumber(body))
-            if ent ~= nil then
+            if ent ~= nil and EntityGetIsAlive(ent) then
                 local gid
                 for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
                     if ComponentGetValue2(v, "name") == "ew_gid_lid" then

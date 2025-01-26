@@ -263,7 +263,7 @@ function OnProjectileFired(
             ComponentSetValue2(body, "destroy_body_if_entity_destroyed", true)
         end
         if shooter_player_data.peer_id ~= ctx.my_id and string.sub(n, 1, 31) == "data/entities/items/pickup/egg_" then
-            local exp = EntityGetFirstComponentIncludingDisabled(projectile_id, "ExploadOnDamageComponent")
+            local exp = EntityGetFirstComponentIncludingDisabled(projectile_id, "ExplodeOnDamageComponent")
             if exp ~= nil then
                 ComponentObjectSetValue2(exp, "config_explosion", "load_this_entity", "")
             end
