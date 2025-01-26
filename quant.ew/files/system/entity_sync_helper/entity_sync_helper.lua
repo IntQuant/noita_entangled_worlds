@@ -50,13 +50,13 @@ end)
 local mod = {}
 
 function mod.on_world_update_post()
-    for ent in thrown do
+    for _, ent in ipairs(thrown) do
         ewext.des_item_thrown(ent)
     end
-    for data in dead do
+    for _, data in ipairs(dead) do
         ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6], data[7])
     end
-    for data in chest do
+    for _, data in ipairs(chest) do
         ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
     end
     thrown = {}
