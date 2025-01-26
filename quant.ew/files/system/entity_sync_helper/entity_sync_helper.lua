@@ -8,6 +8,12 @@ ModLuaFileAppend("data/biome_impl/static_tile/chest_darkness.lua", "mods/quant.e
 
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
+local thrown = {}
+
+local dead = {}
+
+local chest = {}
+
 -- Add extra entities to entity sync
 for filename, _ in pairs(constants.phys_sync_allowed) do
     util.add_tag_to(filename, "ew_synced")
@@ -29,16 +35,33 @@ end
 
 util.add_cross_call("ew_thrown", function(thrown_item)
     if thrown_item ~= nil then
-        ewext.des_item_thrown(thrown_item)
+        table.insert(thrown, thrown_item)
     end
 end)
 
 util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, drops_gold, x, y, file, responsible)
-    ewext.des_death_notify(entity, wait_on_kill, drops_gold, x, y, file, responsible)
+    table.insert(dead, { entity, wait_on_kill, drops_gold, x, y, file, responsible })
 end)
 
 util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity)
-    ewext.des_chest_opened(x, y, rx, ry, file, entity)
+    table.insert(chest, { x, y, rx, ry, file, entity })
 end)
 
-return {}
+local mod = {}
+
+function mod.on_world_update_post()
+    for ent in thrown do
+        ewext.des_item_thrown(ent)
+    end
+    for data in dead do
+        ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6], data[7])
+    end
+    for data in chest do
+        ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
+    end
+    thrown = {}
+    dead = {}
+    chest = {}
+end
+
+return mod

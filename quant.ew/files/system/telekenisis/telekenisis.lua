@@ -69,10 +69,15 @@ function tele.on_world_update()
     local n = EntitiesGetMaxID()
     for ent = last + 1, n do
         if EntityGetIsAlive(ent) then
-            local lst = PhysicsBodyIDGetFromEntity(ent)
-            if lst ~= nil and #lst ~= 0 then
-                ent_to_body[ent] = lst
-            end
+            async(function()
+                wait(1)
+                if EntityGetIsAlive(ent) then
+                    local lst = PhysicsBodyIDGetFromEntity(ent)
+                    if lst ~= nil and #lst ~= 0 then
+                        ent_to_body[ent] = lst
+                    end
+                end
+            end)
         end
     end
     last = n
