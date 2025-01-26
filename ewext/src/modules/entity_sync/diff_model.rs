@@ -151,7 +151,7 @@ impl LocalDiffModelTracker {
             return Ok(());
         }
         let item_and_was_picked = info.kind == EntityKind::Item && item_in_inventory(entity)?;
-        if item_and_was_picked {
+        if item_and_was_picked && not_in_player_inventory(entity)? {
             self.temporary_untrack_item(ctx, gid, lid, entity)?;
             return Ok(());
         }
@@ -973,8 +973,6 @@ impl RemoteDiffModel {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
                         if peer_id != my_peer_id() {
                             safe_entitykill(entity);
-                        } else {
-                            self.backtrack.push(entity);
                         }
                     }
                     self.entity_infos.remove(&lid);
@@ -1018,6 +1016,7 @@ impl RemoteDiffModel {
     }
 
     pub(crate) fn apply_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
+        let mut to_remove = Vec::new();
         for (lid, entity_info) in &self.entity_infos {
             match self
                 .tracked
@@ -1025,8 +1024,13 @@ impl RemoteDiffModel {
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
                 Some(entity) => {
-                    if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)? {
+                    if entity_info.kind == EntityKind::Item
+                        && item_in_my_inventory(entity)?
+                        && !self.grab_request.contains(lid)
+                    {
                         self.grab_request.push(*lid);
+                        to_remove.push(*lid);
+                        continue;
                     }
                     if entity.has_tag("boss_wizard") {
                         for ent in entity.children(None) {
@@ -1498,6 +1502,10 @@ impl RemoteDiffModel {
             self.entity_infos.remove(&lid);
         }
 
+        for lid in to_remove {
+            self.entity_infos.remove(&lid);
+        }
+
         self.pending_remove.extend_from_slice(&postpone_remove);
 
         Ok(())
@@ -1694,6 +1702,13 @@ fn item_in_my_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
             !e.has_tag("ew_client") && (e.has_tag("player_unit") || e.has_tag("polymorphed_player"))
         })
         .unwrap_or(false))
+}
+
+fn not_in_player_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
+    Ok(entity
+        .root()?
+        .map(|e| !e.has_tag("ew_client"))
+        .unwrap_or(true))
 }
 
 impl Drop for RemoteDiffModel {
