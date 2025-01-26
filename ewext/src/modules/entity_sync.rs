@@ -232,6 +232,7 @@ impl EntitySync {
         &mut self,
         source: PeerId,
         remote_des: RemoteDes,
+        net: &mut NetManager,
     ) -> eyre::Result<Option<Gid>> {
         match remote_des {
             RemoteDes::ChestOpen(gid) => {
@@ -272,7 +273,7 @@ impl EntitySync {
                     .spawn_projectiles(&vec);
             }
             RemoteDes::RequestGrab(lid) => {
-                self.local_diff_model.entity_grabbed(source, lid);
+                self.local_diff_model.entity_grabbed(source, lid, net);
             }
         }
         Ok(None)

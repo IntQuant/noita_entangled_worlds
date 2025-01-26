@@ -204,7 +204,9 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             } => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    if let Ok(Some(gid)) = entity_sync.handle_remotedes(source, remote_des) {
+                    if let Ok(Some(gid)) =
+                        entity_sync.handle_remotedes(source, remote_des, netmanager)
+                    {
                         state.dont_spawn.insert(gid);
                     }
                 }

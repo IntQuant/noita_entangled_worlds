@@ -857,7 +857,7 @@ impl LocalDiffModel {
         })
     }
 
-    pub(crate) fn entity_grabbed(&mut self, source: PeerId, lid: Lid) {
+    pub(crate) fn entity_grabbed(&mut self, source: PeerId, lid: Lid, net: &mut NetManager) {
         let Some(info) = self.entity_entries.get(&lid) else {
             return;
         };
@@ -867,7 +867,11 @@ impl LocalDiffModel {
                 safe_entitykill(entity);
                 // "Untrack" entity
                 self.tracker.tracked.remove_by_left(&lid);
-                self.entity_entries.remove(&lid);
+                if let Some(gid) = self.entity_entries.remove(&lid).map(|e| e.gid) {
+                    let _ = net.send(&NoitaOutbound::DesToProxy(
+                        shared::des::DesToProxy::DeleteEntity(gid, None),
+                    ));
+                }
             } else {
                 game_print("Tried to localize entity that's not an item");
             }
@@ -1715,7 +1719,8 @@ fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::
 pub(crate) fn entity_is_item(entity: EntityID) -> eyre::Result<bool> {
     Ok(entity
         .try_get_first_component_including_disabled::<ItemComponent>(None)?
-        .is_some())
+        .is_some()
+        && entity.root()? == Some(entity))
 }
 
 fn classify_entity(entity: EntityID) -> eyre::Result<EntityKind> {

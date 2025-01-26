@@ -80,6 +80,7 @@ impl DesManager {
                 if self.entity_storage.entities.contains_key(&gid) {
                     self.authority.remove(&gid);
                     self.entity_storage.entities.remove(&gid);
+                    self.remove_gid_from_tree(gid);
                 } else if let Some(ent) = ent {
                     self.pending_messages
                         .push((source, ProxyToDes::DeleteEntity(ent)));

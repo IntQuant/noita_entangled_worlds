@@ -106,6 +106,10 @@ impl EntityID {
         raw::entity_remove_tag(self, tag.as_ref().into())
     }
 
+    pub fn root(self) -> eyre::Result<Option<EntityID>> {
+        raw::entity_get_root_entity(self)
+    }
+
     pub fn kill(self) {
         // Shouldn't ever error.
         let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
