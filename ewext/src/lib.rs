@@ -180,7 +180,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
         }
     }
 
-    *try_lock_netmanager()? = Some(netman);
+    *NETMANAGER.lock().unwrap() = Some(netman);
     println!("Ok!");
     Ok(kvs)
 }
