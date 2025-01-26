@@ -14,6 +14,8 @@ local dead = {}
 
 local chest = {}
 
+local gid_chest = {}
+
 -- Add extra entities to entity sync
 for filename, _ in pairs(constants.phys_sync_allowed) do
     util.add_tag_to(filename, "ew_synced")
@@ -44,7 +46,32 @@ util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, drops_gold
 end)
 
 util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity)
+    local gid
+    for _, v in ipairs(EntityGetComponent(entity, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
+    if gid ~= nil then
+        table.insert(gid_chest, ComponentGetValue2(gid, "value_string"))
+    end
     table.insert(chest, { x, y, rx, ry, file, entity })
+end)
+
+util.add_cross_call("ew_has_opened_chest", function(entity)
+    local gid
+    for _, v in ipairs(EntityGetComponent(entity, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
+    if gid ~= nil then
+        return table.contains(gid_chest, gid)
+    else
+        return false
+    end
 end)
 
 local mod = {}

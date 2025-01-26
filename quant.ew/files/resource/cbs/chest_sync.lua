@@ -11,10 +11,14 @@ function on_open(entity_item, dont)
         end
         CrossCall("ew_chest_opened", x, y, rand_x, rand_y, EntityGetFilename(entity_item), entity_item)
     end
-    old(entity_item)
+    if not CrossCall("ew_has_opened_chest", entity_item) then
+        old(entity_item)
+    end
 end
 
 function init(entity_id)
-    on_open(entity_id, true)
+    if not CrossCall("ew_has_opened_chest", entity_item) then
+        on_open(entity_id, true)
+    end
     EntityKill(entity_id)
 end
