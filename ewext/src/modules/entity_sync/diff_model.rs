@@ -548,7 +548,8 @@ impl LocalDiffModel {
             .is_some()
             || entity
                 .try_get_first_component::<StreamingKeepAliveComponent>(None)?
-                .is_some();
+                .is_some()
+            || entity.name()? == "$animal_playerghost";
 
         let drops_gold = entity
             .iter_all_components_of_type::<LuaComponent>(None)?
