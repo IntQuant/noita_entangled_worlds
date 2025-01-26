@@ -1031,6 +1031,7 @@ impl RemoteDiffModel {
                     {
                         self.grab_request.push(*lid);
                         to_remove.push(*lid);
+                        entity.remove_tag(DES_TAG)?;
                         continue;
                     }
                     if entity.has_tag("boss_wizard") {
