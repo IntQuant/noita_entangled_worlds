@@ -106,6 +106,8 @@ shared_health_desc_1 = 生命值共享，值会随着玩家数量变化
 shared_health_desc_2 = 调整基于百分比的伤害和完全恢复。
 shared_health_desc_3 = 原始模式。
 Local-health = 独立生命值模式
+Local-health-alt = 独立生命值+代替模式
+Local-health-perma = 独立生命值+永久死亡模式
 Shared-health = 共享生命值模式
 Game-mode = 游戏模式
 world-sync-is-pixel-sync-note = 注意：世界同步是指同步世界像素(材质)的部分。敌人和其他实体不受此影响。
@@ -140,6 +142,7 @@ hint_spectate = 使用[','或d-pad-left]和['.'或d-pad-right]键观看其他玩
 hint_ping = [鼠标中键或右摇杆] 会产生一个信号
 Show-debug-plot = 显示调试图
 Record-everything-sent-to-noita = 记录发送给noita的所有内容
+
 ## IP Connect
 
 ip_could_not_connect = 无法连接
@@ -150,4 +153,15 @@ info_stress_tests = 我们将在每周六 18:00 UTC 进行公共大厅(也称为
 Info = 资讯
 ## Local settings
 
-connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
+connect_settings_random_ports = 不要使用预定的端口。这使系统更稳定，并允许在同一台计算机上启动多个proxy，但Noita必须通过proxy启动。
+
+## UX settings
+
+ping-note = Ping箭头参数
+ping-lifetime = Ping箭头的持续时间（秒）。
+ping-scale = Ping箭头大小。
+ping-lifetime-tooltip = 此参数改变Ping箭头的存活帧数（秒数*60，因为游戏应该以60fps运行）。范围：0-60秒。
+ping-scale-tooltip = 此参数改变Ping箭头的大小。(我不知道使用的是哪个单位，但范围在0-1.5之间。)
+
+hide-cursors-checkbox = 禁用其他人的光标
+hide-cursors-checkbox-tooltip = 有时候你可能会把朋友的光标和自己的混淆。在这种情况下，你可以通过这个复选框完全禁用它们。
