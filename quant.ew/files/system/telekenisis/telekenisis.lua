@@ -24,34 +24,38 @@ function rpc.send_tele(body_gid, n, extent, aimangle, bodyangle, distance, mindi
         local ent = ewext.find_by_gid(body_gid)
         local x, y = EntityGetTransform(ent)
         local cx, cy = GameGetCameraPos()
-        local dx, dy = math.abs(x - cx), math.abs(y - cy)
-        if
-            ent ~= nil
-            and dx <= MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") / 2
-            and dy <= MagicNumbersGetValue("VIRTUAL_RESOLUTION_Y") / 2
-        then
-            local body_id = PhysicsBodyIDGetFromEntity(ent)[n]
-            if body_id == nil then
-                ComponentSetValue2(com, "mState", 0)
-                return
-            end
-            if not table.contains(who_has_tele, ctx.rpc_peer_id) then
-                table.insert(who_has_tele, ctx.rpc_peer_id)
-                ComponentSetValue2(com, "mState", 1)
-                if is_holding == ent then
-                    local mycom = EntityGetFirstComponent(ctx.my_player.entity, "TelekinesisComponent")
-                    if mycom ~= nil then
-                        ComponentSetValue2(mycom, "mInteract", true)
-                    end
-                    is_holding = nil
+        if x ~= nil then
+            local dx, dy = math.abs(x - cx), math.abs(y - cy)
+            if
+                ent ~= nil
+                and dx <= MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") / 2
+                and dy <= MagicNumbersGetValue("VIRTUAL_RESOLUTION_Y") / 2
+            then
+                local body_id = PhysicsBodyIDGetFromEntity(ent)[n]
+                if body_id == nil then
+                    ComponentSetValue2(com, "mState", 0)
+                    return
                 end
+                if not table.contains(who_has_tele, ctx.rpc_peer_id) then
+                    table.insert(who_has_tele, ctx.rpc_peer_id)
+                    ComponentSetValue2(com, "mState", 1)
+                    if is_holding == ent then
+                        local mycom = EntityGetFirstComponent(ctx.my_player.entity, "TelekinesisComponent")
+                        if mycom ~= nil then
+                            ComponentSetValue2(mycom, "mInteract", true)
+                        end
+                        is_holding = nil
+                    end
+                end
+                ComponentSetValue(com, "mBodyID", body_id)
+                ComponentSetValue2(com, "mStartBodyMaxExtent", extent)
+                ComponentSetValue2(com, "mStartAimAngle", aimangle)
+                ComponentSetValue2(com, "mStartBodyAngle", bodyangle)
+                ComponentSetValue2(com, "mStartBodyDistance", distance)
+                ComponentSetValue2(com, "mMinBodyDistance", mindistance)
+            else
+                ComponentSetValue2(com, "mState", 0)
             end
-            ComponentSetValue(com, "mBodyID", body_id)
-            ComponentSetValue2(com, "mStartBodyMaxExtent", extent)
-            ComponentSetValue2(com, "mStartAimAngle", aimangle)
-            ComponentSetValue2(com, "mStartBodyAngle", bodyangle)
-            ComponentSetValue2(com, "mStartBodyDistance", distance)
-            ComponentSetValue2(com, "mMinBodyDistance", mindistance)
         else
             ComponentSetValue2(com, "mState", 0)
         end
