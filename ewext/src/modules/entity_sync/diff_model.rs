@@ -1025,7 +1025,7 @@ impl RemoteDiffModel {
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
                 Some(entity) => {
-                    if entity_info.kind == EntityKind::Item && item_in_inventory(entity)? {
+                    if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)? {
                         self.grab_request.push(*lid);
                     }
                     if entity.has_tag("boss_wizard") {
@@ -1684,7 +1684,16 @@ pub fn init_remote_entity(
 }
 
 fn item_in_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
-    Ok(entity.parent()? != entity)
+    Ok(entity.root()? != Some(entity))
+}
+
+fn item_in_my_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
+    Ok(entity
+        .root()?
+        .map(|e| {
+            !e.has_tag("ew_client") && (e.has_tag("player_unit") || e.has_tag("polymorphed_player"))
+        })
+        .unwrap_or(false))
 }
 
 impl Drop for RemoteDiffModel {
