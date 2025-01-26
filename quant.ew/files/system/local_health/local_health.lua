@@ -589,6 +589,16 @@ function module.on_client_spawned(peer_id, playerdata)
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
 
+function module.on_client_polymorphed(peer_id, playerdata)
+    EntityAddComponent2(
+        playerdata.entity,
+        "LuaComponent",
+        { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
+    )
+    local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
+    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+end
+
 --[[function module.health()
 end
 

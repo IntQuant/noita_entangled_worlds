@@ -46,7 +46,7 @@ thread_local! {
 static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(Default::default);
 
 static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
-    LazyLock::new(|| unsafe { libloading::Library::new("ewext0.dll") });
+    LazyLock::new(|| unsafe { libloading::Library::new("ewext1.dll") });
 static MY_PEER_ID: OnceLock<PeerId> = OnceLock::new();
 
 fn try_lock_netmanager() -> eyre::Result<MutexGuard<'static, Option<NetManager>>> {
@@ -388,7 +388,7 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
 ///
 /// Only gets called by lua when loading a module.
 #[no_mangle]
-pub unsafe extern "C" fn luaopen_ewext0(lua: *mut lua_State) -> c_int {
+pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
 
     if let Err(e) = KEEP_SELF_LOADED.as_ref() {

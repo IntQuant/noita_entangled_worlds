@@ -1299,6 +1299,9 @@ impl RemoteDiffModel {
 
                     if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
                         cost.set_cost(entity_info.cost)?;
+                        if entity_info.cost == 0 {
+                            entity.remove_component(*cost)?;
+                        }
                     }
 
                     entity.set_game_effects(&entity_info.game_effects)?;

@@ -12,7 +12,7 @@ np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn't find any chunks it could stream away...\n")
 
-ewext = require("ewext0")
+ewext = require("ewext1")
 
 -- Make some stuff global, as it's way too annoying to import each time.
 constants = dofile_once("mods/quant.ew/files/core/constants.lua")

@@ -13,20 +13,20 @@ jobs:
           targets: i686-pc-windows-gnu
       - name: Install extra deps
         run: sudo apt-get install -y gcc-mingw-w64-i686
-      
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ewext -> target
-      
+
       - name: Build ewext
         run: cargo build --release --target i686-pc-windows-gnu
         working-directory: ./ewext
       - name: Copy ewext
-        run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext0.dll
+        run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext1.dll
 
       - name: Create archive
         run: python scripts/ci_make_archives.py mod
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: quant.ew.zip
@@ -42,23 +42,23 @@ jobs:
           targets: x86_64-pc-windows-gnu
       - name: Install extra deps
         run: sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
-      
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
-      
+
       - name: Build Linux proxy release
         run: cargo build --release
         working-directory: ./noita-proxy
 
       - name: Create archives
         run: python scripts/ci_make_archives.py linux
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: noita-proxy-linux.zip
           path: target/noita-proxy-linux.zip
-    
+
   build-proxy-windows:
     name: Build proxy for windows
     runs-on: ubuntu-22.04
@@ -69,18 +69,18 @@ jobs:
           targets: x86_64-pc-windows-gnu
       - name: Install extra deps
         run: sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64
-      
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
-      
+
       - name: Build Windows proxy release
         run: cargo build --release --target x86_64-pc-windows-gnu
         working-directory: ./noita-proxy
 
       - name: Create archives
         run: python scripts/ci_make_archives.py windows
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: noita-proxy-win.zip
@@ -107,4 +107,3 @@ jobs:
           #draft: true
           artifacts: "*.zip"
           bodyFile: last_release_notes.md
-  
