@@ -425,4 +425,20 @@ function inventory_helper.has_inventory_changed(player_data)
     return inventory_hash ~= prev_inventory
 end
 
+local function ensure_notify_component(ent)
+    local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_des_lua")
+    if notify == nil then
+        EntityAddComponent2(ent, "LuaComponent", {
+            _tags = "enabled_in_world,enabled_in_hand,enabled_in_inventory,ew_des_lua,ew_remove_on_send",
+            script_throw_item = "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua",
+        })
+    end
+end
+
+function inventory_helper.setup_inventory()
+    for _, ent in ipairs(inventory_helper.get_all_inventory_items(ctx.my_player) or {}) do
+        ensure_notify_component(ent)
+    end
+end
+
 return inventory_helper

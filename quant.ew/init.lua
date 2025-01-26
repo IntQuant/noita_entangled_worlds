@@ -450,6 +450,7 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
             return
         end
     end
+    inventory_helper.setup_inventory()
 end
 
 local function change_homing(x, y)
