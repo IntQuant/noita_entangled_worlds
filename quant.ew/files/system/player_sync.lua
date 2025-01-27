@@ -172,6 +172,12 @@ end
 
 local first = true
 
+local find_later = false
+
+local twwe_x
+
+local twwe_y
+
 function module.on_world_update()
     if first then
         local mn = np.GetGameModeNr()
@@ -320,6 +326,20 @@ function module.on_world_update()
     end
 
     if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
+        if find_later then
+            find_later = false
+            for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+                local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+                if
+                    ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
+                    and not EntityHasTag(ent, "perk_entity")
+                then
+                    EntityKill(ent)
+                    break
+                end
+            end
+        end
+        local x, y = EntityGetTransform(ctx.my_player.entity)
         if not ctx.my_player.twwe then
             local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
             local found = false
@@ -336,33 +356,25 @@ function module.on_world_update()
                 end
             end
             if found then
+                twwe_x, twwe_y = x, y
                 if has_twwe_locally == nil then
-                    has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml")
+                    has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml", twwe_x, twwe_y)
                     EntityAddChild(ctx.my_player.entity, has_twwe_locally)
-                    GameAddFlagRun("ew_twwe_share")
                 end
-            elseif has_twwe_locally ~= nil then
+            elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
                 EntityKill(has_twwe_locally)
                 has_twwe_locally = nil
+                twwe_x, twwe_y = nil, nil
             end
-        elseif has_twwe_locally ~= nil or GameHasFlagRun("ew_twwe_share") then
-            GameRemoveFlagRun("ew_twwe_share")
-            if has_twwe_locally ~= nil and EntityGetIsAlive(has_twwe_locally) then
-                EntityKill(has_twwe_locally)
-            else
-                for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
-                    local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
-                    if
-                        ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
-                        and not EntityHasTag(ent, "perk_entity")
-                    then
-                        EntityKill(ent)
-                        break
-                    end
-                end
-            end
+        elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
+            EntityKill(has_twwe_locally)
             has_twwe_locally = nil
+            twwe_x, twwe_y = nil, nil
         end
+    elseif has_twwe_locally ~= nil then
+        find_later = true
+        has_twwe_locally = nil
+        twwe_x, twwe_y = nil, nil
     end
 end
 

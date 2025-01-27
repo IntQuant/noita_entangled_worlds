@@ -8,11 +8,11 @@ use noita_api::{
     game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
     AudioComponent, BossDragonComponent, BossHealthBarComponent, CameraBoundComponent,
     CharacterDataComponent, CharacterPlatformingComponent, DamageModelComponent, EntityID,
-    ExplodeOnDamageComponent, GhostComponent, IKLimbComponent, IKLimbWalkerComponent,
-    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
-    LaserEmitterComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
-    PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent,
-    VelocityComponent, WormComponent,
+    ExplodeOnDamageComponent, GhostComponent, IKLimbAttackerComponent, IKLimbComponent,
+    IKLimbWalkerComponent, IKLimbsAnimatorComponent, Inventory2Component, ItemComponent,
+    ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent, LuaComponent, PhysData,
+    PhysicsAIComponent, PhysicsBody2Component, PhysicsBodyComponent, SpriteComponent,
+    StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
 use rustc_hash::FxHashMap;
 use shared::des::TRANSFER_RADIUS;
@@ -1144,6 +1144,13 @@ impl RemoteDiffModel {
                         if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
                             entity.remove_component(*limb)?
                         };
+                        if let Ok(limb) = ent.get_first_component::<IKLimbAttackerComponent>(None) {
+                            entity.remove_component(*limb)?
+                        };
+                        if let Ok(limb) = ent.get_first_component::<IKLimbsAnimatorComponent>(None)
+                        {
+                            entity.remove_component(*limb)?
+                        };
                     }
                     let m = *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32
                         / *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32;
@@ -1244,7 +1251,7 @@ impl RemoteDiffModel {
                     if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
                         cost.set_cost(entity_info.cost)?;
                         if entity_info.cost == 0 {
-                            entity.remove_component(*cost)?;
+                            entity.set_components_with_tag_enabled("shop_cost".into(), false)?;
                         }
                     }
 
@@ -1593,6 +1600,16 @@ pub fn init_remote_entity(
                 "data/scripts/buildings/statue_hand_modified.lua",
             ]
             .contains(&&*lua.script_kick()?)
+            || [
+                "data/scripts/items/utility_box.lua",
+                "data/scripts/items/chest_random.lua",
+                "data/scripts/buildings/chest_steel.lua",
+                "data/scripts/items/chest_random_super.lua",
+                "data/scripts/buildings/chest_light.lua",
+                "data/scripts/buildings/chest_dark.lua",
+                "data/biome_impl/static_tile/chest_darkness.lua",
+            ]
+            .contains(&&*lua.script_physics_body_modified()?)
         {
             entity.remove_component(*lua)?;
         }

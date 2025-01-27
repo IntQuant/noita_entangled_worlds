@@ -94,7 +94,7 @@ data/scripts/biomes/friend_5.lua
 data/scripts/biomes/friend_3.lua
 data/scripts/biomes/rainforest.lua
 data/scripts/biomes/excavationsite_cube_chamber.lua
-data/scripts/biomes/watercave.lua
+#data/scripts/biomes/watercave.lua
 data/scripts/biomes/niilo_testroom_c.lua
 data/scripts/biomes/rainforest_dark.lua
 data/scripts/biomes/lavalake.lua
