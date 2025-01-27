@@ -67,7 +67,7 @@ end
 
 local wait_on_requst = {}
 
-local has_twwe_locally = false
+local has_twwe_locally = nil
 
 function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     local peer_id = ctx.rpc_peer_id
