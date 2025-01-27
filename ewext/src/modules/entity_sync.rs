@@ -153,6 +153,7 @@ impl EntitySync {
                 "data/entities/buildings/walleye.xml",
                 "data/entities/buildings/bunker.xml",
                 "data/entities/buildings/bunker2.xml",
+                "data/entities/animals/boss_centipede/reference_point.xml",
             ]
             .contains(&file_name.as_str())
             || entity_is_item(entity)?;
