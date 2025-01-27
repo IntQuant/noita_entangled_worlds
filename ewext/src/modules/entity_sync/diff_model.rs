@@ -1058,6 +1058,12 @@ impl RemoteDiffModel {
                         self.grab_request.push(*lid);
                         to_remove.push(*lid);
                         entity.remove_tag(DES_TAG)?;
+                        with_entity_scripts(entity, |luac| {
+                            luac.set_script_throw_item(
+                                "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua"
+                                    .into(),
+                            )
+                        })?;
                         continue;
                     }
                     if entity.has_tag("boss_wizard") {
