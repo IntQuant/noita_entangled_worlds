@@ -95,12 +95,14 @@ rpc.opts_reliable()
 function rpc.spawn_kolmi(gid)
     if not GameHasFlagRun("ew_sampo_picked") then
         local item_id = ewext.find_by_gid(gid)
-        GameAddFlagRun("ew_sampo_picked")
-        dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
-        item_pickup(item_id, true)
-        local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
-        local orbcount = GameGetOrbCountThisRun() + newgame_n
-        rpc.kolmi_shield(true, orbcount)
+        if item_id ~= nil and util.do_i_own(item_id) then
+            GameAddFlagRun("ew_sampo_picked")
+            dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
+            item_pickup(item_id, true)
+            local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
+            local orbcount = GameGetOrbCountThisRun() + newgame_n
+            rpc.kolmi_shield(true, orbcount)
+        end
     end
 end
 
