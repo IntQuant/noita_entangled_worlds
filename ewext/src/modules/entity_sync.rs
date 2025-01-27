@@ -4,7 +4,7 @@
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
 use super::{Module, NetManager};
-use crate::{my_peer_id, TimeTracker};
+use crate::my_peer_id;
 use bimap::BiHashMap;
 use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
@@ -162,7 +162,7 @@ impl EntitySync {
 
     /// Looks for newly spawned entities that might need to be tracked.
     fn look_for_tracked(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        let _tracker = TimeTracker::new("look_for_tracked");
+        //let _tracker = TimeTracker::new("look_for_tracked");
         let max_entity = EntityID::max_in_use()?;
         for i in (self.look_current_entity.raw() + 1)..=max_entity.raw() {
             let entity = EntityID::try_from(i)?;
@@ -418,7 +418,7 @@ impl Module for EntitySync {
         }
 
         {
-            let _tracker = TimeTracker::new("update_pending_authority");
+            //let _tracker = TimeTracker::new("update_pending_authority");
             self.local_diff_model.update_pending_authority()?;
         }
 
