@@ -1,22 +1,6 @@
-## Noita Entangled Worlds v1.0.2
+## Noita Entangled Worlds v1.0.3
 
-- fix lag spikes non ideally
-
-- fix throwing items sometimes failing
-
-- dedup more enemies
-
-- re add chain fix
-
-- fix spell stealing
-
-- fix lukki legs(?)
-
-- fix chest dupe
-
-- twwe share stain
-
-- fix dark cave
+- Fix a couple issues that were introduced in v1.0.2.
 
 ## Accepted pull requests
 
