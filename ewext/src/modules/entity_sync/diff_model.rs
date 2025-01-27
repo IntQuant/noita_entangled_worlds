@@ -422,6 +422,13 @@ impl LocalDiffModelTracker {
                 "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
             )
         })?;
+        for entity in entity.children(None) {
+            with_entity_scripts(entity, |luac| {
+                luac.set_script_throw_item(
+                    "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
+                )
+            })?;
+        }
         Ok(())
     }
 
@@ -1051,19 +1058,26 @@ impl RemoteDiffModel {
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
                 Some(entity) => {
-                    if entity_info.kind == EntityKind::Item
-                        && item_in_my_inventory(entity)?
-                        && !self.grab_request.contains(lid)
-                    {
-                        self.grab_request.push(*lid);
-                        to_remove.push(*lid);
-                        entity.remove_tag(DES_TAG)?;
-                        with_entity_scripts(entity, |luac| {
-                            luac.set_script_throw_item(
-                                "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua"
-                                    .into(),
-                            )
-                        })?;
+                    if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)? {
+                        if !self.grab_request.contains(lid) {
+                            self.grab_request.push(*lid);
+                            to_remove.push(*lid);
+                            entity.remove_tag(DES_TAG)?;
+                            with_entity_scripts(entity, |luac| {
+                                luac.set_script_throw_item(
+                                    "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua"
+                                        .into(),
+                                )
+                            })?;
+                            for entity in entity.children(None) {
+                                with_entity_scripts(entity, |luac| {
+                                    luac.set_script_throw_item(
+                                    "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua"
+                                        .into(),
+                                )
+                                })?;
+                            }
+                        }
                         continue;
                     }
                     if entity.has_tag("boss_wizard") {

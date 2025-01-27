@@ -438,6 +438,9 @@ end
 function inventory_helper.setup_inventory()
     for _, ent in ipairs(inventory_helper.get_all_inventory_items(ctx.my_player) or {}) do
         ensure_notify_component(ent)
+        for _, s in ipairs(EntityGetAllChildren(ent) or {}) do
+            ensure_notify_component(s)
+        end
     end
 end
 
