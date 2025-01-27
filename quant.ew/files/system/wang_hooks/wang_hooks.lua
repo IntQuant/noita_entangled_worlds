@@ -112,6 +112,7 @@ local allow_patching = {
     spawn_wheel = true,
     spawn_wheel_small = true,
     spawn_wheel_tiny = true,
+    spawn_large_enemies = true,
 }
 
 local function patch_fn(color, orig_fn_name)
