@@ -132,7 +132,7 @@ data/scripts/biomes/smokecave_right.lua
 data/scripts/biomes/shop_room.lua
 data/scripts/biomes/laboratory.lua
 data/scripts/biomes/essenceroom_alc.lua
-data/scripts/biomes/mystery_teleport.lua
+#data/scripts/biomes/mystery_teleport.lua
 data/scripts/biomes/snowcave_secret_chamber.lua
 data/scripts/biomes/gourd_room.lua
 data/scripts/biomes/coalmine_alt.lua
