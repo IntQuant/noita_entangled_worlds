@@ -608,37 +608,32 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
                 let rx = lua.to_string(3)?.parse::<f32>()?;
                 let ry = lua.to_string(4)?.parse::<f32>()?;
                 let file = lua.to_string(5)?.to_string();
-                let entity = EntityID(NonZero::try_from(lua.to_string(6)?.parse::<isize>()?)?);
+                let gid = Gid(lua.to_string(6)?.parse::<u64>()?);
                 let entity_sync = state
                     .modules
                     .entity_sync
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                if let Some(gid) = entity_sync.register_chest(entity)? {
-                    state.dont_spawn.insert(gid);
-                    let mut temp = try_lock_netmanager()?;
-                    let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
-                    for (has_interest, peer) in
-                        entity_sync.iter_peers(state.player_entity_map.clone())
-                    {
-                        if has_interest {
-                            let _ = net.send(&NoitaOutbound::RemoteMessage {
-                                reliable: true,
-                                destination: Destination::Peer(peer),
-                                message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpen(
-                                    gid,
-                                )),
-                            });
-                        } else {
-                            let _ = net.send(&NoitaOutbound::RemoteMessage {
-                                reliable: true,
-                                destination: Destination::Peer(peer),
-                                message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
-                                    WorldPos::from_f64(x, y),
-                                    SpawnOnce::Chest(file.clone(), rx, ry),
-                                )),
-                            });
-                        }
+                state.dont_spawn.insert(gid);
+                let mut temp = try_lock_netmanager()?;
+                let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+                for (has_interest, peer) in entity_sync.iter_peers(state.player_entity_map.clone())
+                {
+                    if has_interest {
+                        let _ = net.send(&NoitaOutbound::RemoteMessage {
+                            reliable: true,
+                            destination: Destination::Peer(peer),
+                            message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpen(gid)),
+                        });
+                    } else {
+                        let _ = net.send(&NoitaOutbound::RemoteMessage {
+                            reliable: true,
+                            destination: Destination::Peer(peer),
+                            message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
+                                WorldPos::from_f64(x, y),
+                                SpawnOnce::Chest(file.clone(), rx, ry),
+                            )),
+                        });
                     }
                 }
                 Ok(())

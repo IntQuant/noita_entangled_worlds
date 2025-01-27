@@ -1,5 +1,6 @@
 local old = on_open
 function on_open(entity_item, dont)
+    local has_opened = CrossCall("ew_has_opened_chest", entity_item)
     if dont == nil then
         local x, y = EntityGetTransform(entity_item)
         local position_comp = EntityGetFirstComponent(entity_item, "PositionSeedComponent")
@@ -11,7 +12,7 @@ function on_open(entity_item, dont)
         end
         CrossCall("ew_chest_opened", x, y, rand_x, rand_y, EntityGetFilename(entity_item), entity_item)
     end
-    if not CrossCall("ew_has_opened_chest", entity_item) then
+    if not has_opened then
         old(entity_item)
     end
 end

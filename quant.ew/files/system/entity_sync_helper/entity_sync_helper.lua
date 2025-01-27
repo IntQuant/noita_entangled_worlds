@@ -54,9 +54,10 @@ util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity)
         end
     end
     if gid ~= nil then
-        table.insert(gid_chest, ComponentGetValue2(gid, "value_string"))
+        gid = ComponentGetValue2(gid, "value_string")
+        table.insert(gid_chest, gid)
+        table.insert(chest, { x, y, rx, ry, file, gid })
     end
-    table.insert(chest, { x, y, rx, ry, file, entity })
 end)
 
 util.add_cross_call("ew_has_opened_chest", function(entity)

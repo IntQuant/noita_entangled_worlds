@@ -71,17 +71,6 @@ impl EntitySync {
             .find_by_gid(gid)
             .or(self.remote_models.values().find_map(|r| r.find_by_gid(gid)))
     }
-    pub(crate) fn register_chest(&mut self, ent: EntityID) -> eyre::Result<Option<Gid>> {
-        if let Some(Ok(gid)) = ent
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-            .find(|v| v.name().unwrap_or("".into()) == "ew_gid_lid")
-            .map(|v| v.value_string())
-        {
-            let gid = Gid(gid.parse::<u64>()?);
-            return Ok(Some(gid));
-        }
-        Ok(None)
-    }
 }
 impl Default for EntitySync {
     fn default() -> Self {
