@@ -45,7 +45,7 @@ util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, drops_gold
     table.insert(dead, { entity, wait_on_kill, drops_gold, x, y, file, responsible })
 end)
 
-util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity)
+util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity, dont)
     local gid
     for _, v in ipairs(EntityGetComponent(entity, "VariableStorageComponent") or {}) do
         if ComponentGetValue2(v, "name") == "ew_gid_lid" then
@@ -56,7 +56,9 @@ util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity)
     if gid ~= nil then
         gid = ComponentGetValue2(gid, "value_string")
         table.insert(gid_chest, gid)
-        table.insert(chest, { x, y, rx, ry, file, gid })
+        if dont == nil then
+            table.insert(chest, { x, y, rx, ry, file, gid })
+        end
     end
 end)
 
