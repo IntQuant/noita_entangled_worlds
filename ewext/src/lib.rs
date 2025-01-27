@@ -9,6 +9,7 @@ use modules::{entity_sync::EntitySync, Module, ModuleCtx};
 use net::NetManager;
 use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
 use noita_api::{
+    game_print,
     lua::{
         lua_bindings::{lua_State, LUA_REGISTRYINDEX},
         LuaFnRet, LuaGetValue, LuaState, RawString, ValuesOnStack, LUA,
@@ -62,6 +63,33 @@ pub(crate) fn my_peer_id() -> PeerId {
         .get()
         .copied()
         .expect("peer id to be set by this point")
+}
+
+pub struct TimeTracker {
+    start: Instant,
+    message: &'static str,
+}
+
+impl TimeTracker {
+    pub fn new(message: &'static str) -> Self {
+        Self {
+            start: Instant::now(),
+            message,
+        }
+    }
+}
+
+impl Drop for TimeTracker {
+    fn drop(&mut self) {
+        let elapsed = self.start.elapsed();
+        if elapsed.as_millis() > 1 {
+            game_print(format!(
+                "ewext {} took longer than expected: {} us",
+                self.message,
+                elapsed.as_micros(),
+            ));
+        }
+    }
 }
 
 #[derive(Default)]
@@ -292,6 +320,7 @@ fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
+    let _tracker = TimeTracker::new("on_world_update");
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 
