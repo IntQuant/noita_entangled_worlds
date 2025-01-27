@@ -24,8 +24,8 @@ use shared::{
     GameEffectData, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
 };
 use std::borrow::Cow;
-use std::mem;
 use std::num::NonZero;
+use std::time::Instant;
 pub(crate) static DES_TAG: &str = "ew_des";
 pub(crate) static DES_SCRIPTS_TAG: &str = "ew_des_lua";
 
@@ -633,7 +633,8 @@ impl LocalDiffModel {
     }
 
     pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
-        for entity_data in mem::take(&mut self.tracker.pending_authority) {
+        let start = Instant::now();
+        while let Some(entity_data) = self.tracker.pending_authority.pop() {
             let entity = spawn_entity_by_data(
                 &entity_data.data,
                 entity_data.pos.x as f32,
@@ -643,6 +644,11 @@ impl LocalDiffModel {
                 give_wand(entity, &wand, None, false)?;
             }
             self.track_entity(entity, entity_data.gid)?;
+
+            // Don't handle too much in one frame to avoid stutters.
+            if start.elapsed().as_millis() > 2 {
+                break;
+            }
         }
         Ok(())
     }
