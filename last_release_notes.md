@@ -1,21 +1,22 @@
-## Noita Entangled Worlds v1.0.1
+## Noita Entangled Worlds v1.0.2
 
-- fix some performance for host
+- fix lag spikes non ideally
 
-- undo chain fix since likely causing lag
+- fix throwing items sometimes failing
 
-- fix chests
+- dedup more enemies
 
-- fix hand dupe
+- re add chain fix
 
-- fix component error
+- fix spell stealing
 
-- fix cocktail duping
+- fix lukki legs(?)
 
-- maybe fix a local networking issue
+- fix chest dupe
 
-- fix enemy wands
+- twwe share stain
 
+- fix dark cave
 
 ## Accepted pull requests
 
