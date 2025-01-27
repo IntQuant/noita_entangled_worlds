@@ -1,5 +1,5 @@
 local old = item_pickup
-function item_pickup(ent, run)
+function item_pickup(ent, _, _, run)
     if run == nil then
         local gid
         for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
@@ -10,7 +10,10 @@ function item_pickup(ent, run)
         end
         if gid ~= nil and not ComponentGetValue2(gid, "value_bool") then
             CrossCall("ew_spawn_kolmi", ComponentGetValue2(gid, "value_string"))
+        else
+            old(ent)
         end
+    else
+        old(ent)
     end
-    old(ent)
 end
