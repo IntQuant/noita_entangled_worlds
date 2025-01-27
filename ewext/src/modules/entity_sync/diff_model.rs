@@ -268,12 +268,18 @@ impl LocalDiffModelTracker {
         if is_beyond_authority {
             if info.is_global {
                 if let Some(peer) = ctx.locate_player_within_except_me(x, y, TRANSFER_RADIUS)? {
-                    self.transfer_authority_to(ctx, gid, lid, peer)
-                        .wrap_err("Failed to transfer authority")?;
+                    self.transfer_authority_to(
+                        ctx,
+                        gid,
+                        lid,
+                        peer,
+                        info.wand.clone().map(|(_, a)| a),
+                    )
+                    .wrap_err("Failed to transfer authority")?;
                     return Ok(());
                 }
             } else {
-                self.release_authority(ctx, gid, lid)
+                self.release_authority(ctx, gid, lid, info.wand.clone().map(|(_, a)| a))
                     .wrap_err("Failed to release authority")?;
                 return Ok(());
             }
@@ -431,9 +437,18 @@ impl LocalDiffModelTracker {
         ctx: &mut ModuleCtx<'_>,
         gid: Gid,
         lid: Lid,
+        wand: Option<Vec<u8>>,
     ) -> Result<EntityID, eyre::Error> {
         let entity = self.entity_by_lid(lid)?;
         let (x, y) = entity.position()?;
+        if !entity
+            .filename()?
+            .starts_with("data/entities/animals/wand_ghost")
+        {
+            ctx.net.send(&NoitaOutbound::DesToProxy(
+                shared::des::DesToProxy::UpdateWand(gid, wand),
+            ))?;
+        }
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
                 gid,
@@ -448,8 +463,9 @@ impl LocalDiffModelTracker {
         ctx: &mut ModuleCtx<'_>,
         gid: Gid,
         lid: Lid,
+        wand: Option<Vec<u8>>,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, wand)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
@@ -464,8 +480,9 @@ impl LocalDiffModelTracker {
         gid: Gid,
         lid: Lid,
         peer: PeerId,
+        wand: Option<Vec<u8>>,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, wand)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
@@ -548,8 +565,7 @@ impl LocalDiffModel {
             .is_some()
             || entity
                 .try_get_first_component::<StreamingKeepAliveComponent>(None)?
-                .is_some()
-            || entity.name()? == "$animal_playerghost";
+                .is_some();
 
         let drops_gold = entity
             .iter_all_components_of_type::<LuaComponent>(None)?
@@ -623,6 +639,9 @@ impl LocalDiffModel {
                 entity_data.pos.x as f32,
                 entity_data.pos.y as f32,
             )?;
+            if let Some(wand) = entity_data.wand {
+                give_wand(entity, &wand, None, false)?;
+            }
             self.track_entity(entity, entity_data.gid)?;
         }
         Ok(())
@@ -855,6 +874,7 @@ impl LocalDiffModel {
             gid: entry_pair.gid,
             pos: WorldPos::from_f32(entry_pair.current.x, entry_pair.current.y),
             data: entry_pair.current.spawn_info.clone(),
+            wand: None,
         })
     }
 
@@ -1068,89 +1088,7 @@ impl RemoteDiffModel {
                     }
 
                     if let Some((gid, seri)) = &entity_info.wand {
-                        let inv = if let Some(inv) = entity
-                            .try_get_first_component_including_disabled::<Inventory2Component>(
-                                None,
-                            )? {
-                            inv
-                        } else {
-                            entity.add_component::<Inventory2Component>()?
-                        };
-                        let mut stop = false;
-                        if let Some(wand) = inv.m_actual_active_item()? {
-                            if let Some(tgid) = wand
-                                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                                .find_map(|var| {
-                                    if var.name().ok()? == "ew_gid_lid" {
-                                        Some(var.value_string().ok()?.parse::<u64>().ok()?)
-                                    } else {
-                                        None
-                                    }
-                                })
-                            {
-                                if *gid != Some(Gid(tgid)) {
-                                    wand.kill()
-                                } else {
-                                    stop = true
-                                }
-                            } else if wand
-                                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                                .any(|p| p.name().ok().unwrap_or("".into()) == "ew_spawned_wand")
-                            {
-                                stop = true
-                            } else {
-                                wand.kill()
-                            }
-                        }
-                        if !stop {
-                            let (x, y) = entity.position()?;
-                            let wand = deserialize_entity(seri, x, y)?;
-                            if let Some(pickup) = entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)? {
-                                pickup.set_only_pick_this_entity(Some(wand))?;
-                            }
-                            if gid.is_none() {
-                                let var = wand.add_component::<VariableStorageComponent>()?;
-                                var.set_name("ew_spawned_wand".into())?;
-                            }
-                            let lua = wand.add_component::<LuaComponent>()?;
-                            lua.set_script_source_file("mods/quant.ew/files/system/entity_sync_helper/scripts/kill_on_drop.lua".into())?;
-                            lua.set_execute_every_n_frame(1)?;
-                            lua.set_execute_times(-1)?;
-                            wand.set_component_enabled(*lua, true)?;
-                            lua.add_tag("enabled_in_world")?;
-                            let quick = if let Some(quick) =
-                                entity.children(None).iter().find_map(|a| {
-                                    if a.name().ok()? == "inventory_quick" {
-                                        a.children(None).iter().for_each(|e| e.kill());
-                                        Some(a)
-                                    } else {
-                                        None
-                                    }
-                                }) {
-                                *quick
-                            } else {
-                                let quick = entity_create_new(Some("inventory_quick".into()))?
-                                    .wrap_err("unreachable")?;
-                                entity.add_child(quick);
-                                quick
-                            };
-                            quick.add_child(wand);
-                            if let Some(ability) = wand
-                                .try_get_first_component_including_disabled::<AbilityComponent>(
-                                    None,
-                                )?
-                            {
-                                ability.set_drop_as_item_on_death(false)?;
-                            }
-                            if let Some(item) = wand
-                                .try_get_first_component_including_disabled::<ItemComponent>(None)?
-                            {
-                                item.set_remove_default_child_actions_on_death(true)?;
-                                item.set_remove_on_death_if_empty(true)?;
-                                item.set_remove_on_death(true)?;
-                            }
-                            //TODO set active item?
-                        }
+                        give_wand(entity, seri, *gid, true)?;
                     } else if let Some(inv) = entity
                         .children(None)
                         .iter()
@@ -1820,4 +1758,97 @@ fn safe_entitykill(entity: EntityID) {
         }
         entity.kill();
     }
+}
+
+fn give_wand(entity: EntityID, seri: &[u8], gid: Option<Gid>, delete: bool) -> eyre::Result<()> {
+    let inv = if let Some(inv) =
+        entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
+    {
+        inv
+    } else {
+        entity.add_component::<Inventory2Component>()?
+    };
+    let mut stop = false;
+    if let Some(wand) = inv.m_actual_active_item()? {
+        if let Some(tgid) = wand
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+            .find_map(|var| {
+                if var.name().ok()? == "ew_gid_lid" {
+                    Some(var.value_string().ok()?.parse::<u64>().ok()?)
+                } else {
+                    None
+                }
+            })
+        {
+            if gid != Some(Gid(tgid)) {
+                wand.kill()
+            } else {
+                stop = true
+            }
+        } else if wand
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+            .any(|p| p.name().ok().unwrap_or("".into()) == "ew_spawned_wand")
+        {
+            stop = true
+        } else {
+            wand.kill()
+        }
+    }
+    if !stop {
+        let (x, y) = entity.position()?;
+        let wand = deserialize_entity(seri, x, y)?;
+        if delete {
+            if let Some(pickup) =
+                entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
+            {
+                pickup.set_only_pick_this_entity(Some(wand))?;
+            }
+            let quick = if let Some(quick) = entity.children(None).iter().find_map(|a| {
+                if a.name().ok()? == "inventory_quick" {
+                    a.children(None).iter().for_each(|e| e.kill());
+                    Some(a)
+                } else {
+                    None
+                }
+            }) {
+                *quick
+            } else {
+                let quick =
+                    entity_create_new(Some("inventory_quick".into()))?.wrap_err("unreachable")?;
+                entity.add_child(quick);
+                quick
+            };
+            quick.add_child(wand);
+            if let Some(ability) =
+                wand.try_get_first_component_including_disabled::<AbilityComponent>(None)?
+            {
+                ability.set_drop_as_item_on_death(false)?;
+            }
+            if let Some(item) =
+                wand.try_get_first_component_including_disabled::<ItemComponent>(None)?
+            {
+                item.set_remove_default_child_actions_on_death(true)?;
+                item.set_remove_on_death_if_empty(true)?;
+                item.set_remove_on_death(true)?;
+            }
+            let lua = wand.add_component::<LuaComponent>()?;
+            lua.set_script_source_file(
+                "mods/quant.ew/files/system/entity_sync_helper/scripts/kill_on_drop.lua".into(),
+            )?;
+            lua.set_execute_every_n_frame(1)?;
+            lua.set_execute_times(-1)?;
+            wand.set_component_enabled(*lua, true)?;
+            lua.add_tag("enabled_in_world")?;
+            if gid.is_none() {
+                let var = wand.add_component::<VariableStorageComponent>()?;
+                var.set_name("ew_spawned_wand".into())?;
+            }
+        } else {
+            wand.set_components_with_tag_enabled("enabled_in_hand".into(), false)?;
+            wand.set_components_with_tag_enabled("enabled_in_inventory".into(), false)?;
+            wand.set_components_with_tag_enabled("enabled_in_world".into(), true)?;
+        }
+        //TODO set active item?
+    }
+    Ok(())
 }

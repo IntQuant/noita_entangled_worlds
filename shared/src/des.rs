@@ -34,6 +34,7 @@ pub struct FullEntityData {
     pub gid: Gid,
     pub pos: WorldPos,
     pub data: EntitySpawnInfo,
+    pub wand: Option<Vec<u8>>,
 }
 
 #[derive(Encode, Decode, Clone)]
@@ -50,6 +51,7 @@ pub enum DesToProxy {
     RequestAuthority { pos: WorldPos, radius: i32 },
     UpdatePositions(Vec<UpdatePosition>),
     TransferAuthorityTo(Gid, PeerId),
+    UpdateWand(Gid, Option<Vec<u8>>),
 }
 
 #[derive(Encode, Decode, Clone)]

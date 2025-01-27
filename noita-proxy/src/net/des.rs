@@ -76,6 +76,12 @@ impl DesManager {
                     .entities
                     .insert(full_entity_data.gid, full_entity_data);
             }
+            DesToProxy::UpdateWand(gid, wand) => {
+                self.entity_storage
+                    .entities
+                    .entry(gid)
+                    .and_modify(|data| data.wand = wand);
+            }
             DesToProxy::DeleteEntity(gid, ent) => {
                 if self.entity_storage.entities.contains_key(&gid) {
                     self.authority.remove(&gid);
