@@ -1,6 +1,7 @@
 dofile_once("data/scripts/lib/coroutines.lua")
 
 ModLuaFileAppend("data/scripts/biomes/boss_arena.lua", "mods/quant.ew/files/system/kolmi/append/boss_arena.lua")
+ModLuaFileAppend("data/entities/animals/boss_centipede/sampo_pickup.lua", "mods/quant.ew/files/system/kolmi/append/spawn_kolmi.lua")
 ModLuaFileAppend(
     "data/entities/animals/boss_centipede/boss_centipede_update.lua",
     "mods/quant.ew/files/system/kolmi/append/boss_update.lua"
@@ -90,6 +91,19 @@ function rpc.kolmi_shield(is_on, orbcount)
     switch_shield(kolmi, is_on)
 end
 
+rpc.opts_reliable()
+function rpc.spawn_kolmi(gid)
+    if not GameHasFlagRun("ew_sampo_picked") then
+        local item_id = ewext.find_by_gid(gid)
+        GameAddFlagRun("ew_sampo_picked")
+        dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
+        item_pickup(item_id, true)
+        local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
+        local orbcount = GameGetOrbCountThisRun() + newgame_n
+        rpc.kolmi_shield(true, orbcount)
+    end
+end
+
 --[[util.add_cross_call("ew_sampo_spawned", function()
     local sampo_ent = EntityGetClosestWithTag(0, 0, "this_is_sampo")
     if sampo_ent == nil or sampo_ent == 0 then
@@ -112,6 +126,8 @@ util.add_cross_call("ew_kolmi_spawn_portal", rpc.spawn_portal)
 util.add_cross_call("ew_kolmi_anim", rpc.kolmi_anim)
 
 util.add_cross_call("ew_kolmi_shield", rpc.kolmi_shield)
+
+util.add_cross_call("ew_spawn_kolmi", rpc.spawn_kolmi)
 
 --[[ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then
