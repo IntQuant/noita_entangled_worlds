@@ -1536,6 +1536,7 @@ pub fn init_remote_entity(
     entity.remove_all_components_of_type::<CharacterPlatformingComponent>()?;
     entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
     entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
+    entity.remove_all_components_of_type::<IKLimbsAnimatorComponent>()?;
     let mut any = false;
     for ai in entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)? {
         any = any || ai.attack_ranged_aim_rotation_enabled()?;
