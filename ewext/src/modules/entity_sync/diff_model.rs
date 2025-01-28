@@ -647,6 +647,11 @@ impl LocalDiffModel {
                 entity_data.pos.x as f32,
                 entity_data.pos.y as f32,
             )?;
+            entity.set_position(
+                entity_data.pos.x as f32,
+                entity_data.pos.y as f32,
+                Some(entity_data.rotation),
+            )?;
             if let Some(wand) = entity_data.wand {
                 give_wand(entity, &wand, None, false)?;
             }
@@ -888,6 +893,7 @@ impl LocalDiffModel {
             pos: WorldPos::from_f32(entry_pair.current.x, entry_pair.current.y),
             data: entry_pair.current.spawn_info.clone(),
             wand: None,
+            rotation: entry_pair.current.r,
         })
     }
 

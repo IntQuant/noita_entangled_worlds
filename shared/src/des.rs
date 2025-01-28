@@ -35,6 +35,7 @@ pub struct FullEntityData {
     pub pos: WorldPos,
     pub data: EntitySpawnInfo,
     pub wand: Option<Vec<u8>>,
+    pub rotation: f32,
 }
 
 #[derive(Encode, Decode, Clone)]
