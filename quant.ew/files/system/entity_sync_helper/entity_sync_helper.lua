@@ -71,7 +71,7 @@ util.add_cross_call("ew_has_opened_chest", function(entity)
         end
     end
     if gid ~= nil then
-        return table.contains(gid_chest, gid)
+        return table.contains(gid_chest, ComponentGetValue2(gid, "value_string"))
     else
         return false
     end
