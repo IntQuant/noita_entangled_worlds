@@ -1,7 +1,10 @@
 dofile_once("data/scripts/lib/coroutines.lua")
 
 ModLuaFileAppend("data/scripts/biomes/boss_arena.lua", "mods/quant.ew/files/system/kolmi/append/boss_arena.lua")
-ModLuaFileAppend("data/entities/animals/boss_centipede/sampo_pickup.lua", "mods/quant.ew/files/system/kolmi/append/spawn_kolmi.lua")
+ModLuaFileAppend(
+    "data/entities/animals/boss_centipede/sampo_pickup.lua",
+    "mods/quant.ew/files/system/kolmi/append/spawn_kolmi.lua"
+)
 ModLuaFileAppend(
     "data/entities/animals/boss_centipede/boss_centipede_update.lua",
     "mods/quant.ew/files/system/kolmi/append/boss_update.lua"

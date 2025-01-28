@@ -96,6 +96,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
     Ok(entity.has_tag("ew_no_enemy_sync")
         || entity.has_tag("polymorphed_player")
         || entity.has_tag("gold_nugget")
+        || entity.has_tag("nightmare_starting_wand")
         || ENTITY_EXCLUDES.contains(&filename)
         || filename.starts_with(good))
 }
