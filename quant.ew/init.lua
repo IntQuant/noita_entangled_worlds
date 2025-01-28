@@ -651,8 +651,8 @@ function OnModPreInit()
     net.init()
 
     if not net.connect_failed then
-        load_modules()
-        print("Entangled worlds init ok")
+        util.tpcall(load_modules)
+        print("Entangled worlds init complete")
     end
 end
 

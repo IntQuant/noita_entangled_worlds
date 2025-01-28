@@ -1,6 +1,6 @@
 local uniq_flags = dofile_once("mods/quant.ew/files/system/uniq_flags/uniq_flags.lua")
 
---local rpc = net.new_rpc_namespace()
+local rpc = net.new_rpc_namespace()
 
 local module = {}
 
@@ -143,7 +143,7 @@ local function patch_file(filename)
     current_file = filename
     -- A textbook example of how to NOT use regular expressions.
     content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
-    content = content .. "\n" .. 'EW_CURRENT_FILE="' .. filename .. '"\n'
+    content = content .. "\n" .. 'EW_CURRENT_FILE="' .. filename .. '"\n' .. "dofile_once('mods/quant.ew/files/system/wang_hooks/synced_pixel_scenes.lua')\n"
 
     local wang_scripts = ModTextFileGetContent("data/scripts/wang_scripts.csv")
 
@@ -217,5 +217,12 @@ util.add_cross_call("ew_wang_detour", function(file, fn, x, y, w, h, is_open_pat
 
     return false
 end)
+
+rpc.opts_reliable()
+function rpc.sync_pixel_scene(materials_filename, colors_filename, x, y, background_file, skip_biome_checks, skip_edge_textures)
+    LoadPixelScene(materials_filename, colors_filename, x, y, background_file, skip_biome_checks, skip_edge_textures)
+end
+
+util.add_cross_call("ew_sync_pixel_scene", rpc.sync_pixel_scene)
 
 return module
