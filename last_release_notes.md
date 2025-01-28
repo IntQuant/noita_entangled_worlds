@@ -1,6 +1,13 @@
-## Noita Entangled Worlds v1.0.3
+## Noita Entangled Worlds v1.0.4
 
-- Fix a couple issues that were introduced in v1.0.2.
+- fix kolmi
+
+- fix tower portal
+
+- fix nightmare wands
+
+- fix an issue with chests
+
 
 ## Accepted pull requests
 
