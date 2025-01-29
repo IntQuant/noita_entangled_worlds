@@ -404,27 +404,6 @@ function inventory_helper.set_item_data(item_data, player_data, local_ent, has_s
     end)
 end
 
-function inventory_helper.has_inventory_changed(player_data)
-    local prev_inventory = player_data.prev_inventory_hash
-    local inventory_hash = 0
-    if
-        player_data.entity == nil
-        or not EntityGetIsAlive(player_data.entity)
-        or GameGetAllInventoryItems(player_data.entity) == nil
-    then
-        return false
-    end
-    for _, item in ipairs(GameGetAllInventoryItems(player_data.entity) or {}) do
-        local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        if item_comp ~= nil then
-            local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
-            inventory_hash = (inventory_hash * 19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
-        end
-    end
-    player_data.prev_inventory_hash = inventory_hash
-    return inventory_hash ~= prev_inventory
-end
-
 local function ensure_notify_component(ent)
     local notify = EntityGetFirstComponentIncludingDisabled(ent, "LuaComponent", "ew_des_lua")
     if notify == nil then
@@ -435,12 +414,38 @@ local function ensure_notify_component(ent)
     end
 end
 
+local last_count = 0
+
+function inventory_helper.has_inventory_changed(player_data)
+    local prev_inventory = player_data.prev_inventory_hash
+    local inventory_hash = 0
+    if
+        player_data.entity == nil
+        or not EntityGetIsAlive(player_data.entity)
+        or GameGetAllInventoryItems(player_data.entity) == nil
+    then
+        return false
+    end
+
+    local items = GameGetAllInventoryItems(player_data.entity) or {}
+    for _, item in ipairs(items) do
+        if last_count ~= #items then
+            ensure_notify_component(item)
+        end
+        local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+        if item_comp ~= nil then
+            local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
+            inventory_hash = (inventory_hash * 19 + (item % 65000 + slot_x + slot_y)) % (math.pow(2, 20) - 1)
+        end
+    end
+    last_count = #items
+    player_data.prev_inventory_hash = inventory_hash
+    return inventory_hash ~= prev_inventory
+end
+
 function inventory_helper.setup_inventory()
     for _, ent in ipairs(inventory_helper.get_all_inventory_items(ctx.my_player) or {}) do
         ensure_notify_component(ent)
-        for _, s in ipairs(EntityGetAllChildren(ent) or {}) do
-            ensure_notify_component(s)
-        end
     end
 end
 
