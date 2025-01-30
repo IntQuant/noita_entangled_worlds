@@ -1,7 +1,7 @@
 use super::NetManager;
 use crate::{modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
-use eyre::{Context, ContextCompat, OptionExt};
+use eyre::{eyre, Context, ContextCompat, OptionExt};
 use noita_api::raw::{entity_create_new, game_get_frame_num, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
@@ -72,6 +72,10 @@ impl LocalDiffModel {
                 }
             })
             .collect()
+    }
+
+    pub(crate) fn is_entity_tracked(&self, entity: EntityID) -> bool {
+        self.tracker.tracked.contains_right(&entity)
     }
 }
 pub(crate) struct RemoteDiffModel {
@@ -144,7 +148,9 @@ impl LocalDiffModelTracker {
         lid: Lid,
         cam_pos: (f32, f32),
     ) -> eyre::Result<()> {
-        let entity = self.entity_by_lid(lid)?;
+        let entity = self
+            .entity_by_lid(lid)
+            .wrap_err_with(|| eyre!("Failed to grab update info for {:?} {:?}", gid, lid))?;
 
         if !entity.is_alive() {
             self.untrack_entity(ctx, gid, lid, None)?;
@@ -446,7 +452,9 @@ impl LocalDiffModelTracker {
         lid: Lid,
         wand: Option<Vec<u8>>,
     ) -> Result<EntityID, eyre::Error> {
-        let entity = self.entity_by_lid(lid)?;
+        let entity = self
+            .entity_by_lid(lid)
+            .wrap_err("Failed to release authority and upload update data")?;
         let (x, y) = entity.position()?;
         if !entity
             .filename()?

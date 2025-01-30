@@ -11,8 +11,8 @@ use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent, ProjectileComponent,
-    VariableStorageComponent,
+    game_print, DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent,
+    ProjectileComponent, VariableStorageComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -277,8 +277,11 @@ impl EntitySync {
         entity: Option<EntityID>,
     ) -> eyre::Result<()> {
         let entity = entity.ok_or_eyre("Passed entity 0 into cross call")?;
-        self.local_diff_model
-            .track_and_upload_entity(net, entity, Gid(rand::random()))?;
+        // It might be already tracked in case of tablet telekinesis, no need to track it again.
+        if !self.local_diff_model.is_entity_tracked(entity) {
+            self.local_diff_model
+                .track_and_upload_entity(net, entity, Gid(rand::random()))?;
+        }
         Ok(())
     }
 
