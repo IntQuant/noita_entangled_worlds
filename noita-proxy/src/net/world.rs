@@ -1,5 +1,5 @@
 use bitcode::{Decode, Encode};
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -1257,7 +1257,7 @@ impl WorldManager {
                     no_info = true;
                 }
                 let mut changed = false;
-                let mut rng = thread_rng();
+                let mut rng = rng();
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dcx = cx - x;
@@ -1281,7 +1281,7 @@ impl WorldManager {
                                     .map(|(_, _, cell)| cell.can_remove(true, false))
                                     .unwrap_or(true))
                                 && (chance == 100
-                                    || rng.gen_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
+                                    || rng.random_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1368,7 +1368,7 @@ impl WorldManager {
                     no_info = true;
                 }
                 let mut changed = false;
-                let mut rng = thread_rng();
+                let mut rng = rng();
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
                     let dx = cx.abs_diff(x) as u64;
@@ -1386,7 +1386,7 @@ impl WorldManager {
                                     .map(|(_, _, cell)| cell.can_remove(true, false))
                                     .unwrap_or(true))
                                 && (chance == 100
-                                    || rng.gen_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
+                                    || rng.random_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
                             {
                                 changed = true;
                                 chunk.set_pixel(px, air_pixel);
@@ -1778,7 +1778,7 @@ impl WorldManager {
                 let chunk_start_y = chunk_y * CHUNK_SIZE as i32;
                 let mut all = true;
                 let mut none = true;
-                let mut rng = thread_rng();
+                let mut rng = rng();
                 let atan: Vec<f32> = compute_atans(chunk_start_x, chunk_start_y, rays as f32, x, y);
                 for icx in 0..CHUNK_SIZE as i32 {
                     let cx = chunk_start_x + icx;
@@ -1800,7 +1800,7 @@ impl WorldManager {
                             {
                                 if prob != 0
                                     && (prob == 100
-                                        || rng.gen_bool((prob as f64 / 100.0).clamp(0.0, 1.0)))
+                                        || rng.random_bool((prob as f64 / 100.0).clamp(0.0, 1.0)))
                                 {
                                     chunk_delta.set_pixel(px, mat);
                                 } else {
@@ -1964,7 +1964,7 @@ impl WorldManager {
         let chunk_start_y = coord.1 * CHUNK_SIZE as i32;
         let mut all = true;
         let mut none = true;
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let data: Vec<(usize, &Vec<(usize, u64)>, Vec<f32>)> = data
             .iter()
             .map(|(i, data)| {
@@ -2020,7 +2020,8 @@ impl WorldManager {
                         .unwrap_or(true)
                     {
                         if prob != 0
-                            && (prob == 100 || rng.gen_bool((prob as f64 / 100.0).clamp(0.0, 1.0)))
+                            && (prob == 100
+                                || rng.random_bool((prob as f64 / 100.0).clamp(0.0, 1.0)))
                         {
                             chunk_delta.set_pixel(px, mat);
                         } else {
@@ -2484,7 +2485,7 @@ fn test_explosion_img_big() {
         4,
     )]);
     let w = 48;
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let mut iter = (-w..w)
         .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
         .collect::<Vec<(i32, i32)>>();
@@ -2556,7 +2557,7 @@ fn test_explosion_img_big_br() {
         4,
     )]);
     let w = 48;
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let mut iter = (-w..w)
         .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
         .collect::<Vec<(i32, i32)>>();
@@ -2564,7 +2565,7 @@ fn test_explosion_img_big_br() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(if rng.gen_bool(0.2) {
+            e.insert(if rng.random_bool(0.2) {
                 _brickwork.clone()
             } else {
                 _dirt.clone()
@@ -2615,7 +2616,7 @@ fn test_explosion_img_big_empty() {
         4,
     )]);
     let w = 48;
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let mut iter = (-w..w)
         .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
         .collect::<Vec<(i32, i32)>>();
@@ -2623,7 +2624,7 @@ fn test_explosion_img_big_empty() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(if rng.gen_bool(0.2) {
+            e.insert(if rng.random_bool(0.2) {
                 _brickwork.clone()
             } else {
                 _dirt.clone()
@@ -2928,7 +2929,7 @@ fn test_explosion_img_big_many() {
             .collect(),
     );
     let w = 48;
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let mut iter = (-w..w)
         .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
         .collect::<Vec<(i32, i32)>>();
@@ -2936,7 +2937,7 @@ fn test_explosion_img_big_many() {
     for (i, j) in iter {
         let c = ChunkCoord(i, j);
         if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-            e.insert(if rng.gen_bool(0.2) {
+            e.insert(if rng.random_bool(0.2) {
                 _brickwork.clone()
             } else {
                 _dirt.clone()
@@ -3056,7 +3057,7 @@ fn test_explosion_perf_unloaded() {
             50,
         )]);
         let w = 8;
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let mut iter = (-w..w)
             .flat_map(|i| (-w..w).map(|j| (i, j)).collect::<Vec<(i32, i32)>>())
             .collect::<Vec<(i32, i32)>>();
@@ -3064,7 +3065,7 @@ fn test_explosion_perf_unloaded() {
         for (i, j) in iter {
             let c = ChunkCoord(i, j);
             if let std::collections::hash_map::Entry::Vacant(e) = world.chunk_storage.entry(c) {
-                e.insert(if rng.gen_bool(0.2) {
+                e.insert(if rng.random_bool(0.2) {
                     _brickwork.clone()
                 } else {
                     _dirt.clone()

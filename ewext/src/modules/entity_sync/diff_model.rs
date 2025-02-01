@@ -1618,6 +1618,7 @@ pub fn init_remote_entity(
                 "data/scripts/animals/blob_damage.lua",
                 "data/scripts/items/die_roll.lua",
                 "data/scripts/animals/iceskull_damage.lua",
+                "data/scripts/buildings/lukki_eggs.lua",
             ]
             .contains(&&*lua.script_damage_received()?)
             || [
@@ -1645,6 +1646,8 @@ pub fn init_remote_entity(
                 "data/biome_impl/static_tile/chest_darkness.lua",
             ]
             .contains(&&*lua.script_physics_body_modified()?)
+            || ["data/scripts/animals/failed_alchemist_b_death.lua"]
+                .contains(&&*lua.script_death()?)
         {
             entity.remove_component(*lua)?;
         }
