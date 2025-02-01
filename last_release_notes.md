@@ -1,13 +1,12 @@
-## Noita Entangled Worlds v1.0.4
+## Noita Entangled Worlds v1.0.5
 
-- fix kolmi
+- try to fix stuff not syncing when dropped
 
-- fix tower portal
+- try to fix shops sometimes having spells overlap(might break everything
 
-- fix nightmare wands
+- handle tablet telekensis better
 
-- fix an issue with chests
-
+- stop not alchemist and tiny lukki duping
 
 ## Accepted pull requests
 

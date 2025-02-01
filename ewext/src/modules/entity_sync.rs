@@ -11,8 +11,8 @@ use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    game_print, DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent,
-    ProjectileComponent, VariableStorageComponent,
+    DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent, ProjectileComponent,
+    VariableStorageComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -155,6 +155,8 @@ impl EntitySync {
                 "data/entities/buildings/bunker.xml",
                 "data/entities/buildings/bunker2.xml",
                 "data/entities/animals/boss_centipede/reference_point.xml",
+                "data/entities/buildings/failed_alchemist_orb.xml",
+                "data/entities/buildings/lukki_eggs.xml",
             ]
             .contains(&file_name.as_str())
             || entity_is_item(entity)?;
