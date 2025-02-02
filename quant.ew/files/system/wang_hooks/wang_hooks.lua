@@ -113,6 +113,9 @@ local allow_patching = {
     spawn_wheel_small = {},
     spawn_wheel_tiny = {},
     spawn_large_enemies = {},
+    spawn_rubble = {},
+    spawn_bones = {},
+    spawn_barricade = {},
 }
 
 local current_file
