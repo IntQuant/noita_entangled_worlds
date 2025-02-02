@@ -468,13 +468,13 @@ local function aim_at(world_x, world_y)
     else
         local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
         local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
-        local dx, dy = world_x - ch_x, world_y - ch_y
+        local dx, dy = math.min(world_x - ch_x, 300), math.min(world_y - ch_y, 300)
 
         local dist = math.sqrt(dx * dx + dy * dy)
 
         ComponentSetValue2(state.control_component, "mAimingVector", dx, dy)
 
-        ComponentSetValue2(state.control_component, "mMousePosition", world_x, world_y)
+        ComponentSetValue2(state.control_component, "mMousePosition", ch_x + dx, ch_y + dy)
 
         if dist > 0 then
             -- ComponentSetValue2(state.control_component, "mAimingVectorNonZeroLatest", dx, dy)
