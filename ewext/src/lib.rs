@@ -151,10 +151,8 @@ fn encode_area(lua: LuaState) -> ValuesOnStack {
     ValuesOnStack(1)
 }
 
-fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
+pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
     unsafe {
-        let entity_id = lua.to_integer(1) as u32;
-
         let entity_manager = grabbed_globals().entity_manager.read();
         let mut entity: *mut Entity;
         asm!(
@@ -173,6 +171,11 @@ fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
         }
         entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
     }
+    Ok(())
+}
+fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
+    let entity_id = lua.to_integer(1) as u32;
+    ephemerial(entity_id)?;
     Ok(())
 }
 

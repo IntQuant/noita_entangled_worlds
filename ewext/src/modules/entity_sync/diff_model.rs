@@ -1,5 +1,5 @@
 use super::NetManager;
-use crate::{modules::ModuleCtx, my_peer_id, print_error};
+use crate::{ephemerial, modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{eyre, Context, ContextCompat, OptionExt};
 use noita_api::raw::{entity_create_new, game_get_frame_num, raytrace_platforms};
@@ -1697,6 +1697,17 @@ pub fn init_remote_entity(
         var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(false)?;
     }
+
+    if entity
+        .try_get_first_component_including_disabled::<PhysicsBodyComponent>(None)?
+        .is_none()
+        && entity
+            .try_get_first_component_including_disabled::<PhysicsBody2Component>(None)?
+            .is_none()
+    {
+        ephemerial(entity.0.get() as u32)?
+    }
+
     Ok(())
 }
 
