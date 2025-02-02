@@ -1,12 +1,15 @@
-## Noita Entangled Worlds v1.0.5
+## Noita Entangled Worlds v1.0.6
 
-- try to fix stuff not syncing when dropped
+- fix ng+
 
-- try to fix shops sometimes having spells overlap(might break everything
+- fix projectile transmutation field duping effect
 
-- handle tablet telekensis better
+- dont duplicate some more things
 
-- stop not alchemist and tiny lukki duping
+- fix some notplayer bugs
+
+- option to duplicate entities
+
 
 ## Accepted pull requests
 
