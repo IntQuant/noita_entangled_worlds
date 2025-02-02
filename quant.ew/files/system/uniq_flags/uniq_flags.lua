@@ -9,7 +9,7 @@ function rpc.request_flag(flag)
     if ctx.is_host then
         local res = GameHasFlagRun(flag)
         GameAddFlagRun(flag)
-        rpc.got_flag(flag, ctx.rpc_peer_id, not res)
+        rpc.got_flag(flag, ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate)
     end
 end
 
@@ -42,7 +42,7 @@ function rpc.request_flag_slow(flag, ent)
     if ctx.is_host then
         local res = GameHasFlagRun(flag)
         GameAddFlagRun(flag)
-        rpc.got_flag_slow(ctx.rpc_peer_id, res, ent)
+        rpc.got_flag_slow(ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate, ent)
     end
 end
 
@@ -51,9 +51,9 @@ rpc.opts_everywhere()
 function rpc.got_flag_slow(peer_id, state, ent)
     if peer_id == ctx.my_id then
         if state then
-            EntityKill(ent)
-        else
             ewext.track(ent)
+        else
+            EntityKill(ent)
         end
     end
 end
@@ -114,14 +114,14 @@ function rpc.request_moon_flag_slow(x, y, dark)
         local flag = "ew_moon_spawn" .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
         local res = GameHasFlagRun(flag)
         GameAddFlagRun(flag)
-        rpc.got_flag_moon_slow(ctx.rpc_peer_id, res, x, y, dark)
+        rpc.got_flag_moon_slow(ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate, x, y, dark)
     end
 end
 
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.got_flag_moon_slow(peer_id, state, x, y, dark)
-    if peer_id == ctx.my_id and not state then
+    if peer_id == ctx.my_id and state then
         if dark then
             EntityLoad("data/entities/items/pickup/sun/newsun_dark.xml", x, y)
         else

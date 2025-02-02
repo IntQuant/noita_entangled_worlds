@@ -79,7 +79,7 @@ pub struct GameSettings {
     world_num: u16,
     debug_mode: Option<bool>,
     use_constant_seed: bool,
-    // item_dedup: Option<bool>, TODO
+    duplicate: Option<bool>,
     enemy_hp_mult: Option<f32>,
     game_mode: Option<GameMode>,
     friendly_fire: Option<bool>,
@@ -236,15 +236,15 @@ impl GameSettings {
                     ui.add(DragValue::new(&mut game_settings.seed));
                 }
             });
-            /*{
-                let mut temp = game_settings.item_dedup.unwrap_or(def.item_dedup);
+            {
+                let mut temp = game_settings.duplicate.unwrap_or(def.duplicate);
                 if ui
-                    .checkbox(&mut temp, tr("connect_settings_item_dedup"))
+                    .checkbox(&mut temp, "duplicate synced entities")
                     .changed()
                 {
-                    game_settings.item_dedup = Some(temp)
+                    game_settings.duplicate = Some(temp)
                 }
-            }TODO*/
+            }
             {
                 let mut temp = game_settings
                     .nice_terraforming
@@ -355,6 +355,7 @@ pub struct DefaultSettings {
     share_gold: bool,
     nice_terraforming: bool,
     same_loadout: bool,
+    duplicate: bool,
 }
 
 impl Default for DefaultSettings {
@@ -378,6 +379,7 @@ impl Default for DefaultSettings {
             share_gold: false,
             nice_terraforming: true,
             same_loadout: false,
+            duplicate: false,
         }
     }
 }

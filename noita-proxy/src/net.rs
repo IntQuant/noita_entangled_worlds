@@ -641,6 +641,7 @@ impl NetManager {
         );
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
         // state.try_ws_write_option("item_dedup", settings.item_dedup.unwrap_or(def.item_dedup)); TODO
+        state.try_ws_write_option("duplicate", settings.duplicate.unwrap_or(def.duplicate));
         state.try_ws_write_option(
             "randomize_perks",
             settings.randomize_perks.unwrap_or(def.randomize_perks),

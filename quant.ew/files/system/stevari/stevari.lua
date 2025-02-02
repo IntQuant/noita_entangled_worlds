@@ -32,14 +32,14 @@ function rpc.request_flag_slow(x, y)
         local flag = "ew_spawn_stevari" .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
         local res = GameHasFlagRun(flag)
         GameAddFlagRun(flag)
-        rpc.got_flag_slow(ctx.rpc_peer_id, res, x, y)
+        rpc.got_flag_slow(ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate, x, y)
     end
 end
 
 rpc.opts_reliable()
 rpc.opts_everywhere()
 function rpc.got_flag_slow(peer_id, state, x, y)
-    if peer_id == ctx.my_id and not state then
+    if peer_id == ctx.my_id and state then
         rpc.spawn_stevari(x, y)
     end
 end
