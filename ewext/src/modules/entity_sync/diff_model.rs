@@ -556,7 +556,6 @@ impl LocalDiffModel {
                 data: serialize_entity(entity)?,
             },
         };
-        game_print(entity.filename()?);
         with_entity_scripts(entity, |scripts| {
             scripts.set_script_death(
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),

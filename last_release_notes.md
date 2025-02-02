@@ -1,14 +1,10 @@
-## Noita Entangled Worlds v1.0.6
+## Noita Entangled Worlds v1.0.7
 
-- fix ng+
+- fix global entities, ie bosses/sun
 
-- fix projectile transmutation field duping effect
+- fix some notplayer issue from last
 
-- dont duplicate some more things
-
-- fix some notplayer bugs
-
-- option to duplicate entities
+- minor performance improvement maybe
 
 
 ## Accepted pull requests
