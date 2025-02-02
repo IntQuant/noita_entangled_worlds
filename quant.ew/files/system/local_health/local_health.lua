@@ -493,7 +493,7 @@ local first = true
 
 local gui = GuiCreate()
 
-local wait = 0
+local wait_f = 0
 
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
@@ -544,15 +544,15 @@ function module.on_world_update()
         GuiText(gui, w - 2 - tw, h - 1 - th, note)
     end
     if not ctx.proxy_opt.no_notplayer and not ctx.proxy_opt.perma_death and notplayer_active and hp_new <= 0 then
-        if wait == 0 then
-            wait = 5
-        elseif wait == 1 then
+        if wait_f == 0 then
+            wait_f = 5
+        elseif wait_f == 1 then
             ctx.cap.health.on_poly_death()
         else
-            wait = wait - 1
+            wait_f = wait_f - 1
         end
     else
-        wait = 0
+        wait_f = 0
     end
 end
 
