@@ -14,7 +14,7 @@ use noita_api::{
     PhysicsAIComponent, PhysicsBody2Component, PhysicsBodyComponent, SpriteComponent,
     StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
 use shared::{
     des::{
@@ -43,6 +43,7 @@ struct LocalDiffModelTracker {
     /// Stores pairs of entity killed and optionally the responsible entity.
     pending_death_notify: Vec<(EntityID, bool, bool, WorldPos, String, Option<EntityID>)>,
     authority_radius: f32,
+    global_entities: FxHashSet<EntityID>,
 }
 
 pub(crate) struct LocalDiffModel {
@@ -134,6 +135,7 @@ impl Default for LocalDiffModel {
                 pending_localize: Vec::with_capacity(4),
                 pending_death_notify: Vec::with_capacity(4),
                 authority_radius: AUTHORITY_RADIUS,
+                global_entities: Default::default(),
             },
         }
     }
@@ -153,7 +155,14 @@ impl LocalDiffModelTracker {
             .wrap_err_with(|| eyre!("Failed to grab update info for {:?} {:?}", gid, lid))?;
 
         if !entity.is_alive() {
-            self.untrack_entity(ctx, gid, lid, None)?;
+            if self.global_entities.contains(&entity) {
+                self.pending_removal.push(lid);
+                ctx.net.send(&NoitaOutbound::DesToProxy(
+                    shared::des::DesToProxy::ReleaseAuthority(gid),
+                ))?;
+            } else {
+                self.untrack_entity(ctx, gid, lid, None)?;
+            }
             return Ok(());
         }
         let item_and_was_picked = info.kind == EntityKind::Item && item_in_inventory(entity)?;
@@ -547,6 +556,7 @@ impl LocalDiffModel {
                 data: serialize_entity(entity)?,
             },
         };
+        game_print(entity.filename()?);
         with_entity_scripts(entity, |scripts| {
             scripts.set_script_death(
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
@@ -581,6 +591,10 @@ impl LocalDiffModel {
             || entity
                 .try_get_first_component::<StreamingKeepAliveComponent>(None)?
                 .is_some();
+
+        if is_global {
+            self.tracker.global_entities.insert(entity);
+        }
 
         let drops_gold = entity
             .iter_all_components_of_type::<LuaComponent>(None)?
@@ -875,6 +889,7 @@ impl LocalDiffModel {
                 responsible_peer,
             });
             dead.push((pos, SpawnOnce::Enemy(file, drops_gold, responsible_peer)));
+            self.tracker.global_entities.remove(&killed);
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
@@ -1805,7 +1820,7 @@ fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
     lc.add_tag("enabled_in_world")?;
     lc.add_tag("enabled_in_hand")?;
     lc.set_execute_on_added(false)?;
-    lc.set_m_next_execution_time(noita_api::raw::game_get_frame_num()? + 1)?;
+    lc.set_m_next_execution_time(game_get_frame_num()? + 1)?;
     Ok(())
 }
 
