@@ -281,6 +281,7 @@ function OnProjectileFired(
         or n == "data/entities/projectiles/deck/white_hole.xml"
         or n == "data/entities/projectiles/deck/white_hole_giga.xml"
         or n == "data/entities/projectiles/deck/orb_laseremitter_four.xml"
+        or n == "data/entities/projectiles/deck/projectile_transmutation_field.xml"
         or EntityHasTag(projectile_id, "ew_projectile_position_sync")
     then
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
