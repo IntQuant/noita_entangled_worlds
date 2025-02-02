@@ -468,7 +468,14 @@ local function aim_at(world_x, world_y)
     else
         local arm = EntityGetAllChildren(ctx.my_player.entity, "player_arm_r")[1]
         local ch_x, ch_y = EntityGetHotspot(arm, "hand", true)
-        local dx, dy = math.min(world_x - ch_x, 300), math.min(world_y - ch_y, 300)
+        local dx, dy = world_x - ch_x, world_y - ch_y
+
+        if math.abs(dx) > 300 then
+            dx = 300 * dx / math.abs(dx)
+        end
+        if math.abs(dy) > 300 then
+            dy = 300 * dy / math.abs(dy)
+        end
 
         local dist = math.sqrt(dx * dx + dy * dy)
 
