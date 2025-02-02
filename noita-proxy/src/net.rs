@@ -826,7 +826,10 @@ impl NetManager {
                     self.world_info.update_player_pos(peer_id, x, y);
                 }
             }
-            Some("reset_world") => state.world.reset(),
+            Some("reset_world") => {
+                state.world.reset();
+                state.des.reset();
+            }
             Some("material_list") => {
                 state.world.materials.clear();
                 while let (
