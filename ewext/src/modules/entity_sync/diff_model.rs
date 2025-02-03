@@ -1269,6 +1269,23 @@ impl RemoteDiffModel {
                                 None,
                                 None,
                             )?;
+                        } else {
+                            if current_hp < 0.0 {
+                                damage.set_hp(f32::MIN_POSITIVE as f64)?;
+                            }
+                            noita_api::raw::entity_inflict_damage(
+                                entity.raw() as i32,
+                                (current_hp - entity_info.hp) as f64,
+                                "DAMAGE_HEALING".into(), //TODO should be enum
+                                "hp sync".into(),
+                                "NONE".into(),
+                                0.0,
+                                0.0,
+                                None,
+                                None,
+                                None,
+                                None,
+                            )?;
                         }
                     }
 

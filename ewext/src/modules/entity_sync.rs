@@ -430,6 +430,7 @@ impl Module for EntitySync {
         }
 
         if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 0 {
+            let (diff, dead) = self.local_diff_model.make_diff(ctx);
             self.local_diff_model
                 .update_tracked_entities(ctx)
                 .wrap_err("Failed to update locally tracked entities")?;
@@ -437,7 +438,6 @@ impl Module for EntitySync {
                 //game_print("Got new interested");
                 self.local_diff_model.reset_diff_encoding();
             }
-            let (diff, dead) = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
             for peer in self.interest_tracker.iter_interested() {
                 send_remotedes(
