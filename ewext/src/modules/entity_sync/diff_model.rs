@@ -1275,7 +1275,7 @@ impl RemoteDiffModel {
                                 None,
                             )?;
                         } else {
-                            if current_hp < 0.0 {
+                            if current_hp < 0.0 && entity_info.hp >= 0.0 {
                                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                             }
                             noita_api::raw::entity_inflict_damage(

@@ -1,6 +1,7 @@
 ## Noita Entangled Worlds v1.0.8
 
-- fix boss respawning and health bar desyncing
+- fix boss respawning on death, fix health bar desyncing
+
 
 
 ## Accepted pull requests
