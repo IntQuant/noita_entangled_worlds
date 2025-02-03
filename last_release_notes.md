@@ -1,10 +1,6 @@
-## Noita Entangled Worlds v1.0.7
+## Noita Entangled Worlds v1.0.8
 
-- fix global entities, ie bosses/sun
-
-- fix some notplayer issue from last
-
-- minor performance improvement maybe
+- fix boss respawning and health bar desyncing
 
 
 ## Accepted pull requests
