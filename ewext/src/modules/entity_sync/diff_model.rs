@@ -155,7 +155,12 @@ impl LocalDiffModelTracker {
             .wrap_err_with(|| eyre!("Failed to grab update info for {:?} {:?}", gid, lid))?;
 
         if !entity.is_alive() {
-            if self.global_entities.contains(&entity) {
+            if self.global_entities.remove(&entity)
+                && self
+                    .pending_death_notify
+                    .iter()
+                    .all(|(e, _, _, _, _, _)| *e != entity)
+            {
                 self.pending_removal.push(lid);
                 ctx.net.send(&NoitaOutbound::DesToProxy(
                     shared::des::DesToProxy::ReleaseAuthority(gid),
