@@ -3,7 +3,6 @@
 - fix boss respawning on death, fix health bar desyncing
 
 
-
 ## Accepted pull requests
 
 
