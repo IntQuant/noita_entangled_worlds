@@ -233,12 +233,8 @@ impl EntitySync {
                 if let Some(ent) = self.find_by_gid(gid) {
                     if let Some(file) = ent
                         .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
-                        .find(|l| {
-                            !l.script_physics_body_modified()
-                                .unwrap_or("".into())
-                                .is_empty()
-                        })
-                        .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
+                        .find(|l| !l.script_item_picked_up().unwrap_or("".into()).is_empty())
+                        .map(|l| l.script_item_picked_up().unwrap_or("".into()))
                     {
                         ent.add_lua_init_component::<LuaComponent>(&file)?;
                     }
