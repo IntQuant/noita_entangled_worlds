@@ -1919,7 +1919,7 @@ pub fn connect_cli(lobby: String, args: Args) {
         PeerVariant::Tangled(p)
     } else if let Some(state) = state {
         let peer = net::steam_networking::SteamPeer::new_connect(
-            lobby.trim().parse().map(LobbyId::from_raw).unwrap(),
+            LobbyCode::parse(lobby.trim()).unwrap().code,
             state.client,
         );
         PeerVariant::Steam(peer)
