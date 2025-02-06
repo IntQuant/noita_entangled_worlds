@@ -251,10 +251,12 @@ impl EntitySync {
                 .interest_tracker
                 .handle_interest_request(source, interest_request),
             RemoteDes::EntityUpdate(vec) => {
-                self.remote_models
-                    .entry(source)
-                    .or_insert(RemoteDiffModel::new(source))
-                    .apply_diff(&vec);
+                self.dont_kill.extend(
+                    self.remote_models
+                        .entry(source)
+                        .or_insert(RemoteDiffModel::new(source))
+                        .apply_diff(&vec),
+                );
             }
             RemoteDes::ExitedInterest => {
                 self.remote_models.remove(&source);

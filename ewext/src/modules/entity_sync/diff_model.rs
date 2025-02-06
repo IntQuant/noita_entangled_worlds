@@ -1011,10 +1011,11 @@ impl RemoteDiffModel {
     pub(crate) fn wait_for_gid(&mut self, entity: EntityID, gid: Gid) {
         self.waiting_for_lid.insert(gid, entity);
     }
-    pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) {
+    pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) -> Vec<EntityID> {
         let mut current_lid = Lid(0);
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
+        let mut dont_kill = Vec::new();
         for entry in diff.iter().cloned() {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => {
@@ -1028,6 +1029,7 @@ impl RemoteDiffModel {
                     if let Some(ent) = self.waiting_for_lid.remove(&gid) {
                         self.tracked.insert(current_lid, ent);
                         let _ = init_remote_entity(ent, Some(current_lid), Some(gid), false);
+                        dont_kill.push(ent);
                     }
                     self.lid_to_gid.insert(current_lid, gid);
                     self.entity_infos.insert(current_lid, *entity_entry);
@@ -1080,6 +1082,7 @@ impl RemoteDiffModel {
                 _ => {}
             }
         }
+        dont_kill
     }
 
     pub(crate) fn apply_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
