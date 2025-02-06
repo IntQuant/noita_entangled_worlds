@@ -24,6 +24,7 @@ use std::{
 };
 use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
 
+use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{get_mods, ModmanagerSettings};
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
@@ -226,7 +227,7 @@ impl NetManager {
     pub(crate) fn start_inner(
         self: Arc<NetManager>,
         player_path: PathBuf,
-        mut cli: bool,
+        mut kind: Option<LobbyKind>,
     ) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
         if !self.init_settings.cosmetics.0 {
@@ -314,10 +315,11 @@ impl NetManager {
             get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
         while self.continue_running.load(Ordering::Relaxed) {
-            if cli {
+            if let Some(k) = kind {
                 if let Some(n) = self.peer.lobby_id() {
-                    println!("Lobby ID: {}", n.raw());
-                    cli = false
+                    let c = crate::lobby_code::LobbyCode { kind: k, code: n };
+                    println!("Lobby ID: {}", c.serialize());
+                    kind = None
                 }
             }
             if self.end_run.load(Ordering::Relaxed) {
@@ -790,7 +792,7 @@ impl NetManager {
     pub fn start(self: Arc<NetManager>, player_path: PathBuf) -> JoinHandle<()> {
         info!("Starting netmanager");
         thread::spawn(move || {
-            let result = self.clone().start_inner(player_path, false);
+            let result = self.clone().start_inner(player_path, None);
             if let Err(err) = result {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);

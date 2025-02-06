@@ -24,7 +24,8 @@ use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::str::FromStr;
+use std::process::exit;
+use std::thread::sleep;
 use std::{
     fmt::Display,
     mem,
@@ -1041,7 +1042,7 @@ impl App {
                                 self.app_saved_state.game_settings.show_editor(ui, true)
                             }
                             if self.running_on_steamdeck && ui.button("Close Proxy").clicked() {
-                                std::process::exit(0)
+                                exit(0)
                             }
                         });
                     });
@@ -1844,17 +1845,23 @@ fn peer_role(peer: OmniPeerId, netman: &Arc<net::NetManager>) -> String {
     }
 }
 
-fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
+fn cli_setup(args: Args) -> (Option<steam_helper::SteamState>, NetManagerInit, LobbyKind) {
     let settings = settings_get();
     let saved_state: AppSavedState = settings.app;
     let mut mod_manager: ModmanagerSettings = settings.modmanager;
     let appearance: PlayerAppearance = settings.color;
-    let mut state = steam_helper::SteamState::new(false).unwrap();
+    let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
         .unwrap_or("no nickname found".to_string());
 
-    mod_manager.try_find_game_path(Some(&mut state));
+    if let Some(state) = &mut state {
+        mod_manager.try_find_game_path(Some(state));
+    } else if let Some(p) = args.exe_path {
+        mod_manager.game_exe_path = p
+    } else {
+        println!("needs game exe path if you want to join as host")
+    }
     mod_manager.try_find_save_path();
     let run_save_state = if let Ok(path) = std::env::current_exe() {
         SaveState::new(path.parent().unwrap().join("save_state"))
@@ -1891,40 +1898,58 @@ fn cli_setup() -> (steam_helper::SteamState, NetManagerInit) {
         },
         noita_port: 21251,
     };
-    (state, netmaninit)
+    (
+        state,
+        netmaninit,
+        if saved_state.spacewars {
+            LobbyKind::Gog
+        } else {
+            LobbyKind::Steam
+        },
+    )
 }
 
-pub fn connect_cli(lobby: String) {
-    let (state, netmaninit) = cli_setup();
-    let varient = if lobby.contains('.') {
-        PeerVariant::Tangled(Peer::connect(SocketAddr::from_str(&lobby).unwrap(), None).unwrap())
-    } else {
+pub fn connect_cli(lobby: String, args: Args) {
+    let (state, netmaninit, kind) = cli_setup(args);
+    let varient = if lobby.contains(':') {
+        let p = Peer::connect(lobby.parse().unwrap(), None).unwrap();
+        while p.my_id().is_none() {
+            sleep(Duration::from_millis(100))
+        }
+        PeerVariant::Tangled(p)
+    } else if let Some(state) = state {
         let peer = net::steam_networking::SteamPeer::new_connect(
             lobby.trim().parse().map(LobbyId::from_raw).unwrap(),
             state.client,
         );
         PeerVariant::Steam(peer)
+    } else {
+        println!("no steam");
+        exit(1)
     };
     let player_path = netmaninit.player_path.clone();
     let netman = net::NetManager::new(varient, netmaninit);
-    netman.start_inner(player_path, true).unwrap();
+    netman.start_inner(player_path, Some(kind)).unwrap();
 }
 
-pub fn host_cli(port: u16) {
-    let (state, netmaninit) = cli_setup();
+pub fn host_cli(port: u16, args: Args) {
+    let (state, netmaninit, kind) = cli_setup(args);
     let varient = if port != 0 {
         let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
         let peer = Peer::host(bind_addr, None).unwrap();
         PeerVariant::Tangled(peer)
-    } else {
+    } else if let Some(state) = state {
         let peer = net::steam_networking::SteamPeer::new_host(
             steamworks::LobbyType::Private,
             state.client,
             250,
         );
         PeerVariant::Steam(peer)
+    } else {
+        println!("no steam");
+        exit(1)
     };
     let player_path = netmaninit.player_path.clone();
     let netman = net::NetManager::new(varient, netmaninit);
-    netman.start_inner(player_path, true).unwrap();
+    netman.start_inner(player_path, Some(kind)).unwrap();
 }

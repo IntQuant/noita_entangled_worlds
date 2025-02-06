@@ -76,15 +76,15 @@ async fn main() {
 
     info!("Launch command: {:?}", args.launch_cmd);
 
-    if let Some(host) = args.host {
+    if let Some(host) = args.clone().host {
         let port = if host.eq_ignore_ascii_case("steam") {
             0
         } else {
             host.parse::<u16>().unwrap_or(5123)
         };
-        host_cli(port)
-    } else if let Some(lobby) = args.lobby {
-        connect_cli(lobby)
+        host_cli(port, args)
+    } else if let Some(lobby) = args.clone().lobby {
+        connect_cli(lobby, args)
     } else {
         let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
             .unwrap()
