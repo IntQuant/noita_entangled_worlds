@@ -8,7 +8,11 @@ function death(damage_type_bit_field, damage_message, entity_thats_responsible, 
     end
     local drops_gold = false
     for _, lua in ipairs(EntityGetComponent(ent, "LuaComponent") or {}) do
-        if ComponentGetValue2(lua, "script_death") == "data/scripts/items/drop_money.lua" then
+        local s = ComponentGetValue2(lua, "script_death")
+        if
+            s == "data/scripts/items/drop_money.lua"
+            or (EntityHasTag(ent, "boss_dragon") and s == "data/scripts/animals/boss_dragon_death.lua")
+        then
             drops_gold = true
             break
         end

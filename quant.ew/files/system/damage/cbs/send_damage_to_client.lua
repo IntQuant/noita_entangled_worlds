@@ -13,8 +13,14 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
     local dtypes = GetDamageDetails().damage_types
     -- Only handle melee damage that way.
     local gid
-    for _, v in ipairs(EntityGetComponent((projectile_thats_responsible ~= 0 and projectile_thats_responsible)
-            or entity_thats_responsible, "VariableStorageComponent") or {}) do
+    for _, v in
+        ipairs(
+            EntityGetComponent(
+                (projectile_thats_responsible ~= 0 and projectile_thats_responsible) or entity_thats_responsible,
+                "VariableStorageComponent"
+            ) or {}
+        )
+    do
         if ComponentGetValue2(v, "name") == "ew_gid_lid" then
             gid = v
             break

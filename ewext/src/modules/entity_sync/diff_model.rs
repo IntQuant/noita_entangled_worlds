@@ -21,7 +21,7 @@ use shared::{
         EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
         PhysBodyInfo, ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
     },
-    GameEffectData, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
+    GameEffectData, GameEffectEnum, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
 };
 use std::borrow::Cow;
 use std::num::NonZero;
@@ -253,21 +253,12 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .sum()
-        /*} else if entity.filename()? == *"data/entities/buildings/wizardcave_gate.xml" {
-        info.counter = entity
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-            .find(|var| var.name().ok() == Some("egg_count".into()))
-            .map(|var| var.value_int())
-            .unwrap_or(Ok(0))? as u8*/
-        } else if entity.has_tag("boss_dragon")
-            && entity
-                .iter_all_components_of_type::<LuaComponent>(None)?
-                .any(|lua| {
-                    lua.script_death().ok()
-                        == Some("data/scripts/animals/boss_dragon_death.lua".into())
-                })
-        {
-            info.counter = 1
+            /*} else if entity.filename()? == *"data/entities/buildings/wizardcave_gate.xml" {
+            info.counter = entity
+                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+                .find(|var| var.name().ok() == Some("egg_count".into()))
+                .map(|var| var.value_int())
+                .unwrap_or(Ok(0))? as u8*/
         }
 
         info.limbs = entity
@@ -600,12 +591,21 @@ impl LocalDiffModel {
             self.tracker.global_entities.insert(entity);
         }
 
-        let drops_gold = entity
+        let drops_gold = (entity
             .iter_all_components_of_type::<LuaComponent>(None)?
-            .any(|lua| lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
+            .any(|lua| {
+                lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into())
+            })
             && entity
                 .iter_all_components_of_type::<VariableStorageComponent>(None)?
-                .all(|var| !var.has_tag("no_gold_drop"));
+                .all(|var| !var.has_tag("no_gold_drop")))
+            || (entity.has_tag("boss_dragon")
+                && entity
+                    .iter_all_components_of_type::<LuaComponent>(None)?
+                    .any(|lua| {
+                        lua.script_death().ok()
+                            == Some("data/scripts/animals/boss_dragon_death.lua".into())
+                    }));
 
         self.entity_entries.insert(
             lid,
@@ -678,6 +678,20 @@ impl LocalDiffModel {
                 entity_data.pos.y as f32,
                 Some(entity_data.rotation),
             )?;
+            if entity_data.is_charmed {
+                entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
+            }
+            if !entity_data.drops_gold {
+                for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+                    if lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()) {
+                        entity.remove_component(*lua)?
+                    }
+                }
+            } else if entity.has_tag("boss_dragon") {
+                let lua = entity.add_component::<LuaComponent>()?;
+                lua.set_script_death("data/scripts/animals/boss_dragon_death.lua".into())?;
+                lua.set_execute_every_n_frame(-1)?;
+            }
             if let Some(wand) = entity_data.wand {
                 give_wand(entity, &wand, None, false)?;
             }
@@ -921,6 +935,12 @@ impl LocalDiffModel {
             data: entry_pair.current.spawn_info.clone(),
             wand: None,
             rotation: entry_pair.current.r,
+            drops_gold: entry_pair.current.drops_gold,
+            is_charmed: entry_pair
+                .current
+                .game_effects
+                .iter()
+                .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
         })
     }
 
@@ -1135,18 +1155,6 @@ impl RemoteDiffModel {
                                 }
                             }
                         }
-                    } else if entity.has_tag("boss_dragon")
-                        && entity_info.counter == 1
-                        && entity
-                            .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
-                            .all(|lua| {
-                                lua.script_death().ok()
-                                    != Some("data/scripts/animals/boss_dragon_death.lua".into())
-                            })
-                    {
-                        let lua = entity.add_component::<LuaComponent>()?;
-                        lua.set_script_death("data/scripts/animals/boss_dragon_death.lua".into())?;
-                        lua.set_execute_every_n_frame(-1)?;
                     }
 
                     if let Some((gid, seri)) = &entity_info.wand {
@@ -1690,6 +1698,11 @@ pub fn init_remote_entity(
         {
             entity.remove_component(*lua)?;
         }
+    }
+    if entity.has_tag("boss_dragon") && drops_gold {
+        let lua = entity.add_component::<LuaComponent>()?;
+        lua.set_script_death("data/scripts/animals/boss_dragon_death.lua".into())?;
+        lua.set_execute_every_n_frame(-1)?;
     }
     if let Some(pickup) =
         entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
