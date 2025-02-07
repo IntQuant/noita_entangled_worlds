@@ -44,6 +44,8 @@ pub struct FullEntityData {
 pub struct UpdatePosition {
     pub gid: Gid,
     pub pos: WorldPos,
+    pub r: f32,
+    pub is_charmed: bool,
 }
 
 #[derive(Encode, Decode, Clone)]

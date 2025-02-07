@@ -70,6 +70,11 @@ impl LocalDiffModel {
                 UpdatePosition {
                     gid: *gid,
                     pos: WorldPos::from_f32(current.x, current.y),
+                    r: current.r,
+                    is_charmed: current
+                        .game_effects
+                        .iter()
+                        .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
                 }
             })
             .collect()
@@ -285,13 +290,24 @@ impl LocalDiffModelTracker {
                         lid,
                         peer,
                         info.wand.clone().map(|(_, a)| a),
+                        info.game_effects
+                            .iter()
+                            .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
                     )
                     .wrap_err("Failed to transfer authority")?;
                     return Ok(());
                 }
             } else {
-                self.release_authority(ctx, gid, lid, info.wand.clone().map(|(_, a)| a))
-                    .wrap_err("Failed to release authority")?;
+                self.release_authority(
+                    ctx,
+                    gid,
+                    lid,
+                    info.wand.clone().map(|(_, a)| a),
+                    info.game_effects
+                        .iter()
+                        .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
+                )
+                .wrap_err("Failed to release authority")?;
                 return Ok(());
             }
         }
@@ -456,11 +472,12 @@ impl LocalDiffModelTracker {
         gid: Gid,
         lid: Lid,
         wand: Option<Vec<u8>>,
+        is_charmed: bool,
     ) -> Result<EntityID, eyre::Error> {
         let entity = self
             .entity_by_lid(lid)
             .wrap_err("Failed to release authority and upload update data")?;
-        let (x, y) = entity.position()?;
+        let (x, y, r, _, _) = entity.transform()?;
         if !entity
             .filename()?
             .starts_with("data/entities/animals/wand_ghost")
@@ -473,6 +490,8 @@ impl LocalDiffModelTracker {
             shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
                 gid,
                 pos: WorldPos::from_f32(x, y),
+                r,
+                is_charmed,
             }]),
         ))?;
         Ok(entity)
@@ -484,8 +503,9 @@ impl LocalDiffModelTracker {
         gid: Gid,
         lid: Lid,
         wand: Option<Vec<u8>>,
+        is_charmed: bool,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid, wand)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
@@ -501,8 +521,9 @@ impl LocalDiffModelTracker {
         lid: Lid,
         peer: PeerId,
         wand: Option<Vec<u8>>,
+        is_charmed: bool,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid, wand)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
@@ -632,7 +653,7 @@ impl LocalDiffModel {
                     laser: Default::default(),
                     ai_rotation: 0.0,
                     ai_state: 0,
-                    limbs: vec![],
+                    limbs: Vec::new(),
                     is_enabled: false,
                     counter: 0,
                 },

@@ -116,10 +116,18 @@ impl DesManager {
                 }
             }
             DesToProxy::UpdatePositions(updates) => {
-                for UpdatePosition { gid, pos } in updates {
+                for UpdatePosition {
+                    gid,
+                    pos,
+                    r,
+                    is_charmed,
+                } in updates
+                {
                     self.remove_gid_from_tree(gid);
                     if let Some(entity) = self.entity_storage.entities.get_mut(&gid) {
                         entity.pos = pos;
+                        entity.rotation = r;
+                        entity.is_charmed = is_charmed
                     }
                 }
             }
