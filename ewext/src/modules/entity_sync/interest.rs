@@ -6,7 +6,7 @@ pub(crate) struct InterestTracker {
     x: f64,
     y: f64,
     interested_peers: FxHashSet<PeerId>,
-    added_any: bool,
+    added_any: Vec<PeerId>,
     lost_interest: Vec<PeerId>,
 }
 
@@ -19,7 +19,7 @@ impl InterestTracker {
             y: 0.0,
             interested_peers: Default::default(),
             lost_interest: Vec::with_capacity(4),
-            added_any: false,
+            added_any: Vec::with_capacity(4),
         }
     }
 
@@ -34,7 +34,7 @@ impl InterestTracker {
 
         let dist_sq = (rx - self.x).powi(2) + (ry - self.y).powi(2);
         if dist_sq < (request.radius as f64).powi(2) && self.interested_peers.insert(peer) {
-            self.added_any = true;
+            self.added_any.push(peer);
         }
 
         if dist_sq > ((request.radius as f64) + self.radius_hysteresis).powi(2)
@@ -44,10 +44,8 @@ impl InterestTracker {
         }
     }
 
-    pub(crate) fn got_any_new_interested(&mut self) -> bool {
-        let ret = self.added_any;
-        self.added_any = false;
-        ret
+    pub(crate) fn got_any_new_interested(&mut self) -> Vec<PeerId> {
+        std::mem::take(&mut self.added_any)
     }
 
     pub(crate) fn drain_lost_interest(&mut self) -> impl Iterator<Item = PeerId> + '_ {

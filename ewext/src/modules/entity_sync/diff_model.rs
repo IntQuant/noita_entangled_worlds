@@ -680,12 +680,6 @@ impl LocalDiffModel {
         Ok(lid)
     }
 
-    pub(crate) fn reset_diff_encoding(&mut self) {
-        for entry_pair in &mut self.entity_entries.values_mut() {
-            entry_pair.last = None;
-        }
-    }
-
     pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
         let start = Instant::now();
         while let Some(entity_data) = self.tracker.pending_authority.pop() {
@@ -749,6 +743,16 @@ impl LocalDiffModel {
             }
         }
         Ok(())
+    }
+
+    pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
+        let mut res = Vec::new();
+        for (&lid, EntityEntryPair { last, current, gid }) in self.entity_entries.iter_mut() {
+            res.push(EntityUpdate::CurrentEntity(lid));
+            *last = Some(current.clone());
+            res.push(EntityUpdate::Init(Box::from(current.clone()), *gid));
+        }
+        res
     }
 
     pub(crate) fn make_diff(

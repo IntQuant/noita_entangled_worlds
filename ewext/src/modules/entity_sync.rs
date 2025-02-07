@@ -431,9 +431,17 @@ impl Module for EntitySync {
             self.local_diff_model
                 .update_tracked_entities(ctx)
                 .wrap_err("Failed to update locally tracked entities")?;
-            if self.interest_tracker.got_any_new_interested() {
-                //game_print("Got new interested");
-                self.local_diff_model.reset_diff_encoding();
+            let new_intersects = self.interest_tracker.got_any_new_interested();
+            if !new_intersects.is_empty() {
+                let init = self.local_diff_model.make_init();
+                for peer in &new_intersects {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(*peer),
+                        RemoteDes::EntityUpdate(init.clone()),
+                    )?;
+                }
             }
             let (diff, dead) = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
@@ -444,6 +452,9 @@ impl Module for EntitySync {
                     Destination::Peer(peer),
                     RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
                 )?;
+                if new_intersects.contains(&peer) {
+                    continue;
+                }
                 send_remotedes(
                     ctx,
                     true,
