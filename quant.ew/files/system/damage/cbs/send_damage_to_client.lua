@@ -12,7 +12,15 @@ function damage_received(damage, message, entity_thats_responsible, is_fatal, pr
 
     local dtypes = GetDamageDetails().damage_types
     -- Only handle melee damage that way.
-    if dtypes == 1 and CrossCall("ew_do_i_own", entity_thats_responsible) then
+    local gid
+    for _, v in ipairs(EntityGetComponent((projectile_thats_responsible ~= 0 and projectile_thats_responsible)
+            or entity_thats_responsible, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
+    if dtypes == 1 and gid ~= nil and ComponentGetValue2(gid, "value_bool") then
         -- Damage the client
         CrossCall("ew_ds_client_damaged", EntityGetName(entity_id), damage, message)
     end
