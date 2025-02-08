@@ -66,7 +66,7 @@ impl Peer {
         host_addr: SocketAddr,
         settings: Option<Settings>,
     ) -> Result<Self, TangledInitError> {
-        Self::new("0.0.0.0:0".parse().unwrap(), Some(host_addr), settings)
+        Self::new("[::]:0".parse().unwrap(), Some(host_addr), settings)
     }
 
     /// Send a message to a specified single peer.

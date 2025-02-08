@@ -893,7 +893,7 @@ impl App {
     }
 
     fn start_server(&mut self) {
-        let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), DEFAULT_PORT);
+        let bind_addr = SocketAddr::new("::".parse().unwrap(), DEFAULT_PORT);
         let peer = Peer::host(bind_addr, None).unwrap();
         let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
         self.set_netman_settings(&netman);
