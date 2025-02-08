@@ -516,21 +516,15 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
                     .entity_sync
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                #[allow(clippy::type_complexity)]
-                let (entity_killed, wait_on_kill, x, y, file, entity_responsible): (
-                    Option<EntityID>,
-                    Option<bool>,
-                    Option<f64>,
-                    Option<f64>,
-                    Option<Cow<'_, str>>,
-                    Option<EntityID>,
-                ) = LuaGetValue::get(lua, -1)?;
-                let entity_killed =
-                    entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
-                let file = file.ok_or_eyre("Expected to have a valid file")?;
-                let wait_on_kill = wait_on_kill.ok_or_eyre("Expected to have a valid pos")?;
-                let x = x.ok_or_eyre("Expected to have a valid pos")?;
-                let y = y.ok_or_eyre("Expected to have a valid pos")?;
+                let entity_killed = EntityID::try_from(lua.to_integer(1))
+                    .wrap_err("Expected to have a valid entity_killed")?;
+                let wait_on_kill = lua.to_bool(2);
+                let x = lua.to_number(3);
+                let y = lua.to_number(4);
+                let file = lua
+                    .to_string(5)
+                    .wrap_err("Expected to have a valid filepath")?;
+                let entity_responsible = EntityID::try_from(lua.to_integer(6)).ok();
                 let pos = WorldPos::from_f64(x, y);
                 entity_sync.cross_death_notify(
                     entity_killed,
