@@ -564,15 +564,24 @@ end
 -- Do not lose the game if there aren't any players alive from the start. (If alive players haven't connected yet)
 local gameover_primed = false
 
+local gameover_frame_check = 0
+
 function module.on_world_update_host()
     if GameGetFrameNum() % 60 == 15 then
         local any_player_alive = false
         for _, player_data in pairs(ctx.players) do
             local is_alive = player_data.status.is_alive
             if is_alive then
-                gameover_primed = true
+                if gameover_frame_check == 0 then
+                    gameover_frame_check = GameGetFrameNum()
+                end
                 any_player_alive = true
             end
+        end
+        if not any_player_alive then
+            gameover_frame_check = 0
+        elseif gameover_frame_check + 60 <= GameGetFrameNum() then
+            gameover_primed = true
         end
         if gameover_primed and not any_player_alive then
             print("Triggering a game over")
