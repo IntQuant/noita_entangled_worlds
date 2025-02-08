@@ -342,8 +342,13 @@ local function player_died()
         return
     end
     if ctx.proxy_opt.perma_death then
-        remove_inventory()
         local x, y = EntityGetTransform(ctx.my_player.entity)
+        for _, ent in ipairs(GameGetAllInventoryItems(ctx.my_player.entity) or {}) do
+            if EntityHasTag(ent, "this_is_sampo") then
+                EntityLoad("data/entities/animals/boss_centipede/sampo.xml", x, y)
+            end
+        end
+        remove_inventory()
         local ent = LoadGameEffectEntityTo(
             ctx.my_player.entity,
             "mods/quant.ew/files/system/local_health/notplayer/cessation.xml"
