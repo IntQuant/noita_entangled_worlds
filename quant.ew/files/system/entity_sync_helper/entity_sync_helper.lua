@@ -100,7 +100,21 @@ function mod.on_world_update_post()
         end
     end
     for _, data in ipairs(c_dead) do
-        print("resp_entity", type(data[1]), data[1], type(data[2]), bool_to_truefalse(data[2]), type(data[3]), data[3], type(data[4]), data[4], type(data[5]), data[5], type(data[6]), data[6])
+        print(
+            "resp_entity",
+            type(data[1]),
+            data[1],
+            type(data[2]),
+            bool_to_truefalse(data[2]),
+            type(data[3]),
+            data[3],
+            type(data[4]),
+            data[4],
+            type(data[5]),
+            data[5],
+            type(data[6]),
+            data[6]
+        )
         ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6])
     end
     for _, data in ipairs(c_chest) do
