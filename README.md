@@ -58,9 +58,7 @@ can also host via cli, just run `noita_proxy --host [steam/port]`, "--host steam
 
 ## Connecting via steam without steam version of game
 
-to connect via steam without the steam version of game, since its more stable you can do the following
-
-on all clients run the proxy with the NP_APPID=480 environemental variable, you can do that by making a bat/bash file to set that before running the executable
+There is a "Allow using steam networking even if you don't have the game on steam" checkbox in top left on main screen of proxy.
 
 ## Thanks
 
