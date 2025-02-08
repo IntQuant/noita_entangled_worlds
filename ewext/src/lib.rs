@@ -250,7 +250,7 @@ fn netmanager_send(lua: LuaState) -> eyre::Result<()> {
     let arg = lua.to_raw_string(1)?;
     let mut binding = try_lock_netmanager()?;
     let netmanager = binding.as_mut().unwrap();
-    netmanager.send(&shared::NoitaOutbound::Raw(arg))?;
+    netmanager.send(&NoitaOutbound::Raw(arg))?;
 
     Ok(())
 }

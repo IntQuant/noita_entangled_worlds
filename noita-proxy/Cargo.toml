@@ -11,9 +11,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = { version= "0.30.0", features = ["glow", "default_fonts", "wayland", "x11"], default-features = false }
+eframe = { version= "0.31.0", features = ["glow", "default_fonts", "wayland", "x11"], default-features = false }
 rfd = "0.15.1"
-egui_extras = { version = "0.30.0", features = ["all_loaders"] }
+egui_extras = { version = "0.31.0", features = ["all_loaders"] }
 #egui_plot = "0.29.0"
 image = { version = "0.25.1", default-features = false, features = ["png", "webp"] }
 

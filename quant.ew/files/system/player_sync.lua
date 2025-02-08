@@ -67,7 +67,7 @@ end
 
 local wait_on_requst = {}
 
-local has_twwe_locally = nil
+local has_twwe_locally
 
 function rpc.player_update(input_data, pos_data, phys_info, current_slot, team)
     local peer_id = ctx.rpc_peer_id
@@ -341,13 +341,12 @@ function module.on_world_update()
         end
         local x, y = EntityGetTransform(ctx.my_player.entity)
         if not ctx.my_player.twwe then
-            local my_x, my_y = EntityGetTransform(ctx.my_player.entity)
             local found = false
             for _, data in pairs(ctx.players) do
                 if data.twwe then
-                    local x, y = EntityGetTransform(data.entity)
-                    if x ~= nil then
-                        local dx, dy = x - my_x, y - my_y
+                    local tx, ty = EntityGetTransform(data.entity)
+                    if tx ~= nil then
+                        local dx, dy = tx - x, ty - y
                         if dx * dx + dy * dy < 20 * 20 then
                             found = true
                             break

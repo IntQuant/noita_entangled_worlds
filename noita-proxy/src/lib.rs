@@ -6,8 +6,8 @@ use bookkeeping::{
 use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{
     self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
-    InnerResponse, Key, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions,
-    ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+    InnerResponse, Key, Margin, OpenUrl, OutputCommand, Rect, RichText, ScrollArea, Slider,
+    TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
 };
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -664,8 +664,7 @@ pub struct App {
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
     let style = ui.style();
     let frame = egui::Frame {
-        inner_margin: Margin::same(6.0), // same and symmetric looks best in corners when nesting groups
-        rounding: style.visuals.widgets.noninteractive.rounding,
+        inner_margin: Margin::same(6), // same and symmetric looks best in corners when nesting groups
         stroke: style.visuals.widgets.noninteractive.bg_stroke,
         fill: Color32::from_rgba_premultiplied(20, 20, 20, 180),
         ..Default::default()
@@ -689,7 +688,7 @@ fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
     let side = ui.available_width();
     ui.add_sized(
         [side, side],
-        ImageButton::new(icon).rounding(ui.style().visuals.widgets.noninteractive.rounding), // Somewhy it doesnt inherit style correctly
+        ImageButton::new(icon), // Somewhy it doesnt inherit style correctly
     )
 }
 
@@ -1409,7 +1408,10 @@ impl App {
                                     kind: self.my_lobby_kind,
                                     code: id,
                                 };
-                                ui.output_mut(|o| o.copied_text = lobby_code.serialize());
+                                ui.output_mut(|o| {
+                                    o.commands
+                                        .push(OutputCommand::CopyText(lobby_code.serialize()))
+                                });
                                 self.copied_lobby = true;
                             }
                         } else {
