@@ -292,7 +292,6 @@ impl EntitySync {
         &mut self,
         entity_killed: EntityID,
         wait_on_kill: bool,
-        drops_gold: bool,
         pos: WorldPos,
         file: String,
         entity_responsible: Option<EntityID>,
@@ -300,7 +299,6 @@ impl EntitySync {
         self.local_diff_model.death_notify(
             entity_killed,
             wait_on_kill,
-            drops_gold,
             pos,
             file,
             entity_responsible,

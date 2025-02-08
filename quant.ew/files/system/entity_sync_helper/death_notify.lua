@@ -6,19 +6,5 @@ function death(damage_type_bit_field, damage_message, entity_thats_responsible, 
     if damage ~= nil then
         wait_on_kill = ComponentGetValue2(damage, "wait_for_kill_flag_on_death")
     end
-    local drops_gold = false
-    for _, lua in ipairs(EntityGetComponent(ent, "LuaComponent") or {}) do
-        local s = ComponentGetValue2(lua, "script_death")
-        if
-            s == "data/scripts/items/drop_money.lua"
-            or (EntityHasTag(ent, "boss_dragon") and s == "data/scripts/animals/boss_dragon_death.lua")
-        then
-            drops_gold = true
-            break
-        end
-    end
-    if EntityGetFirstComponentIncludingDisabled(ent, "VariableStorageComponent", "no_gold_drop") ~= nil then
-        drops_gold = false
-    end
-    CrossCall("ew_death_notify", ent, wait_on_kill, drops_gold, x, y, EntityGetFilename(ent), entity_thats_responsible)
+    CrossCall("ew_death_notify", ent, wait_on_kill, x, y, EntityGetFilename(ent), entity_thats_responsible)
 end

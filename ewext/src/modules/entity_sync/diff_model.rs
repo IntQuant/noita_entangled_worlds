@@ -41,7 +41,7 @@ struct LocalDiffModelTracker {
     pending_authority: Vec<FullEntityData>,
     pending_localize: Vec<(Lid, PeerId)>,
     /// Stores pairs of entity killed and optionally the responsible entity.
-    pending_death_notify: Vec<(EntityID, bool, bool, WorldPos, String, Option<EntityID>)>,
+    pending_death_notify: Vec<(EntityID, bool, WorldPos, String, Option<EntityID>)>,
     authority_radius: f32,
     global_entities: FxHashSet<EntityID>,
 }
@@ -164,7 +164,7 @@ impl LocalDiffModelTracker {
                 && self
                     .pending_death_notify
                     .iter()
-                    .all(|(e, _, _, _, _, _)| *e != entity)
+                    .all(|(e, _, _, _, _)| *e != entity)
             {
                 self.pending_removal.push(lid);
                 ctx.net.send(&NoitaOutbound::DesToProxy(
@@ -917,7 +917,7 @@ impl LocalDiffModel {
         }
 
         let mut dead = Vec::new();
-        for (killed, wait_on_kill, drops_gold, pos, file, responsible) in
+        for (killed, wait_on_kill, pos, file, responsible) in
             self.tracker.pending_death_notify.drain(..)
         {
             let responsible_peer = responsible
@@ -925,6 +925,11 @@ impl LocalDiffModel {
                 .copied();
             let Some(lid) = self.tracker.tracked.get_by_right(&killed).copied() else {
                 continue;
+            };
+            let drops_gold = if let Some(info) = self.entity_entries.get(&lid) {
+                info.current.drops_gold
+            } else {
+                false
             };
             res.push(EntityUpdate::KillEntity {
                 lid,
@@ -994,7 +999,6 @@ impl LocalDiffModel {
         &mut self,
         entity_killed: EntityID,
         wait_on_kill: bool,
-        drops_gold: bool,
         pos: WorldPos,
         file: String,
         entity_responsible: Option<EntityID>,
@@ -1002,7 +1006,6 @@ impl LocalDiffModel {
         self.tracker.pending_death_notify.push((
             entity_killed,
             wait_on_kill,
-            drops_gold,
             pos,
             file,
             entity_responsible,

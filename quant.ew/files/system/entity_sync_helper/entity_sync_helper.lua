@@ -41,8 +41,8 @@ util.add_cross_call("ew_thrown", function(thrown_item)
     end
 end)
 
-util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, drops_gold, x, y, file, responsible)
-    table.insert(dead, { entity, wait_on_kill, drops_gold, x, y, file, responsible })
+util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, x, y, file, responsible)
+    table.insert(dead, { entity, wait_on_kill, x, y, file, responsible })
 end)
 
 util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity, dont)
@@ -86,7 +86,7 @@ function mod.on_world_update_post()
         end
     end
     for _, data in ipairs(dead) do
-        ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6], data[7])
+        ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6])
     end
     for _, data in ipairs(chest) do
         ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
