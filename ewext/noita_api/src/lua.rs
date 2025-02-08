@@ -506,6 +506,10 @@ impl<T: LuaGetValue> LuaGetValue for Option<T> {
             Some(T::get(lua, index)?)
         })
     }
+
+    fn size_on_stack() -> i32 {
+        1
+    }
 }
 
 impl<T: LuaGetValue> LuaGetValue for Vec<T> {

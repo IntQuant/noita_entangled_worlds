@@ -79,23 +79,33 @@ end)
 
 local mod = {}
 
+local function bool_to_truefalse(v)
+    if v then
+        return "true"
+    else
+        return "false"
+    end
+end
+
 function mod.on_world_update_post()
-    for _, ent in ipairs(thrown) do
+    local c_thrown = thrown
+    local c_dead = dead
+    local c_chest = chest
+    thrown = {}
+    dead = {}
+    chest = {}
+    for _, ent in ipairs(c_thrown) do
         if EntityGetIsAlive(ent) then
             ewext.des_item_thrown(ent)
         end
     end
-    for _, data in ipairs(dead) do
-        if data[1] ~= 0 then
-            ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6])
-        end
+    for _, data in ipairs(c_dead) do
+        -- print("resp_entity", type(data[1]), data[1], type(data[2]), bool_to_truefalse(data[2]), type(data[3]), data[3], type(data[4]), data[4], type(data[5]), data[5], type(data[6]), data[6])
+        ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6])
     end
-    for _, data in ipairs(chest) do
+    for _, data in ipairs(c_chest) do
         ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
     end
-    thrown = {}
-    dead = {}
-    chest = {}
 end
 
 return mod
