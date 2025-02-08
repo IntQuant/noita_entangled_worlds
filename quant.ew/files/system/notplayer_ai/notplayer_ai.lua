@@ -4,7 +4,7 @@ local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
 local MAX_RADIUS = 128 * 5
 
-local INVIS_RANGE = 64
+local INVIS_RANGE = 24
 
 local state
 

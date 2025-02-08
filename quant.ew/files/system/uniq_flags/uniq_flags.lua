@@ -98,7 +98,7 @@ function module.on_world_update()
                 ewext.notrack(ent)
                 rpc.request_flag_slow(flag, ent)
             elseif seed ~= nil then
-                local flag = f .. ":" .. x .. ":" .. y
+                local flag = f .. ":" .. ComponentGetValue2(seed, "pos_x") .. ":" .. ComponentGetValue2(seed, "pos_y")
                 ewext.notrack(ent)
                 rpc.request_flag_slow(flag, ent)
             end

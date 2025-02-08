@@ -99,6 +99,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
         || entity.has_tag("nightmare_starting_wand")
         || ENTITY_EXCLUDES.contains(&filename)
         || filename.starts_with(good)
+        || entity.name()? == "DEBUG_NAME:player"
         || entity.root()? != Some(entity))
 }
 
