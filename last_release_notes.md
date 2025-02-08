@@ -1,26 +1,18 @@
-## Noita Entangled Worlds v1.0.9
+## Noita Entangled Worlds v1.0.10
 
-- improve performance maybe
+- fix mom orbs
 
-- fix bombs instantly exploading sometimes
+- fix a few errors
 
-- fix chests deduplicating
+- fix not alchemist duping still
 
-- maybe fix some tentacle bugs
+- fix chest duping
 
-- fix egg enemies on auth transfer
+- tweak notplayer ai
 
-- fix gold not dropping from enemies out of range, and dragon rewards
+- spawn sampo on death on perma death
 
-- sync some more enemies
-
-- fix an empty potion/evil eye bug
-
-- fix a proxy crash
-
-- fix pyramid boss death effect
-
-- fix cli connect/host
+- dont insta game over if your dead and continue run as host
 
 ## Accepted pull requests
 
