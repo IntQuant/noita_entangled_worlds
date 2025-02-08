@@ -12,7 +12,8 @@ if comp ~= nil then
     local circle = math.pi * 2
     local inc = circle / count
 
-    local dir = inc * id + CrossCall("ew_host_frame_num") * 0.01
+    local fr = EntityGetFirstComponentIncludingDisabled(entity_id, "VariableStorageComponent", "ew_frame_num") or 0
+    local dir = inc * id + ComponentGetValue2(fr, "value_int") * 0.01
 
     local nx = x + math.cos(dir) * 50
     local ny = y - math.sin(dir) * 50 - 20

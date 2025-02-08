@@ -241,31 +241,6 @@ impl LocalDiffModelTracker {
                     var.name().unwrap_or("".into()) == "active" && var.value_int().unwrap_or(0) == 1
                 });
 
-        if entity.has_tag("boss_wizard") {
-            info.counter = entity
-                .children(None)
-                .iter()
-                .filter_map(|ent| {
-                    if ent.has_tag("touchmagic_immunity") {
-                        let var = ent
-                            .get_first_component_including_disabled::<VariableStorageComponent>(
-                                None,
-                            )
-                            .ok()?;
-                        Some(1 << var.value_int().ok()?)
-                    } else {
-                        None
-                    }
-                })
-                .sum()
-            /*} else if entity.filename()? == *"data/entities/buildings/wizardcave_gate.xml" {
-            info.counter = entity
-                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                .find(|var| var.name().ok() == Some("egg_count".into()))
-                .map(|var| var.value_int())
-                .unwrap_or(Ok(0))? as u8*/
-        }
-
         info.limbs = entity
             .children(None)
             .iter()
@@ -333,6 +308,28 @@ impl LocalDiffModelTracker {
 
         if let Some(item_cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
             info.cost = item_cost.cost()?;
+        } else if entity.has_tag("boss_wizard") {
+            info.cost = game_get_frame_num()? as i64;
+            info.counter = entity
+                .children(None)
+                .iter()
+                .filter_map(|ent| {
+                    if ent.has_tag("touchmagic_immunity") {
+                        let var = ent
+                            .get_first_component_including_disabled::<VariableStorageComponent>(
+                                None,
+                            )
+                            .ok()?;
+                        if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
+                            let _ = v.add_tag("ew_frame_num");
+                            let _ = v.set_value_int(info.cost as i32);
+                        }
+                        Some(1 << var.value_int().ok()?)
+                    } else {
+                        None
+                    }
+                })
+                .sum();
         } else {
             info.cost = 0;
         }
@@ -1168,7 +1165,7 @@ impl RemoteDiffModel {
                         for ent in entity.children(None) {
                             if ent.has_tag("touchmagic_immunity") {
                                 if let Ok(var) =
-                                    ent.get_first_component_including_disabled::<VariableStorageComponent>(None)
+                                    ent.get_first_component_including_disabled::<VariableStorageComponent>(Some("wizard_orb_id".into()))
                                 {
                                     if let Ok(n) = var.value_int() {
                                         if (entity_info.counter & (1 << (n as u8))) == 0 {
@@ -1179,6 +1176,10 @@ impl RemoteDiffModel {
                                             damage.set_wait_for_kill_flag_on_death(true)?;
                                             damage.set_hp(damage.max_hp()?)?;
                                         }
+                                    }
+                                    if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
+                                        let _ = v.add_tag("ew_frame_num");
+                                        let _ = v.set_value_int(entity_info.cost as i32);
                                     }
                                 }
                             }
