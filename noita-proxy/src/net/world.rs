@@ -567,6 +567,7 @@ impl WorldManager {
         self.authority_map.clear();
         self.chunk_last_update.clear();
         self.chunk_state.clear();
+        self.is_storage_recent.clear();
     }
 
     pub(crate) fn get_emitted_msgs(&mut self) -> Vec<MessageRequest<WorldNetMessage>> {
@@ -1436,10 +1437,11 @@ impl WorldManager {
             y.div_euclid(CHUNK_SIZE as i32),
         );
         if self.is_storage_recent.contains(&last_co) {
-            self.chunk_storage
-                .get(&last_co)
-                .unwrap()
-                .apply_to_chunk(&mut working_chunk);
+            if let Some(c) = self.chunk_storage.get(&last_co) {
+                c.apply_to_chunk(&mut working_chunk);
+            } else {
+                return (None, 0, None);
+            }
         } else if let Some(c) = self
             .outbound_model
             .get_chunk_data(last_co)
@@ -1461,10 +1463,11 @@ impl WorldManager {
                 );
                 if co != last_co {
                     if self.is_storage_recent.contains(&co) {
-                        self.chunk_storage
-                            .get(&co)
-                            .unwrap()
-                            .apply_to_chunk(&mut working_chunk);
+                        if let Some(c) = self.chunk_storage.get(&co) {
+                            c.apply_to_chunk(&mut working_chunk);
+                        } else {
+                            return (None, 0, None);
+                        }
                     } else if let Some(c) = self
                         .outbound_model
                         .get_chunk_data(co)
