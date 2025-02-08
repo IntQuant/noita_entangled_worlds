@@ -77,6 +77,7 @@ function module.on_world_update()
                 or f == "data/entities/props/music_machines/music_machine_02.xml"
                 or f == "data/entities/props/music_machines/music_machine_03.xml"
                 or f == "data/entities/animals/boss_fish/fish_giga.xml"
+                or f == "data/entities/items/pickup/potion_empty.xml"
                 or f == "data/entities/animals/chest_mimic.xml"
                 or f == "data/entities/animals/chest_leggy.xml"
             then
