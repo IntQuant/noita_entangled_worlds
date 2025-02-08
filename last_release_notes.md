@@ -1,7 +1,26 @@
-## Noita Entangled Worlds v1.0.8
+## Noita Entangled Worlds v1.0.9
 
-- fix boss respawning on death, fix health bar desyncing
+- improve performance maybe
 
+- fix bombs instantly exploading sometimes
+
+- fix chests deduplicating
+
+- maybe fix some tentacle bugs
+
+- fix egg enemies on auth transfer
+
+- fix gold not dropping from enemies out of range, and dragon rewards
+
+- sync some more enemies
+
+- fix an empty potion/evil eye bug
+
+- fix a proxy crash
+
+- fix pyramid boss death effect
+
+- fix cli connect/host
 
 ## Accepted pull requests
 
