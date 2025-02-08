@@ -1514,6 +1514,7 @@ impl RemoteDiffModel {
         }
 
         let mut postpone_remove = Vec::new();
+        let mut never_remove = Vec::new();
 
         for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
@@ -1537,6 +1538,8 @@ impl RemoteDiffModel {
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
+                } else {
+                    never_remove.push(lid);
                 }
                 damage.set_ui_report_damage(false)?;
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
@@ -1558,20 +1561,25 @@ impl RemoteDiffModel {
         }
 
         for lid in self.pending_remove.drain(..) {
-            if postpone_remove.contains(&lid) {
-                continue;
-            }
-            if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
-                safe_entitykill(entity);
-            }
             self.entity_infos.remove(&lid);
+            if !postpone_remove.contains(&lid) {
+                if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
+                    safe_entitykill(entity);
+                }
+            }
         }
 
         for lid in to_remove {
             self.entity_infos.remove(&lid);
         }
 
-        self.pending_remove.extend_from_slice(&postpone_remove);
+        self.pending_remove.extend_from_slice(
+            &postpone_remove
+                .iter()
+                .filter(|l| !never_remove.contains(l))
+                .cloned()
+                .collect::<Vec<Lid>>(),
+        );
 
         Ok(())
     }
