@@ -98,7 +98,8 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
         || entity.has_tag("gold_nugget")
         || entity.has_tag("nightmare_starting_wand")
         || ENTITY_EXCLUDES.contains(&filename)
-        || filename.starts_with(good))
+        || filename.starts_with(good)
+        || entity.root()? != Some(entity))
 }
 
 impl EntitySync {
@@ -157,6 +158,8 @@ impl EntitySync {
                 "data/entities/animals/boss_centipede/reference_point.xml",
                 "data/entities/buildings/failed_alchemist_orb.xml",
                 "data/entities/buildings/lukki_eggs.xml",
+                "data/entities/buildings/snowcrystal.xml",
+                "data/entities/buildings/hpcrystal.xml",
             ]
             .contains(&file_name.as_str())
             || entity_is_item(entity)?;
