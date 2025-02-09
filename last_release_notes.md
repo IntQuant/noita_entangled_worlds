@@ -1,18 +1,16 @@
-## Noita Entangled Worlds v1.0.10
+## Noita Entangled Worlds v1.0.11
 
-- fix mom orbs
+- fix pickup radius of wands being small
 
-- fix a few errors
+- try to fix spells from going into walls
 
-- fix not alchemist duping still
+- add revive message
 
-- fix chest duping
+- fix stevari
 
-- tweak notplayer ai
+- fix houre
 
-- spawn sampo on death on perma death
-
-- dont insta game over if your dead and continue run as host
+- dont dupe tiny fungus and monsterous powder enemies
 
 ## Accepted pull requests
 

@@ -66,7 +66,7 @@ function ctx.add_hook(hook_name, system_name, fn)
 end
 
 function ctx.dofile_and_add_hooks(path, system_name)
-    print("Loading " .. path)
+    --print("Loading " .. path)
     system_name = system_name or path
     local result = dofile_once(path)
     for hook_name, fn in pairs(result) do

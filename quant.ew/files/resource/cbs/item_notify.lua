@@ -1,4 +1,4 @@
-function throw_item()
+--[[function throw_item()
     CrossCall("ew_thrown", GetUpdatedEntityID())
 end
 
@@ -9,4 +9,4 @@ function item_pickup()
         ComponentSetValue2(com, "permanently_attached", false)
     end
     CrossCall("ew_picked", ent)
-end
+end]]

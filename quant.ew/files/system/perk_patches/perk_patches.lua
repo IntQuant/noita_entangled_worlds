@@ -9,7 +9,7 @@ ModLuaFileAppend(
 )
 
 if ctx.proxy_opt.game_mode == "shared_health" then
-    print("Loading extra perk patches for shared health mode")
+    --print("Loading extra perk patches for shared health mode")
     ModLuaFileAppend(
         "data/scripts/perks/perk_list.lua",
         "mods/quant.ew/files/system/perk_patches/append/perks_shared.lua"

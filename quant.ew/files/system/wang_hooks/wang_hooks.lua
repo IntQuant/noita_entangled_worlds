@@ -146,7 +146,7 @@ local function patch_fn(color, orig_fn_name)
 end
 
 local function patch_file(filename)
-    print("Patching", filename)
+    --print("Patching", filename)
     local content = ModTextFileGetContent(filename)
     current_file = filename
     -- A textbook example of how to NOT use regular expressions.

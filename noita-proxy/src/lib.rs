@@ -374,7 +374,7 @@ impl Default for DefaultSettings {
             no_material_damage: false,
             global_hp_loss: false,
             perk_ban_list:
-                "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD"
+                "GLOBAL_GORE,GLASS_CANNON,REVENGE_RATS,PLAGUE_RATS,VOMIT_RATS,CORDYCEPS,MOLD,GOLD_IS_FOREVER"
                     .to_string(),
             physics_damage: true,
             share_gold: false,

@@ -78,5 +78,6 @@ if CrossCall ~= nil then
     s = CrossCall("ew_perk_ban_list")
 end
 for _, perk in ipairs(string_split(s, ",")) do
+    --print(perk)
     hide_perk(perk)
 end

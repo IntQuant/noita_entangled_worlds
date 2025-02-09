@@ -32,7 +32,7 @@ function net_handling.proxy.host_id(_, value)
 end
 
 function net_handling.proxy.proxy_opt(_, key, value)
-    print("Proxy opt [str]: " .. key .. " = " .. tostring(value))
+    --print("Proxy opt [str]: " .. key .. " = " .. tostring(value))
     ctx.proxy_opt[key] = value
 end
 
@@ -41,7 +41,7 @@ function net_handling.proxy.proxy_opt_num(_, key, value)
 end
 
 function net_handling.proxy.proxy_opt_bool(_, key, value)
-    print("Proxy opt [bool]: " .. key .. " = " .. value)
+    --print("Proxy opt [bool]: " .. key .. " = " .. value)
     ctx.proxy_opt[key] = value == "true"
 end
 

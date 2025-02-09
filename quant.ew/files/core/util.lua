@@ -235,7 +235,7 @@ function util.replace_text_in(filename, pattern, to)
     local res_text = string.gsub(initial_text, pattern, to)
     if initial_text ~= res_text then
         ModTextFileSetContent(filename, res_text)
-        print(" Replaced text in " .. filename)
+        --print(" Replaced text in " .. filename)
     end
 end
 
@@ -264,7 +264,7 @@ function util.add_tag_to(filename, tag)
     -- Tag list is cached, update it.
     table.insert(current_tags, tag)
 
-    print(" Adding tag " .. tag .. " to " .. filename)
+    --print(" Adding tag " .. tag .. " to " .. filename)
     local content = ModTextFileGetContent(filename)
     content = string.gsub(content, "Entity(.-)>", function(inner)
         local changed_tags = false
