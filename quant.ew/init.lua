@@ -300,6 +300,17 @@ function OnProjectileFired(
         end
     end
     np.SetProjectileSpreadRNG(rng)
+    if shooter_player_data.peer_id ~= ctx.my_id then
+        for _, com in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
+            local s = ComponentGetValue2(com, "script_source_file")
+            if
+                s == "data/entities/projectiles/deck/pebble_player.xml"
+                or s == "data/scripts/animals/wand_ghost.lua"
+            then
+                EntityRemoveComponent(projectile_id, com)
+            end
+        end
+    end
 end
 
 function OnProjectileFiredPost(
