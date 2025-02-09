@@ -298,7 +298,7 @@ fn with_every_module(
             net,
             player_map: &mut state.player_entity_map,
             fps_by_player: &mut state.fps_by_player,
-            sync_rate: state.sync_rate,
+            sync_rate: state.sync_rate as usize,
             dont_spawn: &state.dont_spawn,
         };
         let mut errs = Vec::new();

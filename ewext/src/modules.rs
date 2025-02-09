@@ -13,7 +13,7 @@ pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
     pub(crate) fps_by_player: &'a mut FxHashMap<PeerId, u8>,
-    pub(crate) sync_rate: i32,
+    pub(crate) sync_rate: usize,
     pub(crate) dont_spawn: &'a FxHashSet<Gid>,
 }
 impl ModuleCtx<'_> {
