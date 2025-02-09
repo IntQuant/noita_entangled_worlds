@@ -14,11 +14,10 @@ function rpc.spawn_stevari(pos_x, pos_y)
 
     if guard_spawn_id ~= 0 then
         guard_x, guard_y = EntityGetTransform(guard_spawn_id)
-
         EntityKill(guard_spawn_id)
     end
 
-    if ctx.is_host then
+    if ctx.rpc_peer_id == ctx.my_id then
         EntityLoad("data/entities/misc/spawn_necromancer_shop.xml", guard_x, guard_y)
     else
         EntityLoad("mods/quant.ew/files/system/stevari/spawn_necromancer_shop.xml", guard_x, guard_y)
