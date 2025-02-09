@@ -166,9 +166,11 @@ end
 
 local exists
 
+local new_ents = {}
+
 function mod.on_new_entity(ent)
     if ctx.is_host then
-        update(ent, 1)
+        table.insert(new_ents, ent)
     end
 end
 
@@ -226,6 +228,10 @@ function mod.on_world_pre_update()
             count2 = count2 - update(ent, count2)
         end
     end
+    for _, ent in ipairs(new_ents) do
+        update(ent, 1)
+    end
+    new_ents = {}
     if exists then
         net.proxy_send("flush_exp", "")
         exists = nil
