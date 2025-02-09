@@ -90,9 +90,11 @@ end
 
 function tele.on_world_update()
     for _, ent in ipairs(last_wait) do
-        local lst = PhysicsBodyIDGetFromEntity(ent)
-        if lst ~= nil and #lst ~= 0 then
-            ent_to_body[ent] = lst
+        if EntityGetIsAlive(ent) then
+            local lst = PhysicsBodyIDGetFromEntity(ent)
+            if lst ~= nil and #lst ~= 0 then
+                ent_to_body[ent] = lst
+            end
         end
     end
     last_wait = wait_for_ent
@@ -101,6 +103,8 @@ function tele.on_world_update()
         for ent, _ in pairs(ent_to_body) do
             if not EntityGetIsAlive(ent) then
                 ent_to_body[ent] = nil
+            else
+                ent_to_body[ent] = PhysicsBodyIDGetFromEntity(ent)
             end
         end
     end
