@@ -58,53 +58,48 @@ function rpc.got_flag_slow(peer_id, state, ent)
     end
 end
 
-local last = 0
-function module.on_world_update()
-    local n = EntitiesGetMaxID()
-    for ent = last + 1, n do
-        if EntityGetIsAlive(ent) and not EntityHasTag(ent, "ew_des") and EntityGetRootEntity(ent) == ent then
-            local f = EntityGetFilename(ent)
-            local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
-            local x, y = EntityGetTransform(ent)
-            local lx, ly = math.floor(x / 64), math.floor(y / 64)
-            if
-                f == "data/entities/misc/orb_07_pitcheck_b.xml"
-                or f == "data/entities/misc/orb_07_pitcheck_a.xml"
-                or f == "data/entities/buildings/maggotspot.xml"
-                or f == "data/entities/buildings/essence_eater.xml"
-                or f == "data/entities/props/music_machines/music_machine_00.xml"
-                or f == "data/entities/props/music_machines/music_machine_01.xml"
-                or f == "data/entities/props/music_machines/music_machine_02.xml"
-                or f == "data/entities/props/music_machines/music_machine_03.xml"
-                or f == "data/entities/animals/boss_fish/fish_giga.xml"
-                or f == "data/entities/items/pickup/potion_empty.xml"
-                or f == "data/entities/animals/chest_mimic.xml"
-                or f == "data/entities/animals/chest_leggy.xml"
-            then
-                local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
-                ewext.notrack(ent)
-                rpc.request_flag_slow(flag, ent)
-            elseif
-                (
-                    f == "data/entities/props/physics_fungus.xml"
-                    and (lx == -29 or lx == -28 or lx == -27)
-                    and (ly == -20 or ly == -19)
-                )
-                or (f == "data/entities/props/physics_fungus_big.xml" and lx == -29 and ly == -20)
-                or (f == "data/entities/props/physics_fungus_small.xml" and lx == -27 and ly == -19)
-                or (f == "data/entities/items/pickup/evil_eye.xml" and lx == -39 and ly == -4)
-            then
-                local flag = f .. ":" .. lx .. ":" .. ly
-                ewext.notrack(ent)
-                rpc.request_flag_slow(flag, ent)
-            elseif seed ~= nil then
-                local flag = f .. ":" .. ComponentGetValue2(seed, "pos_x") .. ":" .. ComponentGetValue2(seed, "pos_y")
-                ewext.notrack(ent)
-                rpc.request_flag_slow(flag, ent)
-            end
+function module.on_new_entity(ent)
+    if not EntityHasTag(ent, "ew_des") and EntityGetRootEntity(ent) == ent then
+        local f = EntityGetFilename(ent)
+        local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
+        local x, y = EntityGetTransform(ent)
+        local lx, ly = math.floor(x / 64), math.floor(y / 64)
+        if
+            f == "data/entities/misc/orb_07_pitcheck_b.xml"
+            or f == "data/entities/misc/orb_07_pitcheck_a.xml"
+            or f == "data/entities/buildings/maggotspot.xml"
+            or f == "data/entities/buildings/essence_eater.xml"
+            or f == "data/entities/props/music_machines/music_machine_00.xml"
+            or f == "data/entities/props/music_machines/music_machine_01.xml"
+            or f == "data/entities/props/music_machines/music_machine_02.xml"
+            or f == "data/entities/props/music_machines/music_machine_03.xml"
+            or f == "data/entities/animals/boss_fish/fish_giga.xml"
+            or f == "data/entities/items/pickup/potion_empty.xml"
+            or f == "data/entities/animals/chest_mimic.xml"
+            or f == "data/entities/animals/chest_leggy.xml"
+        then
+            local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
+            ewext.notrack(ent)
+            rpc.request_flag_slow(flag, ent)
+        elseif
+            (
+                f == "data/entities/props/physics_fungus.xml"
+                and (lx == -29 or lx == -28 or lx == -27)
+                and (ly == -20 or ly == -19)
+            )
+            or (f == "data/entities/props/physics_fungus_big.xml" and lx == -29 and ly == -20)
+            or (f == "data/entities/props/physics_fungus_small.xml" and lx == -27 and ly == -19)
+            or (f == "data/entities/items/pickup/evil_eye.xml" and lx == -39 and ly == -4)
+        then
+            local flag = f .. ":" .. lx .. ":" .. ly
+            ewext.notrack(ent)
+            rpc.request_flag_slow(flag, ent)
+        elseif seed ~= nil then
+            local flag = f .. ":" .. ComponentGetValue2(seed, "pos_x") .. ":" .. ComponentGetValue2(seed, "pos_y")
+            ewext.notrack(ent)
+            rpc.request_flag_slow(flag, ent)
         end
     end
-    last = n
 end
 
 rpc.opts_reliable()

@@ -136,48 +136,6 @@ impl EntitySync {
         Ok(should_be_tracked && !entity_is_excluded(entity)?)
     }
 
-    /// Looks for newly spawned entities that might need to be tracked.
-    fn look_for_tracked(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        //let _tracker = TimeTracker::new("look_for_tracked");
-        let max_entity = EntityID::max_in_use()?;
-        for i in (self.look_current_entity.raw() + 1)..=max_entity.raw() {
-            let entity = EntityID::try_from(i)?;
-            if !entity.is_alive() || self.dont_track.remove(&entity) {
-                continue;
-            }
-            if let Ok(Some(gid)) = entity.handle_poly() {
-                self.dont_kill_by_gid.insert(gid);
-            }
-            if entity.has_tag(DES_TAG)
-                && !self.dont_kill.remove(&entity)
-                && entity
-                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                        None,
-                    )?
-                    .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
-                    .map(|var| {
-                        if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
-                            !self.dont_kill_by_gid.remove(&Gid(n))
-                        } else {
-                            true
-                        }
-                    })
-                    .unwrap_or(true)
-            {
-                entity.kill();
-                continue;
-            }
-            if self.should_be_tracked(entity)? {
-                let gid = Gid(rand::random());
-                self.local_diff_model
-                    .track_and_upload_entity(ctx.net, entity, gid)?;
-            }
-        }
-
-        self.look_current_entity = max_entity;
-        Ok(())
-    }
-
     pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
@@ -297,10 +255,43 @@ impl Module for EntitySync {
         Ok(())
     }
 
-    fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        self.look_for_tracked(ctx)
-            .wrap_err("Error in look_for_tracked")?;
+    /// Looks for newly spawned entities that might need to be tracked.
+    fn on_new_entity(&mut self, entity: EntityID, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+        if entity.0 < self.look_current_entity.0 {
+            return Ok(());
+        }
+        if !entity.is_alive() || self.dont_track.remove(&entity) {
+            return Ok(());
+        }
+        if let Ok(Some(gid)) = entity.handle_poly() {
+            self.dont_kill_by_gid.insert(gid);
+        }
+        if entity.has_tag(DES_TAG)
+            && !self.dont_kill.remove(&entity)
+            && entity
+                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+                .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
+                .map(|var| {
+                    if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
+                        !self.dont_kill_by_gid.remove(&Gid(n))
+                    } else {
+                        true
+                    }
+                })
+                .unwrap_or(true)
+        {
+            entity.kill();
+            return Ok(());
+        }
+        if self.should_be_tracked(entity)? {
+            let gid = Gid(rand::random());
+            self.local_diff_model
+                .track_and_upload_entity(ctx.net, entity, gid)?;
+        }
+        Ok(())
+    }
 
+    fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         self.interest_tracker.set_center(x, y);
         let frame_num = noita_api::raw::game_get_frame_num()?;

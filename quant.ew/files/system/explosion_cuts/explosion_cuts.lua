@@ -2,8 +2,6 @@ local mod = {}
 
 local alive = {}
 
-local last = 0
-
 local hole_last = {}
 
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
@@ -168,7 +166,13 @@ end
 
 local exists
 
-function mod.on_world_update()
+function mod.on_new_entity(ent)
+    if ctx.is_host then
+        update(ent, 1)
+    end
+end
+
+function mod.on_world_pre_update()
     if first then
         send_mats()
         rpc.check_mats(mats, true)
@@ -222,17 +226,10 @@ function mod.on_world_update()
             count2 = count2 - update(ent, count2)
         end
     end
-    local n = EntitiesGetMaxID()
-    for ent = last + 1, n do
-        if EntityGetIsAlive(ent) then
-            update(ent, 1)
-        end
-    end
     if exists then
         net.proxy_send("flush_exp", "")
         exists = nil
     end
-    last = n
 end
 
 return mod

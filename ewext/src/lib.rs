@@ -326,6 +326,11 @@ fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 
+fn module_on_new_entity(lua: LuaState) -> eyre::Result<()> {
+    let entity = EntityID::try_from(lua.to_string(1)?.parse::<isize>()?)?;
+    with_every_module(|ctx, module| module.on_new_entity(entity, ctx))
+}
+
 fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
     // Could be called while we do game_shoot_projectile call, leading to a deadlock.
     if IN_MODULE_LOCK.try_lock().is_err() {
@@ -463,6 +468,7 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
 
         add_lua_fn!(module_on_world_init);
         add_lua_fn!(module_on_world_update);
+        add_lua_fn!(module_on_new_entity);
         add_lua_fn!(module_on_projectile_fired);
 
         fn sync_projectile(lua: LuaState) -> eyre::Result<()> {

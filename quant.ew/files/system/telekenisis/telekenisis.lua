@@ -66,8 +66,6 @@ end
 
 local has_tele = false
 
-local last = 1
-
 local ent_to_body = {}
 
 local function body_to_ent(id)
@@ -82,23 +80,23 @@ end
 
 local sent_track_req = {}
 
+local wait_for_ent = {}
+
+local last_wait = {}
+
+function tele.on_new_entity(ent)
+    table.insert(wait_for_ent, ent)
+end
+
 function tele.on_world_update()
-    local n = EntitiesGetMaxID()
-    for ent = last + 1, n do
-        if EntityGetIsAlive(ent) then
-            async(function()
-                wait(1)
-                if EntityGetIsAlive(ent) then
-                    local lst = PhysicsBodyIDGetFromEntity(ent)
-                    if lst ~= nil and #lst ~= 0 then
-                        ent_to_body[ent] = lst
-                    end
-                end
-            end)
+    for _, ent in ipairs(last_wait) do
+        local lst = PhysicsBodyIDGetFromEntity(ent)
+        if lst ~= nil and #lst ~= 0 then
+            ent_to_body[ent] = lst
         end
     end
-    last = n
-
+    last_wait = wait_for_ent
+    wait_for_ent = {}
     if GameGetFrameNum() % 60 == 23 then
         for ent, _ in pairs(ent_to_body) do
             if not EntityGetIsAlive(ent) then

@@ -87,6 +87,10 @@ function module.on_world_update()
     ewext.module_on_world_update()
 end
 
+function module.on_new_entity(ent)
+    ewext.module_on_new_entity(ent)
+end
+
 function module.on_projectile_fired(
     shooter_id,
     projectile_id,

@@ -44,6 +44,10 @@ pub(crate) trait Module {
         Ok(())
     }
 
+    fn on_new_entity(&mut self, _entity: EntityID, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
+        Ok(())
+    }
+
     fn on_world_update(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
         Ok(())
     }

@@ -465,6 +465,8 @@ local function change_homing(x, y)
     end
 end
 
+local last_n = 1
+
 local function on_world_pre_update_inner()
     if ctx.my_player == nil or ctx.my_player.entity == nil then
         return
@@ -525,6 +527,13 @@ local function on_world_pre_update_inner()
     end
 
     if not ctx.run_ended then
+        local n = EntitiesGetMaxID()
+        for ent = last_n + 1, n do
+            if EntityGetIsAlive(ent) then
+                ctx.hook.on_new_entity(ent)
+            end
+        end
+        last_n = n
         if ctx.is_host then
             ctx.hook.on_world_update_host()
         else

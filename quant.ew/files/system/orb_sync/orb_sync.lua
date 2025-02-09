@@ -57,32 +57,27 @@ function rpc.update_orbs(found_orbs)
     actual_orbs_update(found_orbs)
 end
 
-local last = 0
-
-function module.on_world_update()
-    local found_local = orbs_found_this_run()
-    local n = EntitiesGetMaxID()
-    for ent = last + 1, n do
-        if EntityGetIsAlive(ent) then
-            local comp = EntityGetFirstComponent(ent, "OrbComponent")
-            if comp ~= nil then
-                local orb = ComponentGetValue2(comp, "orb_id")
-                if table.contains(found_local, orb) then
-                    EntityKill(ent)
-                end
-            elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
-                EntityKill(ent)
-            end
-            local com = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
-            if com ~= nil and ComponentGetValue2(com, "use_gun_script") then
-                com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
-                if com ~= nil then
-                    ComponentSetValue2(com, "item_pickup_radius", 256)
-                end
-            end
+function module.on_new_entity(ent)
+    local comp = EntityGetFirstComponent(ent, "OrbComponent")
+    if comp ~= nil then
+        local found_local = orbs_found_this_run()
+        local orb = ComponentGetValue2(comp, "orb_id")
+        if table.contains(found_local, orb) then
+            EntityKill(ent)
+        end
+    elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
+        EntityKill(ent)
+    end
+    local com = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
+    if com ~= nil and ComponentGetValue2(com, "use_gun_script") then
+        com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+        if com ~= nil then
+            ComponentSetValue2(com, "item_pickup_radius", 256)
         end
     end
-    last = n
+end
+
+function module.on_world_update()
     if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "polymorphed") then
         actual_orbs_update(wait_for_these)
         wait_for_these = nil
