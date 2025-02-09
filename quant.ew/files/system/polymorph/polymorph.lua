@@ -219,6 +219,12 @@ local function apply_seri_ent(player_data, seri_ent)
         player_fns.replace_player_entity(ent, player_data)
         player_data.currently_polymorphed = true
         ctx.hook.on_client_polymorphed(ctx.rpc_peer_id, player_data)
+        for _, lua in ipairs(EntityGetComponent(player_data.entity, "LuaComponent") or {}) do
+            local s = ComponentGetValue2(lua, "script_item_picked_up")
+            if s == "data/scripts/items/chest_leggy.lua" or s == "data/scripts/items/potion_mimic.lua" then
+                EntityRemoveComponent(player_data.entity, lua)
+            end
+        end
     else
         if player_data.currently_polymorphed then
             EntityKill(ctx.rpc_player_data.entity)

@@ -1585,13 +1585,19 @@ impl RemoteDiffModel {
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 } else {
+                    damage.set_kill_now(true)?;
                     never_remove.push(lid);
+                }
+                for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+                    if !lua.script_damage_received()?.is_empty() {
+                        entity.remove_component(*lua)?;
+                    }
                 }
                 damage.set_ui_report_damage(false)?;
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
-                    damage.hp()? + 0.1,
+                    f32::MAX as f64,
                     "DAMAGE_CURSE".into(), //TODO should be enum
                     "kill sync".into(),
                     "NONE".into(),
@@ -1675,7 +1681,11 @@ pub fn init_remote_entity(
     gid: Option<Gid>,
     drops_gold: bool,
 ) -> eyre::Result<()> {
+    if entity.has_tag("player_unit") {
+        entity.kill()
+    }
     entity.remove_all_components_of_type::<CameraBoundComponent>()?;
+    entity.remove_all_components_of_type::<StreamingKeepAliveComponent>()?;
     entity.remove_all_components_of_type::<CharacterPlatformingComponent>()?;
     entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
     entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;

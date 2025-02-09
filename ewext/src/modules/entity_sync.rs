@@ -55,6 +55,7 @@ pub(crate) struct EntitySync {
     spawn_once: Vec<(WorldPos, shared::SpawnOnce)>,
     real_sync_rate: usize,
     delta_sync_rate: usize,
+    kill_later: Vec<(EntityID, Option<PeerId>)>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -90,6 +91,7 @@ impl Default for EntitySync {
             spawn_once: Default::default(),
             real_sync_rate: 2,
             delta_sync_rate: 2,
+            kill_later: Vec::new(),
         }
     }
 }
@@ -103,7 +105,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
         || entity.has_tag("nightmare_starting_wand")
         || ENTITY_EXCLUDES.contains(&filename)
         || filename.starts_with(good)
-        || entity.name()? == "DEBUG_NAME:player"
+        || entity.has_tag("player_unit")
         || entity.root()? != Some(entity))
 }
 
@@ -320,6 +322,26 @@ impl Module for EntitySync {
             )?;
         }
 
+        for (entity, offending_peer) in self.kill_later.drain(..) {
+            if entity.is_alive() {
+                let responsible_entity = offending_peer
+                    .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                    .copied();
+                noita_api::raw::entity_inflict_damage(
+                    entity.raw() as i32,
+                    f32::MAX as f64,
+                    "DAMAGE_CURSE".into(), //TODO should be enum
+                    "kill sync".into(),
+                    "NONE".into(),
+                    0.0,
+                    0.0,
+                    responsible_entity.map(|e| e.raw() as i32),
+                    None,
+                    None,
+                    None,
+                )?;
+            }
+        }
         let len = self.spawn_once.len();
         if len > 0 {
             let batch_size = (len / 60).max(1);
@@ -346,24 +368,47 @@ impl Module for EntitySync {
                                     if let Some(damage) = entity
                                         .try_get_first_component::<DamageModelComponent>(None)?
                                     {
-                                        damage.set_ui_report_damage(false)?;
-                                        damage.set_hp(f32::MIN_POSITIVE as f64)?;
-                                        let responsible_entity = offending_peer
-                                            .and_then(|peer| ctx.player_map.get_by_left(&peer))
-                                            .copied();
-                                        noita_api::raw::entity_inflict_damage(
-                                            entity.raw() as i32,
-                                            damage.hp()? + 0.1,
-                                            "DAMAGE_CURSE".into(), //TODO should be enum
-                                            "kill sync".into(),
-                                            "NONE".into(),
-                                            0.0,
-                                            0.0,
-                                            responsible_entity.map(|e| e.raw() as i32),
-                                            None,
-                                            None,
-                                            None,
-                                        )?;
+                                        for lua in entity
+                                            .iter_all_components_of_type::<LuaComponent>(None)?
+                                        {
+                                            if !lua.script_damage_received()?.is_empty() {
+                                                entity.remove_component(*lua)?;
+                                            }
+                                        }
+                                        if entity.has_tag("boss_centipede") {
+                                            entity.set_components_with_tag_enabled(
+                                                "enabled_at_start".into(),
+                                                false,
+                                            )?;
+                                            entity.set_components_with_tag_enabled(
+                                                "disabled_at_start".into(),
+                                                true,
+                                            )?;
+                                            entity
+                                                .children(Some("protection".into()))
+                                                .iter()
+                                                .for_each(|ent| ent.kill());
+                                            damage.set_ui_report_damage(false)?;
+                                            self.kill_later.push((entity, *offending_peer))
+                                        } else {
+                                            damage.set_ui_report_damage(false)?;
+                                            let responsible_entity = offending_peer
+                                                .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                                                .copied();
+                                            noita_api::raw::entity_inflict_damage(
+                                                entity.raw() as i32,
+                                                f32::MAX as f64,
+                                                "DAMAGE_CURSE".into(), //TODO should be enum
+                                                "kill sync".into(),
+                                                "NONE".into(),
+                                                0.0,
+                                                0.0,
+                                                responsible_entity.map(|e| e.raw() as i32),
+                                                None,
+                                                None,
+                                                None,
+                                            )?;
+                                        }
                                     }
                                 }
                             }
