@@ -320,9 +320,13 @@ impl Module for EntitySync {
             )?;
         }
 
-        if frame_num % 60 == 57 {
-            let mut i = self.spawn_once.len();
-            while i != 0 {
+        let len = self.spawn_once.len();
+        if len > 0 {
+            let batch_size = (len / 60).max(1);
+            let start_index = (frame_num % 60) * batch_size;
+            let end_index = (start_index + batch_size).min(len);
+            let mut i = end_index;
+            while i > start_index {
                 i -= 1;
                 if i < self.spawn_once.len() {
                     let (pos, data) = &self.spawn_once[i];
@@ -394,11 +398,7 @@ impl Module for EntitySync {
             }
         }
 
-        {
-            //let _tracker = TimeTracker::new("update_pending_authority");
-            self.local_diff_model.update_pending_authority()?;
-        }
-
+        self.local_diff_model.update_pending_authority()?;
         let tmr = std::time::Instant::now();
         {
             let total_parts = self.real_sync_rate.max(1);
