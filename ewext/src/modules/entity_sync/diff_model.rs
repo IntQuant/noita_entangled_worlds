@@ -10,9 +10,10 @@ use noita_api::{
     CharacterDataComponent, CharacterPlatformingComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, GhostComponent, IKLimbAttackerComponent, IKLimbComponent,
     IKLimbWalkerComponent, IKLimbsAnimatorComponent, Inventory2Component, ItemComponent,
-    ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent, LuaComponent, PhysData,
-    PhysicsAIComponent, PhysicsBody2Component, PhysicsBodyComponent, SpriteComponent,
-    StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent, WormComponent,
+    ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent, LifetimeComponent,
+    LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, PhysicsBodyComponent,
+    SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent,
+    WormComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
@@ -1751,6 +1752,7 @@ pub fn init_remote_entity(
                 "data/scripts/buildings/statue_hand_state.lua",
                 "data/scripts/buildings/failed_alchemist_orb.lua",
                 "data/scripts/buildings/ghost_crystal.lua",
+                "data/scripts/buildings/snowcrystal.lua",
             ]
             .contains(&&*lua.script_source_file()?)
             || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_enabled_changed()?)
@@ -1779,6 +1781,11 @@ pub fn init_remote_entity(
         let lua = entity.add_component::<LuaComponent>()?;
         lua.set_script_death("data/scripts/animals/boss_dragon_death.lua".into())?;
         lua.set_execute_every_n_frame(-1)?;
+    }
+    if let Some(life) =
+        entity.try_get_first_component_including_disabled::<LifetimeComponent>(None)?
+    {
+        life.set_lifetime(i32::MAX)?;
     }
     if let Some(pickup) =
         entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?

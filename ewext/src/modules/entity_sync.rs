@@ -259,7 +259,7 @@ impl Module for EntitySync {
 
     /// Looks for newly spawned entities that might need to be tracked.
     fn on_new_entity(&mut self, entity: EntityID, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        if entity.0 < self.look_current_entity.0 {
+        if entity.0 <= self.look_current_entity.0 {
             return Ok(());
         }
         if !entity.is_alive() || self.dont_track.remove(&entity) {
