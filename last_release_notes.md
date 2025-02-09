@@ -1,16 +1,12 @@
-## Noita Entangled Worlds v1.0.11
+## Noita Entangled Worlds v1.1.0
 
-- fix pickup radius of wands being small
+- improve performance
 
-- try to fix spells from going into walls
+- fix fish visually
 
-- add revive message
+- fix snowcrystal having too many enemies
 
-- fix stevari
-
-- fix houre
-
-- dont dupe tiny fungus and monsterous powder enemies
+- probably fix telekenesis sometimes failing
 
 ## Accepted pull requests
 
