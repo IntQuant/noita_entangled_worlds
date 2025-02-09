@@ -642,6 +642,13 @@ function rpc.loss_hp()
     util.set_ent_health(ctx.my_player.entity, { (hp * p) / 100, (max_hp * p) / 100 })
 end
 
+rpc.opts_everywhere()
+function rpc.revive_message()
+    local dead_nickname = ctx.rpc_player_data.name
+    local full_msg = dead_nickname .. " revived"
+    GamePrint(full_msg)
+end
+
 -- Provides health capability
 ctx.cap.health = {
     --health = module.health,
@@ -666,6 +673,7 @@ ctx.cap.health = {
                 end)
                 return
             end
+            rpc.revive_message()
             local gold = get_gold()
             rpc.remove_homing(true)
             local item_data = inventory_helper.get_item_data(ctx.my_player)
