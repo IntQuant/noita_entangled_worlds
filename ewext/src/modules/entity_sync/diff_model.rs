@@ -737,10 +737,19 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn update_tracked_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
+    pub(crate) fn update_tracked_entities(
+        &mut self,
+        ctx: &mut ModuleCtx,
+        part: usize,
+        total: usize,
+    ) -> eyre::Result<()> {
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
+        let l = self.entity_entries.len();
+        let chunk_size = l.div_ceil(total);
+        let start = part * chunk_size;
+        let end = (start + chunk_size).min(l);
         for (
             &lid,
             EntityEntryPair {
@@ -748,7 +757,7 @@ impl LocalDiffModel {
                 current,
                 gid,
             },
-        ) in &mut self.entity_entries
+        ) in self.entity_entries.iter_mut().skip(start).take(end - start)
         {
             if let Err(error) = self
                 .tracker
@@ -761,7 +770,6 @@ impl LocalDiffModel {
         }
         Ok(())
     }
-
     pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
         let mut res = Vec::new();
         for (&lid, EntityEntryPair { last, current, gid }) in self.entity_entries.iter_mut() {
@@ -1150,9 +1158,18 @@ impl RemoteDiffModel {
         dont_kill
     }
 
-    pub(crate) fn apply_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
+    pub(crate) fn apply_entities(
+        &mut self,
+        ctx: &mut ModuleCtx,
+        part: usize,
+        total: usize,
+    ) -> eyre::Result<()> {
         let mut to_remove = Vec::new();
-        for (lid, entity_info) in &self.entity_infos {
+        let l = self.entity_infos.len();
+        let chunk_size = l.div_ceil(total);
+        let start = part * chunk_size;
+        let end = (start + chunk_size).min(l);
+        for (lid, entity_info) in self.entity_infos.iter().skip(start).take(end - start) {
             match self
                 .tracked
                 .get_by_left(lid)

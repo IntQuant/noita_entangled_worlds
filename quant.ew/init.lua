@@ -527,6 +527,7 @@ local function on_world_pre_update_inner()
     end
 
     if not ctx.run_ended then
+        --local ti = GameGetRealWorldTimeSinceStarted()
         local n = EntitiesGetMaxID()
         for ent = last_n + 1, n do
             if EntityGetIsAlive(ent) then
@@ -534,12 +535,24 @@ local function on_world_pre_update_inner()
             end
         end
         last_n = n
+        --local tf = GameGetRealWorldTimeSinceStarted()
         if ctx.is_host then
             ctx.hook.on_world_update_host()
         else
             ctx.hook.on_world_update_client()
         end
+        --local tf2 = GameGetRealWorldTimeSinceStarted()
         ctx.hook.on_world_update()
+        --[[local tf3 = GameGetRealWorldTimeSinceStarted()
+        if GameGetFrameNum() % 5 == 0 then
+            GamePrint(
+                math.ceil((tf - ti) * 1000000)
+                    .. " "
+                    .. math.ceil((tf2 - tf) * 1000000)
+                    .. " "
+                    .. math.ceil((tf3 - tf2) * 1000000)
+            )
+        end]]
     end
 
     if GameGetFrameNum() % 4 == 0 then

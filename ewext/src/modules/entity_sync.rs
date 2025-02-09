@@ -395,9 +395,14 @@ impl Module for EntitySync {
             self.local_diff_model.update_pending_authority()?;
         }
 
-        if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 0 {
+        {
+            let total_parts = ctx.sync_rate.max(1);
             self.local_diff_model
-                .update_tracked_entities(ctx)
+                .update_tracked_entities(
+                    ctx,
+                    (frame_num % total_parts) as usize,
+                    total_parts as usize,
+                )
                 .wrap_err("Failed to update locally tracked entities")?;
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
@@ -442,10 +447,15 @@ impl Module for EntitySync {
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         }
-        if ctx.sync_rate == 1 || frame_num % ctx.sync_rate == 1 {
+        {
             for (owner, remote_model) in &mut self.remote_models {
+                let total_parts = ctx.sync_rate.max(1);
                 remote_model
-                    .apply_entities(ctx)
+                    .apply_entities(
+                        ctx,
+                        (frame_num % total_parts) as usize,
+                        total_parts as usize,
+                    )
                     .wrap_err("Failed to apply entity infos")?;
                 for entity in remote_model.drain_backtrack() {
                     self.local_diff_model.track_and_upload_entity(
