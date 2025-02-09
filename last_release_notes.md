@@ -1,12 +1,16 @@
-## Noita Entangled Worlds v1.1.0
+## Noita Entangled Worlds v1.1.1
 
-- improve performance
+- fix kolmi mostly
 
-- fix fish visually
+- hopefully fix fake hm's
 
-- fix snowcrystal having too many enemies
+- fix pebble and summon taikisauva duping effect
 
-- probably fix telekenesis sometimes failing
+- fix some errors
+
+- try to fix player duping from des magically
+
+- try to fix leggy/potion mimic poly duping
 
 ## Accepted pull requests
 
