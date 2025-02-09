@@ -112,46 +112,50 @@ impl EntityID {
 
     pub fn kill(self) {
         // Shouldn't ever error.
-        let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
-        if !body_id.is_empty() {
-            for com in raw::entity_get_with_tag("ew_peer".into())
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|e| {
-                    e.map(|e| {
-                        e.try_get_first_component_including_disabled::<TelekinesisComponent>(None)
+        if self.is_alive() {
+            let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
+            if !body_id.is_empty() {
+                for com in raw::entity_get_with_tag("ew_peer".into())
+                    .unwrap_or_default()
+                    .iter()
+                    .filter_map(|e| {
+                        e.map(|e| {
+                            e.try_get_first_component_including_disabled::<TelekinesisComponent>(
+                                None,
+                            )
+                        })
                     })
-                })
-                .flatten()
-                .flatten()
-            {
-                if body_id.contains(&com.get_body_id()) {
-                    let _ = raw::component_set_value(*com, "mState", 0);
+                    .flatten()
+                    .flatten()
+                {
+                    if body_id.contains(&com.get_body_id()) {
+                        let _ = raw::component_set_value(*com, "mState", 0);
+                    }
                 }
-            }
-            if body_id.len()
-                != self
+                if body_id.len()
+                    != self
                     .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(None)
                     .iter()
                     .len()
                     + self
-                        .iter_all_components_of_type_including_disabled::<PhysicsBody2Component>(
-                            None,
-                        )
-                        .iter()
-                        .len()
-            {
-                for (i, id) in body_id.iter().enumerate() {
-                    let n = -10000.0;
-                    let _ = raw::physics_body_id_set_transform(
-                        *id,
-                        n + 64.0 * self.0.get() as f64,
-                        n + 64.0 * i as f64,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                    );
+                    .iter_all_components_of_type_including_disabled::<PhysicsBody2Component>(
+                        None,
+                    )
+                    .iter()
+                    .len()
+                {
+                    for (i, id) in body_id.iter().enumerate() {
+                        let n = -10000.0;
+                        let _ = raw::physics_body_id_set_transform(
+                            *id,
+                            n + 64.0 * self.0.get() as f64,
+                            n + 64.0 * i as f64,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                        );
+                    }
                 }
             }
         }

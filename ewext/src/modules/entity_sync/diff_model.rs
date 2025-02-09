@@ -555,7 +555,7 @@ impl LocalDiffModel {
         let lid = self.alloc_lid();
         let should_not_serialize = entity
             .remove_all_components_of_type::<CameraBoundComponent>()?
-            || !noita_api::raw::physics_body_id_get_from_entity(entity, None)
+            || (entity.is_alive() && !noita_api::raw::physics_body_id_get_from_entity(entity, None)
                 .unwrap_or_default()
                 .len()
                 != entity
@@ -567,7 +567,7 @@ impl LocalDiffModel {
                             None,
                         )
                         .iter()
-                        .len();
+                        .len());
         entity.add_tag(DES_TAG)?;
 
         self.tracker.tracked.insert(lid, entity);
@@ -1050,36 +1050,40 @@ fn check_all_phys_init(entity: EntityID) -> eyre::Result<bool> {
 }
 
 fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>> {
-    let phys_bodies =
-        noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
-    phys_bodies
-        .into_iter()
-        .map(|body| -> eyre::Result<Option<PhysBodyInfo>> {
-            Ok(
-                noita_api::raw::physics_body_id_get_transform(body)?.and_then(|data| {
-                    let PhysData {
-                        x,
-                        y,
-                        angle,
-                        vx,
-                        vy,
-                        av,
-                    } = data;
-                    let (x, y) =
-                        noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into())).ok()?;
-
-                    Some(PhysBodyInfo {
-                        x: x as f32,
-                        y: y as f32,
-                        angle,
-                        vx,
-                        vy,
-                        av,
-                    })
-                }),
-            )
-        })
-        .collect::<eyre::Result<Vec<_>>>()
+    if entity.is_alive() {
+        let phys_bodies =
+            noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
+        phys_bodies
+            .into_iter()
+            .map(|body| -> eyre::Result<Option<PhysBodyInfo>> {
+                Ok(
+                    noita_api::raw::physics_body_id_get_transform(body)?.and_then(|data| {
+                        let PhysData {
+                            x,
+                            y,
+                            angle,
+                            vx,
+                            vy,
+                            av,
+                        } = data;
+                        let (x, y) =
+                            noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))
+                                .ok()?;
+                        Some(PhysBodyInfo {
+                            x: x as f32,
+                            y: y as f32,
+                            angle,
+                            vx,
+                            vy,
+                            av,
+                        })
+                    }),
+                )
+            })
+            .collect::<eyre::Result<Vec<_>>>()
+    } else {
+        Ok(Vec::new())
+    }
 }
 
 impl RemoteDiffModel {
@@ -1373,7 +1377,10 @@ impl RemoteDiffModel {
                         }
                     }
 
-                    if !entity_info.phys.is_empty() && check_all_phys_init(entity)? {
+                    if !entity_info.phys.is_empty()
+                        && check_all_phys_init(entity)?
+                        && entity.is_alive()
+                    {
                         let phys_bodies =
                             noita_api::raw::physics_body_id_get_from_entity(entity, None)
                                 .unwrap_or_default();
