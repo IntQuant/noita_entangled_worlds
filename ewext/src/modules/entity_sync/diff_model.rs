@@ -1714,6 +1714,7 @@ pub fn init_remote_entity(
     if lid.is_some() {
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
             damage.set_wait_for_kill_flag_on_death(true)?;
+            damage.set_physics_objects_damage(false)?;
         }
     }
 

@@ -87,7 +87,7 @@ impl Default for EntitySync {
             dont_kill_by_gid: Default::default(),
             dont_track: Default::default(),
             spawn_once: Default::default(),
-            real_sync_rate: 0,
+            real_sync_rate: 2,
         }
     }
 }
