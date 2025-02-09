@@ -54,6 +54,7 @@ pub(crate) struct EntitySync {
     dont_track: FxHashSet<EntityID>,
     spawn_once: Vec<(WorldPos, shared::SpawnOnce)>,
     real_sync_rate: usize,
+    delta_sync_rate: usize,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -88,6 +89,7 @@ impl Default for EntitySync {
             dont_track: Default::default(),
             spawn_once: Default::default(),
             real_sync_rate: 2,
+            delta_sync_rate: 2,
         }
     }
 }
@@ -398,12 +400,14 @@ impl Module for EntitySync {
         }
 
         let tmr = std::time::Instant::now();
-        self.real_sync_rate = self.real_sync_rate.max(ctx.sync_rate);
-        //noita_api::game_print(self.real_sync_rate.to_string());
         {
             let total_parts = self.real_sync_rate.max(1);
             self.local_diff_model
-                .update_tracked_entities(ctx, frame_num % total_parts, total_parts)
+                .update_tracked_entities(
+                    ctx,
+                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
+                    total_parts,
+                )
                 .wrap_err("Failed to update locally tracked entities")?;
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
@@ -452,7 +456,11 @@ impl Module for EntitySync {
             for (owner, remote_model) in &mut self.remote_models {
                 let total_parts = self.real_sync_rate.max(1);
                 remote_model
-                    .apply_entities(ctx, frame_num % total_parts, total_parts)
+                    .apply_entities(
+                        ctx,
+                        frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
+                        total_parts,
+                    )
                     .wrap_err("Failed to apply entity infos")?;
                 for entity in remote_model.drain_backtrack() {
                     self.local_diff_model.track_and_upload_entity(
@@ -471,12 +479,20 @@ impl Module for EntitySync {
                 }
             }
         }
-        let ms = tmr.elapsed().as_millis();
-        if ms > 3 {
-            self.real_sync_rate = self.real_sync_rate.saturating_add(1)
-        } else if ms < 2 {
-            self.real_sync_rate = self.real_sync_rate.saturating_sub(1)
-        };
+        if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
+            == self.real_sync_rate - 1
+        {
+            let ms = tmr.elapsed().as_micros();
+            if ms > 3000 {
+                self.real_sync_rate = self.real_sync_rate.saturating_add(1)
+            } else if ms < 2000 {
+                self.real_sync_rate = self.real_sync_rate.saturating_sub(1)
+            };
+            self.real_sync_rate = self
+                .real_sync_rate
+                .clamp(ctx.sync_rate, 10 * (ctx.sync_rate + 1));
+            self.delta_sync_rate = (frame_num + 1) % self.real_sync_rate;
+        }
 
         if frame_num % 60 == 47 {
             let (x, y) = noita_api::raw::game_get_camera_pos()?;
