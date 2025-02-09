@@ -182,7 +182,7 @@ impl LocalDiffModelTracker {
             return Ok(());
         }
 
-        let (x, y, r, sx, _) = entity.transform()?;
+        let (x, y, r, sx, sy) = entity.transform()?;
         let should_send_position =
             if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
                 !com.play_hover_animation()?
@@ -392,7 +392,7 @@ impl LocalDiffModelTracker {
                 info.ai_rotation = ai.m_ranged_attack_current_aim_angle()?;
             }
         } else if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
-            info.facing_direction = sx.is_sign_positive();
+            info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
             info.animations = sprites
                 .filter_map(|sprite| {
                     let file = sprite.image_file().ok()?;
@@ -663,7 +663,7 @@ impl LocalDiffModel {
                     cost: 0,
                     game_effects: Vec::new(),
                     current_stains: 0,
-                    facing_direction: false,
+                    facing_direction: (false, false),
                     animations: Vec::new(),
                     wand: None,
                     is_global,
@@ -1457,7 +1457,12 @@ impl RemoteDiffModel {
                             })
                             .zip(entity_info.animations.iter())
                         {
-                            sprite.set_special_scale_x(if entity_info.facing_direction {
+                            sprite.set_special_scale_x(if entity_info.facing_direction.0 {
+                                1.0
+                            } else {
+                                -1.0
+                            })?;
+                            sprite.set_special_scale_y(if entity_info.facing_direction.1 {
                                 1.0
                             } else {
                                 -1.0

@@ -113,7 +113,7 @@ pub struct EntityInfo {
     pub ai_state: i32,
     pub laser: Option<PeerId>,
     pub ai_rotation: f32,
-    pub facing_direction: bool,
+    pub facing_direction: (bool, bool),
     pub is_enabled: bool, //for kolmi/runestones/etc
     pub counter: u8,      //for mom orbs/dragon has death script/etc
                           //pub synced_var: Vec<(String, i32, f32, bool)>, for mod compat maybe
@@ -141,7 +141,7 @@ pub enum EntityUpdate {
     SetCost(i64),
     SetLaser(Option<PeerId>),
     SetStains(u64),
-    SetFacingDirection(bool),
+    SetFacingDirection((bool, bool)),
     SetAnimations(Vec<u16>),
     SetGameEffects(Vec<GameEffectData>),
     SetWand(Option<(Option<Gid>, Vec<u8>)>),
