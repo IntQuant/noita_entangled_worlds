@@ -1050,7 +1050,8 @@ fn check_all_phys_init(entity: EntityID) -> eyre::Result<bool> {
 }
 
 fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>> {
-    let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)?;
+    let phys_bodies =
+        noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
     phys_bodies
         .into_iter()
         .map(|body| -> eyre::Result<Option<PhysBodyInfo>> {
@@ -1374,7 +1375,8 @@ impl RemoteDiffModel {
 
                     if !entity_info.phys.is_empty() && check_all_phys_init(entity)? {
                         let phys_bodies =
-                            noita_api::raw::physics_body_id_get_from_entity(entity, None)?;
+                            noita_api::raw::physics_body_id_get_from_entity(entity, None)
+                                .unwrap_or_default();
                         for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter())
                         {
                             let Some(p) = p else {
