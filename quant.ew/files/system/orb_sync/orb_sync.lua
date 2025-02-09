@@ -60,28 +60,33 @@ end
 local last = 0
 
 function module.on_world_update()
-    if GameGetFrameNum() % 4 == 3 then
-        local found_local = orbs_found_this_run()
-        local n = EntitiesGetMaxID()
-        for ent = last + 1, n do
-            if EntityGetIsAlive(ent) then
-                local comp = EntityGetFirstComponent(ent, "OrbComponent")
-                if comp ~= nil then
-                    local orb = ComponentGetValue2(comp, "orb_id")
-                    if table.contains(found_local, orb) then
-                        EntityKill(ent)
-                    end
-                elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
+    local found_local = orbs_found_this_run()
+    local n = EntitiesGetMaxID()
+    for ent = last + 1, n do
+        if EntityGetIsAlive(ent) then
+            local comp = EntityGetFirstComponent(ent, "OrbComponent")
+            if comp ~= nil then
+                local orb = ComponentGetValue2(comp, "orb_id")
+                if table.contains(found_local, orb) then
                     EntityKill(ent)
+                end
+            elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
+                EntityKill(ent)
+            end
+            local com = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
+            if com ~= nil and ComponentGetValue2(com, "use_gun_script") then
+                com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+                if com ~= nil then
+                    ComponentSetValue2(com, "item_pickup_radius", 256)
                 end
             end
         end
-        last = n
     end
+    last = n
     if wait_for_these ~= nil and not EntityHasTag(ctx.my_player.entity, "polymorphed") then
         actual_orbs_update(wait_for_these)
         wait_for_these = nil
-    elseif last_orb_count ~= GameGetOrbCountThisRun() or GameGetFrameNum() % (60 * 60) == 20 then
+    elseif last_orb_count ~= GameGetOrbCountThisRun() or GameGetFrameNum() % (60 * 5) == 23 then
         last_orb_count = GameGetOrbCountThisRun()
         rpc.update_orbs(orbs_found_this_run())
     end

@@ -297,6 +297,19 @@ impl LocalDiffModelTracker {
             (info.vx, info.vy) = vel.m_velocity()?;
         }
 
+        if entity.has_tag("card_action") {
+            if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
+                if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) > 256.0 * 256.0 {
+                    vel.set_gravity_y(0.0)?;
+                    vel.set_air_friction(10.0)?;
+                } else {
+                    vel.set_gravity_y(400.0)?;
+                    vel.set_air_friction(0.55)?;
+                }
+            }
+        }
+
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
             let hp = damage.hp()?;
             info.hp = hp as f32;
@@ -587,6 +600,13 @@ impl LocalDiffModel {
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(true)?;
+
+        if entity.has_tag("card_action") {
+            if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                vel.set_gravity_y(0.0)?;
+                vel.set_air_friction(10.0)?;
+            }
+        }
 
         if entity
             .try_get_first_component::<BossDragonComponent>(None)?
