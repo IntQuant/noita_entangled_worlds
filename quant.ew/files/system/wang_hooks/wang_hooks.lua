@@ -118,6 +118,9 @@ local allow_patching = {
     spawn_barricade = {},
     spawn_rock = {},
     spawn_scorpions = {},
+    --spawn_lamp = {},
+    --spawn_lamp2 = {},
+    --spawn_lamp_long = {},
 }
 
 local current_file

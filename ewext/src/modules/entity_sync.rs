@@ -24,7 +24,6 @@ use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
 };
 use std::sync::{Arc, LazyLock};
-use noita_api::raw::game_get_frame_num;
 mod diff_model;
 mod interest;
 
@@ -118,7 +117,6 @@ impl EntitySync {
             .collect::<Vec<(bool, PeerId)>>()
     }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
-        let file_name = entity.filename().unwrap_or_default();
         let should_be_tracked = [
             "enemy",
             "ew_synced",
@@ -133,37 +131,6 @@ impl EntitySync {
         ]
         .iter()
         .any(|tag| entity.has_tag(tag))
-            || [
-                "data/entities/buildings/essence_eater.xml",
-                "data/entities/animals/boss_fish/fish_giga.xml",
-                "data/entities/buildings/spittrap_left.xml",
-                "data/entities/buildings/spittrap_right.xml",
-                "data/entities/buildings/thundertrap_left.xml",
-                "data/entities/buildings/thundertrap_right.xml",
-                "data/entities/buildings/arrowtrap_left.xml",
-                "data/entities/buildings/arrowtrap_right.xml",
-                "data/entities/buildings/firetrap_left.xml",
-                "data/entities/buildings/firetrap_right.xml",
-                "data/entities/buildings/statue_trap_left.xml",
-                "data/entities/buildings/statue_trap_right.xml",
-                "data/entities/animals/boss_limbs/boss_limbs_trigger.xml",
-                "data/entities/animals/boss_spirit/spawner.xml",
-                "data/entities/misc/orb_07_pitcheck_a.xml",
-                "data/entities/misc/orb_07_pitcheck_b.xml",
-                "data/entities/buildings/maggotspot.xml",
-                "data/entities/buildings/dragonspot.xml",
-                "data/entities/buildings/wizardcave_gate.xml",
-                "data/entities/buildings/wallmouth.xml",
-                "data/entities/buildings/walleye.xml",
-                "data/entities/buildings/bunker.xml",
-                "data/entities/buildings/bunker2.xml",
-                "data/entities/animals/boss_centipede/reference_point.xml",
-                "data/entities/buildings/failed_alchemist_orb.xml",
-                "data/entities/buildings/lukki_eggs.xml",
-                "data/entities/buildings/snowcrystal.xml",
-                "data/entities/buildings/hpcrystal.xml",
-            ]
-            .contains(&file_name.as_str())
             || entity_is_item(entity)?;
 
         Ok(should_be_tracked && !entity_is_excluded(entity)?)
@@ -358,7 +325,7 @@ impl Module for EntitySync {
             )?;
         }
 
-        if game_get_frame_num()? % 60 == 57 {
+        if frame_num % 60 == 57 {
             let mut i = self.spawn_once.len();
             while i != 0 {
                 i -= 1;
@@ -371,9 +338,14 @@ impl Module for EntitySync {
                                 if let Ok(Some(entity)) =
                                     noita_api::raw::entity_load(file.into(), Some(x), Some(y))
                                 {
-                                    diff_model::init_remote_entity(entity, None, None, *drops_gold)?;
-                                    if let Some(damage) =
-                                        entity.try_get_first_component::<DamageModelComponent>(None)?
+                                    diff_model::init_remote_entity(
+                                        entity,
+                                        None,
+                                        None,
+                                        *drops_gold,
+                                    )?;
+                                    if let Some(damage) = entity
+                                        .try_get_first_component::<DamageModelComponent>(None)?
                                     {
                                         damage.set_ui_report_damage(false)?;
                                         damage.set_hp(f32::MIN_POSITIVE as f64)?;
@@ -502,7 +474,7 @@ impl Module for EntitySync {
             }
         }
 
-        if frame_num % 60 == 0 {
+        if frame_num % 60 == 47 {
             let (x, y) = noita_api::raw::game_get_camera_pos()?;
             ctx.net.send(&NoitaOutbound::DesToProxy(
                 shared::des::DesToProxy::RequestAuthority {
