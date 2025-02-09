@@ -79,13 +79,13 @@ end)
 
 local mod = {}
 
-local function bool_to_truefalse(v)
+--[[local function bool_to_truefalse(v)
     if v then
         return "true"
     else
         return "false"
     end
-end
+end]]
 
 function mod.on_world_update_post()
     local c_thrown = thrown

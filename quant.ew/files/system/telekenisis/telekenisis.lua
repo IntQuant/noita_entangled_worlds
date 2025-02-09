@@ -105,6 +105,9 @@ function tele.on_world_update()
                 ent_to_body[ent] = nil
             else
                 ent_to_body[ent] = PhysicsBodyIDGetFromEntity(ent)
+                if ent_to_body[ent] ~= nil and #ent_to_body[ent] == 0 then
+                    ent_to_body[ent] = nil
+                end
             end
         end
     end

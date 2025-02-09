@@ -3,6 +3,7 @@
  - `ctx.hook.on_world_initialized()` - called on OnWorldInitialized.
  - `ctx.hook.on_new_entity(ent)` - called on new alive entity.
  - `ctx.hook.on_world_update()` - called on OnWorldPreUpdate.
+ - `ctx.hook.on_world_update_post()` - called on OnWorldPostUpdate.
  - `ctx.hook.on_world_update_client()` - called on OnWorldPreUpdate, but only on clients.
  - `ctx.hook.on_world_update_host()` - called on OnWorldPreUpdate, but only on host.
  - `ctx.hook.on_new_player_seen(new_playerdata, player_count)` - called the first time player with this peer_id has entered the world.
