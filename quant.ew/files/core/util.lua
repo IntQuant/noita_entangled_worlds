@@ -341,6 +341,9 @@ end
 
 function util.serialize_entity(ent)
     -- Serialized entities usually get sent to other clients, and it's a very bad idea to try and send them another WorldState.
+    if ent == nil or not EntityGetIsAlive(ent) then
+        error("attempted to serialize nil entity")
+    end
     if util.is_world_state_entity_like(ent) then
         error("Tried to serialize WorldStateEntity")
     end
