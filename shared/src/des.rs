@@ -116,7 +116,7 @@ pub struct EntityInfo {
     pub facing_direction: (bool, bool),
     pub is_enabled: bool, //for kolmi/runestones/etc
     pub counter: u8,      //for mom orbs/dragon has death script/etc
-                          //pub synced_var: Vec<(String, i32, f32, bool)>, for mod compat maybe
+    pub synced_var: Vec<(String, String, i32, f32, bool)>,
 }
 //TODO authority transfers should serialize entities probably
 #[derive(Encode, Decode, Clone)]
@@ -150,6 +150,7 @@ pub enum EntityUpdate {
     SetLimbs(Vec<(f32, f32)>),
     SetIsEnabled(bool),
     SetCounter(u8),
+    SetSyncedVar(Vec<(String, String, i32, f32, bool)>),
 }
 
 #[derive(Encode, Decode, Clone)]

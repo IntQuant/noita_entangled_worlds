@@ -428,6 +428,21 @@ impl LocalDiffModelTracker {
             info.animations.clear()
         }
 
+        info.synced_var = entity
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(Some(
+                "ew_synced_var".into(),
+            ))?
+            .filter_map(|a| {
+                Some((
+                    a.name().ok()?.to_string(),
+                    a.value_string().ok()?.to_string(),
+                    a.value_int().ok()?,
+                    a.value_float().ok()?,
+                    a.value_bool().ok()?,
+                ))
+            })
+            .collect::<Vec<(String, String, i32, f32, bool)>>();
+
         Ok(())
     }
 
@@ -674,6 +689,7 @@ impl LocalDiffModel {
                     limbs: Vec::new(),
                     is_enabled: false,
                     counter: 0,
+                    synced_var: Vec::new(),
                 },
                 gid,
             },
@@ -852,6 +868,13 @@ impl LocalDiffModel {
                 &current.animations,
                 &mut last.animations,
                 EntityUpdate::SetAnimations(current.animations.clone()),
+                &mut res,
+                &mut had_any_delta,
+            );
+            diff(
+                &current.synced_var,
+                &mut last.synced_var,
+                EntityUpdate::SetSyncedVar(current.synced_var.clone()),
                 &mut res,
                 &mut had_any_delta,
             );
@@ -1152,6 +1175,7 @@ impl RemoteDiffModel {
                     EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
                     EntityUpdate::SetAiRotation(rot) => ent_data.ai_rotation = rot,
                     EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
+                    EntityUpdate::SetSyncedVar(vars) => ent_data.synced_var = vars,
                     EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
                     EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
                     EntityUpdate::CurrentEntity(_)
@@ -1203,6 +1227,13 @@ impl RemoteDiffModel {
                             }
                         }
                         continue;
+                    }
+                    for (name, s, i, f, b) in &entity_info.synced_var {
+                        let v = entity.get_var_or_default(name)?;
+                        v.set_value_string(s.into())?;
+                        v.set_value_int(*i)?;
+                        v.set_value_float(*f)?;
+                        v.set_value_bool(*b)?;
                     }
                     if entity.has_tag("boss_wizard") {
                         for ent in entity.children(None) {
