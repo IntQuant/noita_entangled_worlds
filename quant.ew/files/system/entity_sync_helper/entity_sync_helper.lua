@@ -36,7 +36,12 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
 end
 
 util.add_cross_call("ew_thrown", function(thrown_item)
-    if thrown_item ~= nil then
+    if
+        thrown_item ~= nil
+        and not EntityHasTag(thrown_item, "polymorphed_player")
+        and not EntityHasTag(thrown_item, "ew_peer")
+        and not EntityHasTag(thrown_item, "ew_client")
+    then
         table.insert(thrown, thrown_item)
     end
 end)
