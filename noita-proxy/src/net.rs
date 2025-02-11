@@ -111,44 +111,47 @@ enum FlagType {
     Stevari(String, i32, i32),
 }
 
-fn get_flags(flags: String) -> Vec<FlagType> {
-    flags
-        .split(',')
-        .filter_map(|s| {
-            let mut a = s.to_string();
-            if a.is_empty() {
-                return None;
-            }
-            match a.remove(0) {
-                '0' => Some(FlagType::Normal(a)),
-                '1' => {
-                    let c = a.split(' ').map(|a| a.to_string()).collect::<Vec<String>>();
-                    Some(FlagType::Slow(
-                        c[1].clone(),
-                        c[0].parse().unwrap_or_default(),
-                    ))
-                }
-                '2' => {
-                    let c = a.split(' ').map(|a| a.to_string()).collect::<Vec<String>>();
-                    Some(FlagType::Moon(
-                        c[3].clone(),
-                        c[0].parse().unwrap_or_default(),
-                        c[1].parse().unwrap_or_default(),
-                        c[2] == "1",
-                    ))
-                }
-                '3' => {
-                    let c = a.split(' ').map(|a| a.to_string()).collect::<Vec<String>>();
-                    Some(FlagType::Stevari(
-                        c[2].clone(),
-                        c[0].parse().unwrap_or_default(),
-                        c[1].parse().unwrap_or_default(),
-                    ))
-                }
-                _ => None,
-            }
-        })
-        .collect::<Vec<FlagType>>()
+fn get_flags(mut flags: String) -> Option<FlagType> {
+    if flags.is_empty() {
+        return None;
+    }
+    match flags.remove(0) {
+        '0' => Some(FlagType::Normal(flags)),
+        '1' => {
+            let c = flags
+                .split(' ')
+                .map(|a| a.to_string())
+                .collect::<Vec<String>>();
+            Some(FlagType::Slow(
+                c[1].clone(),
+                c[0].parse().unwrap_or_default(),
+            ))
+        }
+        '2' => {
+            let c = flags
+                .split(' ')
+                .map(|a| a.to_string())
+                .collect::<Vec<String>>();
+            Some(FlagType::Moon(
+                c[3].clone(),
+                c[0].parse().unwrap_or_default(),
+                c[1].parse().unwrap_or_default(),
+                c[2] == "1",
+            ))
+        }
+        '3' => {
+            let c = flags
+                .split(' ')
+                .map(|a| a.to_string())
+                .collect::<Vec<String>>();
+            Some(FlagType::Stevari(
+                c[2].clone(),
+                c[0].parse().unwrap_or_default(),
+                c[1].parse().unwrap_or_default(),
+            ))
+        }
+        _ => None,
+    }
 }
 
 pub struct NetManagerInit {
@@ -639,7 +642,7 @@ impl NetManager {
                 state.try_ms_write(&ws_encode_proxy("dc", src.as_hex()));
             }
             NetMsg::Flags(flags) => {
-                for flag in get_flags(flags) {
+                if let Some(flag) = get_flags(flags) {
                     match flag {
                         FlagType::Normal(flag) => {
                             let new = state.flags.insert(flag.clone());
@@ -659,19 +662,22 @@ impl NetManager {
                         }
                         FlagType::Moon(flag, x, y, b) => {
                             let new = state.flags.insert(flag);
-                            self.send(
-                                src,
-                                &NetMsg::RespondFlagMoon(x, y, b, new),
-                                Reliability::Reliable,
-                            )
+                            if new {
+                                self.send(
+                                    src,
+                                    &NetMsg::RespondFlagMoon(x, y, b),
+                                    Reliability::Reliable,
+                                )
+                            }
                         }
                         FlagType::Stevari(flag, x, y) => {
                             let new = state.flags.insert(flag);
-                            self.send(
-                                src,
-                                &NetMsg::RespondFlagStevari(x, y, new),
-                                Reliability::Reliable,
-                            )
+                            if new {
+                                self.broadcast(
+                                    &NetMsg::RespondFlagStevari(x, y, src),
+                                    Reliability::Reliable,
+                                )
+                            }
                         }
                     }
                 }
@@ -682,14 +688,14 @@ impl NetManager {
             NetMsg::RespondFlagSlow(ent, new) => {
                 state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{} {}", ent, new)));
             }
-            NetMsg::RespondFlagMoon(x, y, b, new) => {
-                state.try_ms_write(&ws_encode_proxy(
-                    "moon_flag",
-                    format!("{x} {y} {b} {}", new),
-                ));
+            NetMsg::RespondFlagMoon(x, y, b) => {
+                state.try_ms_write(&ws_encode_proxy("moon_flag", format!("{x} {y} {b}")));
             }
-            NetMsg::RespondFlagStevari(x, y, new) => {
-                state.try_ms_write(&ws_encode_proxy("stevari_flag", format!("{x} {y} {}", new)));
+            NetMsg::RespondFlagStevari(x, y, id) => {
+                state.try_ms_write(&ws_encode_proxy(
+                    "stevari_flag",
+                    format!("{x} {y} {}", id == self.peer.my_id()),
+                ));
             }
         }
     }

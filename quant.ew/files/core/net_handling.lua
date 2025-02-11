@@ -25,11 +25,44 @@ function net_handling.proxy.normal_flag(_, flag, new)
     end
 end
 
-function net_handling.proxy.slow_flag(_, ent, new) end
+function net_handling.proxy.slow_flag(_, ent, new)
+    if new then
+        if EntityGetIsAlive(ent) then
+            ewext.track(ent)
+        end
+    else
+        EntityKill(ent)
+    end
+end
 
-function net_handling.proxy.moon_flag(_, x, y, b, new) end
+function net_handling.proxy.moon_flag(_, x, y, b)
+    if b then
+        EntityLoad("data/entities/items/pickup/sun/newsun_dark.xml", x, y)
+    else
+        EntityLoad("data/entities/items/pickup/sun/newsun.xml", x, y)
+    end
+end
 
-function net_handling.proxy.stevari_flag(_, x, y, new) end
+function net_handling.proxy.stevari_flag(_, x, y, me)
+    if GlobalsGetValue("TEMPLE_PEACE_WITH_GODS") == "1" then
+        return
+    end
+
+    local guard_spawn_id = EntityGetClosestWithTag(x, y, "guardian_spawn_pos")
+    local guard_x = pos_x
+    local guard_y = pos_y
+
+    if guard_spawn_id ~= 0 then
+        guard_x, guard_y = EntityGetTransform(guard_spawn_id)
+        EntityKill(guard_spawn_id)
+    end
+
+    if me then
+        EntityLoad("data/entities/misc/spawn_necromancer_shop.xml", guard_x, guard_y)
+    else
+        EntityLoad("mods/quant.ew/files/system/stevari/spawn_necromancer_shop.xml", guard_x, guard_y)
+    end
+end
 
 function net_handling.proxy.peer_id(_, value)
     print("My peer_id: " .. value)

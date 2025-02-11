@@ -4,36 +4,18 @@ local net_handling = dofile_once("mods/quant.ew/files/core/net_handling.lua")
 local module = {}
 
 local function request_flag(flag)
-    net.send_flags(flag)
+    net.send_flags("0"..flag)
 end
 
 function module.request_flag(flag)
     local current = coroutine.running()
     net_handling.pending_requests[flag] = current
-    request_flag("0" .. flag)
+    request_flag(flag)
     return coroutine.yield()
 end
 
-rpc.opts_reliable()
-rpc.opts_everywhere()
-function rpc.request_flag_slow(flag, ent)
-    if ctx.is_host then
-        local res = GameHasFlagRun(flag)
-        GameAddFlagRun(flag)
-        rpc.got_flag_slow(ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate, ent)
-    end
-end
-
-rpc.opts_reliable()
-rpc.opts_everywhere()
-function rpc.got_flag_slow(peer_id, state, ent)
-    if peer_id == ctx.my_id then
-        if state then
-            ewext.track(ent)
-        else
-            EntityKill(ent)
-        end
-    end
+local function request_flag_slow(flag, ent)
+    net.send_flags("1" .. ent .." "..flag)
 end
 
 function module.on_new_entity(ent)
@@ -58,7 +40,7 @@ function module.on_new_entity(ent)
         then
             local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
             ewext.notrack(ent)
-            rpc.request_flag_slow(flag, ent)
+            request_flag_slow(flag, ent)
         elseif
             (
                 f == "data/entities/props/physics_fungus.xml"
@@ -71,40 +53,26 @@ function module.on_new_entity(ent)
         then
             local flag = f .. ":" .. lx .. ":" .. ly
             ewext.notrack(ent)
-            rpc.request_flag_slow(flag, ent)
+            request_flag_slow(flag, ent)
         elseif seed ~= nil then
             local flag = f .. ":" .. ComponentGetValue2(seed, "pos_x") .. ":" .. ComponentGetValue2(seed, "pos_y")
             ewext.notrack(ent)
-            rpc.request_flag_slow(flag, ent)
+            request_flag_slow(flag, ent)
         end
     end
 end
 
-rpc.opts_reliable()
-rpc.opts_everywhere()
-function rpc.request_moon_flag_slow(x, y, dark)
-    if ctx.is_host then
-        local flag = "ew_moon_spawn" .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
-        local res = GameHasFlagRun(flag)
-        GameAddFlagRun(flag)
-        rpc.got_flag_moon_slow(ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate, x, y, dark)
+local function request_moon_flag_slow(x, y, dark)
+    local flag = "ew_moon_spawn" .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
+    local b = "0"
+    if dark then
+        b = "1"
     end
-end
-
-rpc.opts_reliable()
-rpc.opts_everywhere()
-function rpc.got_flag_moon_slow(peer_id, state, x, y, dark)
-    if peer_id == ctx.my_id and state then
-        if dark then
-            EntityLoad("data/entities/items/pickup/sun/newsun_dark.xml", x, y)
-        else
-            EntityLoad("data/entities/items/pickup/sun/newsun.xml", x, y)
-        end
-    end
+    net.send_flags("2" .. math.floor(x) .. " " .. math.floor(y) .. " " .. b .." "..flag)
 end
 
 util.add_cross_call("ew_moon_spawn", function(x, y, dark)
-    rpc.request_moon_flag_slow(x, y, dark)
+    request_moon_flag_slow(x, y, dark)
 end)
 
 return module

@@ -32,8 +32,8 @@ pub(crate) enum NetMsg {
     Flags(String),
     RespondFlagNormal(String, bool),
     RespondFlagSlow(usize, bool),
-    RespondFlagMoon(i32, i32, bool, bool),
-    RespondFlagStevari(i32, i32, bool),
+    RespondFlagMoon(i32, i32, bool),
+    RespondFlagStevari(i32, i32, OmniPeerId),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {
