@@ -1,22 +1,18 @@
-## Noita Entangled Worlds v1.1.1
+## Noita Entangled Worlds v1.1.2
 
-- fix kolmi mostly
+- fix a crash
 
-- hopefully fix fake hm's
+- fix mimic potion poly duping
 
-- fix pebble and summon taikisauva duping effect
+- add ew_synced_var tag for mod compatability
 
-- fix some errors
+- maybe better implementation for ipv6
 
-- try to fix player duping from des magically
-
-- try to fix leggy/potion mimic poly duping
+- new flags system so new game as host does not wipe flags causing duping
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- Small tweak to player sync warning message by @Elliot-Roberts in #333
 ## Installation
 
 
