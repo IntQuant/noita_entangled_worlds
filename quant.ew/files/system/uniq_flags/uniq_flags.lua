@@ -1,4 +1,3 @@
-local rpc = net.new_rpc_namespace()
 local net_handling = dofile_once("mods/quant.ew/files/core/net_handling.lua")
 
 local module = {}

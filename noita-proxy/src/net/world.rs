@@ -172,12 +172,12 @@ impl ChunkState {
 // TODO handle exits.
 pub(crate) struct WorldManager {
     pub nice_terraforming: bool,
-    is_host: bool,
+    pub is_host: bool,
     my_pos: (i32, i32),
     cam_pos: (i32, i32),
     is_notplayer: bool,
     my_peer_id: OmniPeerId,
-    save_state: SaveState,
+    pub save_state: SaveState,
     /// We receive changes from other clients here, intending to send them to Noita.
     inbound_model: WorldModel,
     /// We use that to create changes to be sent to other clients.

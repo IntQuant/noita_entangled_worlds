@@ -339,7 +339,7 @@ impl NetManager {
             explosion_data: Vec::new(),
             des: DesManager::new(is_host, self.init_settings.save_state.clone()),
             had_a_disconnect: false,
-            flags: Default::default(),
+            flags: self.init_settings.save_state.load().unwrap_or_default(),
         };
         let mut last_iter = Instant::now();
         let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
@@ -1214,6 +1214,19 @@ impl Drop for NetManager {
             info!("Saved run info");
         } else {
             info!("Skip saving run info: not a host");
+        }
+    }
+}
+
+impl SaveStateEntry for FxHashSet<String> {
+    const FILENAME: &'static str = "flags";
+}
+
+impl Drop for NetInnerState {
+    fn drop(&mut self) {
+        if self.world.is_host {
+            self.world.save_state.save(&self.flags);
+            info!("Saved flag info");
         }
     }
 }

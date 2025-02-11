@@ -155,8 +155,8 @@ local function patch_file(filename)
         .. "\n"
         .. 'EW_CURRENT_FILE="'
         .. filename
-        .. '"\n'
-        .. "--dofile_once('mods/quant.ew/files/system/wang_hooks/synced_pixel_scenes.lua')\n"
+        --.. '"\n'
+        --.. "--dofile_once('mods/quant.ew/files/system/wang_hooks/synced_pixel_scenes.lua')\n"
 
     local wang_scripts = ModTextFileGetContent("data/scripts/wang_scripts.csv")
 
