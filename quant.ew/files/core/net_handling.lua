@@ -20,13 +20,14 @@ end
 function net_handling.proxy.normal_flag(_, flag, new)
     local coro = net_handling.pending_requests[flag]
     if coro ~= nil then
-        coroutine.resume(coro, new)
+        coroutine.resume(coro, new == "true")
         net_handling.pending_requests[flag] = nil
     end
 end
 
 function net_handling.proxy.slow_flag(_, ent, new)
-    if new then
+    ent = tonumber(ent)
+    if new == "true" then
         if EntityGetIsAlive(ent) then
             ewext.track(ent)
         end
@@ -35,7 +36,10 @@ function net_handling.proxy.slow_flag(_, ent, new)
     end
 end
 
-function net_handling.proxy.moon_flag(_, x, y, b)
+function net_handling.proxy.moon_flag(_, x, yb)
+    x = tonumber(x)
+    local y = tonumber(string.sub(yb, 1, -2))
+    local b = string.sub(yb, -1) == "1"
     if b then
         EntityLoad("data/entities/items/pickup/sun/newsun_dark.xml", x, y)
     else
@@ -43,21 +47,24 @@ function net_handling.proxy.moon_flag(_, x, y, b)
     end
 end
 
-function net_handling.proxy.stevari_flag(_, x, y, me)
+function net_handling.proxy.stevari_flag(_, x, yb)
     if GlobalsGetValue("TEMPLE_PEACE_WITH_GODS") == "1" then
         return
     end
+    x = tonumber(x)
+    local y = tonumber(string.sub(yb, 1, -2))
+    local b = string.sub(yb, -1) == "1"
 
     local guard_spawn_id = EntityGetClosestWithTag(x, y, "guardian_spawn_pos")
-    local guard_x = pos_x
-    local guard_y = pos_y
+    local guard_x = x
+    local guard_y = y
 
     if guard_spawn_id ~= 0 then
         guard_x, guard_y = EntityGetTransform(guard_spawn_id)
         EntityKill(guard_spawn_id)
     end
 
-    if me then
+    if b then
         EntityLoad("data/entities/misc/spawn_necromancer_shop.xml", guard_x, guard_y)
     else
         EntityLoad("mods/quant.ew/files/system/stevari/spawn_necromancer_shop.xml", guard_x, guard_y)

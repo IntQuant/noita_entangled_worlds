@@ -676,6 +676,11 @@ impl NetManager {
                                 self.broadcast(
                                     &NetMsg::RespondFlagStevari(x, y, src),
                                     Reliability::Reliable,
+                                );
+                                self.send(
+                                    self.peer.my_id(),
+                                    &NetMsg::RespondFlagStevari(x, y, src),
+                                    Reliability::Reliable,
                                 )
                             }
                         }
@@ -689,12 +694,15 @@ impl NetManager {
                 state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{} {}", ent, new)));
             }
             NetMsg::RespondFlagMoon(x, y, b) => {
-                state.try_ms_write(&ws_encode_proxy("moon_flag", format!("{x} {y} {b}")));
+                state.try_ms_write(&ws_encode_proxy(
+                    "moon_flag",
+                    format!("{x} {y}{}", if b { "1" } else { "0" }),
+                ));
             }
             NetMsg::RespondFlagStevari(x, y, id) => {
                 state.try_ms_write(&ws_encode_proxy(
                     "stevari_flag",
-                    format!("{x} {y} {}", id == self.peer.my_id()),
+                    format!("{x} {y}{}", if id == self.peer.my_id() { "1" } else { "0" }),
                 ));
             }
         }
