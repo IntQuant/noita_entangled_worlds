@@ -133,17 +133,17 @@ function rpc.check_gamemode(gamemode, seed, world_num, has_won)
 
     if not_fine then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different gamemode number then you")
-        GamePrint("his game mode: " .. gamemode)
+        GamePrint("their game mode: " .. gamemode)
         GamePrint("your game mode: " .. gm)
     end
     if my_seed ~= seed then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different seed then you")
-        GamePrint("his seed: " .. seed)
+        GamePrint("their seed: " .. seed)
         GamePrint("your seed: " .. my_seed)
     end
     if world_num ~= ctx.proxy_opt.world_num then
         GamePrint("Player: " .. ctx.rpc_player_data.name .. ", is on a different world number then you")
-        GamePrint("his num: " .. world_num)
+        GamePrint("their num: " .. world_num)
         GamePrint("your num: " .. ctx.proxy_opt.world_num)
         GamePrint("world sync stops from this")
     end
