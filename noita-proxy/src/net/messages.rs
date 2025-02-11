@@ -29,6 +29,11 @@ pub(crate) enum NetMsg {
     ForwardDesToProxy(shared::des::DesToProxy),
     ForwardProxyToDes(shared::des::ProxyToDes),
     NoitaDisconnected,
+    Flags(String),
+    RespondFlagNormal(String, bool),
+    RespondFlagSlow(usize, bool),
+    RespondFlagMoon(i32, i32, bool, bool),
+    RespondFlagStevari(i32, i32, bool),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

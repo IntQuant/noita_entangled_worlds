@@ -188,14 +188,20 @@ end
 local DEST_PROXY = 1
 local DEST_BROADCAST = 2
 local DEST_PROXY_BIN = 3
+local DEST_FLAGS = 0
 
-local MOD_RELIABLE = 4 -- 0b100
+local MOD_RELIABLE = 4 -- 0b101
 
 function net.send_internal(msg, dest, reliable)
     if reliable then
         dest = dest + MOD_RELIABLE
     end
     ewext.netmanager_send(string.char(dest) .. msg)
+end
+
+function net.send_flags(flags)
+    local dest = DEST_FLAGS + MOD_RELIABLE
+    ewext.netmanager_send(string.char(dest) .. flags)
 end
 
 function net.send(key, value, reliable)

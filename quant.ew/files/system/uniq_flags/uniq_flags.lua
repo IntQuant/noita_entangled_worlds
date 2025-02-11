@@ -1,38 +1,16 @@
 local rpc = net.new_rpc_namespace()
+local net_handling = dofile_once("mods/quant.ew/files/core/net_handling.lua")
 
 local module = {}
 
-local pending_requests = {}
-
-rpc.opts_reliable()
-function rpc.request_flag(flag)
-    if ctx.is_host then
-        local res = GameHasFlagRun(flag)
-        GameAddFlagRun(flag)
-        rpc.got_flag(flag, ctx.rpc_peer_id, not res or ctx.proxy_opt.duplicate)
-    end
-end
-
-rpc.opts_reliable()
-function rpc.got_flag(flag, peer_id, state)
-    if peer_id == ctx.my_id then
-        local coro = pending_requests[flag]
-        if coro ~= nil then
-            coroutine.resume(coro, state)
-        end
-    end
+local function request_flag(flag)
+    net.send_flags(flag)
 end
 
 function module.request_flag(flag)
-    if ctx.is_host then
-        local res = GameHasFlagRun(flag)
-        GameAddFlagRun(flag)
-        return not res
-    end
-
     local current = coroutine.running()
-    pending_requests[flag] = current
-    rpc.request_flag(flag)
+    net_handling.pending_requests[flag] = current
+    request_flag("0" .. flag)
     return coroutine.yield()
 end
 

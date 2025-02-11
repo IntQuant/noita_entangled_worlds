@@ -3,6 +3,7 @@ local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 local net_handling = {
     proxy = {},
     mod = {},
+    pending_requests = {},
 }
 
 function net_handling.proxy.seed(_, value)
@@ -15,6 +16,20 @@ function net_handling.proxy.seed(_, value)
         SetRandomSeed(seed, 141)
     end
 end
+
+function net_handling.proxy.normal_flag(_, flag, new)
+    local coro = net_handling.pending_requests[flag]
+    if coro ~= nil then
+        coroutine.resume(coro, new)
+        net_handling.pending_requests[flag] = nil
+    end
+end
+
+function net_handling.proxy.slow_flag(_, ent, new) end
+
+function net_handling.proxy.moon_flag(_, x, y, b, new) end
+
+function net_handling.proxy.stevari_flag(_, x, y, new) end
 
 function net_handling.proxy.peer_id(_, value)
     print("My peer_id: " .. value)

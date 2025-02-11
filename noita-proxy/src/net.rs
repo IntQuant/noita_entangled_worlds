@@ -5,6 +5,7 @@ use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
+use rustc_hash::FxHashSet;
 use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
 use socket2::{Domain, Socket, Type};
@@ -79,6 +80,7 @@ pub(crate) struct NetInnerState {
     explosion_data: Vec<ExplosionData>,
     des: DesManager,
     had_a_disconnect: bool,
+    flags: FxHashSet<String>,
 }
 
 impl NetInnerState {
@@ -101,6 +103,53 @@ impl NetInnerState {
 }
 
 pub mod omni;
+
+enum FlagType {
+    Normal(String),
+    Slow(String, usize),
+    Moon(String, i32, i32, bool),
+    Stevari(String, i32, i32),
+}
+
+fn get_flags(flags: String) -> Vec<FlagType> {
+    flags
+        .split(',')
+        .filter_map(|s| {
+            let mut a = s.to_string();
+            if a.is_empty() {
+                return None;
+            }
+            match a.remove(0) {
+                '0' => Some(FlagType::Normal(a)),
+                '1' => {
+                    let c = a.split(' ').map(|a| a.to_string()).collect::<Vec<String>>();
+                    Some(FlagType::Slow(
+                        c[1].clone(),
+                        c[0].parse().unwrap_or_default(),
+                    ))
+                }
+                '2' => {
+                    let c = a.split(' ').map(|a| a.to_string()).collect::<Vec<String>>();
+                    Some(FlagType::Moon(
+                        c[3].clone(),
+                        c[0].parse().unwrap_or_default(),
+                        c[1].parse().unwrap_or_default(),
+                        c[2] == "1",
+                    ))
+                }
+                '3' => {
+                    let c = a.split(' ').map(|a| a.to_string()).collect::<Vec<String>>();
+                    Some(FlagType::Stevari(
+                        c[2].clone(),
+                        c[0].parse().unwrap_or_default(),
+                        c[1].parse().unwrap_or_default(),
+                    ))
+                }
+                _ => None,
+            }
+        })
+        .collect::<Vec<FlagType>>()
+}
 
 pub struct NetManagerInit {
     pub my_nickname: String,
@@ -287,6 +336,7 @@ impl NetManager {
             explosion_data: Vec::new(),
             des: DesManager::new(is_host, self.init_settings.save_state.clone()),
             had_a_disconnect: false,
+            flags: Default::default(),
         };
         let mut last_iter = Instant::now();
         let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
@@ -588,6 +638,59 @@ impl NetManager {
                 )));
                 state.try_ms_write(&ws_encode_proxy("dc", src.as_hex()));
             }
+            NetMsg::Flags(flags) => {
+                for flag in get_flags(flags) {
+                    match flag {
+                        FlagType::Normal(flag) => {
+                            let new = state.flags.insert(flag.clone());
+                            self.send(
+                                src,
+                                &NetMsg::RespondFlagNormal(flag, new),
+                                Reliability::Reliable,
+                            )
+                        }
+                        FlagType::Slow(flag, ent) => {
+                            let new = state.flags.insert(flag);
+                            self.send(
+                                src,
+                                &NetMsg::RespondFlagSlow(ent, new),
+                                Reliability::Reliable,
+                            )
+                        }
+                        FlagType::Moon(flag, x, y, b) => {
+                            let new = state.flags.insert(flag);
+                            self.send(
+                                src,
+                                &NetMsg::RespondFlagMoon(x, y, b, new),
+                                Reliability::Reliable,
+                            )
+                        }
+                        FlagType::Stevari(flag, x, y) => {
+                            let new = state.flags.insert(flag);
+                            self.send(
+                                src,
+                                &NetMsg::RespondFlagStevari(x, y, new),
+                                Reliability::Reliable,
+                            )
+                        }
+                    }
+                }
+            }
+            NetMsg::RespondFlagNormal(flag, new) => {
+                state.try_ms_write(&ws_encode_proxy("normal_flag", format!("{} {}", flag, new)));
+            }
+            NetMsg::RespondFlagSlow(ent, new) => {
+                state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{} {}", ent, new)));
+            }
+            NetMsg::RespondFlagMoon(x, y, b, new) => {
+                state.try_ms_write(&ws_encode_proxy(
+                    "moon_flag",
+                    format!("{x} {y} {b} {}", new),
+                ));
+            }
+            NetMsg::RespondFlagStevari(x, y, new) => {
+                state.try_ms_write(&ws_encode_proxy("stevari_flag", format!("{x} {y} {}", new)));
+            }
         }
     }
 
@@ -749,6 +852,11 @@ impl NetManager {
                     }
                     // Binary message to proxy
                     3 => self.handle_bin_message_to_proxy(&raw_msg[1..], state),
+                    0 => {
+                        let flags = String::from_utf8_lossy(&raw_msg[1..]).into();
+                        let msg = NetMsg::Flags(flags);
+                        self.send(self.peer.host_id(), &msg, Reliability::Reliable)
+                    }
                     msg_variant => {
                         error!("Unknown msg variant from mod: {}", msg_variant)
                     }
@@ -832,6 +940,7 @@ impl NetManager {
             Some("reset_world") => {
                 state.world.reset();
                 state.des.reset();
+                state.flags.clear();
             }
             Some("material_list") => {
                 state.world.materials.clear();
@@ -1003,6 +1112,7 @@ impl NetManager {
             *self.settings.lock().unwrap() = settings.clone();
             state.world.reset();
             state.des.reset();
+            state.flags.clear();
             self.dirty.store(false, Ordering::Relaxed);
         }
         self.resend_game_settings();
