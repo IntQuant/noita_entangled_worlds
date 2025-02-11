@@ -3,7 +3,7 @@ local net_handling = dofile_once("mods/quant.ew/files/core/net_handling.lua")
 local module = {}
 
 local function request_flag(flag)
-    net.send_flags("0"..flag)
+    net.send_flags("0" .. flag)
 end
 
 function module.request_flag(flag)
@@ -14,7 +14,7 @@ function module.request_flag(flag)
 end
 
 local function request_flag_slow(flag, ent)
-    net.send_flags("1" .. ent .." "..flag)
+    net.send_flags("1" .. ent .. " " .. flag)
 end
 
 function module.on_new_entity(ent)
@@ -67,7 +67,7 @@ local function request_moon_flag_slow(x, y, dark)
     if dark then
         b = "1"
     end
-    net.send_flags("2" .. math.floor(x) .. " " .. math.floor(y) .. " " .. b .." "..flag)
+    net.send_flags("2" .. math.floor(x) .. " " .. math.floor(y) .. " " .. b .. " " .. flag)
 end
 
 util.add_cross_call("ew_moon_spawn", function(x, y, dark)

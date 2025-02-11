@@ -1,7 +1,7 @@
 use std::{env, thread, time::Duration};
 
 use eframe::egui::{self, RichText, TextureHandle, Ui};
-use steamworks::{PersonaChange, PersonaStateChange, SteamAPIInitError, SteamId};
+use steamworks::{SteamAPIInitError, SteamId};
 use tracing::{error, info};
 
 pub struct SteamUserAvatar {
@@ -53,16 +53,6 @@ impl SteamState {
             }
         });
 
-        {
-            client.register_callback(move |event: PersonaStateChange| {
-                if event.flags.contains(PersonaChange::AVATAR) {
-                    info!(
-                        "Got PersonaStateChange for {:?}, removing from avatar cache.",
-                        event.steam_id
-                    );
-                }
-            });
-        }
         Ok(SteamState { client })
     }
 
