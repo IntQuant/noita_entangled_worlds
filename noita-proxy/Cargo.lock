@@ -4262,13 +4262,14 @@ dependencies = [
 
 [[package]]
 name = "tangled"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitcode",
  "crossbeam",
  "dashmap",
  "quinn",
  "rcgen",
+ "socket2",
  "test-log",
  "thiserror 2.0.9",
  "tokio",

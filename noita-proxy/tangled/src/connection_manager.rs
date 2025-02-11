@@ -23,6 +23,7 @@ use quinn::{
     ClientConfig, ConnectError, Connecting, ConnectionError, Endpoint, Incoming, RecvStream,
     ServerConfig, TransportConfig,
 };
+use socket2::{Domain, Socket, Type};
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::{debug, error, trace, warn};
@@ -154,6 +155,8 @@ pub enum TangledInitError {
     CouldNotCreateEndpoint(io::Error),
     #[error("Could not connect to host.\nReason: {0}")]
     CouldNotConnectToHost(ConnectError),
+    #[error("Async runtime not found")]
+    NoRuntimeFound,
 }
 
 enum InternalEvent {
@@ -210,10 +213,29 @@ impl ConnectionManager {
             internal_events_s,
         });
 
-        let config = default_server_config();
+        let server_config = default_server_config();
 
         let mut endpoint = if is_server {
-            Endpoint::server(config, bind_addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
+            // Endpoint::server(config, bind_addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
+            let socket = Socket::new(Domain::for_address(bind_addr), Type::DGRAM, None)
+                .map_err(TangledInitError::CouldNotCreateEndpoint)?;
+            socket
+                .bind(&bind_addr.into())
+                .map_err(TangledInitError::CouldNotCreateEndpoint)?;
+            if let Err(err) = socket.set_only_v6(false) {
+                warn!("Failed to set socket to be not only v6: {}", err);
+            };
+
+            let runtime = quinn::default_runtime().ok_or(TangledInitError::NoRuntimeFound)?;
+            Endpoint::new_with_abstract_socket(
+                Default::default(),
+                Some(server_config),
+                runtime
+                    .wrap_udp_socket(socket.into())
+                    .map_err(TangledInitError::CouldNotCreateEndpoint)?,
+                runtime,
+            )
+            .map_err(TangledInitError::CouldNotCreateEndpoint)?
         } else {
             Endpoint::client(bind_addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
         };

@@ -1,6 +1,6 @@
 [package]
 name = "tangled"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/IntQuant/tangled"
@@ -21,6 +21,7 @@ rcgen = "0.13.1"
 thiserror = "2.0.3"
 tokio = { version = "1.40.0", features = ["macros", "io-util", "sync"] }
 bitcode = "0.6.3"
+socket2 = "0.5.8"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", default-features = false, features = ["trace"]}
