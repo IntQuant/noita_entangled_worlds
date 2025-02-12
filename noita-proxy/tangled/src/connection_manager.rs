@@ -26,7 +26,7 @@ use quinn::{
 use socket2::{Domain, Socket, Type};
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::{
     common::{Destination, NetworkEvent, PeerId, PeerState, Reliability, Settings},
@@ -219,12 +219,16 @@ impl ConnectionManager {
             // Endpoint::server(config, bind_addr).map_err(TangledInitError::CouldNotCreateEndpoint)?
             let socket = Socket::new(Domain::for_address(bind_addr), Type::DGRAM, None)
                 .map_err(TangledInitError::CouldNotCreateEndpoint)?;
+            if bind_addr.is_ipv6() {
+                if let Err(err) = socket.set_only_v6(false) {
+                    warn!("Failed to set socket to be not only v6: {}", err);
+                } else {
+                    info!("Enabled dualstack mode for socket");
+                };
+            }
             socket
                 .bind(&bind_addr.into())
                 .map_err(TangledInitError::CouldNotCreateEndpoint)?;
-            if let Err(err) = socket.set_only_v6(false) {
-                warn!("Failed to set socket to be not only v6: {}", err);
-            };
 
             let runtime = quinn::default_runtime().ok_or(TangledInitError::NoRuntimeFound)?;
             Endpoint::new_with_abstract_socket(
