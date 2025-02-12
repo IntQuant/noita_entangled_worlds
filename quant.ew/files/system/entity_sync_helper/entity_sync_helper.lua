@@ -28,11 +28,11 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
             added_anything = true
         end
     end
-    if not added_anything then
+    --[[if not added_anything then
         -- print("No PhysicsBody2Component to edit in", filename)
     else
         -- print("Updated PhysicsBody2Component in", filename)
-    end
+    end]]
 end
 
 util.add_cross_call("ew_thrown", function(thrown_item)
@@ -92,7 +92,7 @@ local mod = {}
     end
 end]]
 
-function mod.on_world_update_post()
+function mod.on_world_update()
     local c_thrown = thrown
     local c_dead = dead
     local c_chest = chest
