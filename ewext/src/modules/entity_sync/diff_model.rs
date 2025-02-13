@@ -1188,6 +1188,341 @@ impl RemoteDiffModel {
         dont_kill
     }
 
+    fn inner(
+        &self,
+        ctx: &mut ModuleCtx,
+        entity_info: &EntityInfo,
+        entity: EntityID,
+        lid: &Lid,
+        to_remove: &mut Vec<Lid>,
+    ) -> eyre::Result<()> {
+        if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)? {
+            if !self.grab_request.contains(lid) {
+                to_remove.push(*lid);
+                entity.remove_tag(DES_TAG)?;
+                with_entity_scripts(entity, |luac| {
+                    luac.set_script_throw_item(
+                        "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
+                    )
+                })?;
+                for entity in entity.children(None) {
+                    with_entity_scripts(entity, |luac| {
+                        luac.set_script_throw_item(
+                            "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
+                        )
+                    })?;
+                }
+            }
+            return Ok(());
+        }
+        for (name, s, i, f, b) in &entity_info.synced_var {
+            let v = entity.get_var_or_default(name)?;
+            v.set_value_string(s.into())?;
+            v.set_value_int(*i)?;
+            v.set_value_float(*f)?;
+            v.set_value_bool(*b)?;
+        }
+        if entity.has_tag("boss_wizard") {
+            for ent in entity.children(None) {
+                if ent.has_tag("touchmagic_immunity") {
+                    if let Ok(var) = ent
+                        .get_first_component_including_disabled::<VariableStorageComponent>(Some(
+                            "wizard_orb_id".into(),
+                        ))
+                    {
+                        if let Ok(n) = var.value_int() {
+                            if (entity_info.counter & (1 << (n as u8))) == 0 {
+                                ent.kill()
+                            } else if let Ok(damage) =
+                                ent.get_first_component::<DamageModelComponent>(None)
+                            {
+                                damage.set_wait_for_kill_flag_on_death(true)?;
+                                damage.set_hp(damage.max_hp()?)?;
+                            }
+                        }
+                        if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
+                            let _ = v.add_tag("ew_frame_num");
+                            let _ = v.set_value_int(entity_info.cost as i32);
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some((gid, seri)) = &entity_info.wand {
+            give_wand(entity, seri, *gid, true)?;
+        } else if let Some(inv) = entity
+            .children(None)
+            .iter()
+            .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
+        {
+            inv.children(None).iter().for_each(|e| e.kill())
+        }
+        if entity_info.is_enabled {
+            if entity
+                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+                .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
+            {
+                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                entity.remove_all_components_of_type::<LuaComponent>()?;
+                entity
+                    .add_component::<VariableStorageComponent>()?
+                    .set_name("ew_has_started".into())?;
+                entity
+                    .children(Some("protection".into()))
+                    .iter()
+                    .for_each(|ent| ent.kill());
+            } else if let Some(var) = entity
+                .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+                .iter()
+                .find(|var| var.name().unwrap_or("".into()) == "active")
+            {
+                var.set_value_int(1)?;
+                entity.set_components_with_tag_enabled("activate".into(), true)?
+            }
+        } else if let Some(var) = entity
+            .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+            .iter()
+            .find(|var| var.name().unwrap_or("".into()) == "active")
+        {
+            var.set_value_int(0)?;
+            entity.set_components_with_tag_enabled("activate".into(), false)?
+        }
+        for (ent, (x, y)) in entity
+            .children(None)
+            .iter()
+            .filter(|ent| ent.get_first_component::<IKLimbComponent>(None).is_ok())
+            .zip(&entity_info.limbs)
+        {
+            if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
+                limb.set_end_position((*x, *y))?;
+            }
+            if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
+                entity.remove_component(*limb)?
+            };
+            if let Ok(limb) = ent.get_first_component::<IKLimbAttackerComponent>(None) {
+                entity.remove_component(*limb)?
+            };
+            if let Ok(limb) = ent.get_first_component::<IKLimbsAnimatorComponent>(None) {
+                entity.remove_component(*limb)?
+            };
+        }
+        let m = *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32
+            / *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32;
+        let (vx, vy) = (entity_info.vx * m, entity_info.vy * m);
+        if entity_info.phys.is_empty()
+            || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
+        {
+            let should_send_position =
+                if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
+                    !com.play_hover_animation()?
+                } else {
+                    true
+                };
+
+            let should_send_rotation =
+                if let Some(com) = entity.try_get_first_component::<ItemComponent>(None)? {
+                    !com.play_spinning_animation()? || com.play_hover_animation()?
+                } else {
+                    true
+                };
+            if should_send_rotation && should_send_position {
+                entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
+            } else if should_send_position {
+                entity.set_position(entity_info.x, entity_info.y, None)?;
+            } else if should_send_rotation {
+                let (x, y) = entity.position()?;
+                entity.set_position(x, y, Some(entity_info.r))?;
+            }
+            if let Some(worm) = entity.try_get_first_component::<BossDragonComponent>(None)? {
+                worm.set_m_target_vec((vx, vy))?;
+            } else if let Some(worm) = entity.try_get_first_component::<WormComponent>(None)? {
+                worm.set_m_target_vec((vx, vy))?;
+            } else if let Some(vel) =
+                entity.try_get_first_component::<CharacterDataComponent>(None)?
+            {
+                vel.set_m_velocity((vx, vy))?;
+            } else if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                vel.set_m_velocity((vx, vy))?;
+            }
+        }
+        if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+            let current_hp = damage.hp()? as f32;
+            if current_hp > entity_info.hp {
+                noita_api::raw::entity_inflict_damage(
+                    entity.raw() as i32,
+                    (current_hp - entity_info.hp) as f64,
+                    "DAMAGE_CURSE".into(), //TODO should be enum
+                    "hp sync".into(),
+                    "NONE".into(),
+                    0.0,
+                    0.0,
+                    None,
+                    None,
+                    None,
+                    None,
+                )?;
+            } else {
+                if current_hp < 0.0 && entity_info.hp >= 0.0 {
+                    damage.set_hp(f32::MIN_POSITIVE as f64)?;
+                }
+                noita_api::raw::entity_inflict_damage(
+                    entity.raw() as i32,
+                    (current_hp - entity_info.hp) as f64,
+                    "DAMAGE_HEALING".into(), //TODO should be enum
+                    "hp sync".into(),
+                    "NONE".into(),
+                    0.0,
+                    0.0,
+                    None,
+                    None,
+                    None,
+                    None,
+                )?;
+            }
+        }
+
+        if !entity_info.phys.is_empty() && check_all_phys_init(entity)? && entity.is_alive() {
+            let phys_bodies =
+                noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
+            for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter()) {
+                let Some(p) = p else {
+                    continue;
+                };
+                let (x, y) = noita_api::raw::game_pos_to_physics_pos(p.x.into(), Some(p.y.into()))?;
+                noita_api::raw::physics_body_id_set_transform(
+                    *physics_body_id,
+                    x,
+                    y,
+                    p.angle.into(),
+                    (p.vx * m).into(),
+                    (p.vy * m).into(),
+                    (p.av * m).into(),
+                )?;
+            }
+        }
+
+        if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+            cost.set_cost(entity_info.cost)?;
+            if entity_info.cost == 0 {
+                entity.set_components_with_tag_enabled("shop_cost".into(), false)?;
+            }
+        }
+
+        entity.set_game_effects(&entity_info.game_effects)?;
+
+        if entity.get_var("rolling").is_some() {
+            let var = entity.get_var_or_default("ew_rng")?;
+            let bytes = entity_info.current_stains.to_le_bytes();
+            let is_rolling = bytes[0];
+            let bytes: [u8; 4] = [bytes[4], bytes[5], bytes[6], bytes[7]];
+            let rng = i32::from_le_bytes(bytes);
+            var.set_value_int(rng)?;
+            let var = entity.get_var_or_default("rolling")?;
+            if is_rolling == 1 {
+                if var.value_int()? == 0 {
+                    var.set_value_int(4)?;
+                    entity
+                        .iter_all_components_of_type::<SpriteComponent>(None)?
+                        .for_each(|s| {
+                            let _ = s.set_rect_animation("roll".into());
+                        })
+                } else if var.value_int()? == 8 {
+                    let (x, y) = entity.position()?;
+                    if !noita_api::raw::entity_get_in_radius_with_tag(
+                        x as f64,
+                        y as f64,
+                        480.0,
+                        "player_unit".into(),
+                    )?
+                    .is_empty()
+                    {
+                        game_print("$item_die_roll");
+                    }
+                }
+            } else {
+                var.set_value_int(0)?;
+            }
+        } else {
+            entity.set_current_stains(entity_info.current_stains)?;
+        }
+        if let Some(ai) =
+            entity.try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
+        {
+            ai.set_ai_state(entity_info.ai_state)?;
+            ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
+        } else if let Ok(sprites) = entity.iter_all_components_of_type::<SpriteComponent>(None) {
+            for (sprite, animation) in sprites
+                .filter(|sprite| {
+                    sprite
+                        .image_file()
+                        .map(|c| c.ends_with(".xml"))
+                        .unwrap_or(false)
+                })
+                .zip(entity_info.animations.iter())
+            {
+                sprite.set_special_scale_x(if entity_info.facing_direction.0 {
+                    1.0
+                } else {
+                    -1.0
+                })?;
+                sprite.set_special_scale_y(if entity_info.facing_direction.1 {
+                    1.0
+                } else {
+                    -1.0
+                })?;
+                if *animation == u16::MAX {
+                    continue;
+                }
+                let file = sprite.image_file()?;
+                let text = noita_api::raw::mod_text_file_get_content(file)?;
+                let mut split = text.split("name=\"");
+                split.next();
+                let data: Vec<&str> = split.filter_map(|piece| piece.split("\"").next()).collect();
+                if data.len() > *animation as usize {
+                    sprite.set_rect_animation(data[*animation as usize].into())?;
+                    sprite.set_next_rect_animation(data[*animation as usize].into())?;
+                }
+            }
+            let laser = entity.try_get_first_component::<LaserEmitterComponent>(None)?;
+            if let Some(peer) = entity_info.laser {
+                let laser = if let Some(laser) = laser {
+                    laser
+                } else {
+                    let laser = entity.add_component::<LaserEmitterComponent>()?;
+                    laser.object_set_value::<i32>("laser", "max_cell_durability_to_destroy", 0)?;
+                    laser.object_set_value::<i32>("laser", "damage_to_cells", 0)?;
+                    laser.object_set_value::<i32>("laser", "max_length", 1024)?;
+                    laser.object_set_value::<i32>("laser", "beam_radius", 0)?;
+                    laser.object_set_value::<i32>("laser", "beam_particle_chance", 75)?;
+                    laser.object_set_value::<i32>("laser", "beam_particle_fade", 0)?;
+                    laser.object_set_value::<i32>("laser", "hit_particle_chance", 0)?;
+                    laser.object_set_value::<bool>("laser", "audio_enabled", false)?;
+                    laser.object_set_value::<i32>("laser", "damage_to_entities", 0)?;
+                    laser.object_set_value::<i32>("laser", "beam_particle_type", 225)?;
+                    laser
+                };
+                if let Some(ent) = ctx.player_map.get_by_left(&peer) {
+                    let (x, y) = entity.position()?;
+                    let (tx, ty) = ent.position()?;
+                    if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0 {
+                        laser.set_is_emitting(true)?;
+                        let (dx, dy) = (tx - x, ty - y);
+                        let theta = dy.atan2(dx);
+                        laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
+                        laser.object_set_value::<f32>("laser", "max_length", dx.hypot(dy))?;
+                    } else {
+                        laser.set_is_emitting(false)?;
+                    }
+                }
+            } else if let Some(laser) = laser {
+                laser.set_is_emitting(false)?;
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn apply_entities(
         &mut self,
         ctx: &mut ModuleCtx,
@@ -1206,373 +1541,8 @@ impl RemoteDiffModel {
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
                 Some(entity) => {
-                    if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)? {
-                        if !self.grab_request.contains(lid) {
-                            self.grab_request.push(*lid);
-                            to_remove.push(*lid);
-                            entity.remove_tag(DES_TAG)?;
-                            with_entity_scripts(entity, |luac| {
-                                luac.set_script_throw_item(
-                                    "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua"
-                                        .into(),
-                                )
-                            })?;
-                            for entity in entity.children(None) {
-                                with_entity_scripts(entity, |luac| {
-                                    luac.set_script_throw_item(
-                                    "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua"
-                                        .into(),
-                                )
-                                })?;
-                            }
-                        }
-                        continue;
-                    }
-                    for (name, s, i, f, b) in &entity_info.synced_var {
-                        let v = entity.get_var_or_default(name)?;
-                        v.set_value_string(s.into())?;
-                        v.set_value_int(*i)?;
-                        v.set_value_float(*f)?;
-                        v.set_value_bool(*b)?;
-                    }
-                    if entity.has_tag("boss_wizard") {
-                        for ent in entity.children(None) {
-                            if ent.has_tag("touchmagic_immunity") {
-                                if let Ok(var) =
-                                    ent.get_first_component_including_disabled::<VariableStorageComponent>(Some("wizard_orb_id".into()))
-                                {
-                                    if let Ok(n) = var.value_int() {
-                                        if (entity_info.counter & (1 << (n as u8))) == 0 {
-                                            ent.kill()
-                                        } else if let Ok(damage) =
-                                            ent.get_first_component::<DamageModelComponent>(None)
-                                        {
-                                            damage.set_wait_for_kill_flag_on_death(true)?;
-                                            damage.set_hp(damage.max_hp()?)?;
-                                        }
-                                    }
-                                    if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
-                                        let _ = v.add_tag("ew_frame_num");
-                                        let _ = v.set_value_int(entity_info.cost as i32);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if let Some((gid, seri)) = &entity_info.wand {
-                        give_wand(entity, seri, *gid, true)?;
-                    } else if let Some(inv) = entity
-                        .children(None)
-                        .iter()
-                        .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
-                    {
-                        inv.children(None).iter().for_each(|e| e.kill())
-                    }
-                    if entity_info.is_enabled {
-                        if entity
-                            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                            .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
-                        {
-                            entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
-                            entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
-                            entity.remove_all_components_of_type::<LuaComponent>()?;
-                            entity
-                                .add_component::<VariableStorageComponent>()?
-                                .set_name("ew_has_started".into())?;
-                            entity
-                                .children(Some("protection".into()))
-                                .iter()
-                                .for_each(|ent| ent.kill());
-                        } else if let Some(var) = entity.try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
-            .iter().find(|var| var.name().unwrap_or("".into()) == "active") {
-                            var.set_value_int(1)?;
-                            entity.set_components_with_tag_enabled("activate".into(), true)?
-                        }
-                    } else if let Some(var) = entity
-                        .try_get_first_component_including_disabled::<VariableStorageComponent>(
-                            None,
-                        )?
-                        .iter()
-                        .find(|var| var.name().unwrap_or("".into()) == "active")
-                    {
-                        var.set_value_int(0)?;
-                        entity.set_components_with_tag_enabled("activate".into(), false)?
-                    }
-                    for (ent, (x, y)) in entity
-                        .children(None)
-                        .iter()
-                        .filter(|ent| ent.get_first_component::<IKLimbComponent>(None).is_ok())
-                        .zip(&entity_info.limbs)
-                    {
-                        if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
-                            limb.set_end_position((*x, *y))?;
-                        }
-                        if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
-                            entity.remove_component(*limb)?
-                        };
-                        if let Ok(limb) = ent.get_first_component::<IKLimbAttackerComponent>(None) {
-                            entity.remove_component(*limb)?
-                        };
-                        if let Ok(limb) = ent.get_first_component::<IKLimbsAnimatorComponent>(None)
-                        {
-                            entity.remove_component(*limb)?
-                        };
-                    }
-                    let m = *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32
-                        / *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32;
-                    let (vx, vy) = (entity_info.vx * m, entity_info.vy * m);
-                    if entity_info.phys.is_empty()
-                        || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
-                    {
-                        let should_send_position = if let Some(com) =
-                            entity.try_get_first_component::<ItemComponent>(None)?
-                        {
-                            !com.play_hover_animation()?
-                        } else {
-                            true
-                        };
-
-                        let should_send_rotation = if let Some(com) =
-                            entity.try_get_first_component::<ItemComponent>(None)?
-                        {
-                            !com.play_spinning_animation()? || com.play_hover_animation()?
-                        } else {
-                            true
-                        };
-                        if should_send_rotation && should_send_position {
-                            entity.set_position(
-                                entity_info.x,
-                                entity_info.y,
-                                Some(entity_info.r),
-                            )?;
-                        } else if should_send_position {
-                            entity.set_position(entity_info.x, entity_info.y, None)?;
-                        } else if should_send_rotation {
-                            let (x, y) = entity.position()?;
-                            entity.set_position(x, y, Some(entity_info.r))?;
-                        }
-                        if let Some(worm) =
-                            entity.try_get_first_component::<BossDragonComponent>(None)?
-                        {
-                            worm.set_m_target_vec((vx, vy))?;
-                        } else if let Some(worm) =
-                            entity.try_get_first_component::<WormComponent>(None)?
-                        {
-                            worm.set_m_target_vec((vx, vy))?;
-                        } else if let Some(vel) =
-                            entity.try_get_first_component::<CharacterDataComponent>(None)?
-                        {
-                            vel.set_m_velocity((vx, vy))?;
-                        } else if let Some(vel) =
-                            entity.try_get_first_component::<VelocityComponent>(None)?
-                        {
-                            vel.set_m_velocity((vx, vy))?;
-                        }
-                    }
-                    if let Some(damage) =
-                        entity.try_get_first_component::<DamageModelComponent>(None)?
-                    {
-                        let current_hp = damage.hp()? as f32;
-                        if current_hp > entity_info.hp {
-                            noita_api::raw::entity_inflict_damage(
-                                entity.raw() as i32,
-                                (current_hp - entity_info.hp) as f64,
-                                "DAMAGE_CURSE".into(), //TODO should be enum
-                                "hp sync".into(),
-                                "NONE".into(),
-                                0.0,
-                                0.0,
-                                None,
-                                None,
-                                None,
-                                None,
-                            )?;
-                        } else {
-                            if current_hp < 0.0 && entity_info.hp >= 0.0 {
-                                damage.set_hp(f32::MIN_POSITIVE as f64)?;
-                            }
-                            noita_api::raw::entity_inflict_damage(
-                                entity.raw() as i32,
-                                (current_hp - entity_info.hp) as f64,
-                                "DAMAGE_HEALING".into(), //TODO should be enum
-                                "hp sync".into(),
-                                "NONE".into(),
-                                0.0,
-                                0.0,
-                                None,
-                                None,
-                                None,
-                                None,
-                            )?;
-                        }
-                    }
-
-                    if !entity_info.phys.is_empty()
-                        && check_all_phys_init(entity)?
-                        && entity.is_alive()
-                    {
-                        let phys_bodies =
-                            noita_api::raw::physics_body_id_get_from_entity(entity, None)
-                                .unwrap_or_default();
-                        for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter())
-                        {
-                            let Some(p) = p else {
-                                continue;
-                            };
-                            let (x, y) = noita_api::raw::game_pos_to_physics_pos(
-                                p.x.into(),
-                                Some(p.y.into()),
-                            )?;
-                            noita_api::raw::physics_body_id_set_transform(
-                                *physics_body_id,
-                                x,
-                                y,
-                                p.angle.into(),
-                                (p.vx * m).into(),
-                                (p.vy * m).into(),
-                                (p.av * m).into(),
-                            )?;
-                        }
-                    }
-
-                    if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
-                        cost.set_cost(entity_info.cost)?;
-                        if entity_info.cost == 0 {
-                            entity.set_components_with_tag_enabled("shop_cost".into(), false)?;
-                        }
-                    }
-
-                    entity.set_game_effects(&entity_info.game_effects)?;
-
-                    if entity.get_var("rolling").is_some() {
-                        let var = entity.get_var_or_default("ew_rng")?;
-                        let bytes = entity_info.current_stains.to_le_bytes();
-                        let is_rolling = bytes[0];
-                        let bytes: [u8; 4] = [bytes[4], bytes[5], bytes[6], bytes[7]];
-                        let rng = i32::from_le_bytes(bytes);
-                        var.set_value_int(rng)?;
-                        let var = entity.get_var_or_default("rolling")?;
-                        if is_rolling == 1 {
-                            if var.value_int()? == 0 {
-                                var.set_value_int(4)?;
-                                entity
-                                    .iter_all_components_of_type::<SpriteComponent>(None)?
-                                    .for_each(|s| {
-                                        let _ = s.set_rect_animation("roll".into());
-                                    })
-                            } else if var.value_int()? == 8 {
-                                let (x, y) = entity.position()?;
-                                if !noita_api::raw::entity_get_in_radius_with_tag(
-                                    x as f64,
-                                    y as f64,
-                                    480.0,
-                                    "player_unit".into(),
-                                )?
-                                .is_empty()
-                                {
-                                    game_print("$item_die_roll");
-                                }
-                            }
-                        } else {
-                            var.set_value_int(0)?;
-                        }
-                    } else {
-                        entity.set_current_stains(entity_info.current_stains)?;
-                    }
-                    if let Some(ai) = entity
-                        .try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
-                    {
-                        ai.set_ai_state(entity_info.ai_state)?;
-                        ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
-                    } else if let Ok(sprites) =
-                        entity.iter_all_components_of_type::<SpriteComponent>(None)
-                    {
-                        for (sprite, animation) in sprites
-                            .filter(|sprite| {
-                                sprite
-                                    .image_file()
-                                    .map(|c| c.ends_with(".xml"))
-                                    .unwrap_or(false)
-                            })
-                            .zip(entity_info.animations.iter())
-                        {
-                            sprite.set_special_scale_x(if entity_info.facing_direction.0 {
-                                1.0
-                            } else {
-                                -1.0
-                            })?;
-                            sprite.set_special_scale_y(if entity_info.facing_direction.1 {
-                                1.0
-                            } else {
-                                -1.0
-                            })?;
-                            if *animation == u16::MAX {
-                                continue;
-                            }
-                            let file = sprite.image_file()?;
-                            let text = noita_api::raw::mod_text_file_get_content(file)?;
-                            let mut split = text.split("name=\"");
-                            split.next();
-                            let data: Vec<&str> =
-                                split.filter_map(|piece| piece.split("\"").next()).collect();
-                            if data.len() > *animation as usize {
-                                sprite.set_rect_animation(data[*animation as usize].into())?;
-                                sprite.set_next_rect_animation(data[*animation as usize].into())?;
-                            }
-                        }
-                        let laser =
-                            entity.try_get_first_component::<LaserEmitterComponent>(None)?;
-                        if let Some(peer) = entity_info.laser {
-                            let laser = if let Some(laser) = laser {
-                                laser
-                            } else {
-                                let laser = entity.add_component::<LaserEmitterComponent>()?;
-                                laser.object_set_value::<i32>(
-                                    "laser",
-                                    "max_cell_durability_to_destroy",
-                                    0,
-                                )?;
-                                laser.object_set_value::<i32>("laser", "damage_to_cells", 0)?;
-                                laser.object_set_value::<i32>("laser", "max_length", 1024)?;
-                                laser.object_set_value::<i32>("laser", "beam_radius", 0)?;
-                                laser.object_set_value::<i32>(
-                                    "laser",
-                                    "beam_particle_chance",
-                                    75,
-                                )?;
-                                laser.object_set_value::<i32>("laser", "beam_particle_fade", 0)?;
-                                laser.object_set_value::<i32>("laser", "hit_particle_chance", 0)?;
-                                laser.object_set_value::<bool>("laser", "audio_enabled", false)?;
-                                laser.object_set_value::<i32>("laser", "damage_to_entities", 0)?;
-                                laser.object_set_value::<i32>(
-                                    "laser",
-                                    "beam_particle_type",
-                                    225,
-                                )?;
-                                laser
-                            };
-                            if let Some(ent) = ctx.player_map.get_by_left(&peer) {
-                                let (x, y) = entity.position()?;
-                                let (tx, ty) = ent.position()?;
-                                if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0
-                                {
-                                    laser.set_is_emitting(true)?;
-                                    let (dx, dy) = (tx - x, ty - y);
-                                    let theta = dy.atan2(dx);
-                                    laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
-                                    laser.object_set_value::<f32>(
-                                        "laser",
-                                        "max_length",
-                                        dx.hypot(dy),
-                                    )?;
-                                } else {
-                                    laser.set_is_emitting(false)?;
-                                }
-                            }
-                        } else if let Some(laser) = laser {
-                            laser.set_is_emitting(false)?;
-                        }
+                    if let Err(s) = self.inner(ctx, entity_info, entity, lid, &mut to_remove) {
+                        print_error(s)?;
                     }
                 }
                 None => {
@@ -1596,10 +1566,16 @@ impl RemoteDiffModel {
                 }
             }
         }
+        for lid in to_remove {
+            self.grab_request.push(lid);
+            self.entity_infos.remove(&lid);
+        }
+        Ok(())
+    }
 
+    pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         let mut postpone_remove = Vec::new();
         let mut never_remove = Vec::new();
-
         for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
@@ -1649,7 +1625,6 @@ impl RemoteDiffModel {
             }
             postpone_remove.push(lid);
         }
-
         for lid in self.pending_remove.drain(..) {
             self.entity_infos.remove(&lid);
             if !postpone_remove.contains(&lid) {
@@ -1658,11 +1633,6 @@ impl RemoteDiffModel {
                 }
             }
         }
-
-        for lid in to_remove {
-            self.entity_infos.remove(&lid);
-        }
-
         self.pending_remove.extend_from_slice(
             &postpone_remove
                 .iter()
@@ -1670,7 +1640,6 @@ impl RemoteDiffModel {
                 .cloned()
                 .collect::<Vec<Lid>>(),
         );
-
         Ok(())
     }
 
