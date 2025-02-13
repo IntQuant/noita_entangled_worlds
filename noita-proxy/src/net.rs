@@ -1,10 +1,14 @@
 use bitcode::{Decode, Encode};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use des::DesManager;
 use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
+use opus::{Application, Channels, Decoder, Encoder};
 use proxy_opt::ProxyOpt;
+use rodio::buffer::SamplesBuffer;
+use rodio::{OutputStream, Sink};
 use rustc_hash::FxHashSet;
 use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
@@ -14,7 +18,7 @@ use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::{
     env,
     fmt::Display,
@@ -194,6 +198,10 @@ pub struct NetManager {
     ),
 }
 
+const SAMPLE_RATE: usize = 48000;
+const FRAME_SIZE: usize = 960; // 20ms at 48kHz
+const CHANNELS: Channels = Channels::Mono;
+
 impl NetManager {
     pub fn new(peer: omni::PeerVariant, init: NetManagerInit) -> Arc<Self> {
         Self {
@@ -367,6 +375,33 @@ impl NetManager {
             self.peer.my_id(),
             get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
+
+        let host = cpal::default_host();
+        let device = host.default_input_device().expect("No input device found");
+        let config = device
+            .default_input_config()
+            .expect("Failed to get input config");
+        let (tx, rx) = mpsc::channel::<Vec<i16>>();
+        let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
+        thread::spawn(move || {
+            let stream = device
+                .build_input_stream(
+                    &config.into(),
+                    move |data: &[i16], _| {
+                        tx.send(data.to_vec()).ok();
+                    },
+                    |err| eprintln!("Stream error: {}", err),
+                    None,
+                )
+                .expect("Failed to build stream");
+            stream.play().expect("Failed to play stream");
+            loop {
+                thread::sleep(Duration::from_millis(10));
+            }
+        });
+        let (s, stream_handle) = OutputStream::try_default().expect("no out");
+        let mut sink = Sink::try_new(&stream_handle).expect("audio err");
+        let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
         while self.continue_running.load(Ordering::Relaxed) {
             if let Some(k) = kind {
                 if let Some(n) = self.peer.lobby_id() {
@@ -439,12 +474,23 @@ impl NetManager {
             }
             to_kick.clear();
             for net_event in self.peer.recv() {
-                self.clone()
-                    .handle_network_event(&mut state, &player_image, net_event);
+                self.clone().handle_network_event(
+                    &mut state,
+                    &player_image,
+                    net_event,
+                    &mut sink,
+                    &mut decoder,
+                );
             }
             for net_msg in self.loopback_channel.1.try_iter() {
-                self.clone()
-                    .handle_net_msg(&mut state, &player_image, self.peer.my_id(), net_msg);
+                self.clone().handle_net_msg(
+                    &mut state,
+                    &player_image,
+                    self.peer.my_id(),
+                    net_msg,
+                    &mut sink,
+                    &mut decoder,
+                );
             }
             // Handle all available messages from Noita.
             while let Some(ws) = &mut state.ms {
@@ -484,6 +530,9 @@ impl NetManager {
                 self.send(dest, &NetMsg::ForwardProxyToDes(msg), Reliability::Reliable);
             }
 
+            if let Ok(data) = rx.recv() {
+                self.broadcast(&NetMsg::AudioData(data), Reliability::Reliable)
+            }
             // Don't do excessive busy-waiting;
             let min_update_time = Duration::from_millis(1);
             let elapsed = last_iter.elapsed();
@@ -500,6 +549,8 @@ impl NetManager {
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
+        sink: &mut Sink,
+        decoder: &mut Decoder,
     ) {
         match net_event {
             omni::OmniNetworkEvent::PeerConnected(id) => {
@@ -550,7 +601,7 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(state, player_image, src, net_msg);
+                self.handle_net_msg(state, player_image, src, net_msg, sink, decoder);
             }
         }
     }
@@ -561,8 +612,14 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
+        sink: &mut Sink,
+        decoder: &mut Decoder,
     ) {
         match net_msg {
+            NetMsg::AudioData(data) => {
+                let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, &data[..data.len()]);
+                sink.append(source);
+            }
             NetMsg::RequestMods => {
                 if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
                     let res = get_mods(n);
