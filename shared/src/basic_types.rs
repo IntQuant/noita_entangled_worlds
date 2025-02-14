@@ -1,7 +1,7 @@
 use bitcode::{Decode, Encode};
 use eyre::Context;
 
-#[derive(Debug, Encode, Decode, Clone, Copy)]
+#[derive(Debug, Encode, Decode, Default, Clone, Copy)]
 pub struct WorldPos {
     pub x: i32,
     pub y: i32,
@@ -20,6 +20,13 @@ impl WorldPos {
             x: x as i32,
             y: y as i32,
         }
+    }
+
+    pub fn dist(&self, other: &WorldPos) -> (u64, f32) {
+        let dx = (self.x - other.x) as u64;
+        let dy = (self.y - other.y) as u64;
+        //(dx as f64).hypot(dy as f64) as u64
+        (dx * dx + dy * dy, (dy as f32).atan2(dx as f32))
     }
 
     pub fn as_array(&self) -> [i64; 2] {

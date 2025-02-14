@@ -378,36 +378,41 @@ impl NetManager {
         );
 
         let host = cpal::default_host();
-        let device = host.default_input_device().expect("No input device found");
+        let device = host.default_input_device();
         let config = SupportedStreamConfig::new(
             1,
             SampleRate(SAMPLE_RATE as u32),
             SupportedBufferSize::Range {
-                min: FRAME_SIZE as u32,
-                max: FRAME_SIZE as u32,
+                min: FRAME_SIZE as u32 / 2,
+                max: FRAME_SIZE as u32 * 2,
             },
             SampleFormat::F32,
         );
         let (tx, rx) = mpsc::channel::<Vec<f32>>();
         let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
-        thread::spawn(move || {
-            let stream = device
-                .build_input_stream(
-                    &config.into(),
-                    move |data: &[f32], _| {
-                        tx.send(data.to_vec()).ok();
-                    },
-                    |err| eprintln!("Stream error: {}", err),
-                    None,
-                )
-                .expect("Failed to build stream");
-            stream.play().expect("Failed to play stream");
-            loop {
-                thread::sleep(Duration::from_millis(1));
-            }
-        });
-        let (_s, stream_handle) = OutputStream::try_default().expect("no out");
-        let mut sink = Sink::try_new(&stream_handle).expect("audio err");
+        if let Some(device) = device {
+            thread::spawn(move || {
+                let stream = device
+                    .build_input_stream(
+                        &config.into(),
+                        move |data: &[f32], _| {
+                            tx.send(data.to_vec()).ok();
+                        },
+                        |err| eprintln!("Stream error: {}", err),
+                        None,
+                    )
+                    .expect("Failed to build stream");
+                stream.play().expect("Failed to play stream");
+                loop {
+                    thread::sleep(Duration::from_millis(10));
+                }
+            });
+        }
+        let mut sink = if let Ok((_s, stream_handle)) = OutputStream::try_default() {
+            Sink::try_new(&stream_handle).ok()
+        } else {
+            None
+        };
         let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
         let audio: Arc<Mutex<Vec<Vec<u8>>>> = Arc::new(Mutex::new(Vec::new()));
         let audio_clone: Arc<Mutex<Vec<Vec<u8>>>> = Arc::clone(&audio);
@@ -419,17 +424,19 @@ impl NetManager {
                     let mut v = Vec::new();
                     while extra.len() >= FRAME_SIZE {
                         let mut compressed = vec![0u8; 4000];
-                        let len = encoder
-                            .encode_float(&extra[..FRAME_SIZE], &mut compressed)
-                            .unwrap();
-                        if len != 0 {
-                            v.push(compressed[..len].to_vec())
+                        if let Ok(len) = encoder.encode_float(&extra[..FRAME_SIZE], &mut compressed)
+                        {
+                            if len != 0 {
+                                v.push(compressed[..len].to_vec())
+                            }
                         }
                         extra.drain(..FRAME_SIZE);
                     }
-                    audio_clone.lock().unwrap().extend(v)
+                    if !v.is_empty() {
+                        audio_clone.lock().unwrap().extend(v)
+                    }
                 }
-                thread::sleep(Duration::from_millis(1));
+                thread::sleep(Duration::from_millis(10));
             }
         });
         while self.continue_running.load(Ordering::Relaxed) {
@@ -540,6 +547,7 @@ impl NetManager {
                         warn!("Game closed (Lost connection to noita instance: {})", err);
                         state.had_a_disconnect = true;
                         state.ms = None;
+                        self.world_info.clear_positions();
                     }
                 }
             }
@@ -567,7 +575,7 @@ impl NetManager {
             }
 
             // Don't do excessive busy-waiting;
-            let min_update_time = Duration::from_millis(1);
+            let min_update_time = Duration::from_millis(8);
             let elapsed = last_iter.elapsed();
             if elapsed < min_update_time {
                 thread::sleep(min_update_time - elapsed);
@@ -582,7 +590,7 @@ impl NetManager {
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
-        sink: &mut Sink,
+        sink: &mut Option<Sink>,
         decoder: &mut Decoder,
     ) {
         match net_event {
@@ -645,22 +653,44 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
-        sink: &mut Sink,
+        sink: &mut Option<Sink>,
         decoder: &mut Decoder,
     ) {
         match net_msg {
             NetMsg::AudioData(data) => {
-                let mut dec: Vec<f32> = Vec::new();
-                for data in data {
-                    let mut out = vec![0f32; FRAME_SIZE];
-                    let len = decoder.decode_float(&data, &mut out, false).unwrap();
-                    if len != 0 {
-                        dec.extend(&out[..len])
+                if let Some(sink) = sink {
+                    if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
+                        let vol = if dist > 1024 * 1024 {
+                            0.0
+                        } else {
+                            (1.0 + (dist as f32 * 2.0f32.powi(-16))).recip()
+                        };
+                        let left = (-theta.cos() * 0.5 + 0.5) * vol;
+                        let right = (theta.cos() * 0.5 + 0.5) * vol;
+                        if vol > 0.0 {
+                            let mut dec: Vec<f32> = Vec::new();
+                            for data in data {
+                                let mut out = vec![0f32; FRAME_SIZE];
+                                if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
+                                    if len != 0 {
+                                        dec.extend(&out[..len])
+                                    }
+                                }
+                            }
+                            if !dec.is_empty() {
+                                let mut stereo_samples = Vec::with_capacity(dec.len() * 2);
+                                for &sample in &dec {
+                                    stereo_samples.push(sample * left);
+                                    stereo_samples.push(sample * right);
+                                }
+                                let source =
+                                    SamplesBuffer::new(2, SAMPLE_RATE as u32, stereo_samples);
+                                sink.append(source);
+                                sink.play();
+                            }
+                        }
                     }
                 }
-                let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dec);
-                sink.append(source);
-                sink.play();
             }
             NetMsg::RequestMods => {
                 if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
