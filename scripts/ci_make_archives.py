@@ -15,7 +15,7 @@ if mode == "windows":
     print("Writing windows release...")
 
     with ZipFile("target/noita-proxy-win.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 elif mode == "linux":
     print("Writing linux release...")

@@ -61,21 +61,16 @@ jobs:
 
   build-proxy-windows:
     name: Build proxy for windows
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-gnu
-      - name: Install extra deps
-        run: sudo apt-get update && sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev gcc-mingw-w64-i686 gcc-mingw-w64 libasound2-dev
-
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
 
       - name: Build Windows proxy release
-        run: cargo build --release --target x86_64-pc-windows-gnu
+        run: cargo build --release
         working-directory: ./noita-proxy
 
       - name: Create archives
