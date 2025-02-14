@@ -1,11 +1,11 @@
 use bitcode::{Decode, Encode};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{SampleFormat, SampleRate, SupportedBufferSize, SupportedStreamConfig};
 use des::DesManager;
 use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
-use cpal::{SampleFormat, SampleRate, SupportedBufferSize, SupportedStreamConfig};
 use opus::{Application, Channels, Decoder, Encoder};
 use proxy_opt::ProxyOpt;
 use rodio::buffer::SamplesBuffer;
@@ -199,8 +199,8 @@ pub struct NetManager {
     ),
 }
 
-const SAMPLE_RATE: usize = 16000;
-const FRAME_SIZE: usize = 320;
+const SAMPLE_RATE: usize = 24000;
+const FRAME_SIZE: usize = 480;
 const CHANNELS: Channels = Channels::Mono;
 
 impl NetManager {
@@ -416,16 +416,18 @@ impl NetManager {
             loop {
                 while let Ok(data) = rx.try_recv() {
                     extra.extend(data);
+                    let mut v = Vec::new();
                     while extra.len() >= FRAME_SIZE {
                         let mut compressed = vec![0u8; 4000];
                         let len = encoder
                             .encode_float(&extra[..FRAME_SIZE], &mut compressed)
                             .unwrap();
                         if len != 0 {
-                            audio_clone.lock().unwrap().push(compressed[..len].to_vec())
+                            v.push(compressed[..len].to_vec())
                         }
                         extra.drain(..FRAME_SIZE);
                     }
+                    audio_clone.lock().unwrap().extend(v)
                 }
                 thread::sleep(Duration::from_millis(1));
             }
