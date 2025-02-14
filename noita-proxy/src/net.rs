@@ -408,24 +408,28 @@ impl NetManager {
         let audio_clone: Arc<Mutex<Vec<f32>>> = Arc::clone(&audio);
         thread::spawn(move || {
             //let mut extra = Vec::new();
-            while let Ok(data) = rx.recv() {
-                /*extra.extend(data);
-                let mut comp: Vec<u8> = Vec::new();
-                while extra.len() >= FRAME_SIZE {
-                    let mut compressed = vec![0u8; 4000];
-                    let len = encoder
-                        .encode_float(&extra[..FRAME_SIZE], &mut compressed)
-                        .unwrap();
-                    comp.extend(&compressed[..len]);
-                    extra.drain(..FRAME_SIZE);
+            loop {
+                while let Ok(data) = rx.try_recv() {
+                    /*extra.extend(data);
+                    let mut comp: Vec<u8> = Vec::new();
+                    while extra.len() >= FRAME_SIZE {
+                        let mut compressed = vec![0u8; 4000];
+                        let len = encoder
+                            .encode_float(&extra[..FRAME_SIZE], &mut compressed)
+                            .unwrap();
+                        comp.extend(&compressed[..len]);
+                        extra.drain(..FRAME_SIZE);
+                    }
+                    audio_clone.lock().unwrap().push(comp)*/
+                    audio_clone.lock().unwrap().extend(data)
                 }
-                audio_clone.lock().unwrap().push(comp)*/
-                audio_clone.lock().unwrap().extend(data)
+                thread::sleep(Duration::from_millis(1));
             }
         });
         while self.continue_running.load(Ordering::Relaxed) {
             let mut lock = audio.lock().unwrap();
             let audio_data = std::mem::take(&mut *lock);
+            drop(lock);
             if !audio_data.is_empty() {
                 self.broadcast(&NetMsg::AudioData(audio_data), Reliability::Reliable);
             }
