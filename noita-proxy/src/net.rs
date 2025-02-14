@@ -5,7 +5,8 @@ use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
-//use opus::{Channels, Decoder, Encoder};
+use cpal::{SampleFormat, SampleRate, SupportedBufferSize, SupportedStreamConfig};
+use opus::{Application, Channels, Decoder, Encoder};
 use proxy_opt::ProxyOpt;
 use rodio::buffer::SamplesBuffer;
 use rodio::{OutputStream, Sink};
@@ -198,9 +199,9 @@ pub struct NetManager {
     ),
 }
 
-const SAMPLE_RATE: usize = 48000;
-//const FRAME_SIZE: usize = 960;
-//const CHANNELS: Channels = Channels::Mono;
+const SAMPLE_RATE: usize = 16000;
+const FRAME_SIZE: usize = 320;
+const CHANNELS: Channels = Channels::Mono;
 
 impl NetManager {
     pub fn new(peer: omni::PeerVariant, init: NetManagerInit) -> Arc<Self> {
@@ -378,11 +379,17 @@ impl NetManager {
 
         let host = cpal::default_host();
         let device = host.default_input_device().expect("No input device found");
-        let config = device
-            .default_input_config()
-            .expect("Failed to get input config");
+        let config = SupportedStreamConfig::new(
+            1,
+            SampleRate(SAMPLE_RATE as u32),
+            SupportedBufferSize::Range {
+                min: FRAME_SIZE as u32,
+                max: FRAME_SIZE as u32,
+            },
+            SampleFormat::F32,
+        );
         let (tx, rx) = mpsc::channel::<Vec<f32>>();
-        //let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
+        let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
         thread::spawn(move || {
             let stream = device
                 .build_input_stream(
@@ -396,32 +403,29 @@ impl NetManager {
                 .expect("Failed to build stream");
             stream.play().expect("Failed to play stream");
             loop {
-                thread::sleep(Duration::from_millis(10));
+                thread::sleep(Duration::from_millis(1));
             }
         });
         let (_s, stream_handle) = OutputStream::try_default().expect("no out");
         let mut sink = Sink::try_new(&stream_handle).expect("audio err");
-        //let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
-        //let audio: Arc<Mutex<Vec<Vec<u8>>>> = Arc::new(Mutex::new(Vec::new()));
-        //let audio_clone: Arc<Mutex<Vec<Vec<u8>>>> = Arc::clone(&audio);
-        let audio: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let audio_clone: Arc<Mutex<Vec<f32>>> = Arc::clone(&audio);
+        let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
+        let audio: Arc<Mutex<Vec<Vec<u8>>>> = Arc::new(Mutex::new(Vec::new()));
+        let audio_clone: Arc<Mutex<Vec<Vec<u8>>>> = Arc::clone(&audio);
         thread::spawn(move || {
-            //let mut extra = Vec::new();
+            let mut extra = Vec::new();
             loop {
                 while let Ok(data) = rx.try_recv() {
-                    /*extra.extend(data);
-                    let mut comp: Vec<u8> = Vec::new();
+                    extra.extend(data);
                     while extra.len() >= FRAME_SIZE {
                         let mut compressed = vec![0u8; 4000];
                         let len = encoder
                             .encode_float(&extra[..FRAME_SIZE], &mut compressed)
                             .unwrap();
-                        comp.extend(&compressed[..len]);
+                        if len != 0 {
+                            audio_clone.lock().unwrap().push(compressed[..len].to_vec())
+                        }
                         extra.drain(..FRAME_SIZE);
                     }
-                    audio_clone.lock().unwrap().push(comp)*/
-                    audio_clone.lock().unwrap().extend(data)
                 }
                 thread::sleep(Duration::from_millis(1));
             }
@@ -509,7 +513,7 @@ impl NetManager {
                     &player_image,
                     net_event,
                     &mut sink,
-                    //&mut decoder,
+                    &mut decoder,
                 );
             }
             for net_msg in self.loopback_channel.1.try_iter() {
@@ -519,7 +523,7 @@ impl NetManager {
                     self.peer.my_id(),
                     net_msg,
                     &mut sink,
-                    //&mut decoder,
+                    &mut decoder,
                 );
             }
             // Handle all available messages from Noita.
@@ -561,7 +565,7 @@ impl NetManager {
             }
 
             // Don't do excessive busy-waiting;
-            let min_update_time = Duration::from_millis(5);
+            let min_update_time = Duration::from_millis(1);
             let elapsed = last_iter.elapsed();
             if elapsed < min_update_time {
                 thread::sleep(min_update_time - elapsed);
@@ -577,7 +581,7 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
         sink: &mut Sink,
-        //decoder: &mut Decoder,
+        decoder: &mut Decoder,
     ) {
         match net_event {
             omni::OmniNetworkEvent::PeerConnected(id) => {
@@ -628,7 +632,7 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(state, player_image, src, net_msg, sink); //, decoder);
+                self.handle_net_msg(state, player_image, src, net_msg, sink, decoder);
             }
         }
     }
@@ -640,18 +644,21 @@ impl NetManager {
         src: OmniPeerId,
         net_msg: NetMsg,
         sink: &mut Sink,
-        //decoder: &mut Decoder,
+        decoder: &mut Decoder,
     ) {
         match net_msg {
             NetMsg::AudioData(data) => {
-                /*let mut dec: Vec<f32> = Vec::new();
+                let mut dec: Vec<f32> = Vec::new();
                 for data in data {
                     let mut out = vec![0f32; FRAME_SIZE];
                     let len = decoder.decode_float(&data, &mut out, false).unwrap();
-                    dec.extend(&out[..len])
-                }*/
-                let source = SamplesBuffer::new(2, SAMPLE_RATE as u32, data);
+                    if len != 0 {
+                        dec.extend(&out[..len])
+                    }
+                }
+                let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dec);
                 sink.append(source);
+                sink.play();
             }
             NetMsg::RequestMods => {
                 if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
