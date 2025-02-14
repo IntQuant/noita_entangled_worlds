@@ -8,6 +8,8 @@ jobs:
     name: Check
     steps:
       - uses: actions/checkout@v4
+      - name: Install extra deps
+        run: sudo apt-get update && sudo apt-get install -y libclang-dev libasound2-dev
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
