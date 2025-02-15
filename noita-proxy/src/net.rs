@@ -1,6 +1,5 @@
 use bitcode::{Decode, Encode};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{SampleFormat, SampleRate, SupportedBufferSize, SupportedStreamConfig};
 use des::DesManager;
 use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Rgba, RgbaImage};
@@ -204,8 +203,8 @@ pub struct NetManager {
     pub global: AtomicBool,
 }
 
-const SAMPLE_RATE: usize = 24000;
-const FRAME_SIZE: usize = 480;
+const SAMPLE_RATE: usize = 48000;
+const FRAME_SIZE: usize = 960;
 const CHANNELS: Channels = Channels::Mono;
 
 impl NetManager {
@@ -235,9 +234,9 @@ impl NetManager {
             new_desc: Default::default(),
             loopback_channel: crossbeam::channel::unbounded(),
             volume: Default::default(),
-            dropoff: Default::default(),
-            global: Default::default(),
-            range: Default::default(),
+            dropoff: Mutex::new(1.0),
+            range: Mutex::new(1024),
+            global: AtomicBool::new(false),
         }
         .into()
     }
@@ -386,72 +385,78 @@ impl NetManager {
             get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
 
-        let host = cpal::default_host();
+        let host = cpal::host_from_id(
+            cpal::available_hosts()
+                .into_iter()
+                .find(|id| *id == cpal::HostId::Jack)
+                .unwrap(),
+        )
+        .unwrap();
         let device = host.default_input_device();
-        let config = SupportedStreamConfig::new(
+        let config = cpal::SupportedStreamConfig::new(
             1,
-            SampleRate(SAMPLE_RATE as u32),
-            SupportedBufferSize::Range {
+            cpal::SampleRate(SAMPLE_RATE as u32),
+            cpal::SupportedBufferSize::Range {
                 min: FRAME_SIZE as u32 / 2,
                 max: FRAME_SIZE as u32 * 2,
             },
-            SampleFormat::F32,
+            cpal::SampleFormat::F32,
         );
-        let (tx, rx) = mpsc::channel::<Vec<f32>>();
         let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
-        if let Some(device) = device {
-            thread::spawn(move || {
-                let stream = device
-                    .build_input_stream(
-                        &config.into(),
-                        move |data: &[f32], _| {
-                            tx.send(data.to_vec()).ok();
-                        },
-                        |err| eprintln!("Stream error: {}", err),
-                        None,
-                    )
-                    .expect("Failed to build stream");
-                stream.play().expect("Failed to play stream");
-                loop {
-                    thread::sleep(Duration::from_millis(10));
-                }
-            });
-        }
-        let mut sink = if let Ok((_s, stream_handle)) = OutputStream::try_default() {
-            Sink::try_new(&stream_handle).ok()
-        } else {
-            None
-        };
         let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
-        let audio: Arc<Mutex<Vec<Vec<u8>>>> = Arc::new(Mutex::new(Vec::new()));
-        let audio_clone: Arc<Mutex<Vec<Vec<u8>>>> = Arc::clone(&audio);
+        let (tx, rx) = mpsc::channel::<Vec<u8>>();
         thread::spawn(move || {
             let mut extra = Vec::new();
-            loop {
-                while let Ok(data) = rx.try_recv() {
-                    extra.extend(data);
-                    let mut v = Vec::new();
-                    while extra.len() >= FRAME_SIZE {
-                        let mut compressed = vec![0u8; 4000];
-                        if let Ok(len) = encoder.encode_float(&extra[..FRAME_SIZE], &mut compressed)
-                        {
-                            if len != 0 {
-                                v.push(compressed[..len].to_vec())
+            if let Some(device) = device {
+                match device.build_input_stream(
+                    &config.into(),
+                    move |data: &[f32], _| {
+                        extra.extend(data);
+                        let mut v = Vec::new();
+                        while extra.len() >= FRAME_SIZE {
+                            let mut compressed = vec![0u8; 4000];
+                            if let Ok(len) =
+                                encoder.encode_float(&extra[..FRAME_SIZE], &mut compressed)
+                            {
+                                if len != 0 {
+                                    v.push(compressed[..len].to_vec())
+                                }
                             }
+                            extra.drain(..FRAME_SIZE);
                         }
-                        extra.drain(..FRAME_SIZE);
+                        for v in v {
+                            let _ = tx.send(v);
+                        }
+                    },
+                    |err| eprintln!("Stream error: {}", err),
+                    Some(Duration::from_millis(10)),
+                ) {
+                    Ok(stream) => {
+                        if let Ok(_s) = stream.play() {
+                            loop {
+                                thread::sleep(Duration::from_millis(10))
+                            }
+                        } else {
+                            println!("failed to play stream")
+                        }
                     }
-                    if !v.is_empty() {
-                        audio_clone.lock().unwrap().extend(v)
+                    Err(s) => {
+                        println!("no stream {}", s)
                     }
                 }
-                thread::sleep(Duration::from_millis(10));
+            } else {
+                println!("input device not found")
             }
         });
+        let device = host.default_output_device().unwrap();
+        let config = device.default_output_config().unwrap();
+        let (_s, stream_handle) = OutputStream::try_from_device_config(&device, config).unwrap();
+        let mut sink = Sink::try_new(&stream_handle).unwrap();
         while self.continue_running.load(Ordering::Relaxed) {
-            let mut lock = audio.lock().unwrap();
-            let audio_data = std::mem::take(&mut *lock);
-            drop(lock);
+            let mut audio_data = Vec::new();
+            while let Ok(data) = rx.try_recv() {
+                audio_data.push(data)
+            }
             if !audio_data.is_empty() {
                 self.broadcast(
                     &NetMsg::AudioData(audio_data, self.global.load(Ordering::Relaxed)),
@@ -602,7 +607,7 @@ impl NetManager {
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
-        sink: &mut Option<Sink>,
+        sink: &mut Sink,
         decoder: &mut Decoder,
     ) {
         match net_event {
@@ -665,70 +670,56 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
-        sink: &mut Option<Sink>,
+        sink: &mut Sink,
         decoder: &mut Decoder,
     ) {
         match net_msg {
             NetMsg::AudioData(data, global) => {
-                if let Some(sink) = sink {
-                    let (vol, theta) = {
-                        if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
-                            (
-                                if dist > self.range.lock().unwrap().pow(2) {
-                                    0.0
-                                } else {
-                                    self.volume.lock().unwrap().get(&src).unwrap_or(&1.0)
-                                        / (1.0
-                                            + self
-                                                .dropoff
-                                                .lock()
-                                                .unwrap()
-                                                .mul(dist as f32 * 2.0f32.powi(-16)))
-                                },
-                                Some(theta),
-                            )
-                        } else if global {
-                            (*self.volume.lock().unwrap().get(&src).unwrap_or(&1.0), None)
-                        } else {
-                            return;
-                        }
-                    };
-                    if vol > 0.0 {
-                        let (left, right) = if let Some(theta) = theta {
-                            (
-                                (-theta.cos() * 0.25 + 0.75) * vol,
-                                Some((theta.cos() * 0.25 + 0.75) * vol),
-                            )
-                        } else {
-                            (vol, None)
-                        };
-                        let mut dec: Vec<f32> = Vec::new();
-                        for data in data {
-                            let mut out = vec![0f32; FRAME_SIZE];
-                            if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
-                                if len != 0 {
-                                    dec.extend(&out[..len])
-                                }
+                let (vol, theta): (f32, f32) = {
+                    if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
+                        (
+                            if dist > self.range.lock().unwrap().pow(2) {
+                                0.0
+                            } else {
+                                self.volume.lock().unwrap().get(&src).unwrap_or(&1.0)
+                                    / (1.0
+                                        + self
+                                            .dropoff
+                                            .lock()
+                                            .unwrap()
+                                            .mul(dist as f32 * 2.0f32.powi(-16)))
+                            },
+                            theta,
+                        )
+                    } else if global {
+                        (*self.volume.lock().unwrap().get(&src).unwrap_or(&1.0), 0.0)
+                    } else {
+                        return;
+                    }
+                };
+                if vol > 0.0 {
+                    let (left, right) = (
+                        (-theta.cos() * 0.25 + 0.75) * vol,
+                        (theta.cos() * 0.25 + 0.75) * vol,
+                    );
+                    let mut dec: Vec<f32> = Vec::new();
+                    for data in data {
+                        let mut out = vec![0f32; FRAME_SIZE];
+                        if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
+                            if len != 0 {
+                                dec.extend(&out[..len])
                             }
                         }
-                        if !dec.is_empty() {
-                            let source = if let Some(right) = right {
-                                let mut stereo_samples = Vec::with_capacity(dec.len() * 2);
-                                for &sample in &dec {
-                                    stereo_samples.push(sample * left);
-                                    stereo_samples.push(sample * right);
-                                }
-                                SamplesBuffer::new(2, SAMPLE_RATE as u32, stereo_samples)
-                            } else {
-                                SamplesBuffer::new(
-                                    1,
-                                    SAMPLE_RATE as u32,
-                                    dec.iter().map(|a| a * vol).collect::<Vec<f32>>(),
-                                )
-                            };
-                            sink.append(source);
-                            sink.play();
+                    }
+                    if !dec.is_empty() {
+                        let mut stereo_samples = Vec::with_capacity(dec.len() * 2);
+                        for &sample in &dec {
+                            stereo_samples.push(sample * left);
+                            stereo_samples.push(sample * right);
                         }
+                        let source = SamplesBuffer::new(2, SAMPLE_RATE as u32, stereo_samples);
+                        sink.append(source);
+                        sink.play();
                     }
                 }
             }
@@ -1113,8 +1104,8 @@ impl NetManager {
             }
             Some("peer_pos") => {
                 let peer_id = msg.next().and_then(OmniPeerId::from_hex);
-                let x: Option<f64> = msg.next().and_then(|s| s.parse().ok());
-                let y: Option<f64> = msg.next().and_then(|s| s.parse().ok());
+                let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 if let (Some(peer_id), Some(x), Some(y)) = (peer_id, x, y) {
                     self.world_info.update_player_pos(peer_id, x, y);
                 }

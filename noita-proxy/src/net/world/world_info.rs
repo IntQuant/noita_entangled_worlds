@@ -32,11 +32,11 @@ impl WorldInfo {
         f(&mut inner)
     }
 
-    pub(in crate::net) fn update_player_pos(&self, peer_id: OmniPeerId, x: f64, y: f64) {
+    pub(in crate::net) fn update_player_pos(&self, peer_id: OmniPeerId, x: i32, y: i32) {
         self.with_inner(|inner| {
             let info = inner.players.entry(peer_id).or_default();
-            info.x = x as i32;
-            info.y = y as i32;
+            info.x = x;
+            info.y = y;
         })
     }
 

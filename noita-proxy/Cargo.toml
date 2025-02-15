@@ -49,8 +49,8 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 tracing-appender = "0.2.3"
 shared = {path = "../shared"}
 rstar = "0.12.2"
+cpal = {version="0.15.3", features=["jack"]}
 rodio = "0.20.1"
-cpal = "0.15.3"
 opus = "0.3.0"
 
 [dev-dependencies]

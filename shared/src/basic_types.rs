@@ -23,10 +23,13 @@ impl WorldPos {
     }
 
     pub fn dist(&self, other: &WorldPos) -> (u64, f32) {
-        let dx = (self.x - other.x) as u64;
-        let dy = (self.y - other.y) as u64;
+        let dx = self.x.abs_diff(other.x) as u64;
+        let dy = self.y.abs_diff(other.y) as u64;
         //(dx as f64).hypot(dy as f64) as u64
-        (dx * dx + dy * dy, (dy as f32).atan2(dx as f32))
+        (
+            dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy)),
+            (dy as f32).atan2(dx as f32),
+        )
     }
 
     pub fn as_array(&self) -> [i64; 2] {
@@ -36,7 +39,7 @@ impl WorldPos {
     pub fn contains(self, x: f64, y: f64, dist: u32) -> bool {
         let dx = self.x.abs_diff(x as i32);
         let dy = self.y.abs_diff(y as i32);
-        dx * dx + dy * dy < dist * dist
+        dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy)) < dist.saturating_mul(dist)
     }
 }
 
