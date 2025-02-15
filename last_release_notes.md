@@ -1,18 +1,20 @@
-## Noita Entangled Worlds v1.1.2
+## Noita Entangled Worlds v1.2.0
 
-- fix a crash
+- add voip/proximity chat
 
-- fix mimic potion poly duping
+- fix ipv6
 
-- add ew_synced_var tag for mod compatability
+- fix chest?
 
-- maybe better implementation for ipv6
+- fix enemy drops not being synced sometimes
 
-- new flags system so new game as host does not wipe flags causing duping
+- fix gods are afraid message maybe
 
 ## Accepted pull requests
 
-- Small tweak to player sync warning message by @Elliot-Roberts in #333
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
