@@ -419,6 +419,15 @@ impl NetManager {
         thread::spawn(move || {
             let mut extra = Vec::new();
             if let Some(device) = device {
+                {
+                    let cfg = device.default_input_config().unwrap();
+                    info!(
+                        "def input cfg: {}, {}, {}",
+                        cfg.channels(),
+                        cfg.sample_rate().0,
+                        cfg.sample_format()
+                    );
+                }
                 match device.build_input_stream(
                     &config.into(),
                     move |data: &[f32], _| {
