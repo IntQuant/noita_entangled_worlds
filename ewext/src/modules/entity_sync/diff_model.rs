@@ -72,10 +72,7 @@ impl LocalDiffModel {
                     gid: *gid,
                     pos: WorldPos::from_f32(current.x, current.y),
                     r: current.r,
-                    is_charmed: current
-                        .game_effects
-                        .iter()
-                        .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
+                    is_charmed: current.is_charmed(false),
                 }
             })
             .collect()
@@ -266,9 +263,7 @@ impl LocalDiffModelTracker {
                         lid,
                         peer,
                         info.wand.clone().map(|(_, a)| a),
-                        info.game_effects
-                            .iter()
-                            .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
+                        info.is_charmed(entity.has_tag("boss_centipede")),
                     )
                     .wrap_err("Failed to transfer authority")?;
                     return Ok(());
@@ -279,9 +274,7 @@ impl LocalDiffModelTracker {
                     gid,
                     lid,
                     info.wand.clone().map(|(_, a)| a),
-                    info.game_effects
-                        .iter()
-                        .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
+                    info.is_charmed(entity.has_tag("boss_centipede")),
                 )
                 .wrap_err("Failed to release authority")?;
                 return Ok(());
@@ -728,7 +721,16 @@ impl LocalDiffModel {
                 Some(entity_data.rotation),
             )?;
             if entity_data.is_charmed {
-                entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
+                if entity.has_tag("boss_centipede") {
+                    entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                    entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                    entity
+                        .children(Some("protection".into()))
+                        .iter()
+                        .for_each(|ent| ent.kill());
+                } else {
+                    entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
+                }
             }
             if !entity_data.drops_gold {
                 for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
@@ -1015,11 +1017,7 @@ impl LocalDiffModel {
             wand: None,
             rotation: entry_pair.current.r,
             drops_gold: entry_pair.current.drops_gold,
-            is_charmed: entry_pair
-                .current
-                .game_effects
-                .iter()
-                .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm)),
+            is_charmed: entry_pair.current.is_charmed(false),
         })
     }
 

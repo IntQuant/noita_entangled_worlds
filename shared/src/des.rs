@@ -1,7 +1,7 @@
 use std::num::NonZero;
 use std::sync::Arc;
 
-use crate::{GameEffectData, PeerId, SpawnOnce, WorldPos};
+use crate::{GameEffectData, GameEffectEnum, PeerId, SpawnOnce, WorldPos};
 use bitcode::{Decode, Encode};
 
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
@@ -118,6 +118,19 @@ pub struct EntityInfo {
     pub counter: u8,      //for mom orbs/dragon has death script/etc
     pub synced_var: Vec<(String, String, i32, f32, bool)>,
 }
+
+impl EntityInfo {
+    pub fn is_charmed(&self, is_cent: bool) -> bool {
+        if is_cent {
+            self.is_enabled
+        } else {
+            self.game_effects
+                .iter()
+                .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm))
+        }
+    }
+}
+
 //TODO authority transfers should serialize entities probably
 #[derive(Encode, Decode, Clone)]
 pub enum EntityUpdate {

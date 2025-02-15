@@ -198,6 +198,7 @@ pub struct NetManager {
         crossbeam::channel::Receiver<NetMsg>,
     ),
     pub audio: Mutex<AudioSettings>,
+    push_to_talk: AtomicBool,
 }
 
 const SAMPLE_RATE: usize = 48000;
@@ -231,6 +232,7 @@ impl NetManager {
             new_desc: Default::default(),
             loopback_channel: crossbeam::channel::unbounded(),
             audio: audio.into(),
+            push_to_talk: Default::default(),
         }
         .into()
     }
@@ -423,7 +425,7 @@ impl NetManager {
                             let _ = tx.send(v);
                         }
                     },
-                    |err| eprintln!("Stream error: {}", err),
+                    |err| error!("Stream error: {}", err),
                     Some(Duration::from_millis(10)),
                 ) {
                     Ok(stream) => {
@@ -432,15 +434,15 @@ impl NetManager {
                                 thread::sleep(Duration::from_millis(10))
                             }
                         } else {
-                            println!("failed to play stream")
+                            error!("failed to play stream")
                         }
                     }
                     Err(s) => {
-                        println!("no stream {}", s)
+                        error!("no stream {}", s)
                     }
                 }
             } else {
-                println!("input device not found")
+                warn!("input device not found")
             }
         });
         let stream_handle: Option<(OutputStream, OutputStreamHandle)> =
@@ -457,7 +459,10 @@ impl NetManager {
             while let Ok(data) = rx.try_recv() {
                 audio_data.push(data)
             }
-            if !audio_data.is_empty() {
+            if !audio_data.is_empty() && {
+                let audio = self.audio.lock().unwrap();
+                !audio.mute_in && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
+            } {
                 self.broadcast(
                     &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global),
                     Reliability::Reliable,
@@ -466,7 +471,7 @@ impl NetManager {
             if let Some(k) = kind {
                 if let Some(n) = self.peer.lobby_id() {
                     let c = crate::lobby_code::LobbyCode { kind: k, code: n };
-                    println!("Lobby ID: {}", c.serialize());
+                    info!("Lobby ID: {}", c.serialize());
                     kind = None
                 }
             }
@@ -714,7 +719,7 @@ impl NetManager {
                             return;
                         }
                     };
-                    if vol > 0.0 {
+                    if vol > 0.0 && !self.audio.lock().unwrap().mute_out {
                         sink.set_volume(vol);
                         let mut dec: Vec<f32> = Vec::new();
                         for data in data {
@@ -1119,6 +1124,10 @@ impl NetManager {
                 if let (Some(peer_id), Some(x), Some(y)) = (peer_id, x, y) {
                     self.world_info.update_player_pos(peer_id, x, y);
                 }
+            }
+            Some("ptt") => {
+                let x: Option<u8> = msg.next().and_then(|s| s.parse().ok());
+                self.push_to_talk.store(x == Some(1), Ordering::Relaxed)
             }
             Some("reset_world") => {
                 state.world.reset();

@@ -149,6 +149,15 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "rebind_ptt",
+                    ui_name = "push to talk",
+                    ui_description = "push to talk, options in proxy VoIP",
+                    value_default = "23",
+                    ui_fn = ui_get_input,
+                    is_waiting_for_input = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "text",
                     ui_name = "text",
                     ui_description = "hi",

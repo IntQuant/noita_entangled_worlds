@@ -652,6 +652,9 @@ pub struct AudioSettings {
     dropoff: f32,
     range: u64,
     global: bool,
+    push_to_talk: bool,
+    mute_out: bool,
+    mute_in: bool,
 }
 
 impl Default for AudioSettings {
@@ -661,6 +664,9 @@ impl Default for AudioSettings {
             dropoff: 1.0,
             range: 1024,
             global: false,
+            push_to_talk: true,
+            mute_out: false,
+            mute_in: false,
         }
     }
 }
@@ -1580,6 +1586,9 @@ impl App {
                     ui.label("maximal range of audio");
                     ui.add(Slider::new(&mut self.audio.range, 0..=4096));
                     ui.checkbox(&mut self.audio.global, "is voice global");
+                    ui.checkbox(&mut self.audio.push_to_talk, "push to talk");
+                    ui.checkbox(&mut self.audio.mute_in, "mute input");
+                    ui.checkbox(&mut self.audio.mute_out, "mute output");
                     for peer in netman.peer.iter_peer_ids() {
                         if netman.peer.my_id() != peer {
                             ui.label(format!(
