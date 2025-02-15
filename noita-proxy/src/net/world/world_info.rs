@@ -27,6 +27,20 @@ impl WorldInfo {
         })
     }
 
+    /*#[allow(clippy::type_complexity)]
+    pub(crate) fn pos(
+        &self,
+        a: OmniPeerId,
+        b: OmniPeerId,
+    ) -> (Option<(i32, i32)>, Option<(i32, i32)>) {
+        self.with_inner(|inner| {
+            (
+                inner.players.get(&a).map(|w| (w.x, w.y)),
+                inner.players.get(&b).map(|w| (w.x, w.y)),
+            )
+        })
+    }*/
+
     fn with_inner<T>(&self, f: impl FnOnce(&mut WorldInfoInner) -> T) -> T {
         let mut inner = self.inner.lock().unwrap();
         f(&mut inner)

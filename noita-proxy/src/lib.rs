@@ -22,6 +22,7 @@ use net::{
 use player_cosmetics::PlayerPngDesc;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::process::exit;
@@ -402,6 +403,12 @@ impl Drop for NetManStopOnDrop {
     }
 }
 
+impl Drop for App {
+    fn drop(&mut self) {
+        self.set_settings()
+    }
+}
+
 enum AppState {
     Connect,
     ModManager,
@@ -427,6 +434,7 @@ enum ConnectedMenu {
     Mods,
     BanList,
     ConnectionInfo,
+    VoIP,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -638,15 +646,34 @@ impl EndRunButton {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Decode, Encode, Clone)]
+pub struct AudioSettings {
+    volume: HashMap<OmniPeerId, f32>,
+    dropoff: f32,
+    range: u64,
+    global: bool,
+}
+
+impl Default for AudioSettings {
+    fn default() -> Self {
+        Self {
+            volume: Default::default(),
+            dropoff: 1.0,
+            range: 1024,
+            global: false,
+        }
+    }
+}
+
 pub struct App {
     state: AppState,
+    audio: AudioSettings,
     modmanager: Modmanager,
     steam_state: Result<steam_helper::SteamState, SteamAPIInitError>,
     app_saved_state: AppSavedState,
     run_save_state: SaveState,
     modmanager_settings: ModmanagerSettings,
     self_update: SelfUpdateManager,
-    show_map_plot: bool,
     lobby_id_field: String,
     args: Args,
     /// `true` if we haven't started noita automatically yet.
@@ -698,6 +725,7 @@ pub struct Settings {
     color: PlayerAppearance,
     app: AppSavedState,
     modmanager: ModmanagerSettings,
+    audio: AudioSettings,
 }
 
 fn settings_get() -> Settings {
@@ -715,12 +743,18 @@ fn settings_get() -> Settings {
     }
 }
 
-fn settings_set(app: AppSavedState, color: PlayerAppearance, modmanager: ModmanagerSettings) {
+fn settings_set(
+    app: AppSavedState,
+    color: PlayerAppearance,
+    modmanager: ModmanagerSettings,
+    audio: AudioSettings,
+) {
     if let Ok(s) = std::env::current_exe() {
         let settings = Settings {
             app,
             color,
             modmanager,
+            audio,
         };
         let file = s.parent().unwrap().join("proxy.ron");
         let settings = ron::to_string(&settings).unwrap();
@@ -738,6 +772,7 @@ impl App {
         let mut saved_state: AppSavedState = settings.app;
         let modmanager_settings: ModmanagerSettings = settings.modmanager;
         let appearance: PlayerAppearance = settings.color;
+        let audio: AudioSettings = settings.audio;
         saved_state.times_started += 1;
 
         info!("Setting fonts...");
@@ -794,12 +829,12 @@ impl App {
 
         Self {
             state,
+            audio,
             modmanager: Modmanager::default(),
             steam_state,
             app_saved_state: saved_state,
             modmanager_settings,
             self_update: SelfUpdateManager::new(),
-            show_map_plot: false,
             lobby_id_field: "".to_string(),
             args,
             can_start_automatically: false,
@@ -820,6 +855,7 @@ impl App {
             self.app_saved_state.clone(),
             self.appearance.clone(),
             self.modmanager_settings.clone(),
+            self.audio.clone(),
         )
     }
 
@@ -894,7 +930,11 @@ impl App {
     fn start_server(&mut self) {
         let bind_addr = SocketAddr::new("::".parse().unwrap(), DEFAULT_PORT);
         let peer = Peer::host(bind_addr, None).unwrap();
-        let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
+        let netman = net::NetManager::new(
+            PeerVariant::Tangled(peer),
+            self.get_netman_init(),
+            self.audio.clone(),
+        );
         self.set_netman_settings(&netman);
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
@@ -924,7 +964,11 @@ impl App {
     }
 
     fn start_connect_step_2(&mut self, peer: Peer) {
-        let netman = net::NetManager::new(PeerVariant::Tangled(peer), self.get_netman_init());
+        let netman = net::NetManager::new(
+            PeerVariant::Tangled(peer),
+            self.get_netman_init(),
+            self.audio.clone(),
+        );
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
@@ -937,7 +981,11 @@ impl App {
                 .max_players
                 .unwrap_or(DefaultSettings::default().max_players),
         );
-        let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
+        let netman = net::NetManager::new(
+            PeerVariant::Steam(peer),
+            self.get_netman_init(),
+            self.audio.clone(),
+        );
         self.set_netman_settings(&netman);
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
@@ -954,7 +1002,11 @@ impl App {
             self.steam_state.as_ref().unwrap().client.clone(),
         );
 
-        let netman = net::NetManager::new(PeerVariant::Steam(peer), self.get_netman_init());
+        let netman = net::NetManager::new(
+            PeerVariant::Steam(peer),
+            self.get_netman_init(),
+            self.audio.clone(),
+        );
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
     }
 
@@ -1357,6 +1409,11 @@ impl App {
                     ConnectedMenu::Settings,
                     "Game Settings",
                 );
+                ui.selectable_value(
+                    &mut self.connected_menu,
+                    ConnectedMenu::VoIP,
+                    "VoIP Settings",
+                );
                 if netman.peer.is_steam() {
                     ui.selectable_value(
                         &mut self.connected_menu,
@@ -1517,40 +1574,38 @@ impl App {
                         ctx.request_repaint_after(Duration::from_millis(16));
                     }
                 },
-            }
-            if self.app_saved_state.show_extra_debug_stuff {
-                if self.show_map_plot {
-                    /*if ui.button("Close plot").clicked() {
-                        self.show_map_plot = false;
-                    }
-                    ctx.request_repaint_after(Duration::from_millis(16));
-                    let build_fn = |plot: &mut PlotUi| {
-                        let markers = netman.debug_markers.lock().unwrap();
-                        for marker in markers.iter() {
-                            plot.text(Text::new(
-                                PlotPoint::new(marker.x, -marker.y),
-                                marker.message.clone(),
+                ConnectedMenu::VoIP => {
+                    ui.label("drop off rate of audio from others");
+                    ui.add(Slider::new(&mut self.audio.dropoff, 0.0..=128.0));
+                    ui.label("maximal range of audio");
+                    ui.add(Slider::new(&mut self.audio.range, 0..=4096));
+                    ui.checkbox(&mut self.audio.global, "is voice global");
+                    for peer in netman.peer.iter_peer_ids() {
+                        if netman.peer.my_id() != peer {
+                            ui.label(format!(
+                                "volume for {}",
+                                netman
+                                    .nicknames
+                                    .lock()
+                                    .unwrap()
+                                    .get(&peer)
+                                    .unwrap_or(&peer.to_string())
+                            ));
+                            ui.add(Slider::new(
+                                self.audio.volume.entry(peer).or_insert(1.0),
+                                0.0..=2.0,
                             ));
                         }
-                        netman.world_info.with_player_infos(|peer, info| {
-                            let username = if netman.peer.is_steam() {
-                                let steam = self.steam_state.as_mut().expect(
-                                    "steam should be available, as we are using steam networking",
-                                );
-                                steam.get_user_name(peer.into())
-                            } else {
-                                peer.as_hex()
-                            };
-                            plot.text(
-                                Text::new(PlotPoint::new(info.x, -info.y), username)
-                                    .highlight(true),
-                            )
-                        });
-                    };
-                    Plot::new("map").data_aspect(1.0).show(ui, build_fn);*/
-                } else if ui.button(tr("Show-debug-plot")).clicked() {
-                    self.show_map_plot = true;
+                    }
+                    if ui.button("default").clicked() {
+                        self.audio = Default::default();
+                    }
+                    if ui.button("save").clicked() {
+                        *netman.audio.lock().unwrap() = self.audio.clone()
+                    }
                 }
+            }
+            if self.app_saved_state.show_extra_debug_stuff {
                 ui.checkbox(
                     &mut self.app_saved_state.record_all,
                     tr("Record-everything-sent-to-noita"),
@@ -1847,11 +1902,19 @@ fn peer_role(peer: OmniPeerId, netman: &Arc<net::NetManager>) -> String {
     }
 }
 
-fn cli_setup(args: Args) -> (Option<steam_helper::SteamState>, NetManagerInit, LobbyKind) {
+fn cli_setup(
+    args: Args,
+) -> (
+    Option<steam_helper::SteamState>,
+    NetManagerInit,
+    LobbyKind,
+    AudioSettings,
+) {
     let settings = settings_get();
     let saved_state: AppSavedState = settings.app;
     let mut mod_manager: ModmanagerSettings = settings.modmanager;
     let appearance: PlayerAppearance = settings.color;
+    let audio: AudioSettings = settings.audio;
     let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
@@ -1908,11 +1971,12 @@ fn cli_setup(args: Args) -> (Option<steam_helper::SteamState>, NetManagerInit, L
         } else {
             LobbyKind::Steam
         },
+        audio,
     )
 }
 
 pub fn connect_cli(lobby: String, args: Args) {
-    let (state, netmaninit, kind) = cli_setup(args);
+    let (state, netmaninit, kind, audio) = cli_setup(args);
     let varient = if lobby.contains(':') {
         let p = Peer::connect(lobby.parse().unwrap(), None).unwrap();
         while p.my_id().is_none() {
@@ -1930,12 +1994,12 @@ pub fn connect_cli(lobby: String, args: Args) {
         exit(1)
     };
     let player_path = netmaninit.player_path.clone();
-    let netman = net::NetManager::new(varient, netmaninit);
+    let netman = net::NetManager::new(varient, netmaninit, audio);
     netman.start_inner(player_path, Some(kind)).unwrap();
 }
 
 pub fn host_cli(port: u16, args: Args) {
-    let (state, netmaninit, kind) = cli_setup(args);
+    let (state, netmaninit, kind, audio) = cli_setup(args);
     let varient = if port != 0 {
         let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
         let peer = Peer::host(bind_addr, None).unwrap();
@@ -1952,6 +2016,6 @@ pub fn host_cli(port: u16, args: Args) {
         exit(1)
     };
     let player_path = netmaninit.player_path.clone();
-    let netman = net::NetManager::new(varient, netmaninit);
+    let netman = net::NetManager::new(varient, netmaninit, audio);
     netman.start_inner(player_path, Some(kind)).unwrap();
 }

@@ -8,7 +8,7 @@ use omni::OmniPeerId;
 use opus::{Application, Channels, Decoder, Encoder};
 use proxy_opt::ProxyOpt;
 use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, Sink};
+use rodio::{OutputStream, OutputStreamHandle, Sink};
 use rustc_hash::FxHashSet;
 use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
@@ -36,7 +36,7 @@ use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
 use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
-    DefaultSettings, GameMode, GameSettings, LocalHealthMode,
+    AudioSettings, DefaultSettings, GameMode, GameSettings, LocalHealthMode,
 };
 use shared::des::ProxyToDes;
 use tangled::Reliability;
@@ -197,10 +197,7 @@ pub struct NetManager {
         crossbeam::channel::Sender<NetMsg>,
         crossbeam::channel::Receiver<NetMsg>,
     ),
-    pub volume: Mutex<HashMap<OmniPeerId, f32>>,
-    pub dropoff: Mutex<f32>,
-    pub range: Mutex<u64>,
-    pub global: AtomicBool,
+    pub audio: Mutex<AudioSettings>,
 }
 
 const SAMPLE_RATE: usize = 48000;
@@ -208,7 +205,7 @@ const FRAME_SIZE: usize = 960;
 const CHANNELS: Channels = Channels::Mono;
 
 impl NetManager {
-    pub fn new(peer: omni::PeerVariant, init: NetManagerInit) -> Arc<Self> {
+    pub fn new(peer: omni::PeerVariant, init: NetManagerInit, audio: AudioSettings) -> Arc<Self> {
         Self {
             peer,
             pending_settings: Mutex::new(GameSettings::default()),
@@ -233,10 +230,7 @@ impl NetManager {
             minas: Default::default(),
             new_desc: Default::default(),
             loopback_channel: crossbeam::channel::unbounded(),
-            volume: Default::default(),
-            dropoff: Mutex::new(1.0),
-            range: Mutex::new(1024),
-            global: AtomicBool::new(false),
+            audio: audio.into(),
         }
         .into()
     }
@@ -385,13 +379,11 @@ impl NetManager {
             get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
 
-        let host = cpal::host_from_id(
-            cpal::available_hosts()
-                .into_iter()
-                .find(|id| *id == cpal::HostId::Jack)
-                .unwrap(),
-        )
-        .unwrap();
+        let host = cpal::available_hosts()
+            .into_iter()
+            .find(|id| *id == cpal::HostId::Jack)
+            .and_then(|id| cpal::host_from_id(id).ok())
+            .unwrap_or(cpal::default_host());
         let device = host.default_input_device();
         let config = cpal::SupportedStreamConfig::new(
             1,
@@ -448,10 +440,15 @@ impl NetManager {
                 println!("input device not found")
             }
         });
-        let device = host.default_output_device().unwrap();
-        let config = device.default_output_config().unwrap();
-        let (_s, stream_handle) = OutputStream::try_from_device_config(&device, config).unwrap();
-        let mut sink = Sink::try_new(&stream_handle).unwrap();
+        let stream_handle: Option<(OutputStream, OutputStreamHandle)> =
+            host.default_output_device().and_then(|device| {
+                device
+                    .default_output_config()
+                    .map(|config| OutputStream::try_from_device_config(&device, config).ok())
+                    .ok()
+                    .flatten()
+            });
+        let mut sink: HashMap<OmniPeerId, Sink> = Default::default();
         while self.continue_running.load(Ordering::Relaxed) {
             let mut audio_data = Vec::new();
             while let Ok(data) = rx.try_recv() {
@@ -459,7 +456,7 @@ impl NetManager {
             }
             if !audio_data.is_empty() {
                 self.broadcast(
-                    &NetMsg::AudioData(audio_data, self.global.load(Ordering::Relaxed)),
+                    &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global),
                     Reliability::Reliable,
                 );
             }
@@ -539,6 +536,7 @@ impl NetManager {
                     &player_image,
                     net_event,
                     &mut sink,
+                    &stream_handle,
                     &mut decoder,
                 );
             }
@@ -549,6 +547,7 @@ impl NetManager {
                     self.peer.my_id(),
                     net_msg,
                     &mut sink,
+                    &stream_handle,
                     &mut decoder,
                 );
             }
@@ -607,7 +606,8 @@ impl NetManager {
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
-        sink: &mut Sink,
+        sink: &mut HashMap<OmniPeerId, Sink>,
+        stream_handle: &Option<(OutputStream, OutputStreamHandle)>,
         decoder: &mut Decoder,
     ) {
         match net_event {
@@ -659,69 +659,76 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(state, player_image, src, net_msg, sink, decoder);
+                self.handle_net_msg(
+                    state,
+                    player_image,
+                    src,
+                    net_msg,
+                    sink,
+                    stream_handle,
+                    decoder,
+                );
             }
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_net_msg(
         self: Arc<NetManager>,
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
-        sink: &mut Sink,
+        sink: &mut HashMap<OmniPeerId, Sink>,
+        stream_handle: &Option<(OutputStream, OutputStreamHandle)>,
         decoder: &mut Decoder,
     ) {
         match net_msg {
             NetMsg::AudioData(data, global) => {
-                let (vol, theta): (f32, f32) = {
-                    if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
-                        (
-                            if dist > self.range.lock().unwrap().pow(2) {
-                                0.0
-                            } else {
-                                self.volume.lock().unwrap().get(&src).unwrap_or(&1.0)
-                                    / (1.0
-                                        + self
-                                            .dropoff
-                                            .lock()
-                                            .unwrap()
-                                            .mul(dist as f32 * 2.0f32.powi(-16)))
-                            },
-                            theta,
-                        )
-                    } else if global {
-                        (*self.volume.lock().unwrap().get(&src).unwrap_or(&1.0), 0.0)
-                    } else {
-                        return;
-                    }
-                };
-                if vol > 0.0 {
-                    let (left, right) = (
-                        (-theta.cos() * 0.25 + 0.75) * vol,
-                        (theta.cos() * 0.25 + 0.75) * vol,
-                    );
-                    let mut dec: Vec<f32> = Vec::new();
-                    for data in data {
-                        let mut out = vec![0f32; FRAME_SIZE];
-                        if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
-                            if len != 0 {
-                                dec.extend(&out[..len])
-                            }
+                if sink.get(&src).is_none() {
+                    if let Some(stream_handle) = stream_handle {
+                        if let Ok(s) = Sink::try_new(&stream_handle.1) {
+                            sink.insert(src, s);
                         }
-                    }
-                    if !dec.is_empty() {
-                        let mut stereo_samples = Vec::with_capacity(dec.len() * 2);
-                        for &sample in &dec {
-                            stereo_samples.push(sample * left);
-                            stereo_samples.push(sample * right);
-                        }
-                        let source = SamplesBuffer::new(2, SAMPLE_RATE as u32, stereo_samples);
-                        sink.append(source);
-                        sink.play();
                     }
                 }
+                sink.entry(src).and_modify(|sink| {
+                    let (vol, _): (f32, f32) = {
+                        let audio = self.audio.lock().unwrap();
+                        if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
+                            (
+                                if dist > audio.range.pow(2) {
+                                    0.0
+                                } else {
+                                    audio.volume.get(&src).unwrap_or(&1.0)
+                                        / (1.0 + audio.dropoff.mul(dist as f32 * 2.0f32.powi(-16)))
+                                },
+                                theta,
+                            )
+                        } else if global {
+                            (*audio.volume.get(&src).unwrap_or(&1.0), 0.0)
+                        } else {
+                            return;
+                        }
+                    };
+                    if vol > 0.0 {
+                        sink.set_volume(vol);
+                        let mut dec: Vec<f32> = Vec::new();
+                        for data in data {
+                            let mut out = vec![0f32; FRAME_SIZE];
+                            if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
+                                if len != 0 {
+                                    dec.extend(&out[..len])
+                                }
+                            }
+                        }
+                        if !dec.is_empty() {
+                            let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dec);
+                            sink.append(source);
+                            sink.play();
+                        }
+                    }
+                });
             }
             NetMsg::RequestMods => {
                 if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
