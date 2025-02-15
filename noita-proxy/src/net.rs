@@ -379,11 +379,14 @@ impl NetManager {
             get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
 
+        #[cfg(target_os = "linux")]
         let host = cpal::available_hosts()
             .into_iter()
             .find(|id| *id == cpal::HostId::Jack)
             .and_then(|id| cpal::host_from_id(id).ok())
             .unwrap_or(cpal::default_host());
+        #[cfg(not(target_os = "linux"))]
+        let host = cpal::default_host();
         let device = host.default_input_device();
         let config = cpal::SupportedStreamConfig::new(
             1,
