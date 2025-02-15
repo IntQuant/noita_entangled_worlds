@@ -18,7 +18,7 @@ use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
 use std::ops::Mul;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::{
     env,
@@ -28,7 +28,7 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-use world::{world_info::WorldInfo, NoitaWorldUpdate, WorldManager};
+use world::{NoitaWorldUpdate, WorldManager};
 
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{get_mods, ModmanagerSettings};
@@ -180,7 +180,7 @@ pub struct NetManager {
     pub stopped: AtomicBool,
     pub error: Mutex<Option<io::Error>>,
     pub init_settings: NetManagerInit,
-    pub world_info: WorldInfo,
+    pub camera_pos: (AtomicI32, AtomicI32),
     pub enable_recorder: AtomicBool,
     pub end_run: AtomicBool,
     pub ban_list: Mutex<Vec<OmniPeerId>>,
@@ -217,7 +217,7 @@ impl NetManager {
             stopped: AtomicBool::new(false),
             error: Default::default(),
             init_settings: init,
-            world_info: Default::default(),
+            camera_pos: Default::default(),
             enable_recorder: AtomicBool::new(false),
             end_run: AtomicBool::new(false),
             ban_list: Default::default(),
@@ -491,8 +491,12 @@ impl NetManager {
                 let audio = self.audio.lock().unwrap();
                 !audio.mute_in && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
             } {
+                let (x, y) = (
+                    self.camera_pos.0.load(Ordering::Relaxed),
+                    self.camera_pos.1.load(Ordering::Relaxed),
+                );
                 self.broadcast(
-                    &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global),
+                    &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global, x, y),
                     Reliability::Reliable,
                 );
             }
@@ -599,7 +603,6 @@ impl NetManager {
                         warn!("Game closed (Lost connection to noita instance: {})", err);
                         state.had_a_disconnect = true;
                         state.ms = None;
-                        self.world_info.clear_positions();
                     }
                 }
             }
@@ -720,7 +723,7 @@ impl NetManager {
         decoder: &mut Decoder,
     ) {
         match net_msg {
-            NetMsg::AudioData(data, global) => {
+            NetMsg::AudioData(data, global, tx, ty) => {
                 if sink.get(&src).is_none() {
                     if let Some(stream_handle) = stream_handle {
                         if let Ok(s) = Sink::try_new(&stream_handle.1) {
@@ -729,22 +732,24 @@ impl NetManager {
                     }
                 }
                 sink.entry(src).and_modify(|sink| {
-                    let (vol, _): (f32, f32) = {
+                    let vol = {
                         let audio = self.audio.lock().unwrap();
-                        if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
-                            (
-                                if dist > audio.range.pow(2) {
-                                    0.0
-                                } else {
-                                    audio.volume.get(&src).unwrap_or(&1.0)
-                                        / (1.0 + audio.dropoff.mul(dist as f32 * 2.0f32.powi(-16)))
-                                },
-                                theta,
-                            )
-                        } else if global {
-                            (*audio.volume.get(&src).unwrap_or(&1.0), 0.0)
+                        if global {
+                            *audio.volume.get(&src).unwrap_or(&1.0)
                         } else {
-                            return;
+                            let (mx, my) = (
+                                self.camera_pos.0.load(Ordering::Relaxed),
+                                self.camera_pos.1.load(Ordering::Relaxed),
+                            );
+                            let dx = mx.abs_diff(tx) as u64;
+                            let dy = my.abs_diff(ty) as u64;
+                            let dist = dx * dx + dy * dy;
+                            if dist > audio.range.pow(2) {
+                                0.0
+                            } else {
+                                audio.volume.get(&src).unwrap_or(&1.0)
+                                    / (1.0 + audio.dropoff.mul(dist as f32 * 2.0f32.powi(-18)))
+                            }
                         }
                     };
                     if vol > 0.0 && !self.audio.lock().unwrap().mute_out {
@@ -1145,15 +1150,13 @@ impl NetManager {
                     self.end_run(state)
                 }
             }
-            Some("peer_pos") => {
-                let peer_id = msg.next().and_then(OmniPeerId::from_hex);
+            Some("cam_pos") => {
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
-                if let (Some(peer_id), Some(x), Some(y)) = (peer_id, x, y) {
-                    self.world_info.update_player_pos(peer_id, x, y);
+                if let (Some(x), Some(y)) = (x, y) {
+                    self.camera_pos.0.store(x, Ordering::Relaxed);
+                    self.camera_pos.1.store(y, Ordering::Relaxed);
                 }
-            }
-            Some("ptt") => {
                 let x: Option<u8> = msg.next().and_then(|s| s.parse().ok());
                 self.push_to_talk.store(x == Some(1), Ordering::Relaxed)
             }

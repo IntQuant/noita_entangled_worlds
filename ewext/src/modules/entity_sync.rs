@@ -329,7 +329,7 @@ impl Module for EntitySync {
                     .copied();
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
-                    f32::MAX as f64,
+                    32768.0,
                     "DAMAGE_CURSE".into(), //TODO should be enum
                     "kill sync".into(),
                     "NONE".into(),
@@ -397,7 +397,7 @@ impl Module for EntitySync {
                                                 .copied();
                                             noita_api::raw::entity_inflict_damage(
                                                 entity.raw() as i32,
-                                                f32::MAX as f64,
+                                                32768.0,
                                                 "DAMAGE_CURSE".into(), //TODO should be enum
                                                 "kill sync".into(),
                                                 "NONE".into(),

@@ -1616,7 +1616,7 @@ impl RemoteDiffModel {
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
-                    f32::MAX as f64,
+                    32768.0,
                     "DAMAGE_CURSE".into(), //TODO should be enum
                     "kill sync".into(),
                     "NONE".into(),

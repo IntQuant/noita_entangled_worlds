@@ -24,7 +24,6 @@ use super::{
     CellType, ExplosionData,
 };
 
-pub mod world_info;
 pub mod world_model;
 
 #[derive(Debug, Serialize, Deserialize)]
