@@ -389,13 +389,27 @@ impl NetManager {
             .unwrap_or(cpal::default_host());
         #[cfg(not(target_os = "linux"))]
         let host = cpal::default_host();
-        let device = host.default_input_device();
+        let device = {
+            /*let input = self.audio.lock().unwrap().input_device.clone();
+            if input.is_none() {*/
+            if self.audio.lock().unwrap().disabled {
+                None
+            } else {
+                host.default_input_device()
+            }
+            /*} else {
+                host.input_devices()
+                    .map(|mut d| d.find(|d| d.name().ok() == input))
+                    .ok()
+                    .unwrap_or(host.default_input_device())
+            }*/
+        };
         let config = cpal::SupportedStreamConfig::new(
             1,
             cpal::SampleRate(SAMPLE_RATE as u32),
             cpal::SupportedBufferSize::Range {
-                min: FRAME_SIZE as u32 / 2,
-                max: FRAME_SIZE as u32 * 2,
+                min: (FRAME_SIZE / 4) as u32,
+                max: (FRAME_SIZE * 4) as u32,
             },
             cpal::SampleFormat::F32,
         );
@@ -445,14 +459,28 @@ impl NetManager {
                 warn!("input device not found")
             }
         });
-        let stream_handle: Option<(OutputStream, OutputStreamHandle)> =
-            host.default_output_device().and_then(|device| {
-                device
-                    .default_output_config()
-                    .map(|config| OutputStream::try_from_device_config(&device, config).ok())
+        let stream_handle: Option<(OutputStream, OutputStreamHandle)> = {
+            /*let input = self.audio.lock().unwrap().output_device.clone();
+            if input.is_none() {*/
+            if self.audio.lock().unwrap().disabled {
+                None
+            } else {
+                host.default_output_device()
+            }
+            /*} else {
+                host.output_devices()
+                    .map(|mut d| d.find(|d| d.name().ok() == input))
                     .ok()
-                    .flatten()
-            });
+                    .unwrap_or(host.default_output_device())
+            }*/
+        }
+        .and_then(|device| {
+            device
+                .default_output_config()
+                .map(|config| OutputStream::try_from_device_config(&device, config).ok())
+                .ok()
+                .flatten()
+        });
         let mut sink: HashMap<OmniPeerId, Sink> = Default::default();
         while self.continue_running.load(Ordering::Relaxed) {
             let mut audio_data = Vec::new();

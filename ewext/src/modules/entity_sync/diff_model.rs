@@ -72,7 +72,7 @@ impl LocalDiffModel {
                     gid: *gid,
                     pos: WorldPos::from_f32(current.x, current.y),
                     r: current.r,
-                    is_charmed: current.is_charmed(false),
+                    is_charmed: current.is_charmed(),
                 }
             })
             .collect()
@@ -263,7 +263,7 @@ impl LocalDiffModelTracker {
                         lid,
                         peer,
                         info.wand.clone().map(|(_, a)| a),
-                        info.is_charmed(entity.has_tag("boss_centipede")),
+                        info.is_charmed(),
                     )
                     .wrap_err("Failed to transfer authority")?;
                     return Ok(());
@@ -274,7 +274,7 @@ impl LocalDiffModelTracker {
                     gid,
                     lid,
                     info.wand.clone().map(|(_, a)| a),
-                    info.is_charmed(entity.has_tag("boss_centipede")),
+                    info.is_charmed(),
                 )
                 .wrap_err("Failed to release authority")?;
                 return Ok(());
@@ -728,6 +728,13 @@ impl LocalDiffModel {
                         .children(Some("protection".into()))
                         .iter()
                         .for_each(|ent| ent.kill());
+                } else if let Some(var) = entity
+                    .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+                    .iter()
+                    .find(|var| var.name().unwrap_or("".into()) == "active")
+                {
+                    var.set_value_int(1)?;
+                    entity.set_components_with_tag_enabled("activate".into(), true)?
                 } else {
                     entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
                 }
@@ -1017,7 +1024,7 @@ impl LocalDiffModel {
             wand: None,
             rotation: entry_pair.current.r,
             drops_gold: entry_pair.current.drops_gold,
-            is_charmed: entry_pair.current.is_charmed(false),
+            is_charmed: entry_pair.current.is_charmed(),
         })
     }
 

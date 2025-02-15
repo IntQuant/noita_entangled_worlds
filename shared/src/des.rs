@@ -120,14 +120,12 @@ pub struct EntityInfo {
 }
 
 impl EntityInfo {
-    pub fn is_charmed(&self, is_cent: bool) -> bool {
-        if is_cent {
-            self.is_enabled
-        } else {
-            self.game_effects
+    pub fn is_charmed(&self) -> bool {
+        self.is_enabled
+            || self
+                .game_effects
                 .iter()
                 .any(|e| e == &GameEffectData::Normal(GameEffectEnum::Charm))
-        }
     }
 }
 

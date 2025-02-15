@@ -655,6 +655,86 @@ pub struct AudioSettings {
     push_to_talk: bool,
     mute_out: bool,
     mute_in: bool,
+    disabled: bool,
+    //input_device: Option<String>,
+    //output_device: Option<String>,
+}
+
+impl AudioSettings {
+    fn show_ui(&mut self, ui: &mut Ui) {
+        //, main: bool) {
+        ui.label("drop off rate of audio from others");
+        ui.add(Slider::new(&mut self.dropoff, 0.0..=128.0));
+        ui.label("maximal range of audio");
+        ui.add(Slider::new(&mut self.range, 0..=4096));
+        ui.checkbox(&mut self.global, "global");
+        ui.checkbox(&mut self.push_to_talk, "push to talk");
+        ui.checkbox(&mut self.mute_in, "mute input");
+        ui.checkbox(&mut self.mute_out, "mute output");
+        ui.checkbox(&mut self.disabled, "disabled");
+        if ui.button("default").clicked() {
+            *self = Default::default();
+        }
+        /*if main {
+            #[cfg(target_os = "linux")]
+            let host = cpal::available_hosts()
+                .into_iter()
+                .find(|id| *id == cpal::HostId::Jack)
+                .and_then(|id| cpal::host_from_id(id).ok())
+                .unwrap_or(cpal::default_host());
+            #[cfg(not(target_os = "linux"))]
+            let host = cpal::default_host();
+            let input_devices: Vec<String> = host
+                .input_devices()
+                .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+                .unwrap_or_default();
+            let output_devices: Vec<String> = host
+                .output_devices()
+                .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+                .unwrap_or_default();
+            if self.input_device.is_none() {
+                self.input_device = host.default_input_device().and_then(|a| a.name().ok())
+            }
+            if self.output_device.is_none() {
+                self.output_device = host.default_output_device().and_then(|a| a.name().ok())
+            }
+            ui.label("Default Input Device:");
+            ComboBox::from_label("Input Device")
+                .selected_text(
+                    self.input_device
+                        .clone()
+                        .unwrap_or_else(|| "None".to_string()),
+                )
+                .show_ui(ui, |ui| {
+                    for device in &input_devices {
+                        if ui
+                            .selectable_label(self.input_device.as_deref() == Some(device), device)
+                            .clicked()
+                        {
+                            self.input_device = Some(device.clone());
+                        }
+                    }
+                });
+
+            ui.label("Default Output Device:");
+            ComboBox::from_label("Output Device")
+                .selected_text(
+                    self.output_device
+                        .clone()
+                        .unwrap_or_else(|| "None".to_string()),
+                )
+                .show_ui(ui, |ui| {
+                    for device in &output_devices {
+                        if ui
+                            .selectable_label(self.output_device.as_deref() == Some(device), device)
+                            .clicked()
+                        {
+                            self.output_device = Some(device.clone());
+                        }
+                    }
+                });
+        }*/
+    }
 }
 
 impl Default for AudioSettings {
@@ -667,6 +747,9 @@ impl Default for AudioSettings {
             push_to_talk: true,
             mute_out: false,
             mute_in: false,
+            disabled: false,
+            //input_device: None,
+            //output_device: None,
         }
     }
 }
@@ -689,6 +772,7 @@ pub struct App {
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
+    show_audio_settings: bool,
     running_on_steamdeck: bool,
     copied_lobby: bool,
     my_lobby_kind: LobbyKind,
@@ -850,6 +934,7 @@ impl App {
             appearance,
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
+            show_audio_settings: false,
             running_on_steamdeck,
             copied_lobby: true,
             my_lobby_kind,
@@ -1095,8 +1180,14 @@ impl App {
                             if ui.button("Show host settings").clicked() {
                                 self.show_host_settings = !self.show_host_settings
                             }
+                            if ui.button("Show audio settings").clicked() {
+                                self.show_audio_settings = !self.show_audio_settings
+                            }
                             if self.show_host_settings {
                                 self.app_saved_state.game_settings.show_editor(ui, true)
+                            }
+                            if self.show_audio_settings {
+                                self.audio.show_ui(ui)
                             }
                             if self.running_on_steamdeck && ui.button("Close Proxy").clicked() {
                                 exit(0)
@@ -1581,14 +1672,7 @@ impl App {
                     }
                 },
                 ConnectedMenu::VoIP => {
-                    ui.label("drop off rate of audio from others");
-                    ui.add(Slider::new(&mut self.audio.dropoff, 0.0..=128.0));
-                    ui.label("maximal range of audio");
-                    ui.add(Slider::new(&mut self.audio.range, 0..=4096));
-                    ui.checkbox(&mut self.audio.global, "is voice global");
-                    ui.checkbox(&mut self.audio.push_to_talk, "push to talk");
-                    ui.checkbox(&mut self.audio.mute_in, "mute input");
-                    ui.checkbox(&mut self.audio.mute_out, "mute output");
+                    self.audio.show_ui(ui);
                     for peer in netman.peer.iter_peer_ids() {
                         if netman.peer.my_id() != peer {
                             ui.label(format!(
@@ -1605,9 +1689,6 @@ impl App {
                                 0.0..=2.0,
                             ));
                         }
-                    }
-                    if ui.button("default").clicked() {
-                        self.audio = Default::default();
                     }
                     if ui.button("save").clicked() {
                         *netman.audio.lock().unwrap() = self.audio.clone()

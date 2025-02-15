@@ -5,7 +5,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::Gid;
 use shared::PeerId;
 
-use crate::{my_peer_id, net::NetManager};
+use crate::net::NetManager;
 
 pub(crate) mod entity_sync;
 
@@ -25,13 +25,12 @@ impl ModuleCtx<'_> {
     ) -> eyre::Result<Option<PeerId>> {
         let mut res = None;
         for (peer, entity) in self.player_map.iter() {
-            if *peer == my_peer_id() {
-                continue;
-            }
-            let (ex, ey) = entity.position()?;
-            if (x - ex).powi(2) + (y - ey).powi(2) < radius.powi(2) {
-                res = Some(*peer);
-                break;
+            if entity.has_tag("ew_client") {
+                let (ex, ey) = entity.position()?;
+                if (x - ex).powi(2) + (y - ey).powi(2) < radius.powi(2) {
+                    res = Some(*peer);
+                    break;
+                }
             }
         }
         Ok(res)

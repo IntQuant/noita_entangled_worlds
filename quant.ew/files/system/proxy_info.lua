@@ -15,7 +15,6 @@ function module.on_world_update()
     if (rebind == 42 and InputIsMouseButtonDown(3)) or (rebind ~= 42 and InputIsKeyDown(rebind)) then
         ptt = 1
     end
-    GamePrint(ptt)
     net.proxy_send("ptt", ptt)
 end
 
