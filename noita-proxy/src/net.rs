@@ -409,7 +409,7 @@ impl NetManager {
                         extra.extend(data);
                         let mut v = Vec::new();
                         while extra.len() >= FRAME_SIZE {
-                            let mut compressed = vec![0u8; 4000];
+                            let mut compressed = vec![0u8; 1024];
                             if let Ok(len) =
                                 encoder.encode_float(&extra[..FRAME_SIZE], &mut compressed)
                             {

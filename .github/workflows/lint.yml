@@ -9,16 +9,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install extra deps
-        run: sudo apt-get update && sudo apt-get install -y libclang-dev libasound2-dev
+        run: sudo apt-get update && sudo apt-get install -y libclang-dev libasound2-dev libjack-dev
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
-      
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ewext -> target
                       noita-proxy -> target
-      
+
       - name: Check ewext for formatting
         run: cargo fmt --check
         working-directory: ./ewext
