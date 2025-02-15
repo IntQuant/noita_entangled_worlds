@@ -17,6 +17,7 @@ use socket2::{Domain, Socket, Type};
 use std::collections::HashMap;
 use std::fs::{create_dir, remove_dir_all, File};
 use std::io::Write;
+use std::ops::Mul;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
@@ -197,6 +198,10 @@ pub struct NetManager {
         crossbeam::channel::Sender<NetMsg>,
         crossbeam::channel::Receiver<NetMsg>,
     ),
+    pub volume: Mutex<HashMap<OmniPeerId, f32>>,
+    pub dropoff: Mutex<f32>,
+    pub range: Mutex<u64>,
+    pub global: AtomicBool,
 }
 
 const SAMPLE_RATE: usize = 24000;
@@ -229,6 +234,10 @@ impl NetManager {
             minas: Default::default(),
             new_desc: Default::default(),
             loopback_channel: crossbeam::channel::unbounded(),
+            volume: Default::default(),
+            dropoff: Default::default(),
+            global: Default::default(),
+            range: Default::default(),
         }
         .into()
     }
@@ -444,7 +453,10 @@ impl NetManager {
             let audio_data = std::mem::take(&mut *lock);
             drop(lock);
             if !audio_data.is_empty() {
-                self.broadcast(&NetMsg::AudioData(audio_data), Reliability::Reliable);
+                self.broadcast(
+                    &NetMsg::AudioData(audio_data, self.global.load(Ordering::Relaxed)),
+                    Reliability::Reliable,
+                );
             }
             if let Some(k) = kind {
                 if let Some(n) = self.peer.lobby_id() {
@@ -657,37 +669,65 @@ impl NetManager {
         decoder: &mut Decoder,
     ) {
         match net_msg {
-            NetMsg::AudioData(data) => {
+            NetMsg::AudioData(data, global) => {
                 if let Some(sink) = sink {
-                    if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
-                        let vol = if dist > 1024 * 1024 {
-                            0.0
+                    let (vol, theta) = {
+                        if let Some((dist, theta)) = self.world_info.dist(self.peer.my_id(), src) {
+                            (
+                                if dist > self.range.lock().unwrap().pow(2) {
+                                    0.0
+                                } else {
+                                    self.volume.lock().unwrap().get(&src).unwrap_or(&1.0)
+                                        / (1.0
+                                            + self
+                                                .dropoff
+                                                .lock()
+                                                .unwrap()
+                                                .mul(dist as f32 * 2.0f32.powi(-16)))
+                                },
+                                Some(theta),
+                            )
+                        } else if global {
+                            (*self.volume.lock().unwrap().get(&src).unwrap_or(&1.0), None)
                         } else {
-                            (1.0 + (dist as f32 * 2.0f32.powi(-16))).recip()
+                            return;
+                        }
+                    };
+                    if vol > 0.0 {
+                        let (left, right) = if let Some(theta) = theta {
+                            (
+                                (-theta.cos() * 0.25 + 0.75) * vol,
+                                Some((theta.cos() * 0.25 + 0.75) * vol),
+                            )
+                        } else {
+                            (vol, None)
                         };
-                        let left = (-theta.cos() * 0.5 + 0.5) * vol;
-                        let right = (theta.cos() * 0.5 + 0.5) * vol;
-                        if vol > 0.0 {
-                            let mut dec: Vec<f32> = Vec::new();
-                            for data in data {
-                                let mut out = vec![0f32; FRAME_SIZE];
-                                if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
-                                    if len != 0 {
-                                        dec.extend(&out[..len])
-                                    }
+                        let mut dec: Vec<f32> = Vec::new();
+                        for data in data {
+                            let mut out = vec![0f32; FRAME_SIZE];
+                            if let Ok(len) = decoder.decode_float(&data, &mut out, false) {
+                                if len != 0 {
+                                    dec.extend(&out[..len])
                                 }
                             }
-                            if !dec.is_empty() {
+                        }
+                        if !dec.is_empty() {
+                            let source = if let Some(right) = right {
                                 let mut stereo_samples = Vec::with_capacity(dec.len() * 2);
                                 for &sample in &dec {
                                     stereo_samples.push(sample * left);
                                     stereo_samples.push(sample * right);
                                 }
-                                let source =
-                                    SamplesBuffer::new(2, SAMPLE_RATE as u32, stereo_samples);
-                                sink.append(source);
-                                sink.play();
-                            }
+                                SamplesBuffer::new(2, SAMPLE_RATE as u32, stereo_samples)
+                            } else {
+                                SamplesBuffer::new(
+                                    1,
+                                    SAMPLE_RATE as u32,
+                                    dec.iter().map(|a| a * vol).collect::<Vec<f32>>(),
+                                )
+                            };
+                            sink.append(source);
+                            sink.play();
                         }
                     }
                 }
