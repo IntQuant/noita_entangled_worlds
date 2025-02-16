@@ -9,6 +9,7 @@ use opus::{Application, Channels, Decoder, Encoder};
 use proxy_opt::ProxyOpt;
 use rodio::buffer::SamplesBuffer;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
+use rubato::{FftFixedIn, Resampler};
 use rustc_hash::FxHashSet;
 use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
@@ -390,98 +391,100 @@ impl NetManager {
         #[cfg(not(target_os = "linux"))]
         let host = cpal::default_host();
         let device = {
-            /*let input = self.audio.lock().unwrap().input_device.clone();
-            if input.is_none() {*/
-            if self.audio.lock().unwrap().disabled {
+            let audio = self.audio.lock().unwrap();
+            let input = audio.input_device.clone();
+            if audio.disabled {
                 None
-            } else {
+            } else if input.is_none() {
                 host.default_input_device()
-            }
-            /*} else {
+            } else {
                 host.input_devices()
                     .map(|mut d| d.find(|d| d.name().ok() == input))
                     .ok()
                     .unwrap_or(host.default_input_device())
-            }*/
+            }
         };
-        let config = cpal::SupportedStreamConfig::new(
-            1,
-            cpal::SampleRate(SAMPLE_RATE as u32),
-            cpal::SupportedBufferSize::Range {
-                min: (FRAME_SIZE / 4) as u32,
-                max: (FRAME_SIZE * 4) as u32,
-            },
-            cpal::SampleFormat::F32,
-        );
         let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
         let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
         let (tx, rx) = mpsc::channel::<Vec<u8>>();
         thread::spawn(move || {
             let mut extra = Vec::new();
             if let Some(device) = device {
-                {
-                    let cfg = device.default_input_config().unwrap();
-                    info!(
-                        "def input cfg: {}, {}, {}",
-                        cfg.channels(),
-                        cfg.sample_rate().0,
-                        cfg.sample_format()
+                if let Ok(config) = device.default_input_config() {
+                    let sample = config.sample_rate();
+                    let config = cpal::SupportedStreamConfig::new(
+                        1,
+                        sample,
+                        cpal::SupportedBufferSize::Range {
+                            min: (FRAME_SIZE / 4) as u32,
+                            max: (FRAME_SIZE * 4) as u32,
+                        },
+                        cpal::SampleFormat::F32,
                     );
-                }
-                match device.build_input_stream(
-                    &config.into(),
-                    move |data: &[f32], _| {
-                        extra.extend(data);
-                        let mut v = Vec::new();
-                        while extra.len() >= FRAME_SIZE {
-                            let mut compressed = vec![0u8; 1024];
-                            if let Ok(len) =
-                                encoder.encode_float(&extra[..FRAME_SIZE], &mut compressed)
-                            {
-                                if len != 0 {
-                                    v.push(compressed[..len].to_vec())
+                    if let Ok(mut resamp) =
+                        FftFixedIn::<f32>::new(sample.0 as usize, SAMPLE_RATE, FRAME_SIZE, 2, 1)
+                    {
+                        match device.build_input_stream(
+                            &config.into(),
+                            move |data: &[f32], _| {
+                                if let Ok(data) = resamp.process(&[data], None) {
+                                    extra.extend(&data[0]);
+                                    let mut v = Vec::new();
+                                    while extra.len() >= FRAME_SIZE {
+                                        let mut compressed = vec![0u8; 1024];
+                                        if let Ok(len) = encoder
+                                            .encode_float(&extra[..FRAME_SIZE], &mut compressed)
+                                        {
+                                            if len != 0 {
+                                                v.push(compressed[..len].to_vec())
+                                            }
+                                        }
+                                        extra.drain(..FRAME_SIZE);
+                                    }
+                                    for v in v {
+                                        let _ = tx.send(v);
+                                    }
+                                }
+                            },
+                            |err| error!("Stream error: {}", err),
+                            Some(Duration::from_millis(10)),
+                        ) {
+                            Ok(stream) => {
+                                if let Ok(_s) = stream.play() {
+                                    loop {
+                                        thread::sleep(Duration::from_millis(10))
+                                    }
+                                } else {
+                                    error!("failed to play stream")
                                 }
                             }
-                            extra.drain(..FRAME_SIZE);
-                        }
-                        for v in v {
-                            let _ = tx.send(v);
-                        }
-                    },
-                    |err| error!("Stream error: {}", err),
-                    Some(Duration::from_millis(10)),
-                ) {
-                    Ok(stream) => {
-                        if let Ok(_s) = stream.play() {
-                            loop {
-                                thread::sleep(Duration::from_millis(10))
+                            Err(s) => {
+                                error!("no stream {}", s)
                             }
-                        } else {
-                            error!("failed to play stream")
                         }
+                    } else {
+                        warn!("resamp not found")
                     }
-                    Err(s) => {
-                        error!("no stream {}", s)
-                    }
+                } else {
+                    warn!("input config not found")
                 }
             } else {
                 warn!("input device not found")
             }
         });
         let stream_handle: Option<(OutputStream, OutputStreamHandle)> = {
-            /*let input = self.audio.lock().unwrap().output_device.clone();
-            if input.is_none() {*/
-            if self.audio.lock().unwrap().disabled {
+            let audio = self.audio.lock().unwrap();
+            let output = audio.output_device.clone();
+            if audio.disabled {
                 None
-            } else {
+            } else if output.is_none() {
                 host.default_output_device()
-            }
-            /*} else {
+            } else {
                 host.output_devices()
-                    .map(|mut d| d.find(|d| d.name().ok() == input))
+                    .map(|mut d| d.find(|d| d.name().ok() == output))
                     .ok()
                     .unwrap_or(host.default_output_device())
-            }*/
+            }
         }
         .and_then(|device| {
             device
@@ -492,23 +495,6 @@ impl NetManager {
         });
         let mut sink: HashMap<OmniPeerId, Sink> = Default::default();
         while self.continue_running.load(Ordering::Relaxed) {
-            let mut audio_data = Vec::new();
-            while let Ok(data) = rx.try_recv() {
-                audio_data.push(data)
-            }
-            if !audio_data.is_empty() && {
-                let audio = self.audio.lock().unwrap();
-                !audio.mute_in && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
-            } {
-                let (x, y) = (
-                    self.camera_pos.0.load(Ordering::Relaxed),
-                    self.camera_pos.1.load(Ordering::Relaxed),
-                );
-                self.broadcast(
-                    &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global, x, y),
-                    Reliability::Reliable,
-                );
-            }
             if let Some(k) = kind {
                 if let Some(n) = self.peer.lobby_id() {
                     let c = crate::lobby_code::LobbyCode { kind: k, code: n };
@@ -636,6 +622,24 @@ impl NetManager {
             let des_pending = state.des.pending_messages();
             for (dest, msg) in des_pending {
                 self.send(dest, &NetMsg::ForwardProxyToDes(msg), Reliability::Reliable);
+            }
+
+            let mut audio_data = Vec::new();
+            while let Ok(data) = rx.try_recv() {
+                audio_data.push(data)
+            }
+            if !audio_data.is_empty() && {
+                let audio = self.audio.lock().unwrap();
+                !audio.mute_in && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
+            } {
+                let (x, y) = (
+                    self.camera_pos.0.load(Ordering::Relaxed),
+                    self.camera_pos.1.load(Ordering::Relaxed),
+                );
+                self.broadcast(
+                    &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global, x, y),
+                    Reliability::Reliable,
+                );
             }
 
             // Don't do excessive busy-waiting;

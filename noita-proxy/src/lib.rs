@@ -4,10 +4,11 @@ use bookkeeping::{
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
+use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui::{
-    self, Align2, Button, Color32, Context, DragValue, FontDefinitions, FontFamily, ImageButton,
-    InnerResponse, Key, Margin, OpenUrl, OutputCommand, Rect, RichText, ScrollArea, Slider,
-    TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+    self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
+    ImageButton, InnerResponse, Key, Margin, OpenUrl, OutputCommand, Rect, RichText, ScrollArea,
+    Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
 };
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -656,26 +657,29 @@ pub struct AudioSettings {
     mute_out: bool,
     mute_in: bool,
     disabled: bool,
-    //input_device: Option<String>,
-    //output_device: Option<String>,
+    input_device: Option<String>,
+    output_device: Option<String>,
 }
 
 impl AudioSettings {
-    fn show_ui(&mut self, ui: &mut Ui) {
+    fn show_ui(&mut self, ui: &mut Ui, main: bool) {
         //, main: bool) {
         ui.label("drop off rate of audio from others");
         ui.add(Slider::new(&mut self.dropoff, 0.0..=128.0));
         ui.label("maximal range of audio");
         ui.add(Slider::new(&mut self.range, 0..=4096));
         ui.checkbox(&mut self.global, "global");
-        ui.checkbox(&mut self.push_to_talk, "push to talk");
+        ui.checkbox(
+            &mut self.push_to_talk,
+            "push to talk, keybinds in noita, T by default",
+        );
         ui.checkbox(&mut self.mute_in, "mute input");
         ui.checkbox(&mut self.mute_out, "mute output");
         ui.checkbox(&mut self.disabled, "disabled");
         if ui.button("default").clicked() {
             *self = Default::default();
         }
-        /*if main {
+        if main {
             #[cfg(target_os = "linux")]
             let host = cpal::available_hosts()
                 .into_iter()
@@ -733,7 +737,7 @@ impl AudioSettings {
                         }
                     }
                 });
-        }*/
+        }
     }
 }
 
@@ -748,8 +752,8 @@ impl Default for AudioSettings {
             mute_out: false,
             mute_in: false,
             disabled: false,
-            //input_device: None,
-            //output_device: None,
+            input_device: None,
+            output_device: None,
         }
     }
 }
@@ -1187,7 +1191,7 @@ impl App {
                                 self.app_saved_state.game_settings.show_editor(ui, true)
                             }
                             if self.show_audio_settings {
-                                self.audio.show_ui(ui)
+                                self.audio.show_ui(ui, true)
                             }
                             if self.running_on_steamdeck && ui.button("Close Proxy").clicked() {
                                 exit(0)
@@ -1672,7 +1676,7 @@ impl App {
                     }
                 },
                 ConnectedMenu::VoIP => {
-                    self.audio.show_ui(ui);
+                    self.audio.show_ui(ui, false);
                     for peer in netman.peer.iter_peer_ids() {
                         if netman.peer.my_id() != peer {
                             ui.label(format!(

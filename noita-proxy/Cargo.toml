@@ -52,6 +52,7 @@ rstar = "0.12.2"
 cpal = {version="0.15.3", features=["jack"]}
 rodio = "0.20.1"
 opus = "0.3.0"
+rubato = "0.16.1"
 
 [dev-dependencies]
 serial_test = "3.2.0"
