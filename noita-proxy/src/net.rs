@@ -422,28 +422,27 @@ impl NetManager {
                         cpal::SampleFormat::F32,
                     );
                     if let Ok(mut resamp) =
-                        FftFixedIn::<f32>::new(sample.0 as usize, SAMPLE_RATE, FRAME_SIZE, 2, 1)
+                        FftFixedIn::<f32>::new(sample.0 as usize, SAMPLE_RATE, FRAME_SIZE, 8, 1)
                     {
                         match device.build_input_stream(
                             &config.into(),
                             move |data: &[f32], _| {
-                                if let Ok(data) = resamp.process(&[data], None) {
-                                    extra.extend(&data[0]);
-                                    let mut v = Vec::new();
-                                    while extra.len() >= FRAME_SIZE {
-                                        let mut compressed = vec![0u8; 1024];
-                                        if let Ok(len) = encoder
-                                            .encode_float(&extra[..FRAME_SIZE], &mut compressed)
-                                        {
-                                            if len != 0 {
-                                                v.push(compressed[..len].to_vec())
-                                            }
+                                extra.extend(data);
+                                let mut v = Vec::new();
+                                while extra.len() >= FRAME_SIZE {
+                                    let mut compressed = vec![0u8; 1024];
+                                    if let Ok(len) = encoder.encode_float(
+                                        &resamp.process(&[&extra[..FRAME_SIZE]], None).unwrap()[0],
+                                        &mut compressed,
+                                    ) {
+                                        if len != 0 {
+                                            v.push(compressed[..len].to_vec())
                                         }
-                                        extra.drain(..FRAME_SIZE);
                                     }
-                                    for v in v {
-                                        let _ = tx.send(v);
-                                    }
+                                    extra.drain(..FRAME_SIZE);
+                                }
+                                for v in v {
+                                    let _ = tx.send(v);
                                 }
                             },
                             |err| error!("Stream error: {}", err),
