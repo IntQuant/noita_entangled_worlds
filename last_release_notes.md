@@ -1,14 +1,9 @@
-## Noita Entangled Worlds v1.2.0
+## Noita Entangled Worlds v1.2.1
 
-- add voip/proximity chat
+- fix voip on windows
 
-- fix ipv6
+- add input selector, may not always work nicely
 
-- fix chest?
-
-- fix enemy drops not being synced sometimes
-
-- fix gods are afraid message maybe
 
 ## Accepted pull requests
 
