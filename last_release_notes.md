@@ -2,8 +2,7 @@
 
 - fix voip on windows
 
-- add input selector, may not always work nicely
-
+- give input/output selector for voip
 
 ## Accepted pull requests
 
