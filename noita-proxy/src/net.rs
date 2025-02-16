@@ -202,8 +202,8 @@ pub struct NetManager {
     push_to_talk: AtomicBool,
 }
 
-const SAMPLE_RATE: usize = 48000;
-const FRAME_SIZE: usize = 960;
+const SAMPLE_RATE: usize = 24000;
+const FRAME_SIZE: usize = 480;
 const CHANNELS: Channels = Channels::Mono;
 
 impl NetManager {
@@ -397,11 +397,15 @@ impl NetManager {
                 None
             } else if input.is_none() {
                 host.default_input_device()
+            } else if let Some(d) = host
+                .input_devices()
+                .map(|mut d| d.find(|d| d.name().ok() == input))
+                .ok()
+                .flatten()
+            {
+                Some(d)
             } else {
-                host.input_devices()
-                    .map(|mut d| d.find(|d| d.name().ok() == input))
-                    .ok()
-                    .unwrap_or(host.default_input_device())
+                host.default_input_device()
             }
         };
         let mut encoder = Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
@@ -478,11 +482,15 @@ impl NetManager {
                 None
             } else if output.is_none() {
                 host.default_output_device()
+            } else if let Some(d) = host
+                .output_devices()
+                .map(|mut d| d.find(|d| d.name().ok() == output))
+                .ok()
+                .flatten()
+            {
+                Some(d)
             } else {
-                host.output_devices()
-                    .map(|mut d| d.find(|d| d.name().ok() == output))
-                    .ok()
-                    .unwrap_or(host.default_output_device())
+                host.default_output_device()
             }
         }
         .and_then(|device| {
