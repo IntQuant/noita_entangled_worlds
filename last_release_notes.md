@@ -1,8 +1,9 @@
 ## Noita Entangled Worlds v1.2.1
 
-- fix voip on windows
+- fix voip in windows
 
-- give input/output selector for voip
+- give a input/output selector for voip
+
 
 ## Accepted pull requests
 
