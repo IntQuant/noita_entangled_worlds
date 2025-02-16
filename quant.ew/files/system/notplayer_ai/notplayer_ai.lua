@@ -1206,7 +1206,7 @@ local function hold_something()
     if GameGetFrameNum() % 120 == 60 then
         state.stop_potion = false
     end
-    local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 40)
+    local ground_below, _, _ = RaytracePlatforms(ch_x, ch_y, ch_x, ch_y + 25)
     local is_ambrosia = has_ambrosia(ctx.my_player.entity)
     local can_hold_potion = state.dtype ~= 32
     if ComponentGetValue2(state.damage_model, "mLiquidCount") == 0 then
