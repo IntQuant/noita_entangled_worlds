@@ -506,13 +506,13 @@ impl Module for EntitySync {
                     total_parts,
                 )
                 .wrap_err("Failed to apply entity infos")?;
-            for entity in remote_model.drain_backtrack() {
+            /*for entity in remote_model.drain_backtrack() {
                 self.local_diff_model.track_and_upload_entity(
                     ctx.net,
                     entity,
                     Gid(rand::random()),
                 )?;
-            }
+            }*/
             for lid in remote_model.drain_grab_request() {
                 send_remotedes(
                     ctx,
@@ -521,12 +521,10 @@ impl Module for EntitySync {
                     RemoteDes::RequestGrab(lid),
                 )?;
             }
+            remote_model.kill_entities(ctx)?;
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
-        for (_, remote_model) in self.remote_models.iter_mut() {
-            remote_model.kill_entities(ctx)?
-        }
 
         if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
             == self.real_sync_rate - 1

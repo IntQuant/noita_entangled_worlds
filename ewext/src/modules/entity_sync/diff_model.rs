@@ -88,7 +88,7 @@ pub(crate) struct RemoteDiffModel {
     lid_to_gid: FxHashMap<Lid, Gid>,
     waiting_for_lid: FxHashMap<Gid, EntityID>,
     /// Entities that we want to track again. Typically when we move authority locally from a different peer.
-    backtrack: Vec<EntityID>,
+    //backtrack: Vec<EntityID>,
     grab_request: Vec<Lid>,
     pending_remove: Vec<Lid>,
     pending_death_notify: Vec<(Lid, bool, Option<PeerId>)>,
@@ -102,7 +102,7 @@ impl RemoteDiffModel {
             entity_infos: Default::default(),
             lid_to_gid: Default::default(),
             waiting_for_lid: Default::default(),
-            backtrack: Default::default(),
+            //backtrack: Default::default(),
             grab_request: Default::default(),
             pending_remove: Default::default(),
             pending_death_notify: Default::default(),
@@ -1580,7 +1580,6 @@ impl RemoteDiffModel {
 
     pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         let mut postpone_remove = Vec::new();
-        let mut never_remove = Vec::new();
         for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
@@ -1600,12 +1599,16 @@ impl RemoteDiffModel {
             {
                 inv.children(None).iter().for_each(|e| e.kill())
             }
+            postpone_remove.push(lid);
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 } else {
                     damage.set_kill_now(true)?;
-                    never_remove.push(lid);
+                    postpone_remove.pop();
+                    if let Some(i) = self.pending_remove.iter().position(|l| l == &lid) {
+                        self.pending_remove.remove(i);
+                    }
                 }
                 for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
                     if !lua.script_damage_received()?.is_empty() {
@@ -1628,23 +1631,16 @@ impl RemoteDiffModel {
                     None,
                 )?;
             }
-            postpone_remove.push(lid);
         }
-        for lid in self.pending_remove.drain(..) {
-            self.entity_infos.remove(&lid);
-            if !postpone_remove.contains(&lid) {
-                if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
+        for lid in &self.pending_remove {
+            self.entity_infos.remove(lid);
+            if !postpone_remove.contains(lid) {
+                if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
                     safe_entitykill(entity);
                 }
             }
         }
-        self.pending_remove.extend_from_slice(
-            &postpone_remove
-                .iter()
-                .filter(|l| !never_remove.contains(l))
-                .cloned()
-                .collect::<Vec<Lid>>(),
-        );
+        self.pending_remove = postpone_remove;
         Ok(())
     }
 
@@ -1675,9 +1671,9 @@ impl RemoteDiffModel {
         }
     }
 
-    pub(crate) fn drain_backtrack(&mut self) -> impl Iterator<Item = EntityID> + '_ {
+    /*pub(crate) fn drain_backtrack(&mut self) -> impl Iterator<Item = EntityID> + '_ {
         self.backtrack.drain(..)
-    }
+    }*/
 
     pub(crate) fn drain_grab_request(&mut self) -> impl Iterator<Item = Lid> + '_ {
         self.grab_request.drain(..)
