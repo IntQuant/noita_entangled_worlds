@@ -25,13 +25,13 @@ pub struct ModMessage {
     pub value: Vec<u8>,
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum SpawnOnce {
     Enemy(String, bool, Option<PeerId>),
     Chest(String, f32, f32),
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum RemoteMessage {
     RemoteDes(des::RemoteDes),
 }
@@ -61,7 +61,7 @@ pub enum NoitaOutbound {
 }
 use strum::{EnumString, IntoStaticStr};
 
-#[derive(EnumString, IntoStaticStr, Clone, Copy, Encode, Decode, PartialEq)]
+#[derive(Debug, EnumString, IntoStaticStr, Clone, Copy, Encode, Decode, PartialEq)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum GameEffectEnum {
     None,
@@ -157,7 +157,7 @@ pub enum GameEffectEnum {
     _Last,
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum GameEffectData {
     Normal(GameEffectEnum),
     Custom(String),

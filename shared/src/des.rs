@@ -17,7 +17,7 @@ pub struct Gid(pub u64);
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Lid(pub u32);
 
-#[derive(Encode, Decode, Clone, PartialEq)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq)]
 pub enum EntitySpawnInfo {
     Filename(String),
     Serialized { serialized_at: i32, data: Vec<u8> },
@@ -29,7 +29,7 @@ impl Default for EntitySpawnInfo {
     }
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub struct FullEntityData {
     pub gid: Gid,
     pub pos: WorldPos,
@@ -40,7 +40,7 @@ pub struct FullEntityData {
     pub is_charmed: bool,
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub struct UpdatePosition {
     pub gid: Gid,
     pub pos: WorldPos,
@@ -48,7 +48,7 @@ pub struct UpdatePosition {
     pub is_charmed: bool,
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum DesToProxy {
     InitOrUpdateEntity(FullEntityData),
     DeleteEntity(Gid, Option<NonZero<isize>>),
@@ -59,20 +59,20 @@ pub enum DesToProxy {
     UpdateWand(Gid, Option<Vec<u8>>),
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum ProxyToDes {
     /// Got authority over entity.
     GotAuthority(FullEntityData),
     RemoveEntities(PeerId),
     DeleteEntity(NonZero<isize>),
 }
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub struct InterestRequest {
     pub pos: WorldPos,
     pub radius: i32,
 }
 
-#[derive(Encode, Decode, Clone, Copy, PartialEq)]
+#[derive(Debug, Encode, Decode, Clone, Copy, PartialEq)]
 pub struct PhysBodyInfo {
     pub x: f32,
     pub y: f32,
@@ -82,7 +82,7 @@ pub struct PhysBodyInfo {
     pub av: f32,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, Default)]
 pub enum EntityKind {
     /// Normal entity, replicated with a filename.
     #[default]
@@ -91,7 +91,7 @@ pub enum EntityKind {
     Item,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Default)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq, Default)]
 pub struct EntityInfo {
     pub spawn_info: EntitySpawnInfo,
     pub kind: EntityKind,
@@ -130,7 +130,7 @@ impl EntityInfo {
 }
 
 //TODO authority transfers should serialize entities probably
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
@@ -164,7 +164,7 @@ pub enum EntityUpdate {
     SetSyncedVar(Vec<(String, String, i32, f32, bool)>),
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum RemoteDes {
     /// Should be sent when client opens the game, to reset in case of restart.
     Reset,

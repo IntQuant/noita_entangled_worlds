@@ -12,7 +12,7 @@ pub(crate) struct MessageRequest<T> {
     pub(crate) msg: T,
 }
 
-#[derive(Decode, Encode, Clone)]
+#[derive(Debug, Decode, Encode, Clone)]
 pub(crate) enum NetMsg {
     Welcome,
     RequestMods,
