@@ -1371,6 +1371,10 @@ impl App {
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id_raw: String) {
+        let lobby_id_raw = lobby_id_raw
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect::<String>();
         let lobby = LobbyCode::parse(&lobby_id_raw);
 
         match lobby {
