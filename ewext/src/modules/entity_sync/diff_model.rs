@@ -1606,9 +1606,7 @@ impl RemoteDiffModel {
                 } else {
                     damage.set_kill_now(true)?;
                     postpone_remove.pop();
-                    if let Some(i) = self.pending_remove.iter().position(|l| l == &lid) {
-                        self.pending_remove.remove(i);
-                    }
+                    self.pending_remove.retain(|l| l != &lid);
                 }
                 for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
                     if !lua.script_damage_received()?.is_empty() {

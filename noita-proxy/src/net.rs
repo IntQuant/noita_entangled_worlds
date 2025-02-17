@@ -710,6 +710,10 @@ impl NetManager {
             omni::OmniNetworkEvent::PeerDisconnected(id) => {
                 state.try_ms_write(&ws_encode_proxy("leave", id.as_hex()));
                 state.world.handle_peer_left(id);
+                state.des.noita_disconnected(id);
+                state.try_ms_write(&NoitaInbound::ProxyToDes(ProxyToDes::RemoveEntities(
+                    id.into(),
+                )));
             }
             omni::OmniNetworkEvent::Message { src, data } => {
                 let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)
