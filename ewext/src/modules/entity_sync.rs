@@ -152,6 +152,10 @@ impl EntitySync {
                     remote.remove_entities()
                 }
                 self.interest_tracker.remove_peer(peer);
+                let _ = crate::ExtState::with_global(|state| {
+                    state.fps_by_player.remove(&peer);
+                    state.player_entity_map.remove_by_left(&peer);
+                });
             }
             shared::des::ProxyToDes::DeleteEntity(entity) => {
                 EntityID(entity).kill();
@@ -491,7 +495,10 @@ impl Module for EntitySync {
                 }
             }
             for peer in ctx.player_map.clone().left_values() {
-                if !self.interest_tracker.contains(*peer) && *peer != my_peer_id() {
+                if !self.interest_tracker.contains(*peer)
+                    && *peer != my_peer_id()
+                    && !dead.is_empty()
+                {
                     send_remotedes(
                         ctx,
                         true,
