@@ -469,21 +469,25 @@ impl Module for EntitySync {
             let (diff, dead) = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
             for peer in self.interest_tracker.iter_interested() {
-                send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peer(peer),
-                    RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
-                )?;
+                if !self.pending_fired_projectiles.is_empty() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(peer),
+                        RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
+                    )?;
+                }
                 if new_intersects.contains(&peer) {
                     continue;
                 }
-                send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peer(peer),
-                    RemoteDes::EntityUpdate(diff.clone()),
-                )?;
+                if !diff.is_empty() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(peer),
+                        RemoteDes::EntityUpdate(diff.clone()),
+                    )?;
+                }
             }
             for peer in ctx.player_map.clone().left_values() {
                 if !self.interest_tracker.contains(*peer) && *peer != my_peer_id() {
