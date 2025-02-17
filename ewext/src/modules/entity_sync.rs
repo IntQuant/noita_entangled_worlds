@@ -151,6 +151,7 @@ impl EntitySync {
                 if let Some(remote) = self.remote_models.remove(&peer) {
                     remote.remove_entities()
                 }
+                self.interest_tracker.remove_peer(peer);
             }
             shared::des::ProxyToDes::DeleteEntity(entity) => {
                 EntityID(entity).kill();
