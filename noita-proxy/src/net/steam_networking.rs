@@ -338,7 +338,7 @@ impl SteamPeer {
     pub fn flush(&self) {
         self.connections.flush()
     }
-    pub fn remove(&self, peer: OmniPeerId) {
+    fn remove(&self, peer: OmniPeerId) {
         let mut n = -1;
         for (i, p) in self.inner.lock().unwrap().remote_peers.iter().enumerate() {
             if *p == Into::<SteamId>::into(peer) {
@@ -523,6 +523,7 @@ impl SteamPeer {
                 }
                 SteamEvent::PeerDisconnectedFromLobby(id) => {
                     self.connections.disconnect(id);
+                    self.remove(id.into());
                     returned_events.push(OmniNetworkEvent::PeerDisconnected(id.into()))
                 }
                 SteamEvent::PeerStateChanged => self.update_lobby_list(),
