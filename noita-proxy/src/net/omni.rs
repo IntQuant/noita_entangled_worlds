@@ -2,7 +2,7 @@ use super::steam_networking::{self, ExtraPeerState};
 use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use steamworks::{LobbyId, SteamId};
+use steamworks::{LobbyId, SteamError, SteamId};
 use tangled::{PeerId, Reliability};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Decode, Encode)]
@@ -100,8 +100,16 @@ impl PeerVariant {
         match self {
             PeerVariant::Tangled(p) => p.send(peer.into(), msg, reliability),
             PeerVariant::Steam(p) => {
-                p.send_message(peer.into(), &msg, reliability);
-                Ok(())
+                p.send_message(peer.into(), &msg, reliability)
+                    .map_err(|e| match e {
+                        SteamError::InvalidSteamID => tangled::NetError::UnknownPeer,
+                        SteamError::Ignored => tangled::NetError::Dropped,
+                        SteamError::InvalidParameter => tangled::NetError::MessageTooLong,
+                        SteamError::NoConnection | SteamError::InvalidState => {
+                            tangled::NetError::Disconnected
+                        }
+                        _ => tangled::NetError::Other,
+                    })
             }
         }
     }

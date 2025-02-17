@@ -338,13 +338,6 @@ impl SteamPeer {
     pub fn flush(&self) {
         self.connections.flush()
     }
-    fn remove(&self, peer: SteamId) {
-        self.inner
-            .lock()
-            .unwrap()
-            .remote_peers
-            .retain(|p| *p != peer);
-    }
     pub fn new_host(lobby_type: LobbyType, client: steamworks::Client, max_players: u32) -> Self {
         let (sender, events) = channel::unbounded();
 
@@ -457,29 +450,30 @@ impl SteamPeer {
         }
     }
 
-    pub fn send_message(&self, peer: SteamId, msg: &[u8], reliability: Reliability) -> bool {
+    pub fn send_message(
+        &self,
+        peer: SteamId,
+        msg: &[u8],
+        reliability: Reliability,
+    ) -> Result<(), SteamError> {
         let send_type = if reliability == Reliability::Reliable {
             SendFlags::RELIABLE
         } else {
             SendFlags::UNRELIABLE
         };
 
-        let res = self
-            .connections
-            .send_message(peer, send_type, msg)
-            .inspect_err(|err| {
-                warn!(
-                    "Couldn't send a packet to {:?}, st {:?}, err {}",
-                    peer, send_type, err
-                )
-            });
-        res.is_ok()
+        self.connections.send_message(peer, send_type, msg)
     }
 
     pub fn broadcast_message(&self, msg: &[u8], reliability: Reliability) {
         let peers = self.inner.lock().unwrap().remote_peers.clone();
         for peer in peers {
-            self.send_message(peer, msg, reliability);
+            if let Err(err) = self.send_message(peer, msg, reliability) {
+                warn!(
+                    "Couldn't send a packet to {:?}, st {:?}, err {}",
+                    peer, reliability, err
+                )
+            };
         }
     }
 
@@ -518,7 +512,6 @@ impl SteamPeer {
                 }
                 SteamEvent::PeerDisconnectedFromLobby(id) => {
                     self.connections.disconnect(id);
-                    self.remove(id.into());
                     returned_events.push(OmniNetworkEvent::PeerDisconnected(id.into()))
                 }
                 SteamEvent::PeerStateChanged => self.update_lobby_list(),
@@ -574,6 +567,7 @@ impl SteamPeer {
         }
 
         *current_peers = peers;
+        info!("Current peer list: {:?}", current_peers);
     }
 
     pub fn get_peer_ids(&self) -> Vec<SteamId> {
