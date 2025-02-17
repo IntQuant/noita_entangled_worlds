@@ -1060,6 +1060,38 @@ impl WorldManager {
     /// Should be called when player disconnects.
     /// This frees up any authority that player had.
     pub(crate) fn handle_peer_left(&mut self, source: OmniPeerId) {
+        let mut to_remove = Vec::new();
+        for (c, chunk) in self.chunk_state.iter_mut() {
+            match chunk {
+                ChunkState::RequestAuthority { .. } => {}
+                ChunkState::WaitingForAuthority => {}
+                ChunkState::Listening { authority, .. } => {
+                    if authority == &source {
+                        to_remove.push(*c)
+                    }
+                }
+                ChunkState::Authority {
+                    listeners,
+                    new_authority,
+                    ..
+                } => {
+                    if new_authority.map(|(p, _)| p == source).unwrap_or(false) {
+                        *new_authority = None;
+                    }
+                    listeners.retain(|p| p != &source);
+                }
+                ChunkState::UnloadPending => {}
+                ChunkState::Transfer => {}
+                ChunkState::WantToGetAuth { authority, .. } => {
+                    if authority == &source {
+                        to_remove.push(*c)
+                    }
+                }
+            }
+        }
+        for c in to_remove {
+            self.chunk_state.remove(&c);
+        }
         if !self.is_host {
             return;
         }
