@@ -199,6 +199,9 @@ pub struct NetManager {
     ),
     pub audio: Mutex<AudioSettings>,
     push_to_talk: AtomicBool,
+    is_dead: AtomicBool,
+    is_polied: AtomicBool,
+    is_cess: AtomicBool,
 }
 
 impl NetManager {
@@ -230,6 +233,9 @@ impl NetManager {
             loopback_channel: crossbeam::channel::unbounded(),
             audio: audio.into(),
             push_to_talk: Default::default(),
+            is_dead: Default::default(),
+            is_polied: Default::default(),
+            is_cess: Default::default(),
         }
         .into()
     }
@@ -517,8 +523,10 @@ impl NetManager {
             if !audio_data.is_empty() && {
                 let audio = self.audio.lock().unwrap();
                 !audio.mute_in
-                    && (!audio.mute_in_while_dead)// || todo!())
-                    && (!audio.mute_in_while_polied)// || todo!())
+                    && (!audio.mute_in_while_dead || !self.is_dead.load(Ordering::Relaxed))
+                    && (!audio.mute_in_while_polied
+                        || !self.is_polied.load(Ordering::Relaxed)
+                        || self.is_dead.load(Ordering::Relaxed))
                     && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
             } {
                 let audio = self.audio.lock().unwrap();
@@ -1054,7 +1062,13 @@ impl NetManager {
                     self.player_pos.1.store(y, Ordering::Relaxed);
                 }
                 let x: Option<u8> = msg.next().and_then(|s| s.parse().ok());
-                self.push_to_talk.store(x == Some(1), Ordering::Relaxed)
+                self.push_to_talk.store(x == Some(1), Ordering::Relaxed);
+                let dead = msg.next().and_then(|s| s.parse().ok()) == Some(1);
+                self.is_dead.store(dead, Ordering::Relaxed);
+                let polied = msg.next().and_then(|s| s.parse().ok()) == Some(1);
+                self.is_polied.store(polied, Ordering::Relaxed);
+                let cess = msg.next().and_then(|s| s.parse().ok()) == Some(1);
+                self.is_cess.store(cess, Ordering::Relaxed);
             }
             Some("reset_world") => {
                 state.world.reset();

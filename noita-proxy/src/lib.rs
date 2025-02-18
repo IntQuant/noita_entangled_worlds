@@ -664,8 +664,8 @@ pub struct AudioSettings {
     push_to_talk: bool,
     mute_out: bool,
     mute_in: bool,
-    mute_in_while_polied: bool, //TODO
-    mute_in_while_dead: bool,   //TODO
+    mute_in_while_polied: bool,
+    mute_in_while_dead: bool,
     disabled: bool,
     input_device: Option<String>,
     output_device: Option<String>,
@@ -673,7 +673,6 @@ pub struct AudioSettings {
 
 impl AudioSettings {
     fn show_ui(&mut self, ui: &mut Ui, main: bool) {
-        //, main: bool) {
         ui.label("drop off rate of audio from others");
         ui.add(Slider::new(&mut self.dropoff, 0.0..=128.0));
         ui.label("how much walls effect drop off rate of audio from others");
