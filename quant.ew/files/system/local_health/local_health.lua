@@ -686,6 +686,15 @@ ctx.cap.health = {
             if controls ~= nil then
                 ComponentSetValue2(controls, "enabled", true)
             end
+            for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+                for _, lua in ipairs(EntityGetComponentIncludingDisabled(child, "LuaComponent") or {}) do
+                    if
+                        ComponentGetValue2(lua, "script_source_file") == "data/scripts/status_effects/hearty_end.lua"
+                    then
+                        ComponentSetValue2(lua, "execute_on_removed", false)
+                    end
+                end
+            end
             if GameHasFlagRun("ew_kill_player") then
                 GameRemoveFlagRun("ew_kill_player")
                 polymorph.switch_entity(ctx.my_player.entity)
