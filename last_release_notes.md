@@ -1,12 +1,7 @@
 ## Noita Entangled Worlds v1.2.3
 
-- add option to: disable cursors/shields/nicknames, invert colors of borders, maximal text chat range
 
-- fix wands not dropping spells sometimes
 
-- fix cell eater/explosion logic not being enabled(lmao)
-
-- give more audio options, increase sample rate
 
 ## Accepted pull requests
 

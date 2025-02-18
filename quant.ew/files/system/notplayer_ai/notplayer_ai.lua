@@ -2,6 +2,52 @@ local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfind
 dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
 local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
+--TODO voice chat
+
+--TODO never skip leg day upgrade
+
+--TODO chest dupe
+
+--TODO pvp mode
+
+--TODO global perk conflicts rerolling
+
+--TODO uniq flags -> proxy
+
+--TODO option for disabling kummitus on non-host
+
+--TODO enemy perks nightmare
+
+--TODO check anvil/boss drops
+
+--TODO pacifist chest,  data/scripts/buildings/workshop_trigger_check_stats.lua, sync increases of enemies_killed
+
+--TODO remove host special icon
+
+--TODO arrow traps dupe, mages dupe?
+
+--TODO anvil works inconsitently
+
+--TODO negative hp enemies
+
+--TODO make do_i_own not crosscall
+
+--TODO water cave
+
+--TODO mushroom exploisions
+
+--TODO long lukki legs
+
+--TODO dark sun was sun
+
+--TODO notplayer black holes
+
+--TODO voip ui
+
+--TODO repulsion fields and contact damage mina color
+
+--TODO does kummitus not drop wand still?
+
 local MAX_RADIUS = 128 * 5
 
 local INVIS_RANGE = 24
