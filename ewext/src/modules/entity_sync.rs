@@ -327,6 +327,97 @@ impl Module for EntitySync {
             )?;
         }
 
+        self.local_diff_model.update_pending_authority()?;
+        let tmr = std::time::Instant::now();
+        {
+            let total_parts = self.real_sync_rate.max(1);
+            self.local_diff_model
+                .update_tracked_entities(
+                    ctx,
+                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
+                    total_parts,
+                )
+                .wrap_err("Failed to update locally tracked entities")?;
+            let new_intersects = self.interest_tracker.got_any_new_interested();
+            if !new_intersects.is_empty() {
+                let init = self.local_diff_model.make_init();
+                for peer in &new_intersects {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(*peer),
+                        RemoteDes::EntityUpdate(init.clone()),
+                    )?;
+                }
+            }
+            let (diff, dead) = self.local_diff_model.make_diff(ctx);
+            // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
+            for peer in self.interest_tracker.iter_interested() {
+                if !self.pending_fired_projectiles.is_empty() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(peer),
+                        RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
+                    )?;
+                }
+                if new_intersects.contains(&peer) {
+                    continue;
+                }
+                if !diff.is_empty() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(peer),
+                        RemoteDes::EntityUpdate(diff.clone()),
+                    )?;
+                }
+            }
+            for peer in ctx.player_map.clone().left_values() {
+                if !self.interest_tracker.contains(*peer)
+                    && *peer != my_peer_id()
+                    && !dead.is_empty()
+                {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(*peer),
+                        RemoteDes::DeadEntities(dead.clone()),
+                    )?;
+                }
+            }
+            Arc::make_mut(&mut self.pending_fired_projectiles).clear();
+        }
+        for (owner, remote_model) in self.remote_models.iter_mut() {
+            let total_parts = self.real_sync_rate.max(1);
+            remote_model
+                .apply_entities(
+                    ctx,
+                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
+                    total_parts,
+                )
+                .wrap_err("Failed to apply entity infos")?;
+            /*for entity in remote_model.drain_backtrack() {
+                self.local_diff_model.track_and_upload_entity(
+                    ctx.net,
+                    entity,
+                    Gid(rand::random()),
+                )?;
+            }*/
+            for lid in remote_model.drain_grab_request() {
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peer(*owner),
+                    RemoteDes::RequestGrab(lid),
+                )?;
+            }
+        }
+        // These entities shouldn't be tracked by us, as they were spawned by remote.
+        self.look_current_entity = EntityID::max_in_use()?;
+        for (_, remote_model) in self.remote_models.iter_mut() {
+            remote_model.kill_entities(ctx)?;
+        }
         for (entity, offending_peer) in self.kill_later.drain(..) {
             if entity.is_alive() {
                 let responsible_entity = offending_peer
@@ -451,96 +542,6 @@ impl Module for EntitySync {
                 }
             }
         }
-
-        self.local_diff_model.update_pending_authority()?;
-        let tmr = std::time::Instant::now();
-        {
-            let total_parts = self.real_sync_rate.max(1);
-            self.local_diff_model
-                .update_tracked_entities(
-                    ctx,
-                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
-                    total_parts,
-                )
-                .wrap_err("Failed to update locally tracked entities")?;
-            let new_intersects = self.interest_tracker.got_any_new_interested();
-            if !new_intersects.is_empty() {
-                let init = self.local_diff_model.make_init();
-                for peer in &new_intersects {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(*peer),
-                        RemoteDes::EntityUpdate(init.clone()),
-                    )?;
-                }
-            }
-            let (diff, dead) = self.local_diff_model.make_diff(ctx);
-            // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
-            for peer in self.interest_tracker.iter_interested() {
-                if !self.pending_fired_projectiles.is_empty() {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(peer),
-                        RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
-                    )?;
-                }
-                if new_intersects.contains(&peer) {
-                    continue;
-                }
-                if !diff.is_empty() {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(peer),
-                        RemoteDes::EntityUpdate(diff.clone()),
-                    )?;
-                }
-            }
-            for peer in ctx.player_map.clone().left_values() {
-                if !self.interest_tracker.contains(*peer)
-                    && *peer != my_peer_id()
-                    && !dead.is_empty()
-                {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(*peer),
-                        RemoteDes::DeadEntities(dead.clone()),
-                    )?;
-                }
-            }
-            Arc::make_mut(&mut self.pending_fired_projectiles).clear();
-        }
-        for (owner, remote_model) in self.remote_models.iter_mut() {
-            let total_parts = self.real_sync_rate.max(1);
-            remote_model
-                .apply_entities(
-                    ctx,
-                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
-                    total_parts,
-                )
-                .wrap_err("Failed to apply entity infos")?;
-            /*for entity in remote_model.drain_backtrack() {
-                self.local_diff_model.track_and_upload_entity(
-                    ctx.net,
-                    entity,
-                    Gid(rand::random()),
-                )?;
-            }*/
-            for lid in remote_model.drain_grab_request() {
-                send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peer(*owner),
-                    RemoteDes::RequestGrab(lid),
-                )?;
-            }
-            remote_model.kill_entities(ctx)?;
-        }
-        // These entities shouldn't be tracked by us, as they were spawned by remote.
-        self.look_current_entity = EntityID::max_in_use()?;
 
         if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
             == self.real_sync_rate - 1
