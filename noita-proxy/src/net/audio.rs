@@ -30,15 +30,14 @@ pub(crate) struct AudioManager {
 
 impl AudioManager {
     pub fn new(audio: AudioSettings) -> Self {
-        let host = if cfg!(target_os = "linux") {
-            cpal::available_hosts()
-                .into_iter()
-                .find(|id| *id == cpal::HostId::Jack)
-                .and_then(|id| cpal::host_from_id(id).ok())
-                .unwrap_or(cpal::default_host())
-        } else {
-            cpal::default_host()
-        };
+        #[cfg(target_os = "linux")]
+        let host = cpal::available_hosts()
+            .into_iter()
+            .find(|id| *id == cpal::HostId::Jack)
+            .and_then(|id| cpal::host_from_id(id).ok())
+            .unwrap_or(cpal::default_host());
+        #[cfg(not(target_os = "linux"))]
+        let host = cpal::default_host();
 
         let device = {
             let input = audio.input_device.clone();
