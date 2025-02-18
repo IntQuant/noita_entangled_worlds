@@ -174,7 +174,7 @@ function mod.on_new_entity(ent)
     end
 end
 
-function mod.on_world_pre_update()
+function mod.on_world_update()
     if first then
         send_mats()
         rpc.check_mats(mats, true)
