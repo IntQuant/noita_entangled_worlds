@@ -183,10 +183,10 @@ impl AudioManager {
         global: bool,
         sound_pos: (i32, i32),
     ) {
-        if !self.per_player.contains_key(&src) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src) {
             if let Some(stream_handle) = &self.stream_handle {
                 if let Ok(s) = Sink::try_new(&stream_handle.1) {
-                    self.per_player.insert(src, PlayerInfo { sink: s });
+                    e.insert(PlayerInfo { sink: s });
                 }
             }
         }

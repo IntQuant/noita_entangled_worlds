@@ -657,8 +657,8 @@ pub struct AudioSettings {
     volume: HashMap<OmniPeerId, f32>,
     dropoff: f32,
     range: u64,
-    walls_strength: f32,      //TODO
-    max_wall_durability: u32, //TODO
+    //walls_strength: f32,
+    //max_wall_durability: u32,
     player_position: bool,
     global: bool,
     push_to_talk: bool,
@@ -675,10 +675,10 @@ impl AudioSettings {
     fn show_ui(&mut self, ui: &mut Ui, main: bool) {
         ui.label("drop off rate of audio from others");
         ui.add(Slider::new(&mut self.dropoff, 0.0..=128.0));
-        ui.label("how much walls effect drop off rate of audio from others");
+        /*ui.label("how much walls effect drop off rate of audio from others");
         ui.add(Slider::new(&mut self.walls_strength, 0.0..=128.0));
         ui.label("highest durability of wall which sound can pass through");
-        ui.add(Slider::new(&mut self.max_wall_durability, 0..=14));
+        ui.add(Slider::new(&mut self.max_wall_durability, 0..=14));*/
         ui.label("maximal range of audio");
         ui.add(Slider::new(&mut self.range, 0..=4096));
         ui.checkbox(&mut self.global, "have voice always be played");
@@ -767,8 +767,8 @@ impl Default for AudioSettings {
             dropoff: 1.0,
             range: 1024,
             global: false,
-            walls_strength: 1.0,
-            max_wall_durability: 14,
+            //walls_strength: 1.0,
+            //max_wall_durability: 14,
             player_position: true,
             push_to_talk: true,
             mute_out: false,
