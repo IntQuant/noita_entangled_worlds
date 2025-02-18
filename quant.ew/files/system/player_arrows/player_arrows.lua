@@ -26,6 +26,9 @@ function module.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "polymorphed") and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         return
     end
+    if ModSettingGet("quant.ew.disable_arrows") then
+        return
+    end
     GuiStartFrame(gui)
 
     GuiZSet(gui, 10)

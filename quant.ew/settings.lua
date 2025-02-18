@@ -242,6 +242,13 @@ local function build_settings()
                     value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
+                {
+                    id = "disable_arrows",
+                    ui_name = "disable others arrows",
+                    ui_description = "bool",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
             },
         },
         {
