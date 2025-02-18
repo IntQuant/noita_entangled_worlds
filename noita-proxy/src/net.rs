@@ -412,26 +412,32 @@ impl NetManager {
         let mut decoder = Decoder::new(SAMPLE_RATE as u32, CHANNELS).unwrap();
         let (tx, rx) = mpsc::channel::<Vec<u8>>();
         thread::spawn(move || {
-            let mut extra = Vec::new();
             if let Some(device) = device {
-                if let Ok(config) = device.default_input_config() {
-                    let sample = config.sample_rate();
+                if let Ok(cfg) = device.default_input_config() {
+                    let sample = cfg.sample_rate();
+                    let channels = cfg.channels();
                     let config = cpal::SupportedStreamConfig::new(
-                        1,
+                        if channels <= 2 { cfg.channels() } else { 2 },
                         sample,
-                        cpal::SupportedBufferSize::Range {
-                            min: (FRAME_SIZE / 4) as u32,
-                            max: (FRAME_SIZE * 4) as u32,
-                        },
+                        *cfg.buffer_size(),
                         cpal::SampleFormat::F32,
                     );
                     if let Ok(mut resamp) =
                         FftFixedIn::<f32>::new(sample.0 as usize, SAMPLE_RATE, FRAME_SIZE, 8, 1)
                     {
+                        let mut extra = Vec::new();
                         match device.build_input_stream(
                             &config.into(),
                             move |data: &[f32], _| {
-                                extra.extend(data);
+                                if channels == 1 {
+                                    extra.extend(data);
+                                } else {
+                                    extra.extend(
+                                        data.chunks(2)
+                                            .map(|a| (a[0] + a[1]) * 0.5)
+                                            .collect::<Vec<f32>>(),
+                                    )
+                                }
                                 let mut v = Vec::new();
                                 while extra.len() >= FRAME_SIZE {
                                     let mut compressed = vec![0u8; 1024];
@@ -462,7 +468,13 @@ impl NetManager {
                                 }
                             }
                             Err(s) => {
-                                error!("no stream {}", s)
+                                error!(
+                                    "no stream {}, {}, {}, {}",
+                                    s,
+                                    cfg.channels(),
+                                    cfg.sample_rate().0,
+                                    cfg.sample_format()
+                                )
                             }
                         }
                     } else {
