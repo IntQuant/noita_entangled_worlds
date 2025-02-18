@@ -53,6 +53,7 @@ cpal = {version="0.15.3", features=["jack"]}
 rodio = "0.20.1"
 opus = "0.3.0"
 rubato = "0.16.1"
+fundsp = {version = "0.20.0", default-features = false, features = ["std"]}
 
 [dev-dependencies]
 serial_test = "3.2.0"

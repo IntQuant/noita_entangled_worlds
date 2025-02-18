@@ -1,24 +1,98 @@
 use crate::net::omni::OmniPeerId;
 use crate::AudioSettings;
+use ::shared::WorldPos;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use fundsp::prelude::*;
 use opus::{Application, Channels, Decoder, Encoder};
 use rodio::buffer::SamplesBuffer;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 use rubato::{FftFixedIn, Resampler};
 use std::collections::HashMap;
 use std::ops::Mul;
+use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{self, TryRecvError};
+use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tracing::error;
 use tracing::log::warn;
+
 pub const SAMPLE_RATE: usize = 24000;
 pub const FRAME_SIZE: usize = 480;
 pub const CHANNELS: Channels = Channels::Mono;
 
+/// For reference, Mina is 14 pixels high.
+const PIXELS_PER_METER: f32 = 14.0 / 1.7;
+/// In m/s.
+const SPEED_OF_SOUND: f32 = 343.0;
+
+struct VelocityTracker {
+    prev_pos_push: Instant,
+    source_pos: [WorldPos; Self::SAMPLE_COUNT],
+    player_pos: [WorldPos; Self::SAMPLE_COUNT],
+}
+
+impl Default for VelocityTracker {
+    fn default() -> Self {
+        Self {
+            prev_pos_push: Instant::now(),
+            source_pos: Default::default(),
+            player_pos: Default::default(),
+        }
+    }
+}
+
+impl VelocityTracker {
+    const SAMPLE_COUNT: usize = 4;
+    fn push_new_pos(&mut self, source: WorldPos, player: WorldPos) {
+        if self.prev_pos_push.elapsed() > Duration::from_millis(16 * 4) {
+            self.source_pos.rotate_right(1);
+            self.source_pos[0] = source;
+            self.player_pos.rotate_right(1);
+            self.player_pos[0] = player;
+            self.prev_pos_push = Instant::now();
+        }
+    }
+    fn calc_speed_toward_player(&self) -> f32 {
+        let vel_source = self.source_pos[0] - self.source_pos[Self::SAMPLE_COUNT - 1];
+        let vel_player = self.player_pos[0] - self.player_pos[Self::SAMPLE_COUNT - 1];
+        let vel = vel_source - vel_player;
+        let source_to_player = self.player_pos[0] - self.source_pos[0];
+        let ret = vel.dot(source_to_player) / source_to_player.hypot() / PIXELS_PER_METER;
+        if ret.is_nan() {
+            0.0
+        } else {
+            ret
+        }
+    }
+}
+
 struct PlayerInfo {
+    tracker: VelocityTracker,
     sink: Sink,
+    dsp: BigBlockAdapter,
+    pitch_control: Arc<AtomicUsize>,
+}
+
+const DSP_PITCH_MULT: usize = 100;
+
+fn make_dsp() -> (Arc<AtomicUsize>, BigBlockAdapter) {
+    let pitch_control = Arc::new(AtomicUsize::new(DSP_PITCH_MULT));
+
+    let node = resynth::<U1, U1, _>(1 << 13, {
+        let pitch_control = pitch_control.clone();
+        move |fft| {
+            let p = pitch_control.load(std::sync::atomic::Ordering::Relaxed);
+            for i in 0..fft.bins() {
+                let j = i * p / DSP_PITCH_MULT;
+                if (0..fft.bins()).contains(&j) {
+                    fft.set(0, i, fft.at(0, j));
+                }
+            }
+        }
+    });
+    (pitch_control, BigBlockAdapter::new(Box::new(node)))
 }
 
 pub(crate) struct AudioManager {
@@ -185,11 +259,20 @@ impl AudioManager {
         if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src) {
             if let Some(stream_handle) = &self.stream_handle {
                 if let Ok(s) = Sink::try_new(&stream_handle.1) {
-                    e.insert(PlayerInfo { sink: s });
+                    let (pitch_control, dsp) = make_dsp();
+                    e.insert(PlayerInfo {
+                        sink: s,
+                        tracker: VelocityTracker::default(),
+                        pitch_control,
+                        dsp,
+                    });
                 }
             }
         }
         self.per_player.entry(src).and_modify(|player_info| {
+            player_info
+                .tracker
+                .push_new_pos(sound_pos.into(), player_pos.into());
             let vol = {
                 if global {
                     *audio.volume.get(&src).unwrap_or(&1.0)
@@ -218,7 +301,22 @@ impl AudioManager {
                     }
                 }
                 if !dec.is_empty() {
-                    let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dec);
+                    let speed = player_info.tracker.calc_speed_toward_player();
+                    let pitch_change = (1.0 / (1.0 + speed / SPEED_OF_SOUND)).clamp(0.01, 3.00);
+                    player_info.pitch_control.store(
+                        (pitch_change * DSP_PITCH_MULT as f32) as usize,
+                        std::sync::atomic::Ordering::Relaxed,
+                    );
+
+                    let mut dsp_out = vec![0f32; dec.len()];
+
+                    player_info.dsp.process_big(
+                        dec.len(),
+                        &[dec.as_slice()],
+                        &mut [dsp_out.as_mut_slice()],
+                    );
+                    let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dsp_out);
+
                     player_info.sink.append(source);
                     player_info.sink.play();
                 }

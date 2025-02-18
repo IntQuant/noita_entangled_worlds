@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use bitcode::{Decode, Encode};
 use eyre::Context;
 
@@ -40,6 +42,52 @@ impl WorldPos {
         let dx = self.x.abs_diff(x as i32);
         let dy = self.y.abs_diff(y as i32);
         dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy)) < dist.saturating_mul(dist)
+    }
+}
+
+impl From<(i32, i32)> for WorldPos {
+    fn from(value: (i32, i32)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+        }
+    }
+}
+
+#[derive(Debug, Encode, Decode, Default, Clone, Copy)]
+pub struct WorldVec {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Sub<WorldPos> for WorldPos {
+    type Output = WorldVec;
+
+    fn sub(self, rhs: WorldPos) -> Self::Output {
+        WorldVec {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl Sub<WorldVec> for WorldVec {
+    type Output = WorldVec;
+
+    fn sub(self, rhs: WorldVec) -> Self::Output {
+        WorldVec {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl WorldVec {
+    pub fn dot(self, other: WorldVec) -> f32 {
+        (self.x as f32) * (other.y as f32) + (self.y as f32) * (other.x as f32)
+    }
+    pub fn hypot(self) -> f32 {
+        f32::hypot(self.x as f32, self.y as f32)
     }
 }
 
