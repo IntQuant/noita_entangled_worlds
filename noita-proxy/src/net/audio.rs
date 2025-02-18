@@ -6,7 +6,7 @@ use rodio::buffer::SamplesBuffer;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 use rubato::{FftFixedIn, Resampler};
 use std::collections::HashMap;
-use std::ops::{DerefMut, Mul};
+use std::ops::Mul;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
@@ -160,16 +160,10 @@ impl AudioManager {
                                 let mut v = Vec::new();
                                 while extra.len() >= FRAME_SIZE {
                                     let mut compressed = vec![0u8; 1024];
-                                    let mut res = vec![vec![0f32; FRAME_SIZE]];
-                                    resamp
-                                        .process_into_buffer(
-                                            &[&extra[..FRAME_SIZE]],
-                                            res.deref_mut(),
-                                            None,
-                                        )
-                                        .unwrap();
-                                    if let Ok(len) = encoder.encode_float(&res[0], &mut compressed)
-                                    {
+                                    if let Ok(len) = encoder.encode_float(
+                                        &resamp.process(&[&extra[..FRAME_SIZE]], None).unwrap()[0],
+                                        &mut compressed,
+                                    ) {
                                         if len != 0 {
                                             v.push(compressed[..len].to_vec())
                                         }
