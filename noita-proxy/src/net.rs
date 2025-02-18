@@ -182,6 +182,7 @@ pub struct NetManager {
     pub error: Mutex<Option<io::Error>>,
     pub init_settings: NetManagerInit,
     pub camera_pos: (AtomicI32, AtomicI32),
+    pub player_pos: (AtomicI32, AtomicI32),
     pub enable_recorder: AtomicBool,
     pub end_run: AtomicBool,
     pub ban_list: Mutex<Vec<OmniPeerId>>,
@@ -219,6 +220,7 @@ impl NetManager {
             error: Default::default(),
             init_settings: init,
             camera_pos: Default::default(),
+            player_pos: Default::default(),
             enable_recorder: AtomicBool::new(false),
             end_run: AtomicBool::new(false),
             ban_list: Default::default(),
@@ -649,14 +651,25 @@ impl NetManager {
             }
             if !audio_data.is_empty() && {
                 let audio = self.audio.lock().unwrap();
-                !audio.mute_in && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
+                !audio.mute_in
+                    && (!audio.mute_in_while_dead)// || todo!())
+                    && (!audio.mute_in_while_polied)// || todo!())
+                    && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
             } {
-                let (x, y) = (
-                    self.camera_pos.0.load(Ordering::Relaxed),
-                    self.camera_pos.1.load(Ordering::Relaxed),
-                );
+                let audio = self.audio.lock().unwrap();
+                let (x, y) = if audio.player_position {
+                    (
+                        self.player_pos.0.load(Ordering::Relaxed),
+                        self.player_pos.1.load(Ordering::Relaxed),
+                    )
+                } else {
+                    (
+                        self.camera_pos.0.load(Ordering::Relaxed),
+                        self.camera_pos.1.load(Ordering::Relaxed),
+                    )
+                };
                 self.broadcast(
-                    &NetMsg::AudioData(audio_data, self.audio.lock().unwrap().global, x, y),
+                    &NetMsg::AudioData(audio_data, audio.global, x, y),
                     Reliability::Reliable,
                 );
             }
@@ -773,10 +786,17 @@ impl NetManager {
                         if global {
                             *audio.volume.get(&src).unwrap_or(&1.0)
                         } else {
-                            let (mx, my) = (
-                                self.camera_pos.0.load(Ordering::Relaxed),
-                                self.camera_pos.1.load(Ordering::Relaxed),
-                            );
+                            let (mx, my) = if audio.player_position {
+                                (
+                                    self.player_pos.0.load(Ordering::Relaxed),
+                                    self.player_pos.1.load(Ordering::Relaxed),
+                                )
+                            } else {
+                                (
+                                    self.camera_pos.0.load(Ordering::Relaxed),
+                                    self.camera_pos.1.load(Ordering::Relaxed),
+                                )
+                            };
                             let dx = mx.abs_diff(tx) as u64;
                             let dy = my.abs_diff(ty) as u64;
                             let dist = dx * dx + dy * dy;
@@ -1192,6 +1212,12 @@ impl NetManager {
                 if let (Some(x), Some(y)) = (x, y) {
                     self.camera_pos.0.store(x, Ordering::Relaxed);
                     self.camera_pos.1.store(y, Ordering::Relaxed);
+                }
+                let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                if let (Some(x), Some(y)) = (x, y) {
+                    self.player_pos.0.store(x, Ordering::Relaxed);
+                    self.player_pos.1.store(y, Ordering::Relaxed);
                 }
                 let x: Option<u8> = msg.next().and_then(|s| s.parse().ok());
                 self.push_to_talk.store(x == Some(1), Ordering::Relaxed)

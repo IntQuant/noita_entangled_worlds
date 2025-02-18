@@ -10,7 +10,11 @@ function module.on_world_update()
         ptt = 1
     end
     local x, y = GameGetCameraPos()
-    net.proxy_send("cam_pos", math.floor(x) .. " " .. math.floor(y) .. " " .. ptt)
+    local mx, my = EntityGetTransform(ctx.my_player.entity)
+    net.proxy_send(
+        "cam_pos",
+        math.floor(x) .. " " .. math.floor(y) .. " " .. math.floor(mx) .. " " .. math.floor(my) .. " " .. ptt
+    )
 end
 
 return module
