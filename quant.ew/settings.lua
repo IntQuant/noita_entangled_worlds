@@ -264,6 +264,13 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "text_range",
+                    ui_name = "text chat range",
+                    ui_description = "range in pixels for text chat, 0 for disabled",
+                    value_default = "0",
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "tetherrange",
                     ui_name = "tether range",
                     ui_description = "radius in pixels, 0 for disabled",

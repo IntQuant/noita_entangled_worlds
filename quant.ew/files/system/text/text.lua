@@ -20,6 +20,8 @@ local maxVisibleLines = 15
 local visibleChars = 384 -- it's actually pixel width now
 local currentMessageIndex = 1
 
+local in_camera_ref
+
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
 
@@ -183,8 +185,8 @@ local function renderTextInput()
         end
 
         for _, line in ipairs(wrappedMessage) do
-            lineCharCounter = 0
-            for i = 1, string.len(line) do
+            local lineCharCounter = 0
+            for _ = 1, string.len(line) do
                 charCounter = charCounter + 1
                 lineCharCounter = lineCharCounter + 1
                 if charCounter == cursorPos then
@@ -211,8 +213,12 @@ local function disable_movement(controls)
     ComponentSetValue2(controls, "mButtonDownEat", false)
 end
 
-function rpc.text(msg, color, colorAlt)
-    if not ModSettingGet("quant.ew.notext") then
+function rpc.text(msg, color, colorAlt, tx, ty)
+    local x, y = GameGetCameraPos()
+    local r = tonumber(ModSettingGet("quant.ew.text_range") or 0) or 0
+    local dx = x - tx
+    local dy = y - ty
+    if not ModSettingGet("quant.ew.notext") and (r == 0 or dx * dx + dy * dy <= r * r) then
         GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
         saveMessage(ctx.rpc_player_data.name, msg, color, colorAlt)
 
@@ -264,6 +270,12 @@ function string.insert(str1, str2, pos)
     return str1:sub(1, pos) .. str2 .. str1:sub(pos + 1)
 end
 
+local counterL
+
+local counterR
+
+local counterB
+
 function module.on_world_update()
     local gui_started = false
     if not ModSettingGet("quant.ew.nochathint") then
@@ -284,7 +296,8 @@ function module.on_world_update()
                 end
             end
             if non_white then
-                rpc.text(text, ctx.proxy_opt.mina_color, ctx.proxy_opt.mina_color_alt)
+                local x, y = GameGetCameraPos()
+                rpc.text(text, ctx.proxy_opt.mina_color, ctx.proxy_opt.mina_color_alt, x, y)
             end
             stoptext()
         else
