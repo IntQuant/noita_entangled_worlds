@@ -247,7 +247,11 @@ impl LocalDiffModelTracker {
                 .iter()
                 .any(|var| {
                     var.name().unwrap_or("".into()) == "active" && var.value_int().unwrap_or(0) == 1
-                });
+                })
+            || (entity.has_tag("pitcheck_b")
+                && entity
+                    .try_get_first_component::<LuaComponent>(Some("disabled".into()))?
+                    .is_some());
 
         info.limbs = entity
             .children(None)
@@ -738,6 +742,8 @@ impl LocalDiffModel {
                         .children(Some("protection".into()))
                         .iter()
                         .for_each(|ent| ent.kill());
+                } else if entity.has_tag("pitcheck_b") {
+                    entity.set_components_with_tag_enabled("disabled".into(), true)?;
                 } else if let Some(var) = entity
                     .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
                     .iter()
