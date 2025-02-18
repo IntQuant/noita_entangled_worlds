@@ -48,6 +48,7 @@ pub struct Modmanager {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(default)]
 pub struct ModmanagerSettings {
     pub game_exe_path: PathBuf,
     pub game_save_path: Option<PathBuf>,

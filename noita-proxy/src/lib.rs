@@ -439,6 +439,7 @@ enum ConnectedMenu {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
 struct PlayerAppearance {
     player_color: PlayerColor,
     player_picker: PlayerPicker,
@@ -651,14 +652,19 @@ impl EndRunButton {
 }
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Clone)]
+#[serde(default)]
 pub struct AudioSettings {
     volume: HashMap<OmniPeerId, f32>,
     dropoff: f32,
     range: u64,
+    walls_strength: f32,
+    player_position: bool,
     global: bool,
     push_to_talk: bool,
     mute_out: bool,
     mute_in: bool,
+    mute_in_while_polied: bool,
+    mute_in_while_dead: bool,
     disabled: bool,
     input_device: Option<String>,
     output_device: Option<String>,
@@ -669,20 +675,25 @@ impl AudioSettings {
         //, main: bool) {
         ui.label("drop off rate of audio from others");
         ui.add(Slider::new(&mut self.dropoff, 0.0..=128.0));
+        ui.label("how much walls effect drop off rate of audio from others");
+        ui.add(Slider::new(&mut self.walls_strength, 0.0..=128.0));
         ui.label("maximal range of audio");
         ui.add(Slider::new(&mut self.range, 0..=4096));
-        ui.checkbox(&mut self.global, "global");
+        ui.checkbox(&mut self.global, "have voice always be played");
         ui.checkbox(
             &mut self.push_to_talk,
             "push to talk, keybinds in noita, T by default",
         );
+        ui.checkbox(
+            &mut self.player_position,
+            "use player position rather then camera position",
+        );
         ui.checkbox(&mut self.mute_in, "mute input");
+        ui.checkbox(&mut self.mute_in_while_polied, "mute input while polied");
+        ui.checkbox(&mut self.mute_in_while_dead, "mute input while dead");
         ui.checkbox(&mut self.mute_out, "mute output");
-        ui.checkbox(&mut self.disabled, "disabled");
-        if ui.button("default").clicked() {
-            *self = Default::default();
-        }
         if main {
+            ui.checkbox(&mut self.disabled, "disabled");
             #[cfg(target_os = "linux")]
             let host = cpal::available_hosts()
                 .into_iter()
@@ -741,6 +752,9 @@ impl AudioSettings {
                     }
                 });
         }
+        if ui.button("default").clicked() {
+            *self = Default::default();
+        }
     }
 }
 
@@ -751,9 +765,13 @@ impl Default for AudioSettings {
             dropoff: 1.0,
             range: 1024,
             global: false,
+            walls_strength: 1.0,
+            player_position: false,
             push_to_talk: true,
             mute_out: false,
             mute_in: false,
+            mute_in_while_polied: true,
+            mute_in_while_dead: false,
             disabled: false,
             input_device: None,
             output_device: None,
