@@ -444,6 +444,7 @@ struct PlayerAppearance {
     player_picker: PlayerPicker,
     hue: f64,
     cosmetics: (bool, bool, bool),
+    invert_border: bool,
 }
 
 impl PlayerAppearance {
@@ -467,6 +468,7 @@ impl PlayerAppearance {
         PlayerPngDesc {
             cosmetics: cosmetics.into(),
             colors: self.player_color,
+            invert_border: self.invert_border,
         }
     }
     fn mina_color_picker(
@@ -524,7 +526,7 @@ impl PlayerAppearance {
                     player_image.clone(),
                     self.create_png_desc(game_save_path.clone()),
                 ),
-                11.0,
+                12.0,
             );
             player_select_current_color_slot(ui, self, game_save_path.clone());
             player_skin_display_color_picker(ui, &mut self.player_color, &self.player_picker);
@@ -543,6 +545,7 @@ impl Default for PlayerAppearance {
             player_picker: PlayerPicker::None,
             hue: 0.0,
             cosmetics: (true, true, true),
+            invert_border: false,
         }
     }
 }
@@ -1003,6 +1006,7 @@ impl App {
             player_png_desc: PlayerPngDesc {
                 cosmetics: cosmetics.into(),
                 colors: self.appearance.player_color,
+                invert_border: self.appearance.invert_border,
             },
             noita_port,
         }
@@ -2058,6 +2062,7 @@ fn cli_setup(
         player_png_desc: PlayerPngDesc {
             cosmetics: cosmetics.into(),
             colors: appearance.player_color,
+            invert_border: appearance.invert_border,
         },
         noita_port: 21251,
     };

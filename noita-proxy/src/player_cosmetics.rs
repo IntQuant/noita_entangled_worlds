@@ -64,6 +64,37 @@ pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: 
     }
 }
 
+fn invert(mut a: Rgba<u8>) -> Rgba<u8> {
+    for i in 0..3 {
+        a.channels_mut()[i] = 255 - a.channels()[i];
+    }
+    a
+}
+
+pub fn replace_color_opt(
+    image: &mut RgbaImage,
+    main: Rgba<u8>,
+    alt: Rgba<u8>,
+    arm: Rgba<u8>,
+    inv: bool,
+) {
+    let target_main = Rgba::from([155, 111, 154, 255]);
+    let target_alt = Rgba::from([127, 84, 118, 255]);
+    let target_arm = Rgba::from([89, 67, 84, 255]);
+    let target_border = Rgba::from([0, 0, 0, 255]);
+    for pixel in image.pixels_mut() {
+        if compare_rgb(*pixel, target_main) {
+            set_rgb(pixel, main);
+        } else if compare_rgb(*pixel, target_alt) {
+            set_rgb(pixel, alt);
+        } else if compare_rgb(*pixel, target_arm) {
+            set_rgb(pixel, arm);
+        } else if inv && compare_rgb(*pixel, target_border) {
+            set_rgb(pixel, invert(main));
+        }
+    }
+}
+
 fn f_to_u(n: f64) -> u8 {
     255.0_f64.min(0.0_f64.max(n.round())) as u8
 }
@@ -255,6 +286,7 @@ pub fn player_select_current_color_slot(
                 let hat = flags.join("secret_hat").exists();
                 let amulet = flags.join("secret_amulet").exists();
                 let gem = flags.join("secret_amulet_gem").exists();
+                ui.checkbox(&mut appearance.invert_border, "Invert border");
                 if hat {
                     ui.checkbox(&mut appearance.cosmetics.0, tr("Crown"));
                 }
@@ -307,6 +339,7 @@ pub fn create_arm(arm: Rgba<u8>) -> RgbaImage {
 pub struct PlayerPngDesc {
     pub(crate) cosmetics: [bool; 3],
     pub(crate) colors: PlayerColor,
+    pub(crate) invert_border: bool,
 }
 
 fn replace_colors(path: PathBuf, save: PathBuf, rgb: &PlayerColor) {
@@ -320,6 +353,18 @@ fn replace_colors(path: PathBuf, save: PathBuf, rgb: &PlayerColor) {
     img.save(save).unwrap();
 }
 
+fn replace_colors_opt(path: PathBuf, save: PathBuf, rgb: &PlayerColor, inv: bool) {
+    let mut img = image::open(path).unwrap().into_rgba8();
+    replace_color_opt(
+        &mut img,
+        Rgba::from(to_u8(rgb.player_main)),
+        Rgba::from(to_u8(rgb.player_alt)),
+        Rgba::from(to_u8(rgb.player_arm)),
+        inv,
+    );
+    img.save(save).unwrap();
+}
+
 pub fn create_player_png(
     peer: OmniPeerId,
     mod_path: &Path,
@@ -327,6 +372,7 @@ pub fn create_player_png(
     rgb: &PlayerPngDesc,
     is_host: bool,
 ) {
+    let inv = rgb.invert_border;
     let id = peer.as_hex();
     let cosmetics = rgb.cosmetics;
     let rgb = rgb.colors;
@@ -358,20 +404,23 @@ pub fn create_player_png(
         tmp_path.join(format!("tmp/{}_lukki.png", id)),
         &rgb,
     );
-    replace_colors(
+    replace_colors_opt(
         arrows_path,
         tmp_path.join(format!("tmp/{}_arrow.png", id)),
         &rgb,
+        inv,
     );
-    replace_colors(
+    replace_colors_opt(
         ping_path,
         tmp_path.join(format!("tmp/{}_ping.png", id)),
         &rgb,
+        inv,
     );
-    replace_colors(
+    replace_colors_opt(
         cursor_path,
         tmp_path.join(format!("tmp/{}_cursor.png", id)),
         &rgb,
+        inv,
     );
     replace_colors(
         tmp_path.join("knee.png"),
