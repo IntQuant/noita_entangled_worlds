@@ -1,8 +1,18 @@
-## Noita Entangled Worlds v1.2.1
+## Noita Entangled Worlds v1.2.2
 
-- fix voip in windows
+- fix enemys deaths not giving rewards sometimes
 
-- give a input/output selector for voip
+- try to fix stevari dupe
+
+- remove disconnected peers better
+
+- remove whitespace when trying to connect via steam
+
+- fix enemys drops not syncing
+
+- fix global entities poly duping(ie big worm)
+
+- hopefully fix voip on windows again
 
 
 ## Accepted pull requests
