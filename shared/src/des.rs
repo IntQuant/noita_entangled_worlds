@@ -36,6 +36,7 @@ pub struct FullEntityData {
     pub data: EntitySpawnInfo,
     pub wand: Option<Vec<u8>>,
     pub rotation: f32,
+    pub hp: f32,
     pub drops_gold: bool,
     pub is_charmed: bool,
 }
@@ -46,6 +47,7 @@ pub struct UpdatePosition {
     pub pos: WorldPos,
     pub r: f32,
     pub is_charmed: bool,
+    pub hp: f32,
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

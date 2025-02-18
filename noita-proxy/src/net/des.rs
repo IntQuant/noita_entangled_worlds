@@ -121,13 +121,15 @@ impl DesManager {
                     pos,
                     r,
                     is_charmed,
+                    hp,
                 } in updates
                 {
                     self.remove_gid_from_tree(gid);
                     if let Some(entity) = self.entity_storage.entities.get_mut(&gid) {
                         entity.pos = pos;
                         entity.rotation = r;
-                        entity.is_charmed = is_charmed
+                        entity.is_charmed = is_charmed;
+                        entity.hp = hp;
                     }
                 }
             }

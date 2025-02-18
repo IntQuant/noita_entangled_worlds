@@ -77,6 +77,7 @@ impl LocalDiffModel {
                     pos: WorldPos::from_f32(current.x, current.y),
                     r: current.r,
                     is_charmed: current.is_charmed(),
+                    hp: current.hp,
                 }
             })
             .collect()
@@ -278,6 +279,7 @@ impl LocalDiffModelTracker {
                         peer,
                         info.wand.clone().map(|(_, a)| a),
                         info.is_charmed(),
+                        info.hp,
                     )
                     .wrap_err("Failed to transfer authority")?;
                     return Ok(());
@@ -289,6 +291,7 @@ impl LocalDiffModelTracker {
                     lid,
                     info.wand.clone().map(|(_, a)| a),
                     info.is_charmed(),
+                    info.hp,
                 )
                 .wrap_err("Failed to release authority")?;
                 return Ok(());
@@ -506,6 +509,7 @@ impl LocalDiffModelTracker {
         lid: Lid,
         wand: Option<Vec<u8>>,
         is_charmed: bool,
+        hp: f32,
     ) -> Result<EntityID, eyre::Error> {
         let entity = self
             .entity_by_lid(lid)
@@ -525,6 +529,7 @@ impl LocalDiffModelTracker {
                 pos: WorldPos::from_f32(x, y),
                 r,
                 is_charmed,
+                hp,
             }]),
         ))?;
         Ok(entity)
@@ -537,8 +542,9 @@ impl LocalDiffModelTracker {
         lid: Lid,
         wand: Option<Vec<u8>>,
         is_charmed: bool,
+        hp: f32,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
@@ -547,6 +553,7 @@ impl LocalDiffModelTracker {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn transfer_authority_to(
         &mut self,
         ctx: &mut ModuleCtx<'_>,
@@ -555,8 +562,9 @@ impl LocalDiffModelTracker {
         peer: PeerId,
         wand: Option<Vec<u8>>,
         is_charmed: bool,
+        hp: f32,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
@@ -753,6 +761,13 @@ impl LocalDiffModel {
                     entity.set_components_with_tag_enabled("activate".into(), true)?
                 } else {
                     entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
+                }
+            }
+            if entity_data.hp != -1.0 {
+                if let Some(damage) =
+                    entity.try_get_first_component::<DamageModelComponent>(None)?
+                {
+                    damage.set_hp(entity_data.hp as f64)?;
                 }
             }
             if !entity_data.drops_gold {
@@ -1041,6 +1056,7 @@ impl LocalDiffModel {
             rotation: entry_pair.current.r,
             drops_gold: entry_pair.current.drops_gold,
             is_charmed: entry_pair.current.is_charmed(),
+            hp: -1.0,
         })
     }
 
