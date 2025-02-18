@@ -1,20 +1,16 @@
 use crate::net::omni::OmniPeerId;
 use crate::AudioSettings;
-use ::shared::WorldPos;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use fundsp::prelude::*;
 use opus::{Application, Channels, Decoder, Encoder};
 use rodio::buffer::SamplesBuffer;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 use rubato::{FftFixedIn, Resampler};
 use std::collections::HashMap;
-use std::ops::Mul;
-use std::sync::atomic::AtomicUsize;
+use std::ops::{DerefMut, Mul};
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{self, TryRecvError};
-use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tracing::error;
 use tracing::log::warn;
 
@@ -22,15 +18,17 @@ pub const SAMPLE_RATE: usize = 24000;
 pub const FRAME_SIZE: usize = 480;
 pub const CHANNELS: Channels = Channels::Mono;
 
-/// For reference, Mina is 14 pixels high.
+/*/// For reference, Mina is 14 pixels high.
 const PIXELS_PER_METER: f32 = 14.0 / 1.7;
 /// In m/s.
 const SPEED_OF_SOUND: f32 = 343.0;
 
+const SAMPLE_COUNT: usize = 4;
+
 struct VelocityTracker {
     prev_pos_push: Instant,
-    source_pos: [WorldPos; Self::SAMPLE_COUNT],
-    player_pos: [WorldPos; Self::SAMPLE_COUNT],
+    source_pos: [WorldPos; SAMPLE_COUNT],
+    player_pos: [WorldPos; SAMPLE_COUNT],
 }
 
 impl Default for VelocityTracker {
@@ -44,7 +42,6 @@ impl Default for VelocityTracker {
 }
 
 impl VelocityTracker {
-    const SAMPLE_COUNT: usize = 4;
     fn push_new_pos(&mut self, source: WorldPos, player: WorldPos) {
         if self.prev_pos_push.elapsed() > Duration::from_millis(16 * 4) {
             self.source_pos.rotate_right(1);
@@ -55,8 +52,8 @@ impl VelocityTracker {
         }
     }
     fn calc_speed_toward_player(&self) -> f32 {
-        let vel_source = self.source_pos[0] - self.source_pos[Self::SAMPLE_COUNT - 1];
-        let vel_player = self.player_pos[0] - self.player_pos[Self::SAMPLE_COUNT - 1];
+        let vel_source = self.source_pos[0] - self.source_pos[SAMPLE_COUNT - 1];
+        let vel_player = self.player_pos[0] - self.player_pos[SAMPLE_COUNT - 1];
         let vel = vel_source - vel_player;
         let source_to_player = self.player_pos[0] - self.source_pos[0];
         let ret = vel.dot(source_to_player) / source_to_player.hypot() / PIXELS_PER_METER;
@@ -66,13 +63,6 @@ impl VelocityTracker {
             ret
         }
     }
-}
-
-struct PlayerInfo {
-    tracker: VelocityTracker,
-    sink: Sink,
-    dsp: BigBlockAdapter,
-    pitch_control: Arc<AtomicUsize>,
 }
 
 const DSP_PITCH_MULT: usize = 100;
@@ -93,6 +83,12 @@ fn make_dsp() -> (Arc<AtomicUsize>, BigBlockAdapter) {
         }
     });
     (pitch_control, BigBlockAdapter::new(Box::new(node)))
+}*/
+struct PlayerInfo {
+    //tracker: VelocityTracker,
+    sink: Sink,
+    //dsp: BigBlockAdapter,
+    //pitch_control: Arc<AtomicUsize>,
 }
 
 pub(crate) struct AudioManager {
@@ -164,10 +160,16 @@ impl AudioManager {
                                 let mut v = Vec::new();
                                 while extra.len() >= FRAME_SIZE {
                                     let mut compressed = vec![0u8; 1024];
-                                    if let Ok(len) = encoder.encode_float(
-                                        &resamp.process(&[&extra[..FRAME_SIZE]], None).unwrap()[0],
-                                        &mut compressed,
-                                    ) {
+                                    let mut res = vec![vec![0f32; FRAME_SIZE]];
+                                    resamp
+                                        .process_into_buffer(
+                                            &[&extra[..FRAME_SIZE]],
+                                            res.deref_mut(),
+                                            None,
+                                        )
+                                        .unwrap();
+                                    if let Ok(len) = encoder.encode_float(&res[0], &mut compressed)
+                                    {
                                         if len != 0 {
                                             v.push(compressed[..len].to_vec())
                                         }
@@ -259,20 +261,20 @@ impl AudioManager {
         if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src) {
             if let Some(stream_handle) = &self.stream_handle {
                 if let Ok(s) = Sink::try_new(&stream_handle.1) {
-                    let (pitch_control, dsp) = make_dsp();
+                    //let (pitch_control, dsp) = make_dsp();
                     e.insert(PlayerInfo {
                         sink: s,
-                        tracker: VelocityTracker::default(),
-                        pitch_control,
-                        dsp,
+                        //tracker: VelocityTracker::default(),
+                        //pitch_control,
+                        //dsp,
                     });
                 }
             }
         }
         self.per_player.entry(src).and_modify(|player_info| {
-            player_info
-                .tracker
-                .push_new_pos(sound_pos.into(), player_pos.into());
+            /*player_info
+            .tracker
+            .push_new_pos(sound_pos.into(), player_pos.into());*/
             let vol = {
                 if global {
                     *audio.volume.get(&src).unwrap_or(&1.0)
@@ -301,7 +303,7 @@ impl AudioManager {
                     }
                 }
                 if !dec.is_empty() {
-                    let speed = player_info.tracker.calc_speed_toward_player();
+                    /*let speed = player_info.tracker.calc_speed_toward_player();
                     let pitch_change = (1.0 / (1.0 + speed / SPEED_OF_SOUND)).clamp(0.01, 3.00);
                     player_info.pitch_control.store(
                         (pitch_change * DSP_PITCH_MULT as f32) as usize,
@@ -315,8 +317,8 @@ impl AudioManager {
                         &[dec.as_slice()],
                         &mut [dsp_out.as_mut_slice()],
                     );
-                    let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dsp_out);
-
+                    let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dsp_out);*/
+                    let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dec);
                     player_info.sink.append(source);
                     player_info.sink.play();
                 }
