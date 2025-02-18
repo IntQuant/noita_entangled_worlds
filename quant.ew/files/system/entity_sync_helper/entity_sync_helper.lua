@@ -94,16 +94,22 @@ end]]
 
 function mod.on_world_update()
     local c_thrown = thrown
-    local c_dead = dead
     local c_chest = chest
     thrown = {}
-    dead = {}
     chest = {}
     for _, ent in ipairs(c_thrown) do
         if EntityGetIsAlive(ent) then
             ewext.des_item_thrown(ent)
         end
     end
+    for _, data in ipairs(c_chest) do
+        ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
+    end
+end
+
+function mod.on_world_update_post()
+    local c_dead = dead
+    dead = {}
     for _, data in ipairs(c_dead) do
         --[[print(
             "resp_entity",
@@ -121,9 +127,6 @@ function mod.on_world_update()
             data[6]
         )]]
         ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6])
-    end
-    for _, data in ipairs(c_chest) do
-        ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
     end
 end
 

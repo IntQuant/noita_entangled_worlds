@@ -332,19 +332,23 @@ impl Module for EntitySync {
                 let responsible_entity = offending_peer
                     .and_then(|peer| ctx.player_map.get_by_left(&peer))
                     .copied();
-                noita_api::raw::entity_inflict_damage(
-                    entity.raw() as i32,
-                    32768.0,
-                    "DAMAGE_CURSE".into(), //TODO should be enum
-                    "kill sync".into(),
-                    "NONE".into(),
-                    0.0,
-                    0.0,
-                    responsible_entity.map(|e| e.raw() as i32),
-                    None,
-                    None,
-                    None,
-                )?;
+                if let Some(damage) =
+                    entity.try_get_first_component::<DamageModelComponent>(None)?
+                {
+                    noita_api::raw::entity_inflict_damage(
+                        entity.raw() as i32,
+                        damage.max_hp()? * 100.0,
+                        "DAMAGE_CURSE".into(), //TODO should be enum
+                        "kill sync".into(),
+                        "NONE".into(),
+                        0.0,
+                        0.0,
+                        responsible_entity.map(|e| e.raw() as i32),
+                        None,
+                        None,
+                        None,
+                    )?;
+                }
             }
         }
         let len = self.spawn_once.len();
@@ -402,7 +406,7 @@ impl Module for EntitySync {
                                                 .copied();
                                             noita_api::raw::entity_inflict_damage(
                                                 entity.raw() as i32,
-                                                32768.0,
+                                                damage.max_hp()? * 100.0,
                                                 "DAMAGE_CURSE".into(), //TODO should be enum
                                                 "kill sync".into(),
                                                 "NONE".into(),

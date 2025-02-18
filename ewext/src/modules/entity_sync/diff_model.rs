@@ -1172,7 +1172,7 @@ impl RemoteDiffModel {
                     EntityUpdate::KillEntity {
                         lid,
                         wait_on_kill,
-                        responsible_peer, //TODO make sure entity exists
+                        responsible_peer,
                     } => self
                         .pending_death_notify
                         .push((lid, wait_on_kill, responsible_peer)),
@@ -1579,7 +1579,6 @@ impl RemoteDiffModel {
     }
 
     pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
-        let mut postpone_remove = Vec::new();
         for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
@@ -1599,14 +1598,17 @@ impl RemoteDiffModel {
             {
                 inv.children(None).iter().for_each(|e| e.kill())
             }
-            postpone_remove.push(lid);
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+                entity
+                    .children(Some("protection".into()))
+                    .iter()
+                    .for_each(|ent| ent.kill());
+                self.pending_remove.retain(|l| l != &lid);
+                self.entity_infos.remove(&lid);
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 } else {
                     damage.set_kill_now(true)?;
-                    postpone_remove.pop();
-                    self.pending_remove.retain(|l| l != &lid);
                 }
                 for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
                     if !lua.script_damage_received()?.is_empty() {
@@ -1617,7 +1619,7 @@ impl RemoteDiffModel {
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
-                    32768.0,
+                    damage.max_hp()? * 100.0,
                     "DAMAGE_CURSE".into(), //TODO should be enum
                     "kill sync".into(),
                     "NONE".into(),
@@ -1632,13 +1634,11 @@ impl RemoteDiffModel {
         }
         for lid in &self.pending_remove {
             self.entity_infos.remove(lid);
-            if !postpone_remove.contains(lid) {
-                if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
-                    safe_entitykill(entity);
-                }
+            if let Some((_, entity)) = self.tracked.remove_by_left(lid) {
+                safe_entitykill(entity);
             }
         }
-        self.pending_remove = postpone_remove;
+        self.pending_remove.clear();
         Ok(())
     }
 
