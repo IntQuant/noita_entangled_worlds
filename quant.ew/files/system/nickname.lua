@@ -71,6 +71,7 @@ function nickname.add_label(player_entity, text, font_filename, scale, alpha)
         not EntityGetIsAlive(player_entity)
         or EntityHasTag(player_entity, "polymorphed_cessation")
         or EntityHasTag(player_entity, "polymorphed_player")
+        or ModSettingGet("quant.ew.disable_nametags")
     then
         return
     end

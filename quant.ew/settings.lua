@@ -249,6 +249,13 @@ local function build_settings()
                     value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
+                {
+                    id = "disable_nametags",
+                    ui_name = "disable others name tags",
+                    ui_description = "bool",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
             },
         },
         {
