@@ -45,6 +45,7 @@ struct LocalDiffModelTracker {
     pending_death_notify: Vec<(EntityID, bool, WorldPos, String, Option<EntityID>)>,
     authority_radius: f32,
     global_entities: FxHashSet<EntityID>,
+    got_polied: FxHashSet<Gid>,
 }
 
 pub(crate) struct LocalDiffModel {
@@ -53,6 +54,9 @@ pub(crate) struct LocalDiffModel {
     tracker: LocalDiffModelTracker,
 }
 impl LocalDiffModel {
+    pub(crate) fn got_polied(&mut self, gid: Gid) {
+        self.tracker.got_polied(gid);
+    }
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
         self.entity_entries.iter().any(|(_, e)| e.gid == gid)
     }*/
@@ -139,12 +143,16 @@ impl Default for LocalDiffModel {
                 pending_death_notify: Vec::with_capacity(4),
                 authority_radius: AUTHORITY_RADIUS,
                 global_entities: Default::default(),
+                got_polied: Default::default(),
             },
         }
     }
 }
 
 impl LocalDiffModelTracker {
+    pub(crate) fn got_polied(&mut self, gid: Gid) {
+        self.got_polied.insert(gid);
+    }
     fn update_entity(
         &mut self,
         ctx: &mut ModuleCtx,
@@ -158,7 +166,9 @@ impl LocalDiffModelTracker {
             .wrap_err_with(|| eyre!("Failed to grab update info for {:?} {:?}", gid, lid))?;
 
         if !entity.is_alive() {
-            if self.global_entities.remove(&entity)
+            if self.got_polied.remove(&gid) {
+                self.pending_removal.push(lid);
+            } else if self.global_entities.remove(&entity)
                 && self
                     .pending_death_notify
                     .iter()

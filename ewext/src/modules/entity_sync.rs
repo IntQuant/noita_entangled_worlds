@@ -276,6 +276,7 @@ impl Module for EntitySync {
         }
         if let Ok(Some(gid)) = entity.handle_poly() {
             self.dont_kill_by_gid.insert(gid);
+            self.local_diff_model.got_polied(gid);
         }
         if entity.has_tag(DES_TAG)
             && !self.dont_kill.remove(&entity)
