@@ -1719,7 +1719,7 @@ impl App {
                             ));
                             ui.add(Slider::new(
                                 self.audio.volume.entry(peer).or_insert(1.0),
-                                0.0..=2.0,
+                                0.0..=8.0,
                             ));
                         }
                     }

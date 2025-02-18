@@ -14,8 +14,8 @@ use std::time::Duration;
 use tracing::error;
 use tracing::log::warn;
 
-pub const SAMPLE_RATE: usize = 24000;
-pub const FRAME_SIZE: usize = 480;
+pub const SAMPLE_RATE: usize = 48000;
+pub const FRAME_SIZE: usize = 960;
 pub const CHANNELS: Channels = Channels::Mono;
 
 /*/// For reference, Mina is 14 pixels high.
