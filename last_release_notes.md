@@ -1,19 +1,12 @@
-## Noita Entangled Worlds v1.2.2
+## Noita Entangled Worlds v1.2.3
 
-- fix enemys deaths not giving rewards sometimes
+- add option to: disable cursors/shields/nicknames, invert colors of borders, maximal text chat range
 
-- try to fix stevari dupe
+- fix wands not dropping spells sometimes
 
-- remove disconnected peers better
+- fix cell eater/explosion logic not being enabled(lmao)
 
-- remove whitespace when trying to connect via steam
-
-- fix enemys drops not syncing
-
-- fix global entities poly duping(ie big worm)
-
-- hopefully fix voip on windows again
-
+- give more audio options, increase sample rate
 
 ## Accepted pull requests
 
