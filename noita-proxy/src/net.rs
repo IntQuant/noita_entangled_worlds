@@ -528,6 +528,7 @@ impl NetManager {
                         || !self.is_polied.load(Ordering::Relaxed)
                         || self.is_dead.load(Ordering::Relaxed))
                     && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
+                    && !self.is_cess.load(Ordering::Relaxed)
             } {
                 let audio = self.audio.lock().unwrap();
                 let (x, y) = if audio.player_position {
@@ -645,30 +646,32 @@ impl NetManager {
     ) {
         match net_msg {
             NetMsg::AudioData(data, global, tx, ty) => {
-                let audio = self.audio.lock().unwrap().clone();
-                let pos = if audio.player_position {
-                    (
-                        self.player_pos.0.load(Ordering::Relaxed),
-                        self.player_pos.1.load(Ordering::Relaxed),
-                    )
-                } else {
-                    (
-                        self.camera_pos.0.load(Ordering::Relaxed),
-                        self.camera_pos.1.load(Ordering::Relaxed),
-                    )
-                };
-                play_audio(
-                    audio,
-                    pos,
-                    src,
-                    sink,
-                    stream_handle,
-                    decoder,
-                    data,
-                    global,
-                    tx,
-                    ty,
-                );
+                if !self.is_cess.load(Ordering::Relaxed) {
+                    let audio = self.audio.lock().unwrap().clone();
+                    let pos = if audio.player_position {
+                        (
+                            self.player_pos.0.load(Ordering::Relaxed),
+                            self.player_pos.1.load(Ordering::Relaxed),
+                        )
+                    } else {
+                        (
+                            self.camera_pos.0.load(Ordering::Relaxed),
+                            self.camera_pos.1.load(Ordering::Relaxed),
+                        )
+                    };
+                    play_audio(
+                        audio,
+                        pos,
+                        src,
+                        sink,
+                        stream_handle,
+                        decoder,
+                        data,
+                        global,
+                        tx,
+                        ty,
+                    );
+                }
             }
             NetMsg::RequestMods => {
                 if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {

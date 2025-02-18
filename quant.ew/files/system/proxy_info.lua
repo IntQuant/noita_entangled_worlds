@@ -14,6 +14,7 @@ function module.on_world_update()
     local dead = GameHasFlagRun("ew_flag_notplayer_active")
     local polied = EntityHasTag(ctx.my_player.entity, "polymorphed_player")
     local cess = EntityHasTag(ctx.my_player.entity, "polymorphed_cessation")
+        and (not ctx.proxy_opt.perma_death or not dead)
     local a = 0
     if dead then
         a = 1
