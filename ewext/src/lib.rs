@@ -19,6 +19,7 @@ use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, ProxyKV, SpawnOnce, WorldPos};
+use std::backtrace::Backtrace;
 use std::{
     arch::asm,
     borrow::Cow,
@@ -414,7 +415,7 @@ fn __gc(_lua: LuaState) {
 pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     let lua = LuaState::current()?;
     lua.get_global(c"EwextPrintError");
-    lua.push_string(&format!("{:?}", error));
+    lua.push_string(&format!("{:?}\n{}", error, Backtrace::force_capture()));
     lua.call(1, 0i32)
         .wrap_err("Failed to call EwextPrintError")?;
     Ok(())

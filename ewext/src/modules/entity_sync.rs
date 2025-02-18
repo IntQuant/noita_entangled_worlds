@@ -9,6 +9,7 @@ use bimap::BiHashMap;
 use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
+use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
     DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent, ProjectileComponent,
@@ -110,6 +111,113 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
 }
 
 impl EntitySync {
+    pub(crate) fn spawn_once(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+        let (x, y) = noita_api::raw::game_get_camera_pos()?;
+        let frame_num = game_get_frame_num()? as usize;
+        let len = self.spawn_once.len();
+        if len > 0 {
+            let batch_size = (len / 60).max(1);
+            let start_index = (frame_num % 60) * batch_size;
+            let end_index = (start_index + batch_size).min(len);
+            let mut i = end_index;
+            while i > start_index {
+                i -= 1;
+                if i < self.spawn_once.len() {
+                    let (pos, data) = &self.spawn_once[i];
+                    if pos.contains(x, y, 512 + 256) {
+                        let (x, y) = (pos.x as f64, pos.y as f64);
+                        match data {
+                            shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
+                                if let Ok(Some(entity)) =
+                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
+                                {
+                                    entity.add_tag("ew_no_enemy_sync")?;
+                                    diff_model::init_remote_entity(
+                                        entity,
+                                        None,
+                                        None,
+                                        *drops_gold,
+                                    )?;
+                                    if let Some(damage) = entity
+                                        .try_get_first_component::<DamageModelComponent>(None)?
+                                    {
+                                        for lua in entity
+                                            .iter_all_components_of_type::<LuaComponent>(None)?
+                                        {
+                                            if !lua.script_damage_received()?.is_empty() {
+                                                entity.remove_component(*lua)?;
+                                            }
+                                        }
+                                        entity
+                                            .children(Some("protection".into()))
+                                            .iter()
+                                            .for_each(|ent| ent.kill());
+                                        if entity.has_tag("boss_centipede") {
+                                            entity.set_components_with_tag_enabled(
+                                                "enabled_at_start".into(),
+                                                false,
+                                            )?;
+                                            entity.set_components_with_tag_enabled(
+                                                "disabled_at_start".into(),
+                                                true,
+                                            )?;
+                                            damage.set_ui_report_damage(false)?;
+                                            self.kill_later.push((entity, *offending_peer))
+                                        } else {
+                                            damage.set_ui_report_damage(false)?;
+                                            let responsible_entity = offending_peer
+                                                .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                                                .copied();
+                                            noita_api::raw::entity_inflict_damage(
+                                                entity.raw() as i32,
+                                                damage.max_hp()? * 100.0,
+                                                "DAMAGE_CURSE".into(), //TODO should be enum
+                                                "kill sync".into(),
+                                                "NONE".into(),
+                                                0.0,
+                                                0.0,
+                                                responsible_entity.map(|e| e.raw() as i32),
+                                                None,
+                                                None,
+                                                None,
+                                            )?;
+                                        }
+                                    }
+                                }
+                            }
+                            shared::SpawnOnce::Chest(file, rx, ry) => {
+                                if let Ok(Some(ent)) =
+                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
+                                {
+                                    ent.add_tag("ew_no_enemy_sync")?;
+                                    if let Some(file) = ent
+                                        .iter_all_components_of_type_including_disabled::<LuaComponent>(
+                                            None,
+                                        )?
+                                        .find(|l| {
+                                            !l.script_physics_body_modified()
+                                              .unwrap_or("".into())
+                                              .is_empty()
+                                        })
+                                        .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
+                                    {
+                                        if let Some(seed) = ent.try_get_first_component_including_disabled::<PositionSeedComponent>(None)? {
+                                            seed.set_pos_x(*rx)?;
+                                            seed.set_pos_y(*ry)?;
+                                        }
+                                        ent.add_lua_init_component::<LuaComponent>(&file)?;
+                                    }
+                                }
+                            }
+                        }
+                        self.spawn_once.remove(i);
+                        i += 1;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
     pub fn iter_peers(&self, player_map: BiHashMap<PeerId, EntityID>) -> Vec<(bool, PeerId)> {
         player_map
             .left_values()
@@ -306,7 +414,7 @@ impl Module for EntitySync {
     fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         self.interest_tracker.set_center(x, y);
-        let frame_num = noita_api::raw::game_get_frame_num()? as usize;
+        let frame_num = game_get_frame_num()? as usize;
         if frame_num % 20 == 0 {
             send_remotedes(
                 ctx,
@@ -443,105 +551,8 @@ impl Module for EntitySync {
                 }
             }
         }
-        let len = self.spawn_once.len();
-        if len > 0 {
-            let batch_size = (len / 60).max(1);
-            let start_index = (frame_num % 60) * batch_size;
-            let end_index = (start_index + batch_size).min(len);
-            let mut i = end_index;
-            while i > start_index {
-                i -= 1;
-                if i < self.spawn_once.len() {
-                    let (pos, data) = &self.spawn_once[i];
-                    if pos.contains(x, y, 512 + 256) {
-                        let (x, y) = (pos.x as f64, pos.y as f64);
-                        match data {
-                            shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
-                                if let Ok(Some(entity)) =
-                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                                {
-                                    diff_model::init_remote_entity(
-                                        entity,
-                                        None,
-                                        None,
-                                        *drops_gold,
-                                    )?;
-                                    if let Some(damage) = entity
-                                        .try_get_first_component::<DamageModelComponent>(None)?
-                                    {
-                                        for lua in entity
-                                            .iter_all_components_of_type::<LuaComponent>(None)?
-                                        {
-                                            if !lua.script_damage_received()?.is_empty() {
-                                                entity.remove_component(*lua)?;
-                                            }
-                                        }
-                                        if entity.has_tag("boss_centipede") {
-                                            entity.set_components_with_tag_enabled(
-                                                "enabled_at_start".into(),
-                                                false,
-                                            )?;
-                                            entity.set_components_with_tag_enabled(
-                                                "disabled_at_start".into(),
-                                                true,
-                                            )?;
-                                            entity
-                                                .children(Some("protection".into()))
-                                                .iter()
-                                                .for_each(|ent| ent.kill());
-                                            damage.set_ui_report_damage(false)?;
-                                            self.kill_later.push((entity, *offending_peer))
-                                        } else {
-                                            damage.set_ui_report_damage(false)?;
-                                            let responsible_entity = offending_peer
-                                                .and_then(|peer| ctx.player_map.get_by_left(&peer))
-                                                .copied();
-                                            noita_api::raw::entity_inflict_damage(
-                                                entity.raw() as i32,
-                                                damage.max_hp()? * 100.0,
-                                                "DAMAGE_CURSE".into(), //TODO should be enum
-                                                "kill sync".into(),
-                                                "NONE".into(),
-                                                0.0,
-                                                0.0,
-                                                responsible_entity.map(|e| e.raw() as i32),
-                                                None,
-                                                None,
-                                                None,
-                                            )?;
-                                        }
-                                    }
-                                }
-                            }
-                            shared::SpawnOnce::Chest(file, rx, ry) => {
-                                if let Ok(Some(ent)) =
-                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                                {
-                                    if let Some(file) = ent
-                                        .iter_all_components_of_type_including_disabled::<LuaComponent>(
-                                            None,
-                                        )?
-                                        .find(|l| {
-                                            !l.script_physics_body_modified()
-                                              .unwrap_or("".into())
-                                              .is_empty()
-                                        })
-                                        .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
-                                    {
-                                        if let Some(seed) = ent.try_get_first_component_including_disabled::<PositionSeedComponent>(None)? {
-                                            seed.set_pos_x(*rx)?;
-                                            seed.set_pos_y(*ry)?;
-                                        }
-                                        ent.add_lua_init_component::<LuaComponent>(&file)?;
-                                    }
-                                }
-                            }
-                        }
-                        self.spawn_once.remove(i);
-                        i += 1;
-                    }
-                }
-            }
+        if let Err(s) = self.spawn_once(ctx) {
+            crate::print_error(s)?;
         }
 
         if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
@@ -571,7 +582,6 @@ impl Module for EntitySync {
             ctx.net
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }
-
         Ok(())
     }
 
