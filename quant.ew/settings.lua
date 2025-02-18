@@ -306,6 +306,13 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "disable_shield",
+                    ui_name = "disable shield on death",
+                    ui_description = "bool",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "team",
                     ui_name = "friendly fire team",
                     ui_description = "team for friendly fire, 0 no team, -1 friendly",

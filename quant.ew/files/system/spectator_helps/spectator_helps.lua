@@ -13,7 +13,7 @@ end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
-function rpc.add_shield(target)
+function rpc.add_shield(target, rgbc)
     if GameHasFlagRun("ending_game_completed") or target == nil or ctx.players[target] == nil then
         return
     end
@@ -26,6 +26,9 @@ function rpc.add_shield(target)
             EntityKill(shield_entities[ctx.rpc_peer_id][2])
         end
         local ent = EntityLoad("mods/quant.ew/files/system/spectator_helps/shield_base.xml")
+        for _, part in ipairs(EntityGetComponentIncludingDisabled(ent, "ParticleEmitterComponent")) do
+            ComponentSetValue2(part, "color", rgbc)
+        end
         EntityAddChild(entity, ent)
         shield_entities[ctx.rpc_peer_id] = { target, ent }
     end
@@ -98,8 +101,10 @@ function module.on_world_update()
             notplayer_active
             and ctx.spectating_over_peer_id ~= nil
             and is_acceptable_help_target(ctx.spectating_over_peer_id)
+            and not ModSettingGet("quant.ew.disable_shields")
         then
-            rpc.add_shield(ctx.spectating_over_peer_id)
+            local rgbc = ctx.proxy_opt.mina_color + 200 * 2 ^ 24
+            rpc.add_shield(ctx.spectating_over_peer_id, rgbc)
         elseif last_spectate ~= nil and last_spectate ~= ctx.spectating_over_peer_id then
             rpc.del_shield()
         end
