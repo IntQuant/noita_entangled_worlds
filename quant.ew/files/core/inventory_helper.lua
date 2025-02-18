@@ -431,6 +431,9 @@ function inventory_helper.has_inventory_changed(player_data)
     for _, item in ipairs(items) do
         if last_count ~= #items then
             ensure_notify_component(item)
+            for _, child in ipairs(EntityGetAllChildren(item) or {}) do
+                ensure_notify_component(child)
+            end
         end
         local item_comp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
         if item_comp ~= nil then
