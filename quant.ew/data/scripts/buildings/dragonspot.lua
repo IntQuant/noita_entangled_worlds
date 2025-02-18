@@ -1,9 +1,10 @@
 dofile_once("data/scripts/lib/utilities.lua")
+local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
 
 function collision_trigger()
     local entity_id = GetUpdatedEntityID()
     local pos_x, pos_y = EntityGetTransform(entity_id)
-    if CrossCall("ew_do_i_own", entity_id) then
+    if util.do_i_own(entity_id) then
         local eid = EntityLoad("data/entities/animals/boss_dragon.xml", pos_x, pos_y)
         EntityAddComponent(eid, "LuaComponent", {
             script_death = "data/scripts/animals/boss_dragon_death.lua",

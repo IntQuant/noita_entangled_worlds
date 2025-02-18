@@ -8,7 +8,8 @@ function collision_trigger(colliding_entity)
         return
     end
 
-    if CrossCall("ew_do_i_own", entity_id) then
+    local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+    if util.do_i_own(entity_id) then
         local pid = EntityLoad("data/entities/animals/boss_pit/boss_pit.xml", x - 160, y + 256)
         PhysicsApplyForce(pid, 0, -80)
     end

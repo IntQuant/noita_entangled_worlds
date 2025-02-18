@@ -10,7 +10,8 @@ local p = EntityGetInRadiusWithTag(x, y, 200, "ew_peer")
 if (#p > 0) and (anger >= 30) and (GlobalsGetValue("ISLANDSPIRIT_SPAWNED", "0") == "0") then
     GlobalsSetValue("ISLANDSPIRIT_SPAWNED", "1")
 
-    if CrossCall("ew_do_i_own", entity_id) then
+    local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+    if util.do_i_own(entity_id) then
         EntityLoad("data/entities/animals/boss_spirit/spawn_portal.xml", x, y)
     else
         EntityLoad("mods/quant.ew/files/system/tapion/spawn_portal.xml", x, y)

@@ -21,6 +21,7 @@ util.prepend("data/scripts/items/die_status.lua", "SetRandomSeed( GameGetFrameNu
 util.prepend(
     "data/scripts/items/die_status.lua",
     'bullet_circle( "fungus", 8, 300 )',
-    'if CrossCall("ew_do_i_own", entity_id) then bullet_circle("fungus", 8, 300) end'
+    'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+        .. 'if util.do_i_own(entity_id) then bullet_circle("fungus", 8, 300) end'
 )
 return {}

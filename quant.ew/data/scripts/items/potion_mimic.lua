@@ -1,8 +1,9 @@
 dofile_once("data/scripts/lib/utilities.lua")
+local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
 
 function spawn_leggy(entity_item)
     local entity_id = GetUpdatedEntityID()
-    if not CrossCall("ew_do_i_own", entity_id) then
+    if not util.do_i_own(entity_id) then
         return
     end
     local x, y = EntityGetTransform(entity_item)

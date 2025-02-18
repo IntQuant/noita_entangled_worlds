@@ -29,7 +29,8 @@ if #projectiles > 0 then
                 local rnd = Random(1, #opts)
                 local opt = opts[rnd]
 
-                if CrossCall("ew_do_i_own", entity_id) then
+                local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+                if util.do_i_own(entity_id) then
                     EntityLoad("data/entities/animals/" .. opt .. ".xml", px, py)
                 end
                 EntityLoad("data/entities/particles/image_emitters/transmutation_effect.xml", px, py)

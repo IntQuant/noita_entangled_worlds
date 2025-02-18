@@ -36,7 +36,8 @@ end
 
 function kick()
     local entity_id = GetUpdatedEntityID()
-    if CrossCall("ew_do_i_own", entity_id) then
+    local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+    if util.do_i_own(entity_id) then
         mark_as_complete()
     end
     --print("statue kicked")

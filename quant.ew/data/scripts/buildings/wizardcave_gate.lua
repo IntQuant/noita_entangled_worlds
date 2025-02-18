@@ -87,7 +87,8 @@ for _, id in ipairs(EntityGetInRadiusWithTag(x, y, 70, "egg_item")) do
         EntityKill(id)
 
         -- check egg count
-        if CrossCall("ew_do_i_own", entity_id) then
+        local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+        if util.do_i_own(entity_id) then
             component_readwrite(
                 get_variable_storage_component(entity_id, "egg_count"),
                 { value_int = 0 },
