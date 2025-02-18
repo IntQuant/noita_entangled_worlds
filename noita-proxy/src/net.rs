@@ -1,12 +1,11 @@
+use audio::AudioManager;
 use bitcode::{Decode, Encode};
 use des::DesManager;
 use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
-use opus::Decoder;
 use proxy_opt::ProxyOpt;
-use rodio::{OutputStream, OutputStreamHandle, Sink};
 use rustc_hash::FxHashSet;
 use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
@@ -29,7 +28,6 @@ use world::{NoitaWorldUpdate, WorldManager};
 
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{get_mods, ModmanagerSettings};
-use crate::net::audio::{init_audio, play_audio};
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
 use crate::{
@@ -81,8 +79,9 @@ impl SaveStateEntry for RunInfo {
 pub(crate) struct NetInnerState {
     pub(crate) ms: Option<MessageSocket<NoitaOutbound, NoitaInbound>>,
     world: WorldManager,
-    explosion_data: Vec<ExplosionData>,
     des: DesManager,
+    audio: AudioManager,
+    explosion_data: Vec<ExplosionData>,
     had_a_disconnect: bool,
     flags: FxHashSet<String>,
 }
@@ -352,6 +351,10 @@ impl NetManager {
 
         let is_host = self.is_host();
         info!("Is host: {is_host}");
+
+        let audio_settings = self.audio.lock().unwrap().clone();
+        let audio_state = AudioManager::new(audio_settings);
+
         let mut state = NetInnerState {
             ms: None,
             world: WorldManager::new(
@@ -363,6 +366,7 @@ impl NetManager {
             des: DesManager::new(is_host, self.init_settings.save_state.clone()),
             had_a_disconnect: false,
             flags: self.init_settings.save_state.load().unwrap_or_default(),
+            audio: audio_state,
         };
         let mut last_iter = Instant::now();
         let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
@@ -391,8 +395,6 @@ impl NetManager {
             get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
         );
 
-        let audio = self.audio.lock().unwrap().clone();
-        let (mut decoder, rx, stream_handle, mut sink) = init_audio(audio);
         while self.continue_running.load(Ordering::Relaxed) {
             if let Some(k) = kind {
                 if let Some(n) = self.peer.lobby_id() {
@@ -465,25 +467,12 @@ impl NetManager {
             }
             to_kick.clear();
             for net_event in self.peer.recv() {
-                self.clone().handle_network_event(
-                    &mut state,
-                    &player_image,
-                    net_event,
-                    &mut sink,
-                    &stream_handle,
-                    &mut decoder,
-                );
+                self.clone()
+                    .handle_network_event(&mut state, &player_image, net_event);
             }
             for net_msg in self.loopback_channel.1.try_iter() {
-                self.clone().handle_net_msg(
-                    &mut state,
-                    &player_image,
-                    self.peer.my_id(),
-                    net_msg,
-                    &mut sink,
-                    &stream_handle,
-                    &mut decoder,
-                );
+                self.clone()
+                    .handle_net_msg(&mut state, &player_image, self.peer.my_id(), net_msg);
             }
             // Handle all available messages from Noita.
             while let Some(ws) = &mut state.ms {
@@ -524,7 +513,7 @@ impl NetManager {
             }
 
             let mut audio_data = Vec::new();
-            while let Ok(data) = rx.try_recv() {
+            while let Ok(data) = state.audio.recv_audio() {
                 audio_data.push(data)
             }
             if !audio_data.is_empty() && {
@@ -570,9 +559,6 @@ impl NetManager {
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
-        sink: &mut HashMap<OmniPeerId, Sink>,
-        stream_handle: &Option<(OutputStream, OutputStreamHandle)>,
-        decoder: &mut Decoder,
     ) {
         match net_event {
             omni::OmniNetworkEvent::PeerConnected(id) => {
@@ -627,15 +613,7 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(
-                    state,
-                    player_image,
-                    src,
-                    net_msg,
-                    sink,
-                    stream_handle,
-                    decoder,
-                );
+                self.handle_net_msg(state, player_image, src, net_msg);
             }
         }
     }
@@ -647,9 +625,6 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
-        sink: &mut HashMap<OmniPeerId, Sink>,
-        stream_handle: &Option<(OutputStream, OutputStreamHandle)>,
-        decoder: &mut Decoder,
     ) {
         match net_msg {
             NetMsg::AudioData(data, global, tx, ty) => {
@@ -666,18 +641,9 @@ impl NetManager {
                             self.camera_pos.1.load(Ordering::Relaxed),
                         )
                     };
-                    play_audio(
-                        audio,
-                        pos,
-                        src,
-                        sink,
-                        stream_handle,
-                        decoder,
-                        data,
-                        global,
-                        tx,
-                        ty,
-                    );
+                    state
+                        .audio
+                        .play_audio(audio, pos, src, data, global, (tx, ty));
                 }
             }
             NetMsg::RequestMods => {
