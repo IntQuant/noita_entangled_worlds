@@ -8,9 +8,11 @@ util.copy_file_content("mods/quant.ew/files/system/wang_hooks/wang_scripts.csv",
 
 module.files_with_spawnhooks = {}
 
-for line in
-    string.gmatch(ModTextFileGetContent("mods/quant.ew/files/system/wang_hooks/files_with_spawnhooks.txt"), "(.-)\n")
-do
+local files = ModTextFileGetContent("mods/quant.ew/files/system/wang_hooks/files_with_spawnhooks.txt")
+if string.sub(files, -1, -1) ~= "\n" then
+    files = files + "\n"
+end
+for line in string.gmatch(files, "(.-)\n") do
     -- print("Interned", line)
     table.insert(module.files_with_spawnhooks, line)
 end

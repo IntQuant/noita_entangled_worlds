@@ -146,4 +146,3 @@ data/scripts/biomes/friend_1.lua
 data/scripts/biomes/smokecave_left.lua
 data/scripts/biomes/snowcave.lua
 data/scripts/biomes/sandcave.lua
-#
