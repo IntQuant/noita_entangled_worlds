@@ -10,7 +10,7 @@ module.files_with_spawnhooks = {}
 
 local files = ModTextFileGetContent("mods/quant.ew/files/system/wang_hooks/files_with_spawnhooks.txt")
 if string.sub(files, -1, -1) ~= "\n" then
-    files = files + "\n"
+    files = files .. "\n"
 end
 for line in string.gmatch(files, "(.-)\n") do
     -- print("Interned", line)
