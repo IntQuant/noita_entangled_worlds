@@ -98,6 +98,7 @@ pub struct GameSettings {
     share_gold: Option<bool>,
     nice_terraforming: Option<bool>,
     same_loadout: Option<bool>,
+    disable_kummitus: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -262,6 +263,17 @@ impl GameSettings {
                     game_settings.nice_terraforming = Some(temp)
                 }
             }
+            {
+                let mut temp = game_settings
+                    .disable_kummitus
+                    .unwrap_or(def.disable_kummitus);
+                if ui
+                    .checkbox(&mut temp, "disable kummitus on non hosts")
+                    .changed()
+                {
+                    game_settings.disable_kummitus = Some(temp)
+                }
+            }
             ui.add_space(10.0);
             ui.label("Player settings");
             ui.horizontal(|ui| {
@@ -359,6 +371,7 @@ pub struct DefaultSettings {
     nice_terraforming: bool,
     same_loadout: bool,
     duplicate: bool,
+    disable_kummitus: bool,
 }
 
 impl Default for DefaultSettings {
@@ -383,6 +396,7 @@ impl Default for DefaultSettings {
             nice_terraforming: true,
             same_loadout: false,
             duplicate: false,
+            disable_kummitus: false,
         }
     }
 }

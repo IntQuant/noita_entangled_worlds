@@ -888,6 +888,10 @@ impl NetManager {
                 .health_lost_on_revive
                 .unwrap_or(def.health_lost_on_revive),
         );
+        state.try_ws_write_option(
+            "disable_kummitus",
+            settings.disable_kummitus.unwrap_or(def.disable_kummitus),
+        );
         state.world.nice_terraforming = settings.nice_terraforming.unwrap_or(def.nice_terraforming);
         let rgb = self
             .new_desc

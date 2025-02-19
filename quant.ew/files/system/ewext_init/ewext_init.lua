@@ -88,7 +88,11 @@ function module.on_world_update()
 end
 
 function module.on_new_entity(ent)
-    ewext.module_on_new_entity(ent)
+    if not ctx.is_host and ctx.proxy_opt.disable_kummitus and EntityGetName(ent) == "$animal_playerghost" then
+        EntityKill(ent)
+    else
+        ewext.module_on_new_entity(ent)
+    end
 end
 
 function module.on_projectile_fired(
