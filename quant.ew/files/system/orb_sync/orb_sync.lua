@@ -18,6 +18,7 @@ local function actual_orbs_update(found_orbs)
             goto continue
         end
         local orb_ent = EntityCreateNew()
+        EntityAddTag(orb_ent, "ew_no_enemy_sync")
         EntityAddComponent2(orb_ent, "ItemComponent", {
             enable_orb_hacks = true,
             auto_pickup = true,

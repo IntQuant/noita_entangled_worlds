@@ -26,23 +26,24 @@ local function generate_detour_fn(orig_fn_name)
         .. "function "
         .. detour_fn_name
         .. [[(x, y, w, h, is_open_path)
-    local entity_load_orig = EntityLoad
-    local entity_load_camera_bound = EntityLoadCameraBound
-    if CrossCall("ew_wang_detour", EW_CURRENT_FILE, "]]
+    CrossCall("ew_wang_detour", EW_CURRENT_FILE, "]]
         .. orig_fn_name
-        .. [[", x, y, w, h, is_open_path) then
-        EntityLoad = function(...) end
-        EntityLoadCameraBound = function(...) end
-    end
+        .. [[", x, y, w, h, is_open_path)
+    end]]
 
-    --]]
+    return detour_fn
+end
+
+local function ungenerate_detour_fn(orig_fn_name)
+    local detour_fn_name = detour_name(orig_fn_name)
+
+    local detour_fn = "\n"
+        .. "function "
+        .. detour_fn_name
+        .. "(x, y, w, h, is_open_path)"
         .. orig_fn_name
         .. [[(x, y, w, h, is_open_path)
-
-    EntityLoad = entity_load_orig
-    EntityLoadCameraBound = entity_load_camera_bound
-end
-    ]]
+    end]]
 
     return detour_fn
 end
@@ -146,6 +147,8 @@ local function patch_fn(color, orig_fn_name)
     return repl
 end
 
+local wang_scripts = ModTextFileGetContent("data/scripts/wang_scripts.csv")
+
 local function patch_file(filename)
     --print("Patching", filename)
     local content = ModTextFileGetContent(filename)
@@ -154,8 +157,6 @@ local function patch_file(filename)
     content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
     content = content .. "\n" .. 'EW_CURRENT_FILE="' .. filename .. '"\n'
     -- .. "dofile_once('mods/quant.ew/files/system/wang_hooks/synced_pixel_scenes.lua')\n"
-
-    local wang_scripts = ModTextFileGetContent("data/scripts/wang_scripts.csv")
 
     for val in string.gmatch(wang_scripts, "ew_detour_(.-),") do
         -- print("Generating detour fn for", val)
@@ -169,10 +170,33 @@ local function patch_file(filename)
     ModTextFileSetContent(filename, content)
 end
 
+local function unpatch_file(filename)
+    --print("Patching", filename)
+    local content = ModTextFileGetContent(filename)
+    current_file = filename
+    -- A textbook example of how to NOT use regular expressions.
+    --content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
+    --content = content .. "\n" .. 'EW_CURRENT_FILE="' .. filename .. '"\n'
+    -- .. "dofile_once('mods/quant.ew/files/system/wang_hooks/synced_pixel_scenes.lua')\n"
+
+    for val in string.gmatch(wang_scripts, "ew_detour_(.-),") do
+        -- print("Generating detour fn for", val)
+        content = content .. ungenerate_detour_fn(val)
+    end
+
+    -- content = content .. generate_detour_fn("spawn_small_enemies")
+    -- content = content .. generate_detour_fn("spawn_big_enemies")
+    -- content = content .. generate_detour_fn("spawn_items")
+
+    ModTextFileSetContent(filename, content)
+end
+
 function module.on_late_init()
     for _, filename in ipairs(module.files_with_spawnhooks) do
         if string.sub(filename, 1, 1) ~= "#" then
             patch_file(filename)
+        else
+            unpatch_file(string.sub(filename, 2, -1))
         end
     end
 end
@@ -207,7 +231,6 @@ end
 
 local function run_spawn_fn_if_uniq(file, fn, x, y, w, h, is_open_path)
     -- Check if we have been called already.
-    -- TODO: it's probably a bad idea to use run flags for that.
     -- file shouldn't be significant, as (fn, x, y) seem to be always unique
     async(function()
         local flag = "wspwn_" .. fn .. "_" .. x .. "_" .. y
@@ -224,8 +247,6 @@ util.add_cross_call("ew_wang_detour", function(file, fn, x, y, w, h, is_open_pat
     if fn == "spawn_all_shopitems" then
         EntityLoad("data/entities/buildings/shop_hitbox.xml", x, y)
     end
-
-    return false
 end)
 
 rpc.opts_reliable()
