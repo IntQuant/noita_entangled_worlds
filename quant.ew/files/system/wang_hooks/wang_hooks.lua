@@ -173,7 +173,7 @@ end
 local function unpatch_file(filename)
     --print("Patching", filename)
     local content = ModTextFileGetContent(filename)
-    current_file = filename
+    --current_file = filename
     -- A textbook example of how to NOT use regular expressions.
     --content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
     --content = content .. "\n" .. 'EW_CURRENT_FILE="' .. filename .. '"\n'
@@ -195,7 +195,7 @@ function module.on_late_init()
     for _, filename in ipairs(module.files_with_spawnhooks) do
         if string.sub(filename, 1, 1) ~= "#" then
             patch_file(filename)
-        else
+        elseif filename ~= "#" then
             unpatch_file(string.sub(filename, 2, -1))
         end
     end
