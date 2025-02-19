@@ -668,8 +668,30 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
                 Ok(())
             })?
         }
-
         add_lua_fn!(des_chest_opened);
+
+        fn des_broken_wand(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                let x = lua.to_string(1)?.parse::<f64>()?;
+                let y = lua.to_string(2)?.parse::<f64>()?;
+                let mut temp = try_lock_netmanager()?;
+                let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
+                for peer in state.player_entity_map.left_values() {
+                    if *peer != my_peer_id() {
+                        net.send(&NoitaOutbound::RemoteMessage {
+                            reliable: true,
+                            destination: Destination::Peer(*peer),
+                            message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
+                                WorldPos::from_f64(x, y),
+                                SpawnOnce::BrokenWand,
+                            )),
+                        })?;
+                    }
+                }
+                Ok(())
+            })?
+        }
+        add_lua_fn!(des_broken_wand);
     }
     println!("Initializing ewext - Ok");
     1

@@ -6,6 +6,34 @@ ModLuaFileAppend("data/scripts/buildings/chest_light.lua", "mods/quant.ew/files/
 ModLuaFileAppend("data/scripts/buildings/chest_dark.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
 ModLuaFileAppend("data/biome_impl/static_tile/chest_darkness.lua", "mods/quant.ew/files/resource/cbs/chest_sync.lua")
 
+ModLuaFileAppend("data/scripts/buildings/forge_item_convert.lua", "mods/quant.ew/files/system/forge/append.lua")
+util.prepend(
+    "data/scripts/buildings/forge_item_convert.lua",
+    "local converted = false",
+    "local converted = false\n"
+        .. 'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+        .. "local kill = EntityKill\n"
+        .. "local function EntityKill(ent)\n"
+        .. 'if EntityHasTag(ent, "broken_wand") then\n'
+        .. "local x, y = EntityGetTransform(ent)\n"
+        .. 'CrossCall("ew_broken_wand", ent, x, y)\n'
+        .. "end\n"
+        .. "return kill(ent)\n"
+        .. "end\n"
+        .. "local first = false\n"
+        .. "local rt = EntityGetRootEntity\n"
+        .. "local function EntityGetRootEntity(ent)\n"
+        .. "if util.do_i_own(ent) then\n"
+        .. "return rt(ent)\n"
+        .. "else\n"
+        .. "if rt(ent) == ent then\n"
+        .. "converted = true\n"
+        .. "end\n"
+        .. "return 0\n"
+        .. "end\n"
+        .. "end"
+)
+
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
 local thrown = {}
@@ -13,6 +41,8 @@ local thrown = {}
 local dead = {}
 
 local chest = {}
+
+local broken_wands = {}
 
 local gid_chest = {}
 
@@ -34,6 +64,19 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
         -- print("Updated PhysicsBody2Component in", filename)
     end]]
 end
+
+util.add_cross_call("ew_broken_wand", function(ent, x, y)
+    local gid
+    for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
+    if gid ~= nil then
+        table.insert(broken_wands, { x, y })
+    end
+end)
 
 util.add_cross_call("ew_thrown", function(thrown_item)
     if
@@ -95,8 +138,10 @@ end]]
 function mod.on_world_update()
     local c_thrown = thrown
     local c_chest = chest
+    local wands = broken_wands
     thrown = {}
     chest = {}
+    broken_wands = {}
     for _, ent in ipairs(c_thrown) do
         if EntityGetIsAlive(ent) then
             ewext.des_item_thrown(ent)
@@ -105,27 +150,15 @@ function mod.on_world_update()
     for _, data in ipairs(c_chest) do
         ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
     end
+    for _, data in ipairs(wands) do
+        ewext.des_broken_wand(data[1], data[2])
+    end
 end
 
 function mod.on_world_update_post()
     local c_dead = dead
     dead = {}
     for _, data in ipairs(c_dead) do
-        --[[print(
-            "resp_entity",
-            type(data[1]),
-            data[1],
-            type(data[2]),
-            bool_to_truefalse(data[2]),
-            type(data[3]),
-            data[3],
-            type(data[4]),
-            data[4],
-            type(data[5]),
-            data[5],
-            type(data[6]),
-            data[6]
-        )]]
         ewext.des_death_notify(data[1], data[2], data[3], data[4], data[5], data[6])
     end
 end

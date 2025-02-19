@@ -576,8 +576,8 @@ local function merge_xml(root, base_element, base_file)
         if modifications then
             merge_element(modifications, elem)
             --[[if #elem.children > 0 then
-				merge_xml(root, base, elem)
-			end]]
+                merge_xml(root, base, elem)
+            end]]
         else
             table.insert(base_element.children, index, elem)
             index = index + 1
@@ -603,16 +603,16 @@ local function merge_xml(root, base_element, base_file)
     end
 
     --[[
-	TODO:
-	local to_remove = {}
-	for idx, elem in ipairs(parent.children) do
-		if elem.attr._remove_from_base == "1" then
-			table.insert(to_remove, 1, idx)
-		end
-	end
-	for _, idx in ipairs(to_remove) do
-		table.remove(parent.children, idx)
-	end
+    TODO:
+    local to_remove = {}
+    for idx, elem in ipairs(parent.children) do
+        if elem.attr._remove_from_base == "1" then
+            table.insert(to_remove, 1, idx)
+        end
+    end
+    for _, idx in ipairs(to_remove) do
+        table.remove(parent.children, idx)
+    end
 ]]
 end
 
@@ -750,14 +750,14 @@ end
 ---
 ---Example usage:
 ---```
----	elem:create_children(
----		{ AbilityComponent = {
----			ui_name = "$item_jar_with_mat"
----		}},
----		{ DamageModelComponent = {
----			hp = 2
----		}}
----	)
+---    elem:create_children(
+---        { AbilityComponent = {
+---            ui_name = "$item_jar_with_mat"
+---        }},
+---        { DamageModelComponent = {
+---            hp = 2
+---        }}
+---    )
 ---```
 ---@param ... table<str, table<str,any>> descriptions of child elements
 ---@return element self for chaining purposes
@@ -864,7 +864,7 @@ end
 ---Use like:
 ---```lua
 ---for dmc in entity:each_of("DamageModelComponent") do
----	dmc:set("hp", 5)
+---    dmc:set("hp", 5)
 ---end
 ---```
 ---@param element_name str
@@ -902,7 +902,7 @@ end
 ---Iterate over each child of the xml element, use like:
 ---```lua
 ---for child in elem:each_child() do
----	print(child.name)
+---    print(child.name)
 ---end
 ---```
 ---@return fun(): element?
@@ -969,7 +969,7 @@ end
 ---Use like:
 ---```lua
 ---for content in nxml.edit_file("data/entities/animals/boss_centipede/boss_centipede.xml") do
----	content:first_of("DamageModelComponent"):set("hp", 2)
+---    content:first_of("DamageModelComponent"):set("hp", 2)
 ---end
 ----- Kolmis file is edited once we exit the for loop.
 ---```

@@ -29,6 +29,7 @@ pub struct ModMessage {
 pub enum SpawnOnce {
     Enemy(String, bool, Option<PeerId>),
     Chest(String, f32, f32),
+    BrokenWand,
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

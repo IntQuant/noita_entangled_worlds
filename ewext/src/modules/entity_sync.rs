@@ -209,6 +209,15 @@ impl EntitySync {
                                     }
                                 }
                             }
+                            shared::SpawnOnce::BrokenWand => {
+                                if let Some(ent) = noita_api::raw::entity_create_new(None)? {
+                                    ent.set_position(x as f32, y as f32, None)?;
+                                    ent.add_tag("broken_wand")?;
+                                    ent.add_lua_init_component::<LuaComponent>(
+                                        "data/scripts/buildings/forge_item_convert.lua",
+                                    )?;
+                                }
+                            }
                         }
                         self.spawn_once.remove(i);
                         i += 1;

@@ -1,0 +1,38 @@
+<Entity tags="forge_item_convert">
+
+    <!-- buildup -->
+    <ParticleEmitterComponent
+        _tags="buildup_particles"
+        emitted_material_name="spark_purple"
+        gravity.y="0.0"
+        lifetime_min="0.8"
+        lifetime_max="5.5"
+        count_min="20"
+        count_max="40"
+        render_on_grid="1"
+        fade_based_on_lifetime="1"
+        area_circle_radius.min="0"
+        area_circle_radius.max="0"
+        cosmetic_force_create="0"
+        airflow_force="1.1"
+        airflow_time="1.01"
+        airflow_scale="0.05"
+        emission_interval_min_frames="1"
+        emission_interval_max_frames="1"
+        emit_cosmetic_particles="1"
+        image_animation_file="data/particles/image_emitters/circle_reverse_64.png"
+        image_animation_speed="3.5"
+        image_animation_loop="0"
+        is_emitting="1" >
+    </ParticleEmitterComponent>
+
+    <LifetimeComponent
+        lifetime="81"
+        >
+    </LifetimeComponent>
+
+    <AudioComponent
+      file="data/audio/Desktop/projectiles.snd"
+      event_root="player_projectiles/crumbling_earth">
+  </AudioComponent>
+</Entity>
