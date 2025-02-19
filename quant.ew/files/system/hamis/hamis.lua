@@ -66,4 +66,14 @@ util.add_cross_call("ew_pet_hamis", function(x, ent)
     end
 end)
 
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.run_fungus(file, x, y)
+    EntityLoad(file, x, y)
+end
+
+util.add_cross_call("ew_run_fungus", function(file, x, y)
+    rpc.run_fungus(file, x, y)
+end)
+
 return {}
