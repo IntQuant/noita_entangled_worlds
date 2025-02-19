@@ -52,6 +52,7 @@ local allow_patching = {
     spawn_shopitem = {},
     spawn_statue = {},
     spawn_crate = {},
+    spawn_brimstone = {},
     -- That one in lava lake.
     spawn_corpse = {},
     spawn_boss_limbs_trigger = {},
