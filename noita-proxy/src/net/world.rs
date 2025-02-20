@@ -788,18 +788,18 @@ impl WorldManager {
                 }
                 if let Some(state) = self.authority_map.get(&chunk) {
                     if state.0 != source {
-                        warn!("{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority");
+                        debug!("{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority");
                         return;
                     }
                 }
                 self.authority_map.remove(&chunk);
                 if let Some(chunk_data) = chunk_data {
                     self.chunk_storage.insert(chunk, chunk_data);
+                    self.emit_msg(
+                        Destination::Broadcast,
+                        WorldNetMessage::ListenAuthorityRelinquished { chunk },
+                    )
                 }
-                self.emit_msg(
-                    Destination::Broadcast,
-                    WorldNetMessage::ListenAuthorityRelinquished { chunk },
-                )
             }
             WorldNetMessage::UnloadChunk { chunk } => {
                 self.chunk_state.insert(chunk, ChunkState::UnloadPending {});
@@ -1031,7 +1031,7 @@ impl WorldManager {
                 );
             }
             WorldNetMessage::TransferFailed { chunk } => {
-                warn!("Transfer failed, requesting authority normally");
+                debug!("Transfer failed, requesting authority normally");
                 let priority = self
                     .last_request_priority
                     .get(&chunk)
@@ -1042,6 +1042,14 @@ impl WorldManager {
                     ChunkState::RequestAuthority {
                         priority,
                         can_wait: true,
+                    },
+                );
+                self.emit_msg(
+                    Destination::Host,
+                    WorldNetMessage::RelinquishAuthority {
+                        chunk,
+                        chunk_data: None,
+                        world_num: self.world_num,
                     },
                 );
             }
