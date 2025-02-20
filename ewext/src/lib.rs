@@ -1,6 +1,6 @@
 #[cfg(feature = "pre2204")]
-#[no_mangle]
-pub extern "C" fn _Unwind_Resume() {}
+#[unsafe(no_mangle)]
+pub extern "C" fn _unwind_resume() {}
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
@@ -424,7 +424,7 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
     println!("Initializing ewext");
 

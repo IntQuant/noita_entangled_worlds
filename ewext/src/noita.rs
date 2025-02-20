@@ -89,11 +89,11 @@ impl ParticleWorldState {
         let built_runner = self.runner.build();
         let runs = built_runner.len();
         for run in built_runner {
-            let noita_pixel_run = pixel_runs.as_mut().unwrap();
+            let noita_pixel_run = unsafe{pixel_runs.as_mut().unwrap()};
             noita_pixel_run.length = (run.length - 1) as u16;
             noita_pixel_run.material = run.data.material;
             noita_pixel_run.flags = run.data.flags;
-            pixel_runs = pixel_runs.offset(1);
+            pixel_runs = unsafe{pixel_runs.offset(1)};
         }
         self.runner.clear();
         runs

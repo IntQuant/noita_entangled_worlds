@@ -1371,98 +1371,98 @@ impl Lua51 {
     ) -> std::os::raw::c_int {
         self.lua_gc.as_ref().expect("Expected function, got error.")(L, what, data)
     }
-    pub unsafe fn lua_error(&self, L: *mut lua_State) -> std::os::raw::c_int {
+    pub unsafe fn lua_error(&self, L: *mut lua_State) -> std::os::raw::c_int {unsafe{
         self.lua_error
             .as_ref()
-            .expect("Expected function, got error.")(L)
+            .expect("Expected function, got error.")(L)}
     }
     pub unsafe fn lua_next(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
-    ) -> std::os::raw::c_int {
+    ) -> std::os::raw::c_int {unsafe{
         self.lua_next
             .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+            .expect("Expected function, got error.")(L, idx)}
     }
-    pub unsafe fn lua_concat(&self, L: *mut lua_State, n: std::os::raw::c_int) {
+    pub unsafe fn lua_concat(&self, L: *mut lua_State, n: std::os::raw::c_int) {unsafe{
         self.lua_concat
             .as_ref()
-            .expect("Expected function, got error.")(L, n)
+            .expect("Expected function, got error.")(L, n)}
     }
     pub unsafe fn lua_getallocf(
         &self,
         L: *mut lua_State,
         ud: *mut *mut std::os::raw::c_void,
-    ) -> lua_Alloc {
+    ) -> lua_Alloc {unsafe{
         self.lua_getallocf
             .as_ref()
-            .expect("Expected function, got error.")(L, ud)
+            .expect("Expected function, got error.")(L, ud)}
     }
     pub unsafe fn lua_setallocf(
         &self,
         L: *mut lua_State,
         f: lua_Alloc,
         ud: *mut std::os::raw::c_void,
-    ) {
+    ) {unsafe{
         self.lua_setallocf
             .as_ref()
-            .expect("Expected function, got error.")(L, f, ud)
+            .expect("Expected function, got error.")(L, f, ud)}
     }
-    pub unsafe fn lua_setlevel(&self, from: *mut lua_State, to: *mut lua_State) {
+    pub unsafe fn lua_setlevel(&self, from: *mut lua_State, to: *mut lua_State) {unsafe{
         self.lua_setlevel
             .as_ref()
-            .expect("Expected function, got error.")(from, to)
+            .expect("Expected function, got error.")(from, to)}
     }
     pub unsafe fn lua_getstack(
         &self,
         L: *mut lua_State,
         level: std::os::raw::c_int,
         ar: *mut lua_Debug,
-    ) -> std::os::raw::c_int {
+    ) -> std::os::raw::c_int {unsafe{
         self.lua_getstack
             .as_ref()
-            .expect("Expected function, got error.")(L, level, ar)
+            .expect("Expected function, got error.")(L, level, ar)}
     }
     pub unsafe fn lua_getinfo(
         &self,
         L: *mut lua_State,
         what: *const std::os::raw::c_char,
         ar: *mut lua_Debug,
-    ) -> std::os::raw::c_int {
+    ) -> std::os::raw::c_int {unsafe{
         self.lua_getinfo
             .as_ref()
-            .expect("Expected function, got error.")(L, what, ar)
+            .expect("Expected function, got error.")(L, what, ar)}
     }
     pub unsafe fn lua_getlocal(
         &self,
         L: *mut lua_State,
         ar: *const lua_Debug,
         n: std::os::raw::c_int,
-    ) -> *const std::os::raw::c_char {
+    ) -> *const std::os::raw::c_char {unsafe{
         self.lua_getlocal
             .as_ref()
-            .expect("Expected function, got error.")(L, ar, n)
+            .expect("Expected function, got error.")(L, ar, n)}
     }
     pub unsafe fn lua_setlocal(
         &self,
         L: *mut lua_State,
         ar: *const lua_Debug,
         n: std::os::raw::c_int,
-    ) -> *const std::os::raw::c_char {
+    ) -> *const std::os::raw::c_char {unsafe{
         self.lua_setlocal
             .as_ref()
-            .expect("Expected function, got error.")(L, ar, n)
+            .expect("Expected function, got error.")(L, ar, n)}
     }
     pub unsafe fn lua_getupvalue(
         &self,
         L: *mut lua_State,
         funcindex: std::os::raw::c_int,
         n: std::os::raw::c_int,
-    ) -> *const std::os::raw::c_char {
+    ) -> *const std::os::raw::c_char {unsafe{
         self.lua_getupvalue
             .as_ref()
-            .expect("Expected function, got error.")(L, funcindex, n)
+            .expect("Expected function, got error.")(L, funcindex, n)}
     }
     pub unsafe fn lua_setupvalue(
         &self,
@@ -1470,9 +1470,9 @@ impl Lua51 {
         funcindex: std::os::raw::c_int,
         n: std::os::raw::c_int,
     ) -> *const std::os::raw::c_char {
-        self.lua_setupvalue
+      unsafe{  self.lua_setupvalue
             .as_ref()
-            .expect("Expected function, got error.")(L, funcindex, n)
+            .expect("Expected function, got error.")(L, funcindex, n)}
     }
     pub unsafe fn lua_sethook(
         &self,
@@ -1481,24 +1481,24 @@ impl Lua51 {
         mask: std::os::raw::c_int,
         count: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_sethook
+unsafe{        self.lua_sethook
             .as_ref()
             .expect("Expected function, got error.")(L, func, mask, count)
-    }
+    }}
     pub unsafe fn lua_gethook(&self, L: *mut lua_State) -> lua_Hook {
-        self.lua_gethook
+       unsafe{ self.lua_gethook
             .as_ref()
-            .expect("Expected function, got error.")(L)
+            .expect("Expected function, got error.")(L)}
     }
     pub unsafe fn lua_gethookmask(&self, L: *mut lua_State) -> std::os::raw::c_int {
-        self.lua_gethookmask
+     unsafe{   self.lua_gethookmask
             .as_ref()
-            .expect("Expected function, got error.")(L)
+            .expect("Expected function, got error.")(L)}
     }
     pub unsafe fn lua_gethookcount(&self, L: *mut lua_State) -> std::os::raw::c_int {
-        self.lua_gethookcount
+  unsafe{      self.lua_gethookcount
             .as_ref()
-            .expect("Expected function, got error.")(L)
+            .expect("Expected function, got error.")(L)}
     }
     pub unsafe fn lua_upvalueid(
         &self,
@@ -1506,9 +1506,11 @@ impl Lua51 {
         idx: std::os::raw::c_int,
         n: std::os::raw::c_int,
     ) -> *mut std::os::raw::c_void {
-        self.lua_upvalueid
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx, n)
+        unsafe {
+            self.lua_upvalueid
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx, n)
+        }
     }
     pub unsafe fn lua_upvaluejoin(
         &self,
@@ -1518,9 +1520,9 @@ impl Lua51 {
         idx2: std::os::raw::c_int,
         n2: std::os::raw::c_int,
     ) {
-        self.lua_upvaluejoin
+        unsafe{self.lua_upvaluejoin
             .as_ref()
-            .expect("Expected function, got error.")(L, idx1, n1, idx2, n2)
+            .expect("Expected function, got error.")(L, idx1, n1, idx2, n2)}
     }
     pub unsafe fn lua_loadx(
         &self,
@@ -1530,8 +1532,8 @@ impl Lua51 {
         chunkname: *const std::os::raw::c_char,
         mode: *const std::os::raw::c_char,
     ) -> std::os::raw::c_int {
-        self.lua_loadx
+        unsafe{self.lua_loadx
             .as_ref()
-            .expect("Expected function, got error.")(L, reader, dt, chunkname, mode)
+            .expect("Expected function, got error.")(L, reader, dt, chunkname, mode)}
     }
 }
