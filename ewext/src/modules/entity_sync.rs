@@ -152,6 +152,7 @@ impl EntitySync {
                                             .children(Some("protection".into()))
                                             .iter()
                                             .for_each(|ent| ent.kill());
+                                        damage.set_ui_report_damage(false)?;
                                         if entity.has_tag("boss_centipede") {
                                             entity.set_components_with_tag_enabled(
                                                 "enabled_at_start".into(),
@@ -161,10 +162,8 @@ impl EntitySync {
                                                 "disabled_at_start".into(),
                                                 true,
                                             )?;
-                                            damage.set_ui_report_damage(false)?;
                                             self.kill_later.push((entity, *offending_peer))
                                         } else {
-                                            damage.set_ui_report_damage(false)?;
                                             let responsible_entity = offending_peer
                                                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
                                                 .copied();

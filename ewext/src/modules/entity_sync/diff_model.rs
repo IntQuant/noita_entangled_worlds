@@ -1386,6 +1386,7 @@ impl RemoteDiffModel {
         }
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
             let current_hp = damage.hp()? as f32;
+            damage.set_ui_report_damage(true)?;
             if current_hp > entity_info.hp {
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
@@ -1418,6 +1419,8 @@ impl RemoteDiffModel {
                     None,
                 )?;
             }
+            damage.set_hp(entity_info.hp as f64)?;
+            damage.set_ui_report_damage(false)?;
         }
 
         if !entity_info.phys.is_empty() && check_all_phys_init(entity)? && entity.is_alive() {
@@ -1770,6 +1773,7 @@ pub fn init_remote_entity(
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
             damage.set_wait_for_kill_flag_on_death(true)?;
             damage.set_physics_objects_damage(false)?;
+            damage.set_ui_report_damage(false)?;
         }
     }
 
