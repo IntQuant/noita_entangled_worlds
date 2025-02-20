@@ -21,7 +21,14 @@ if target_x == nil then
 end
 target_y = target_y - 10
 
-local time = CrossCall("ew_host_frame_num")
+local var
+for _, v in ipairs(EntityGetComponentIncludingDisabled(entity_id, "VariableStorageComponent") or {}) do
+    if ComponentGetValue2(v, "name") == "ew_frame" then
+        var = v
+        break
+    end
+end
+local time = (var and ComponentGetValue2(var, "value_int")) or GameGetFrameNum()
 local r
 local var_rnd = EntityGetFirstComponentIncludingDisabled(entity_id, "VariableStorageComponent", "ew_ghost_rnd")
 if var_rnd == nil then

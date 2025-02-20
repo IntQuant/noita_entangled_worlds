@@ -2,9 +2,17 @@ local rpc = net.new_rpc_namespace()
 local homunculus = {}
 local function get_entities(entity)
     local homunculy = {}
+    local ghost = {}
     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
         if EntityHasTag(child, "homunculus") then
             table.insert(homunculy, child)
+        elseif
+            EntityHasTag(child, "angry_ghost")
+            or EntityHasTag(child, "hungry_ghost")
+            or EntityHasTag(child, "ghostly_ghost")
+            or EntityHasTag(child, "death_ghost")
+        then
+            table.insert(ghost, child)
         end
     end
     local luuki = {}
@@ -18,11 +26,11 @@ local function get_entities(entity)
             end
         end
     end
-    return homunculy, luuki
+    return homunculy, luuki, ghost
 end
 rpc.opts_reliable()
-function rpc.send_positions(ho, lu)
-    local h, l = get_entities(ctx.rpc_player_data.entity)
+function rpc.send_positions(ho, lu, gh, f)
+    local h, l, g = get_entities(ctx.rpc_player_data.entity)
     if #ho ~= 0 then
         for i, child in ipairs(h) do
             if ho[i] == nil then
@@ -57,10 +65,35 @@ function rpc.send_positions(ho, lu)
             util.make_ephemerial(n)
         end
     end
+    if #gh ~= 0 then
+        for i, child in ipairs(g) do
+            if gh[i] == nil then
+                EntityKill(child)
+            else
+                EntitySetTransform(child, gh[i][1], gh[i][2])
+                local var
+                for _, v in ipairs(EntityGetComponentIncludingDisabled(child, "VariableStorageComponent") or {}) do
+                    if ComponentGetValue2(v, "name") == "ew_frame" then
+                        var = v
+                        break
+                    end
+                end
+                if var == nil then
+                    var = EntityAddComponent(child, "VariableStorageComponent")
+                    ComponentSetValue2(var, "name", "ew_frame")
+                end
+                ComponentSetValue2(var, "value_int", f)
+                local rnd = EntityGetFirstComponentIncludingDisabled(child, "VariableStorageComponent", "ew_ghost_rnd")
+                if rnd ~= nil then
+                    ComponentSetValue2(rnd, "value_float", gh[i][3])
+                end
+            end
+        end
+    end
 end
 function homunculus.on_world_update()
-    local h, l = get_entities(ctx.my_player.entity)
-    local ho, lu = {}, {}
+    local h, l, g = get_entities(ctx.my_player.entity)
+    local ho, lu, gh = {}, {}, {}
     for _, child in ipairs(h) do
         local x, y = EntityGetTransform(child)
         table.insert(ho, { x, y })
@@ -69,8 +102,16 @@ function homunculus.on_world_update()
         local x, y = EntityGetTransform(child)
         table.insert(lu, { x, y, util.get_phys_info(child) })
     end
-    if #ho ~= 0 or #lu ~= 0 then
-        rpc.send_positions(ho, lu)
+    for _, child in ipairs(g) do
+        local x, y = EntityGetTransform(child)
+        local rnd = EntityGetFirstComponentIncludingDisabled(child, "VariableStorageComponent", "ew_ghost_rnd")
+        if rnd ~= nil then
+            rnd = ComponentGetValue2(rnd, "value_float")
+            table.insert(gh, { x, y, rnd })
+        end
+    end
+    if #ho ~= 0 or #lu ~= 0 or #gh ~= 0 then
+        rpc.send_positions(ho, lu, gh, GameGetFrameNum())
     end
 end
 return homunculus
