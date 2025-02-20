@@ -270,21 +270,19 @@ impl LocalDiffModelTracker {
         let is_beyond_authority =
             (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2);
         if is_beyond_authority {
-            if info.is_global {
-                if let Some(peer) = ctx.locate_player_within_except_me(x, y, TRANSFER_RADIUS)? {
-                    self.transfer_authority_to(
-                        ctx,
-                        gid,
-                        lid,
-                        peer,
-                        info.wand.clone().map(|(_, a)| a),
-                        info.is_charmed(),
-                        info.hp,
-                    )
-                    .wrap_err("Failed to transfer authority")?;
-                    return Ok(());
-                }
-            } else {
+            if let Some(peer) = ctx.locate_player_within_except_me(x, y, TRANSFER_RADIUS)? {
+                self.transfer_authority_to(
+                    ctx,
+                    gid,
+                    lid,
+                    peer,
+                    info.wand.clone().map(|(_, a)| a),
+                    info.is_charmed(),
+                    info.hp,
+                )
+                .wrap_err("Failed to transfer authority")?;
+                return Ok(());
+            } else if !info.is_global {
                 self.release_authority(
                     ctx,
                     gid,
