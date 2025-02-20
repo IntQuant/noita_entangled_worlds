@@ -899,6 +899,10 @@ impl NetManager {
             "disable_kummitus",
             settings.disable_kummitus.unwrap_or(def.disable_kummitus),
         );
+        state.try_ws_write_option(
+            "host_sampo",
+            settings.give_host_sampo.unwrap_or(def.give_host_sampo),
+        );
         state.world.nice_terraforming = settings.nice_terraforming.unwrap_or(def.nice_terraforming);
         let rgb = self
             .new_desc

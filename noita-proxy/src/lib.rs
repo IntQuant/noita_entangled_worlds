@@ -99,6 +99,7 @@ pub struct GameSettings {
     nice_terraforming: Option<bool>,
     same_loadout: Option<bool>,
     disable_kummitus: Option<bool>,
+    give_host_sampo: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -274,6 +275,15 @@ impl GameSettings {
                     game_settings.disable_kummitus = Some(temp)
                 }
             }
+            {
+                let mut temp = game_settings.give_host_sampo.unwrap_or(def.give_host_sampo);
+                if ui
+                    .checkbox(&mut temp, "give host sampo on collection")
+                    .changed()
+                {
+                    game_settings.give_host_sampo = Some(temp)
+                }
+            }
             ui.add_space(10.0);
             ui.label("Player settings");
             ui.horizontal(|ui| {
@@ -372,6 +382,7 @@ pub struct DefaultSettings {
     same_loadout: bool,
     duplicate: bool,
     disable_kummitus: bool,
+    give_host_sampo: bool,
 }
 
 impl Default for DefaultSettings {
@@ -397,6 +408,7 @@ impl Default for DefaultSettings {
             same_loadout: false,
             duplicate: false,
             disable_kummitus: false,
+            give_host_sampo: false,
         }
     }
 }

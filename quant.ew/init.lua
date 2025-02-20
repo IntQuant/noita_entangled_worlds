@@ -143,6 +143,7 @@ local function load_modules()
     ctx.load_system("entity_sync_helper")
     ctx.load_system("telekenisis")
     ctx.load_system("dice")
+    ctx.load_system("sampo")
 end
 
 local function load_extra_modules()
