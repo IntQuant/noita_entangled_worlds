@@ -707,246 +707,272 @@ impl Lua51 {
     where
         P: AsRef<std::ffi::OsStr>,
     {
-        let library = libloading::Library::new(path)?;
-        Self::from_library(library)
+        unsafe {
+            let library = libloading::Library::new(path)?;
+            Self::from_library(library)
+        }
     }
     pub unsafe fn from_library<L>(library: L) -> Result<Self, libloading::Error>
     where
         L: Into<libloading::Library>,
     {
-        let __library = library.into();
-        let lua_newstate = __library.get(b"lua_newstate\0").map(|sym| *sym);
-        let lua_close = __library.get(b"lua_close\0").map(|sym| *sym);
-        let lua_newthread = __library.get(b"lua_newthread\0").map(|sym| *sym);
-        let lua_atpanic = __library.get(b"lua_atpanic\0").map(|sym| *sym);
-        let lua_gettop = __library.get(b"lua_gettop\0").map(|sym| *sym);
-        let lua_settop = __library.get(b"lua_settop\0").map(|sym| *sym);
-        let lua_pushvalue = __library.get(b"lua_pushvalue\0").map(|sym| *sym);
-        let lua_remove = __library.get(b"lua_remove\0").map(|sym| *sym);
-        let lua_insert = __library.get(b"lua_insert\0").map(|sym| *sym);
-        let lua_replace = __library.get(b"lua_replace\0").map(|sym| *sym);
-        let lua_checkstack = __library.get(b"lua_checkstack\0").map(|sym| *sym);
-        let lua_xmove = __library.get(b"lua_xmove\0").map(|sym| *sym);
-        let lua_isnumber = __library.get(b"lua_isnumber\0").map(|sym| *sym);
-        let lua_isstring = __library.get(b"lua_isstring\0").map(|sym| *sym);
-        let lua_iscfunction = __library.get(b"lua_iscfunction\0").map(|sym| *sym);
-        let lua_isuserdata = __library.get(b"lua_isuserdata\0").map(|sym| *sym);
-        let lua_type = __library.get(b"lua_type\0").map(|sym| *sym);
-        let lua_typename = __library.get(b"lua_typename\0").map(|sym| *sym);
-        let lua_equal = __library.get(b"lua_equal\0").map(|sym| *sym);
-        let lua_rawequal = __library.get(b"lua_rawequal\0").map(|sym| *sym);
-        let lua_lessthan = __library.get(b"lua_lessthan\0").map(|sym| *sym);
-        let lua_tonumber = __library.get(b"lua_tonumber\0").map(|sym| *sym);
-        let lua_tointeger = __library.get(b"lua_tointeger\0").map(|sym| *sym);
-        let lua_toboolean = __library.get(b"lua_toboolean\0").map(|sym| *sym);
-        let lua_tolstring = __library.get(b"lua_tolstring\0").map(|sym| *sym);
-        let lua_objlen = __library.get(b"lua_objlen\0").map(|sym| *sym);
-        let lua_tocfunction = __library.get(b"lua_tocfunction\0").map(|sym| *sym);
-        let lua_touserdata = __library.get(b"lua_touserdata\0").map(|sym| *sym);
-        let lua_tothread = __library.get(b"lua_tothread\0").map(|sym| *sym);
-        let lua_topointer = __library.get(b"lua_topointer\0").map(|sym| *sym);
-        let lua_pushnil = __library.get(b"lua_pushnil\0").map(|sym| *sym);
-        let lua_pushnumber = __library.get(b"lua_pushnumber\0").map(|sym| *sym);
-        let lua_pushinteger = __library.get(b"lua_pushinteger\0").map(|sym| *sym);
-        let lua_pushlstring = __library.get(b"lua_pushlstring\0").map(|sym| *sym);
-        let lua_pushstring = __library.get(b"lua_pushstring\0").map(|sym| *sym);
-        let lua_pushvfstring = __library.get(b"lua_pushvfstring\0").map(|sym| *sym);
-        let lua_pushfstring = __library.get(b"lua_pushfstring\0").map(|sym| *sym);
-        let lua_pushcclosure = __library.get(b"lua_pushcclosure\0").map(|sym| *sym);
-        let lua_pushboolean = __library.get(b"lua_pushboolean\0").map(|sym| *sym);
-        let lua_pushlightuserdata = __library.get(b"lua_pushlightuserdata\0").map(|sym| *sym);
-        let lua_pushthread = __library.get(b"lua_pushthread\0").map(|sym| *sym);
-        let lua_gettable = __library.get(b"lua_gettable\0").map(|sym| *sym);
-        let lua_getfield = __library.get(b"lua_getfield\0").map(|sym| *sym);
-        let lua_rawget = __library.get(b"lua_rawget\0").map(|sym| *sym);
-        let lua_rawgeti = __library.get(b"lua_rawgeti\0").map(|sym| *sym);
-        let lua_createtable = __library.get(b"lua_createtable\0").map(|sym| *sym);
-        let lua_newuserdata = __library.get(b"lua_newuserdata\0").map(|sym| *sym);
-        let lua_getmetatable = __library.get(b"lua_getmetatable\0").map(|sym| *sym);
-        let lua_getfenv = __library.get(b"lua_getfenv\0").map(|sym| *sym);
-        let lua_settable = __library.get(b"lua_settable\0").map(|sym| *sym);
-        let lua_setfield = __library.get(b"lua_setfield\0").map(|sym| *sym);
-        let lua_rawset = __library.get(b"lua_rawset\0").map(|sym| *sym);
-        let lua_rawseti = __library.get(b"lua_rawseti\0").map(|sym| *sym);
-        let lua_setmetatable = __library.get(b"lua_setmetatable\0").map(|sym| *sym);
-        let lua_setfenv = __library.get(b"lua_setfenv\0").map(|sym| *sym);
-        let lua_call = __library.get(b"lua_call\0").map(|sym| *sym);
-        let lua_pcall = __library.get(b"lua_pcall\0").map(|sym| *sym);
-        let lua_cpcall = __library.get(b"lua_cpcall\0").map(|sym| *sym);
-        let lua_load = __library.get(b"lua_load\0").map(|sym| *sym);
-        let lua_dump = __library.get(b"lua_dump\0").map(|sym| *sym);
-        let lua_yield = __library.get(b"lua_yield\0").map(|sym| *sym);
-        let lua_resume = __library.get(b"lua_resume\0").map(|sym| *sym);
-        let lua_status = __library.get(b"lua_status\0").map(|sym| *sym);
-        let lua_gc = __library.get(b"lua_gc\0").map(|sym| *sym);
-        let lua_error = __library.get(b"lua_error\0").map(|sym| *sym);
-        let lua_next = __library.get(b"lua_next\0").map(|sym| *sym);
-        let lua_concat = __library.get(b"lua_concat\0").map(|sym| *sym);
-        let lua_getallocf = __library.get(b"lua_getallocf\0").map(|sym| *sym);
-        let lua_setallocf = __library.get(b"lua_setallocf\0").map(|sym| *sym);
-        let lua_setlevel = __library.get(b"lua_setlevel\0").map(|sym| *sym);
-        let lua_getstack = __library.get(b"lua_getstack\0").map(|sym| *sym);
-        let lua_getinfo = __library.get(b"lua_getinfo\0").map(|sym| *sym);
-        let lua_getlocal = __library.get(b"lua_getlocal\0").map(|sym| *sym);
-        let lua_setlocal = __library.get(b"lua_setlocal\0").map(|sym| *sym);
-        let lua_getupvalue = __library.get(b"lua_getupvalue\0").map(|sym| *sym);
-        let lua_setupvalue = __library.get(b"lua_setupvalue\0").map(|sym| *sym);
-        let lua_sethook = __library.get(b"lua_sethook\0").map(|sym| *sym);
-        let lua_gethook = __library.get(b"lua_gethook\0").map(|sym| *sym);
-        let lua_gethookmask = __library.get(b"lua_gethookmask\0").map(|sym| *sym);
-        let lua_gethookcount = __library.get(b"lua_gethookcount\0").map(|sym| *sym);
-        let lua_upvalueid = __library.get(b"lua_upvalueid\0").map(|sym| *sym);
-        let lua_upvaluejoin = __library.get(b"lua_upvaluejoin\0").map(|sym| *sym);
-        let lua_loadx = __library.get(b"lua_loadx\0").map(|sym| *sym);
-        Ok(Lua51 {
-            __library,
-            lua_newstate,
-            lua_close,
-            lua_newthread,
-            lua_atpanic,
-            lua_gettop,
-            lua_settop,
-            lua_pushvalue,
-            lua_remove,
-            lua_insert,
-            lua_replace,
-            lua_checkstack,
-            lua_xmove,
-            lua_isnumber,
-            lua_isstring,
-            lua_iscfunction,
-            lua_isuserdata,
-            lua_type,
-            lua_typename,
-            lua_equal,
-            lua_rawequal,
-            lua_lessthan,
-            lua_tonumber,
-            lua_tointeger,
-            lua_toboolean,
-            lua_tolstring,
-            lua_objlen,
-            lua_tocfunction,
-            lua_touserdata,
-            lua_tothread,
-            lua_topointer,
-            lua_pushnil,
-            lua_pushnumber,
-            lua_pushinteger,
-            lua_pushlstring,
-            lua_pushstring,
-            lua_pushvfstring,
-            lua_pushfstring,
-            lua_pushcclosure,
-            lua_pushboolean,
-            lua_pushlightuserdata,
-            lua_pushthread,
-            lua_gettable,
-            lua_getfield,
-            lua_rawget,
-            lua_rawgeti,
-            lua_createtable,
-            lua_newuserdata,
-            lua_getmetatable,
-            lua_getfenv,
-            lua_settable,
-            lua_setfield,
-            lua_rawset,
-            lua_rawseti,
-            lua_setmetatable,
-            lua_setfenv,
-            lua_call,
-            lua_pcall,
-            lua_cpcall,
-            lua_load,
-            lua_dump,
-            lua_yield,
-            lua_resume,
-            lua_status,
-            lua_gc,
-            lua_error,
-            lua_next,
-            lua_concat,
-            lua_getallocf,
-            lua_setallocf,
-            lua_setlevel,
-            lua_getstack,
-            lua_getinfo,
-            lua_getlocal,
-            lua_setlocal,
-            lua_getupvalue,
-            lua_setupvalue,
-            lua_sethook,
-            lua_gethook,
-            lua_gethookmask,
-            lua_gethookcount,
-            lua_upvalueid,
-            lua_upvaluejoin,
-            lua_loadx,
-        })
+        unsafe {
+            let __library = library.into();
+            let lua_newstate = __library.get(b"lua_newstate\0").map(|sym| *sym);
+            let lua_close = __library.get(b"lua_close\0").map(|sym| *sym);
+            let lua_newthread = __library.get(b"lua_newthread\0").map(|sym| *sym);
+            let lua_atpanic = __library.get(b"lua_atpanic\0").map(|sym| *sym);
+            let lua_gettop = __library.get(b"lua_gettop\0").map(|sym| *sym);
+            let lua_settop = __library.get(b"lua_settop\0").map(|sym| *sym);
+            let lua_pushvalue = __library.get(b"lua_pushvalue\0").map(|sym| *sym);
+            let lua_remove = __library.get(b"lua_remove\0").map(|sym| *sym);
+            let lua_insert = __library.get(b"lua_insert\0").map(|sym| *sym);
+            let lua_replace = __library.get(b"lua_replace\0").map(|sym| *sym);
+            let lua_checkstack = __library.get(b"lua_checkstack\0").map(|sym| *sym);
+            let lua_xmove = __library.get(b"lua_xmove\0").map(|sym| *sym);
+            let lua_isnumber = __library.get(b"lua_isnumber\0").map(|sym| *sym);
+            let lua_isstring = __library.get(b"lua_isstring\0").map(|sym| *sym);
+            let lua_iscfunction = __library.get(b"lua_iscfunction\0").map(|sym| *sym);
+            let lua_isuserdata = __library.get(b"lua_isuserdata\0").map(|sym| *sym);
+            let lua_type = __library.get(b"lua_type\0").map(|sym| *sym);
+            let lua_typename = __library.get(b"lua_typename\0").map(|sym| *sym);
+            let lua_equal = __library.get(b"lua_equal\0").map(|sym| *sym);
+            let lua_rawequal = __library.get(b"lua_rawequal\0").map(|sym| *sym);
+            let lua_lessthan = __library.get(b"lua_lessthan\0").map(|sym| *sym);
+            let lua_tonumber = __library.get(b"lua_tonumber\0").map(|sym| *sym);
+            let lua_tointeger = __library.get(b"lua_tointeger\0").map(|sym| *sym);
+            let lua_toboolean = __library.get(b"lua_toboolean\0").map(|sym| *sym);
+            let lua_tolstring = __library.get(b"lua_tolstring\0").map(|sym| *sym);
+            let lua_objlen = __library.get(b"lua_objlen\0").map(|sym| *sym);
+            let lua_tocfunction = __library.get(b"lua_tocfunction\0").map(|sym| *sym);
+            let lua_touserdata = __library.get(b"lua_touserdata\0").map(|sym| *sym);
+            let lua_tothread = __library.get(b"lua_tothread\0").map(|sym| *sym);
+            let lua_topointer = __library.get(b"lua_topointer\0").map(|sym| *sym);
+            let lua_pushnil = __library.get(b"lua_pushnil\0").map(|sym| *sym);
+            let lua_pushnumber = __library.get(b"lua_pushnumber\0").map(|sym| *sym);
+            let lua_pushinteger = __library.get(b"lua_pushinteger\0").map(|sym| *sym);
+            let lua_pushlstring = __library.get(b"lua_pushlstring\0").map(|sym| *sym);
+            let lua_pushstring = __library.get(b"lua_pushstring\0").map(|sym| *sym);
+            let lua_pushvfstring = __library.get(b"lua_pushvfstring\0").map(|sym| *sym);
+            let lua_pushfstring = __library.get(b"lua_pushfstring\0").map(|sym| *sym);
+            let lua_pushcclosure = __library.get(b"lua_pushcclosure\0").map(|sym| *sym);
+            let lua_pushboolean = __library.get(b"lua_pushboolean\0").map(|sym| *sym);
+            let lua_pushlightuserdata = __library.get(b"lua_pushlightuserdata\0").map(|sym| *sym);
+            let lua_pushthread = __library.get(b"lua_pushthread\0").map(|sym| *sym);
+            let lua_gettable = __library.get(b"lua_gettable\0").map(|sym| *sym);
+            let lua_getfield = __library.get(b"lua_getfield\0").map(|sym| *sym);
+            let lua_rawget = __library.get(b"lua_rawget\0").map(|sym| *sym);
+            let lua_rawgeti = __library.get(b"lua_rawgeti\0").map(|sym| *sym);
+            let lua_createtable = __library.get(b"lua_createtable\0").map(|sym| *sym);
+            let lua_newuserdata = __library.get(b"lua_newuserdata\0").map(|sym| *sym);
+            let lua_getmetatable = __library.get(b"lua_getmetatable\0").map(|sym| *sym);
+            let lua_getfenv = __library.get(b"lua_getfenv\0").map(|sym| *sym);
+            let lua_settable = __library.get(b"lua_settable\0").map(|sym| *sym);
+            let lua_setfield = __library.get(b"lua_setfield\0").map(|sym| *sym);
+            let lua_rawset = __library.get(b"lua_rawset\0").map(|sym| *sym);
+            let lua_rawseti = __library.get(b"lua_rawseti\0").map(|sym| *sym);
+            let lua_setmetatable = __library.get(b"lua_setmetatable\0").map(|sym| *sym);
+            let lua_setfenv = __library.get(b"lua_setfenv\0").map(|sym| *sym);
+            let lua_call = __library.get(b"lua_call\0").map(|sym| *sym);
+            let lua_pcall = __library.get(b"lua_pcall\0").map(|sym| *sym);
+            let lua_cpcall = __library.get(b"lua_cpcall\0").map(|sym| *sym);
+            let lua_load = __library.get(b"lua_load\0").map(|sym| *sym);
+            let lua_dump = __library.get(b"lua_dump\0").map(|sym| *sym);
+            let lua_yield = __library.get(b"lua_yield\0").map(|sym| *sym);
+            let lua_resume = __library.get(b"lua_resume\0").map(|sym| *sym);
+            let lua_status = __library.get(b"lua_status\0").map(|sym| *sym);
+            let lua_gc = __library.get(b"lua_gc\0").map(|sym| *sym);
+            let lua_error = __library.get(b"lua_error\0").map(|sym| *sym);
+            let lua_next = __library.get(b"lua_next\0").map(|sym| *sym);
+            let lua_concat = __library.get(b"lua_concat\0").map(|sym| *sym);
+            let lua_getallocf = __library.get(b"lua_getallocf\0").map(|sym| *sym);
+            let lua_setallocf = __library.get(b"lua_setallocf\0").map(|sym| *sym);
+            let lua_setlevel = __library.get(b"lua_setlevel\0").map(|sym| *sym);
+            let lua_getstack = __library.get(b"lua_getstack\0").map(|sym| *sym);
+            let lua_getinfo = __library.get(b"lua_getinfo\0").map(|sym| *sym);
+            let lua_getlocal = __library.get(b"lua_getlocal\0").map(|sym| *sym);
+            let lua_setlocal = __library.get(b"lua_setlocal\0").map(|sym| *sym);
+            let lua_getupvalue = __library.get(b"lua_getupvalue\0").map(|sym| *sym);
+            let lua_setupvalue = __library.get(b"lua_setupvalue\0").map(|sym| *sym);
+            let lua_sethook = __library.get(b"lua_sethook\0").map(|sym| *sym);
+            let lua_gethook = __library.get(b"lua_gethook\0").map(|sym| *sym);
+            let lua_gethookmask = __library.get(b"lua_gethookmask\0").map(|sym| *sym);
+            let lua_gethookcount = __library.get(b"lua_gethookcount\0").map(|sym| *sym);
+            let lua_upvalueid = __library.get(b"lua_upvalueid\0").map(|sym| *sym);
+            let lua_upvaluejoin = __library.get(b"lua_upvaluejoin\0").map(|sym| *sym);
+            let lua_loadx = __library.get(b"lua_loadx\0").map(|sym| *sym);
+            Ok(Lua51 {
+                __library,
+                lua_newstate,
+                lua_close,
+                lua_newthread,
+                lua_atpanic,
+                lua_gettop,
+                lua_settop,
+                lua_pushvalue,
+                lua_remove,
+                lua_insert,
+                lua_replace,
+                lua_checkstack,
+                lua_xmove,
+                lua_isnumber,
+                lua_isstring,
+                lua_iscfunction,
+                lua_isuserdata,
+                lua_type,
+                lua_typename,
+                lua_equal,
+                lua_rawequal,
+                lua_lessthan,
+                lua_tonumber,
+                lua_tointeger,
+                lua_toboolean,
+                lua_tolstring,
+                lua_objlen,
+                lua_tocfunction,
+                lua_touserdata,
+                lua_tothread,
+                lua_topointer,
+                lua_pushnil,
+                lua_pushnumber,
+                lua_pushinteger,
+                lua_pushlstring,
+                lua_pushstring,
+                lua_pushvfstring,
+                lua_pushfstring,
+                lua_pushcclosure,
+                lua_pushboolean,
+                lua_pushlightuserdata,
+                lua_pushthread,
+                lua_gettable,
+                lua_getfield,
+                lua_rawget,
+                lua_rawgeti,
+                lua_createtable,
+                lua_newuserdata,
+                lua_getmetatable,
+                lua_getfenv,
+                lua_settable,
+                lua_setfield,
+                lua_rawset,
+                lua_rawseti,
+                lua_setmetatable,
+                lua_setfenv,
+                lua_call,
+                lua_pcall,
+                lua_cpcall,
+                lua_load,
+                lua_dump,
+                lua_yield,
+                lua_resume,
+                lua_status,
+                lua_gc,
+                lua_error,
+                lua_next,
+                lua_concat,
+                lua_getallocf,
+                lua_setallocf,
+                lua_setlevel,
+                lua_getstack,
+                lua_getinfo,
+                lua_getlocal,
+                lua_setlocal,
+                lua_getupvalue,
+                lua_setupvalue,
+                lua_sethook,
+                lua_gethook,
+                lua_gethookmask,
+                lua_gethookcount,
+                lua_upvalueid,
+                lua_upvaluejoin,
+                lua_loadx,
+            })
+        }
     }
     pub unsafe fn lua_newstate(
         &self,
         f: lua_Alloc,
         ud: *mut std::os::raw::c_void,
     ) -> *mut lua_State {
-        self.lua_newstate
-            .as_ref()
-            .expect("Expected function, got error.")(f, ud)
+        unsafe {
+            self.lua_newstate
+                .as_ref()
+                .expect("Expected function, got error.")(f, ud)
+        }
     }
     pub unsafe fn lua_close(&self, L: *mut lua_State) {
-        self.lua_close
-            .as_ref()
-            .expect("Expected function, got error.")(L)
+        unsafe {
+            self.lua_close
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_newthread(&self, L: *mut lua_State) -> *mut lua_State {
-        self.lua_newthread
-            .as_ref()
-            .expect("Expected function, got error.")(L)
+        unsafe {
+            self.lua_newthread
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_atpanic(&self, L: *mut lua_State, panicf: lua_CFunction) -> lua_CFunction {
-        self.lua_atpanic
-            .as_ref()
-            .expect("Expected function, got error.")(L, panicf)
+        unsafe {
+            self.lua_atpanic
+                .as_ref()
+                .expect("Expected function, got error.")(L, panicf)
+        }
     }
     pub unsafe fn lua_gettop(&self, L: *mut lua_State) -> std::os::raw::c_int {
-        self.lua_gettop
-            .as_ref()
-            .expect("Expected function, got error.")(L)
+        unsafe {
+            self.lua_gettop
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_settop(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_settop
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_settop
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_pushvalue(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_pushvalue
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_pushvalue
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_remove(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_remove
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_remove
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_insert(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_insert
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_insert
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_replace(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_replace
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_replace
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_checkstack(
         &self,
         L: *mut lua_State,
         sz: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_checkstack
-            .as_ref()
-            .expect("Expected function, got error.")(L, sz)
+        unsafe {
+            self.lua_checkstack
+                .as_ref()
+                .expect("Expected function, got error.")(L, sz)
+        }
     }
     pub unsafe fn lua_xmove(
         &self,
@@ -954,63 +980,77 @@ impl Lua51 {
         to: *mut lua_State,
         n: std::os::raw::c_int,
     ) {
-        self.lua_xmove
-            .as_ref()
-            .expect("Expected function, got error.")(from, to, n)
+        unsafe {
+            self.lua_xmove
+                .as_ref()
+                .expect("Expected function, got error.")(from, to, n)
+        }
     }
     pub unsafe fn lua_isnumber(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_isnumber
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_isnumber
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_isstring(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_isstring
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_isstring
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_iscfunction(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_iscfunction
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_iscfunction
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_isuserdata(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_isuserdata
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_isuserdata
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_type(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_type
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_type
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_typename(
         &self,
         L: *mut lua_State,
         tp: std::os::raw::c_int,
     ) -> *const std::os::raw::c_char {
-        self.lua_typename
-            .as_ref()
-            .expect("Expected function, got error.")(L, tp)
+        unsafe {
+            self.lua_typename
+                .as_ref()
+                .expect("Expected function, got error.")(L, tp)
+        }
     }
     pub unsafe fn lua_equal(
         &self,
@@ -1018,9 +1058,11 @@ impl Lua51 {
         idx1: std::os::raw::c_int,
         idx2: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_equal
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx1, idx2)
+        unsafe {
+            self.lua_equal
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx1, idx2)
+        }
     }
     pub unsafe fn lua_rawequal(
         &self,
@@ -1028,9 +1070,11 @@ impl Lua51 {
         idx1: std::os::raw::c_int,
         idx2: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_rawequal
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx1, idx2)
+        unsafe {
+            self.lua_rawequal
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx1, idx2)
+        }
     }
     pub unsafe fn lua_lessthan(
         &self,
@@ -1038,28 +1082,36 @@ impl Lua51 {
         idx1: std::os::raw::c_int,
         idx2: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_lessthan
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx1, idx2)
+        unsafe {
+            self.lua_lessthan
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx1, idx2)
+        }
     }
     pub unsafe fn lua_tonumber(&self, L: *mut lua_State, idx: std::os::raw::c_int) -> lua_Number {
-        self.lua_tonumber
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_tonumber
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_tointeger(&self, L: *mut lua_State, idx: std::os::raw::c_int) -> lua_Integer {
-        self.lua_tointeger
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_tointeger
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_toboolean(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_toboolean
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_toboolean
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_tolstring(
         &self,
@@ -1067,65 +1119,83 @@ impl Lua51 {
         idx: std::os::raw::c_int,
         len: *mut usize,
     ) -> *const std::os::raw::c_char {
-        self.lua_tolstring
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx, len)
+        unsafe {
+            self.lua_tolstring
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx, len)
+        }
     }
     pub unsafe fn lua_objlen(&self, L: *mut lua_State, idx: std::os::raw::c_int) -> usize {
-        self.lua_objlen
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_objlen
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_tocfunction(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> lua_CFunction {
-        self.lua_tocfunction
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_tocfunction
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_touserdata(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> *mut std::os::raw::c_void {
-        self.lua_touserdata
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_touserdata
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_tothread(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> *mut lua_State {
-        self.lua_tothread
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_tothread
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_topointer(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> *const std::os::raw::c_void {
-        self.lua_topointer
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_topointer
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_pushnil(&self, L: *mut lua_State) {
-        self.lua_pushnil
-            .as_ref()
-            .expect("Expected function, got error.")(L)
+        unsafe {
+            self.lua_pushnil
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_pushnumber(&self, L: *mut lua_State, n: lua_Number) {
-        self.lua_pushnumber
-            .as_ref()
-            .expect("Expected function, got error.")(L, n)
+        unsafe {
+            self.lua_pushnumber
+                .as_ref()
+                .expect("Expected function, got error.")(L, n)
+        }
     }
     pub unsafe fn lua_pushinteger(&self, L: *mut lua_State, n: lua_Integer) {
-        self.lua_pushinteger
-            .as_ref()
-            .expect("Expected function, got error.")(L, n)
+        unsafe {
+            self.lua_pushinteger
+                .as_ref()
+                .expect("Expected function, got error.")(L, n)
+        }
     }
     pub unsafe fn lua_pushlstring(
         &self,
@@ -1133,14 +1203,18 @@ impl Lua51 {
         s: *const std::os::raw::c_char,
         l: usize,
     ) {
-        self.lua_pushlstring
-            .as_ref()
-            .expect("Expected function, got error.")(L, s, l)
+        unsafe {
+            self.lua_pushlstring
+                .as_ref()
+                .expect("Expected function, got error.")(L, s, l)
+        }
     }
     pub unsafe fn lua_pushstring(&self, L: *mut lua_State, s: *const std::os::raw::c_char) {
-        self.lua_pushstring
-            .as_ref()
-            .expect("Expected function, got error.")(L, s)
+        unsafe {
+            self.lua_pushstring
+                .as_ref()
+                .expect("Expected function, got error.")(L, s)
+        }
     }
     pub unsafe fn lua_pushvfstring(
         &self,
@@ -1148,9 +1222,11 @@ impl Lua51 {
         fmt: *const std::os::raw::c_char,
         argp: *mut __va_list_tag,
     ) -> *const std::os::raw::c_char {
-        self.lua_pushvfstring
-            .as_ref()
-            .expect("Expected function, got error.")(L, fmt, argp)
+        unsafe {
+            self.lua_pushvfstring
+                .as_ref()
+                .expect("Expected function, got error.")(L, fmt, argp)
+        }
     }
     pub unsafe fn lua_pushcclosure(
         &self,
@@ -1158,29 +1234,39 @@ impl Lua51 {
         fn_: lua_CFunction,
         n: std::os::raw::c_int,
     ) {
-        self.lua_pushcclosure
-            .as_ref()
-            .expect("Expected function, got error.")(L, fn_, n)
+        unsafe {
+            self.lua_pushcclosure
+                .as_ref()
+                .expect("Expected function, got error.")(L, fn_, n)
+        }
     }
     pub unsafe fn lua_pushboolean(&self, L: *mut lua_State, b: std::os::raw::c_int) {
-        self.lua_pushboolean
-            .as_ref()
-            .expect("Expected function, got error.")(L, b)
+        unsafe {
+            self.lua_pushboolean
+                .as_ref()
+                .expect("Expected function, got error.")(L, b)
+        }
     }
     pub unsafe fn lua_pushlightuserdata(&self, L: *mut lua_State, p: *mut std::os::raw::c_void) {
-        self.lua_pushlightuserdata
-            .as_ref()
-            .expect("Expected function, got error.")(L, p)
+        unsafe {
+            self.lua_pushlightuserdata
+                .as_ref()
+                .expect("Expected function, got error.")(L, p)
+        }
     }
     pub unsafe fn lua_pushthread(&self, L: *mut lua_State) -> std::os::raw::c_int {
-        self.lua_pushthread
-            .as_ref()
-            .expect("Expected function, got error.")(L)
+        unsafe {
+            self.lua_pushthread
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_gettable(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_gettable
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_gettable
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_getfield(
         &self,
@@ -1188,14 +1274,18 @@ impl Lua51 {
         idx: std::os::raw::c_int,
         k: *const std::os::raw::c_char,
     ) {
-        self.lua_getfield
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx, k)
+        unsafe {
+            self.lua_getfield
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx, k)
+        }
     }
     pub unsafe fn lua_rawget(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_rawget
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_rawget
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_rawgeti(
         &self,
@@ -1203,9 +1293,11 @@ impl Lua51 {
         idx: std::os::raw::c_int,
         n: std::os::raw::c_int,
     ) {
-        self.lua_rawgeti
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx, n)
+        unsafe {
+            self.lua_rawgeti
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx, n)
+        }
     }
     pub unsafe fn lua_createtable(
         &self,
@@ -1213,37 +1305,47 @@ impl Lua51 {
         narr: std::os::raw::c_int,
         nrec: std::os::raw::c_int,
     ) {
-        self.lua_createtable
-            .as_ref()
-            .expect("Expected function, got error.")(L, narr, nrec)
+        unsafe {
+            self.lua_createtable
+                .as_ref()
+                .expect("Expected function, got error.")(L, narr, nrec)
+        }
     }
     pub unsafe fn lua_newuserdata(
         &self,
         L: *mut lua_State,
         sz: usize,
     ) -> *mut std::os::raw::c_void {
-        self.lua_newuserdata
-            .as_ref()
-            .expect("Expected function, got error.")(L, sz)
+        unsafe {
+            self.lua_newuserdata
+                .as_ref()
+                .expect("Expected function, got error.")(L, sz)
+        }
     }
     pub unsafe fn lua_getmetatable(
         &self,
         L: *mut lua_State,
         objindex: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_getmetatable
-            .as_ref()
-            .expect("Expected function, got error.")(L, objindex)
+        unsafe {
+            self.lua_getmetatable
+                .as_ref()
+                .expect("Expected function, got error.")(L, objindex)
+        }
     }
     pub unsafe fn lua_getfenv(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_getfenv
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_getfenv
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_settable(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_settable
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_settable
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_setfield(
         &self,
@@ -1251,14 +1353,18 @@ impl Lua51 {
         idx: std::os::raw::c_int,
         k: *const std::os::raw::c_char,
     ) {
-        self.lua_setfield
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx, k)
+        unsafe {
+            self.lua_setfield
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx, k)
+        }
     }
     pub unsafe fn lua_rawset(&self, L: *mut lua_State, idx: std::os::raw::c_int) {
-        self.lua_rawset
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_rawset
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_rawseti(
         &self,
@@ -1266,27 +1372,33 @@ impl Lua51 {
         idx: std::os::raw::c_int,
         n: std::os::raw::c_int,
     ) {
-        self.lua_rawseti
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx, n)
+        unsafe {
+            self.lua_rawseti
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx, n)
+        }
     }
     pub unsafe fn lua_setmetatable(
         &self,
         L: *mut lua_State,
         objindex: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_setmetatable
-            .as_ref()
-            .expect("Expected function, got error.")(L, objindex)
+        unsafe {
+            self.lua_setmetatable
+                .as_ref()
+                .expect("Expected function, got error.")(L, objindex)
+        }
     }
     pub unsafe fn lua_setfenv(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_setfenv
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)
+        unsafe {
+            self.lua_setfenv
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
     pub unsafe fn lua_call(
         &self,
@@ -1294,9 +1406,11 @@ impl Lua51 {
         nargs: std::os::raw::c_int,
         nresults: std::os::raw::c_int,
     ) {
-        self.lua_call
-            .as_ref()
-            .expect("Expected function, got error.")(L, nargs, nresults)
+        unsafe {
+            self.lua_call
+                .as_ref()
+                .expect("Expected function, got error.")(L, nargs, nresults)
+        }
     }
     pub unsafe fn lua_pcall(
         &self,
@@ -1305,9 +1419,11 @@ impl Lua51 {
         nresults: std::os::raw::c_int,
         errfunc: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_pcall
-            .as_ref()
-            .expect("Expected function, got error.")(L, nargs, nresults, errfunc)
+        unsafe {
+            self.lua_pcall
+                .as_ref()
+                .expect("Expected function, got error.")(L, nargs, nresults, errfunc)
+        }
     }
     pub unsafe fn lua_cpcall(
         &self,
@@ -1315,9 +1431,11 @@ impl Lua51 {
         func: lua_CFunction,
         ud: *mut std::os::raw::c_void,
     ) -> std::os::raw::c_int {
-        self.lua_cpcall
-            .as_ref()
-            .expect("Expected function, got error.")(L, func, ud)
+        unsafe {
+            self.lua_cpcall
+                .as_ref()
+                .expect("Expected function, got error.")(L, func, ud)
+        }
     }
     pub unsafe fn lua_load(
         &self,
@@ -1326,9 +1444,11 @@ impl Lua51 {
         dt: *mut std::os::raw::c_void,
         chunkname: *const std::os::raw::c_char,
     ) -> std::os::raw::c_int {
-        self.lua_load
-            .as_ref()
-            .expect("Expected function, got error.")(L, reader, dt, chunkname)
+        unsafe {
+            self.lua_load
+                .as_ref()
+                .expect("Expected function, got error.")(L, reader, dt, chunkname)
+        }
     }
     pub unsafe fn lua_dump(
         &self,
@@ -1336,32 +1456,40 @@ impl Lua51 {
         writer: lua_Writer,
         data: *mut std::os::raw::c_void,
     ) -> std::os::raw::c_int {
-        self.lua_dump
-            .as_ref()
-            .expect("Expected function, got error.")(L, writer, data)
+        unsafe {
+            self.lua_dump
+                .as_ref()
+                .expect("Expected function, got error.")(L, writer, data)
+        }
     }
     pub unsafe fn lua_yield(
         &self,
         L: *mut lua_State,
         nresults: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_yield
-            .as_ref()
-            .expect("Expected function, got error.")(L, nresults)
+        unsafe {
+            self.lua_yield
+                .as_ref()
+                .expect("Expected function, got error.")(L, nresults)
+        }
     }
     pub unsafe fn lua_resume(
         &self,
         L: *mut lua_State,
         narg: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_resume
-            .as_ref()
-            .expect("Expected function, got error.")(L, narg)
+        unsafe {
+            self.lua_resume
+                .as_ref()
+                .expect("Expected function, got error.")(L, narg)
+        }
     }
     pub unsafe fn lua_status(&self, L: *mut lua_State) -> std::os::raw::c_int {
-        self.lua_status
-            .as_ref()
-            .expect("Expected function, got error.")(L)
+        unsafe {
+            self.lua_status
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_gc(
         &self,
@@ -1369,100 +1497,122 @@ impl Lua51 {
         what: std::os::raw::c_int,
         data: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-        self.lua_gc.as_ref().expect("Expected function, got error.")(L, what, data)
+        unsafe { self.lua_gc.as_ref().expect("Expected function, got error.")(L, what, data) }
     }
-    pub unsafe fn lua_error(&self, L: *mut lua_State) -> std::os::raw::c_int {unsafe{
-        self.lua_error
-            .as_ref()
-            .expect("Expected function, got error.")(L)}
+    pub unsafe fn lua_error(&self, L: *mut lua_State) -> std::os::raw::c_int {
+        unsafe {
+            self.lua_error
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_next(
         &self,
         L: *mut lua_State,
         idx: std::os::raw::c_int,
-    ) -> std::os::raw::c_int {unsafe{
-        self.lua_next
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx)}
+    ) -> std::os::raw::c_int {
+        unsafe {
+            self.lua_next
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx)
+        }
     }
-    pub unsafe fn lua_concat(&self, L: *mut lua_State, n: std::os::raw::c_int) {unsafe{
-        self.lua_concat
-            .as_ref()
-            .expect("Expected function, got error.")(L, n)}
+    pub unsafe fn lua_concat(&self, L: *mut lua_State, n: std::os::raw::c_int) {
+        unsafe {
+            self.lua_concat
+                .as_ref()
+                .expect("Expected function, got error.")(L, n)
+        }
     }
     pub unsafe fn lua_getallocf(
         &self,
         L: *mut lua_State,
         ud: *mut *mut std::os::raw::c_void,
-    ) -> lua_Alloc {unsafe{
-        self.lua_getallocf
-            .as_ref()
-            .expect("Expected function, got error.")(L, ud)}
+    ) -> lua_Alloc {
+        unsafe {
+            self.lua_getallocf
+                .as_ref()
+                .expect("Expected function, got error.")(L, ud)
+        }
     }
     pub unsafe fn lua_setallocf(
         &self,
         L: *mut lua_State,
         f: lua_Alloc,
         ud: *mut std::os::raw::c_void,
-    ) {unsafe{
-        self.lua_setallocf
-            .as_ref()
-            .expect("Expected function, got error.")(L, f, ud)}
+    ) {
+        unsafe {
+            self.lua_setallocf
+                .as_ref()
+                .expect("Expected function, got error.")(L, f, ud)
+        }
     }
-    pub unsafe fn lua_setlevel(&self, from: *mut lua_State, to: *mut lua_State) {unsafe{
-        self.lua_setlevel
-            .as_ref()
-            .expect("Expected function, got error.")(from, to)}
+    pub unsafe fn lua_setlevel(&self, from: *mut lua_State, to: *mut lua_State) {
+        unsafe {
+            self.lua_setlevel
+                .as_ref()
+                .expect("Expected function, got error.")(from, to)
+        }
     }
     pub unsafe fn lua_getstack(
         &self,
         L: *mut lua_State,
         level: std::os::raw::c_int,
         ar: *mut lua_Debug,
-    ) -> std::os::raw::c_int {unsafe{
-        self.lua_getstack
-            .as_ref()
-            .expect("Expected function, got error.")(L, level, ar)}
+    ) -> std::os::raw::c_int {
+        unsafe {
+            self.lua_getstack
+                .as_ref()
+                .expect("Expected function, got error.")(L, level, ar)
+        }
     }
     pub unsafe fn lua_getinfo(
         &self,
         L: *mut lua_State,
         what: *const std::os::raw::c_char,
         ar: *mut lua_Debug,
-    ) -> std::os::raw::c_int {unsafe{
-        self.lua_getinfo
-            .as_ref()
-            .expect("Expected function, got error.")(L, what, ar)}
+    ) -> std::os::raw::c_int {
+        unsafe {
+            self.lua_getinfo
+                .as_ref()
+                .expect("Expected function, got error.")(L, what, ar)
+        }
     }
     pub unsafe fn lua_getlocal(
         &self,
         L: *mut lua_State,
         ar: *const lua_Debug,
         n: std::os::raw::c_int,
-    ) -> *const std::os::raw::c_char {unsafe{
-        self.lua_getlocal
-            .as_ref()
-            .expect("Expected function, got error.")(L, ar, n)}
+    ) -> *const std::os::raw::c_char {
+        unsafe {
+            self.lua_getlocal
+                .as_ref()
+                .expect("Expected function, got error.")(L, ar, n)
+        }
     }
     pub unsafe fn lua_setlocal(
         &self,
         L: *mut lua_State,
         ar: *const lua_Debug,
         n: std::os::raw::c_int,
-    ) -> *const std::os::raw::c_char {unsafe{
-        self.lua_setlocal
-            .as_ref()
-            .expect("Expected function, got error.")(L, ar, n)}
+    ) -> *const std::os::raw::c_char {
+        unsafe {
+            self.lua_setlocal
+                .as_ref()
+                .expect("Expected function, got error.")(L, ar, n)
+        }
     }
     pub unsafe fn lua_getupvalue(
         &self,
         L: *mut lua_State,
         funcindex: std::os::raw::c_int,
         n: std::os::raw::c_int,
-    ) -> *const std::os::raw::c_char {unsafe{
-        self.lua_getupvalue
-            .as_ref()
-            .expect("Expected function, got error.")(L, funcindex, n)}
+    ) -> *const std::os::raw::c_char {
+        unsafe {
+            self.lua_getupvalue
+                .as_ref()
+                .expect("Expected function, got error.")(L, funcindex, n)
+        }
     }
     pub unsafe fn lua_setupvalue(
         &self,
@@ -1470,9 +1620,11 @@ impl Lua51 {
         funcindex: std::os::raw::c_int,
         n: std::os::raw::c_int,
     ) -> *const std::os::raw::c_char {
-      unsafe{  self.lua_setupvalue
-            .as_ref()
-            .expect("Expected function, got error.")(L, funcindex, n)}
+        unsafe {
+            self.lua_setupvalue
+                .as_ref()
+                .expect("Expected function, got error.")(L, funcindex, n)
+        }
     }
     pub unsafe fn lua_sethook(
         &self,
@@ -1481,24 +1633,32 @@ impl Lua51 {
         mask: std::os::raw::c_int,
         count: std::os::raw::c_int,
     ) -> std::os::raw::c_int {
-unsafe{        self.lua_sethook
-            .as_ref()
-            .expect("Expected function, got error.")(L, func, mask, count)
-    }}
+        unsafe {
+            self.lua_sethook
+                .as_ref()
+                .expect("Expected function, got error.")(L, func, mask, count)
+        }
+    }
     pub unsafe fn lua_gethook(&self, L: *mut lua_State) -> lua_Hook {
-       unsafe{ self.lua_gethook
-            .as_ref()
-            .expect("Expected function, got error.")(L)}
+        unsafe {
+            self.lua_gethook
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_gethookmask(&self, L: *mut lua_State) -> std::os::raw::c_int {
-     unsafe{   self.lua_gethookmask
-            .as_ref()
-            .expect("Expected function, got error.")(L)}
+        unsafe {
+            self.lua_gethookmask
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_gethookcount(&self, L: *mut lua_State) -> std::os::raw::c_int {
-  unsafe{      self.lua_gethookcount
-            .as_ref()
-            .expect("Expected function, got error.")(L)}
+        unsafe {
+            self.lua_gethookcount
+                .as_ref()
+                .expect("Expected function, got error.")(L)
+        }
     }
     pub unsafe fn lua_upvalueid(
         &self,
@@ -1520,9 +1680,11 @@ unsafe{        self.lua_sethook
         idx2: std::os::raw::c_int,
         n2: std::os::raw::c_int,
     ) {
-        unsafe{self.lua_upvaluejoin
-            .as_ref()
-            .expect("Expected function, got error.")(L, idx1, n1, idx2, n2)}
+        unsafe {
+            self.lua_upvaluejoin
+                .as_ref()
+                .expect("Expected function, got error.")(L, idx1, n1, idx2, n2)
+        }
     }
     pub unsafe fn lua_loadx(
         &self,
@@ -1532,8 +1694,10 @@ unsafe{        self.lua_sethook
         chunkname: *const std::os::raw::c_char,
         mode: *const std::os::raw::c_char,
     ) -> std::os::raw::c_int {
-        unsafe{self.lua_loadx
-            .as_ref()
-            .expect("Expected function, got error.")(L, reader, dt, chunkname, mode)}
+        unsafe {
+            self.lua_loadx
+                .as_ref()
+                .expect("Expected function, got error.")(L, reader, dt, chunkname, mode)
+        }
     }
 }

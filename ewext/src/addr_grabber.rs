@@ -14,7 +14,7 @@ pub(crate) unsafe fn grab_addr_from_instruction(
 ) -> *mut c_void {
     let instruction_addr = func.wrapping_offset(offset);
     // We don't really have an idea of how many bytes the instruction takes, so just take *enough* bytes for most cases.
-    let instruction_bytes = unsafe{ptr::read_unaligned(instruction_addr.cast::<[u8; 16]>())};
+    let instruction_bytes = unsafe { ptr::read_unaligned(instruction_addr.cast::<[u8; 16]>()) };
     let mut decoder = Decoder::with_ip(
         32,
         &instruction_bytes,
