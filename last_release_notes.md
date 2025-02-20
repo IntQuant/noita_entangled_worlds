@@ -1,7 +1,26 @@
-## Noita Entangled Worlds v1.2.3
+## Noita Entangled Worlds v1.2.4
 
+- fix watercave and sandcave not spawning entities
 
+- dont dupe brimestone on saunas
 
+- fix darksun appearing as sun
+
+- fix fungus death not working sometimes
+
+- make broken wands consistent and not require you to see it happening
+
+- add option to disable kummitus on clients
+
+- try to fix cell eater going very far down, and at least add warning when it happens
+
+- fix some mimics duping
+
+- fix lag on main menu audio settings
+
+- make perk ghosts sync nicer
+
+- fix twwe >:(
 
 ## Accepted pull requests
 
