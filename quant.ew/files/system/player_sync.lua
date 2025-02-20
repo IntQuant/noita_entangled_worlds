@@ -334,6 +334,7 @@ function module.on_world_update()
                     ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
                     and not EntityHasTag(ent, "perk_entity")
                 then
+                    RemoveFlagPersistent("ew_twwe")
                     EntityKill(ent)
                     break
                 end
@@ -357,20 +358,23 @@ function module.on_world_update()
             if found then
                 twwe_x, twwe_y = x, y
                 if has_twwe_locally == nil then
+                    AddFlagPersistent("ew_twwe")
                     has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml", twwe_x, twwe_y)
                     EntityAddChild(ctx.my_player.entity, has_twwe_locally)
                 end
             elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
+                RemoveFlagPersistent("ew_twwe")
                 EntityKill(has_twwe_locally)
                 has_twwe_locally = nil
                 twwe_x, twwe_y = nil, nil
             end
         elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
+            RemoveFlagPersistent("ew_twwe")
             EntityKill(has_twwe_locally)
             has_twwe_locally = nil
             twwe_x, twwe_y = nil, nil
         end
-    elseif has_twwe_locally ~= nil then
+    elseif has_twwe_locally ~= nil or HasFlagPersistent("ew_twwe") then
         find_later = true
         has_twwe_locally = nil
         twwe_x, twwe_y = nil, nil
