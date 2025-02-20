@@ -1,5 +1,5 @@
 use rustc_hash::FxHashSet;
-use shared::{des::InterestRequest, PeerId};
+use shared::{PeerId, des::InterestRequest};
 
 pub(crate) struct InterestTracker {
     radius_hysteresis: f64,

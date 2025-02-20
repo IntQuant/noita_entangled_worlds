@@ -2,8 +2,8 @@ use std::{
     io,
     net::SocketAddr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
@@ -11,17 +11,17 @@ use std::{
 use bitcode::{Decode, Encode};
 use crossbeam::{
     atomic::AtomicCell,
-    channel::{unbounded, Receiver, Sender},
+    channel::{Receiver, Sender, unbounded},
 };
 use dashmap::DashMap;
 use quinn::{
+    ClientConfig, ConnectError, Connecting, ConnectionError, Endpoint, Incoming, RecvStream,
+    ServerConfig, TransportConfig,
     crypto::rustls::QuicClientConfig,
     rustls::{
         self,
         pki_types::{CertificateDer, PrivatePkcs8KeyDer},
     },
-    ClientConfig, ConnectError, Connecting, ConnectionError, Endpoint, Incoming, RecvStream,
-    ServerConfig, TransportConfig,
 };
 use socket2::{Domain, Socket, Type};
 use thiserror::Error;

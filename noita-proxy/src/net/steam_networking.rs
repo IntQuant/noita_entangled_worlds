@@ -4,12 +4,12 @@ use crossbeam::channel;
 use dashmap::DashMap;
 use fluent_bundle::FluentValue;
 use steamworks::{
+    CallbackHandle, ClientManager, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
     networking_sockets::{ListenSocket, NetPollGroup},
     networking_types::{
         ListenSocketEvent, NetConnectionRealTimeInfo, NetworkingConnectionState,
         NetworkingIdentity, SendFlags,
     },
-    CallbackHandle, ClientManager, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
 };
 use tangled::{PeerState, Reliability};
 use tracing::{info, warn};

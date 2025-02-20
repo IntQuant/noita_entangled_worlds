@@ -12,7 +12,7 @@ use tracing::info;
 
 use crate::{
     lang::{tr, tr_a},
-    releases::{get_latest_release, Downloader, ReleasesError, Version},
+    releases::{Downloader, ReleasesError, Version, get_latest_release},
 };
 
 struct VersionCheckResult {

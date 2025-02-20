@@ -4,16 +4,16 @@ pub extern "C" fn _Unwind_Resume() {}
 
 use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
-use eyre::{bail, Context, OptionExt};
-use modules::{entity_sync::EntitySync, Module, ModuleCtx};
+use eyre::{Context, OptionExt, bail};
+use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
-use noita::{ntypes::Entity, pixel::NoitaPixelRun, ParticleWorldState};
+use noita::{ParticleWorldState, ntypes::Entity, pixel::NoitaPixelRun};
 use noita_api::{
-    lua::{
-        lua_bindings::{lua_State, LUA_REGISTRYINDEX},
-        LuaFnRet, LuaGetValue, LuaState, RawString, ValuesOnStack, LUA,
-    },
     DamageModelComponent, EntityID, VariableStorageComponent,
+    lua::{
+        LUA, LuaFnRet, LuaGetValue, LuaState, RawString, ValuesOnStack,
+        lua_bindings::{LUA_REGISTRYINDEX, lua_State},
+    },
 };
 use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};

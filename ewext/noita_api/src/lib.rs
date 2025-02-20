@@ -1,7 +1,7 @@
 use crate::lua::{LuaGetValue, LuaPutValue};
 use crate::serialize::deserialize_entity;
 use base64::Engine;
-use eyre::{eyre, Context, OptionExt};
+use eyre::{Context, OptionExt, eyre};
 use shared::des::Gid;
 use shared::{GameEffectData, GameEffectEnum};
 use std::collections::HashMap;
@@ -407,10 +407,9 @@ impl EntityID {
         }
         let local_effects = self.get_game_effects()?;
         for effect in game_effect {
-            if let Some(ent) =
-                local_effects
-                    .iter()
-                    .find_map(|(e, ent)| if e == effect { Some(ent) } else { None })
+            if let Some(ent) = local_effects
+                .iter()
+                .find_map(|(e, ent)| if e == effect { Some(ent) } else { None })
             {
                 let _ = set_frames(*ent);
             } else {
@@ -586,13 +585,13 @@ pub fn game_print(value: impl AsRef<str>) {
 }
 
 pub mod raw {
-    use eyre::eyre;
     use eyre::Context;
+    use eyre::eyre;
 
     use super::{Color, ComponentID, EntityID, Obj, PhysData, PhysicsBodyID};
+    use crate::Component;
     use crate::lua::LuaGetValue;
     use crate::lua::LuaPutValue;
-    use crate::Component;
     use std::borrow::Cow;
     use std::num::NonZero;
 

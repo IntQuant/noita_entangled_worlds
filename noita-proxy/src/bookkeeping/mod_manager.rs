@@ -9,8 +9,8 @@ use std::{
 };
 
 use eframe::egui::{Context, Ui};
-use eyre::eyre;
 use eyre::Context as _;
+use eyre::eyre;
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
 use steamworks::AppId;
@@ -18,7 +18,7 @@ use tracing::{error, info, warn};
 
 use crate::{
     lang::tr,
-    releases::{get_release_by_tag, Downloader, ReleasesError, Version},
+    releases::{Downloader, ReleasesError, Version, get_release_by_tag},
     steam_helper::SteamState,
 };
 

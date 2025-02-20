@@ -2,8 +2,8 @@ use std::{
     fs, io,
     path::PathBuf,
     sync::{
-        atomic::{self, AtomicBool},
         Arc,
+        atomic::{self, AtomicBool},
     },
 };
 

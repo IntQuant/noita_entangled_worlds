@@ -1,6 +1,6 @@
 use std::{env, net::SocketAddr};
 
-use shared::{message_socket::MessageSocket, NoitaInbound, NoitaOutbound};
+use shared::{NoitaInbound, NoitaOutbound, message_socket::MessageSocket};
 
 pub(crate) struct NetManager {
     socket: MessageSocket<NoitaInbound, NoitaOutbound>,

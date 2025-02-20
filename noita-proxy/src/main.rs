@@ -8,10 +8,10 @@ use std::{
 };
 
 use eframe::{
-    egui::{IconData, ViewportBuilder},
     NativeOptions,
+    egui::{IconData, ViewportBuilder},
 };
-use noita_proxy::{args::Args, connect_cli, host_cli, App};
+use noita_proxy::{App, args::Args, connect_cli, host_cli};
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 

@@ -1,6 +1,6 @@
 use bitcode::{Decode, Encode};
 
-use crate::{player_cosmetics::PlayerPngDesc, GameSettings};
+use crate::{GameSettings, player_cosmetics::PlayerPngDesc};
 
 use super::{omni::OmniPeerId, world::WorldNetMessage};
 

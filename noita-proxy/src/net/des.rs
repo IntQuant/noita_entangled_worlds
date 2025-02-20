@@ -1,7 +1,7 @@
 use std::mem;
 
 use bitcode::{Decode, Encode};
-use rstar::{primitives::GeomWithData, RTree};
+use rstar::{RTree, primitives::GeomWithData};
 use rustc_hash::FxHashMap;
 use shared::des::{DesToProxy, FullEntityData, Gid, ProxyToDes, UpdatePosition};
 use tracing::{info, warn};

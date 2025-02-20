@@ -1,11 +1,11 @@
 use super::NetManager;
 use crate::{ephemerial, modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
-use eyre::{eyre, Context, ContextCompat, OptionExt};
+use eyre::{Context, ContextCompat, OptionExt, eyre};
 use noita_api::raw::{entity_create_new, game_get_frame_num, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
-    game_print, AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
+    AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
     AudioComponent, BossDragonComponent, BossHealthBarComponent, CameraBoundComponent,
     CharacterDataComponent, CharacterPlatformingComponent, DamageModelComponent, EntityID,
     ExplodeOnDamageComponent, GhostComponent, IKLimbAttackerComponent, IKLimbComponent,
@@ -13,16 +13,16 @@ use noita_api::{
     ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent, LifetimeComponent,
     LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component, PhysicsBodyComponent,
     SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent, VelocityComponent,
-    WormComponent,
+    WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::TRANSFER_RADIUS;
 use shared::{
-    des::{
-        EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData, Gid, Lid,
-        PhysBodyInfo, ProjectileFired, UpdatePosition, AUTHORITY_RADIUS,
-    },
     GameEffectData, GameEffectEnum, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
+    des::{
+        AUTHORITY_RADIUS, EntityInfo, EntityKind, EntitySpawnInfo, EntityUpdate, FullEntityData,
+        Gid, Lid, PhysBodyInfo, ProjectileFired, UpdatePosition,
+    },
 };
 use std::borrow::Cow;
 use std::num::NonZero;

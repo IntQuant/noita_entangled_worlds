@@ -11,7 +11,7 @@ use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
 use socket2::{Domain, Socket, Type};
 use std::collections::HashMap;
-use std::fs::{create_dir, remove_dir_all, File};
+use std::fs::{File, create_dir, remove_dir_all};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, Ordering};
@@ -27,12 +27,12 @@ use std::{
 use world::{NoitaWorldUpdate, WorldManager};
 
 use crate::lobby_code::LobbyKind;
-use crate::mod_manager::{get_mods, ModmanagerSettings};
+use crate::mod_manager::{ModmanagerSettings, get_mods};
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
-use crate::player_cosmetics::{create_player_png, get_player_skin, PlayerPngDesc};
+use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::{
-    bookkeeping::save_state::{SaveState, SaveStateEntry},
     AudioSettings, DefaultSettings, GameMode, GameSettings, LocalHealthMode,
+    bookkeeping::save_state::{SaveState, SaveStateEntry},
 };
 use shared::des::ProxyToDes;
 use tangled::Reliability;

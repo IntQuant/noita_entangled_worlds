@@ -147,7 +147,7 @@ mod test {
 
     use tracing::info;
 
-    use crate::{common::Message, NetworkEvent, Peer, PeerId, Reliability, Settings};
+    use crate::{NetworkEvent, Peer, PeerId, Reliability, Settings, common::Message};
 
     #[test_log::test(tokio::test)]
     async fn test_create_host() {

@@ -12,13 +12,13 @@ use eframe::egui::{
 };
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
-use lang::{set_current_locale, tr, LANGS};
+use lang::{LANGS, set_current_locale, tr};
 use lobby_code::{LobbyCode, LobbyError, LobbyKind};
 use mod_manager::{Modmanager, ModmanagerSettings};
 use net::{
+    NetManagerInit, RunInfo,
     omni::PeerVariant,
     steam_networking::{ExtraPeerState, PerPeerStatusEntry},
-    NetManagerInit, RunInfo,
 };
 use player_cosmetics::PlayerPngDesc;
 use self_update::SelfUpdateManager;
@@ -33,7 +33,7 @@ use std::{
     mem,
     net::SocketAddr,
     ops::Deref,
-    sync::{atomic::Ordering, Arc},
+    sync::{Arc, atomic::Ordering},
     thread::JoinHandle,
     time::Duration,
 };

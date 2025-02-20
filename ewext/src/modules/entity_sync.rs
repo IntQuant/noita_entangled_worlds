@@ -6,7 +6,7 @@
 use super::{Module, NetManager};
 use crate::my_peer_id;
 use bimap::BiHashMap;
-use diff_model::{entity_is_item, LocalDiffModel, RemoteDiffModel, DES_TAG};
+use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::raw::game_get_frame_num;
@@ -18,11 +18,11 @@ use noita_api::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
 use shared::{
-    des::{
-        Gid, InterestRequest, ProjectileFired, RemoteDes, INTEREST_REQUEST_RADIUS,
-        REQUEST_AUTHORITY_RADIUS,
-    },
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
+    des::{
+        Gid, INTEREST_REQUEST_RADIUS, InterestRequest, ProjectileFired, REQUEST_AUTHORITY_RADIUS,
+        RemoteDes,
+    },
 };
 use std::sync::{Arc, LazyLock};
 mod diff_model;

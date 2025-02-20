@@ -3,12 +3,12 @@ use std::{
     fs::File,
     io::{Read, Write},
     path::{Path, PathBuf},
-    sync::{atomic::AtomicU64, Arc},
+    sync::{Arc, atomic::AtomicU64},
     time::Duration,
 };
 
 use eframe::egui::{self, Ui};
-use eyre::{eyre, Context};
+use eyre::{Context, eyre};
 use poll_promise::Promise;
 use reqwest::blocking::Client;
 use serde::Deserialize;
@@ -243,7 +243,7 @@ pub fn get_release_by_tag(client: &Client, tag: Tag) -> Result<Release, Releases
 #[cfg(test)]
 #[serial_test::serial]
 mod test {
-    use crate::releases::{get_release_by_tag, Tag};
+    use crate::releases::{Tag, get_release_by_tag};
 
     #[test]
     fn release_assets() {

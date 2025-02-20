@@ -2,8 +2,8 @@ use bimap::BiHashMap;
 use eyre::Ok;
 use noita_api::EntityID;
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::des::Gid;
 use shared::PeerId;
+use shared::des::Gid;
 
 use crate::net::NetManager;
 

@@ -1,5 +1,5 @@
 use bitcode::{Decode, Encode};
-use rand::{rng, Rng};
+use rand::{Rng, rng};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -10,8 +10,8 @@ use std::{cmp, env, mem};
 use tracing::{debug, info, warn};
 use wide::f32x8;
 use world_model::{
+    CHUNK_SIZE, ChunkCoord, ChunkData, ChunkDelta, WorldModel,
     chunk::{Chunk, Pixel},
-    ChunkCoord, ChunkData, ChunkDelta, WorldModel, CHUNK_SIZE,
 };
 
 pub use world_model::encoding::NoitaWorldUpdate;
@@ -19,9 +19,9 @@ pub use world_model::encoding::NoitaWorldUpdate;
 use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 
 use super::{
+    CellType, ExplosionData,
     messages::{Destination, MessageRequest},
     omni::OmniPeerId,
-    CellType, ExplosionData,
 };
 
 pub mod world_model;
@@ -504,7 +504,10 @@ impl WorldManager {
                                 },
                             ));
                         }
-                        debug!("Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})", self.current_update);
+                        debug!(
+                            "Unloading [authority] chunk {chunk:?} (updates: {chunk_last_update} {})",
+                            self.current_update
+                        );
                         emit_queue.push((
                             Destination::Host,
                             WorldNetMessage::RelinquishAuthority {
@@ -664,7 +667,9 @@ impl WorldManager {
                             debug!("{source} is gaining priority over {chunk:?} from {authority}");
                             self.emit_transfer_authority(chunk, source, priority, authority);
                         } else {
-                            debug!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
+                            debug!(
+                                "{source} requested authority for {chunk:?}, but it's already taken by {authority}"
+                            );
                             self.emit_msg(
                                 Destination::Peer(source),
                                 WorldNetMessage::AuthorityAlreadyTaken { chunk, authority },
@@ -730,7 +735,9 @@ impl WorldManager {
                         if source == authority {
                             self.authority_map.insert(chunk, (source, priority));
                         } else {
-                            debug!("{source} requested authority for {chunk:?}, but it's already taken by {authority}");
+                            debug!(
+                                "{source} requested authority for {chunk:?}, but it's already taken by {authority}"
+                            );
                         }
                     }
                     None => {
@@ -788,7 +795,9 @@ impl WorldManager {
                 }
                 if let Some(state) = self.authority_map.get(&chunk) {
                     if state.0 != source {
-                        debug!("{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority");
+                        debug!(
+                            "{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority"
+                        );
                         return;
                     }
                 }
@@ -862,7 +871,9 @@ impl WorldManager {
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, &chunk_data);
                 } else {
-                    warn!("Initial listen response has None chunk_data. It's generally supposed to have some.");
+                    warn!(
+                        "Initial listen response has None chunk_data. It's generally supposed to have some."
+                    );
                 }
             }
             WorldNetMessage::ListenUpdate {
@@ -1945,7 +1956,7 @@ impl WorldManager {
             .map(|ex| {
                 (
                     ex.0,
-                    self.interior_iter_chunk(self.explosion_heap[ex.1 .0], ex.1, chunk, 0.5),
+                    self.interior_iter_chunk(self.explosion_heap[ex.1.0], ex.1, chunk, 0.5),
                 )
             })
             .collect();
@@ -2999,9 +3010,9 @@ fn test_explosion_img_big_many() {
     world._create_image(&mut img, pixels);
     img.save("/tmp/ew_tmp_save/img_ex_bigger_test.png").unwrap();
 }*/
-use crate::net::world::world_model::chunk::PixelFlags;
 #[cfg(test)]
 use crate::net::LiquidType;
+use crate::net::world::world_model::chunk::PixelFlags;
 #[cfg(test)]
 use rand::seq::SliceRandom;
 #[cfg(test)]

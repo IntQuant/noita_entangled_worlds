@@ -4,8 +4,8 @@ use bitcode::{Decode, Encode};
 use crossbeam::atomic::AtomicCell;
 
 use super::{
+    CHUNK_SIZE, ChunkData,
     encoding::{PixelRunner, RawPixel},
-    ChunkData, CHUNK_SIZE,
 };
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]

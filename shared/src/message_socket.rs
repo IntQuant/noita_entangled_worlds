@@ -8,7 +8,7 @@ use std::{
 };
 
 use bitcode::{DecodeOwned, Encode};
-use eyre::{bail, Context};
+use eyre::{Context, bail};
 use tracing::info;
 
 fn read_one<T: DecodeOwned>(mut buf: impl Read) -> eyre::Result<T> {

@@ -1,5 +1,5 @@
 use bitcode::{Decode, Encode};
-use bytemuck::{bytes_of, pod_read_unaligned, AnyBitPattern, NoUninit};
+use bytemuck::{AnyBitPattern, NoUninit, bytes_of, pod_read_unaligned};
 use serde::{Deserialize, Serialize};
 use std::mem::size_of;
 

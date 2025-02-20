@@ -1,5 +1,5 @@
-use crate::net::omni::OmniPeerId;
 use crate::AudioSettings;
+use crate::net::omni::OmniPeerId;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use opus::{Application, Channels, Decoder, Encoder};
 use rodio::buffer::SamplesBuffer;

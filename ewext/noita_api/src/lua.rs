@@ -3,14 +3,14 @@ pub mod lua_bindings;
 use std::{
     borrow::Cow,
     cell::Cell,
-    ffi::{c_char, c_int, CStr},
+    ffi::{CStr, c_char, c_int},
     mem, slice,
     str::FromStr,
     sync::LazyLock,
 };
 
-use eyre::{bail, Context, OptionExt};
-use lua_bindings::{lua_CFunction, lua_State, Lua51, LUA_GLOBALSINDEX};
+use eyre::{Context, OptionExt, bail};
+use lua_bindings::{LUA_GLOBALSINDEX, Lua51, lua_CFunction, lua_State};
 
 use crate::{Color, ComponentID, EntityID, GameEffectEnum, Obj, PhysicsBodyID};
 
@@ -515,7 +515,9 @@ impl<T: LuaGetValue> LuaGetValue for Option<T> {
 impl<T: LuaGetValue> LuaGetValue for Vec<T> {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
         if T::size_on_stack() != 1 {
-            bail!("Encountered Vec<T> where T needs more than 1 slot on the stack. This isn't supported");
+            bail!(
+                "Encountered Vec<T> where T needs more than 1 slot on the stack. This isn't supported"
+            );
         }
         let len = lua.objlen(index);
         let mut res = Vec::with_capacity(len);
@@ -608,13 +610,13 @@ impl<T0: LuaGetValue, T1: LuaGetValue, T2: LuaGetValue, T3: LuaGetValue, T4: Lua
 }
 
 impl<
-        T0: LuaGetValue,
-        T1: LuaGetValue,
-        T2: LuaGetValue,
-        T3: LuaGetValue,
-        T4: LuaGetValue,
-        T5: LuaGetValue,
-    > LuaGetValue for (T0, T1, T2, T3, T4, T5)
+    T0: LuaGetValue,
+    T1: LuaGetValue,
+    T2: LuaGetValue,
+    T3: LuaGetValue,
+    T4: LuaGetValue,
+    T5: LuaGetValue,
+> LuaGetValue for (T0, T1, T2, T3, T4, T5)
 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
     where
@@ -630,14 +632,14 @@ impl<
 }
 
 impl<
-        T0: LuaGetValue,
-        T1: LuaGetValue,
-        T2: LuaGetValue,
-        T3: LuaGetValue,
-        T4: LuaGetValue,
-        T5: LuaGetValue,
-        T6: LuaGetValue,
-    > LuaGetValue for (T0, T1, T2, T3, T4, T5, T6)
+    T0: LuaGetValue,
+    T1: LuaGetValue,
+    T2: LuaGetValue,
+    T3: LuaGetValue,
+    T4: LuaGetValue,
+    T5: LuaGetValue,
+    T6: LuaGetValue,
+> LuaGetValue for (T0, T1, T2, T3, T4, T5, T6)
 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self>
     where
