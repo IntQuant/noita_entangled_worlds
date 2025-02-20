@@ -243,6 +243,7 @@ impl AudioManager {
         self.rx.try_recv()
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn play_audio(
         &mut self,
         audio: AudioSettings,
@@ -251,6 +252,7 @@ impl AudioManager {
         data: Vec<Vec<u8>>,
         global: bool,
         sound_pos: (i32, i32),
+        iv: f32,
     ) {
         if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src) {
             if let Some(stream_handle) = &self.stream_handle {
@@ -286,7 +288,9 @@ impl AudioManager {
                 }
             };
             if vol > 0.0 && !audio.mute_out {
-                player_info.sink.set_volume(vol);
+                player_info
+                    .sink
+                    .set_volume(vol * iv * audio.global_output_volume);
                 let mut dec: Vec<f32> = Vec::new();
                 for data in data {
                     let mut out = vec![0f32; FRAME_SIZE];

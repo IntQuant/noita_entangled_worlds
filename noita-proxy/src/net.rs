@@ -516,34 +516,41 @@ impl NetManager {
             while let Ok(data) = state.audio.recv_audio() {
                 audio_data.push(data)
             }
-            if !audio_data.is_empty() && {
+            if !audio_data.is_empty() {
                 let audio = self.audio.lock().unwrap();
-                !audio.mute_in
+                if !audio.mute_in
                     && (!audio.mute_in_while_dead || !self.is_dead.load(Ordering::Relaxed))
                     && (!audio.mute_in_while_polied
                         || !self.is_polied.load(Ordering::Relaxed)
                         || self.is_dead.load(Ordering::Relaxed))
                     && (!audio.push_to_talk || self.push_to_talk.load(Ordering::Relaxed))
                     && !self.is_cess.load(Ordering::Relaxed)
-            } {
-                let audio = self.audio.lock().unwrap();
-                let (x, y) = if audio.player_position {
-                    (
-                        self.player_pos.0.load(Ordering::Relaxed),
-                        self.player_pos.1.load(Ordering::Relaxed),
-                    )
-                } else {
-                    (
-                        self.camera_pos.0.load(Ordering::Relaxed),
-                        self.camera_pos.1.load(Ordering::Relaxed),
-                    )
-                };
-                self.broadcast(
-                    &NetMsg::AudioData(audio_data, audio.global, x, y),
-                    Reliability::Reliable,
-                );
+                    && audio.global_input_volume != 0.0
+                {
+                    let (x, y) = if audio.player_position {
+                        (
+                            self.player_pos.0.load(Ordering::Relaxed),
+                            self.player_pos.1.load(Ordering::Relaxed),
+                        )
+                    } else {
+                        (
+                            self.camera_pos.0.load(Ordering::Relaxed),
+                            self.camera_pos.1.load(Ordering::Relaxed),
+                        )
+                    };
+                    let data = NetMsg::AudioData(
+                        audio_data,
+                        audio.global,
+                        x,
+                        y,
+                        audio.global_input_volume,
+                    );
+                    if audio.loopback {
+                        self.send(self.peer.my_id(), &data, Reliability::Reliable)
+                    }
+                    self.broadcast(&data, Reliability::Reliable);
+                }
             }
-
             // Don't do excessive busy-waiting;
             let min_update_time = Duration::from_millis(8);
             let elapsed = last_iter.elapsed();
@@ -627,7 +634,7 @@ impl NetManager {
         net_msg: NetMsg,
     ) {
         match net_msg {
-            NetMsg::AudioData(data, global, tx, ty) => {
+            NetMsg::AudioData(data, global, tx, ty, vol) => {
                 if !self.is_cess.load(Ordering::Relaxed) {
                     let audio = self.audio.lock().unwrap().clone();
                     let pos = if audio.player_position {
@@ -643,7 +650,7 @@ impl NetManager {
                     };
                     state
                         .audio
-                        .play_audio(audio, pos, src, data, global, (tx, ty));
+                        .play_audio(audio, pos, src, data, global, (tx, ty), vol);
                 }
             }
             NetMsg::RequestMods => {

@@ -681,6 +681,9 @@ pub struct AudioSettings {
     mute_in_while_polied: bool,
     mute_in_while_dead: bool,
     disabled: bool,
+    loopback: bool,
+    global_output_volume: f32,
+    global_input_volume: f32,
     input_device: Option<String>,
     output_device: Option<String>,
     input_devices: Vec<String>,
@@ -697,6 +700,11 @@ impl AudioSettings {
         ui.add(Slider::new(&mut self.max_wall_durability, 0..=14));*/
         ui.label("maximal range of audio");
         ui.add(Slider::new(&mut self.range, 0..=4096));
+        ui.label("global input volume");
+        ui.add(Slider::new(&mut self.global_input_volume, 0.0..=8.0));
+        ui.label("global output volume");
+        ui.add(Slider::new(&mut self.global_output_volume, 0.0..=8.0));
+        ui.checkbox(&mut self.loopback, "loopback audio");
         ui.checkbox(&mut self.global, "have voice always be played");
         ui.checkbox(
             &mut self.push_to_talk,
@@ -736,7 +744,6 @@ impl AudioSettings {
                     self.output_device = host.default_output_device().and_then(|a| a.name().ok())
                 }
             }
-            ui.label("Default Input Device:");
             ComboBox::from_label("Input Device")
                 .selected_text(
                     self.input_device
@@ -753,8 +760,6 @@ impl AudioSettings {
                         }
                     }
                 });
-
-            ui.label("Default Output Device:");
             ComboBox::from_label("Output Device")
                 .selected_text(
                     self.output_device
@@ -798,6 +803,9 @@ impl Default for AudioSettings {
             output_device: None,
             input_devices: Vec::new(),
             output_devices: Vec::new(),
+            global_output_volume: 1.0,
+            global_input_volume: 1.0,
+            loopback: false,
         }
     }
 }
@@ -1232,11 +1240,11 @@ impl App {
                             if ui.button("Show host settings").clicked() {
                                 self.show_host_settings = !self.show_host_settings
                             }
-                            if ui.button("Show audio settings").clicked() {
-                                self.show_audio_settings = !self.show_audio_settings
-                            }
                             if self.show_host_settings {
                                 self.app_saved_state.game_settings.show_editor(ui, true)
+                            }
+                            if ui.button("Show audio settings").clicked() {
+                                self.show_audio_settings = !self.show_audio_settings
                             }
                             if self.show_audio_settings {
                                 self.audio.show_ui(ui, true)

@@ -34,7 +34,7 @@ pub(crate) enum NetMsg {
     RespondFlagSlow(usize, bool),
     RespondFlagMoon(i32, i32, bool),
     RespondFlagStevari(i32, i32, OmniPeerId),
-    AudioData(Vec<Vec<u8>>, bool, i32, i32),
+    AudioData(Vec<Vec<u8>>, bool, i32, i32, f32),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {
