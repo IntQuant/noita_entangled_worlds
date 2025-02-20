@@ -1201,7 +1201,7 @@ impl WorldManager {
             return;
         }
         if dmx.abs() > 8 * 512 || dmy.abs() > 8 * 512 {
-            info!("unusually large cut, {} {} {} {} {}", x, y, lx, ly, r)
+            warn!("unusually large cut, {} {} {} {} {}", x, y, lx, ly, r)
         }
         let dm2 = ((dmx.unsigned_abs() as u64 * dmx.unsigned_abs() as u64
             + dmy.unsigned_abs() as u64 * dmy.unsigned_abs() as u64) as f64)

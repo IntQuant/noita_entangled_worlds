@@ -326,7 +326,7 @@ function module.on_world_update()
     end
 
     if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
-        if find_later then
+        if find_later or (HasFlagPersistent("ew_twwe") and has_twwe_locally == nil) then
             find_later = false
             for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
                 local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
