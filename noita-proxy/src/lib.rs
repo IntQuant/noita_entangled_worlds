@@ -683,6 +683,8 @@ pub struct AudioSettings {
     disabled: bool,
     input_device: Option<String>,
     output_device: Option<String>,
+    input_devices: Vec<String>,
+    output_devices: Vec<String>,
 }
 
 impl AudioSettings {
@@ -710,27 +712,29 @@ impl AudioSettings {
         ui.checkbox(&mut self.mute_out, "mute output");
         if main {
             ui.checkbox(&mut self.disabled, "disabled");
-            #[cfg(target_os = "linux")]
-            let host = cpal::available_hosts()
-                .into_iter()
-                .find(|id| *id == cpal::HostId::Jack)
-                .and_then(|id| cpal::host_from_id(id).ok())
-                .unwrap_or(cpal::default_host());
-            #[cfg(not(target_os = "linux"))]
-            let host = cpal::default_host();
-            let input_devices: Vec<String> = host
-                .input_devices()
-                .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
-                .unwrap_or_default();
-            let output_devices: Vec<String> = host
-                .output_devices()
-                .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
-                .unwrap_or_default();
-            if self.input_device.is_none() {
-                self.input_device = host.default_input_device().and_then(|a| a.name().ok())
-            }
-            if self.output_device.is_none() {
-                self.output_device = host.default_output_device().and_then(|a| a.name().ok())
+            if self.input_devices.is_empty() {
+                #[cfg(target_os = "linux")]
+                let host = cpal::available_hosts()
+                    .into_iter()
+                    .find(|id| *id == cpal::HostId::Jack)
+                    .and_then(|id| cpal::host_from_id(id).ok())
+                    .unwrap_or(cpal::default_host());
+                #[cfg(not(target_os = "linux"))]
+                let host = cpal::default_host();
+                self.input_devices = host
+                    .input_devices()
+                    .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+                    .unwrap_or_default();
+                self.output_devices = host
+                    .output_devices()
+                    .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+                    .unwrap_or_default();
+                if self.input_device.is_none() {
+                    self.input_device = host.default_input_device().and_then(|a| a.name().ok())
+                }
+                if self.output_device.is_none() {
+                    self.output_device = host.default_output_device().and_then(|a| a.name().ok())
+                }
             }
             ui.label("Default Input Device:");
             ComboBox::from_label("Input Device")
@@ -740,7 +744,7 @@ impl AudioSettings {
                         .unwrap_or_else(|| "None".to_string()),
                 )
                 .show_ui(ui, |ui| {
-                    for device in &input_devices {
+                    for device in &self.input_devices {
                         if ui
                             .selectable_label(self.input_device.as_deref() == Some(device), device)
                             .clicked()
@@ -758,7 +762,7 @@ impl AudioSettings {
                         .unwrap_or_else(|| "None".to_string()),
                 )
                 .show_ui(ui, |ui| {
-                    for device in &output_devices {
+                    for device in &self.output_devices {
                         if ui
                             .selectable_label(self.output_device.as_deref() == Some(device), device)
                             .clicked()
@@ -792,6 +796,8 @@ impl Default for AudioSettings {
             disabled: false,
             input_device: None,
             output_device: None,
+            input_devices: Vec::new(),
+            output_devices: Vec::new(),
         }
     }
 }
@@ -984,11 +990,14 @@ impl App {
     }
 
     fn set_settings(&self) {
+        let mut audio = self.audio.clone();
+        audio.input_devices.clear();
+        audio.output_devices.clear();
         settings_set(
             self.app_saved_state.clone(),
             self.appearance.clone(),
             self.modmanager_settings.clone(),
-            self.audio.clone(),
+            audio,
         )
     }
 

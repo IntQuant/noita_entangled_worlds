@@ -36,6 +36,8 @@ function module.on_new_entity(ent)
             --or f == "data/entities/items/pickup/potion_empty.xml"
             or f == "data/entities/animals/chest_mimic.xml"
             or f == "data/entities/animals/chest_leggy.xml"
+            or f == "data/entities/animals/illusions/dark_alchemist.xml"
+            or f == "data/entities/animals/illusions/shaman_wind.xml"
         then
             local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
             ewext.notrack(ent)

@@ -112,7 +112,13 @@ impl EntityID {
 
     pub fn kill(self) {
         // Shouldn't ever error.
-        if self.is_alive() {
+        if self.is_alive()
+            && self
+                .try_get_first_component_including_disabled::<CellEaterComponent>(None)
+                .ok()
+                .map(|a| a.is_none())
+                .unwrap_or(true)
+        {
             let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
             if !body_id.is_empty() {
                 for com in raw::entity_get_with_tag("ew_peer".into())
