@@ -1790,6 +1790,10 @@ pub fn init_remote_entity(
     if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
         itemc.set_stealable(false)?;
     }
+    if let Some(v) = entity.try_get_first_component::<VelocityComponent>(None)? {
+        v.set_gravity_x(0.0)?;
+        v.set_gravity_y(0.0)?;
+    }
 
     for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
         if (!drops_gold

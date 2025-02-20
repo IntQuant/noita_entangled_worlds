@@ -121,7 +121,7 @@ local function load_modules()
     end
     ctx.load_system("streaming_sync")
     if not ctx.proxy_opt.same_loadout then
-        ctx.load_system("random_start")
+        ctx.load_system("rnd_wands")
     end
     ctx.load_system("worms")
     ctx.load_system("wand_charm")

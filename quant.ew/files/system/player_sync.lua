@@ -328,10 +328,12 @@ function module.on_world_update()
     if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
         if find_later or (HasFlagPersistent("ew_twwe") and has_twwe_locally == nil) then
             find_later = false
+            RemoveFlagPersistent("ew_twwe")
             for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
                 local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
                 if
-                    ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
+                    com ~= nil
+                    and ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
                     and not EntityHasTag(ent, "perk_entity")
                 then
                     RemoveFlagPersistent("ew_twwe")
