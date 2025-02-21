@@ -383,10 +383,16 @@ impl Module for EntitySync {
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
-    fn on_new_entity(&mut self, entity: EntityID, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        if entity.0 <= self.look_current_entity.0
-            && entity.filename().ok() != Some("data/entities/animals/ghost.xml".into())
-        {
+    fn on_new_entity(
+        &mut self,
+        entity: EntityID,
+        ctx: &mut super::ModuleCtx,
+        kill: bool,
+    ) -> eyre::Result<()> {
+        if !kill && !entity.is_alive() {
+            return Ok(());
+        }
+        if entity.0 <= self.look_current_entity.0 {
             return Ok(());
         }
         if self.dont_track.remove(&entity) {
@@ -410,7 +416,9 @@ impl Module for EntitySync {
                 })
                 .unwrap_or(true)
         {
-            entity.kill();
+            if kill {
+                entity.kill();
+            }
             return Ok(());
         }
         if self.should_be_tracked(entity)? {
@@ -446,7 +454,13 @@ impl Module for EntitySync {
             )?;
         }
 
+        self.look_current_entity = EntityID::max_in_use()?;
         self.local_diff_model.update_pending_authority()?;
+        for ent in self.look_current_entity.0.get()..=EntityID::max_in_use()?.0.get() {
+            if let Ok(ent) = EntityID::try_from(ent) {
+                self.on_new_entity(ent, ctx, false)?;
+            }
+        }
         let tmr = std::time::Instant::now();
         {
             let total_parts = self.real_sync_rate.max(1);

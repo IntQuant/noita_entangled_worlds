@@ -329,7 +329,7 @@ fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
 
 fn module_on_new_entity(lua: LuaState) -> eyre::Result<()> {
     let entity = EntityID::try_from(lua.to_string(1)?.parse::<isize>()?)?;
-    with_every_module(|ctx, module| module.on_new_entity(entity, ctx))
+    with_every_module(|ctx, module| module.on_new_entity(entity, ctx, true))
 }
 
 fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
