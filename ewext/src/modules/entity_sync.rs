@@ -586,7 +586,9 @@ impl Module for EntitySync {
                     radius: REQUEST_AUTHORITY_RADIUS,
                 },
             ))?;
-            let pos_data = self.local_diff_model.get_pos_data();
+        }
+        let pos_data = self.local_diff_model.get_pos_data(frame_num);
+        if !pos_data.is_empty() {
             ctx.net
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }

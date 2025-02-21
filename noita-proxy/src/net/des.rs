@@ -135,7 +135,7 @@ impl DesManager {
             }
             DesToProxy::TransferAuthorityTo(gid, peer_id) => {
                 if let Some(entity) = self.entity_storage.entities.get(&gid).cloned() {
-                    info!("Transferring authority over entity from {source:?} to {peer_id:?}");
+                    //info!("Transferring authority over entity from {source:?} to {peer_id:?}");
                     self.authority.insert(gid, peer_id.into());
                     self.pending_messages
                         .push((peer_id.into(), ProxyToDes::GotAuthority(entity)));

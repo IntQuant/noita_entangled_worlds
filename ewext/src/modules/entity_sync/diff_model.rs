@@ -67,9 +67,15 @@ impl LocalDiffModel {
             .map(|e| self.tracker.entity_by_lid(*e.0))?
             .ok()
     }
-    pub(crate) fn get_pos_data(&self) -> Vec<UpdatePosition> {
+    pub(crate) fn get_pos_data(&self, frame_num: usize) -> Vec<UpdatePosition> {
+        let len = self.entity_entries.len();
+        let batch_size = (len / 60).max(1);
+        let start = (frame_num % 60) * batch_size;
+        let end = (start + batch_size).min(len);
         self.entity_entries
             .values()
+            .skip(start)
+            .take(end - start)
             .map(|p| {
                 let EntityEntryPair { current, gid, .. } = p;
                 UpdatePosition {
