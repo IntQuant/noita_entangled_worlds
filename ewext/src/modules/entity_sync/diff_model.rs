@@ -16,7 +16,7 @@ use noita_api::{
     WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::des::TRANSFER_RADIUS;
+use shared::des::{GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS};
 use shared::{
     GameEffectData, GameEffectEnum, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
     des::{
@@ -43,7 +43,6 @@ struct LocalDiffModelTracker {
     pending_localize: Vec<(Lid, PeerId)>,
     /// Stores pairs of entity killed and optionally the responsible entity.
     pending_death_notify: Vec<(EntityID, bool, WorldPos, String, Option<EntityID>)>,
-    authority_radius: f32,
     global_entities: FxHashSet<EntityID>,
     got_polied: FxHashSet<Gid>,
 }
@@ -148,7 +147,6 @@ impl Default for LocalDiffModel {
                 pending_authority: Vec::new(),
                 pending_localize: Vec::with_capacity(4),
                 pending_death_notify: Vec::with_capacity(4),
-                authority_radius: AUTHORITY_RADIUS,
                 global_entities: Default::default(),
                 got_polied: Default::default(),
             },
@@ -273,10 +271,23 @@ impl LocalDiffModelTracker {
             .collect();
 
         // Check if entity went out of range, remove and release authority if it did.
-        let is_beyond_authority =
-            (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2) > self.authority_radius.powi(2);
+        let is_beyond_authority = (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2)
+            > if info.is_global {
+                GLOBAL_AUTHORITY_RADIUS
+            } else {
+                AUTHORITY_RADIUS
+            }
+            .powi(2);
         if is_beyond_authority {
-            if let Some(peer) = ctx.locate_player_within_except_me(x, y, TRANSFER_RADIUS)? {
+            if let Some(peer) = ctx.locate_player_within_except_me(
+                x,
+                y,
+                if info.is_global {
+                    GLOBAL_TRANSFER_RADIUS
+                } else {
+                    TRANSFER_RADIUS
+                },
+            )? {
                 self.transfer_authority_to(
                     ctx,
                     gid,

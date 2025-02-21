@@ -7,6 +7,8 @@ use bitcode::{Decode, Encode};
 pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
 pub const TRANSFER_RADIUS: f32 = 500.0;
 pub const AUTHORITY_RADIUS: f32 = 600.0;
+pub const GLOBAL_TRANSFER_RADIUS: f32 = 800.0;
+pub const GLOBAL_AUTHORITY_RADIUS: f32 = 900.0;
 pub const INTEREST_REQUEST_RADIUS: i32 = 900;
 
 /// 64 bit globally unique id. Assigned randomly, should only have 50% chance of collision with 2^32 entities at once.
