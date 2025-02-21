@@ -602,7 +602,6 @@ function module.on_client_spawned(peer_id, playerdata)
     local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
     ComponentSetValue2(damage_model, "physics_objects_damage", false)
-    ComponentSetValue2(damage_model, "ui_report_damage", false)
 end
 
 function module.on_client_polymorphed(peer_id, playerdata)
@@ -779,9 +778,6 @@ function rpc.send_status(status)
     local hp, _, has_hp = util.get_ent_health(ctx.rpc_player_data.entity)
     if hp > status.hp then
         ctx.rpc_player_data.last_hit = GameGetFrameNum()
-        local damage_model =
-            EntityGetFirstComponentIncludingDisabled(ctx.rpc_player_data.entity, "DamageModelComponent")
-        ComponentSetValue2(damage_model, "ui_report_damage", true)
         EntityInflictDamage(
             ctx.rpc_player_data.entity,
             hp - status.hp,
@@ -792,7 +788,6 @@ function rpc.send_status(status)
             0,
             GameGetWorldStateEntity()
         )
-        ComponentSetValue2(damage_model, "ui_report_damage", false)
     end
     util.set_ent_health(ctx.rpc_player_data.entity, { status.hp, status.max_hp })
 end
