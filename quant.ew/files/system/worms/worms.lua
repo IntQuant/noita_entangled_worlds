@@ -37,6 +37,13 @@ function worms.on_world_update()
                 if min_ent ~= nil then
                     ComponentSetValue2(worm, "mTargetEntityId", min_ent)
                 end
+            else
+                local ghost = EntityGetFirstComponentIncludingDisabled(ent, "GhostComponent")
+                local x, y = EntityGetTransform(ent)
+                local min_ent = get_closest_alive(x, y)
+                if min_ent ~= nil then
+                    ComponentSetValue2(ghost, "mTargetEntityId", min_ent)
+                end
             end
         end
     end

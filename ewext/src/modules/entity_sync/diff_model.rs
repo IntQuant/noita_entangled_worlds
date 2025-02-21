@@ -639,6 +639,11 @@ impl LocalDiffModel {
                         .iter()
                         .len());
         entity.add_tag(DES_TAG)?;
+        if let Some(ghost) =
+            entity.try_get_first_component_including_disabled::<GhostComponent>(None)?
+        {
+            ghost.set_target_tag("".into())?;
+        }
 
         self.tracker.tracked.insert(lid, entity);
 
@@ -1861,6 +1866,11 @@ pub fn init_remote_entity(
                 .contains(&&*lua.script_death()?)
         {
             entity.remove_component(*lua)?;
+        }
+    }
+    if let Some(var) = entity.get_var("ghost_id") {
+        if let Ok(ent) = EntityID::try_from(var.value_int()? as isize) {
+            ent.kill()
         }
     }
     if entity.has_tag("boss_dragon") && drops_gold {
