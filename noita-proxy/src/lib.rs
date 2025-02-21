@@ -703,35 +703,48 @@ pub struct AudioSettings {
 }
 
 impl AudioSettings {
-    fn show_ui(&mut self, ui: &mut Ui, main: bool) {
+    fn show_ui(&mut self, ui: &mut Ui, main: bool) -> bool {
+        let mut changed = false;
         ui.label("drop off rate of audio from others");
-        ui.add(Slider::new(&mut self.dropoff, 0.0..=128.0));
-        /*ui.label("how much walls effect drop off rate of audio from others");
-        ui.add(Slider::new(&mut self.walls_strength, 0.0..=128.0));
-        ui.label("highest durability of wall which sound can pass through");
-        ui.add(Slider::new(&mut self.max_wall_durability, 0..=14));*/
+        changed |= ui
+            .add(Slider::new(&mut self.dropoff, 0.0..=128.0))
+            .changed();
         ui.label("maximal range of audio");
-        ui.add(Slider::new(&mut self.range, 0..=4096));
+        changed |= ui.add(Slider::new(&mut self.range, 0..=4096)).changed();
         ui.label("global input volume");
-        ui.add(Slider::new(&mut self.global_input_volume, 0.0..=8.0));
+        changed |= ui
+            .add(Slider::new(&mut self.global_input_volume, 0.0..=8.0))
+            .changed();
         ui.label("global output volume");
-        ui.add(Slider::new(&mut self.global_output_volume, 0.0..=8.0));
-        ui.checkbox(&mut self.loopback, "loopback audio");
-        ui.checkbox(&mut self.global, "have voice always be played");
-        ui.checkbox(
-            &mut self.push_to_talk,
-            "push to talk, keybinds in noita, T by default",
-        );
-        ui.checkbox(
-            &mut self.player_position,
-            "use player position rather then camera position",
-        );
-        ui.checkbox(&mut self.mute_in, "mute input");
-        ui.checkbox(&mut self.mute_in_while_polied, "mute input while polied");
-        ui.checkbox(&mut self.mute_in_while_dead, "mute input while dead");
-        ui.checkbox(&mut self.mute_out, "mute output");
+        changed |= ui
+            .add(Slider::new(&mut self.global_output_volume, 0.0..=8.0))
+            .changed();
+        changed |= ui.checkbox(&mut self.loopback, "loopback audio").changed();
+        changed |= ui
+            .checkbox(&mut self.global, "have voice always be played")
+            .changed();
+        changed |= ui
+            .checkbox(
+                &mut self.push_to_talk,
+                "push to talk, keybinds in noita, T by default",
+            )
+            .changed();
+        changed |= ui
+            .checkbox(
+                &mut self.player_position,
+                "use player position rather than camera position",
+            )
+            .changed();
+        changed |= ui.checkbox(&mut self.mute_in, "mute input").changed();
+        changed |= ui
+            .checkbox(&mut self.mute_in_while_polied, "mute input while polied")
+            .changed();
+        changed |= ui
+            .checkbox(&mut self.mute_in_while_dead, "mute input while dead")
+            .changed();
+        changed |= ui.checkbox(&mut self.mute_out, "mute output").changed();
         if main {
-            ui.checkbox(&mut self.disabled, "disabled");
+            changed |= ui.checkbox(&mut self.disabled, "disabled").changed();
             if self.input_devices.is_empty() {
                 #[cfg(target_os = "linux")]
                 let host = cpal::available_hosts()
@@ -769,6 +782,7 @@ impl AudioSettings {
                             .clicked()
                         {
                             self.input_device = Some(device.clone());
+                            changed = true;
                         }
                     }
                 });
@@ -785,13 +799,16 @@ impl AudioSettings {
                             .clicked()
                         {
                             self.output_device = Some(device.clone());
+                            changed = true;
                         }
                     }
                 });
         }
         if ui.button("default").clicked() {
             *self = Default::default();
+            changed = true;
         }
+        changed
     }
 }
 
@@ -1259,7 +1276,7 @@ impl App {
                                 self.show_audio_settings = !self.show_audio_settings
                             }
                             if self.show_audio_settings {
-                                self.audio.show_ui(ui, true)
+                                self.audio.show_ui(ui, true);
                             }
                             if self.running_on_steamdeck && ui.button("Close Proxy").clicked() {
                                 exit(0)
@@ -1748,7 +1765,7 @@ impl App {
                     }
                 },
                 ConnectedMenu::VoIP => {
-                    self.audio.show_ui(ui, false);
+                    let mut save = self.audio.show_ui(ui, false);
                     for peer in netman.peer.iter_peer_ids() {
                         if netman.peer.my_id() != peer {
                             ui.label(format!(
@@ -1760,13 +1777,18 @@ impl App {
                                     .get(&peer)
                                     .unwrap_or(&peer.to_string())
                             ));
-                            ui.add(Slider::new(
-                                self.audio.volume.entry(peer).or_insert(1.0),
-                                0.0..=8.0,
-                            ));
+                            if ui
+                                .add(Slider::new(
+                                    self.audio.volume.entry(peer).or_insert(1.0),
+                                    0.0..=8.0,
+                                ))
+                                .changed()
+                            {
+                                save = true;
+                            }
                         }
                     }
-                    if ui.button("save").clicked() {
+                    if save {
                         *netman.audio.lock().unwrap() = self.audio.clone()
                     }
                 }
