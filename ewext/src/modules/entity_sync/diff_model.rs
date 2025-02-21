@@ -1873,6 +1873,7 @@ pub fn init_remote_entity(
             .contains(&&*lua.script_physics_body_modified()?)
             || ["data/scripts/animals/failed_alchemist_b_death.lua"]
                 .contains(&&*lua.script_death()?)
+            || ["data/scripts/items/broken_wand_throw.lua"].contains(&&*lua.script_throw_item()?)
         {
             entity.remove_component(*lua)?;
         }
