@@ -61,7 +61,9 @@ function net_handling.proxy.stevari_flag(_, x, yb)
 
     if guard_spawn_id ~= 0 then
         guard_x, guard_y = EntityGetTransform(guard_spawn_id)
-        EntityKill(guard_spawn_id)
+        if b then
+            EntityKill(guard_spawn_id)
+        end
     end
 
     if b then
