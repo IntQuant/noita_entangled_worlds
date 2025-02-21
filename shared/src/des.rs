@@ -39,13 +39,14 @@ pub struct FullEntityData {
     pub hp: f32,
     pub drops_gold: bool,
     pub is_charmed: bool,
+    pub counter: u8,
 }
 
 #[derive(Debug, Encode, Decode, Clone)]
 pub struct UpdatePosition {
     pub gid: Gid,
     pub pos: WorldPos,
-    pub r: f32,
+    pub counter: u8,
     pub is_charmed: bool,
     pub hp: f32,
 }

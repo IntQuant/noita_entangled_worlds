@@ -75,7 +75,7 @@ impl LocalDiffModel {
                 UpdatePosition {
                     gid: *gid,
                     pos: WorldPos::from_f32(current.x, current.y),
-                    r: current.r,
+                    counter: current.counter,
                     is_charmed: current.is_charmed(),
                     hp: current.hp,
                 }
@@ -279,6 +279,7 @@ impl LocalDiffModelTracker {
                     info.wand.clone().map(|(_, a)| a),
                     info.is_charmed(),
                     info.hp,
+                    info.counter,
                 )
                 .wrap_err("Failed to transfer authority")?;
                 return Ok(());
@@ -290,6 +291,7 @@ impl LocalDiffModelTracker {
                     info.wand.clone().map(|(_, a)| a),
                     info.is_charmed(),
                     info.hp,
+                    info.counter,
                 )
                 .wrap_err("Failed to release authority")?;
                 return Ok(());
@@ -354,6 +356,33 @@ impl LocalDiffModelTracker {
                 .sum();
         } else {
             info.cost = 0;
+        }
+        if entity.has_tag("seed_d") {
+            let essences = entity.get_var_or_default("sunbaby_essences_list")?;
+            let sprite =
+                entity.get_first_component::<SpriteComponent>(Some("sunbaby_sprite".into()))?;
+            let sprite = sprite.image_file()?;
+            let num: u8 = match sprite.to_string().as_str() {
+                "data/props_gfx/sun_small_purple.png" => 0,
+                "data/props_gfx/sun_small_red.png" => 1,
+                "data/props_gfx/sun_small_blue.png" => 2,
+                "data/props_gfx/sun_small_green.png" => 3,
+                "data/props_gfx/sun_small_orange.png" => 4,
+                _ => 5,
+            };
+            info.counter = essences
+                .value_string()?
+                .split(',')
+                .filter_map(|s| match s {
+                    "water" => Some(1),
+                    "fire" => Some(2),
+                    "air" => Some(4),
+                    "earth" => Some(8),
+                    "poop" => Some(16),
+                    _ => None,
+                })
+                .sum::<u8>()
+                + (num * 32);
         }
 
         info.game_effects = entity
@@ -500,6 +529,7 @@ impl LocalDiffModelTracker {
             .ok_or_eyre("Expected to find a corresponding entity")?)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn _release_authority_update_data(
         &mut self,
         ctx: &mut ModuleCtx<'_>,
@@ -508,11 +538,12 @@ impl LocalDiffModelTracker {
         wand: Option<Vec<u8>>,
         is_charmed: bool,
         hp: f32,
+        counter: u8,
     ) -> Result<EntityID, eyre::Error> {
         let entity = self
             .entity_by_lid(lid)
             .wrap_err("Failed to release authority and upload update data")?;
-        let (x, y, r, _, _) = entity.transform()?;
+        let (x, y, _, _, _) = entity.transform()?;
         if !entity
             .filename()?
             .starts_with("data/entities/animals/wand_ghost")
@@ -525,7 +556,7 @@ impl LocalDiffModelTracker {
             shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
                 gid,
                 pos: WorldPos::from_f32(x, y),
-                r,
+                counter,
                 is_charmed,
                 hp,
             }]),
@@ -533,6 +564,7 @@ impl LocalDiffModelTracker {
         Ok(entity)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn release_authority(
         &mut self,
         ctx: &mut ModuleCtx<'_>,
@@ -541,8 +573,10 @@ impl LocalDiffModelTracker {
         wand: Option<Vec<u8>>,
         is_charmed: bool,
         hp: f32,
+        counter: u8,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp)?;
+        let entity =
+            self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp, counter)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
@@ -561,8 +595,10 @@ impl LocalDiffModelTracker {
         wand: Option<Vec<u8>>,
         is_charmed: bool,
         hp: f32,
+        counter: u8,
     ) -> eyre::Result<()> {
-        let entity = self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp)?;
+        let entity =
+            self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp, counter)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
@@ -761,6 +797,8 @@ impl LocalDiffModel {
                     entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
                 }
             }
+            mom(entity, entity_data.counter, None)?;
+            sun(entity, entity_data.counter)?;
             if entity_data.hp != -1.0 {
                 if let Some(damage) =
                     entity.try_get_first_component::<DamageModelComponent>(None)?
@@ -1055,6 +1093,7 @@ impl LocalDiffModel {
             drops_gold: entry_pair.current.drops_gold,
             is_charmed: entry_pair.current.is_charmed(),
             hp: -1.0,
+            counter: 0,
         })
     }
 
@@ -1257,32 +1296,8 @@ impl RemoteDiffModel {
             v.set_value_float(*f)?;
             v.set_value_bool(*b)?;
         }
-        if entity.has_tag("boss_wizard") {
-            for ent in entity.children(None) {
-                if ent.has_tag("touchmagic_immunity") {
-                    if let Ok(var) = ent
-                        .get_first_component_including_disabled::<VariableStorageComponent>(Some(
-                            "wizard_orb_id".into(),
-                        ))
-                    {
-                        if let Ok(n) = var.value_int() {
-                            if (entity_info.counter & (1 << (n as u8))) == 0 {
-                                ent.kill()
-                            } else if let Ok(damage) =
-                                ent.get_first_component::<DamageModelComponent>(None)
-                            {
-                                damage.set_wait_for_kill_flag_on_death(true)?;
-                                damage.set_hp(damage.max_hp()?)?;
-                            }
-                        }
-                        if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
-                            let _ = v.add_tag("ew_frame_num");
-                            let _ = v.set_value_int(entity_info.cost as i32);
-                        }
-                    }
-                }
-            }
-        }
+        mom(entity, entity_info.counter, Some(entity_info.cost as i32))?;
+        sun(entity, entity_info.counter)?;
 
         if let Some((gid, seri)) = &entity_info.wand {
             give_wand(entity, seri, *gid, true)?;
@@ -1815,6 +1830,9 @@ pub fn init_remote_entity(
                 "data/scripts/buildings/failed_alchemist_orb.lua",
                 "data/scripts/buildings/ghost_crystal.lua",
                 "data/scripts/buildings/snowcrystal.lua",
+                "data/scripts/buildings/sun/spot_2.lua",
+                "data/scripts/buildings/sun/spot_3.lua",
+                "data/scripts/buildings/sun/spot_4.lua",
             ]
             .contains(&&*lua.script_source_file()?)
             || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_enabled_changed()?)
@@ -2118,6 +2136,81 @@ fn give_wand(entity: EntityID, seri: &[u8], gid: Option<Gid>, delete: bool) -> e
             wand.set_components_with_tag_enabled("enabled_in_world".into(), true)?;
         }
         //TODO set active item?
+    }
+    Ok(())
+}
+
+fn mom(entity: EntityID, counter: u8, cost: Option<i32>) -> eyre::Result<()> {
+    if entity.has_tag("boss_wizard") {
+        for ent in entity.children(None) {
+            if ent.has_tag("touchmagic_immunity") {
+                if let Ok(var) = ent
+                    .get_first_component_including_disabled::<VariableStorageComponent>(Some(
+                        "wizard_orb_id".into(),
+                    ))
+                {
+                    if let Ok(n) = var.value_int() {
+                        if (counter & (1 << (n as u8))) == 0 {
+                            ent.kill()
+                        } else if let Ok(damage) =
+                            ent.get_first_component::<DamageModelComponent>(None)
+                        {
+                            damage.set_wait_for_kill_flag_on_death(true)?;
+                            damage.set_hp(damage.max_hp()?)?;
+                        }
+                    }
+                    if let Some(cost) = cost {
+                        if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
+                            let _ = v.add_tag("ew_frame_num");
+                            let _ = v.set_value_int(cost);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+fn sun(entity: EntityID, counter: u8) -> eyre::Result<()> {
+    if entity.has_tag("seed_d") {
+        let essences = entity.get_var_or_default("sunbaby_essences_list")?;
+        let mut s = String::new();
+        if counter & 1 == 1 {
+            s += "water,";
+            entity.set_components_with_tag_enabled("water".into(), true)?;
+        }
+        if counter & 2 == 2 {
+            s += "fire,";
+            entity.set_components_with_tag_enabled("fire".into(), true)?;
+            entity.set_components_with_tag_enabled("fire_disable".into(), false)?;
+        }
+        if counter & 4 == 4 {
+            s += "air,";
+            entity.set_components_with_tag_enabled("air".into(), true)?;
+        }
+        if counter & 8 == 8 {
+            s += "earth,";
+            entity.set_components_with_tag_enabled("earth".into(), true)?;
+            entity.set_components_with_tag_enabled("earth_disable".into(), false)?;
+        }
+        if counter & 16 == 16 {
+            s += "poop,";
+            entity.set_components_with_tag_enabled("poop".into(), true)?;
+        }
+        essences.set_value_string(s.into())?;
+        let n = (counter & (32 + 64 + 128)) / 32;
+        if counter != 0 {
+            let sprite =
+                entity.get_first_component::<SpriteComponent>(Some("sunbaby_sprite".into()))?;
+            match n {
+                0 => sprite.set_image_file("data/props_gfx/sun_small_purple.png".into())?,
+                1 => sprite.set_image_file("data/props_gfx/sun_small_red.png".into())?,
+                2 => sprite.set_image_file("data/props_gfx/sun_small_blue.png".into())?,
+                3 => sprite.set_image_file("data/props_gfx/sun_small_green.png".into())?,
+                4 => sprite.set_image_file("data/props_gfx/sun_small_orange.png".into())?,
+                _ => {}
+            }
+        }
     }
     Ok(())
 }

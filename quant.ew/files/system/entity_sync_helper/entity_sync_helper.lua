@@ -34,6 +34,24 @@ util.prepend(
         .. "end"
 )
 
+util.prepend(
+    "data/scripts/buildings/sun/spot_1_finish.lua",
+    "local converted = false",
+    "local converted = false\n"
+        .. 'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+        .. "local rt = EntityGetRootEntity\n"
+        .. "local function EntityGetRootEntity(ent)\n"
+        .. "if util.do_i_own(ent) then\n"
+        .. "return rt(ent)\n"
+        .. "else\n"
+        .. "if rt(ent) == ent then\n"
+        .. "converted = true\n"
+        .. "end\n"
+        .. "return 0\n"
+        .. "end\n"
+        .. "end"
+)
+
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
 local thrown = {}
