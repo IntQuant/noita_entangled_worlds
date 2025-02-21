@@ -144,6 +144,7 @@ local function load_modules()
     ctx.load_system("telekenisis")
     ctx.load_system("dice")
     ctx.load_system("sampo")
+    ctx.load_system("meat")
 end
 
 local function load_extra_modules()
