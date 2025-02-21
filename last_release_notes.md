@@ -1,26 +1,29 @@
-## Noita Entangled Worlds v1.2.4
+## Noita Entangled Worlds v1.2.5
 
-- fix watercave and sandcave not spawning entities
+- make wands more random from client to client
 
-- dont dupe brimestone on saunas
+- reorganize some audio settings, add loopback option and global input/output volume options, dont require hitting save button
 
-- fix darksun appearing as sun
+- add give host sampo option
 
-- fix fungus death not working sometimes
+- transfer authority faster when applicable
 
-- make broken wands consistent and not require you to see it happening
+- fix a logic error in world chunks
 
-- add option to disable kummitus on clients
+- fix stevari duping
 
-- try to fix cell eater going very far down, and at least add warning when it happens
+- fix sun quest duping, sync sun child states
 
-- fix some mimics duping
+- send position data over time
 
-- fix lag on main menu audio settings
+- fix houre
 
-- make perk ghosts sync nicer
+- apply meat boss death effect no matter where you are
 
-- fix twwe >:(
+- sync killers and helpless kill counts
+
+- havbe a bit larger auth radius for bosses(hopefully doesn't break stuff)
+
 
 ## Accepted pull requests
 
