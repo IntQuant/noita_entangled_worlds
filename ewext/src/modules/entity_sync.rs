@@ -456,7 +456,7 @@ impl Module for EntitySync {
 
         self.look_current_entity = EntityID::max_in_use()?;
         self.local_diff_model.update_pending_authority()?;
-        for ent in self.look_current_entity.0.get()..=EntityID::max_in_use()?.0.get() {
+        for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             if let Ok(ent) = EntityID::try_from(ent) {
                 self.on_new_entity(ent, ctx, false)?;
             }
