@@ -14,7 +14,7 @@ function meat.on_world_update()
         local exists = false
         for _, v in ipairs(EntityGetWithTag("no_heal_in_meat_biome") or {}) do
             if
-                ctx.my_player.entity == EntityGetRoot(v)
+                ctx.my_player.entity == EntityGetRootEntity(v)
                 and EntityGetFirstComponent(v, "GameEffectComponent") == nil
             then
                 exists = true
