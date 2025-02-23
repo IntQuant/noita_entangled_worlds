@@ -180,7 +180,8 @@ pub enum RemoteDes {
     RequestGrab(Lid),
     DeadEntities(Vec<(WorldPos, SpawnOnce)>),
     SpawnOnce(WorldPos, SpawnOnce),
-    ChestOpen(Gid),
+    ChestOpen(Gid, i32, i32, String, f32, f32),
+    ChestOpenRequest(Gid, i32, i32, String, f32, f32),
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

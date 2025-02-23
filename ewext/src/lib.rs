@@ -235,9 +235,13 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             } => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    if let Ok(Some(gid)) =
-                        entity_sync.handle_remotedes(source, remote_des, netmanager)
-                    {
+                    if let Ok(Some(gid)) = entity_sync.handle_remotedes(
+                        source,
+                        remote_des,
+                        netmanager,
+                        &state.player_entity_map,
+                        &state.dont_spawn,
+                    ) {
                         state.dont_spawn.insert(gid);
                     }
                 }
@@ -638,32 +642,60 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
                 let ry = lua.to_string(4)?.parse::<f32>()?;
                 let file = lua.to_string(5)?.to_string();
                 let gid = Gid(lua.to_string(6)?.parse::<u64>()?);
+                let is_mine = lua.to_string(7)?.parse::<u8>()? == 1;
                 let entity_sync = state
                     .modules
                     .entity_sync
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                state.dont_spawn.insert(gid);
                 let mut temp = try_lock_netmanager()?;
                 let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
-                for (has_interest, peer) in entity_sync.iter_peers(state.player_entity_map.clone())
-                {
-                    if has_interest {
-                        let _ = net.send(&NoitaOutbound::RemoteMessage {
-                            reliable: true,
-                            destination: Destination::Peer(peer),
-                            message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpen(gid)),
-                        });
-                    } else {
-                        let _ = net.send(&NoitaOutbound::RemoteMessage {
-                            reliable: true,
-                            destination: Destination::Peer(peer),
-                            message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
-                                WorldPos::from_f64(x, y),
-                                SpawnOnce::Chest(file.clone(), rx, ry),
-                            )),
-                        });
+                if is_mine {
+                    net.send(&NoitaOutbound::RemoteMessage {
+                        reliable: true,
+                        destination: Destination::Peer(my_peer_id()),
+                        message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpen(
+                            gid,
+                            x as i32,
+                            y as i32,
+                            file.clone(),
+                            rx,
+                            ry,
+                        )),
+                    })?;
+                    for (has_interest, peer) in entity_sync.iter_peers(&state.player_entity_map) {
+                        if has_interest {
+                            net.send(&NoitaOutbound::RemoteMessage {
+                                reliable: true,
+                                destination: Destination::Peer(peer),
+                                message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpen(
+                                    gid,
+                                    x as i32,
+                                    y as i32,
+                                    file.clone(),
+                                    rx,
+                                    ry,
+                                )),
+                            })?;
+                        } else {
+                            net.send(&NoitaOutbound::RemoteMessage {
+                                reliable: true,
+                                destination: Destination::Peer(peer),
+                                message: shared::RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
+                                    WorldPos::from_f64(x, y),
+                                    SpawnOnce::Chest(file.clone(), rx, ry),
+                                )),
+                            })?;
+                        }
                     }
+                } else if let Some(peer) = entity_sync.find_peer_by_gid(gid) {
+                    net.send(&NoitaOutbound::RemoteMessage {
+                        reliable: true,
+                        destination: Destination::Peer(*peer),
+                        message: shared::RemoteMessage::RemoteDes(RemoteDes::ChestOpenRequest(
+                            gid, x as i32, y as i32, file, rx, ry,
+                        )),
+                    })?;
                 }
                 Ok(())
             })?

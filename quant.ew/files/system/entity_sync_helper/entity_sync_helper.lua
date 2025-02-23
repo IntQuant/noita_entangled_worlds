@@ -62,8 +62,6 @@ local chest = {}
 
 local broken_wands = {}
 
-local gid_chest = {}
-
 -- Add extra entities to entity sync
 for filename, _ in pairs(constants.phys_sync_allowed) do
     util.add_tag_to(filename, "ew_synced")
@@ -111,36 +109,8 @@ util.add_cross_call("ew_death_notify", function(entity, wait_on_kill, x, y, file
     table.insert(dead, { entity, wait_on_kill, x, y, file, responsible })
 end)
 
-util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, entity, dont)
-    local gid
-    for _, v in ipairs(EntityGetComponent(entity, "VariableStorageComponent") or {}) do
-        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
-            gid = v
-            break
-        end
-    end
-    if gid ~= nil then
-        gid = ComponentGetValue2(gid, "value_string")
-        table.insert(gid_chest, gid)
-        if dont == nil then
-            table.insert(chest, { x, y, rx, ry, file, gid })
-        end
-    end
-end)
-
-util.add_cross_call("ew_has_opened_chest", function(entity)
-    local gid
-    for _, v in ipairs(EntityGetComponent(entity, "VariableStorageComponent") or {}) do
-        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
-            gid = v
-            break
-        end
-    end
-    if gid ~= nil then
-        return table.contains(gid_chest, ComponentGetValue2(gid, "value_string"))
-    else
-        return false
-    end
+util.add_cross_call("ew_chest_opened", function(x, y, rx, ry, file, gid, is_mine)
+    table.insert(chest, { x, y, rx, ry, file, gid, is_mine })
 end)
 
 local mod = {}
@@ -166,7 +136,7 @@ function mod.on_world_update()
         end
     end
     for _, data in ipairs(c_chest) do
-        ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6])
+        ewext.des_chest_opened(data[1], data[2], data[3], data[4], data[5], data[6], data[7])
     end
     for _, data in ipairs(wands) do
         ewext.des_broken_wand(data[1], data[2])

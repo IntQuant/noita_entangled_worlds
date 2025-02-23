@@ -1,27 +1,38 @@
 local old = on_open
-function on_open(entity_item, dont)
-    local has_opened = CrossCall("ew_has_opened_chest", entity_item)
-    local x, y
-    local rand_x, rand_y
-    if dont == nil then
-        x, y = EntityGetTransform(entity_item)
+function on_open(entity_item)
+    local gid
+    for _, v in ipairs(EntityGetComponent(entity_item, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            gid = v
+            break
+        end
+    end
+    if gid ~= nil then
+        local rand_x, rand_y = -1, -1
+        local x, y = EntityGetTransform(entity_item)
         local position_comp = EntityGetFirstComponent(entity_item, "PositionSeedComponent")
-        rand_x = -1
-        rand_y = -1
-        if position_comp then
+        if position_comp ~= nil then
             rand_x = tonumber(ComponentGetValue(position_comp, "pos_x"))
             rand_y = tonumber(ComponentGetValue(position_comp, "pos_y"))
         end
-    end
-    CrossCall("ew_chest_opened", x, y, rand_x, rand_y, EntityGetFilename(entity_item), entity_item, dont)
-    if not has_opened then
+        local is_mine = 0
+        if ComponentGetValue2(gid, "value_bool") then
+            is_mine = 1
+        end
+        gid = ComponentGetValue2(gid, "value_string")
+        CrossCall("ew_chest_opened", x, y, rand_x, rand_y, EntityGetFilename(entity_item), gid, is_mine)
+    else
         old(entity_item)
+        EntityKill(entity_item)
     end
 end
 
 function init(entity_id)
-    if not CrossCall("ew_has_opened_chest", entity_id) then
-        on_open(entity_id, true)
+    if
+        ComponentGetValue2(GetUpdatedComponentID(), "call_init_function")
+        and ComponentGetValue2(GetUpdatedComponentID(), "execute_on_added")
+    then
+        old(entity_id)
+        EntityKill(entity_id)
     end
-    EntityKill(entity_id)
 end

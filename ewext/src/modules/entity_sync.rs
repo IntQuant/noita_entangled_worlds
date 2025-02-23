@@ -76,6 +76,15 @@ impl EntitySync {
             .find_by_gid(gid)
             .or(self.remote_models.values().find_map(|r| r.find_by_gid(gid)))
     }
+    pub(crate) fn find_peer_by_gid(&self, gid: Gid) -> Option<&PeerId> {
+        self.remote_models.iter().find_map(|(p, g)| {
+            if g.find_by_gid(gid).is_some() {
+                Some(p)
+            } else {
+                None
+            }
+        })
+    }
 }
 impl Default for EntitySync {
     fn default() -> Self {
@@ -118,8 +127,8 @@ impl EntitySync {
         let frame_num = game_get_frame_num()? as usize;
         let len = self.spawn_once.len();
         if len > 0 {
-            let batch_size = (len / 60).max(1);
-            let start_index = (frame_num % 60) * batch_size;
+            let batch_size = (len / 20).max(1);
+            let start_index = (frame_num % 20) * batch_size;
             let end_index = (start_index + batch_size).min(len);
             let mut i = end_index;
             while i > start_index {
@@ -228,7 +237,7 @@ impl EntitySync {
         }
         Ok(())
     }
-    pub fn iter_peers(&self, player_map: BiHashMap<PeerId, EntityID>) -> Vec<(bool, PeerId)> {
+    pub fn iter_peers(&self, player_map: &BiHashMap<PeerId, EntityID>) -> Vec<(bool, PeerId)> {
         player_map
             .left_values()
             .filter_map(|p| {
@@ -286,19 +295,76 @@ impl EntitySync {
         source: PeerId,
         remote_des: RemoteDes,
         net: &mut NetManager,
+        player_entity_map: &BiHashMap<PeerId, EntityID>,
+        dont_spawn: &FxHashSet<Gid>,
     ) -> eyre::Result<Option<Gid>> {
         match remote_des {
-            RemoteDes::ChestOpen(gid) => {
-                if let Some(ent) = self.find_by_gid(gid) {
-                    if let Some(file) = ent
-                        .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
-                        .find(|l| !l.script_item_picked_up().unwrap_or("".into()).is_empty())
-                        .map(|l| l.script_item_picked_up().unwrap_or("".into()))
+            RemoteDes::ChestOpen(gid, x, y, file, rx, ry) => {
+                if !dont_spawn.contains(&gid) {
+                    if let Some(ent) = self.find_by_gid(gid) {
+                        ent.kill()
+                    }
+                    if let Ok(Some(ent)) =
+                        noita_api::raw::entity_load(file.into(), Some(x as f64), Some(y as f64))
                     {
-                        ent.add_lua_init_component::<LuaComponent>(&file)?;
+                        ent.add_tag("ew_no_enemy_sync")?;
+                        if let Some(file) = ent
+                            .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
+                            .find(|l| {
+                                !l.script_physics_body_modified()
+                                    .unwrap_or("".into())
+                                    .is_empty()
+                            })
+                            .map(|l| l.script_physics_body_modified().unwrap_or("".into()))
+                        {
+                            if let Some(seed) = ent.try_get_first_component_including_disabled::<PositionSeedComponent>(None)? {
+                                            seed.set_pos_x(rx)?;
+                                            seed.set_pos_y(ry)?;
+                                        }
+                            ent.add_lua_init_component::<LuaComponent>(&file)?;
+                        }
                     }
                 }
                 return Ok(Some(gid));
+            }
+            RemoteDes::ChestOpenRequest(gid, x, y, file, rx, ry) => {
+                net.send(&NoitaOutbound::RemoteMessage {
+                    reliable: true,
+                    destination: Destination::Peer(my_peer_id()),
+                    message: RemoteMessage::RemoteDes(RemoteDes::ChestOpen(
+                        gid,
+                        x,
+                        y,
+                        file.clone(),
+                        rx,
+                        ry,
+                    )),
+                })?;
+                for (has_interest, peer) in self.iter_peers(player_entity_map) {
+                    if has_interest {
+                        net.send(&NoitaOutbound::RemoteMessage {
+                            reliable: true,
+                            destination: Destination::Peer(peer),
+                            message: RemoteMessage::RemoteDes(RemoteDes::ChestOpen(
+                                gid,
+                                x,
+                                y,
+                                file.clone(),
+                                rx,
+                                ry,
+                            )),
+                        })?;
+                    } else {
+                        net.send(&NoitaOutbound::RemoteMessage {
+                            reliable: true,
+                            destination: Destination::Peer(peer),
+                            message: RemoteMessage::RemoteDes(RemoteDes::SpawnOnce(
+                                WorldPos::from((x, y)),
+                                shared::SpawnOnce::Chest(file.clone(), rx, ry),
+                            )),
+                        })?;
+                    }
+                }
             }
             RemoteDes::SpawnOnce(pos, data) => self.spawn_once.push((pos, data)),
             RemoteDes::DeadEntities(vec) => self.spawn_once.extend(vec),
