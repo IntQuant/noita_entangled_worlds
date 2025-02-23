@@ -11,17 +11,18 @@ local s = "local function get_num()\n"
     .. "return 0\n"
     .. "end\n"
     .. "end\n"
-    .. "SetRandomSeed(get_num(), 0)"
+    .. "SetRandomSeed(get_num(), 0)\n"
+    .. 'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+    .. "local shoot = shoot_projectile\n"
+    .. "function shoot_projectile(...)\n"
+    .. "if util.do_i_own(entity_id) then\n"
+    .. "shoot(...)\n"
+    .. "end\n"
+    .. "end"
 util.prepend(
     "data/scripts/items/greed_die_status.lua",
     "SetRandomSeed( GameGetFrameNum(), pos_x + pos_y + entity_id )",
     s
 )
 util.prepend("data/scripts/items/die_status.lua", "SetRandomSeed( GameGetFrameNum(), pos_x + pos_y + entity_id )", s)
-util.prepend(
-    "data/scripts/items/die_status.lua",
-    'bullet_circle( "fungus", 8, 300 )',
-    'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
-        .. 'if util.do_i_own(entity_id) then bullet_circle("fungus", 8, 300) end'
-)
 return {}

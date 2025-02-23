@@ -1830,7 +1830,7 @@ pub fn init_remote_entity(
         itemc.set_stealable(false)?;
     }
 
-    for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
+    for lua in entity.iter_all_components_of_type_including_disabled::<LuaComponent>(None)? {
         if (!drops_gold
             && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
             || [
