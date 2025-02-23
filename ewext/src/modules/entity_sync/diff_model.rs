@@ -1844,6 +1844,7 @@ pub fn init_remote_entity(
                 "data/scripts/items/die_roll.lua",
                 "data/scripts/animals/iceskull_damage.lua",
                 "data/scripts/buildings/lukki_eggs.lua",
+                "data/scripts/props/physics_vase_damage.lua",
             ]
             .contains(&&*lua.script_damage_received()?)
             || [

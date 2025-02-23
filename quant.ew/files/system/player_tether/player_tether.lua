@@ -139,7 +139,7 @@ end
 
 local function set_tether_length(length, entity)
     for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-        if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
+        if EntityGetName(child) == "ew_tether" then
             local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
             ComponentSetValue2(emmiter, "area_circle_radius", length, length + 2)
             ComponentSetValue2(emmiter, "count_min", length * 256 / (2048 + 128))
@@ -153,7 +153,7 @@ local function tether_enable(to_enable, entity)
     if entity ~= nil and EntityGetIsAlive(entity) then
         local found = false
         for _, child in ipairs(EntityGetAllChildren(entity) or {}) do
-            if EntityGetFilename(child) == "mods/quant.ew/files/system/player_tether/zone_entity.xml" then
+            if EntityGetName(child) == "ew_tether" then
                 local emmiter = EntityGetFirstComponentIncludingDisabled(child, "ParticleEmitterComponent")
                 EntitySetComponentIsEnabled(child, emmiter, to_enable)
                 found = true

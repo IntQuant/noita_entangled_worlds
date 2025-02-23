@@ -1,4 +1,5 @@
-<Entity>
+<Entity
+  name="ew_tether">
     <InheritTransformComponent
         only_position="1"
         >
