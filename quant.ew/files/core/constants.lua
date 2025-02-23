@@ -151,6 +151,7 @@ module.phys_sync_allowed = {
     ["data/entities/buildings/hpcrystal.xml"] = true,
     ["data/entities/animals/ghost.xml"] = true,
     ["data/entities/buildings/ghost_crystal.xml"] = true,
+    ["data/entities/buildings/sun/spot_1.xml"] = true,
 }
 
 module.game_effects = {
