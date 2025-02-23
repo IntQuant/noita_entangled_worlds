@@ -57,6 +57,7 @@ pub(crate) struct EntitySync {
     real_sync_rate: usize,
     delta_sync_rate: usize,
     kill_later: Vec<(EntityID, Option<PeerId>)>,
+    timer: u128,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -91,8 +92,9 @@ impl Default for EntitySync {
             dont_track: Default::default(),
             spawn_once: Default::default(),
             real_sync_rate: 2,
-            delta_sync_rate: 2,
+            delta_sync_rate: 0,
             kill_later: Vec::new(),
+            timer: 0,
         }
     }
 }
@@ -579,19 +581,28 @@ impl Module for EntitySync {
             crate::print_error(s)?;
         }
 
+        let ms = tmr.elapsed().as_micros();
+        self.timer += ms;
         if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
             == self.real_sync_rate - 1
         {
-            let ms = tmr.elapsed().as_micros();
-            if ms > 3000 {
-                self.real_sync_rate = self.real_sync_rate.saturating_add(1)
-            } else if ms < 2000 {
-                self.real_sync_rate = self.real_sync_rate.saturating_sub(1)
+            if self.timer > 3000 * self.real_sync_rate as u128 {
+                self.real_sync_rate = self.real_sync_rate.saturating_add(
+                    (self.timer / (self.real_sync_rate as u128 * 1000) - 2) as usize,
+                )
+            } else if self.timer < 2000 * self.real_sync_rate as u128 {
+                self.real_sync_rate = self.real_sync_rate.saturating_sub(
+                    (self.timer as f64 / (self.real_sync_rate as f64 * 1000.0))
+                        .min(1.0)
+                        .powi(-2)
+                        .round() as usize,
+                )
             };
             self.real_sync_rate = self
                 .real_sync_rate
-                .clamp(ctx.sync_rate, 10 * (ctx.sync_rate + 1));
+                .clamp(ctx.sync_rate, 60 * (ctx.sync_rate + 1));
             self.delta_sync_rate = (frame_num + 1) % self.real_sync_rate;
+            self.timer = 0;
         }
 
         if frame_num % 60 == 47 {
