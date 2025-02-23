@@ -1,28 +1,22 @@
-## Noita Entangled Worlds v1.2.5
+## Noita Entangled Worlds v1.2.6
 
-- make wands more random from client to client
+- improve performance
 
-- reorganize some audio settings, add loopback option and global input/output volume options, dont require hitting save button
+- fix broken wand and dice duping shots, and fungi
 
-- add give host sampo option
+- fix hamis dupe in last layer
 
-- transfer authority faster when applicable
+- fix tether visual staying on host
 
-- fix a logic error in world chunks
+- fix stuff flying off with 0 gravity
 
-- fix stevari duping
+- fix sunspot not working sometimes
 
-- fix sun quest duping, sync sun child states
+- fix plague rats, revenge rats, vomit rats, and mold perk duping entities
 
-- send position data over time
+- fix fps scaling being wrong causing odd entity speeds
 
-- fix houre
-
-- apply meat boss death effect no matter where you are
-
-- sync killers and helpless kill counts
-
-- havbe a bit larger auth radius for bosses(hopefully doesn't break stuff)
+- fix chests
 
 
 ## Accepted pull requests
