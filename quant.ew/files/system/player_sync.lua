@@ -316,7 +316,7 @@ function module.on_world_update()
         end
     end
 
-    if GameGetFrameNum() % 10 == 4 then
+    if GameGetFrameNum() % 4 == 3 then
         local last = ctx.my_player.fps
         update_fps()
         if ctx.my_player.fps ~= last then

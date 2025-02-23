@@ -1386,8 +1386,8 @@ impl RemoteDiffModel {
                 entity.remove_component(*limb)?
             };
         }
-        let m = *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32
-            / *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32;
+        let m = *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32
+            / *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32;
         let (vx, vy) = (entity_info.vx * m, entity_info.vy * m);
         if entity_info.phys.is_empty()
             || (entity_info.is_enabled && entity.has_tag("boss_centipede"))

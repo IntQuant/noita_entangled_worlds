@@ -604,6 +604,12 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
         entity_sync = n
         ewext.send_sync_rate(entity_sync)
     end
+    --[[if InputIsKeyJustDown(11) then
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        for _ = 1, 256 do
+            EntityLoad("data/entities/animals/longleg.xml", x, y)
+        end
+    end]]
 end
 
 local function on_world_post_update_inner()
