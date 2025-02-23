@@ -825,6 +825,12 @@ impl LocalDiffModel {
                 if let Some(damage) =
                     entity.try_get_first_component::<DamageModelComponent>(None)?
                 {
+                    if entity_data.hp > damage.max_hp_cap()? as f32 {
+                        damage.set_max_hp_cap(entity_data.hp as f64)?;
+                    }
+                    if entity_data.hp > damage.max_hp()? as f32 {
+                        damage.set_max_hp(entity_data.hp as f64)?;
+                    }
                     damage.set_hp(entity_data.hp as f64)?;
                 }
             }

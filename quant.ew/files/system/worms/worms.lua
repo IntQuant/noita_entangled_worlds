@@ -6,11 +6,13 @@ local function get_closest_alive(x, y)
     for _, player in pairs(ctx.players) do
         if not EntityHasTag(player.entity, "ew_notplayer") then
             local tx, ty = EntityGetTransform(player.entity)
-            local dx, dy = tx - x, ty - y
-            local dist = dx * dx + dy * dy
-            if min_dist == nil or dist < min_dist then
-                min_dist = dist
-                min_ent = player.entity
+            if tx ~= nil then
+                local dx, dy = tx - x, ty - y
+                local dist = dx * dx + dy * dy
+                if min_dist == nil or dist < min_dist then
+                    min_dist = dist
+                    min_ent = player.entity
+                end
             end
         end
     end
@@ -39,10 +41,12 @@ function worms.on_world_update()
                 end
             else
                 local ghost = EntityGetFirstComponentIncludingDisabled(ent, "GhostComponent")
-                local x, y = EntityGetTransform(ent)
-                local min_ent = get_closest_alive(x, y)
-                if min_ent ~= nil then
-                    ComponentSetValue2(ghost, "mTargetEntityId", min_ent)
+                if ghost ~= nil then
+                    local x, y = EntityGetTransform(ent)
+                    local min_ent = get_closest_alive(x, y)
+                    if min_ent ~= nil then
+                        ComponentSetValue2(ghost, "mTargetEntityId", min_ent)
+                    end
                 end
             end
         end
