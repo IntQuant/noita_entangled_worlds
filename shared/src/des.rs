@@ -37,7 +37,7 @@ pub struct FullEntityData {
     pub pos: WorldPos,
     pub data: EntitySpawnInfo,
     pub wand: Option<Vec<u8>>,
-    pub rotation: f32,
+    //pub rotation: f32,
     pub hp: f32,
     pub drops_gold: bool,
     pub is_charmed: bool,
@@ -54,12 +54,18 @@ pub struct UpdatePosition {
 }
 
 #[derive(Debug, Encode, Decode, Clone)]
+pub enum UpdateOrUpload {
+    Update(UpdatePosition),
+    Upload(FullEntityData),
+}
+
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum DesToProxy {
-    InitOrUpdateEntity(FullEntityData),
     DeleteEntity(Gid, Option<NonZero<isize>>),
     ReleaseAuthority(Gid),
     RequestAuthority { pos: WorldPos, radius: i32 },
-    UpdatePositions(Vec<UpdatePosition>),
+    UpdatePosition(UpdateOrUpload),
+    UpdatePositions(Vec<UpdateOrUpload>),
     TransferAuthorityTo(Gid, PeerId),
     UpdateWand(Gid, Option<Vec<u8>>),
 }
@@ -139,7 +145,7 @@ impl EntityInfo {
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
-    Init(Box<EntityInfo>, Gid),
+    Init(Box<EntityInfo>, Lid, Gid),
     // TODO diffing for position
     SetPosition(f32, f32),
     SetRotation(f32),

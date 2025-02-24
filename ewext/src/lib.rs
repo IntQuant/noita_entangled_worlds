@@ -333,7 +333,7 @@ fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
 
 fn module_on_new_entity(lua: LuaState) -> eyre::Result<()> {
     let entity = EntityID::try_from(lua.to_string(1)?.parse::<isize>()?)?;
-    with_every_module(|ctx, module| module.on_new_entity(entity, ctx, true))
+    with_every_module(|_, module| module.on_new_entity(entity, true))
 }
 
 fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
@@ -512,9 +512,7 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
                     .entity_sync
                     .as_mut()
                     .ok_or_eyre("No entity sync module loaded")?;
-                let mut temp = try_lock_netmanager()?;
-                let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
-                entity_sync.cross_item_thrown(net, LuaGetValue::get(lua, -1)?)?;
+                entity_sync.cross_item_thrown(LuaGetValue::get(lua, -1)?)?;
                 Ok(())
             })?
         }
@@ -575,9 +573,7 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
                 let entity_killed: Option<EntityID> = LuaGetValue::get(lua, -1)?;
                 let entity_killed =
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
-                let mut temp = try_lock_netmanager()?;
-                let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
-                entity_sync.track_entity(net, entity_killed);
+                entity_sync.track_entity(entity_killed);
                 Ok(())
             })?
         }

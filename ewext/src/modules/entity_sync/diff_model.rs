@@ -16,7 +16,9 @@ use noita_api::{
     WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::des::{GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS};
+use shared::des::{
+    GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS, UpdateOrUpload,
+};
 use shared::{
     GameEffectData, GameEffectEnum, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
     des::{
@@ -51,6 +53,7 @@ pub(crate) struct LocalDiffModel {
     next_lid: Lid,
     entity_entries: FxHashMap<Lid, EntityEntryPair>,
     tracker: LocalDiffModelTracker,
+    upload: FxHashSet<Lid>,
 }
 impl LocalDiffModel {
     pub(crate) fn got_polied(&mut self, gid: Gid) {
@@ -66,26 +69,57 @@ impl LocalDiffModel {
             .map(|e| self.tracker.entity_by_lid(*e.0))?
             .ok()
     }
-    pub(crate) fn get_pos_data(&self, frame_num: usize) -> Vec<UpdatePosition> {
+    pub(crate) fn get_pos_data(&mut self, frame_num: usize) -> Vec<UpdateOrUpload> {
         let len = self.entity_entries.len();
         let batch_size = (len / 60).max(1);
         let start = (frame_num % 60) * batch_size;
         let end = (start + batch_size).min(len);
-        self.entity_entries
-            .values()
+        let mut upload = std::mem::take(&mut self.upload);
+        let mut res: Vec<UpdateOrUpload> = self
+            .entity_entries
+            .iter()
             .skip(start)
             .take(end - start)
-            .map(|p| {
+            .map(|(lid, p)| {
                 let EntityEntryPair { current, gid, .. } = p;
-                UpdatePosition {
-                    gid: *gid,
-                    pos: WorldPos::from_f32(current.x, current.y),
-                    counter: current.counter,
-                    is_charmed: current.is_charmed(),
-                    hp: current.hp,
+                if upload.remove(lid) {
+                    UpdateOrUpload::Upload(FullEntityData {
+                        gid: *gid,
+                        pos: WorldPos::from_f32(current.x, current.y),
+                        data: current.spawn_info.clone(),
+                        wand: current.wand.clone().map(|(_, w)| w),
+                        //rotation: entry_pair.current.r,
+                        drops_gold: current.drops_gold,
+                        is_charmed: current.is_charmed(),
+                        hp: current.hp,
+                        counter: current.counter,
+                    })
+                } else {
+                    UpdateOrUpload::Update(UpdatePosition {
+                        gid: *gid,
+                        pos: WorldPos::from_f32(current.x, current.y),
+                        counter: current.counter,
+                        is_charmed: current.is_charmed(),
+                        hp: current.hp,
+                    })
                 }
             })
-            .collect()
+            .collect();
+        for lid in upload {
+            let EntityEntryPair { current, gid, .. } = self.entity_entries.get(&lid).unwrap();
+            res.push(UpdateOrUpload::Upload(FullEntityData {
+                gid: *gid,
+                pos: WorldPos::from_f32(current.x, current.y),
+                data: current.spawn_info.clone(),
+                wand: current.wand.clone().map(|(_, w)| w),
+                //rotation: entry_pair.current.r,
+                drops_gold: current.drops_gold,
+                is_charmed: current.is_charmed(),
+                hp: current.hp,
+                counter: current.counter,
+            }));
+        }
+        res
     }
 
     pub(crate) fn is_entity_tracked(&self, entity: EntityID) -> bool {
@@ -150,6 +184,7 @@ impl Default for LocalDiffModel {
                 global_entities: Default::default(),
                 got_polied: Default::default(),
             },
+            upload: Default::default(),
         }
     }
 }
@@ -165,7 +200,8 @@ impl LocalDiffModelTracker {
         info: &mut EntityInfo,
         lid: Lid,
         cam_pos: (f32, f32),
-    ) -> eyre::Result<()> {
+        do_upload: bool,
+    ) -> eyre::Result<bool> {
         let entity = self
             .entity_by_lid(lid)
             .wrap_err_with(|| eyre!("Failed to grab update info for {:?} {:?}", gid, lid))?;
@@ -179,19 +215,21 @@ impl LocalDiffModelTracker {
                     .iter()
                     .all(|(e, _, _, _, _)| *e != entity)
             {
+                self._release_authority_update_data(ctx, gid, lid, info, do_upload)?;
                 self.pending_removal.push(lid);
                 ctx.net.send(&NoitaOutbound::DesToProxy(
                     shared::des::DesToProxy::ReleaseAuthority(gid),
                 ))?;
+                return Ok(do_upload);
             } else {
                 self.untrack_entity(ctx, gid, lid, None)?;
             }
-            return Ok(());
+            return Ok(false);
         }
         let item_and_was_picked = info.kind == EntityKind::Item && item_in_inventory(entity)?;
         if item_and_was_picked && not_in_player_inventory(entity)? {
             self.temporary_untrack_item(ctx, gid, lid, entity)?;
-            return Ok(());
+            return Ok(false);
         }
 
         let (x, y, r, sx, sy) = entity.transform()?;
@@ -269,51 +307,6 @@ impl LocalDiffModelTracker {
                 }
             })
             .collect();
-
-        // Check if entity went out of range, remove and release authority if it did.
-        let is_beyond_authority = (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2)
-            > if info.is_global {
-                GLOBAL_AUTHORITY_RADIUS
-            } else {
-                AUTHORITY_RADIUS
-            }
-            .powi(2);
-        if is_beyond_authority {
-            if let Some(peer) = ctx.locate_player_within_except_me(
-                x,
-                y,
-                if info.is_global {
-                    GLOBAL_TRANSFER_RADIUS
-                } else {
-                    TRANSFER_RADIUS
-                },
-            )? {
-                self.transfer_authority_to(
-                    ctx,
-                    gid,
-                    lid,
-                    peer,
-                    info.wand.clone().map(|(_, a)| a),
-                    info.is_charmed(),
-                    info.hp,
-                    info.counter,
-                )
-                .wrap_err("Failed to transfer authority")?;
-                return Ok(());
-            } else if !info.is_global {
-                self.release_authority(
-                    ctx,
-                    gid,
-                    lid,
-                    info.wand.clone().map(|(_, a)| a),
-                    info.is_charmed(),
-                    info.hp,
-                    info.counter,
-                )
-                .wrap_err("Failed to release authority")?;
-                return Ok(());
-            }
-        }
 
         if let Some(worm) = entity.try_get_first_component::<BossDragonComponent>(None)? {
             (info.vx, info.vy) = worm.m_target_vec()?;
@@ -496,8 +489,35 @@ impl LocalDiffModelTracker {
                 ))
             })
             .collect::<Vec<(String, String, i32, f32, bool)>>();
+        // Check if entity went out of range, remove and release authority if it did.
+        let is_beyond_authority = (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2)
+            > if info.is_global {
+                GLOBAL_AUTHORITY_RADIUS
+            } else {
+                AUTHORITY_RADIUS
+            }
+            .powi(2);
+        if is_beyond_authority {
+            if let Some(peer) = ctx.locate_player_within_except_me(
+                x,
+                y,
+                if info.is_global {
+                    GLOBAL_TRANSFER_RADIUS
+                } else {
+                    TRANSFER_RADIUS
+                },
+            )? {
+                self.transfer_authority_to(ctx, gid, lid, peer, info, do_upload)
+                    .wrap_err("Failed to transfer authority")?;
+                return Ok(do_upload);
+            } else if !info.is_global {
+                self.release_authority(ctx, gid, lid, info, do_upload)
+                    .wrap_err("Failed to release authority")?;
+                return Ok(do_upload);
+            }
+        }
 
-        Ok(())
+        Ok(false)
     }
 
     fn untrack_entity(
@@ -552,31 +572,42 @@ impl LocalDiffModelTracker {
         ctx: &mut ModuleCtx<'_>,
         gid: Gid,
         lid: Lid,
-        wand: Option<Vec<u8>>,
-        is_charmed: bool,
-        hp: f32,
-        counter: u8,
+        info: &EntityInfo,
+        do_upload: bool,
     ) -> Result<EntityID, eyre::Error> {
         let entity = self
             .entity_by_lid(lid)
             .wrap_err("Failed to release authority and upload update data")?;
-        let (x, y, _, _, _) = entity.transform()?;
         if !entity
             .filename()?
             .starts_with("data/entities/animals/wand_ghost")
         {
             ctx.net.send(&NoitaOutbound::DesToProxy(
-                shared::des::DesToProxy::UpdateWand(gid, wand),
+                shared::des::DesToProxy::UpdateWand(gid, info.wand.clone().map(|(_, w)| w)),
             ))?;
         }
         ctx.net.send(&NoitaOutbound::DesToProxy(
-            shared::des::DesToProxy::UpdatePositions(vec![UpdatePosition {
-                gid,
-                pos: WorldPos::from_f32(x, y),
-                counter,
-                is_charmed,
-                hp,
-            }]),
+            shared::des::DesToProxy::UpdatePosition(if do_upload {
+                UpdateOrUpload::Upload(FullEntityData {
+                    gid,
+                    pos: WorldPos::from_f32(info.x, info.y),
+                    data: info.spawn_info.clone(),
+                    wand: info.wand.clone().map(|(_, w)| w),
+                    //rotation: entry_pair.info.r,
+                    drops_gold: info.drops_gold,
+                    is_charmed: info.is_charmed(),
+                    hp: info.hp,
+                    counter: info.counter,
+                })
+            } else {
+                UpdateOrUpload::Update(UpdatePosition {
+                    gid,
+                    pos: WorldPos::from_f32(info.x, info.y),
+                    counter: info.counter,
+                    is_charmed: info.is_charmed(),
+                    hp: info.hp,
+                })
+            }),
         ))?;
         Ok(entity)
     }
@@ -587,13 +618,10 @@ impl LocalDiffModelTracker {
         ctx: &mut ModuleCtx<'_>,
         gid: Gid,
         lid: Lid,
-        wand: Option<Vec<u8>>,
-        is_charmed: bool,
-        hp: f32,
-        counter: u8,
+        info: &EntityInfo,
+        do_upload: bool,
     ) -> eyre::Result<()> {
-        let entity =
-            self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp, counter)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, info, do_upload)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
@@ -609,13 +637,10 @@ impl LocalDiffModelTracker {
         gid: Gid,
         lid: Lid,
         peer: PeerId,
-        wand: Option<Vec<u8>>,
-        is_charmed: bool,
-        hp: f32,
-        counter: u8,
+        info: &EntityInfo,
+        do_upload: bool,
     ) -> eyre::Result<()> {
-        let entity =
-            self._release_authority_update_data(ctx, gid, lid, wand, is_charmed, hp, counter)?;
+        let entity = self._release_authority_update_data(ctx, gid, lid, info, do_upload)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
@@ -771,18 +796,12 @@ impl LocalDiffModel {
 
     pub(crate) fn track_and_upload_entity(
         &mut self,
-        net: &mut NetManager,
         entity: EntityID,
         gid: Gid,
-    ) -> eyre::Result<Lid> {
+    ) -> eyre::Result<()> {
         let lid = self.track_entity(entity, gid)?;
-        net.send(&NoitaOutbound::DesToProxy(
-            shared::des::DesToProxy::InitOrUpdateEntity(
-                self.full_entity_data_for(lid)
-                    .ok_or_eyre("entity just began being tracked")?,
-            ),
-        ))?;
-        Ok(lid)
+        self.upload.insert(lid);
+        Ok(())
     }
 
     pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
@@ -793,11 +812,7 @@ impl LocalDiffModel {
                 entity_data.pos.x as f32,
                 entity_data.pos.y as f32,
             )?;
-            entity.set_position(
-                entity_data.pos.x as f32,
-                entity_data.pos.y as f32,
-                Some(entity_data.rotation),
-            )?;
+            entity.set_position(entity_data.pos.x as f32, entity_data.pos.y as f32, None)?;
             if entity_data.is_charmed {
                 if entity.has_tag("boss_centipede") {
                     entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
@@ -858,12 +873,13 @@ impl LocalDiffModel {
         Ok(())
     }
 
+    #[allow(clippy::type_complexity)]
     pub(crate) fn update_tracked_entities(
         &mut self,
         ctx: &mut ModuleCtx,
         part: usize,
         total: usize,
-    ) -> eyre::Result<()> {
+    ) -> eyre::Result<(Vec<EntityUpdate>, Vec<(WorldPos, SpawnOnce)>)> {
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
@@ -871,198 +887,210 @@ impl LocalDiffModel {
         let chunk_size = l.div_ceil(total);
         let start = part * chunk_size;
         let end = (start + chunk_size).min(l);
-        for (
-            &lid,
-            EntityEntryPair {
-                last: _,
-                current,
-                gid,
-            },
-        ) in self.entity_entries.iter_mut().skip(start).take(end - start)
+        let mut res = Vec::new();
+        for (i, (&lid, EntityEntryPair { last, current, gid })) in
+            self.entity_entries.iter_mut().enumerate()
         {
-            if let Err(error) = self
-                .tracker
-                .update_entity(ctx, *gid, current, lid, (cam_x, cam_y))
-                .wrap_err("Failed to update local entity")
-            {
-                print_error(error)?;
-                self.tracker.untrack_entity(ctx, *gid, lid, None)?;
-            }
-        }
-        Ok(())
-    }
-    pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
-        let mut res = Vec::new();
-        for (&lid, EntityEntryPair { last, current, gid }) in self.entity_entries.iter_mut() {
-            res.push(EntityUpdate::CurrentEntity(lid));
-            *last = Some(current.clone());
-            res.push(EntityUpdate::Init(Box::from(current.clone()), *gid));
-        }
-        res
-    }
+            if (start..end).contains(&i) || last.is_none() {
+                match self
+                    .tracker
+                    .update_entity(
+                        ctx,
+                        *gid,
+                        current,
+                        lid,
+                        (cam_x, cam_y),
+                        self.upload.contains(&lid),
+                    )
+                    .wrap_err("Failed to update local entity")
+                {
+                    Err(error) => {
+                        print_error(error)?;
+                        self.tracker.untrack_entity(ctx, *gid, lid, None)?;
+                    }
+                    Ok(do_remove) => {
+                        if do_remove {
+                            self.upload.remove(&lid);
+                        }
+                        let Some(last) = last.as_mut() else {
+                            *last = Some(current.clone());
+                            res.push(EntityUpdate::Init(Box::from(current.clone()), lid, *gid));
+                            continue;
+                        };
+                        let mut had_any_delta = false;
 
-    pub(crate) fn make_diff(
-        &mut self,
-        ctx: &mut ModuleCtx,
-    ) -> (Vec<EntityUpdate>, Vec<(WorldPos, SpawnOnce)>) {
-        let mut res = Vec::new();
-        for (&lid, EntityEntryPair { last, current, gid }) in self.entity_entries.iter_mut() {
-            res.push(EntityUpdate::CurrentEntity(lid));
-            let Some(last) = last.as_mut() else {
-                *last = Some(current.clone());
-                res.push(EntityUpdate::Init(Box::from(current.clone()), *gid));
-                continue;
-            };
-            let mut had_any_delta = false;
-
-            fn diff<T: PartialEq + Clone>(
-                current: &T,
-                last: &mut T,
-                update: EntityUpdate,
-                res: &mut Vec<EntityUpdate>,
-                had_any_delta: &mut bool,
-            ) {
-                if current != last {
-                    res.push(update);
-                    *last = current.clone();
-                    *had_any_delta = true;
+                        fn diff<T: PartialEq + Clone>(
+                            current: &T,
+                            last: &mut T,
+                            update: EntityUpdate,
+                            res: &mut Vec<EntityUpdate>,
+                            had_any_delta: &mut bool,
+                            lid: Lid,
+                        ) {
+                            if current != last {
+                                if !*had_any_delta {
+                                    res.push(EntityUpdate::CurrentEntity(lid));
+                                }
+                                res.push(update);
+                                *last = current.clone();
+                                *had_any_delta = true;
+                            }
+                        }
+                        if current.wand.clone().map(|(g, _)| g) != last.wand.clone().map(|(g, _)| g)
+                        {
+                            if !had_any_delta {
+                                res.push(EntityUpdate::CurrentEntity(lid));
+                            }
+                            res.push(EntityUpdate::SetWand(current.wand.clone()));
+                            last.wand = current.wand.clone();
+                            had_any_delta = true;
+                        }
+                        diff(
+                            &current.laser,
+                            &mut last.laser,
+                            EntityUpdate::SetLaser(current.laser),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &(current.x, current.y),
+                            &mut (last.x, last.y),
+                            EntityUpdate::SetPosition(current.x, current.y),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &(current.vx, current.vy),
+                            &mut (last.vx, last.vy),
+                            EntityUpdate::SetVelocity(current.vx, current.vy),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.hp,
+                            &mut last.hp,
+                            EntityUpdate::SetHp(current.hp),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.hp,
+                            &mut last.hp,
+                            EntityUpdate::SetHp(current.hp),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.animations,
+                            &mut last.animations,
+                            EntityUpdate::SetAnimations(current.animations.clone()),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.synced_var,
+                            &mut last.synced_var,
+                            EntityUpdate::SetSyncedVar(current.synced_var.clone()),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.facing_direction,
+                            &mut last.facing_direction,
+                            EntityUpdate::SetFacingDirection(current.facing_direction),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.r,
+                            &mut last.r,
+                            EntityUpdate::SetRotation(current.r),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.phys,
+                            &mut last.phys,
+                            EntityUpdate::SetPhysInfo(current.phys.clone()),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.cost,
+                            &mut last.cost,
+                            EntityUpdate::SetCost(current.cost),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.current_stains,
+                            &mut last.current_stains,
+                            EntityUpdate::SetStains(current.current_stains),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.game_effects,
+                            &mut last.game_effects,
+                            EntityUpdate::SetGameEffects(current.game_effects.clone()),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.ai_rotation,
+                            &mut last.ai_rotation,
+                            EntityUpdate::SetAiRotation(current.ai_rotation),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.ai_state,
+                            &mut last.ai_state,
+                            EntityUpdate::SetAiState(current.ai_state),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.limbs,
+                            &mut last.limbs,
+                            EntityUpdate::SetLimbs(current.limbs.clone()),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.is_enabled,
+                            &mut last.is_enabled,
+                            EntityUpdate::SetIsEnabled(current.is_enabled),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                        diff(
+                            &current.counter,
+                            &mut last.counter,
+                            EntityUpdate::SetCounter(current.counter),
+                            &mut res,
+                            &mut had_any_delta,
+                            lid,
+                        );
+                    }
                 }
-            }
-            if current.wand.clone().map(|(g, _)| g) != last.wand.clone().map(|(g, _)| g) {
-                res.push(EntityUpdate::SetWand(current.wand.clone()));
-                last.wand = current.wand.clone();
-                had_any_delta = true;
-            }
-            diff(
-                &current.laser,
-                &mut last.laser,
-                EntityUpdate::SetLaser(current.laser),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &(current.x, current.y),
-                &mut (last.x, last.y),
-                EntityUpdate::SetPosition(current.x, current.y),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &(current.vx, current.vy),
-                &mut (last.vx, last.vy),
-                EntityUpdate::SetVelocity(current.vx, current.vy),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.hp,
-                &mut last.hp,
-                EntityUpdate::SetHp(current.hp),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.hp,
-                &mut last.hp,
-                EntityUpdate::SetHp(current.hp),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.animations,
-                &mut last.animations,
-                EntityUpdate::SetAnimations(current.animations.clone()),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.synced_var,
-                &mut last.synced_var,
-                EntityUpdate::SetSyncedVar(current.synced_var.clone()),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.facing_direction,
-                &mut last.facing_direction,
-                EntityUpdate::SetFacingDirection(current.facing_direction),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.r,
-                &mut last.r,
-                EntityUpdate::SetRotation(current.r),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.phys,
-                &mut last.phys,
-                EntityUpdate::SetPhysInfo(current.phys.clone()),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.cost,
-                &mut last.cost,
-                EntityUpdate::SetCost(current.cost),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.current_stains,
-                &mut last.current_stains,
-                EntityUpdate::SetStains(current.current_stains),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.game_effects,
-                &mut last.game_effects,
-                EntityUpdate::SetGameEffects(current.game_effects.clone()),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.ai_rotation,
-                &mut last.ai_rotation,
-                EntityUpdate::SetAiRotation(current.ai_rotation),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.ai_state,
-                &mut last.ai_state,
-                EntityUpdate::SetAiState(current.ai_state),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.limbs,
-                &mut last.limbs,
-                EntityUpdate::SetLimbs(current.limbs.clone()),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.is_enabled,
-                &mut last.is_enabled,
-                EntityUpdate::SetIsEnabled(current.is_enabled),
-                &mut res,
-                &mut had_any_delta,
-            );
-            diff(
-                &current.counter,
-                &mut last.counter,
-                EntityUpdate::SetCounter(current.counter),
-                &mut res,
-                &mut had_any_delta,
-            );
-
-            // Remove the CurrentEntity thing because it's not necessary.
-            if !had_any_delta {
-                res.pop();
             }
         }
         for (lid, peer) in self.tracker.pending_localize.drain(..) {
@@ -1099,7 +1127,16 @@ impl LocalDiffModel {
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
         }
-        (res, dead)
+        Ok((res, dead))
+    }
+    pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
+        let mut res = Vec::new();
+        for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.iter() {
+            //res.push(EntityUpdate::CurrentEntity(*lid));
+            //*last = Some(current.clone());
+            res.push(EntityUpdate::Init(Box::from(current.clone()), *lid, *gid));
+        }
+        res
     }
 
     pub(crate) fn lid_by_entity(&self, entity: EntityID) -> Option<Lid> {
@@ -1108,21 +1145,6 @@ impl LocalDiffModel {
 
     pub(crate) fn got_authority(&mut self, full_entity_data: FullEntityData) {
         self.tracker.pending_authority.push(full_entity_data);
-    }
-
-    pub(crate) fn full_entity_data_for(&self, lid: Lid) -> Option<FullEntityData> {
-        let entry_pair = self.entity_entries.get(&lid)?;
-        Some(FullEntityData {
-            gid: entry_pair.gid,
-            pos: WorldPos::from_f32(entry_pair.current.x, entry_pair.current.y),
-            data: entry_pair.current.spawn_info.clone(),
-            wand: None,
-            rotation: entry_pair.current.r,
-            drops_gold: entry_pair.current.drops_gold,
-            is_charmed: entry_pair.current.is_charmed(),
-            hp: -1.0,
-            counter: 0,
-        })
     }
 
     pub(crate) fn entity_grabbed(&mut self, source: PeerId, lid: Lid, net: &mut NetManager) {
@@ -1216,31 +1238,23 @@ impl RemoteDiffModel {
         self.waiting_for_lid.insert(gid, entity);
     }
     pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) -> Vec<EntityID> {
-        let mut current_lid = Lid(0);
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
         let mut dont_kill = Vec::new();
         for entry in diff.iter().cloned() {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => {
-                    current_lid = lid;
-                    ent_data = self
-                        .entity_infos
-                        .get_mut(&current_lid)
-                        .unwrap_or(empty_data)
+                    ent_data = self.entity_infos.get_mut(&lid).unwrap_or(empty_data)
                 }
-                EntityUpdate::Init(entity_entry, gid) => {
+                EntityUpdate::Init(entity_entry, lid, gid) => {
                     if let Some(ent) = self.waiting_for_lid.remove(&gid) {
-                        self.tracked.insert(current_lid, ent);
-                        let _ = init_remote_entity(ent, Some(current_lid), Some(gid), false);
+                        self.tracked.insert(lid, ent);
+                        let _ = init_remote_entity(ent, Some(lid), Some(gid), false);
                         dont_kill.push(ent);
                     }
-                    self.lid_to_gid.insert(current_lid, gid);
-                    self.entity_infos.insert(current_lid, *entity_entry);
-                    ent_data = self
-                        .entity_infos
-                        .get_mut(&current_lid)
-                        .unwrap_or(empty_data)
+                    self.lid_to_gid.insert(lid, gid);
+                    self.entity_infos.insert(lid, *entity_entry);
+                    ent_data = self.entity_infos.get_mut(&lid).unwrap_or(empty_data)
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
@@ -1281,7 +1295,7 @@ impl RemoteDiffModel {
                     EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
                     EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
                     EntityUpdate::CurrentEntity(_)
-                    | EntityUpdate::Init(_, _)
+                    | EntityUpdate::Init(_, _, _)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },
                 _ => {}

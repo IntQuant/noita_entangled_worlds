@@ -63,10 +63,10 @@ impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
     }*/
-    pub(crate) fn track_entity(&mut self, net: &mut NetManager, ent: EntityID) {
+    pub(crate) fn track_entity(&mut self, ent: EntityID) {
         let _ = self
             .local_diff_model
-            .track_and_upload_entity(net, ent, Gid(rand::random()));
+            .track_and_upload_entity(ent, Gid(rand::random()));
     }
     pub(crate) fn notrack_entity(&mut self, ent: EntityID) {
         self.dont_track.insert(ent);
@@ -396,16 +396,12 @@ impl EntitySync {
         Ok(None)
     }
 
-    pub(crate) fn cross_item_thrown(
-        &mut self,
-        net: &mut NetManager,
-        entity: Option<EntityID>,
-    ) -> eyre::Result<()> {
+    pub(crate) fn cross_item_thrown(&mut self, entity: Option<EntityID>) -> eyre::Result<()> {
         let entity = entity.ok_or_eyre("Passed entity 0 into cross call")?;
         // It might be already tracked in case of tablet telekinesis, no need to track it again.
         if !self.local_diff_model.is_entity_tracked(entity) {
             self.local_diff_model
-                .track_and_upload_entity(net, entity, Gid(rand::random()))?;
+                .track_and_upload_entity(entity, Gid(rand::random()))?;
         }
         Ok(())
     }
@@ -451,12 +447,7 @@ impl Module for EntitySync {
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
-    fn on_new_entity(
-        &mut self,
-        entity: EntityID,
-        ctx: &mut super::ModuleCtx,
-        kill: bool,
-    ) -> eyre::Result<()> {
+    fn on_new_entity(&mut self, entity: EntityID, kill: bool) -> eyre::Result<()> {
         if !kill && !entity.is_alive() {
             return Ok(());
         }
@@ -491,8 +482,7 @@ impl Module for EntitySync {
         }
         if self.should_be_tracked(entity)? {
             let gid = Gid(rand::random());
-            self.local_diff_model
-                .track_and_upload_entity(ctx.net, entity, gid)?;
+            self.local_diff_model.track_and_upload_entity(entity, gid)?;
         }
         Ok(())
     }
@@ -526,17 +516,17 @@ impl Module for EntitySync {
         self.local_diff_model.update_pending_authority()?;
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             if let Ok(ent) = EntityID::try_from(ent) {
-                self.on_new_entity(ent, ctx, false)?;
+                self.on_new_entity(ent, false)?;
             }
         }
         let tmr = std::time::Instant::now();
         {
-            let total_parts = self.real_sync_rate.max(1);
-            self.local_diff_model
+            let (diff, dead) = self
+                .local_diff_model
                 .update_tracked_entities(
                     ctx,
-                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
-                    total_parts,
+                    frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate,
+                    self.real_sync_rate,
                 )
                 .wrap_err("Failed to update locally tracked entities")?;
             let new_intersects = self.interest_tracker.got_any_new_interested();
@@ -551,7 +541,6 @@ impl Module for EntitySync {
                     )?;
                 }
             }
-            let (diff, dead) = self.local_diff_model.make_diff(ctx);
             // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
             for peer in self.interest_tracker.iter_interested() {
                 if !self.pending_fired_projectiles.is_empty() {

@@ -3,7 +3,7 @@ use std::mem;
 use bitcode::{Decode, Encode};
 use rstar::{RTree, primitives::GeomWithData};
 use rustc_hash::FxHashMap;
-use shared::des::{DesToProxy, FullEntityData, Gid, ProxyToDes, UpdatePosition};
+use shared::des::{DesToProxy, FullEntityData, Gid, ProxyToDes, UpdateOrUpload, UpdatePosition};
 use tracing::{info, warn};
 
 use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
@@ -67,15 +67,36 @@ impl DesManager {
         }
     }
 
-    pub(crate) fn handle_noita_msg(&mut self, source: OmniPeerId, msg: DesToProxy) {
-        // TODO maybe check that authorities are correct?
-        match msg {
-            DesToProxy::InitOrUpdateEntity(full_entity_data) => {
+    fn handle_update(&mut self, update: UpdateOrUpload, source: OmniPeerId) {
+        match update {
+            UpdateOrUpload::Upload(full_entity_data) => {
                 self.authority.insert(full_entity_data.gid, source);
                 self.entity_storage
                     .entities
                     .insert(full_entity_data.gid, full_entity_data);
             }
+            UpdateOrUpload::Update(update) => {
+                let UpdatePosition {
+                    gid,
+                    pos,
+                    counter,
+                    is_charmed,
+                    hp,
+                } = update;
+                self.remove_gid_from_tree(gid);
+                if let Some(entity) = self.entity_storage.entities.get_mut(&gid) {
+                    entity.pos = pos;
+                    entity.is_charmed = is_charmed;
+                    entity.hp = hp;
+                    entity.counter = counter;
+                }
+            }
+        }
+    }
+
+    pub(crate) fn handle_noita_msg(&mut self, source: OmniPeerId, msg: DesToProxy) {
+        // TODO maybe check that authorities are correct?
+        match msg {
             DesToProxy::UpdateWand(gid, wand) => {
                 self.entity_storage
                     .entities
@@ -115,22 +136,10 @@ impl DesManager {
                     }
                 }
             }
+            DesToProxy::UpdatePosition(update) => self.handle_update(update, source),
             DesToProxy::UpdatePositions(updates) => {
-                for UpdatePosition {
-                    gid,
-                    pos,
-                    counter,
-                    is_charmed,
-                    hp,
-                } in updates
-                {
-                    self.remove_gid_from_tree(gid);
-                    if let Some(entity) = self.entity_storage.entities.get_mut(&gid) {
-                        entity.pos = pos;
-                        entity.is_charmed = is_charmed;
-                        entity.hp = hp;
-                        entity.counter = counter;
-                    }
+                for update in updates {
+                    self.handle_update(update, source)
                 }
             }
             DesToProxy::TransferAuthorityTo(gid, peer_id) => {
