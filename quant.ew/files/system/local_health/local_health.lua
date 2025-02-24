@@ -599,6 +599,10 @@ function module.on_client_spawned(peer_id, playerdata)
         "LuaComponent",
         { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
     )
+    EntityAddComponent2(playerdata.entity, "LuaComponent", {
+        _tags = "ew_immortal",
+        script_damage_about_to_be_received = "mods/quant.ew/files/system/local_health/immortal.lua",
+    })
     local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
     ComponentSetValue2(damage_model, "physics_objects_damage", false)
@@ -610,6 +614,10 @@ function module.on_client_polymorphed(peer_id, playerdata)
         "LuaComponent",
         { script_damage_received = "mods/quant.ew/files/system/damage/cbs/send_damage_to_client.lua" }
     )
+    EntityAddComponent2(playerdata.entity, "LuaComponent", {
+        _tags = "ew_immortal",
+        script_damage_about_to_be_received = "mods/quant.ew/files/system/local_health/immortal.lua",
+    })
     local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
     ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
 end
@@ -782,6 +790,17 @@ function rpc.send_status(status)
             ctx.rpc_player_data.entity,
             hp - status.hp,
             "DAMAGE_CURSE",
+            "hp update",
+            "NONE",
+            0,
+            0,
+            GameGetWorldStateEntity()
+        )
+    elseif hp < status.hp then
+        EntityInflictDamage(
+            ctx.rpc_player_data.entity,
+            hp - status.hp,
+            "DAMAGE_HEALING",
             "hp update",
             "NONE",
             0,

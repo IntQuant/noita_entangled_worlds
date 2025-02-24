@@ -43,8 +43,8 @@ return module
 -- var components(by name not tag):
 -- ew_peer_id, on all peers, contains peerid in value_string
 -- ew_gid_lid, on all* synced entitys by des, value_string has gid(constant across reload),
-    -- value_int has lid(constant across clients but not reload),
-    -- value_bool is true iff you have authority over entity
+--   value_int has lid(constant across clients but not reload),
+--   value_bool is true iff you have authority over entity
 -- ew_frame_num, on mom or perk ghosts to sync position nicely
 -- ew_rng, on some entitys(dice) to sync rng
 -- ew_transmutation, on certain spells to sync rng
