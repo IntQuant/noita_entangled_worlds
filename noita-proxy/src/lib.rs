@@ -1583,7 +1583,7 @@ impl App {
         });
         egui::SidePanel::left("players")
             .resizable(false)
-            .exact_width(200.0)
+            .exact_width(230.0)
             .show(ctx, |ui| {
                 ui.add_space(3.0);
                 show_player_list(ui, netman);
