@@ -1358,6 +1358,11 @@ impl RemoteDiffModel {
                 entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                 entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
                 entity.remove_all_components_of_type::<LuaComponent>()?;
+                let immortal = entity.add_component::<LuaComponent>()?;
+                immortal.add_tag("ew_immortal")?;
+                immortal.set_script_damage_about_to_be_received(
+                    "mods/quant.ew/files/system/entity_sync_helper/immortal.lua".into(),
+                )?;
                 entity
                     .add_component::<VariableStorageComponent>()?
                     .set_name("ew_has_started".into())?;
@@ -1704,6 +1709,19 @@ impl RemoteDiffModel {
                         entity.remove_component(*lua)?;
                     }
                 }
+                noita_api::raw::entity_inflict_damage(
+                    entity.raw() as i32,
+                    damage.hp()?,
+                    "DAMAGE_CURSE".into(), //TODO should be enum
+                    "kill sync".into(),
+                    "NONE".into(),
+                    0.0,
+                    0.0,
+                    responsible_entity.map(|e| e.raw() as i32),
+                    None,
+                    None,
+                    None,
+                )?;
                 damage.set_ui_report_damage(false)?;
                 damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
@@ -1895,6 +1913,11 @@ pub fn init_remote_entity(
             entity.remove_component(*lua)?;
         }
     }
+    let immortal = entity.add_component::<LuaComponent>()?;
+    immortal.add_tag("ew_immortal")?;
+    immortal.set_script_damage_about_to_be_received(
+        "mods/quant.ew/files/system/entity_sync_helper/immortal.lua".into(),
+    )?;
     if let Some(var) = entity.get_var("ghost_id") {
         if let Ok(ent) = EntityID::try_from(var.value_int()? as isize) {
             ent.kill()
