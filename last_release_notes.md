@@ -1,22 +1,12 @@
-## Noita Entangled Worlds v1.2.6
+## Noita Entangled Worlds v1.2.7
 
-- improve performance
+- fix enemy hp being higher then it should be, and a couple harder to notice issues
 
-- fix broken wand and dice duping shots, and fungi
+- improve performance a bit
 
-- fix hamis dupe in last layer
+- dont duplicate damage numbers in some cases
 
-- fix tether visual staying on host
-
-- fix stuff flying off with 0 gravity
-
-- fix sunspot not working sometimes
-
-- fix plague rats, revenge rats, vomit rats, and mold perk duping entities
-
-- fix fps scaling being wrong causing odd entity speeds
-
-- fix chests
+- probably add a bunch of bugs
 
 
 ## Accepted pull requests

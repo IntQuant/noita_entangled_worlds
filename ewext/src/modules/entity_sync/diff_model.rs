@@ -1705,7 +1705,9 @@ impl RemoteDiffModel {
                     damage.set_kill_now(true)?;
                 }
                 for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
-                    if !lua.script_damage_received()?.is_empty() {
+                    if !lua.script_damage_received()?.is_empty()
+                        || !lua.script_damage_about_to_be_received()?.is_empty()
+                    {
                         entity.remove_component(*lua)?;
                     }
                 }
