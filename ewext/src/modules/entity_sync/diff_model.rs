@@ -80,44 +80,52 @@ impl LocalDiffModel {
             .iter()
             .skip(start)
             .take(end - start)
-            .map(|(lid, p)| {
-                let EntityEntryPair { current, gid, .. } = p;
-                if upload.remove(lid) {
-                    UpdateOrUpload::Upload(FullEntityData {
-                        gid: *gid,
-                        pos: WorldPos::from_f32(current.x, current.y),
-                        data: current.spawn_info.clone(),
-                        wand: current.wand.clone().map(|(_, w)| w),
-                        //rotation: entry_pair.current.r,
-                        drops_gold: current.drops_gold,
-                        is_charmed: current.is_charmed(),
-                        hp: current.hp,
-                        counter: current.counter,
+            .filter_map(|(lid, p)| {
+                let EntityEntryPair { current, gid, last } = p;
+                if last.is_some() {
+                    Some(if upload.remove(lid) {
+                        UpdateOrUpload::Upload(FullEntityData {
+                            gid: *gid,
+                            pos: WorldPos::from_f32(current.x, current.y),
+                            data: current.spawn_info.clone(),
+                            wand: current.wand.clone().map(|(_, w)| w),
+                            //rotation: entry_pair.current.r,
+                            drops_gold: current.drops_gold,
+                            is_charmed: current.is_charmed(),
+                            hp: current.hp,
+                            counter: current.counter,
+                        })
+                    } else {
+                        UpdateOrUpload::Update(UpdatePosition {
+                            gid: *gid,
+                            pos: WorldPos::from_f32(current.x, current.y),
+                            counter: current.counter,
+                            is_charmed: current.is_charmed(),
+                            hp: current.hp,
+                        })
                     })
                 } else {
-                    UpdateOrUpload::Update(UpdatePosition {
-                        gid: *gid,
-                        pos: WorldPos::from_f32(current.x, current.y),
-                        counter: current.counter,
-                        is_charmed: current.is_charmed(),
-                        hp: current.hp,
-                    })
+                    None
                 }
             })
             .collect();
         for lid in upload {
-            let EntityEntryPair { current, gid, .. } = self.entity_entries.get(&lid).unwrap();
-            res.push(UpdateOrUpload::Upload(FullEntityData {
-                gid: *gid,
-                pos: WorldPos::from_f32(current.x, current.y),
-                data: current.spawn_info.clone(),
-                wand: current.wand.clone().map(|(_, w)| w),
-                //rotation: entry_pair.current.r,
-                drops_gold: current.drops_gold,
-                is_charmed: current.is_charmed(),
-                hp: current.hp,
-                counter: current.counter,
-            }));
+            let EntityEntryPair { current, gid, last } = self.entity_entries.get(&lid).unwrap();
+            if last.is_some() {
+                res.push(UpdateOrUpload::Upload(FullEntityData {
+                    gid: *gid,
+                    pos: WorldPos::from_f32(current.x, current.y),
+                    data: current.spawn_info.clone(),
+                    wand: current.wand.clone().map(|(_, w)| w),
+                    //rotation: entry_pair.current.r,
+                    drops_gold: current.drops_gold,
+                    is_charmed: current.is_charmed(),
+                    hp: current.hp,
+                    counter: current.counter,
+                }));
+            } else {
+                self.upload.insert(lid);
+            }
         }
         res
     }
@@ -888,208 +896,203 @@ impl LocalDiffModel {
         let start = part * chunk_size;
         let end = (start + chunk_size).min(l);
         let mut res = Vec::new();
-        for (i, (&lid, EntityEntryPair { last, current, gid })) in
-            self.entity_entries.iter_mut().enumerate()
+        for (&lid, EntityEntryPair { last, current, gid }) in
+            self.entity_entries.iter_mut().skip(start).take(end - start)
         {
-            if (start..end).contains(&i) || last.is_none() {
-                match self
-                    .tracker
-                    .update_entity(
-                        ctx,
-                        *gid,
-                        current,
-                        lid,
-                        (cam_x, cam_y),
-                        self.upload.contains(&lid),
-                    )
-                    .wrap_err("Failed to update local entity")
-                {
-                    Err(error) => {
-                        print_error(error)?;
-                        self.tracker.untrack_entity(ctx, *gid, lid, None)?;
+            match self
+                .tracker
+                .update_entity(
+                    ctx,
+                    *gid,
+                    current,
+                    lid,
+                    (cam_x, cam_y),
+                    self.upload.contains(&lid),
+                )
+                .wrap_err("Failed to update local entity")
+            {
+                Err(error) => {
+                    print_error(error)?;
+                    self.tracker.untrack_entity(ctx, *gid, lid, None)?;
+                }
+                Ok(do_remove) => {
+                    if do_remove {
+                        self.upload.remove(&lid);
                     }
-                    Ok(do_remove) => {
-                        if do_remove {
-                            self.upload.remove(&lid);
-                        }
-                        let Some(last) = last.as_mut() else {
-                            *last = Some(current.clone());
-                            res.push(EntityUpdate::Init(Box::from(current.clone()), lid, *gid));
-                            continue;
-                        };
-                        let mut had_any_delta = false;
+                    let Some(last) = last.as_mut() else {
+                        *last = Some(current.clone());
+                        res.push(EntityUpdate::Init(Box::from(current.clone()), lid, *gid));
+                        continue;
+                    };
+                    let mut had_any_delta = false;
 
-                        fn diff<T: PartialEq + Clone>(
-                            current: &T,
-                            last: &mut T,
-                            update: EntityUpdate,
-                            res: &mut Vec<EntityUpdate>,
-                            had_any_delta: &mut bool,
-                            lid: Lid,
-                        ) {
-                            if current != last {
-                                if !*had_any_delta {
-                                    res.push(EntityUpdate::CurrentEntity(lid));
-                                }
-                                res.push(update);
-                                *last = current.clone();
+                    fn diff<T: PartialEq + Clone>(
+                        current: &T,
+                        last: &mut T,
+                        update: EntityUpdate,
+                        res: &mut Vec<EntityUpdate>,
+                        had_any_delta: &mut bool,
+                        lid: Lid,
+                    ) {
+                        if current != last {
+                            if !*had_any_delta {
                                 *had_any_delta = true;
-                            }
-                        }
-                        if current.wand.clone().map(|(g, _)| g) != last.wand.clone().map(|(g, _)| g)
-                        {
-                            if !had_any_delta {
                                 res.push(EntityUpdate::CurrentEntity(lid));
                             }
-                            res.push(EntityUpdate::SetWand(current.wand.clone()));
-                            last.wand = current.wand.clone();
-                            had_any_delta = true;
+                            res.push(update);
+                            *last = current.clone();
                         }
-                        diff(
-                            &current.laser,
-                            &mut last.laser,
-                            EntityUpdate::SetLaser(current.laser),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &(current.x, current.y),
-                            &mut (last.x, last.y),
-                            EntityUpdate::SetPosition(current.x, current.y),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &(current.vx, current.vy),
-                            &mut (last.vx, last.vy),
-                            EntityUpdate::SetVelocity(current.vx, current.vy),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.hp,
-                            &mut last.hp,
-                            EntityUpdate::SetHp(current.hp),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.hp,
-                            &mut last.hp,
-                            EntityUpdate::SetHp(current.hp),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.animations,
-                            &mut last.animations,
-                            EntityUpdate::SetAnimations(current.animations.clone()),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.synced_var,
-                            &mut last.synced_var,
-                            EntityUpdate::SetSyncedVar(current.synced_var.clone()),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.facing_direction,
-                            &mut last.facing_direction,
-                            EntityUpdate::SetFacingDirection(current.facing_direction),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.r,
-                            &mut last.r,
-                            EntityUpdate::SetRotation(current.r),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.phys,
-                            &mut last.phys,
-                            EntityUpdate::SetPhysInfo(current.phys.clone()),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.cost,
-                            &mut last.cost,
-                            EntityUpdate::SetCost(current.cost),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.current_stains,
-                            &mut last.current_stains,
-                            EntityUpdate::SetStains(current.current_stains),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.game_effects,
-                            &mut last.game_effects,
-                            EntityUpdate::SetGameEffects(current.game_effects.clone()),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.ai_rotation,
-                            &mut last.ai_rotation,
-                            EntityUpdate::SetAiRotation(current.ai_rotation),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.ai_state,
-                            &mut last.ai_state,
-                            EntityUpdate::SetAiState(current.ai_state),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.limbs,
-                            &mut last.limbs,
-                            EntityUpdate::SetLimbs(current.limbs.clone()),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.is_enabled,
-                            &mut last.is_enabled,
-                            EntityUpdate::SetIsEnabled(current.is_enabled),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
-                        diff(
-                            &current.counter,
-                            &mut last.counter,
-                            EntityUpdate::SetCounter(current.counter),
-                            &mut res,
-                            &mut had_any_delta,
-                            lid,
-                        );
                     }
+                    if current.wand.clone().map(|(g, _)| g) != last.wand.clone().map(|(g, _)| g) {
+                        had_any_delta = true;
+                        res.push(EntityUpdate::CurrentEntity(lid));
+                        res.push(EntityUpdate::SetWand(current.wand.clone()));
+                        last.wand = current.wand.clone();
+                    }
+                    diff(
+                        &current.laser,
+                        &mut last.laser,
+                        EntityUpdate::SetLaser(current.laser),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &(current.x, current.y),
+                        &mut (last.x, last.y),
+                        EntityUpdate::SetPosition(current.x, current.y),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &(current.vx, current.vy),
+                        &mut (last.vx, last.vy),
+                        EntityUpdate::SetVelocity(current.vx, current.vy),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.hp,
+                        &mut last.hp,
+                        EntityUpdate::SetHp(current.hp),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.hp,
+                        &mut last.hp,
+                        EntityUpdate::SetHp(current.hp),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.animations,
+                        &mut last.animations,
+                        EntityUpdate::SetAnimations(current.animations.clone()),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.synced_var,
+                        &mut last.synced_var,
+                        EntityUpdate::SetSyncedVar(current.synced_var.clone()),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.facing_direction,
+                        &mut last.facing_direction,
+                        EntityUpdate::SetFacingDirection(current.facing_direction),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.r,
+                        &mut last.r,
+                        EntityUpdate::SetRotation(current.r),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.phys,
+                        &mut last.phys,
+                        EntityUpdate::SetPhysInfo(current.phys.clone()),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.cost,
+                        &mut last.cost,
+                        EntityUpdate::SetCost(current.cost),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.current_stains,
+                        &mut last.current_stains,
+                        EntityUpdate::SetStains(current.current_stains),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.game_effects,
+                        &mut last.game_effects,
+                        EntityUpdate::SetGameEffects(current.game_effects.clone()),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.ai_rotation,
+                        &mut last.ai_rotation,
+                        EntityUpdate::SetAiRotation(current.ai_rotation),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.ai_state,
+                        &mut last.ai_state,
+                        EntityUpdate::SetAiState(current.ai_state),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.limbs,
+                        &mut last.limbs,
+                        EntityUpdate::SetLimbs(current.limbs.clone()),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.is_enabled,
+                        &mut last.is_enabled,
+                        EntityUpdate::SetIsEnabled(current.is_enabled),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.counter,
+                        &mut last.counter,
+                        EntityUpdate::SetCounter(current.counter),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
                 }
             }
         }
