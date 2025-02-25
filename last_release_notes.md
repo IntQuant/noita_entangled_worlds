@@ -1,19 +1,15 @@
-## Noita Entangled Worlds v1.2.7
+## Noita Entangled Worlds v1.2.8
 
-- fix enemy hp being higher then it should be, and a couple harder to notice issues
+- fix a crash from 1.2.7
 
-- improve performance a bit
+- fix damage numbers on players being too high sometimes
 
-- dont duplicate damage numbers in some cases
-
-- probably add a bunch of bugs
+- improve performance
 
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
-
+- Fixed blackline in players list by @dest4590 in #339
 ## Installation
 
 
