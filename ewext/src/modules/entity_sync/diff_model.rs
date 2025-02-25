@@ -110,21 +110,22 @@ impl LocalDiffModel {
             })
             .collect();
         for lid in upload {
-            let EntityEntryPair { current, gid, last } = self.entity_entries.get(&lid).unwrap();
-            if last.is_some() {
-                res.push(UpdateOrUpload::Upload(FullEntityData {
-                    gid: *gid,
-                    pos: WorldPos::from_f32(current.x, current.y),
-                    data: current.spawn_info.clone(),
-                    wand: current.wand.clone().map(|(_, w)| w),
-                    //rotation: entry_pair.current.r,
-                    drops_gold: current.drops_gold,
-                    is_charmed: current.is_charmed(),
-                    hp: current.hp,
-                    counter: current.counter,
-                }));
-            } else {
-                self.upload.insert(lid);
+            if let Some(EntityEntryPair { current, gid, last }) = self.entity_entries.get(&lid) {
+                if last.is_some() {
+                    res.push(UpdateOrUpload::Upload(FullEntityData {
+                        gid: *gid,
+                        pos: WorldPos::from_f32(current.x, current.y),
+                        data: current.spawn_info.clone(),
+                        wand: current.wand.clone().map(|(_, w)| w),
+                        //rotation: entry_pair.current.r,
+                        drops_gold: current.drops_gold,
+                        is_charmed: current.is_charmed(),
+                        hp: current.hp,
+                        counter: current.counter,
+                    }));
+                } else {
+                    self.upload.insert(lid);
+                }
             }
         }
         res
@@ -1129,6 +1130,7 @@ impl LocalDiffModel {
             // "Untrack" entity
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
+            self.upload.remove(&lid);
         }
         Ok((res, dead))
     }
