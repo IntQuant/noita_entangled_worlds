@@ -6,6 +6,8 @@ local helpless = 1
 
 local killer = 0
 
+rpc.opts_reliable()
+rpc.opts_everywhere()
 function rpc.set(anger, killers)
     GlobalsSetValue("HELPLESS_KILLS", tostring(anger))
     GlobalsSetValue("ULTIMATE_KILLER_KILLS", tostring(killers))
@@ -13,13 +15,10 @@ function rpc.set(anger, killers)
     killer = killers
 end
 
+rpc.opts_reliable()
 function rpc.set_helpless(anger, killers)
     if ctx.is_host then
-        GlobalsSetValue("HELPLESS_KILLS", tostring(helpless + anger))
-        GlobalsSetValue("ULTIMATE_KILLER_KILLS", tostring(killer + killers))
-        helpless = helpless + anger
-        killer = killer + killers
-        rpc.set(helpless, killer)
+        rpc.set(helpless + anger, killer + killers)
     end
 end
 
@@ -33,8 +32,6 @@ function tapion.on_world_update()
             else
                 rpc.set_helpless(anger - helpless, killers - killer)
             end
-            helpless = anger
-            killer = killers
         end
     end
 end
