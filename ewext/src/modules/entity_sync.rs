@@ -274,6 +274,9 @@ impl EntitySync {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
             }
+            shared::des::ProxyToDes::GotAuthoritys(full_entity_data) => {
+                self.local_diff_model.got_authoritys(full_entity_data);
+            }
             shared::des::ProxyToDes::RemoveEntities(peer) => {
                 if let Some(remote) = self.remote_models.remove(&peer) {
                     remote.remove_entities()
@@ -297,7 +300,7 @@ impl EntitySync {
         net: &mut NetManager,
         player_entity_map: &BiHashMap<PeerId, EntityID>,
         dont_spawn: &FxHashSet<Gid>,
-    ) -> eyre::Result<Option<Gid>> {
+    ) -> eyre::Result<(Option<Gid>, Option<WorldPos>)> {
         match remote_des {
             RemoteDes::ChestOpen(gid, x, y, file, rx, ry) => {
                 if !dont_spawn.contains(&gid) {
@@ -325,7 +328,7 @@ impl EntitySync {
                         }
                     }
                 }
-                return Ok(Some(gid));
+                return Ok((Some(gid), None));
             }
             RemoteDes::ChestOpenRequest(gid, x, y, file, rx, ry) => {
                 net.send(&NoitaOutbound::RemoteMessage {
@@ -367,6 +370,9 @@ impl EntitySync {
                 }
             }
             RemoteDes::SpawnOnce(pos, data) => self.spawn_once.push((pos, data)),
+            RemoteDes::CameraPos(pos) => {
+                return Ok((None, Some(pos)));
+            }
             RemoteDes::DeadEntities(vec) => self.spawn_once.extend(vec),
             RemoteDes::InterestRequest(interest_request) => self
                 .interest_tracker
@@ -393,7 +399,7 @@ impl EntitySync {
                 self.local_diff_model.entity_grabbed(source, lid, net);
             }
         }
-        Ok(None)
+        Ok((None, None))
     }
 
     pub(crate) fn cross_item_thrown(&mut self, entity: Option<EntityID>) -> eyre::Result<()> {
@@ -501,6 +507,14 @@ impl Module for EntitySync {
                     radius: INTEREST_REQUEST_RADIUS,
                 }),
             )?;
+            for (_, peer) in self.iter_peers(ctx.player_map) {
+                send_remotedes(
+                    ctx,
+                    false,
+                    Destination::Peer(peer),
+                    RemoteDes::CameraPos(WorldPos::from_f64(x, y)),
+                )?;
+            }
         }
 
         for lost in self.interest_tracker.drain_lost_interest() {

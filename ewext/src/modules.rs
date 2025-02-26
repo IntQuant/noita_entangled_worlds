@@ -2,8 +2,8 @@ use bimap::BiHashMap;
 use eyre::Ok;
 use noita_api::EntityID;
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::PeerId;
 use shared::des::Gid;
+use shared::{PeerId, WorldPos};
 
 use crate::net::NetManager;
 
@@ -12,6 +12,7 @@ pub(crate) mod entity_sync;
 pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
+    pub(crate) camera_pos: &'a mut FxHashMap<PeerId, WorldPos>,
     pub(crate) fps_by_player: &'a mut FxHashMap<PeerId, u8>,
     pub(crate) sync_rate: usize,
     pub(crate) dont_spawn: &'a FxHashSet<Gid>,
@@ -19,24 +20,44 @@ pub(crate) struct ModuleCtx<'a> {
 impl ModuleCtx<'_> {
     pub(crate) fn locate_player_within_except_me(
         &self,
-        x: f32,
-        y: f32,
+        x: i32,
+        y: i32,
         radius: f32,
     ) -> eyre::Result<Option<PeerId>> {
         let mut res = None;
+        let r = (radius.abs() as u64).pow(2);
+        let mut dist = r;
         for (peer, entity) in self.player_map.iter() {
             if entity.has_tag("ew_client") {
                 let (ex, ey) = entity.position()?;
-                if (x - ex).powi(2) + (y - ey).powi(2) < radius.powi(2) {
+                let (ex, ey) = (ex as i32, ey as i32);
+                let pos = self
+                    .camera_pos
+                    .get(peer)
+                    .cloned()
+                    .unwrap_or(WorldPos { x: ex, y: ey });
+                let (cx, cy) = (pos.x, pos.y);
+                let d2 = (cx.abs_diff(ex) as u64).pow(2) + (cy.abs_diff(ey) as u64).pow(2);
+                let d = (x.abs_diff(ex) as u64).pow(2) + (y.abs_diff(ey) as u64).pow(2);
+                if d < dist && d2 < r {
                     res = Some(*peer);
-                    break;
+                    dist = d;
+                }
+            }
+        }
+        if res.is_none() {
+            for (peer, pos) in self.camera_pos.iter() {
+                let (ex, ey) = (pos.x, pos.y);
+                let d = (x.abs_diff(ex) as u64).pow(2) + (y.abs_diff(ey) as u64).pow(2);
+                if d < dist {
+                    res = Some(*peer);
+                    dist = d;
                 }
             }
         }
         Ok(res)
     }
 }
-
 pub(crate) trait Module {
     // fn init() -> Self;
     fn on_world_init(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {

@@ -89,6 +89,8 @@ impl DesManager {
                     entity.is_charmed = is_charmed;
                     entity.hp = hp;
                     entity.counter = counter;
+                } else {
+                    warn!("Failed to find entity {gid:?} to update");
                 }
             }
         }
@@ -122,6 +124,7 @@ impl DesManager {
                 if self.rtree.size() == 0 {
                     return;
                 }
+                let mut auths = Vec::new();
                 for point in self
                     .rtree
                     .drain_within_distance(pos.as_array(), i64::from(radius).pow(2))
@@ -129,10 +132,18 @@ impl DesManager {
                     let gid = point.data;
                     self.authority.insert(gid, source);
                     if let Some(entity) = self.entity_storage.entities.get(&gid).cloned() {
-                        self.pending_messages
-                            .push((source, ProxyToDes::GotAuthority(entity)));
+                        auths.push(entity)
                     } else {
                         warn!("Expected to find entity data to give authority");
+                    }
+                }
+                if !auths.is_empty() {
+                    if auths.len() == 1 {
+                        self.pending_messages
+                            .push((source, ProxyToDes::GotAuthority(auths.pop().unwrap())));
+                    } else {
+                        self.pending_messages
+                            .push((source, ProxyToDes::GotAuthoritys(auths)))
                     }
                 }
             }

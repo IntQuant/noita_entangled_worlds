@@ -606,7 +606,7 @@ function OnWorldPreUpdate() -- This is called every time the game is about to st
     end
     --[[if InputIsKeyJustDown(11) then
         local x, y = EntityGetTransform(ctx.my_player.entity)
-        for _ = 1, 256 do
+        for _ = 1, 16 do
             EntityLoad("data/entities/animals/longleg.xml", x, y)
         end
     end]]

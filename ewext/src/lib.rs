@@ -105,6 +105,7 @@ struct ExtState {
     fps_by_player: FxHashMap<PeerId, u8>,
     dont_spawn: FxHashSet<Gid>,
     sync_rate: i32,
+    cam_pos: FxHashMap<PeerId, WorldPos>,
 }
 
 impl ExtState {
@@ -235,14 +236,23 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             } => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    if let Ok(Some(gid)) = entity_sync.handle_remotedes(
+                    match entity_sync.handle_remotedes(
                         source,
                         remote_des,
                         netmanager,
                         &state.player_entity_map,
                         &state.dont_spawn,
                     ) {
-                        state.dont_spawn.insert(gid);
+                        Ok((Some(gid), _)) => {
+                            state.dont_spawn.insert(gid);
+                        }
+                        Ok((_, Some(pos))) => {
+                            state.cam_pos.insert(source, pos);
+                        }
+                        Ok((_, _)) => {}
+                        Err(s) => {
+                            let _ = print_error(s);
+                        }
                     }
                 }
             })?,
@@ -305,6 +315,7 @@ fn with_every_module(
             fps_by_player: &mut state.fps_by_player,
             sync_rate: state.sync_rate.max(1) as usize,
             dont_spawn: &state.dont_spawn,
+            camera_pos: &mut state.cam_pos,
         };
         let mut errs = Vec::new();
         for module in state.modules.entity_sync.iter_mut() {

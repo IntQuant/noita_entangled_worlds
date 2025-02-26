@@ -74,6 +74,7 @@ pub enum DesToProxy {
 pub enum ProxyToDes {
     /// Got authority over entity.
     GotAuthority(FullEntityData),
+    GotAuthoritys(Vec<FullEntityData>),
     RemoveEntities(PeerId),
     DeleteEntity(NonZero<isize>),
 }
@@ -184,6 +185,7 @@ pub enum RemoteDes {
     ExitedInterest,
     Projectiles(Arc<Vec<ProjectileFired>>),
     RequestGrab(Lid),
+    CameraPos(WorldPos),
     DeadEntities(Vec<(WorldPos, SpawnOnce)>),
     SpawnOnce(WorldPos, SpawnOnce),
     ChestOpen(Gid, i32, i32, String, f32, f32),

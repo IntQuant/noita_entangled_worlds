@@ -54,6 +54,7 @@ pub(crate) struct LocalDiffModel {
     entity_entries: FxHashMap<Lid, EntityEntryPair>,
     tracker: LocalDiffModelTracker,
     upload: FxHashSet<Lid>,
+    dont_upload: FxHashSet<Lid>,
 }
 impl LocalDiffModel {
     pub(crate) fn got_polied(&mut self, gid: Gid) {
@@ -83,7 +84,7 @@ impl LocalDiffModel {
             .filter_map(|(lid, p)| {
                 let EntityEntryPair { current, gid, last } = p;
                 if last.is_some() {
-                    Some(if upload.remove(lid) {
+                    Some(if upload.remove(lid) && !self.dont_upload.contains(lid) {
                         UpdateOrUpload::Upload(FullEntityData {
                             gid: *gid,
                             pos: WorldPos::from_f32(current.x, current.y),
@@ -111,20 +112,22 @@ impl LocalDiffModel {
             .collect();
         for lid in upload {
             if let Some(EntityEntryPair { current, gid, last }) = self.entity_entries.get(&lid) {
-                if last.is_some() {
-                    res.push(UpdateOrUpload::Upload(FullEntityData {
-                        gid: *gid,
-                        pos: WorldPos::from_f32(current.x, current.y),
-                        data: current.spawn_info.clone(),
-                        wand: current.wand.clone().map(|(_, w)| w),
-                        //rotation: entry_pair.current.r,
-                        drops_gold: current.drops_gold,
-                        is_charmed: current.is_charmed(),
-                        hp: current.hp,
-                        counter: current.counter,
-                    }));
-                } else {
-                    self.upload.insert(lid);
+                if !self.dont_upload.contains(&lid) {
+                    if last.is_some() {
+                        res.push(UpdateOrUpload::Upload(FullEntityData {
+                            gid: *gid,
+                            pos: WorldPos::from_f32(current.x, current.y),
+                            data: current.spawn_info.clone(),
+                            wand: current.wand.clone().map(|(_, w)| w),
+                            //rotation: entry_pair.current.r,
+                            drops_gold: current.drops_gold,
+                            is_charmed: current.is_charmed(),
+                            hp: current.hp,
+                            counter: current.counter,
+                        }));
+                    } else {
+                        self.upload.insert(lid);
+                    }
                 }
             }
         }
@@ -194,6 +197,7 @@ impl Default for LocalDiffModel {
                 got_polied: Default::default(),
             },
             upload: Default::default(),
+            dont_upload: Default::default(),
         }
     }
 }
@@ -202,6 +206,8 @@ impl LocalDiffModelTracker {
     pub(crate) fn got_polied(&mut self, gid: Gid) {
         self.got_polied.insert(gid);
     }
+
+    #[allow(clippy::too_many_arguments)]
     fn update_entity(
         &mut self,
         ctx: &mut ModuleCtx,
@@ -210,6 +216,7 @@ impl LocalDiffModelTracker {
         lid: Lid,
         cam_pos: (f32, f32),
         do_upload: bool,
+        should_transfer: bool,
     ) -> eyre::Result<bool> {
         let entity = self
             .entity_by_lid(lid)
@@ -506,10 +513,10 @@ impl LocalDiffModelTracker {
                 AUTHORITY_RADIUS
             }
             .powi(2);
-        if is_beyond_authority {
+        if is_beyond_authority || should_transfer {
             if let Some(peer) = ctx.locate_player_within_except_me(
-                x,
-                y,
+                x as i32,
+                y as i32,
                 if info.is_global {
                     GLOBAL_TRANSFER_RADIUS
                 } else {
@@ -519,7 +526,7 @@ impl LocalDiffModelTracker {
                 self.transfer_authority_to(ctx, gid, lid, peer, info, do_upload)
                     .wrap_err("Failed to transfer authority")?;
                 return Ok(do_upload);
-            } else if !info.is_global {
+            } else if !info.is_global && is_beyond_authority {
                 self.release_authority(ctx, gid, lid, info, do_upload)
                     .wrap_err("Failed to release authority")?;
                 return Ok(do_upload);
@@ -872,7 +879,8 @@ impl LocalDiffModel {
             if let Some(wand) = entity_data.wand {
                 give_wand(entity, &wand, None, false)?;
             }
-            self.track_entity(entity, entity_data.gid)?;
+            let lid = self.track_entity(entity, entity_data.gid)?;
+            self.dont_upload.insert(lid);
 
             // Don't handle too much in one frame to avoid stutters.
             if start.elapsed().as_millis() > 2 {
@@ -897,6 +905,12 @@ impl LocalDiffModel {
         let start = part * chunk_size;
         let end = (start + chunk_size).min(l);
         let mut res = Vec::new();
+        let mut should_transfer = false;
+        if let Some(pe) = ctx.player_map.get_by_left(&my_peer_id()) {
+            let (px, py) = pe.position()?;
+            should_transfer =
+                (px - cam_x).powi(2) + (py - cam_y).powi(2) > AUTHORITY_RADIUS.powi(2);
+        }
         for (&lid, EntityEntryPair { last, current, gid }) in
             self.entity_entries.iter_mut().skip(start).take(end - start)
         {
@@ -908,7 +922,8 @@ impl LocalDiffModel {
                     current,
                     lid,
                     (cam_x, cam_y),
-                    self.upload.contains(&lid),
+                    self.upload.contains(&lid) && !self.dont_upload.contains(&lid),
+                    should_transfer,
                 )
                 .wrap_err("Failed to update local entity")
             {
@@ -1150,6 +1165,10 @@ impl LocalDiffModel {
 
     pub(crate) fn got_authority(&mut self, full_entity_data: FullEntityData) {
         self.tracker.pending_authority.push(full_entity_data);
+    }
+
+    pub(crate) fn got_authoritys(&mut self, full_entity_data: Vec<FullEntityData>) {
+        self.tracker.pending_authority.extend(full_entity_data);
     }
 
     pub(crate) fn entity_grabbed(&mut self, source: PeerId, lid: Lid, net: &mut NetManager) {

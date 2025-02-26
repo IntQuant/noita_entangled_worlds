@@ -27,7 +27,7 @@ end)
 
 patch_perk_2("FOOD_CLOCK", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     local func = EntityLoad
-    if entity_who_picked ~= EntityGetWithTag("player_unit")[1] then
+    if not EntityHasTag(entity_who_picked, "player_unit") then
         function EntityLoad() end
     end
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
@@ -36,7 +36,7 @@ end)
 
 patch_perk_2("PLAGUE_RATS", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     local func = EntityAddComponent
-    if entity_who_picked ~= EntityGetWithTag("player_unit")[1] then
+    if not EntityHasTag(entity_who_picked, "player_unit") then
         function EntityAddComponent() end
     end
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
@@ -45,7 +45,7 @@ end)
 
 patch_perk_2("REVENGE_RATS", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     local func = EntityAddComponent
-    if entity_who_picked ~= EntityGetWithTag("player_unit")[1] then
+    if not EntityHasTag(entity_who_picked, "player_unit") then
         function EntityAddComponent() end
     end
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
@@ -54,7 +54,7 @@ end)
 
 patch_perk_2("VOMIT_RATS", function(entity_perk_item, entity_who_picked, item_name, pickup_count, orig_fn)
     local func = EntityLoad
-    if entity_who_picked ~= EntityGetWithTag("player_unit")[1] then
+    if not EntityHasTag(entity_who_picked, "player_unit") then
         function EntityLoad() end
     end
     orig_fn(entity_perk_item, entity_who_picked, item_name, pickup_count)
