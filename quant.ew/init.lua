@@ -287,17 +287,19 @@ function OnProjectileFired(
         or EntityHasTag(projectile_id, "ew_projectile_position_sync")
     then
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
-        if body ~= nil then
-            ComponentSetValue2(body, "destroy_body_if_entity_destroyed", true)
+        local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
+        if proj == nil or ComponentGetValue2(proj, "lifetime") > 0 then
+            ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
         end
-        ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
         if shooter_player_data.peer_id ~= ctx.my_id then
-            local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
             if proj ~= nil then
                 local life = ComponentGetValue2(proj, "lifetime")
                 if life > 0 then
                     ComponentSetValue2(proj, "lifetime", life * ctx.my_player.fps / shooter_player_data.fps)
                 end
+            end
+            if body ~= nil then
+                ComponentSetValue2(body, "destroy_body_if_entity_destroyed", true)
             end
         end
     end
