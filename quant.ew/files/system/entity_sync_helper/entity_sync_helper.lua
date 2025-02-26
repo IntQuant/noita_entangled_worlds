@@ -52,6 +52,25 @@ util.prepend(
         .. "end"
 )
 
+util.prepend(
+    "data/scripts/animals/helpless_death.lua",
+    'GlobalsSetValue( "HELPLESS_KILLS", tostring(anger) )',
+    'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+        .. "ent = GetUpdatedEntityID()\n"
+        .. "if util.do_i_own(ent) then\n"
+        .. 'GlobalsSetValue( "HELPLESS_KILLS", tostring(anger) )\n'
+        .. "end"
+)
+
+util.prepend(
+    "data/scripts/animals/ultimate_killer_death.lua",
+    'GlobalsSetValue( "ULTIMATE_KILLER_KILLS", tostring( count ) )',
+    'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+        .. "ent = GetUpdatedEntityID()\n"
+        .. "if util.do_i_own(ent) then\n"
+        .. 'GlobalsSetValue( "ULTIMATE_KILLER_KILLS", tostring( count ) )\n'
+        .. "end"
+)
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
 local thrown = {}
@@ -79,6 +98,25 @@ for filename, _ in pairs(constants.phys_sync_allowed) do
     else
         -- print("Updated PhysicsBody2Component in", filename)
     end]]
+end
+local unique = {
+    "data/entities/misc/orb_07_pitcheck_b.xml",
+    "data/entities/misc/orb_07_pitcheck_a.xml",
+    "data/entities/buildings/maggotspot.xml",
+    "data/entities/buildings/essence_eater.xml",
+    "data/entities/props/music_machines/music_machine_00.xml",
+    "data/entities/props/music_machines/music_machine_01.xml",
+    "data/entities/props/music_machines/music_machine_02.xml",
+    "data/entities/props/music_machines/music_machine_03.xml",
+    "data/entities/animals/boss_fish/fish_giga.xml",
+    "data/entities/animals/chest_mimic.xml",
+    "data/entities/animals/chest_leggy.xml",
+    "data/entities/animals/illusions/dark_alchemist.xml",
+    "data/entities/animals/illusions/shaman_wind.xml",
+}
+--"data/entities/items/pickup/potion_empty.xml"
+for _, filename in ipairs(unique) do
+    util.add_tag_to(filename, "ew_unique")
 end
 
 util.add_cross_call("ew_broken_wand", function(ent, x, y)

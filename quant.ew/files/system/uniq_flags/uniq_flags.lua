@@ -23,22 +23,7 @@ function module.on_new_entity(ent)
         local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
         local x, y = EntityGetTransform(ent)
         local lx, ly = math.floor(x / 64), math.floor(y / 64)
-        if
-            f == "data/entities/misc/orb_07_pitcheck_b.xml"
-            or f == "data/entities/misc/orb_07_pitcheck_a.xml"
-            or f == "data/entities/buildings/maggotspot.xml"
-            or f == "data/entities/buildings/essence_eater.xml"
-            or f == "data/entities/props/music_machines/music_machine_00.xml"
-            or f == "data/entities/props/music_machines/music_machine_01.xml"
-            or f == "data/entities/props/music_machines/music_machine_02.xml"
-            or f == "data/entities/props/music_machines/music_machine_03.xml"
-            or f == "data/entities/animals/boss_fish/fish_giga.xml"
-            --or f == "data/entities/items/pickup/potion_empty.xml"
-            or f == "data/entities/animals/chest_mimic.xml"
-            or f == "data/entities/animals/chest_leggy.xml"
-            or f == "data/entities/animals/illusions/dark_alchemist.xml"
-            or f == "data/entities/animals/illusions/shaman_wind.xml"
-        then
+        if EntityHasTag(ent, "ew_unique") then
             local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
             ewext.notrack(ent)
             request_flag_slow(flag, ent)

@@ -288,14 +288,21 @@ function OnProjectileFired(
     then
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
         local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
-        if proj == nil or ComponentGetValue2(proj, "lifetime") > 0 then
+        local life = EntityGetFirstComponentIncludingDisabled(projectile_id, "LifetimeComponent")
+        if proj == nil or ComponentGetValue2(proj, "lifetime") > 4 or ComponentGetValue2(life, "lifetime") > 4 then
             ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
         end
         if shooter_player_data.peer_id ~= ctx.my_id then
             if proj ~= nil then
-                local life = ComponentGetValue2(proj, "lifetime")
-                if life > 0 then
-                    ComponentSetValue2(proj, "lifetime", life * ctx.my_player.fps / shooter_player_data.fps)
+                local lif = ComponentGetValue2(proj, "lifetime")
+                if lif > 0 then
+                    ComponentSetValue2(proj, "lifetime", lif * ctx.my_player.fps / shooter_player_data.fps)
+                end
+            end
+            if life ~= nil then
+                local lif = ComponentGetValue2(life, "lifetime")
+                if lif > 0 then
+                    ComponentSetValue2(life, "lifetime", lif * ctx.my_player.fps / shooter_player_data.fps)
                 end
             end
             if body ~= nil then
