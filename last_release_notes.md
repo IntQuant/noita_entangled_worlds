@@ -1,10 +1,14 @@
-## Noita Entangled Worlds v1.2.8
+## Noita Entangled Worlds v1.2.9
 
-- fix a crash from 1.2.7
+- fix entities duping infinitely halting game
 
-- fix damage numbers on players being too high sometimes
+- fix sometimes gaining auth over entities when there is a better person for it
 
-- improve performance
+- fix sometimes having auth when you should not have it
+
+- optimize some things
+
+- maybe fix some nolla spell bugs
 
 
 ## Accepted pull requests
