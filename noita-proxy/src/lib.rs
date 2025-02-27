@@ -1741,11 +1741,13 @@ impl App {
                     }
                 }
                 ConnectedMenu::Settings => {
-                    if netman.peer.is_host() {
-                        self.app_saved_state.game_settings.show_editor(ui, true);
-                    } else {
-                        netman.settings.lock().unwrap().show_editor(ui, false);
-                    }
+                    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                        if netman.peer.is_host() {
+                            self.app_saved_state.game_settings.show_editor(ui, true);
+                        } else {
+                            netman.settings.lock().unwrap().show_editor(ui, false);
+                        }
+                    });
                 }
                 ConnectedMenu::ConnectionInfo => match &netman.peer {
                     PeerVariant::Tangled(_) => {
