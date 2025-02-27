@@ -495,26 +495,27 @@ impl Module for EntitySync {
 
     fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
+        let pos = WorldPos::from_f64(x, y);
         self.interest_tracker.set_center(x, y);
         let frame_num = game_get_frame_num()? as usize;
-        if frame_num % 20 == 0 {
+        if frame_num % 5 == 0 {
             send_remotedes(
                 ctx,
                 false,
                 Destination::Broadcast,
                 RemoteDes::InterestRequest(InterestRequest {
-                    pos: WorldPos::from_f64(x, y),
+                    pos,
                     radius: INTEREST_REQUEST_RADIUS,
                 }),
             )?;
-            for (_, peer) in self.iter_peers(ctx.player_map) {
-                send_remotedes(
-                    ctx,
-                    false,
-                    Destination::Peer(peer),
-                    RemoteDes::CameraPos(WorldPos::from_f64(x, y)),
-                )?;
-            }
+        }
+        for (_, peer) in self.iter_peers(ctx.player_map) {
+            send_remotedes(
+                ctx,
+                false,
+                Destination::Peer(peer),
+                RemoteDes::CameraPos(pos),
+            )?;
         }
 
         for lost in self.interest_tracker.drain_lost_interest() {
@@ -674,7 +675,7 @@ impl Module for EntitySync {
             self.timer = 0;
         }
 
-        if frame_num % 60 == 47 {
+        if frame_num % 7 == 3 {
             let (x, y) = noita_api::raw::game_get_camera_pos()?;
             ctx.net.send(&NoitaOutbound::DesToProxy(
                 shared::des::DesToProxy::RequestAuthority {
