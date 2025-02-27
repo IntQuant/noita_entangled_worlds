@@ -29,10 +29,10 @@ for i = #actions, 1, -1 do
             oldSetRandomSeed(seed, seed)
         end
 
-        local r = func(...)
+        local r = { func(...) }
 
         SetRandomSeed = oldSetRandomSeed
-        return r
+        return unpack(r)
     end
 end
 
