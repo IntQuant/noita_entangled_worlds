@@ -510,7 +510,7 @@ local function on_world_pre_update_inner()
         ctx.is_inventory_open = inventory_open
     end
 
-    if GameGetFrameNum() % 120 == 76 and not ctx.run_ended then
+    if GameGetFrameNum() % 16 == 13 and not ctx.run_ended then
         if ctx.host_id == ctx.my_id then
             local new_chunk = tonumber(ModSettingGet("quant.ew.chunk_target") or 24) or 24
             if last_chunk ~= new_chunk then

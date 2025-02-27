@@ -1381,7 +1381,18 @@ impl RemoteDiffModel {
             {
                 entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                 entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
-                entity.remove_all_components_of_type::<LuaComponent>()?;
+                for lua in
+                    entity.iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
+                {
+                    if [
+                        "data/entities/animals/boss_centipede/boss_centipede_before_fight.lua",
+                        "data/entities/animals/boss_centipede/boss_centipede_update.lua",
+                    ]
+                    .contains(&&*lua.script_source_file()?)
+                    {
+                        entity.remove_component(*lua)?;
+                    }
+                }
                 let immortal = entity.add_component::<LuaComponent>()?;
                 immortal.add_tag("ew_immortal")?;
                 immortal.set_script_damage_about_to_be_received(
@@ -1725,8 +1736,6 @@ impl RemoteDiffModel {
                 self.entity_infos.remove(&lid);
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
-                } else {
-                    damage.set_kill_now(true)?;
                 }
                 for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
                     if !lua.script_damage_received()?.is_empty()
@@ -1763,6 +1772,9 @@ impl RemoteDiffModel {
                     None,
                     None,
                 )?;
+                if wait_on_kill {
+                    damage.set_kill_now(true)?;
+                }
             }
         }
         for lid in &self.pending_remove {
