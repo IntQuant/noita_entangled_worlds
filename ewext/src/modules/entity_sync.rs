@@ -676,10 +676,9 @@ impl Module for EntitySync {
         }
 
         if frame_num % 7 == 3 {
-            let (x, y) = noita_api::raw::game_get_camera_pos()?;
             ctx.net.send(&NoitaOutbound::DesToProxy(
                 shared::des::DesToProxy::RequestAuthority {
-                    pos: WorldPos::from_f64(x, y),
+                    pos,
                     radius: REQUEST_AUTHORITY_RADIUS,
                 },
             ))?;
