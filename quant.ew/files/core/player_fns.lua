@@ -562,6 +562,7 @@ function player_fns.replace_player_entity(new_entity, player_data)
             player_fns.deserialize_items(latest_inventory, player_data, false)
         end
     end
+    ewext.register_player_entity(ctx.rpc_peer_id, player_data.entity)
 end
 
 function player_fns.respawn_if_necessary()
