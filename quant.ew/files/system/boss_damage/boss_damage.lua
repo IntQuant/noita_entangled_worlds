@@ -39,4 +39,26 @@ util.add_cross_call("ew_kivi", function(hp_percentage)
     rpc.run_hp(hp_percentage)
 end)
 
+function rpc.run_deer(dmg)
+    local deer = EntityGetWithTag("islandspirit")
+    if #deer == 0 then
+        if not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
+            EntityInflictDamage(
+                ctx.my_player.entity,
+                dmg,
+                "DAMAGE_CURSE",
+                "$animal_islandspirit",
+                "DISINTEGRATED",
+                0,
+                0,
+                GameGetWorldStateEntity()
+            )
+        end
+    end
+end
+
+util.add_cross_call("ew_deer", function(dmg)
+    rpc.run_deer(dmg)
+end)
+
 return boss

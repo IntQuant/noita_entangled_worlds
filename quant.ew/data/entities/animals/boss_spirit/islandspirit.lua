@@ -8,6 +8,10 @@ function damage_received(damage, msg, source)
 
     local player = EntityGetWithTag("player_unit")
 
+    local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+    if util.do_i_own(entity_id) then
+        CrossCall("ew_deer", dmg)
+    end
     for i, v in ipairs(player) do
         if not EntityHasTag(v, "ew_notplayer") then
             EntityInflictDamage(v, dmg, "DAMAGE_CURSE", "$animal_islandspirit", "DISINTEGRATED", 0, 0, entity_id)
@@ -44,4 +48,4 @@ if anger >= 60 then
     end
 end
 
-VerletApplyCircularForce(x, y, 80, 0.14)
+--VerletApplyCircularForce(x, y, 80, 0.14)
