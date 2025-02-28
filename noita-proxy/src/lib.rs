@@ -593,6 +593,7 @@ struct AppSavedState {
     spacewars: bool,
     random_ports: bool,
     public_lobby: bool,
+    allow_friends: bool,
     only_ew_lobbies: bool,
 }
 
@@ -610,6 +611,7 @@ impl Default for AppSavedState {
             spacewars: false,
             random_ports: false,
             public_lobby: false,
+            allow_friends: true,
             only_ew_lobbies: true,
         }
     }
@@ -1164,8 +1166,10 @@ impl App {
     fn start_steam_host(&mut self) {
         let lobby_type = if self.app_saved_state.public_lobby {
             steamworks::LobbyType::Public
-        } else {
+        } else if self.app_saved_state.allow_friends {
             steamworks::LobbyType::FriendsOnly
+        } else {
+            steamworks::LobbyType::Private
         };
         let peer = net::steam_networking::SteamPeer::new_host(
             lobby_type,
@@ -1330,7 +1334,7 @@ impl App {
 
         if self.show_lobby_list {
             let mut connect_to = None;
-            egui::Window::new(tr("Lobby-list"))
+            Window::new(tr("Lobby-list"))
                 .open(&mut self.show_lobby_list)
                 .show(ctx, |ui| {
                     ui.set_min_height(100.0);
@@ -1375,12 +1379,10 @@ impl App {
                                         if let Some(version) = info.version {
                                             ui.label(format!("EW {}", version));
                                             enabled = version == Version::current();
+                                        } else if info.is_noita_online {
+                                            ui.label("Noita Online");
                                         } else {
-                                            if info.is_noita_online {
-                                                ui.label("Noita Online");
-                                            } else {
-                                                ui.label(tr("Not-Entangled-Worlds-lobby"));
-                                            }
+                                            ui.label(tr("Not-Entangled-Worlds-lobby"));
                                         }
                                         ui.with_layout(
                                             Layout::right_to_left(egui::Align::Center),
@@ -1453,6 +1455,7 @@ impl App {
                     &mut self.app_saved_state.public_lobby,
                     tr("Make-lobby-public"),
                 );
+                ui.checkbox(&mut self.app_saved_state.allow_friends, "Allow friends");
                 if ui.button(tr("connect_steam_connect")).clicked() {
                     let id = ClipboardProvider::new()
                         .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
