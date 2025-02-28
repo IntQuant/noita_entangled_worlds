@@ -22,7 +22,7 @@ net = dofile_once("mods/quant.ew/files/core/net.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
-dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
+local cos = dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
 
@@ -438,8 +438,8 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
     print("Game state entity: " .. GameGetWorldStateEntity())
 
     if not GameHasFlagRun("ew_flag_notplayer_active") then
-        player_cosmetics(player_entity)
-        player_color(player_entity)
+        cos.player_cosmetics(player_entity)
+        cos.player_color(player_entity)
     else
         local damage = ComponentGetValue2(player_entity, "DamageModelComponent")
         if damage ~= nil then

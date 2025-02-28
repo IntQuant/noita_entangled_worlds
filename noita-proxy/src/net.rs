@@ -201,6 +201,7 @@ pub struct NetManager {
     is_dead: AtomicBool,
     is_polied: AtomicBool,
     is_cess: AtomicBool,
+    duplicate: AtomicBool,
 }
 
 impl NetManager {
@@ -235,6 +236,7 @@ impl NetManager {
             is_dead: Default::default(),
             is_polied: Default::default(),
             is_cess: Default::default(),
+            duplicate: Default::default(),
         }
         .into()
     }
@@ -735,7 +737,8 @@ impl NetManager {
                 if let Some(flag) = get_flags(flags) {
                     match flag {
                         FlagType::Normal(flag) => {
-                            let new = state.flags.insert(flag.clone());
+                            let new = self.duplicate.load(Ordering::Relaxed)
+                                || state.flags.insert(flag.clone());
                             self.send(
                                 src,
                                 &NetMsg::RespondFlagNormal(flag, new),
@@ -743,7 +746,8 @@ impl NetManager {
                             )
                         }
                         FlagType::Slow(flag, ent) => {
-                            let new = state.flags.insert(flag);
+                            let new =
+                                self.duplicate.load(Ordering::Relaxed) || state.flags.insert(flag);
                             self.send(
                                 src,
                                 &NetMsg::RespondFlagSlow(ent, new),
@@ -751,7 +755,8 @@ impl NetManager {
                             )
                         }
                         FlagType::Moon(flag, x, y, b) => {
-                            let new = state.flags.insert(flag);
+                            let new =
+                                self.duplicate.load(Ordering::Relaxed) || state.flags.insert(flag);
                             if new {
                                 self.send(
                                     src,
@@ -761,7 +766,8 @@ impl NetManager {
                             }
                         }
                         FlagType::Stevari(flag, x, y) => {
-                            let new = state.flags.insert(flag);
+                            let new =
+                                self.duplicate.load(Ordering::Relaxed) || state.flags.insert(flag);
                             if new {
                                 self.broadcast(
                                     &NetMsg::RespondFlagStevari(x, y, src),
@@ -848,7 +854,12 @@ impl NetManager {
             settings.same_loadout.unwrap_or(def.same_loadout),
         );
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
-        state.try_ws_write_option("duplicate", settings.duplicate.unwrap_or(def.duplicate));
+        if self.is_host() {
+            self.duplicate.store(
+                settings.duplicate.unwrap_or(def.duplicate),
+                Ordering::Relaxed,
+            );
+        }
         state.try_ws_write_option(
             "randomize_perks",
             settings.randomize_perks.unwrap_or(def.randomize_perks),

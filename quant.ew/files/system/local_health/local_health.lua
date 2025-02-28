@@ -8,6 +8,8 @@ local rpc = net.new_rpc_namespace()
 
 dofile_once("data/scripts/status_effects/status_list.lua")
 
+local cos = dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
+
 local status_effects = status_effects
 
 local module = {}
@@ -389,7 +391,7 @@ local function player_died()
     )
     EntityAddTag(iron, "kill_on_revive")
     LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
-    set_cosmetics_locally(ctx.my_id)
+    cos.set_cosmetics_locally(ctx.my_id)
 
     local inv = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
     if inv ~= nil then

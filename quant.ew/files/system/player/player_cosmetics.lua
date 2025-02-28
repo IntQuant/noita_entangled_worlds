@@ -1,6 +1,8 @@
 local rpc = net.new_rpc_namespace()
 
-function player_color(player_entity)
+local cos = {}
+
+function cos.player_color(player_entity)
     local cape
     local player_arm
 
@@ -49,7 +51,7 @@ function player_color(player_entity)
     EntityAddChild(player_entity, cape2)
 end
 
-function player_cosmetics(player_entity)
+function cos.player_cosmetics(player_entity)
     local player_components = EntityGetAllComponents(player_entity)
     if player_components ~= nil then
         for _, comp in ipairs(player_components) do
@@ -73,7 +75,7 @@ function player_cosmetics(player_entity)
     end
 end
 
-function send_player_cosmetics(id)
+function cos.send_player_cosmetics(id)
     rpc.set_cosmetics_all(
         id,
         ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_amulet"),
@@ -102,7 +104,7 @@ local function set_cosmetics(id, amulet, gem, crown)
     end
 end
 
-function set_cosmetics_locally(id)
+function cos.set_cosmetics_locally(id)
     set_cosmetics(
         id,
         ModDoesFileExist("mods/quant.ew/files/system/player/tmp/no_amulet"),
@@ -115,3 +117,5 @@ rpc.opts_everywhere()
 function rpc.set_cosmetics_all(id, amulet, gem, crown)
     set_cosmetics(id, amulet, gem, crown)
 end
+
+return cos
