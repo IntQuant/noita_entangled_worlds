@@ -1330,78 +1330,80 @@ impl App {
 
         if self.show_lobby_list {
             let mut connect_to = None;
-            egui::Window::new(tr("Lobby-list")).show(ctx, |ui| {
-                ui.set_min_height(100.0);
-                let steam_state = self.steam_state.as_mut().unwrap();
-                ui.horizontal(|ui| {
-                    if ui.button(tr("Refresh")).clicked() {
-                        steam_state.update_lobby_list();
-                    }
-                    ui.toggle_value(
-                        &mut self.app_saved_state.only_ew_lobbies,
-                        tr("Only-EW-lobbies"),
-                    );
-                });
-                ScrollArea::vertical().show(ui, |ui| match steam_state.list_lobbies() {
-                    steam_helper::MaybeLobbyList::Pending => {
-                        ui.label(tr("Lobby-list-pending"));
-                    }
-                    steam_helper::MaybeLobbyList::List(lobby_ids) => {
-                        let mut shown_anything = false;
-                        for id in lobby_ids.iter() {
-                            let info = steam_state.lobby_info(*id);
-                            if self.app_saved_state.only_ew_lobbies && info.version.is_none() {
-                                continue;
-                            }
-                            shown_anything = true;
-                            ui.group(|ui| {
-                                ui.set_max_height(50.0);
-                                ui.horizontal(|ui| {
-                                    ui.label(info.name);
-                                    ui.with_layout(
-                                        Layout::right_to_left(egui::Align::Center),
-                                        |ui| {
-                                            ui.label(format!(
-                                                "{}/{}",
-                                                info.member_count, info.member_limit
-                                            ))
-                                        },
-                                    );
-                                });
-                                ui.horizontal(|ui| {
-                                    let mut enabled = false;
-                                    if let Some(version) = info.version {
-                                        ui.label(format!("EW {}", version));
-                                        enabled = version == Version::current();
-                                    } else {
-                                        if info.is_noita_online {
-                                            ui.label("Noita Online");
+            egui::Window::new(tr("Lobby-list"))
+                .open(&mut self.show_lobby_list)
+                .show(ctx, |ui| {
+                    ui.set_min_height(100.0);
+                    let steam_state = self.steam_state.as_mut().unwrap();
+                    ui.horizontal(|ui| {
+                        if ui.button(tr("Refresh")).clicked() {
+                            steam_state.update_lobby_list();
+                        }
+                        ui.toggle_value(
+                            &mut self.app_saved_state.only_ew_lobbies,
+                            tr("Only-EW-lobbies"),
+                        );
+                    });
+                    ScrollArea::vertical().show(ui, |ui| match steam_state.list_lobbies() {
+                        steam_helper::MaybeLobbyList::Pending => {
+                            ui.label(tr("Lobby-list-pending"));
+                        }
+                        steam_helper::MaybeLobbyList::List(lobby_ids) => {
+                            let mut shown_anything = false;
+                            for id in lobby_ids.iter() {
+                                let info = steam_state.lobby_info(*id);
+                                if self.app_saved_state.only_ew_lobbies && info.version.is_none() {
+                                    continue;
+                                }
+                                shown_anything = true;
+                                ui.group(|ui| {
+                                    ui.set_max_height(50.0);
+                                    ui.horizontal(|ui| {
+                                        ui.label(info.name);
+                                        ui.with_layout(
+                                            Layout::right_to_left(egui::Align::Center),
+                                            |ui| {
+                                                ui.label(format!(
+                                                    "{}/{}",
+                                                    info.member_count, info.member_limit
+                                                ))
+                                            },
+                                        );
+                                    });
+                                    ui.horizontal(|ui| {
+                                        let mut enabled = false;
+                                        if let Some(version) = info.version {
+                                            ui.label(format!("EW {}", version));
+                                            enabled = version == Version::current();
                                         } else {
-                                            ui.label(tr("Not-Entangled-Worlds-lobby"));
+                                            if info.is_noita_online {
+                                                ui.label("Noita Online");
+                                            } else {
+                                                ui.label(tr("Not-Entangled-Worlds-lobby"));
+                                            }
                                         }
-                                    }
-                                    ui.with_layout(
-                                        Layout::right_to_left(egui::Align::Center),
-                                        |ui| {
-                                            ui.add_enabled_ui(enabled, |ui| {
-                                                if ui.small_button(tr("Join")).clicked() {
-                                                    connect_to = Some(*id);
-                                                }
-                                            });
-                                        },
-                                    );
+                                        ui.with_layout(
+                                            Layout::right_to_left(egui::Align::Center),
+                                            |ui| {
+                                                ui.add_enabled_ui(enabled, |ui| {
+                                                    if ui.small_button(tr("Join")).clicked() {
+                                                        connect_to = Some(*id);
+                                                    }
+                                                });
+                                            },
+                                        );
+                                    });
                                 });
-                            });
+                            }
+                            if !shown_anything {
+                                ui.label(tr("No-public-lobbies-at-the-moment"));
+                            }
                         }
-                        if !shown_anything {
-                            ui.label(tr("No-public-lobbies-at-the-moment"));
+                        steam_helper::MaybeLobbyList::Errored => {
+                            ui.label("Failed to request lobby list");
                         }
-                    }
-                    steam_helper::MaybeLobbyList::Errored => {
-                        ui.label("Failed to request lobby list");
-                    }
+                    });
                 });
-            });
             if let Some(lobby) = connect_to {
                 self.start_steam_connect(lobby);
             }
