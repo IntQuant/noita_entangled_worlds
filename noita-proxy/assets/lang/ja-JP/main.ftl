@@ -142,3 +142,16 @@ Info = Info
 ## Local settings
 
 connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
+## Steam connect
+
+Make-lobby-public = Make lobby public
+## Lobby list
+
+Open-lobby-list = Open lobby list
+Only-EW-lobbies = Only EW lobbies
+Join = Join
+Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
+No-public-lobbies-at-the-moment = No public lobbies at the moment :(
+Lobby-list-pending = Lobby list pending...
+Refresh = Refresh
+Lobby-list = Lobby list

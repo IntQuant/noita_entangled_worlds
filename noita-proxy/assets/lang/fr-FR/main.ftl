@@ -168,3 +168,17 @@ ping-scale-tooltip = Cette option change la taille de la flèche de ping. Je ne 
 
 hide-cursors-checkbox = Désactive le curseur des autres
 hide-cursors-checkbox-tooltip = Il arrive de confondre le curseur de tes amis avec le vôtre. Dans ce cas, vous pouvez les désactiver avec cette option.
+
+## Steam connect
+
+Make-lobby-public = Make lobby public
+## Lobby list
+
+Open-lobby-list = Open lobby list
+Only-EW-lobbies = Only EW lobbies
+Join = Join
+Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
+No-public-lobbies-at-the-moment = No public lobbies at the moment :(
+Lobby-list-pending = Lobby list pending...
+Refresh = Refresh
+Lobby-list = Lobby list

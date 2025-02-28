@@ -1,8 +1,10 @@
-use std::{env, thread, time::Duration};
+use std::{env, sync::Arc, thread, time::Duration};
 
 use eframe::egui::{self, RichText, TextureHandle, Ui};
-use steamworks::{SteamAPIInitError, SteamId};
-use tracing::{error, info};
+use steamworks::{LobbyId, SResult, SteamAPIInitError, SteamId};
+use tracing::{error, info, warn};
+
+use crate::releases::Version;
 
 pub struct SteamUserAvatar {
     avatar: TextureHandle,
@@ -24,8 +26,59 @@ impl SteamUserAvatar {
     }
 }
 
+pub(crate) enum MaybeLobbyList {
+    Pending,
+    List(Arc<Vec<LobbyId>>),
+    Errored,
+}
+
+enum LobbyListState {
+    None,
+    Pending {
+        receiver: tokio::sync::oneshot::Receiver<SResult<Vec<LobbyId>>>,
+    },
+    List {
+        list: Arc<Vec<LobbyId>>,
+    },
+    Errored,
+}
+
+impl LobbyListState {
+    fn is_none(&self) -> bool {
+        matches!(self, LobbyListState::None)
+    }
+    fn try_resolve(&mut self) -> MaybeLobbyList {
+        match self {
+            LobbyListState::None => MaybeLobbyList::Pending,
+            LobbyListState::Pending { receiver } => {
+                if let Ok(lst) = receiver.try_recv() {
+                    match lst {
+                        Ok(list) => *self = LobbyListState::List { list: list.into() },
+                        Err(err) => {
+                            warn!("Failed to get lobby list: {:?}", err);
+                            *self = LobbyListState::Errored
+                        }
+                    }
+                }
+                MaybeLobbyList::Pending
+            }
+            LobbyListState::List { list } => MaybeLobbyList::List(list.clone()),
+            LobbyListState::Errored => MaybeLobbyList::Errored,
+        }
+    }
+}
+
+pub struct LobbyInfo {
+    pub member_count: usize,
+    pub member_limit: usize,
+    pub version: Option<Version>,
+    pub name: String,
+    pub is_noita_online: bool,
+}
+
 pub struct SteamState {
     pub client: steamworks::Client,
+    lobby_state: LobbyListState,
 }
 
 impl SteamState {
@@ -53,7 +106,10 @@ impl SteamState {
             }
         });
 
-        Ok(SteamState { client })
+        Ok(SteamState {
+            client,
+            lobby_state: LobbyListState::None,
+        })
     }
 
     pub fn get_user_name(&self, id: SteamId) -> String {
@@ -63,5 +119,41 @@ impl SteamState {
 
     pub(crate) fn get_my_id(&self) -> SteamId {
         self.client.user().steam_id()
+    }
+
+    pub(crate) fn update_lobby_list(&mut self) {
+        let (s, r) = tokio::sync::oneshot::channel();
+        self.client.matchmaking().request_lobby_list(|res| {
+            let _ = s.send(res);
+        });
+        self.lobby_state = LobbyListState::Pending { receiver: r };
+    }
+
+    pub(crate) fn list_lobbies(&mut self) -> MaybeLobbyList {
+        if self.lobby_state.is_none() {
+            self.update_lobby_list();
+        }
+        self.lobby_state.try_resolve()
+    }
+
+    pub(crate) fn lobby_info(&self, lobby: LobbyId) -> LobbyInfo {
+        let matchmaking = self.client.matchmaking();
+        let version = matchmaking
+            .lobby_data(lobby, "ew_version")
+            .and_then(Version::parse_from_diplay);
+        let is_noita_online = matchmaking
+            .lobby_data(lobby, "System")
+            .map(|s| s.starts_with("NoitaOnline"))
+            .unwrap_or(false);
+        LobbyInfo {
+            member_count: matchmaking.lobby_member_count(lobby),
+            member_limit: matchmaking.lobby_member_limit(lobby).unwrap_or(250),
+            version,
+            name: matchmaking
+                .lobby_data(lobby, "name")
+                .unwrap_or_default()
+                .to_owned(),
+            is_noita_online,
+        }
     }
 }

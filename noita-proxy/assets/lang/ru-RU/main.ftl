@@ -162,3 +162,17 @@ ping-scale-tooltip = Этот параметр изменяет размер с�
 
 hide-cursors-checkbox = Отключить курсоры других игроков.
 hide-cursors-checkbox-tooltip = Иногда можно перепутать курсоры других игроков со своим. Этой галочкой можно отключить их.
+
+## Steam connect
+
+Make-lobby-public = Make lobby public
+## Lobby list
+
+Open-lobby-list = Open lobby list
+Only-EW-lobbies = Only EW lobbies
+Join = Join
+Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
+No-public-lobbies-at-the-moment = No public lobbies at the moment :(
+Lobby-list-pending = Lobby list pending...
+Refresh = Refresh
+Lobby-list = Lobby list

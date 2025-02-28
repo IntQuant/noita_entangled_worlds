@@ -166,3 +166,17 @@ ping-scale-tooltip = Esse parâmentro muda o tamanho da seta de sinalização. E
 
 hide-cursors-checkbox = Desativar cursor dos outros
 hide-cursors-checkbox-tooltip = De vez em quando você pode confundir o cursor de seus amigos com o seu. Nesse caso, você pode desativa-los totalmente com essa caixa de seleção.
+
+## Steam connect
+
+Make-lobby-public = Make lobby public
+## Lobby list
+
+Open-lobby-list = Open lobby list
+Only-EW-lobbies = Only EW lobbies
+Join = Join
+Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
+No-public-lobbies-at-the-moment = No public lobbies at the moment :(
+Lobby-list-pending = Lobby list pending...
+Refresh = Refresh
+Lobby-list = Lobby list

@@ -166,3 +166,17 @@ ping-scale-tooltip = 이 값은 화살표의 크기를 결정합니다. 단위�
 
 hide-cursors-checkbox = 다른 플레이어의 커서 비활성화
 hide-cursors-checkbox-tooltip = 가끔씩 다른 플레이어의 커서를 자신의 것과 헷갈릴 수 있기에, 이 설정을 활성화 해 전부 비활성화할 수 있습니다.
+
+## Steam connect
+
+Make-lobby-public = Make lobby public
+## Lobby list
+
+Open-lobby-list = Open lobby list
+Only-EW-lobbies = Only EW lobbies
+Join = Join
+Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
+No-public-lobbies-at-the-moment = No public lobbies at the moment :(
+Lobby-list-pending = Lobby list pending...
+Refresh = Refresh
+Lobby-list = Lobby list

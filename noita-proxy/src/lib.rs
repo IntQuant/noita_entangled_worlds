@@ -1,14 +1,15 @@
 use bitcode::{Decode, Encode};
 use bookkeeping::{
     noita_launcher::{LaunchTokenResult, NoitaLauncher},
+    releases::Version,
     save_state::SaveState,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
-    ImageButton, InnerResponse, Key, Margin, OpenUrl, OutputCommand, Rect, RichText, ScrollArea,
-    Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+    ImageButton, InnerResponse, Key, Layout, Margin, OpenUrl, OutputCommand, Rect, RichText,
+    ScrollArea, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
 };
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
@@ -591,6 +592,8 @@ struct AppSavedState {
     record_all: bool,
     spacewars: bool,
     random_ports: bool,
+    public_lobby: bool,
+    only_ew_lobbies: bool,
 }
 
 impl Default for AppSavedState {
@@ -606,6 +609,8 @@ impl Default for AppSavedState {
             record_all: false,
             spacewars: false,
             random_ports: false,
+            public_lobby: false,
+            only_ew_lobbies: true,
         }
     }
 }
@@ -859,6 +864,7 @@ pub struct App {
     running_on_steamdeck: bool,
     copied_lobby: bool,
     my_lobby_kind: LobbyKind,
+    show_lobby_list: bool,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -1021,6 +1027,7 @@ impl App {
             running_on_steamdeck,
             copied_lobby: true,
             my_lobby_kind,
+            show_lobby_list: false,
         }
     }
 
@@ -1037,21 +1044,7 @@ impl App {
     }
 
     fn get_netman_init(&self) -> NetManagerInit {
-        let mut id = "no name found".to_string();
-        let steam_nickname = if let Ok(steam) = &self.steam_state {
-            let sid = steam.get_my_id();
-            id = sid.steamid32().to_string();
-            Some(steam.get_user_name(sid))
-        } else {
-            None
-        };
-        let mut my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
-        if let Some(n) = my_nickname.clone() {
-            if n.trim().is_empty() {
-                my_nickname = None
-            }
-        }
-        let my_nickname = my_nickname.unwrap_or(id);
+        let my_nickname = self.nickname();
         let mod_path = self.modmanager_settings.mod_path();
         let mut cosmetics = self.appearance.cosmetics;
         if let Some(path) = &self.modmanager_settings.game_save_path {
@@ -1089,6 +1082,24 @@ impl App {
             },
             noita_port,
         }
+    }
+
+    fn nickname(&self) -> String {
+        let default = "no name found".to_string();
+        let steam_nickname = if let Ok(steam) = &self.steam_state {
+            let sid = steam.get_my_id();
+            Some(steam.get_user_name(sid))
+        } else {
+            None
+        };
+        let mut my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
+        if let Some(n) = &my_nickname {
+            if n.trim().is_empty() {
+                my_nickname = None;
+            }
+        }
+
+        my_nickname.unwrap_or(default)
     }
 
     fn change_state_to_netman(&mut self, netman: Arc<net::NetManager>, player_path: PathBuf) {
@@ -1151,13 +1162,19 @@ impl App {
     }
 
     fn start_steam_host(&mut self) {
+        let lobby_type = if self.app_saved_state.public_lobby {
+            steamworks::LobbyType::Public
+        } else {
+            steamworks::LobbyType::FriendsOnly
+        };
         let peer = net::steam_networking::SteamPeer::new_host(
-            steamworks::LobbyType::Private,
+            lobby_type,
             self.steam_state.as_ref().unwrap().client.clone(),
             self.app_saved_state
                 .game_settings
                 .max_players
                 .unwrap_or(DefaultSettings::default().max_players),
+            self.nickname(),
         );
         let netman = net::NetManager::new(
             PeerVariant::Steam(peer),
@@ -1310,6 +1327,85 @@ impl App {
                 },
             );
         });
+
+        if self.show_lobby_list {
+            let mut connect_to = None;
+            egui::Window::new(tr("Lobby-list")).show(ctx, |ui| {
+                ui.set_min_height(100.0);
+                let steam_state = self.steam_state.as_mut().unwrap();
+                ui.horizontal(|ui| {
+                    if ui.button(tr("Refresh")).clicked() {
+                        steam_state.update_lobby_list();
+                    }
+                    ui.toggle_value(
+                        &mut self.app_saved_state.only_ew_lobbies,
+                        tr("Only-EW-lobbies"),
+                    );
+                });
+                ScrollArea::vertical().show(ui, |ui| match steam_state.list_lobbies() {
+                    steam_helper::MaybeLobbyList::Pending => {
+                        ui.label(tr("Lobby-list-pending"));
+                    }
+                    steam_helper::MaybeLobbyList::List(lobby_ids) => {
+                        let mut shown_anything = false;
+                        for id in lobby_ids.iter() {
+                            let info = steam_state.lobby_info(*id);
+                            if self.app_saved_state.only_ew_lobbies && info.version.is_none() {
+                                continue;
+                            }
+                            shown_anything = true;
+                            ui.group(|ui| {
+                                ui.set_max_height(50.0);
+                                ui.horizontal(|ui| {
+                                    ui.label(info.name);
+                                    ui.with_layout(
+                                        Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            ui.label(format!(
+                                                "{}/{}",
+                                                info.member_count, info.member_limit
+                                            ))
+                                        },
+                                    );
+                                });
+                                ui.horizontal(|ui| {
+                                    let mut enabled = false;
+                                    if let Some(version) = info.version {
+                                        ui.label(format!("EW {}", version));
+                                        enabled = version == Version::current();
+                                    } else {
+                                        if info.is_noita_online {
+                                            ui.label("Noita Online");
+                                        } else {
+                                            ui.label(tr("Not-Entangled-Worlds-lobby"));
+                                        }
+                                    }
+                                    ui.with_layout(
+                                        Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            ui.add_enabled_ui(enabled, |ui| {
+                                                if ui.small_button(tr("Join")).clicked() {
+                                                    connect_to = Some(*id);
+                                                }
+                                            });
+                                        },
+                                    );
+                                });
+                            });
+                        }
+                        if !shown_anything {
+                            ui.label(tr("No-public-lobbies-at-the-moment"));
+                        }
+                    }
+                    steam_helper::MaybeLobbyList::Errored => {
+                        ui.label("Failed to request lobby list");
+                    }
+                });
+            });
+            if let Some(lobby) = connect_to {
+                self.start_steam_connect(lobby);
+            }
+        }
     }
 
     fn panel_right_bar(&mut self, ui: &mut Ui, ctx: &Context) {
@@ -1351,6 +1447,10 @@ impl App {
                     self.set_settings();
                     self.start_steam_host();
                 }
+                ui.checkbox(
+                    &mut self.app_saved_state.public_lobby,
+                    tr("Make-lobby-public"),
+                );
                 if ui.button(tr("connect_steam_connect")).clicked() {
                     let id = ClipboardProvider::new()
                         .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
@@ -1361,6 +1461,9 @@ impl App {
                         }
                         Err(error) => self.notify_error(error),
                     }
+                }
+                if ui.button(tr("Open-lobby-list")).clicked() {
+                    self.show_lobby_list = true;
                 }
 
                 if cfg!(target_os = "linux") {
@@ -2198,6 +2301,7 @@ pub fn host_cli(port: u16, args: Args) {
             steamworks::LobbyType::Private,
             state.client,
             250,
+            "no name specified".to_string(),
         );
         PeerVariant::Steam(peer)
     } else {

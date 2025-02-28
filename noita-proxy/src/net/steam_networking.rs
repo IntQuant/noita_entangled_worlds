@@ -338,7 +338,12 @@ impl SteamPeer {
     pub fn flush(&self) {
         self.connections.flush()
     }
-    pub fn new_host(lobby_type: LobbyType, client: steamworks::Client, max_players: u32) -> Self {
+    pub fn new_host(
+        lobby_type: LobbyType,
+        client: steamworks::Client,
+        max_players: u32,
+        lobby_name: String,
+    ) -> Self {
         let (sender, events) = channel::unbounded();
 
         let connections = Connections::new(&client);
@@ -357,6 +362,7 @@ impl SteamPeer {
                                 "ew_version",
                                 &Version::current().to_string(),
                             );
+                            matchmaking.set_lobby_data(id, "name", &lobby_name);
                             SteamEvent::LobbyCreatedOrJoined(id)
                         }
                         Err(err) => SteamEvent::LobbyError(err),

@@ -166,3 +166,16 @@ ping-scale-tooltip = This parameter changes size of ping arrow. I dont know whic
 
 hide-cursors-checkbox = Disable others' cursors
 hide-cursors-checkbox-tooltip = Sometimes you can confuse your friends' cursors with yours. In that case, you can disable them altogether with this checkbox.
+## Steam connect
+
+Make-lobby-public = Make lobby public
+## Lobby list
+
+Open-lobby-list = Open lobby list
+Only-EW-lobbies = Only EW lobbies
+Join = Join
+Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
+No-public-lobbies-at-the-moment = No public lobbies at the moment :(
+Lobby-list-pending = Lobby list pending...
+Refresh = Refresh
+Lobby-list = Lobby list
