@@ -12,7 +12,7 @@ util.prepend(
     'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
         .. "if util.do_i_own(entity_id) then\n"
         .. 'CrossCall("ew_beam", pos_x, pos_y)\n'
-        .. "done"
+        .. "end"
 )
 
 rpc.opts_everywhere()
