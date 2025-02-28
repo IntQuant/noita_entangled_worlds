@@ -7,9 +7,9 @@ ffc80040,ew_detour_spawn_props3,-1,-1,-1,-1
 ffffff00,spawn_lamp,-1,-1,-1,-1
 ffff0aff,load_pixel_scene,-1,-1,-1,-1
 ffFF0080,load_pixel_scene2,-1,-1,-1,-1
-ffFF8000,spawn_unique_enemy,-1,-1,-1,-1
-ffc84040,spawn_unique_enemy2,-1,-1,-1,-1
-ff804040,spawn_unique_enemy3,-1,-1,-1,-1
+ffFF8000,ew_detour_spawn_unique_enemy,-1,-1,-1,-1
+ffc84040,ew_detour_spawn_unique_enemy2,-1,-1,-1,-1
+ff804040,ew_detour_spawn_unique_enemy3,-1,-1,-1,-1
 ff96C850,spawn_ghostlamp,-1,-1,-1,-1
 ff60A064,spawn_candles,-1,-1,-1,-1
 ff50a000,spawn_potion_altar,-1,-1,-1,-1
