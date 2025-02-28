@@ -1,15 +1,20 @@
-## Noita Entangled Worlds v1.2.9
+## Noita Entangled Worlds v1.3.0
 
-- fix entities duping infinitely halting game
+- fix kivi and deer boss damage
 
-- fix sometimes gaining auth over entities when there is a better person for it
+- fix enemys breaking in v1.2.9
 
-- fix sometimes having auth when you should not have it
+- fix empty audio sound not played on your wands
 
-- optimize some things
+- fix certain very complicated wands
 
-- maybe fix some nolla spell bugs
+- add scrollbar to settings in lobby
 
+- make things run more often to prevent data buildup
+
+- dont sync potion puzzle indicator spawn
+
+- add another tag for modders
 
 ## Accepted pull requests
 
