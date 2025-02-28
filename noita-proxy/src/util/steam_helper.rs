@@ -123,7 +123,9 @@ impl SteamState {
 
     pub(crate) fn update_lobby_list(&mut self) {
         let (s, r) = tokio::sync::oneshot::channel();
-        self.client.matchmaking().request_lobby_list(|res| {
+        let matchmaking = self.client.matchmaking();
+        matchmaking.set_request_lobby_list_distance_filter(steamworks::DistanceFilter::Worldwide);
+        matchmaking.request_lobby_list(|res| {
             let _ = s.send(res);
         });
         self.lobby_state = LobbyListState::Pending { receiver: r };
