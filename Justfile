@@ -58,5 +58,9 @@ release:
     cd ewext && cargo check
     python scripts/check_pre_ci.py
 
+clean:
+    cd noita-proxy && cargo clean
+    cd ewext && cargo clean
+
 make_release_assets:
     python scripts/make_release_assets.py
