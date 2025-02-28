@@ -235,9 +235,12 @@ impl EntityID {
             .ok_or_else(|| eyre!("Entity {self:?} has no component {}", C::NAME_STR))
     }
 
-    pub fn remove_all_components_of_type<C: Component>(self) -> eyre::Result<bool> {
+    pub fn remove_all_components_of_type<C: Component>(
+        self,
+        tags: Option<Cow<str>>,
+    ) -> eyre::Result<bool> {
         let mut is_some = false;
-        while let Some(c) = self.try_get_first_component_including_disabled::<C>(None)? {
+        while let Some(c) = self.try_get_first_component_including_disabled::<C>(tags.clone())? {
             is_some = true;
             raw::entity_remove_component(self, c.into())?;
         }

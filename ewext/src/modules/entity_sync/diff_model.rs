@@ -275,6 +275,7 @@ impl LocalDiffModelTracker {
             entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
         {
             info.wand = if let Some(wand) = inv.m_actual_active_item()? {
+                wand.remove_all_components_of_type::<LuaComponent>(Some("ew_immortal".into()))?;
                 if let Some(gid) = wand
                     .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
                         None,
@@ -676,7 +677,7 @@ impl LocalDiffModel {
     pub(crate) fn track_entity(&mut self, entity: EntityID, gid: Gid) -> eyre::Result<Lid> {
         let lid = self.alloc_lid();
         let should_not_serialize = entity
-            .remove_all_components_of_type::<CameraBoundComponent>()?
+            .remove_all_components_of_type::<CameraBoundComponent>(None)?
             || (entity.is_alive() && !noita_api::raw::physics_body_id_get_from_entity(entity, None)
                 .unwrap_or_default()
                 .len()
@@ -1835,12 +1836,12 @@ pub fn init_remote_entity(
     if entity.has_tag("player_unit") {
         entity.kill()
     }
-    entity.remove_all_components_of_type::<CameraBoundComponent>()?;
-    entity.remove_all_components_of_type::<StreamingKeepAliveComponent>()?;
-    entity.remove_all_components_of_type::<CharacterPlatformingComponent>()?;
-    entity.remove_all_components_of_type::<PhysicsAIComponent>()?;
-    entity.remove_all_components_of_type::<AdvancedFishAIComponent>()?;
-    entity.remove_all_components_of_type::<IKLimbsAnimatorComponent>()?;
+    entity.remove_all_components_of_type::<CameraBoundComponent>(None)?;
+    entity.remove_all_components_of_type::<StreamingKeepAliveComponent>(None)?;
+    entity.remove_all_components_of_type::<CharacterPlatformingComponent>(None)?;
+    entity.remove_all_components_of_type::<PhysicsAIComponent>(None)?;
+    entity.remove_all_components_of_type::<AdvancedFishAIComponent>(None)?;
+    entity.remove_all_components_of_type::<IKLimbsAnimatorComponent>(None)?;
     let mut any = false;
     for ai in entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)? {
         any = any || ai.attack_ranged_aim_rotation_enabled()?;
@@ -1859,8 +1860,8 @@ pub fn init_remote_entity(
         ai.set_keep_state_alive_when_enabled(true)?;
     }
     if !any {
-        entity.remove_all_components_of_type::<AnimalAIComponent>()?;
-        entity.remove_all_components_of_type::<AIAttackComponent>()?;
+        entity.remove_all_components_of_type::<AnimalAIComponent>(None)?;
+        entity.remove_all_components_of_type::<AIAttackComponent>(None)?;
         for sprite in
             entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))?
         {
@@ -2129,7 +2130,7 @@ fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
 }
 
 fn safe_entitykill(entity: EntityID) {
-    let _ = entity.remove_all_components_of_type::<AudioComponent>();
+    let _ = entity.remove_all_components_of_type::<AudioComponent>(None);
     let is_wand = entity.try_get_first_component_including_disabled::<AbilityComponent>(None);
     if is_wand
         .map(|a| {
