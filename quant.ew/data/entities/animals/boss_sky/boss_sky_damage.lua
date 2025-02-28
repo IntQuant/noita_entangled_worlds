@@ -27,23 +27,32 @@ if #players == 0 then
     end
 end
 
+local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")
+if util.do_i_own(entity_id) then
+    CrossCall("ew_kivi", hp_percentage)
+end
 if #players > 0 then
-    local player_id = players[1]
-    local px, py, ang, sx, sy = EntityGetTransform(player_id)
+    for _, player_id in ipairs(players) do
+        local px, py, ang, sx, sy = EntityGetTransform(player_id)
 
-    local hx, hy = EntityGetHotspot(player_id, "cape_root", false)
-    local tx, ty = px + hx, py + hy - 2
-    EntitySetTransform(entity_id, tx, ty)
+        local hx, hy = EntityGetHotspot(player_id, "cape_root", false)
+        local tx, ty = px + hx, py + hy - 2
+        EntitySetTransform(entity_id, tx, ty)
 
-    -- holy damage already has 1.5x multiplier
-    component_read(EntityGetFirstComponent(player_id, "DamageModelComponent"), { max_hp = 0, hp = 0 }, function(comp)
-        local player_hp_percentage = comp.hp / comp.max_hp
-        if player_hp_percentage >= hp_percentage then
-            local damage = math.max(0, comp.max_hp * (player_hp_percentage - hp_percentage))
-            if damage > 0 and not EntityHasTag(player_id, "ew_notplayer") then
-                EntityInflictDamage(player_id, damage, "DAMAGE_HOLY", "$damage_holy", "NONE", 0, 0, NULL_ENTITY)
-                EntityLoad("data/entities/particles/poof_red_tiny.xml", tx, ty)
+        -- holy damage already has 1.5x multiplier
+        component_read(
+            EntityGetFirstComponent(player_id, "DamageModelComponent"),
+            { max_hp = 0, hp = 0 },
+            function(comp)
+                local player_hp_percentage = comp.hp / comp.max_hp
+                if player_hp_percentage >= hp_percentage then
+                    local damage = math.max(0, comp.max_hp * (player_hp_percentage - hp_percentage))
+                    if damage > 0 and not EntityHasTag(player_id, "ew_notplayer") then
+                        EntityInflictDamage(player_id, damage, "DAMAGE_HOLY", "$damage_holy", "NONE", 0, 0, NULL_ENTITY)
+                        EntityLoad("data/entities/particles/poof_red_tiny.xml", tx, ty)
+                    end
+                end
             end
-        end
-    end)
+        )
+    end
 end
