@@ -82,6 +82,8 @@ impl DesManager {
                     counter,
                     is_charmed,
                     hp,
+                    phys,
+                    synced_var,
                 } = update;
                 self.remove_gid_from_tree(gid);
                 if let Some(entity) = self.entity_storage.entities.get_mut(&gid) {
@@ -89,6 +91,8 @@ impl DesManager {
                     entity.is_charmed = is_charmed;
                     entity.hp = hp;
                     entity.counter = counter;
+                    entity.phys = phys;
+                    entity.synced_var = synced_var;
                 } else {
                     warn!("Failed to find entity {gid:?} to update");
                 }

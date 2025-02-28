@@ -55,6 +55,8 @@ pub(crate) struct LocalDiffModel {
     tracker: LocalDiffModelTracker,
     upload: FxHashSet<Lid>,
     dont_upload: FxHashSet<Lid>,
+    enable_later: Vec<EntityID>,
+    phys_later: Vec<(EntityID, Vec<Option<PhysBodyInfo>>)>,
 }
 impl LocalDiffModel {
     pub(crate) fn got_polied(&mut self, gid: Gid) {
@@ -95,6 +97,8 @@ impl LocalDiffModel {
                             is_charmed: current.is_charmed(),
                             hp: current.hp,
                             counter: current.counter,
+                            phys: current.phys.clone(),
+                            synced_var: current.synced_var.clone(),
                         })
                     } else {
                         UpdateOrUpload::Update(UpdatePosition {
@@ -103,6 +107,8 @@ impl LocalDiffModel {
                             counter: current.counter,
                             is_charmed: current.is_charmed(),
                             hp: current.hp,
+                            phys: current.phys.clone(),
+                            synced_var: current.synced_var.clone(),
                         })
                     })
                 } else {
@@ -124,6 +130,8 @@ impl LocalDiffModel {
                             is_charmed: current.is_charmed(),
                             hp: current.hp,
                             counter: current.counter,
+                            phys: current.phys.clone(),
+                            synced_var: current.synced_var.clone(),
                         }));
                     } else {
                         self.upload.insert(lid);
@@ -198,6 +206,8 @@ impl Default for LocalDiffModel {
             },
             upload: Default::default(),
             dont_upload: Default::default(),
+            enable_later: Default::default(),
+            phys_later: Default::default(),
         }
     }
 }
@@ -615,6 +625,8 @@ impl LocalDiffModelTracker {
                     is_charmed: info.is_charmed(),
                     hp: info.hp,
                     counter: info.counter,
+                    phys: info.phys.clone(),
+                    synced_var: info.synced_var.clone(),
                 })
             } else {
                 UpdateOrUpload::Update(UpdatePosition {
@@ -623,6 +635,8 @@ impl LocalDiffModelTracker {
                     counter: info.counter,
                     is_charmed: info.is_charmed(),
                     hp: info.hp,
+                    phys: info.phys.clone(),
+                    synced_var: info.synced_var.clone(),
                 })
             }),
         ))?;
@@ -821,6 +835,46 @@ impl LocalDiffModel {
         Ok(())
     }
 
+    pub(crate) fn phys_later(&mut self) -> eyre::Result<()> {
+        for (entity, phys) in self.phys_later.drain(..) {
+            if check_all_phys_init(entity)? && entity.is_alive() {
+                let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)
+                    .unwrap_or_default();
+                for (p, physics_body_id) in phys.iter().zip(phys_bodies.iter()) {
+                    let Some(p) = p else {
+                        continue;
+                    };
+                    let (x, y) =
+                        noita_api::raw::game_pos_to_physics_pos(p.x.into(), Some(p.y.into()))?;
+                    noita_api::raw::physics_body_id_set_transform(
+                        *physics_body_id,
+                        x,
+                        y,
+                        p.angle.into(),
+                        p.vx.into(),
+                        p.vy.into(),
+                        p.av.into(),
+                    )?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn enable_later(&mut self) -> eyre::Result<()> {
+        for entity in self.enable_later.drain(..) {
+            if entity.is_alive() {
+                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                entity
+                    .children(Some("protection".into()))
+                    .iter()
+                    .for_each(|ent| ent.kill());
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
         let start = Instant::now();
         while let Some(entity_data) = self.tracker.pending_authority.pop() {
@@ -832,12 +886,7 @@ impl LocalDiffModel {
             entity.set_position(entity_data.pos.x as f32, entity_data.pos.y as f32, None)?;
             if entity_data.is_charmed {
                 if entity.has_tag("boss_centipede") {
-                    entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
-                    entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
-                    entity
-                        .children(Some("protection".into()))
-                        .iter()
-                        .for_each(|ent| ent.kill());
+                    self.enable_later.push(entity);
                 } else if entity.has_tag("pitcheck_b") {
                     entity.set_components_with_tag_enabled("disabled".into(), true)?;
                 } else if let Some(var) = entity
@@ -851,6 +900,17 @@ impl LocalDiffModel {
                     entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
                 }
             }
+            for (name, s, i, f, b) in &entity_data.synced_var {
+                let v = entity.get_var_or_default(name)?;
+                v.set_value_string(s.into())?;
+                v.set_value_int(*i)?;
+                v.set_value_float(*f)?;
+                v.set_value_bool(*b)?;
+            }
+            if !entity_data.phys.is_empty() {
+                self.phys_later.push((entity, entity_data.phys));
+            }
+
             mom(entity, entity_data.counter, None)?;
             sun(entity, entity_data.counter)?;
             if entity_data.hp != -1.0 {

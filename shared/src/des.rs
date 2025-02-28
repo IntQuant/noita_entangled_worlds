@@ -42,6 +42,8 @@ pub struct FullEntityData {
     pub drops_gold: bool,
     pub is_charmed: bool,
     pub counter: u8,
+    pub phys: Vec<Option<PhysBodyInfo>>,
+    pub synced_var: Vec<(String, String, i32, f32, bool)>,
 }
 
 #[derive(Debug, Encode, Decode, Clone)]
@@ -51,6 +53,8 @@ pub struct UpdatePosition {
     pub counter: u8,
     pub is_charmed: bool,
     pub hp: f32,
+    pub phys: Vec<Option<PhysBodyInfo>>,
+    pub synced_var: Vec<(String, String, i32, f32, bool)>,
 }
 
 #[derive(Debug, Encode, Decode, Clone)]
