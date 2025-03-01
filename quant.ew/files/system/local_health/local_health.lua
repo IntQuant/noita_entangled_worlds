@@ -342,7 +342,7 @@ local function player_died()
     end
 
     if ctx.proxy_opt.pvp then
-        pvp.move_next_hm()
+        pvp.move_next_hm(true)
         return
     end
 

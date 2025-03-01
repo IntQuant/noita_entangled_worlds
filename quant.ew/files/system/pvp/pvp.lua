@@ -33,6 +33,12 @@ local my_pw = tonumber(GlobalsGetValue("ew_pw", "0"))
 
 local floor = tonumber(GlobalsGetValue("ew_floor", "1"))
 
+local player_died = {}
+
+for _ = 1, #chunks_by_floor do
+    table.insert(player_died, {})
+end
+
 --TODO disable portals
 
 --TODO give tiny platform so you dont fall in lava after tp
@@ -53,6 +59,7 @@ local hm_ys = {
 function rpc.recv_player_num(num, peer)
     if ctx.my_id == peer then
         my_num = num
+        player_count = num
         my_pw = math.ceil(my_num / 2)
         if my_num % 2 == 0 then
             my_pw = -my_pw
@@ -70,6 +77,16 @@ function rpc.get_player_num()
         player_count = player_count + 1
         GlobalsSetValue("ew_player_count", tostring(player_count))
     end
+end
+
+rpc.opts_everywhere()
+function rpc.win()
+    GamePrintImportant(ctx.rpc_player_data.name .. " wins")
+end
+
+rpc.opts_everywhere()
+function rpc.died(f)
+    table.insert(player_died[f], ctx.rpc_peer_id)
 end
 
 local function float()
@@ -99,9 +116,12 @@ end
 
 local hm_y
 
-function pvp.move_next_hm()
+function pvp.move_next_hm(died)
     hm_y = hm_ys[math.min(floor, #hm_ys)]
     tp(hm_x, hm_y)
+    if died then
+        rpc.died(floor)
+    end
     floor = floor + 1
     GlobalsSetValue("ew_floor", tostring(floor))
 end
@@ -145,15 +165,22 @@ local first = true
 
 function pvp.on_world_update()
     if first then
-        if not ctx.is_host then
+        if ctx.is_host then
+            pvp.teleport_into_biome()
+            first = false
+        elseif ctx.players[ctx.host_id] ~= nil then
             rpc.get_player_num()
+            pvp.teleport_into_biome()
+            first = false
         end
-        first = false
-        pvp.teleport_into_biome()
     end
     local _, y = EntityGetTransform(ctx.my_player.entity)
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
         pvp.teleport_into_biome()
+    end
+    if player_count ~= 1 and GameGetFrameNum() % 60 == 32 and #player_died[floor] == player_count - 1 then
+        pvp.move_next_hm(false)
+        rpc.win()
     end
 end
 
