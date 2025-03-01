@@ -39,7 +39,7 @@ for _ = 1, #chunks_by_floor do
     table.insert(player_died, {})
 end
 
---TODO disable portals
+local my_wins = tonumber(GlobalsGetValue("ew_wins", "0"))
 
 --TODO give tiny platform so you dont fall in lava after tp
 
@@ -80,8 +80,8 @@ function rpc.get_player_num()
 end
 
 rpc.opts_everywhere()
-function rpc.win()
-    GamePrintImportant(ctx.rpc_player_data.name .. " wins")
+function rpc.win(num)
+    GamePrintImportant(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
 end
 
 rpc.opts_everywhere()
@@ -141,7 +141,9 @@ function pvp.teleport_into_biome()
             end
         end
     end
-    local my_chunk = chunks[Random(1, #chunks)]
+    SetRandomSeed(tonumber(string.sub(ctx.my_id, 8, 12), 16), tonumber(string.sub(ctx.my_id, 12), 16))
+    n = Random(1, #chunks)
+    local my_chunk = chunks[n]
     local x = my_chunk[1] * 512 + 256
     local y = my_chunk[2] * 512 + 256
     tp(x, y)
@@ -155,8 +157,12 @@ function pvp.teleport_into_biome()
             teleportation_probability = 1,
             teleportation_delay_min_frames = 60,
             teleportation_radius_min = 1,
-            teleportation_radius_min = 384,
+            teleportation_radius_min = 256,
         })
+        float()
+        wait(4)
+        x, y = EntityGetTransform(ctx.my_player.entity)
+        LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 13, "", true, true) --ff5e9ab5
     end)
     hm_y = nil
 end
@@ -178,9 +184,25 @@ function pvp.on_world_update()
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
         pvp.teleport_into_biome()
     end
-    if player_count ~= 1 and GameGetFrameNum() % 60 == 32 and #player_died[floor] == player_count - 1 then
+    if
+        player_count ~= 1
+        and GameGetFrameNum() % 60 == 32
+        and #player_died[floor] == #ctx.players - 1
+        and not table.contains(player_died[floor], ctx.my_id)
+    then
         pvp.move_next_hm(false)
-        rpc.win()
+        my_wins = my_wins + 1
+        GlobalsSetValue("ew_wins", tostring(my_wins))
+        rpc.win(my_wins)
+    end
+end
+
+function pvp.on_new_entity(ent)
+    if
+        EntityGetFirstComponentIncludingDisabled(ent, "TeleportComponent") ~= nil
+        and string.sub(EntityGetFilename(ent), 1, 24) == "data/entities/buildings/"
+    then
+        EntityKill(ent)
     end
 end
 

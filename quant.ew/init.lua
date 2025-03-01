@@ -476,25 +476,6 @@ function OnPlayerSpawned(player_entity) -- This runs when player entity has been
     inventory_helper.setup_inventory()
 end
 
-local function change_homing(x, y)
-    for _, proj in pairs(EntityGetInRadiusWithTag(x, y, 512, "player_projectile")) do
-        local homing = EntityGetFirstComponentIncludingDisabled(proj, "HomingComponent")
-        if homing ~= nil then
-            local projcom = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
-            if projcom ~= nil then
-                local whoshot = ComponentGetValue2(projcom, "mWhoShot")
-                if
-                    EntityHasTag(whoshot, "ew_notplayer")
-                    or GameHasFlagRun("ending_game_completed")
-                    or ctx.proxy_opt.home_on_players
-                then
-                    ComponentSetValue2(homing, "target_tag", "ew_peer")
-                end
-            end
-        end
-    end
-end
-
 local last_n = 1
 
 local function on_world_pre_update_inner()
@@ -562,6 +543,20 @@ local function on_world_pre_update_inner()
         for ent = last_n + 1, n do
             if EntityGetIsAlive(ent) then
                 ctx.hook.on_new_entity(ent)
+                local homing = EntityGetFirstComponentIncludingDisabled(ent, "HomingComponent")
+                if homing ~= nil then
+                    local projcom = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
+                    if projcom ~= nil then
+                        local whoshot = ComponentGetValue2(projcom, "mWhoShot")
+                        if
+                            EntityHasTag(whoshot, "ew_notplayer")
+                            or GameHasFlagRun("ending_game_completed")
+                            or ctx.proxy_opt.home_on_players
+                        then
+                            ComponentSetValue2(homing, "target_tag", "ew_peer")
+                        end
+                    end
+                end
             end
         end
         last_n = n
@@ -583,21 +578,6 @@ local function on_world_pre_update_inner()
                     .. math.ceil((tf3 - tf2) * 1000000)
             )
         end]]
-    end
-
-    if GameGetFrameNum() % 4 == 0 then
-        local x, y = EntityGetTransform(ctx.my_player.entity)
-        if x ~= nil then
-            change_homing(x, y)
-        end
-    elseif GameGetFrameNum() % 4 == 1 then
-        local x, y = EntityGetTransform(ctx.my_player.entity)
-        local cx, cy = GameGetCameraPos()
-        if x ~= nil and cx ~= nil then
-            if math.abs(x - cx) > 256 or math.abs(y - cy) > 256 then
-                change_homing(cx, cy)
-            end
-        end
     end
 
     perk_fns.on_world_update()
