@@ -11,6 +11,9 @@ function module.on_world_update()
     end
     local x, y = GameGetCameraPos()
     local mx, my = EntityGetTransform(ctx.my_player.entity)
+    if mx == nil then
+        return
+    end
     local dead = GameHasFlagRun("ew_flag_notplayer_active")
     local polied = EntityHasTag(ctx.my_player.entity, "polymorphed_player")
     local cess = EntityHasTag(ctx.my_player.entity, "polymorphed_cessation")
