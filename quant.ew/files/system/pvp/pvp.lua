@@ -105,7 +105,11 @@ function pvp.move_next_hm()
 end
 
 function pvp.teleport_into_biome()
-    local chunks_ranges = chunks_by_floor[floor % #chunks_by_floor]
+    local n = floor % #chunks_by_floor
+    if n == 0 then
+        n = #chunks_by_floor
+    end
+    local chunks_ranges = chunks_by_floor[n]
     local chunks = {}
     for _, chunk_range in ipairs(chunks_ranges) do
         local x1, y1, x2, y2 = chunk_range[1], chunk_range[2], chunk_range[3], chunk_range[4]
