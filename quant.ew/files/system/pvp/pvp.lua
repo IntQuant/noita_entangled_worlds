@@ -25,21 +25,21 @@ local chunks_by_floor = {
     { { 18, 9, 20, 16 } }, --tower
 }
 
-local player_count = tonumber(GlobalsGetValue("ew_player_count", "1"))
+local player_count = tonumber(GlobalsGetValue("ew_player_count", "1")) or 1
 
-local my_num = tonumber(GlobalsGetValue("ew_num", "0"))
+local my_num = tonumber(GlobalsGetValue("ew_num", "0")) or 0
 
-local my_pw = tonumber(GlobalsGetValue("ew_pw", "0"))
+local my_pw = tonumber(GlobalsGetValue("ew_pw", "0")) or 0
 
-local floor = tonumber(GlobalsGetValue("ew_floor", "1"))
+local floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
+
+local my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
 
 local player_died = {}
 
 for _ = 1, #chunks_by_floor do
     table.insert(player_died, {})
 end
-
-local my_wins = tonumber(GlobalsGetValue("ew_wins", "0"))
 
 --TODO give tiny platform so you dont fall in lava after tp
 
