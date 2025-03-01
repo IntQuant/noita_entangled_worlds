@@ -25,15 +25,15 @@ local chunks_by_floor = {
     { { 18, 9, 20, 16 } }, --tower
 }
 
-local player_count = tonumber(GlobalsGetValue("ew_player_count", "1")) or 1
+local player_count = 1
 
-local my_num = tonumber(GlobalsGetValue("ew_num", "0")) or 0
+local my_num = 0
 
-local my_pw = tonumber(GlobalsGetValue("ew_pw", "0")) or 0
+local my_pw = 0
 
-local floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
+local floor = 1
 
-local my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
+local my_wins = 0
 
 local player_died = {}
 
@@ -170,14 +170,18 @@ local first = true
 
 function pvp.on_world_update()
     if first then
-        if ctx.is_host then
-            pvp.teleport_into_biome()
-            first = false
-        elseif ctx.players[ctx.host_id] ~= nil then
+        if ctx.players[ctx.host_id] ~= nil then
             rpc.get_player_num()
-            pvp.teleport_into_biome()
-            first = false
+        elseif not ctx.is_host then
+            return
         end
+        first = false
+        pvp.teleport_into_biome()
+        player_count = tonumber(GlobalsGetValue("ew_player_count", "1")) or 1
+        my_num = tonumber(GlobalsGetValue("ew_num", "0")) or 0
+        my_pw = tonumber(GlobalsGetValue("ew_pw", "0")) or 0
+        floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
+        my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
     end
     local _, y = EntityGetTransform(ctx.my_player.entity)
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then

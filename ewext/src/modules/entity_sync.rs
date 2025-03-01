@@ -19,7 +19,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
 use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
-    des::{Gid, InterestRequest, ProjectileFired, REQUEST_AUTHORITY_RADIUS, RemoteDes},
+    des::{Gid, InterestRequest, ProjectileFired, RemoteDes},
 };
 use std::sync::{Arc, LazyLock};
 mod diff_model;
@@ -677,7 +677,7 @@ impl Module for EntitySync {
             ctx.net.send(&NoitaOutbound::DesToProxy(
                 shared::des::DesToProxy::RequestAuthority {
                     pos,
-                    radius: REQUEST_AUTHORITY_RADIUS,
+                    //radius: REQUEST_AUTHORITY_RADIUS,
                 },
             ))?;
         }

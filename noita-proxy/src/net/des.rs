@@ -3,7 +3,10 @@ use std::mem;
 use bitcode::{Decode, Encode};
 use rstar::{RTree, primitives::GeomWithData};
 use rustc_hash::FxHashMap;
-use shared::des::{DesToProxy, FullEntityData, Gid, ProxyToDes, UpdateOrUpload, UpdatePosition};
+use shared::des::{
+    DesToProxy, FullEntityData, Gid, ProxyToDes, REQUEST_AUTHORITY_RADIUS, UpdateOrUpload,
+    UpdatePosition,
+};
 use tracing::{info, warn};
 
 use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
@@ -123,11 +126,12 @@ impl DesManager {
                 self.authority.remove(&gid);
                 self.add_gid_to_tree(gid);
             }
-            DesToProxy::RequestAuthority { pos, radius } => {
+            DesToProxy::RequestAuthority { pos } => {
                 // drain_within_distance panics without this check. Funny.
                 if self.rtree.size() == 0 {
                     return;
                 }
+                let radius = REQUEST_AUTHORITY_RADIUS;
                 let mut auths = Vec::new();
                 for point in self
                     .rtree

@@ -4,12 +4,12 @@ use std::sync::Arc;
 use crate::{GameEffectData, GameEffectEnum, PeerId, SpawnOnce, WorldPos};
 use bitcode::{Decode, Encode};
 
-pub const REQUEST_AUTHORITY_RADIUS: i32 = 400;
-pub const TRANSFER_RADIUS: f32 = 500.0;
-pub const AUTHORITY_RADIUS: f32 = 600.0;
-pub const GLOBAL_TRANSFER_RADIUS: f32 = 800.0;
-pub const GLOBAL_AUTHORITY_RADIUS: f32 = 900.0;
-pub const INTEREST_REQUEST_RADIUS: i32 = 900;
+pub const REQUEST_AUTHORITY_RADIUS: i32 = 512;
+pub const TRANSFER_RADIUS: f32 = 512.0;
+pub const AUTHORITY_RADIUS: f32 = 512.0 + 128.0;
+pub const GLOBAL_TRANSFER_RADIUS: f32 = 512.0 + 256.0;
+pub const GLOBAL_AUTHORITY_RADIUS: f32 = 512.0 + 256.0 + 128.0;
+pub const INTEREST_REQUEST_RADIUS: i32 = 1024;
 
 /// 64 bit globally unique id. Assigned randomly, should only have 50% chance of collision with 2^32 entities at once.
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
@@ -67,7 +67,7 @@ pub enum UpdateOrUpload {
 pub enum DesToProxy {
     DeleteEntity(Gid, Option<NonZero<isize>>),
     ReleaseAuthority(Gid),
-    RequestAuthority { pos: WorldPos, radius: i32 },
+    RequestAuthority { pos: WorldPos }, //, radius: i32 },
     UpdatePosition(UpdateOrUpload),
     UpdatePositions(Vec<UpdateOrUpload>),
     TransferAuthorityTo(Gid, PeerId),
