@@ -22,6 +22,11 @@ local function world2gui(x, y)
     return x, y, vres_scaling_factor
 end
 
+local pvp
+if ctx.proxy_opt.pvp then
+    pvp = dofile_once("mods/quant.ew/files/system/pvp/pvp.lua")
+end
+
 function module.on_world_update()
     if EntityHasTag(ctx.my_player.entity, "polymorphed") and not EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         return
@@ -49,6 +54,7 @@ function module.on_world_update()
             or EntityHasTag(player_data.entity, "polymorphed_cessation")
             or (EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.no_notplayer)
             or player_data.dc
+            or (ctx.proxy_opt.pvp and (pvp.hm_y == nil or pvp.players_by_floor[pvp.floor][peer_id] == nil))
         then
             goto continue
         end

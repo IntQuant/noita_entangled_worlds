@@ -22,7 +22,7 @@ pub struct Lid(pub u32);
 #[derive(Debug, Encode, Decode, Clone, PartialEq)]
 pub enum EntitySpawnInfo {
     Filename(String),
-    Serialized { serialized_at: i32, data: Vec<u8> },
+    Serialized { data: Vec<u8> },
 }
 
 impl Default for EntitySpawnInfo {

@@ -202,67 +202,71 @@ impl GameSettings {
                             game_settings.health_per_player = Some(temp)
                         }
                     }
-                    GameMode::LocalHealth(mode) => {
-                        ui.label(tr("local_health_desc_1"));
-                        match mode {
-                            LocalHealthMode::Normal => {
-                                ui.add_space(5.0);
-                                ui.label(tr("Health-percent-lost-on-reviving"));
-                                {
-                                    let mut temp = game_settings
-                                        .health_lost_on_revive
-                                        .unwrap_or(def.health_lost_on_revive);
-                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                                        game_settings.health_lost_on_revive = Some(temp)
-                                    }
-                                }
-                                {
-                                    let mut temp =
-                                        game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
-                                    if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
-                                        game_settings.global_hp_loss = Some(temp)
-                                    }
-                                }
-                                {
-                                    let mut temp = game_settings
-                                        .no_material_damage
-                                        .unwrap_or(def.no_material_damage);
-                                    if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
-                                        game_settings.no_material_damage = Some(temp)
-                                    }
-                                }
-                                ui.add_space(1.0);
-                                {
-                                    let mut temp =
-                                        game_settings.physics_damage.unwrap_or(def.physics_damage);
-                                    if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
-                                        game_settings.physics_damage = Some(temp)
-                                    }
+                    GameMode::LocalHealth(mode) => match mode {
+                        LocalHealthMode::Normal => {
+                            ui.label(tr("local_health_desc_1"));
+                            ui.add_space(5.0);
+                            ui.label(tr("Health-percent-lost-on-reviving"));
+                            {
+                                let mut temp = game_settings
+                                    .health_lost_on_revive
+                                    .unwrap_or(def.health_lost_on_revive);
+                                if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                    game_settings.health_lost_on_revive = Some(temp)
                                 }
                             }
-                            LocalHealthMode::Alternate => {
-                                ui.add_space(5.0);
-                                ui.label(tr("Health-percent-lost-on-reviving"));
-                                {
-                                    let mut temp = game_settings
-                                        .health_lost_on_revive
-                                        .unwrap_or(def.health_lost_on_revive);
-                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                                        game_settings.health_lost_on_revive = Some(temp)
-                                    }
-                                }
-                                {
-                                    let mut temp =
-                                        game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
-                                    if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
-                                        game_settings.global_hp_loss = Some(temp)
-                                    }
+                            {
+                                let mut temp =
+                                    game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                                if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                    game_settings.global_hp_loss = Some(temp)
                                 }
                             }
-                            LocalHealthMode::PermaDeath => {}
-                            LocalHealthMode::PvP => {}
+                            {
+                                let mut temp = game_settings
+                                    .no_material_damage
+                                    .unwrap_or(def.no_material_damage);
+                                if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
+                                    game_settings.no_material_damage = Some(temp)
+                                }
+                            }
+                            ui.add_space(1.0);
+                            {
+                                let mut temp =
+                                    game_settings.physics_damage.unwrap_or(def.physics_damage);
+                                if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
+                                    game_settings.physics_damage = Some(temp)
+                                }
+                            }
                         }
-                    }
+                        LocalHealthMode::Alternate => {
+                            ui.label(tr("local_health_desc_1"));
+                            ui.add_space(5.0);
+                            ui.label(tr("Health-percent-lost-on-reviving"));
+                            {
+                                let mut temp = game_settings
+                                    .health_lost_on_revive
+                                    .unwrap_or(def.health_lost_on_revive);
+                                if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                    game_settings.health_lost_on_revive = Some(temp)
+                                }
+                            }
+                            {
+                                let mut temp =
+                                    game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                                if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                    game_settings.global_hp_loss = Some(temp)
+                                }
+                            }
+                        }
+                        LocalHealthMode::PermaDeath => {
+                            ui.label(tr("local_health_desc_1"));
+                        }
+
+                        LocalHealthMode::PvP => {
+                            ui.label("round based pvp mode");
+                        }
+                    },
                 }
             });
             ui.add_space(10.0);

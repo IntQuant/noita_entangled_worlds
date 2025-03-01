@@ -27,6 +27,7 @@ ctx.init = function()
     ctx.is_paused = false
     ctx.host_frame_num = 0
     ctx.is_texting = false
+    ctx.stop_cam = false
 end
 
 local function is_measure_perf_enabled()

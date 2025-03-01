@@ -10,6 +10,7 @@ local IGNORE_EFFECTS = {
     POLYMORPH_CESSATION = true,
     POLYMORPH_UNSTABLE = true,
     NO_WAND_EDITING = true,
+    RESPAWN = true,
 }
 
 local REMOVE_EFFECTS = {

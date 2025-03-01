@@ -304,19 +304,15 @@ function spectate.on_world_update()
     if ctx.run_ended then
         return
     end
-    if last_ent == nil then
+    if last_ent == nil or last_ent ~= ctx.my_player.entity then
         last_ent = ctx.my_player.entity
         camera_player_id, camera_player = get_me()
         re_cam = true
     end
-    if last_ent ~= ctx.my_player.entity then
-        last_ent = ctx.my_player.entity
+    if camera_player == nil or ctx.stop_cam then
         camera_player_id, camera_player = get_me()
         re_cam = true
-    end
-    if camera_player == nil then
-        camera_player_id, camera_player = get_me()
-        re_cam = true
+        ctx.stop_cam = false
     end
     if last_len == nil then
         last_len = number_of_players()

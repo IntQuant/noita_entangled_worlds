@@ -29,7 +29,7 @@ local player_count = 1
 
 local my_num = 0
 
-local my_pw = 0
+local my_pw = 1
 
 local floor = 1
 
@@ -37,11 +37,13 @@ local my_wins = 0
 
 local player_died = {}
 
+local players_by_floor = {}
+
 --TODO give tiny platform so you dont fall in lava after tp
 
 --TODO regenerate final hm
 
-local hm_x = -677
+local hm_x = BiomeMapGetSize() * 512 - 677
 
 local hm_ys = {
     1336,
@@ -56,8 +58,8 @@ function rpc.recv_player_num(num, peer)
     player_count = num + 1
     if ctx.my_id == peer then
         my_num = num
-        my_pw = math.ceil(my_num / 2)
-        if my_num % 2 == 0 then
+        my_pw = math.ceil((my_num + 1) / 2)
+        if my_num % 2 == 1 then
             my_pw = -my_pw
         end
         hm_x = my_pw * BiomeMapGetSize() * 512 - 677
@@ -89,9 +91,27 @@ function rpc.died(f)
     table.insert(player_died[f], ctx.rpc_peer_id)
 end
 
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.remove_floor(f)
+    if players_by_floor[f] == nil then
+        players_by_floor[f] = {}
+    end
+    players_by_floor[f][ctx.rpc_peer_id] = nil
+end
+
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.add_floor(f)
+    if players_by_floor[f] == nil then
+        players_by_floor[f] = {}
+    end
+    players_by_floor[f][ctx.rpc_peer_id] = true
+end
+
 local function float()
     local character_data = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "CharacterDataComponent")
-    ComponentSetValue2(character_data, "mVelocity", 0, -20)
+    ComponentSetValue2(character_data, "mVelocity", 0, -40)
 end
 
 local function set_camera_pos(x, y)
@@ -121,12 +141,15 @@ function pvp.move_next_hm(died)
     tp(hm_x, hm_y)
     if died then
         rpc.died(floor)
+        ctx.stop_cam = true
     end
+    rpc.remove_floor(floor)
     floor = floor + 1
     GlobalsSetValue("ew_floor", tostring(floor))
 end
 
 function pvp.teleport_into_biome()
+    rpc.add_floor(floor)
     local n = floor % #chunks_by_floor
     if n == 0 then
         n = #chunks_by_floor
@@ -151,6 +174,7 @@ function pvp.teleport_into_biome()
         wait(8)
         local com = EntityCreateNew()
         EntityAddChild(ctx.my_player.entity, com)
+        EntityAddTag(com, "perk_entity")
         EntityAddComponent2(com, "GameEffectComponent", {
             effect = "TELEPORTATION",
             frames = 4,
@@ -160,7 +184,7 @@ function pvp.teleport_into_biome()
             teleportation_radius_min = 256,
         })
         float()
-        wait(4)
+        wait(12)
         x, y = EntityGetTransform(ctx.my_player.entity)
         LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 13, "", true, true) --ff5e9ab5
     end)
@@ -171,20 +195,24 @@ local first = true
 
 function pvp.on_world_update()
     if first then
-        if ctx.players[ctx.host_id] ~= nil then
-            rpc.get_player_num()
-        elseif not ctx.is_host then
+        if not ctx.is_host and ctx.players[ctx.host_id] == nil then
             return
         end
         first = false
-        pvp.teleport_into_biome()
         player_count = tonumber(GlobalsGetValue("ew_player_count", "-1")) or 1
         my_num = tonumber(GlobalsGetValue("ew_num", "-1")) or 0
-        my_pw = tonumber(GlobalsGetValue("ew_pw", "-1")) or 0
+        my_pw = tonumber(GlobalsGetValue("ew_pw", "-1")) or 1
         floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
         my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
         if my_num == -1 then
-            pvp.get_player_num()
+            if ctx.is_host then
+                my_num = 0
+                my_pw = 1
+                player_count = 1
+            else
+                rpc.get_player_num()
+            end
+            pvp.teleport_into_biome()
         end
     end
     local _, y = EntityGetTransform(ctx.my_player.entity)

@@ -722,8 +722,8 @@ impl LocalDiffModel {
                 EntitySpawnInfo::Filename(entity.filename()?)
             }
             _ => EntitySpawnInfo::Serialized {
-                serialized_at: game_get_frame_num()?,
-                data: serialize_entity(entity)?,
+                //serialized_at: game_get_frame_num()?,
+                data: serialize_entity(entity)?, //TODO we never update this?
             },
         };
         with_entity_scripts(entity, |scripts| {
@@ -2127,7 +2127,7 @@ fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::
             Ok(ent)
         }
         EntitySpawnInfo::Serialized {
-            serialized_at: _,
+            //serialized_at: _,
             data,
         } => deserialize_entity(data, x, y),
     }
