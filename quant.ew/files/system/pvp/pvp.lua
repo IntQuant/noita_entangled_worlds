@@ -37,10 +37,6 @@ local my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
 
 local player_died = {}
 
-for _ = 1, #chunks_by_floor do
-    table.insert(player_died, {})
-end
-
 --TODO give tiny platform so you dont fall in lava after tp
 
 --TODO regenerate final hm
@@ -86,6 +82,9 @@ end
 
 rpc.opts_everywhere()
 function rpc.died(f)
+    if player_died[f] == nil then
+        player_died[f] = {}
+    end
     table.insert(player_died[f], ctx.rpc_peer_id)
 end
 
@@ -184,11 +183,13 @@ function pvp.on_world_update()
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
         pvp.teleport_into_biome()
     end
+    if player_died[floor] == nil then
+        player_died[floor] = {}
+    end
     local dead = 0
     for _, _ in pairs(player_died[floor]) do
         dead = dead + 1
     end
-    GamePrint(dead)
     if
         player_count ~= 1
         and GameGetFrameNum() % 60 == 32
