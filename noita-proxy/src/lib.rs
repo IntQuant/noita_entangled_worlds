@@ -1238,15 +1238,7 @@ impl App {
                 .game_settings
                 .max_players
                 .unwrap_or(DefaultSettings::default().max_players),
-            LobbyExtraData {
-                name: self.nickname(),
-                game_mode: Some(
-                    self.app_saved_state
-                        .game_settings
-                        .game_mode
-                        .unwrap_or(DefaultSettings::default().game_mode),
-                ),
-            },
+            self.make_lobby_extra_data(),
         );
         let netman = net::NetManager::new(
             PeerVariant::Steam(peer),
@@ -1255,6 +1247,18 @@ impl App {
         );
         self.set_netman_settings(&netman);
         self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
+    }
+
+    fn make_lobby_extra_data(&self) -> LobbyExtraData {
+        LobbyExtraData {
+            name: self.nickname(),
+            game_mode: Some(
+                self.app_saved_state
+                    .game_settings
+                    .game_mode
+                    .unwrap_or(DefaultSettings::default().game_mode),
+            ),
+        }
     }
 
     fn notify_error(&mut self, error: impl Display) {
@@ -1774,6 +1778,7 @@ impl App {
                 ui.add_space(3.0);
                 show_player_list(ui, netman);
             });
+        let mut update_lobby_data = false;
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let last = self.connected_menu;
@@ -1808,6 +1813,7 @@ impl App {
                 if last == ConnectedMenu::Settings && last != self.connected_menu {
                     let new_settings = self.app_saved_state.game_settings.clone();
                     *netman.pending_settings.lock().unwrap() = new_settings.clone();
+                    update_lobby_data = true;
                     let mut old_settings = netman.settings.lock().unwrap().clone();
                     old_settings.progress.clear();
                     old_settings.seed = new_settings.seed;
@@ -1989,6 +1995,12 @@ impl App {
         netman
             .enable_recorder
             .store(self.app_saved_state.record_all, Ordering::Relaxed);
+        if update_lobby_data {
+            let data = self.make_lobby_extra_data();
+            if let AppState::ConnectedLobby { netman, .. } = &mut self.state {
+                netman.update_lobby_data(data);
+            }
+        }
         if goto_menu {
             self.state = AppState::Connect;
         }

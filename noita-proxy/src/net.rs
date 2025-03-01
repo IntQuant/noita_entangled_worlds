@@ -30,6 +30,7 @@ use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{ModmanagerSettings, get_mods};
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
+use crate::steam_helper::LobbyExtraData;
 use crate::{
     AudioSettings, DefaultSettings, GameMode, GameSettings, LocalHealthMode,
     bookkeeping::save_state::{SaveState, SaveStateEntry},
@@ -239,6 +240,15 @@ impl NetManager {
             duplicate: Default::default(),
         }
         .into()
+    }
+
+    pub(crate) fn update_lobby_data(&self, data: LobbyExtraData) {
+        match &self.peer {
+            omni::PeerVariant::Tangled(_) => {}
+            omni::PeerVariant::Steam(steam_peer) => {
+                steam_peer.update_lobby_data(data);
+            }
+        }
     }
 
     pub(crate) fn send(&self, peer: OmniPeerId, msg: &NetMsg, reliability: Reliability) {

@@ -643,6 +643,16 @@ impl SteamPeer {
 
         ConnectionStatusReport { per_peer_statuses }
     }
+
+    pub(crate) fn update_lobby_data(&self, data: LobbyExtraData) {
+        let matchmaking = self.client.matchmaking();
+        if let Some(id) = self.lobby_id() {
+            matchmaking.set_lobby_data(id, "name", &data.name);
+            if let Some(game_mode) = data.game_mode {
+                matchmaking.set_lobby_data(id, "game_mode", &game_mode.to_string());
+            }
+        }
+    }
 }
 
 fn make_callbacks(
