@@ -57,14 +57,14 @@ local hm_ys = {
 }
 
 function rpc.recv_player_num(num, peer)
+    player_count = num + 1
     if ctx.my_id == peer then
         my_num = num
-        player_count = num
         my_pw = math.ceil(my_num / 2)
         if my_num % 2 == 0 then
             my_pw = -my_pw
         end
-        hm_x = my_pw * BiomeMapGetSize() - 677
+        hm_x = my_pw * BiomeMapGetSize() * 512 - 677
         GlobalsSetValue("ew_num", tostring(my_num))
         GlobalsSetValue("ew_pw", tostring(my_pw))
     end
@@ -73,8 +73,8 @@ end
 rpc.opts_reliable()
 function rpc.get_player_num()
     if ctx.is_host then
-        player_count = player_count + 1
         rpc.recv_player_num(player_count, ctx.rpc_peer_id)
+        player_count = player_count + 1
         GlobalsSetValue("ew_player_count", tostring(player_count))
     end
 end
@@ -184,10 +184,15 @@ function pvp.on_world_update()
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
         pvp.teleport_into_biome()
     end
+    local dead = 0
+    for _, _ in pairs(player_died[floor]) do
+        dead = dead + 1
+    end
+    GamePrint(dead)
     if
         player_count ~= 1
         and GameGetFrameNum() % 60 == 32
-        and #player_died[floor] == #ctx.players - 1
+        and #player_died[floor] == player_count - 1
         and not table.contains(player_died[floor], ctx.my_id)
     then
         pvp.move_next_hm(false)
