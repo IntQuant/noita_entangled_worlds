@@ -483,7 +483,11 @@ local function change_homing(x, y)
             local projcom = EntityGetFirstComponentIncludingDisabled(proj, "ProjectileComponent")
             if projcom ~= nil then
                 local whoshot = ComponentGetValue2(projcom, "mWhoShot")
-                if EntityHasTag(whoshot, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
+                if
+                    EntityHasTag(whoshot, "ew_notplayer")
+                    or GameHasFlagRun("ending_game_completed")
+                    or ctx.proxy_opt.home_on_players
+                then
                     ComponentSetValue2(homing, "target_tag", "ew_peer")
                 end
             end

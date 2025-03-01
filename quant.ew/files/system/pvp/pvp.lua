@@ -25,17 +25,15 @@ local chunks_by_floor = {
     { { 18, 9, 20, 16 } }, --tower
 }
 
-local player_count = GlobalsGetValue("ew_player_count", "1")
+local player_count = tonumber(GlobalsGetValue("ew_player_count", "1"))
 
-local my_num = GlobalsGetValue("ew_num", "0")
+local my_num = tonumber(GlobalsGetValue("ew_num", "0"))
 
-local my_pw = GlobalsGetValue("ew_pw", "0")
+local my_pw = tonumber(GlobalsGetValue("ew_pw", "0"))
 
-local floor = GlobalsGetValue("ew_floor", "1")
+local floor = tonumber(GlobalsGetValue("ew_floor", "1"))
 
 --TODO disable portals
-
---TODO enable homing maybe, at least optional
 
 --TODO give tiny platform so you dont fall in lava after tp
 
@@ -60,8 +58,8 @@ function rpc.recv_player_num(num, peer)
             my_pw = -my_pw
         end
         hm_x = my_pw * BiomeMapGetSize() - 677
-        GlobalsSetValue("ew_num", my_num)
-        GlobalsSetValue("ew_pw", my_pw)
+        GlobalsSetValue("ew_num", tostring(my_num))
+        GlobalsSetValue("ew_pw", tostring(my_pw))
     end
 end
 
@@ -70,7 +68,7 @@ function rpc.get_player_num()
     if ctx.is_host then
         rpc.recv_player_num(player_count, ctx.rpc_peer_id)
         player_count = player_count + 1
-        GlobalsSetValue("ew_player_count", player_count)
+        GlobalsSetValue("ew_player_count", tostring(player_count))
     end
 end
 
@@ -105,7 +103,7 @@ function pvp.move_next_hm()
     hm_y = hm_ys[math.min(floor, #hm_ys)]
     tp(hm_x, hm_y)
     floor = floor + 1
-    GlobalsSetValue("ew_floor", floor)
+    GlobalsSetValue("ew_floor", tostring(floor))
 end
 
 function pvp.teleport_into_biome()

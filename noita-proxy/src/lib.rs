@@ -102,6 +102,7 @@ pub struct GameSettings {
     same_loadout: Option<bool>,
     disable_kummitus: Option<bool>,
     give_host_sampo: Option<bool>,
+    home_on_players: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -324,6 +325,15 @@ impl GameSettings {
                     game_settings.same_loadout = Some(temp)
                 }
             }
+            {
+                let mut temp = game_settings.home_on_players.unwrap_or(def.home_on_players);
+                if ui
+                    .checkbox(&mut temp, "have homing home on players instead of enemys")
+                    .changed()
+                {
+                    game_settings.home_on_players = Some(temp)
+                }
+            }
             ui.add_space(10.0);
             ui.label("Perks");
             {
@@ -393,6 +403,7 @@ pub struct DefaultSettings {
     duplicate: bool,
     disable_kummitus: bool,
     give_host_sampo: bool,
+    home_on_players: bool,
 }
 
 impl Default for DefaultSettings {
@@ -417,6 +428,7 @@ impl Default for DefaultSettings {
             duplicate: false,
             disable_kummitus: false,
             give_host_sampo: false,
+            home_on_players: false,
         }
     }
 }

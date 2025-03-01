@@ -855,6 +855,10 @@ impl NetManager {
             "same_loadout",
             settings.same_loadout.unwrap_or(def.same_loadout),
         );
+        state.try_ws_write_option(
+            "home_on_players",
+            settings.home_on_players.unwrap_or(def.home_on_players),
+        );
         state.try_ws_write_option("debug", settings.debug_mode.unwrap_or(def.debug_mode));
         if self.is_host() {
             self.duplicate.store(
