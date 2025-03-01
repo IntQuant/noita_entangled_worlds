@@ -1,6 +1,6 @@
 use rustc_hash::FxHashSet;
+use shared::des::INTEREST_REQUEST_RADIUS;
 use shared::{PeerId, des::InterestRequest};
-
 pub(crate) struct InterestTracker {
     radius_hysteresis: f64,
     x: f64,
@@ -31,13 +31,14 @@ impl InterestTracker {
     pub(crate) fn handle_interest_request(&mut self, peer: PeerId, request: InterestRequest) {
         let rx = request.pos.x as f64;
         let ry = request.pos.y as f64;
+        let radius = INTEREST_REQUEST_RADIUS;
 
         let dist_sq = (rx - self.x).powi(2) + (ry - self.y).powi(2);
-        if dist_sq < (request.radius as f64).powi(2) && self.interested_peers.insert(peer) {
+        if dist_sq < (radius as f64).powi(2) && self.interested_peers.insert(peer) {
             self.added_any.push(peer);
         }
 
-        if dist_sq > ((request.radius as f64) + self.radius_hysteresis).powi(2)
+        if dist_sq > ((radius as f64) + self.radius_hysteresis).powi(2)
             && self.interested_peers.remove(&peer)
         {
             self.lost_interest.push(peer);

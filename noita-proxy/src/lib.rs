@@ -2205,6 +2205,7 @@ fn cli_setup(
     NetManagerInit,
     LobbyKind,
     AudioSettings,
+    steamworks::LobbyType,
 ) {
     let settings = settings_get();
     let saved_state: AppSavedState = settings.app;
@@ -2269,11 +2270,18 @@ fn cli_setup(
             LobbyKind::Steam
         },
         audio,
+        if saved_state.public_lobby {
+            steamworks::LobbyType::Public
+        } else if saved_state.allow_friends {
+            steamworks::LobbyType::FriendsOnly
+        } else {
+            steamworks::LobbyType::Private
+        },
     )
 }
 
 pub fn connect_cli(lobby: String, args: Args) {
-    let (state, netmaninit, kind, audio) = cli_setup(args);
+    let (state, netmaninit, kind, audio, _) = cli_setup(args);
     let varient = if lobby.contains(':') {
         let p = Peer::connect(lobby.parse().unwrap(), None).unwrap();
         while p.my_id().is_none() {
@@ -2296,14 +2304,14 @@ pub fn connect_cli(lobby: String, args: Args) {
 }
 
 pub fn host_cli(port: u16, args: Args) {
-    let (state, netmaninit, kind, audio) = cli_setup(args);
+    let (state, netmaninit, kind, audio, lobbytype) = cli_setup(args);
     let varient = if port != 0 {
         let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
         let peer = Peer::host(bind_addr, None).unwrap();
         PeerVariant::Tangled(peer)
     } else if let Some(state) = state {
         let peer = net::steam_networking::SteamPeer::new_host(
-            steamworks::LobbyType::Private,
+            lobbytype,
             state.client,
             250,
             "no name specified".to_string(),

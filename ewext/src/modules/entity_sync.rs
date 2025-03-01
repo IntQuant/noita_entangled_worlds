@@ -19,10 +19,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
 use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
-    des::{
-        Gid, INTEREST_REQUEST_RADIUS, InterestRequest, ProjectileFired, REQUEST_AUTHORITY_RADIUS,
-        RemoteDes,
-    },
+    des::{Gid, InterestRequest, ProjectileFired, REQUEST_AUTHORITY_RADIUS, RemoteDes},
 };
 use std::sync::{Arc, LazyLock};
 mod diff_model;
@@ -503,10 +500,7 @@ impl Module for EntitySync {
                 ctx,
                 false,
                 Destination::Broadcast,
-                RemoteDes::InterestRequest(InterestRequest {
-                    pos,
-                    radius: INTEREST_REQUEST_RADIUS,
-                }),
+                RemoteDes::InterestRequest(InterestRequest { pos }),
             )?;
         }
         for (_, peer) in self.iter_peers(ctx.player_map) {
@@ -595,29 +589,31 @@ impl Module for EntitySync {
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
         }
-        for (owner, remote_model) in self.remote_models.iter_mut() {
-            let total_parts = self.real_sync_rate.max(1);
-            remote_model
-                .apply_entities(
-                    ctx,
-                    frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
-                    total_parts,
-                )
-                .wrap_err("Failed to apply entity infos")?;
-            /*for entity in remote_model.drain_backtrack() {
-                self.local_diff_model.track_and_upload_entity(
-                    ctx.net,
-                    entity,
-                    Gid(rand::random()),
-                )?;
-            }*/
-            for lid in remote_model.drain_grab_request() {
-                send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peer(*owner),
-                    RemoteDes::RequestGrab(lid),
-                )?;
+        if frame_num > 120 {
+            for (owner, remote_model) in self.remote_models.iter_mut() {
+                let total_parts = self.real_sync_rate.max(1);
+                remote_model
+                    .apply_entities(
+                        ctx,
+                        frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
+                        total_parts,
+                    )
+                    .wrap_err("Failed to apply entity infos")?;
+                /*for entity in remote_model.drain_backtrack() {
+                    self.local_diff_model.track_and_upload_entity(
+                        ctx.net,
+                        entity,
+                        Gid(rand::random()),
+                    )?;
+                }*/
+                for lid in remote_model.drain_grab_request() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(*owner),
+                        RemoteDes::RequestGrab(lid),
+                    )?;
+                }
             }
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.

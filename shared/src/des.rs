@@ -85,7 +85,7 @@ pub enum ProxyToDes {
 #[derive(Debug, Encode, Decode, Clone)]
 pub struct InterestRequest {
     pub pos: WorldPos,
-    pub radius: i32,
+    //pub radius: i32,
 }
 
 #[derive(Debug, Encode, Decode, Clone, Copy, PartialEq)]

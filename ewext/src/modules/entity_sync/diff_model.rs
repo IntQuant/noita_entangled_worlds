@@ -1758,6 +1758,9 @@ impl RemoteDiffModel {
                         entity_info.drops_gold,
                     )?;
                     self.tracked.insert(*lid, entity);
+                    if let Err(s) = self.inner(ctx, entity_info, entity, lid, &mut to_remove) {
+                        print_error(s)?;
+                    }
                 }
             }
         }
