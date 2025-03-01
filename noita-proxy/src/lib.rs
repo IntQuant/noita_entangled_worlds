@@ -74,6 +74,7 @@ pub(crate) enum LocalHealthMode {
     Normal,
     Alternate,
     PermaDeath,
+    PvP,
 }
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -132,6 +133,13 @@ impl GameSettings {
                             &mut temp,
                             GameMode::LocalHealth(LocalHealthMode::PermaDeath),
                             tr("Local-health-perma"),
+                        )
+                        .changed()
+                    || ui
+                        .radio_value(
+                            &mut temp,
+                            GameMode::LocalHealth(LocalHealthMode::PvP),
+                            "PvP",
                         )
                         .changed()
                 {
@@ -212,6 +220,7 @@ impl GameSettings {
                                 }
                             }
                             LocalHealthMode::PermaDeath => {}
+                            LocalHealthMode::PvP => {}
                         }
                     }
                 }

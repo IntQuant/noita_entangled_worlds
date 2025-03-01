@@ -146,6 +146,9 @@ local function load_modules()
     ctx.load_system("sampo")
     ctx.load_system("meat")
     ctx.load_system("boss_damage")
+    if ctx.proxy_opt.pvp then
+        ctx.load_system("pvp")
+    end
 end
 
 local function load_extra_modules()

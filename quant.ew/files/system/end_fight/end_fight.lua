@@ -50,6 +50,16 @@ local function remove_stuff(entity)
     end
 end
 
+local function set_camera_pos(x, y)
+    local cam = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PlatformShooterPlayerComponent")
+    if EntityHasTag(ctx.my_player.entity, "polymorphed_cessation") then
+        return
+    end
+    if cam ~= nil and x ~= nil then
+        ComponentSetValue2(cam, "mDesiredCameraPos", x, y)
+    end
+end
+
 local function teleport_random()
     SetRandomSeed(5, 5)
     local my_num = Random(1, 100)
@@ -84,6 +94,7 @@ local function teleport_random()
         x, y = (2 * 6398) - 6216, 15040
     end
     EntitySetTransform(ctx.my_player.entity, x, y)
+    set_camera_pos(x, y)
 end
 
 local winner

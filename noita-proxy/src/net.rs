@@ -844,9 +844,11 @@ impl NetManager {
         info!("Chosen nickname: {}", self.init_settings.my_nickname);
         state.try_ws_write_option("name", self.init_settings.my_nickname.as_str());
         state.try_ws_write_option("world_num", settings.world_num as u32);
+        let mode = settings.game_mode.unwrap_or(def.game_mode);
         state.try_ws_write_option(
             "friendly_fire",
-            settings.friendly_fire.unwrap_or(def.friendly_fire),
+            settings.friendly_fire.unwrap_or(def.friendly_fire)
+                || mode == GameMode::LocalHealth(LocalHealthMode::PvP),
         );
         state.try_ws_write_option("share_gold", settings.share_gold.unwrap_or(def.share_gold));
         state.try_ws_write_option(
@@ -868,13 +870,13 @@ impl NetManager {
             "enemy_hp_scale",
             settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult),
         );
-        let mode = settings.game_mode.unwrap_or(def.game_mode);
         state.try_ws_write_option("game_mode", mode);
         if let GameMode::LocalHealth(mode) = mode {
             match mode {
                 LocalHealthMode::Normal => {}
                 LocalHealthMode::PermaDeath => state.try_ws_write_option("perma_death", true),
                 LocalHealthMode::Alternate => state.try_ws_write_option("no_notplayer", true),
+                LocalHealthMode::PvP => state.try_ws_write_option("pvp", true),
             }
         }
         state.try_ws_write_option(

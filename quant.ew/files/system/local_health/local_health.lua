@@ -322,6 +322,11 @@ function rpc.spawn_ragdoll(x, y)
     LoadRagdoll("mods/quant.ew/files/system/player/tmp/" .. ctx.rpc_peer_id .. "_ragdoll.txt", x, y)
 end
 
+local pvp
+if ctx.proxy_opt.pvp then
+    pvp = dofile_once("mods/quant.ew/files/system/pvp/pvp.lua")
+end
+
 local function player_died()
     if ctx.my_player.entity == nil then
         return
@@ -334,6 +339,11 @@ local function player_died()
     -- Don't show "run ended" as reason of death
     if not ctx.run_ended then
         show_death_message()
+    end
+
+    if ctx.proxy_opt.pvp then
+        pvp.move_next_hm()
+        return
     end
 
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,

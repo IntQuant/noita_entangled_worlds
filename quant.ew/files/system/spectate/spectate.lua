@@ -306,6 +306,8 @@ function spectate.on_world_update()
     end
     if last_ent == nil then
         last_ent = ctx.my_player.entity
+        camera_player_id, camera_player = get_me()
+        re_cam = true
     end
     if last_ent ~= ctx.my_player.entity then
         last_ent = ctx.my_player.entity
