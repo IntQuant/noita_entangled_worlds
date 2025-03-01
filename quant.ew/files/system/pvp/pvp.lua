@@ -73,8 +73,8 @@ end
 rpc.opts_reliable()
 function rpc.get_player_num()
     if ctx.is_host then
-        rpc.recv_player_num(player_count, ctx.rpc_peer_id)
         player_count = player_count + 1
+        rpc.recv_player_num(player_count, ctx.rpc_peer_id)
         GlobalsSetValue("ew_player_count", tostring(player_count))
     end
 end
@@ -153,9 +153,9 @@ function pvp.teleport_into_biome()
         EntityAddChild(ctx.my_player.entity, com)
         EntityAddComponent2(com, "GameEffectComponent", {
             effect = "TELEPORTATION",
-            frames = 30,
+            frames = 4,
             teleportation_probability = 1,
-            teleportation_delay_min_frames = 60,
+            teleportation_delay_min_frames = 8,
             teleportation_radius_min = 1,
             teleportation_radius_min = 256,
         })
