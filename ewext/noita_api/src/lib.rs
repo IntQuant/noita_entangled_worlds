@@ -110,6 +110,15 @@ impl EntityID {
         raw::entity_get_root_entity(self)
     }
 
+    pub fn check_all_phys_init(self) -> eyre::Result<bool> {
+        for phys_c in self.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
+            if !phys_c.m_initialized()? {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
     pub fn kill(self) {
         // Shouldn't ever error.
         if self.is_alive()
@@ -118,6 +127,7 @@ impl EntityID {
                 .ok()
                 .map(|a| a.is_none())
                 .unwrap_or(true)
+            && self.check_all_phys_init().unwrap_or(false)
         {
             let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
             if !body_id.is_empty() {

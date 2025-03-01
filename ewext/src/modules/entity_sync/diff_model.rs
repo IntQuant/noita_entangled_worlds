@@ -363,7 +363,7 @@ impl LocalDiffModelTracker {
             info.hp = hp as f32;
         }
 
-        if check_all_phys_init(entity)? {
+        if entity.check_all_phys_init()? {
             info.phys = collect_phys_info(entity)?;
         }
 
@@ -692,10 +692,10 @@ impl LocalDiffModel {
         let lid = self.alloc_lid();
         let should_not_serialize = entity
             .remove_all_components_of_type::<CameraBoundComponent>(None)?
-            || (entity.is_alive() && !noita_api::raw::physics_body_id_get_from_entity(entity, None)
+            || (entity.is_alive() && entity.check_all_phys_init()? && noita_api::raw::physics_body_id_get_from_entity(entity, None)
                 .unwrap_or_default()
                 .len()
-                != entity
+                == entity
                     .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(None)
                     .iter()
                     .len()
@@ -837,7 +837,7 @@ impl LocalDiffModel {
 
     pub(crate) fn phys_later(&mut self) -> eyre::Result<()> {
         for (entity, phys) in self.phys_later.drain(..) {
-            if check_all_phys_init(entity)? && entity.is_alive() {
+            if entity.is_alive() && entity.check_all_phys_init()? {
                 let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)
                     .unwrap_or_default();
                 for (p, physics_body_id) in phys.iter().zip(phys_bodies.iter()) {
@@ -1271,16 +1271,6 @@ impl LocalDiffModel {
     }
 }
 
-fn check_all_phys_init(entity: EntityID) -> eyre::Result<bool> {
-    for phys_c in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
-        if !phys_c.m_initialized()? {
-            return Ok(false);
-        }
-    }
-
-    Ok(true)
-}
-
 fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>> {
     if entity.is_alive() {
         let phys_bodies =
@@ -1578,7 +1568,7 @@ impl RemoteDiffModel {
             }
         }
 
-        if !entity_info.phys.is_empty() && check_all_phys_init(entity)? && entity.is_alive() {
+        if !entity_info.phys.is_empty() && entity.check_all_phys_init()? && entity.is_alive() {
             let phys_bodies =
                 noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
             for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter()) {

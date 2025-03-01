@@ -64,6 +64,7 @@ function rpc.recv_player_num(num, peer)
         GlobalsSetValue("ew_num", tostring(my_num))
         GlobalsSetValue("ew_pw", tostring(my_pw))
     end
+    GlobalsSetValue("ew_player_count", tostring(player_count))
 end
 
 rpc.opts_reliable()
@@ -177,11 +178,14 @@ function pvp.on_world_update()
         end
         first = false
         pvp.teleport_into_biome()
-        player_count = tonumber(GlobalsGetValue("ew_player_count", "1")) or 1
-        my_num = tonumber(GlobalsGetValue("ew_num", "0")) or 0
-        my_pw = tonumber(GlobalsGetValue("ew_pw", "0")) or 0
+        player_count = tonumber(GlobalsGetValue("ew_player_count", "-1")) or 1
+        my_num = tonumber(GlobalsGetValue("ew_num", "-1")) or 0
+        my_pw = tonumber(GlobalsGetValue("ew_pw", "-1")) or 0
         floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
         my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
+        if my_num == -1 then
+            pvp.get_player_num()
+        end
     end
     local _, y = EntityGetTransform(ctx.my_player.entity)
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
