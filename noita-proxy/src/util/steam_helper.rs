@@ -4,7 +4,7 @@ use eframe::egui::{self, RichText, TextureHandle, Ui};
 use steamworks::{LobbyId, SResult, SteamAPIInitError, SteamId};
 use tracing::{error, info, warn};
 
-use crate::releases::Version;
+use crate::{GameMode, releases::Version};
 
 pub struct SteamUserAvatar {
     avatar: TextureHandle,
@@ -72,13 +72,18 @@ pub struct LobbyInfo {
     pub member_count: usize,
     pub member_limit: usize,
     pub version: Option<Version>,
-    pub name: String,
+    pub data: LobbyExtraData,
     pub is_noita_online: bool,
 }
 
 pub struct SteamState {
     pub client: steamworks::Client,
     lobby_state: LobbyListState,
+}
+
+pub struct LobbyExtraData {
+    pub name: String,
+    pub game_mode: Option<GameMode>,
 }
 
 impl SteamState {
@@ -151,10 +156,15 @@ impl SteamState {
             member_count: matchmaking.lobby_member_count(lobby),
             member_limit: matchmaking.lobby_member_limit(lobby).unwrap_or(250),
             version,
-            name: matchmaking
-                .lobby_data(lobby, "name")
-                .unwrap_or_default()
-                .to_owned(),
+            data: LobbyExtraData {
+                name: matchmaking
+                    .lobby_data(lobby, "name")
+                    .unwrap_or_default()
+                    .to_owned(),
+                game_mode: matchmaking
+                    .lobby_data(lobby, "game_mode")
+                    .and_then(|s| s.parse().ok()),
+            },
             is_noita_online,
         }
     }

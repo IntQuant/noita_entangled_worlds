@@ -24,11 +24,11 @@ use net::{
 use player_cosmetics::PlayerPngDesc;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::process::exit;
 use std::thread::sleep;
+use std::{collections::HashMap, str::FromStr};
 use std::{
     fmt::Display,
     mem,
@@ -45,8 +45,8 @@ use tracing::info;
 use unic_langid::LanguageIdentifier;
 
 mod util;
-use util::args::Args;
 pub use util::{args, lang, steam_helper};
+use util::{args::Args, steam_helper::LobbyExtraData};
 
 mod bookkeeping;
 use crate::net::messages::NetMsg;
@@ -63,14 +63,53 @@ mod player_cosmetics;
 const DEFAULT_PORT: u16 = 5123;
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
-pub(crate) enum GameMode {
+pub enum GameMode {
     SharedHealth,
     LocalHealth(LocalHealthMode),
     // MestariMina, // TODO later
 }
+impl GameMode {
+    fn color(&self) -> Color32 {
+        match self {
+            GameMode::SharedHealth => Color32::LIGHT_BLUE,
+            GameMode::LocalHealth(LocalHealthMode::Normal) => Color32::GOLD,
+            GameMode::LocalHealth(LocalHealthMode::Alternate) => Color32::GREEN,
+            GameMode::LocalHealth(LocalHealthMode::PermaDeath) => Color32::ORANGE,
+            GameMode::LocalHealth(LocalHealthMode::PvP) => Color32::RED,
+        }
+    }
+}
+
+impl Display for GameMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let desc = match self {
+            GameMode::SharedHealth => "Shared",
+            GameMode::LocalHealth(LocalHealthMode::Normal) => "LocalNormal",
+            GameMode::LocalHealth(LocalHealthMode::Alternate) => "LocalAlternate",
+            GameMode::LocalHealth(LocalHealthMode::PermaDeath) => "LocalPermadeath",
+            GameMode::LocalHealth(LocalHealthMode::PvP) => "PvP",
+        };
+        write!(f, "{}", desc)
+    }
+}
+
+impl FromStr for GameMode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Shared" => Ok(GameMode::SharedHealth),
+            "LocalNormal" => Ok(GameMode::LocalHealth(LocalHealthMode::Normal)),
+            "LocalAlternate" => Ok(GameMode::LocalHealth(LocalHealthMode::Alternate)),
+            "LocalPermadeath" => Ok(GameMode::LocalHealth(LocalHealthMode::PermaDeath)),
+            "PvP" => Ok(GameMode::LocalHealth(LocalHealthMode::PvP)),
+            _ => Err(()),
+        }
+    }
+}
 
 #[derive(Debug, Decode, Encode, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
-pub(crate) enum LocalHealthMode {
+pub enum LocalHealthMode {
     Normal,
     Alternate,
     PermaDeath,
@@ -1199,7 +1238,15 @@ impl App {
                 .game_settings
                 .max_players
                 .unwrap_or(DefaultSettings::default().max_players),
-            self.nickname(),
+            LobbyExtraData {
+                name: self.nickname(),
+                game_mode: Some(
+                    self.app_saved_state
+                        .game_settings
+                        .game_mode
+                        .unwrap_or(DefaultSettings::default().game_mode),
+                ),
+            },
         );
         let netman = net::NetManager::new(
             PeerVariant::Steam(peer),
@@ -1384,24 +1431,34 @@ impl App {
                                 ui.group(|ui| {
                                     ui.set_max_height(50.0);
                                     ui.horizontal(|ui| {
-                                        ui.label(info.name);
+                                        ui.colored_label(Color32::WHITE, info.data.name);
                                         ui.with_layout(
                                             Layout::right_to_left(egui::Align::Center),
                                             |ui| {
                                                 ui.label(format!(
                                                     "{}/{}",
                                                     info.member_count, info.member_limit
-                                                ))
+                                                ));
+                                                if let Some(game_mode) = &info.data.game_mode {
+                                                    ui.label(" - ");
+                                                    let color = game_mode.color();
+                                                    ui.colored_label(
+                                                        color,
+                                                        tr(&format!("game_mode_{}", game_mode)),
+                                                    );
+                                                }
                                             },
                                         );
                                     });
                                     ui.horizontal(|ui| {
                                         let mut enabled = false;
                                         if let Some(version) = info.version {
-                                            ui.label(format!("EW {}", version));
                                             enabled = version == Version::current();
+                                            let color =
+                                                if enabled { Color32::GRAY } else { Color32::RED };
+                                            ui.colored_label(color, format!("EW {}", version));
                                         } else if info.is_noita_online {
-                                            ui.label("Noita Online");
+                                            ui.colored_label(Color32::LIGHT_BLUE, "Noita Online");
                                         } else {
                                             ui.label(tr("Not-Entangled-Worlds-lobby"));
                                         }
@@ -2335,7 +2392,10 @@ pub fn host_cli(port: u16, args: Args) {
             lobbytype,
             state.client,
             250,
-            "no name specified".to_string(),
+            LobbyExtraData {
+                name: "no name specified".to_string(),
+                game_mode: None,
+            },
         );
         PeerVariant::Steam(peer)
     } else {

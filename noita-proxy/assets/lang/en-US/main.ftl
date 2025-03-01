@@ -179,3 +179,11 @@ No-public-lobbies-at-the-moment = No public lobbies at the moment :(
 Lobby-list-pending = Lobby list pending...
 Refresh = Refresh
 Lobby-list = Lobby list
+
+## Gamemode names
+
+game_mode_Shared = Shared health
+game_mode_LocalNormal = Local health
+game_mode_LocalPermadeath = Local health (Permadeath)
+game_mode_LocalAlternate = Local health (Alternate)
+game_mode_PvP = PvP

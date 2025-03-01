@@ -17,6 +17,7 @@ use tracing::{info, warn};
 use crate::{
     lang::{tr, tr_a},
     releases::Version,
+    steam_helper::LobbyExtraData,
 };
 
 use super::omni::{OmniNetworkEvent, OmniPeerId};
@@ -342,7 +343,7 @@ impl SteamPeer {
         lobby_type: LobbyType,
         client: steamworks::Client,
         max_players: u32,
-        lobby_name: String,
+        lobby_data: LobbyExtraData,
     ) -> Self {
         let (sender, events) = channel::unbounded();
 
@@ -362,7 +363,10 @@ impl SteamPeer {
                                 "ew_version",
                                 &Version::current().to_string(),
                             );
-                            matchmaking.set_lobby_data(id, "name", &lobby_name);
+                            matchmaking.set_lobby_data(id, "name", &lobby_data.name);
+                            if let Some(game_mode) = lobby_data.game_mode {
+                                matchmaking.set_lobby_data(id, "game_mode", &game_mode.to_string());
+                            }
                             SteamEvent::LobbyCreatedOrJoined(id)
                         }
                         Err(err) => SteamEvent::LobbyError(err),
