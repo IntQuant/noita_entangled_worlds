@@ -203,6 +203,7 @@ pub struct NetManager {
     is_polied: AtomicBool,
     is_cess: AtomicBool,
     duplicate: AtomicBool,
+    pub back_out: AtomicBool,
 }
 
 impl NetManager {
@@ -238,6 +239,7 @@ impl NetManager {
             is_polied: Default::default(),
             is_cess: Default::default(),
             duplicate: Default::default(),
+            back_out: Default::default(),
         }
         .into()
     }
@@ -624,6 +626,9 @@ impl NetManager {
                 state.try_ms_write(&NoitaInbound::ProxyToDes(ProxyToDes::RemoveEntities(
                     id.into(),
                 )));
+                if id == self.peer.host_id() {
+                    self.back_out.store(true, Ordering::Relaxed)
+                }
             }
             omni::OmniNetworkEvent::Message { src, data } => {
                 let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)

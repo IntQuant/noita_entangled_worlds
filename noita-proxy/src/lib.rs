@@ -1992,6 +1992,7 @@ impl App {
                 );
             }
         });
+        goto_menu |= netman.back_out.load(Ordering::Relaxed);
         netman
             .enable_recorder
             .store(self.app_saved_state.record_all, Ordering::Relaxed);
