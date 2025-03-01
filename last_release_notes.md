@@ -1,24 +1,35 @@
-## Noita Entangled Worlds v1.3.0
+## Noita Entangled Worlds v1.4.0
 
-- fix kivi and deer boss damage
+- add pvp game mode
 
-- fix enemys breaking in v1.2.9
+- add public lobbies
 
-- fix empty audio sound not played on your wands
+- make end fight less laggy at start
 
-- fix certain very complicated wands
+- make enemies spawning in from others more responsive
 
-- add scrollbar to settings in lobby
+- wait 2 seconds until spawning in entities from clients to try and prevent lockups
 
-- make things run more often to prevent data buildup
+- fix duplicate synced entities option
 
-- dont sync potion puzzle indicator spawn
+- dont duplicate some more enemys
 
-- add another tag for modders
+- fix beamstone
+
+- fix kolmi transfer auth probably
+
+- save phys info on transfer auth
+
+- fix sadekivi sometimes not working
+
+- fix enemys holding wands becomming immortal
+
 
 ## Accepted pull requests
 
-- Fixed blackline in players list by @dest4590 in #339
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
