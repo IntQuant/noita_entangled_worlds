@@ -1,28 +1,32 @@
-## Noita Entangled Worlds v1.4.0
+## Noita Entangled Worlds v1.4.1
 
-- add pvp game mode
+- add wait on players option in pvp, give players a platform on teleport
 
-- add public lobbies
+- add steal gold on kill option in pvp
 
-- make end fight less laggy at start
+- regenerate final hm in pvp, dont collapse hm in pvp
 
-- make enemies spawning in from others more responsive
+- set hp for entities better
 
-- wait 2 seconds until spawning in entities from clients to try and prevent lockups
+- announce next biome in pvp
 
-- fix duplicate synced entities option
+- support apoth in pvp
 
-- dont duplicate some more enemys
+- fix deaths in meat realm
 
-- fix beamstone
+- spectate self when died in pvp, dont show player arrows when players aren't on same floor in pvp, fix teleportation effect in pvp
 
-- fix kolmi transfer auth probably
+- fix an error with synced projectiles
 
-- save phys info on transfer auth
+- try to fix physics failing and causing lockups
 
-- fix sadekivi sometimes not working
+- fix an error in pvp
 
-- fix enemys holding wands becomming immortal
+- increase interest range a bit
+
+- dont stay in lobby with no host
+
+- remove debug gameprint
 
 
 ## Accepted pull requests
