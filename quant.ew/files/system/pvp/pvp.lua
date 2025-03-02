@@ -2,27 +2,62 @@ local rpc = net.new_rpc_namespace()
 local pvp = {}
 
 local chunks_by_floor = {
-    { { -3, 1, 3, 1 }, { 0, 0, 2, 0 } }, --1st biome
-    { { -6, 3, 3, 4 }, { -7, 3, -7, 3 } }, --2nd biome
-    { { -5, 6, 4, 8 } }, --3rd biome
-    { { -4, 10, 2, 11 } }, --4th biome
-    { { -5, 13, 3, 15 } }, --5th biome
-    { { -6, 17, 4, 19 } }, --6th biome
-    { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --7th biome
-    { { 16, 1, 22, 5 } }, --sand cave
-    { { -9, 0, -7, 0 }, { -9, 1, -5, 1 } }, --alchemist boss
-    { { 17, 0, 21, 0 }, { 18, -1, 20, -1 } }, --temple boss
-    { { -20, 25, -15, 28 } }, --ice biome
-    { { -23, 1, -17, 5 } }, --surface robot biome
-    { { 24, 4, 30, 8 } }, --wand mart
-    { { 24, 16, 30, 20 } }, --robot biome
-    { { -10, 15, -9, 18 }, { -8, 14, -7, 17 } }, --lukki lair
-    { { -31, -13, -21, 10 } }, --clouds
-    { { -6, 29, 4, 32 } }, --hell
-    { { -6, -19, 4, -16 } }, --heaven
-    { { 12, 14, 14, 17 }, { 13, 11, 14, 13 } }, --meat realm 1
-    { { 27, 27, 30, 31 } }, --meat realm 2
-    { { 18, 9, 20, 16 } }, --tower
+    { { -3, 1, 3, 1 }, { 0, 0, 2, 0 } }, --(Collapsed) Mines
+    { { -6, 3, 3, 4 }, { -7, 3, -7, 3 } }, --Coal Pits
+    { { -5, 6, 4, 8 } }, --Snowy Depths
+    { { -4, 10, 2, 11 } }, --Hiisi Base
+    { { -5, 13, 3, 15 } }, --Underground Jungle
+    { { -6, 17, 4, 19 } }, --Vault
+    { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --Temple of the Art
+    { { -29, 1, -27, 0 } }, --Island
+    { { 16, 1, 22, 5 }, { 17, 0, 21, 0 }, { 18, -1, 20, -1 } }, --Sand Cave/Pyramid
+    { { -9, 0, -7, 0 }, { -9, 1, -5, 1 } }, --Ancient Laboratory
+    { { -31, -13, -21, 10 } }, --Cloudscape
+    { { -20, 25, -15, 28 } }, --Snow Chasm
+    { { -23, 1, -17, 5 } }, --Frozen Vault
+    { { 24, 4, 30, 8 } }, --Overgrown Caverns
+    { { 18, 25, 22, 30 } }, --Wizards Den
+    { { -10, 15, -9, 18 }, { -8, 14, -7, 17 } }, --Lukki Lair
+    { { 24, 16, 30, 20 } }, --Powerplant
+    { { -6, 29, 4, 32 } }, --The Work(below)
+    { { -6, -19, 4, -16 } }, --The Work(above)
+    { { 12, 14, 14, 17 }, { 13, 11, 14, 13 } }, --Meat Realm (Heart)
+    { { 27, 27, 30, 31 } }, --Meat Realm (Tiny)
+    { { 18, 9, 20, 16 } }, --The Tower
+}
+
+local names_by_floor = {
+    "(Collapsed) Mines",
+    "Coal Pits",
+    "Snowy Depths",
+    "Underground Jungle",
+    "Vault",
+    "Temple of The Art",
+    "Island",
+    "Sand Cave/Pyramid",
+    "Ancient Laboratory",
+    "Cloudscape",
+    "Frozen Vault",
+    "Overgrown Caverns",
+    "Wizards Den",
+    "Lukki Lair",
+    "Powerplant",
+    "The Work (Below)",
+    "The Work (Above)",
+    "Meat Realm (Heart)",
+    "Meat Realm (Tiny)",
+    "The Tower",
+}
+
+if ModIsEnabled("Apotheosis") then
+    chunks_by_floor = {}
+    names_by_floor = {}
+end
+
+local needs_ase = {
+    "Wizards Den",
+    "Ant Nest",
+    "Temple of Sacreligious Remains",
 }
 
 local player_count = 1
@@ -40,6 +75,8 @@ local player_died = {}
 local players_by_floor = {}
 
 local hm_x = -677
+
+local temp_ase
 
 pvp.last_damage = nil
 
@@ -78,7 +115,8 @@ end
 
 rpc.opts_everywhere()
 function rpc.win(num)
-    GamePrintImportant(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
+    GamePrint(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
+    GamePrint("next biome: " .. names_by_floor[floor])
 end
 
 rpc.opts_everywhere()
@@ -182,6 +220,40 @@ function pvp.move_next_hm(died)
     floor = floor + 1
     pvp.last_damage = nil
     GlobalsSetValue("ew_floor", tostring(floor))
+    if table.contains(needs_ase, names_by_floor[floor]) then
+        local has_ase = false
+        for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+            local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+            if com ~= nil and ComponentGetValue2(com, "effect") == "REMOVE_FOG_OF_WAR" then
+                has_ase = true
+                break
+            end
+        end
+        if not has_ase then
+            temp_ase = EntityCreateNew()
+            EntityAddChild(ctx.my_player.entity, temp_ase)
+            EntityAddComponent2(temp_ase, "GameEffectComponent", {
+                effect = "REMOVE_FOG_OF_WAR",
+            })
+        end
+    elseif temp_ase ~= nil then
+        if EntityGetIsAlive(temp_ase) then
+            EntityKill(temp_ase)
+        else
+            for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+                local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+                if
+                    com ~= nil
+                    and ComponentGetValue2(com, "effect") == "REMOVE_FOG_OF_WAR"
+                    and not EntityHasTag(ent, "perk_entity")
+                then
+                    EntityKill(ent)
+                    break
+                end
+            end
+        end
+        temp_ase = nil
+    end
 end
 
 function pvp.teleport_into_biome()
