@@ -2,6 +2,9 @@ dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("data/scripts/biomes/temple_shared.lua")
 
 function collision_trigger()
+    if CrossCall("ew_pvp") then
+        return
+    end
     local entity_id = GetUpdatedEntityID()
     local pos_x, pos_y = EntityGetTransform(entity_id)
 

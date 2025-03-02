@@ -356,6 +356,10 @@ util.add_cross_call("ew_is_wand_pickup", function()
     return ctx.is_wand_pickup
 end)
 
+util.add_cross_call("ew_pvp", function()
+    return ctx.proxy_opt.pvp
+end)
+
 util.add_cross_call("ew_do_i_own", util.do_i_own)
 
 local cross_force_send_inventory = false

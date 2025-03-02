@@ -39,8 +39,6 @@ local player_died = {}
 
 local players_by_floor = {}
 
---TODO regenerate final hm
-
 local hm_x = -677
 
 pvp.last_damage = nil
@@ -150,9 +148,18 @@ end
 
 local hm_y
 
+dofile_once("data/scripts/perks/perk.lua")
+
 function pvp.move_next_hm(died)
     hm_y = hm_ys[math.min(floor, #hm_ys)]
     tp(hm_x, hm_y)
+    if floor > #hm_ys then
+        local x, y = -480, 10564
+        EntityLoad("data/entities/items/pickup/heart_fullhp_temple.xml", x - 16, y)
+        EntityLoad("data/entities/items/pickup/spell_refresh.xml", x + 16, y)
+        x, y = 0, 10625
+        perk_spawn_many(x, y)
+    end
     if died then
         rpc.died(floor)
         if pvp.last_damage ~= nil then
@@ -164,7 +171,7 @@ function pvp.move_next_hm(died)
                 ComponentSetValue2(wallet, "money", gold * (1 - rt))
                 GamePrint(
                     "lost "
-                        .. tostring(math.ceil(gold * (1 - rt)))
+                        .. tostring(math.ceil(gold * rt))
                         .. " gold from dying to: "
                         .. ctx.players[pvp.last_damage].name
                 )
