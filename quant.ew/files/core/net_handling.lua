@@ -48,7 +48,7 @@ function net_handling.proxy.moon_flag(_, x, yb)
 end
 
 function net_handling.proxy.stevari_flag(_, x, yb)
-    if GlobalsGetValue("TEMPLE_PEACE_WITH_GODS") == "1" then
+    if GlobalsGetValue("TEMPLE_PEACE_WITH_GODS") == "1" or ctx.proxy_opt.pvp then
         return
     end
     x = tonumber(x)
