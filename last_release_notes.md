@@ -1,23 +1,22 @@
-## Noita Entangled Worlds v1.4.2
+## Noita Entangled Worlds v1.4.3
 
-- fix entities sometimes not appearing/disappearing because of auth transfers failing from last update
+- maybe fix frozen enemys
 
-- fix damage numbers in pvp
+- fix a crash in pvp(i think?)
 
-- dont allow spectating people on same floor in pvp
+- fix errors when you wrap stages in pvp
 
-- try to get stuck less on initial tp in pvp
+- remove effects like personal fireball thrower in pvp
 
-- add dont steal option
+- announce when entering a floor in pvp
 
-- dont spawn stevari in hm in pvp
+- add leaderboards in pvp
 
-- dont allow spectating super far to prevent crashes
+- fix next names being wrong in pvp
 
-- fix some eradicate bugs
+- make old lobbies not linger
 
-
-
+- fix meta leveling
 
 ## Accepted pull requests
 
