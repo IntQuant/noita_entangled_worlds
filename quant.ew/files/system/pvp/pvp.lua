@@ -43,6 +43,8 @@ local players_by_floor = {}
 
 local hm_x = -677
 
+pvp.last_damage = nil
+
 local hm_ys = {
     1336,
     2872,
@@ -133,6 +135,19 @@ local function tp(x, y)
     end)
 end
 
+function rpc.give_gold(peer, gold)
+    if peer == ctx.my_id then
+        local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+        if wallet ~= nil then
+            local my_gold = ComponentGetValue2(wallet, "money")
+            ComponentSetValue2(wallet, "money", my_gold + gold)
+            GamePrint(
+                "gained " .. tostring(math.ceil(gold)) .. " gold from killing: " .. ctx.players[ctx.rpc_peer_id].name
+            )
+        end
+    end
+end
+
 local hm_y
 
 function pvp.move_next_hm(died)
@@ -140,9 +155,25 @@ function pvp.move_next_hm(died)
     tp(hm_x, hm_y)
     if died then
         rpc.died(floor)
+        if pvp.last_damage ~= nil then
+            local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+            if wallet ~= nil then
+                local gold = ComponentGetValue2(wallet, "money")
+                local rt = ctx.proxy_opt.pvp_kill_steal / 100
+                rpc.give_gold(pvp.last_damage, gold * rt)
+                ComponentSetValue2(wallet, "money", gold * (1 - rt))
+                GamePrint(
+                    "lost "
+                        .. tostring(math.ceil(gold * (1 - rt)))
+                        .. " gold from dying to: "
+                        .. ctx.players[pvp.last_damage].name
+                )
+            end
+        end
     end
     rpc.remove_floor(floor)
     floor = floor + 1
+    pvp.last_damage = nil
     GlobalsSetValue("ew_floor", tostring(floor))
 end
 

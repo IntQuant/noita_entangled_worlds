@@ -16,8 +16,19 @@ local module = {}
 
 local last_damage_info = { 0, "unknown", 1 }
 
+local pvp
+if ctx.proxy_opt.pvp then
+    pvp = dofile_once("mods/quant.ew/files/system/pvp/pvp.lua")
+end
+
 util.add_cross_call("ew_damage_message", function(message, entity_thats_responsible)
     last_damage_info = { GameGetFrameNum(), message, entity_thats_responsible }
+    if ctx.proxy_opt.pvp then
+        local maybe_player = player_fns.get_player_data_by_local_entity_id(entity_thats_responsible)
+        if maybe_player ~= nil and maybe_player.peer_id ~= ctx.my_id then
+            pvp.last_damage = maybe_player.peer_id
+        end
+    end
 end)
 
 function module.on_player_died(player_entity)
@@ -320,11 +331,6 @@ end
 rpc.opts_everywhere()
 function rpc.spawn_ragdoll(x, y)
     LoadRagdoll("mods/quant.ew/files/system/player/tmp/" .. ctx.rpc_peer_id .. "_ragdoll.txt", x, y)
-end
-
-local pvp
-if ctx.proxy_opt.pvp then
-    pvp = dofile_once("mods/quant.ew/files/system/pvp/pvp.lua")
 end
 
 local function player_died()
