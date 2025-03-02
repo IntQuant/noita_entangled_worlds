@@ -66,7 +66,7 @@ function nickname.calculate_textwidth(text, font)
     return textwidth
 end
 
-function nickname.add_label(player_entity, text, font_filename, scale, alpha)
+function nickname.add_label(player_entity, text, font_filename, scale, alpha, ox, oy)
     if
         not EntityGetIsAlive(player_entity)
         or EntityHasTag(player_entity, "polymorphed_cessation")
@@ -88,13 +88,19 @@ function nickname.add_label(player_entity, text, font_filename, scale, alpha)
     end
     local font = nickname.parse(font_filename)
     local textwidth = nickname.calculate_textwidth(text, font)
+    if ox == nil then
+        ox = textwidth * 0.5
+    end
+    if oy == nil then
+        oy = 13 + 12 / scale
+    end
 
     local nickname_component = EntityAddComponent2(player_entity, "SpriteComponent", {
         _tags = "ew_nickname",
         image_file = font_filename,
         is_text_sprite = true,
-        offset_x = textwidth * 0.5,
-        offset_y = 13 + 12 / scale,
+        offset_x = ox,
+        offset_y = oy,
         update_transform = true,
         update_transform_rotation = false,
         fog_of_war_hole = true,

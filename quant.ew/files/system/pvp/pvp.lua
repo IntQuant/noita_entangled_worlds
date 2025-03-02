@@ -155,6 +155,53 @@ local hm_ys = {
     10552,
 }
 
+local wins = {}
+
+local boards = {}
+
+local nickname = dofile_once("mods/quant.ew/files/system/nickname.lua")
+
+local function create_board()
+    for _, ent in ipairs(boards) do
+        EntityKill(ent)
+    end
+    boards = {}
+    if hm_y == nil then
+        return
+    end
+    local sorted = {}
+    local k = 0
+    for p, n in pairs(wins) do
+        k = k + 1
+        if k > 16 then
+            break
+        end
+        table.insert(sorted, { p, n })
+    end
+    table.sort(sorted, function(a, b)
+        return a[2] > b[2]
+    end)
+    for i, v in ipairs(sorted) do
+        local p = v[1]
+        local n = v[2]
+        local ent = EntityCreateNew()
+        --35284, 1310, x + 16,y + 18, 35414
+        local x = hm_x - 556 + 18 * math.floor((i - 1) / 4)
+        if i > 8 then
+            x = x + 100
+        end
+        local y = hm_y - 26 + ((i - 1) % 4) * 18
+        EntitySetTransform(ent, x, y)
+        nickname.add_label(ent, tostring(n), "data/fonts/font_pixel_white.xml", 0.75, 0.5, -12, -6)
+        table.insert(boards, ent)
+        EntityAddComponent2(
+            ent,
+            "SpriteComponent",
+            { image_file = "mods/quant.ew/files/system/player/tmp/" .. p .. "_icon.png", alpha = 0.5 }
+        )
+    end
+end
+
 function rpc.recv_player_num(num, peer)
     player_count = num + 1
     if ctx.my_id == peer then
@@ -190,6 +237,8 @@ function rpc.win(num)
         n = #names_by_floor
     end
     GamePrint("next biome: " .. names_by_floor[n])
+    wins[ctx.rpc_peer_id] = num
+    create_board()
 end
 
 rpc.opts_everywhere()
@@ -346,9 +395,14 @@ function pvp.move_next_hm(died)
         wait(1)
         EntitySetComponentIsEnabled(ctx.my_player.entity, inv, true)
     end)
+    create_board()
 end
 
 function pvp.teleport_into_biome()
+    for _, ent in ipairs(boards) do
+        EntityKill(ent)
+    end
+    boards = {}
     rpc.add_floor(pvp.floor, true, true)
     local n = pvp.floor % #chunks_by_floor
     if n == 0 then
