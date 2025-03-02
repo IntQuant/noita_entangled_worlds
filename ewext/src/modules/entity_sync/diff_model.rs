@@ -56,9 +56,13 @@ pub(crate) struct LocalDiffModel {
     upload: FxHashSet<Lid>,
     dont_upload: FxHashSet<Lid>,
     enable_later: Vec<EntityID>,
+    dont_save: FxHashSet<Lid>,
     phys_later: Vec<(EntityID, Vec<Option<PhysBodyInfo>>)>,
 }
 impl LocalDiffModel {
+    pub(crate) fn dont_save(&mut self, lid: Lid) {
+        self.dont_save.insert(lid);
+    }
     pub(crate) fn got_polied(&mut self, gid: Gid) {
         self.tracker.got_polied(gid);
     }
@@ -85,7 +89,7 @@ impl LocalDiffModel {
             .take(end - start)
             .filter_map(|(lid, p)| {
                 let EntityEntryPair { current, gid, last } = p;
-                if last.is_some() {
+                if last.is_some() && !self.dont_save.contains(lid) {
                     Some(if upload.remove(lid) && !self.dont_upload.contains(lid) {
                         UpdateOrUpload::Upload(FullEntityData {
                             gid: *gid,
@@ -208,6 +212,7 @@ impl Default for LocalDiffModel {
             dont_upload: Default::default(),
             enable_later: Default::default(),
             phys_later: Default::default(),
+            dont_save: Default::default(),
         }
     }
 }
@@ -227,6 +232,7 @@ impl LocalDiffModelTracker {
         cam_pos: (f32, f32),
         do_upload: bool,
         should_transfer: bool,
+        ignore_transfer: bool,
     ) -> eyre::Result<bool> {
         let entity = self
             .entity_by_lid(lid)
@@ -516,31 +522,33 @@ impl LocalDiffModelTracker {
                 ))
             })
             .collect::<Vec<(String, String, i32, f32, bool)>>();
-        // Check if entity went out of range, remove and release authority if it did.
-        let is_beyond_authority = (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2)
-            > if info.is_global {
-                GLOBAL_AUTHORITY_RADIUS
-            } else {
-                AUTHORITY_RADIUS
-            }
-            .powi(2);
-        if is_beyond_authority || should_transfer {
-            if let Some(peer) = ctx.locate_player_within_except_me(
-                x as i32,
-                y as i32,
-                if info.is_global {
-                    GLOBAL_TRANSFER_RADIUS
+        if ignore_transfer {
+            // Check if entity went out of range, remove and release authority if it did.
+            let is_beyond_authority = (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2)
+                > if info.is_global {
+                    GLOBAL_AUTHORITY_RADIUS
                 } else {
-                    TRANSFER_RADIUS
-                },
-            )? {
-                self.transfer_authority_to(ctx, gid, lid, peer, info, do_upload)
-                    .wrap_err("Failed to transfer authority")?;
-                return Ok(do_upload);
-            } else if !info.is_global && is_beyond_authority {
-                self.release_authority(ctx, gid, lid, info, do_upload)
-                    .wrap_err("Failed to release authority")?;
-                return Ok(do_upload);
+                    AUTHORITY_RADIUS
+                }
+                .powi(2);
+            if is_beyond_authority || should_transfer {
+                if let Some(peer) = ctx.locate_player_within_except_me(
+                    x as i32,
+                    y as i32,
+                    if info.is_global {
+                        GLOBAL_TRANSFER_RADIUS
+                    } else {
+                        TRANSFER_RADIUS
+                    },
+                )? {
+                    self.transfer_authority_to(ctx, gid, lid, peer, info, do_upload)
+                        .wrap_err("Failed to transfer authority")?;
+                    return Ok(do_upload);
+                } else if !info.is_global && is_beyond_authority {
+                    self.release_authority(ctx, gid, lid, info, do_upload)
+                        .wrap_err("Failed to release authority")?;
+                    return Ok(do_upload);
+                }
             }
         }
 
@@ -985,6 +993,7 @@ impl LocalDiffModel {
                     (cam_x, cam_y),
                     self.upload.contains(&lid) && !self.dont_upload.contains(&lid),
                     should_transfer,
+                    self.dont_save.contains(&lid),
                 )
                 .wrap_err("Failed to update local entity")
             {
@@ -1207,6 +1216,7 @@ impl LocalDiffModel {
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
             self.upload.remove(&lid);
+            self.dont_save.remove(&lid);
         }
         Ok((res, dead))
     }

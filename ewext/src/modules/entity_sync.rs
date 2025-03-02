@@ -435,7 +435,8 @@ impl EntitySync {
     ) -> eyre::Result<()> {
         if peer == my_peer_id() {
             self.dont_kill.insert(entity);
-            self.local_diff_model.track_entity(entity, gid)?;
+            let lid = self.local_diff_model.track_entity(entity, gid)?;
+            self.local_diff_model.dont_save(lid);
         } else if let Some(remote) = self.remote_models.get_mut(&peer) {
             remote.wait_for_gid(entity, gid);
         }
