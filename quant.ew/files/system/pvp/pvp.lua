@@ -249,9 +249,14 @@ function rpc.give_gold(peer, gold)
         if wallet ~= nil then
             local my_gold = ComponentGetValue2(wallet, "money")
             ComponentSetValue2(wallet, "money", my_gold + gold)
-            GamePrint(
-                "gained " .. tostring(math.ceil(gold)) .. " gold from killing: " .. ctx.players[ctx.rpc_peer_id].name
-            )
+            if math.ceil(gold) ~= 0 then
+                GamePrint(
+                    "gained "
+                        .. tostring(math.ceil(gold))
+                        .. " gold from killing: "
+                        .. ctx.players[ctx.rpc_peer_id].name
+                )
+            end
         end
     end
 end
@@ -276,13 +281,17 @@ function pvp.move_next_hm(died)
                 local gold = ComponentGetValue2(wallet, "money")
                 local rt = ctx.proxy_opt.pvp_kill_steal / 100
                 rpc.give_gold(pvp.last_damage, gold * rt)
-                ComponentSetValue2(wallet, "money", gold * (1 - rt))
-                GamePrint(
-                    "lost "
-                        .. tostring(math.ceil(gold * rt))
-                        .. " gold from dying to: "
-                        .. ctx.players[pvp.last_damage].name
-                )
+                if not ctx.proxy_opt.dont_steal then
+                    ComponentSetValue2(wallet, "money", gold * (1 - rt))
+                    if math.ceil(gold * rt) ~= 0 then
+                        GamePrint(
+                            "lost "
+                                .. tostring(math.ceil(gold * rt))
+                                .. " gold from dying to: "
+                                .. ctx.players[pvp.last_damage].name
+                        )
+                    end
+                end
             end
         end
     end

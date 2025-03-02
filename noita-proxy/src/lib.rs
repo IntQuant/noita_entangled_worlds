@@ -143,6 +143,7 @@ pub struct GameSettings {
     give_host_sampo: Option<bool>,
     home_on_players: Option<bool>,
     pvp_kill_steal: Option<u32>,
+    dont_steal: Option<bool>,
     wait_on_players: Option<bool>,
 }
 impl GameSettings {
@@ -274,6 +275,15 @@ impl GameSettings {
                                     game_settings.pvp_kill_steal.unwrap_or(def.pvp_kill_steal);
                                 if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
                                     game_settings.pvp_kill_steal = Some(temp)
+                                }
+                            }
+                            {
+                                let mut temp = game_settings.dont_steal.unwrap_or(def.dont_steal);
+                                if ui
+                                    .checkbox(&mut temp, "just gain money instead of stealing")
+                                    .changed()
+                                {
+                                    game_settings.dont_steal = Some(temp)
                                 }
                             }
                             {
@@ -469,6 +479,7 @@ pub struct DefaultSettings {
     give_host_sampo: bool,
     home_on_players: bool,
     pvp_kill_steal: u32,
+    dont_steal: bool,
     wait_on_players: bool,
 }
 
@@ -496,6 +507,7 @@ impl Default for DefaultSettings {
             give_host_sampo: false,
             home_on_players: false,
             pvp_kill_steal: 50,
+            dont_steal: true,
             wait_on_players: true,
         }
     }

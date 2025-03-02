@@ -927,6 +927,10 @@ impl NetManager {
                         },
                     );
                     state.try_ws_write_option(
+                        "dont_steal",
+                        settings.dont_steal.unwrap_or(def.dont_steal),
+                    );
+                    state.try_ws_write_option(
                         "wait_on_players",
                         settings.wait_on_players.unwrap_or(def.wait_on_players),
                     );
