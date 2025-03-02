@@ -676,3 +676,11 @@ fn make_callbacks(
     };
     vec![cb_ch]
 }
+
+impl Drop for SteamPeer {
+    fn drop(&mut self) {
+        if let Some(lobby) = self.lobby_id() {
+            self.client.matchmaking().leave_lobby(lobby);
+        }
+    }
+}
