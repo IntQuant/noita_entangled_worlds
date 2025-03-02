@@ -892,40 +892,57 @@ impl NetManager {
         state.try_ws_write_option("game_mode", mode);
         if let GameMode::LocalHealth(mode) = mode {
             match mode {
-                LocalHealthMode::Normal => {}
+                LocalHealthMode::Normal => {
+                    state.try_ws_write_option(
+                        "global_hp_loss",
+                        settings.global_hp_loss.unwrap_or(def.global_hp_loss),
+                    );
+                    state.try_ws_write_option(
+                        "physics_damage",
+                        settings.physics_damage.unwrap_or(def.physics_damage),
+                    );
+                    state.try_ws_write_option(
+                        "no_material_damage",
+                        settings
+                            .no_material_damage
+                            .unwrap_or(def.no_material_damage),
+                    );
+                    state.try_ws_write_option(
+                        "health_lost_on_revive",
+                        settings
+                            .health_lost_on_revive
+                            .unwrap_or(def.health_lost_on_revive),
+                    );
+                }
                 LocalHealthMode::PermaDeath => state.try_ws_write_option("perma_death", true),
                 LocalHealthMode::Alternate => state.try_ws_write_option("no_notplayer", true),
-                LocalHealthMode::PvP => state.try_ws_write_option("pvp", true),
+                LocalHealthMode::PvP => {
+                    state.try_ws_write_option("pvp", true);
+                    state.try_ws_write_option(
+                        "pvp_kill_steal",
+                        if settings.share_gold.unwrap_or(def.share_gold) {
+                            0
+                        } else {
+                            settings.pvp_kill_steal.unwrap_or(def.pvp_kill_steal)
+                        },
+                    );
+                    state.try_ws_write_option(
+                        "wait_on_players",
+                        settings.wait_on_players.unwrap_or(def.wait_on_players),
+                    );
+                }
             }
         }
-        state.try_ws_write_option(
-            "health_per_player",
-            settings.health_per_player.unwrap_or(def.health_per_player),
-        );
-        state.try_ws_write_option(
-            "global_hp_loss",
-            settings.global_hp_loss.unwrap_or(def.global_hp_loss),
-        );
-        state.try_ws_write_option(
-            "physics_damage",
-            settings.physics_damage.unwrap_or(def.physics_damage),
-        );
+        if GameMode::SharedHealth == mode {
+            state.try_ws_write_option(
+                "health_per_player",
+                settings.health_per_player.unwrap_or(def.health_per_player),
+            );
+        }
         let lst = settings.clone();
         state.try_ws_write_option(
             "perk_ban_list",
             lst.perk_ban_list.unwrap_or(def.perk_ban_list).as_str(),
-        );
-        state.try_ws_write_option(
-            "no_material_damage",
-            settings
-                .no_material_damage
-                .unwrap_or(def.no_material_damage),
-        );
-        state.try_ws_write_option(
-            "health_lost_on_revive",
-            settings
-                .health_lost_on_revive
-                .unwrap_or(def.health_lost_on_revive),
         );
         state.try_ws_write_option(
             "disable_kummitus",

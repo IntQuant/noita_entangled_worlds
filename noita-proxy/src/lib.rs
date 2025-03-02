@@ -142,6 +142,8 @@ pub struct GameSettings {
     disable_kummitus: Option<bool>,
     give_host_sampo: Option<bool>,
     home_on_players: Option<bool>,
+    pvp_kill_steal: Option<u32>,
+    wait_on_players: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -265,6 +267,25 @@ impl GameSettings {
 
                         LocalHealthMode::PvP => {
                             ui.label("round based pvp mode");
+                            ui.add_space(5.0);
+                            ui.label("% money stolen on kill");
+                            {
+                                let mut temp =
+                                    game_settings.pvp_kill_steal.unwrap_or(def.pvp_kill_steal);
+                                if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                    game_settings.pvp_kill_steal = Some(temp)
+                                }
+                            }
+                            {
+                                let mut temp =
+                                    game_settings.wait_on_players.unwrap_or(def.wait_on_players);
+                                if ui
+                                    .checkbox(&mut temp, "wait on players to finish round")
+                                    .changed()
+                                {
+                                    game_settings.wait_on_players = Some(temp)
+                                }
+                            }
                         }
                     },
                 }
@@ -447,6 +468,8 @@ pub struct DefaultSettings {
     disable_kummitus: bool,
     give_host_sampo: bool,
     home_on_players: bool,
+    pvp_kill_steal: u32,
+    wait_on_players: bool,
 }
 
 impl Default for DefaultSettings {
@@ -472,6 +495,8 @@ impl Default for DefaultSettings {
             disable_kummitus: false,
             give_host_sampo: false,
             home_on_players: false,
+            pvp_kill_steal: 50,
+            wait_on_players: true,
         }
     }
 }

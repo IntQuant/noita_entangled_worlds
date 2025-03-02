@@ -39,11 +39,9 @@ local player_died = {}
 
 local players_by_floor = {}
 
---TODO give tiny platform so you dont fall in lava after tp
-
 --TODO regenerate final hm
 
-local hm_x = BiomeMapGetSize() * 512 - 677
+local hm_x = -677
 
 local hm_ys = {
     1336,
@@ -125,6 +123,7 @@ local function set_camera_pos(x, y)
 end
 
 local function tp(x, y)
+    ctx.stop_cam = true
     set_camera_pos(x, y)
     EntitySetTransform(ctx.my_player.entity, x, y)
     async(function()
@@ -141,7 +140,6 @@ function pvp.move_next_hm(died)
     tp(hm_x, hm_y)
     if died then
         rpc.died(floor)
-        ctx.stop_cam = true
     end
     rpc.remove_floor(floor)
     floor = floor + 1
@@ -186,7 +184,7 @@ function pvp.teleport_into_biome()
         float()
         wait(12)
         x, y = EntityGetTransform(ctx.my_player.entity)
-        LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 13, "", true, true) --ff5e9ab5
+        LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 6, "", true, true)
     end)
     hm_y = nil
 end
@@ -209,6 +207,7 @@ function pvp.on_world_update()
                 my_num = 0
                 my_pw = 1
                 player_count = 1
+                hm_x = BiomeMapGetSize() * 512 - 677
             else
                 rpc.get_player_num()
             end
@@ -217,7 +216,17 @@ function pvp.on_world_update()
     end
     local _, y = EntityGetTransform(ctx.my_player.entity)
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
-        pvp.teleport_into_biome()
+        local has_alive = false
+        for _, _ in pairs(players_by_floor[floor - 1] or {}) do
+            has_alive = true
+            break
+        end
+        if ctx.proxy_opt.wait_on_players and has_alive then
+            floor = floor - 1
+            pvp.move_next_hm(false)
+        else
+            pvp.teleport_into_biome()
+        end
     end
     if player_died[floor] == nil then
         player_died[floor] = {}
