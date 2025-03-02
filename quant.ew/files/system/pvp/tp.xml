@@ -4,9 +4,9 @@
 
     <GameEffectComponent
             effect = "TELEPORTATION"
-            frames = "4"
+            frames = "30"
             teleportation_probability = "1"
-            teleportation_delay_min_frames = "8"
+            teleportation_delay_min_frames = "60"
             teleportation_radius_min = "1"
             teleportation_radius_max = "256"
     >

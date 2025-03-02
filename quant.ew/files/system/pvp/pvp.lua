@@ -309,12 +309,7 @@ function pvp.move_next_hm(died)
             end
         end
         if not has_ase then
-            temp_ase = EntityCreateNew()
-            EntityAddChild(ctx.my_player.entity, temp_ase)
-            EntityAddComponent2(temp_ase, "GameEffectComponent", {
-                effect = "REMOVE_FOG_OF_WAR",
-                frames = -1,
-            })
+            temp_ase = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/pvp/ase.xml")
         end
     elseif temp_ase ~= nil then
         if EntityGetIsAlive(temp_ase) then
@@ -358,16 +353,24 @@ function pvp.teleport_into_biome()
     local x = my_chunk[1] * 512 + 256
     local y = my_chunk[2] * 512 + 256
     tp(x, y)
-    local com = EntityLoad("/home/.r/noita_entangled_worlds/quant.ew/files/system/pvp/tp.xml", x, y)
-    EntityAddChild(ctx.my_player.entity, com)
+    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/pvp/safe_effect.xml")
     async(function()
         wait(8)
-        com = EntityLoad("/home/.r/noita_entangled_worlds/quant.ew/files/system/pvp/tp.xml", x, y)
-        EntityAddChild(ctx.my_player.entity, com)
+        LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/pvp/tp.xml")
         float()
         wait(16)
         x, y = EntityGetTransform(ctx.my_player.entity)
         LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 6, "", true, true)
+        wait(16)
+        x, y = EntityGetTransform(ctx.my_player.entity)
+        local did_hit_down, _, _ = RaytracePlatforms(x, y, x, y + 2)
+        if did_hit_down then
+            LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/pvp/tp.xml")
+            float()
+            wait(16)
+            x, y = EntityGetTransform(ctx.my_player.entity)
+            LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 6, "", true, true)
+        end
     end)
     hm_y = nil
 end
