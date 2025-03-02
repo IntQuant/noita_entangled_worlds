@@ -2,6 +2,12 @@
 
 - fix entities sometimes not appearing/disappearing because of auth transfers failing from last update
 
+- fix damage numbers in pvp
+
+- dont allow spectating people on same floor in pvp
+
+- try to get stuck less on initial tp in pvp
+
 - add dont steal option
 
 - dont spawn stevari in hm in pvp
@@ -9,6 +15,9 @@
 - dont allow spectating super far to prevent crashes
 
 - fix some eradicate bugs
+
+
+
 
 ## Accepted pull requests
 
