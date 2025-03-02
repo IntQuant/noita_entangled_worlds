@@ -993,7 +993,7 @@ impl LocalDiffModel {
                     (cam_x, cam_y),
                     self.upload.contains(&lid) && !self.dont_upload.contains(&lid),
                     should_transfer,
-                    self.dont_save.contains(&lid),
+                    !self.dont_save.contains(&lid),
                 )
                 .wrap_err("Failed to update local entity")
             {
