@@ -185,7 +185,7 @@ end
 rpc.opts_everywhere()
 function rpc.win(num)
     GamePrint(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
-    GamePrint("next biome: " .. names_by_floor[pvp.floor])
+    GamePrint("next biome: " .. names_by_floor[pvp.floor - 1])
 end
 
 rpc.opts_everywhere()
