@@ -9,7 +9,11 @@ for i, v in ipairs(targets) do
         local test = EntityGetFirstComponent(v, "DamageModelComponent")
 
         if test ~= nil then
-            EntityKill(v)
+            if not EntityHasTag(v, "ew_client") and not EntityHasTag(v, "polymorphed_player") then
+                EntityKill(v)
+            else
+                EntityInflictDamage(v, 1000000, "DAMAGE_CURSE", "", "NONE", 0, 0, GameGetWorldStateEntity())
+            end
         end
     end
 end
