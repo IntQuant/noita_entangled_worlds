@@ -54,7 +54,14 @@ function module.on_world_update()
             or EntityHasTag(player_data.entity, "polymorphed_cessation")
             or (EntityHasTag(player_data.entity, "ew_notplayer") and ctx.proxy_opt.no_notplayer)
             or player_data.dc
-            or (ctx.proxy_opt.pvp and (pvp.hm_y == nil or pvp.players_by_floor[pvp.floor][peer_id] == nil))
+            or (
+                ctx.proxy_opt.pvp
+                and (
+                    pvp.hm_y ~= nil
+                    or pvp.players_by_floor[pvp.floor] == nil
+                    or not pvp.players_by_floor[pvp.floor][peer_id]
+                )
+            )
         then
             goto continue
         end

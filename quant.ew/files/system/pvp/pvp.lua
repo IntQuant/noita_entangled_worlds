@@ -9,11 +9,11 @@ local chunks_by_floor = {
     { { -5, 13, 3, 15 } }, --Underground Jungle
     { { -6, 17, 4, 19 } }, --Vault
     { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --Temple of the Art
-    { { -29, 1, -27, 0 } }, --Island
+    { { -29, -1, -27, 0 } }, --Island
     { { 16, 1, 22, 5 }, { 17, 0, 21, 0 }, { 18, -1, 20, -1 } }, --Sand Cave/Pyramid
     { { -9, 0, -7, 0 }, { -9, 1, -5, 1 } }, --Ancient Laboratory
-    { { -31, -13, -21, 10 } }, --Cloudscape
-    { { -20, 25, -15, 28 } }, --Snow Chasm
+    { { -31, -13, -21, -10 } }, --Cloudscape
+    { { -20, 25, -15, 28 } }, --Snowy Chasm
     { { -23, 1, -17, 5 } }, --Frozen Vault
     { { 24, 4, 30, 8 } }, --Overgrown Caverns
     { { 18, 25, 22, 30 } }, --Wizards Den
@@ -37,6 +37,7 @@ local names_by_floor = {
     "Sand Cave/Pyramid",
     "Ancient Laboratory",
     "Cloudscape",
+    "Snowy Chasm",
     "Frozen Vault",
     "Overgrown Caverns",
     "Wizards Den",
@@ -54,31 +55,38 @@ if ModIsEnabled("Apotheosis") then
         { { -3, 1, 3, 1 }, { 0, 0, 2, 0 } }, --(Collapsed) Mines
         { { -6, 3, 3, 4 }, { -7, 3, -7, 3 } }, --Coal Pits
         { { -5, 6, 4, 8 } }, --Snowy Depths
+        { { 5, 11, 8, 12 } }, --Ant Nest
+        { { 11, 11, 14, 17 } }, --Core Mines
         { { -4, 10, 2, 11 } }, --Hiisi Base
-        { { -5, 13, 3, 15 } }, --Underground Jungle
-        { { -6, 17, 4, 19 } }, --Vault
-        { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --Temple of the Art
-        { { -29, 1, -27, 0 } }, --Island
         { { 16, 1, 22, 5 }, { 17, 0, 21, 0 }, { 18, -1, 20, -1 } }, --Sand Cave/Pyramid
+        { { -5, 13, 3, 15 } }, --Underground Jungle
         { { -9, 0, -7, 0 }, { -9, 1, -5, 1 } }, --Ancient Laboratory
-        { { -31, -13, -21, 10 } }, --Cloudscape
-        { { -20, 25, -15, 28 } }, --Snow Chasm
-        { { -23, 1, -17, 5 } }, --Frozen Vault
-        { { 24, 4, 30, 8 } }, --Overgrown Caverns
-        { { 18, 25, 22, 30 } }, --Wizards Den
+        { { -6, 17, 4, 19 } }, --Vault
         { { -10, 15, -9, 18 }, { -8, 14, -7, 17 } }, --Lukki Lair
-        { { 24, 16, 30, 20 } }, --Powerplant
         { { -6, 29, 4, 32 } }, --The Work(below)
-        { { -6, -19, 4, -16 } }, --The Work(above)
-        { { 12, 14, 14, 17 }, { 13, 11, 14, 13 } }, --Meat Realm (Heart)
-        { { 27, 27, 30, 31 } }, --Meat Realm (Tiny)
+        { { -23, 1, -17, 5 } }, --Frozen Vault
         { { 18, 9, 20, 16 } }, --The Tower
+        { { -29, -1, -27, 0 } }, --Island
+        { { 24, 4, 30, 8 } }, --Overgrown Caverns
+        { { -31, -13, -21, -10 } }, --Cloudscape
+        { { -20, 25, -15, 28 } }, --Snowy Chasm
+        { { -41, 15, -33, 18 } }, --Sunken Caverns
+        { { 38, 2, 40, 4 } }, --Sinkhole
+        { { 24, 16, 30, 20 } }, --Powerplant
+        { { 34, 23, 38, 32 } }, --Virulent Caverns/Contaminated Outpost
+        { { 34, 6, 35, 7 }, { 35, 4, 36, 5 } }, --Sinkhole(temple)
+        { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --Temple of the Art
+        { { 27, 27, 30, 31 } }, --Meat Realm (Tiny)
+        { { 18, 25, 22, 30 } }, --Wizards Den
+        { { 12, 18, 14, 20 } }, --Meat Realm (Heart)
+        { { -6, -19, 4, -16 } }, --The Work(above)
+        { { -6, 77, 4, 81 } }, --The Work(below below)
+        { { 39, 8, 43, 17 }, { 44, 13, 47, 13 } }, --Temple of Sacrilegious Remains
     }
     names_by_floor = {
-        "Mines",
+        "(Collapsed) Mines",
         "Coal Pits",
         "Snowy Depths",
-        "Fungal Caverns",
         "Ant Nest",
         "Core Mines",
         "Hiisi Base",
@@ -122,15 +130,17 @@ local my_num = 0
 
 local my_pw = 1
 
-local floor = 1
+pvp.floor = 1
 
 local my_wins = 0
 
 local player_died = {}
 
-local players_by_floor = {}
+pvp.players_by_floor = {}
 
-local hm_x = -677
+local hm_x = 0
+
+local hm_y
 
 local temp_ase
 
@@ -153,11 +163,14 @@ function rpc.recv_player_num(num, peer)
         if my_num % 2 == 1 then
             my_pw = -my_pw
         end
-        hm_x = my_pw * BiomeMapGetSize() * 512 - 677
+        hm_x = my_pw * BiomeMapGetSize() * 512
         GlobalsSetValue("ew_num", tostring(my_num))
         GlobalsSetValue("ew_pw", tostring(my_pw))
     end
     GlobalsSetValue("ew_player_count", tostring(player_count))
+    if hm_y == nil then
+        rpc.add_floor(pvp.floor)
+    end
 end
 
 rpc.opts_reliable()
@@ -172,7 +185,7 @@ end
 rpc.opts_everywhere()
 function rpc.win(num)
     GamePrint(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
-    GamePrint("next biome: " .. names_by_floor[floor])
+    GamePrint("next biome: " .. names_by_floor[pvp.floor])
 end
 
 rpc.opts_everywhere()
@@ -186,19 +199,19 @@ end
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.remove_floor(f)
-    if players_by_floor[f] == nil then
-        players_by_floor[f] = {}
+    if pvp.players_by_floor[f] == nil then
+        pvp.players_by_floor[f] = {}
     end
-    players_by_floor[f][ctx.rpc_peer_id] = nil
+    pvp.players_by_floor[f][ctx.rpc_peer_id] = nil
 end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.add_floor(f)
-    if players_by_floor[f] == nil then
-        players_by_floor[f] = {}
+    if pvp.players_by_floor[f] == nil then
+        pvp.players_by_floor[f] = {}
     end
-    players_by_floor[f][ctx.rpc_peer_id] = true
+    pvp.players_by_floor[f][ctx.rpc_peer_id] = true
 end
 
 local function float()
@@ -240,22 +253,20 @@ function rpc.give_gold(peer, gold)
     end
 end
 
-local hm_y
-
 dofile_once("data/scripts/perks/perk.lua")
 
 function pvp.move_next_hm(died)
-    hm_y = hm_ys[math.min(floor, #hm_ys)]
-    tp(hm_x, hm_y)
-    if floor > #hm_ys then
-        local x, y = -480, 10564
+    hm_y = hm_ys[math.min(pvp.floor, #hm_ys)]
+    tp(hm_x - 677, hm_y)
+    if pvp.floor > #hm_ys then
+        local x, y = hm_x - 480, 10564
         EntityLoad("data/entities/items/pickup/heart_fullhp_temple.xml", x - 16, y)
         EntityLoad("data/entities/items/pickup/spell_refresh.xml", x + 16, y)
-        x, y = 0, 10625
+        x, y = hm_x - 36, 10625
         perk_spawn_many(x, y)
     end
     if died then
-        rpc.died(floor)
+        rpc.died(pvp.floor)
         if pvp.last_damage ~= nil then
             local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
             if wallet ~= nil then
@@ -272,11 +283,11 @@ function pvp.move_next_hm(died)
             end
         end
     end
-    rpc.remove_floor(floor)
-    floor = floor + 1
+    rpc.remove_floor(pvp.floor)
+    pvp.floor = pvp.floor + 1
     pvp.last_damage = nil
-    GlobalsSetValue("ew_floor", tostring(floor))
-    if table.contains(needs_ase, names_by_floor[floor]) then
+    GlobalsSetValue("ew_floor", tostring(pvp.floor))
+    if table.contains(needs_ase, names_by_floor[pvp.floor]) then
         local has_ase = false
         for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
             local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
@@ -314,8 +325,8 @@ function pvp.move_next_hm(died)
 end
 
 function pvp.teleport_into_biome()
-    rpc.add_floor(floor)
-    local n = floor % #chunks_by_floor
+    rpc.add_floor(pvp.floor)
+    local n = pvp.floor % #chunks_by_floor
     if n == 0 then
         n = #chunks_by_floor
     end
@@ -373,14 +384,14 @@ function pvp.on_world_update()
         player_count = tonumber(GlobalsGetValue("ew_player_count", "-1")) or 1
         my_num = tonumber(GlobalsGetValue("ew_num", "-1")) or 0
         my_pw = tonumber(GlobalsGetValue("ew_pw", "-1")) or 1
-        floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
+        pvp.floor = tonumber(GlobalsGetValue("ew_floor", "1")) or 1
         my_wins = tonumber(GlobalsGetValue("ew_wins", "0")) or 0
         if my_num == -1 then
             if ctx.is_host then
                 my_num = 0
                 my_pw = 1
                 player_count = 1
-                hm_x = BiomeMapGetSize() * 512 - 677
+                hm_x = BiomeMapGetSize() * 512
             else
                 rpc.get_player_num()
             end
@@ -390,29 +401,29 @@ function pvp.on_world_update()
     local _, y = EntityGetTransform(ctx.my_player.entity)
     if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
         local has_alive = false
-        for _, _ in pairs(players_by_floor[floor - 1] or {}) do
+        for _, _ in pairs(pvp.players_by_floor[pvp.floor - 1] or {}) do
             has_alive = true
             break
         end
         if ctx.proxy_opt.wait_on_players and has_alive then
-            floor = floor - 1
+            pvp.floor = pvp.floor - 1
             pvp.move_next_hm(false)
         else
             pvp.teleport_into_biome()
         end
     end
-    if player_died[floor] == nil then
-        player_died[floor] = {}
+    if player_died[pvp.floor] == nil then
+        player_died[pvp.floor] = {}
     end
     local dead = 0
-    for _, _ in pairs(player_died[floor]) do
+    for _, _ in pairs(player_died[pvp.floor]) do
         dead = dead + 1
     end
     if
         player_count ~= 1
         and GameGetFrameNum() % 60 == 32
-        and #player_died[floor] == player_count - 1
-        and not table.contains(player_died[floor], ctx.my_id)
+        and #player_died[pvp.floor] == player_count - 1
+        and not table.contains(player_died[pvp.floor], ctx.my_id)
     then
         pvp.move_next_hm(false)
         my_wins = my_wins + 1
