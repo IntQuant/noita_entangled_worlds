@@ -1,33 +1,14 @@
-## Noita Entangled Worlds v1.4.1
+## Noita Entangled Worlds v1.4.2
 
-- add wait on players option in pvp, give players a platform on teleport
+- fix entities sometimes not appearing/disappearing because of auth transfers failing from last update
 
-- add steal gold on kill option in pvp
+- add dont steal option
 
-- regenerate final hm in pvp, dont collapse hm in pvp
+- dont spawn stevari in hm in pvp
 
-- set hp for entities better
+- dont allow spectating super far to prevent crashes
 
-- announce next biome in pvp
-
-- support apoth in pvp
-
-- fix deaths in meat realm
-
-- spectate self when died in pvp, dont show player arrows when players aren't on same floor in pvp, fix teleportation effect in pvp
-
-- fix an error with synced projectiles
-
-- try to fix physics failing and causing lockups
-
-- fix an error in pvp
-
-- increase interest range a bit
-
-- dont stay in lobby with no host
-
-- remove debug gameprint
-
+- fix some eradicate bugs
 
 ## Accepted pull requests
 
