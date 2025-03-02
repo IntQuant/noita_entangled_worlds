@@ -169,7 +169,7 @@ function rpc.recv_player_num(num, peer)
     end
     GlobalsSetValue("ew_player_count", tostring(player_count))
     if hm_y == nil then
-        rpc.add_floor(pvp.floor)
+        rpc.add_floor(pvp.floor, true)
     end
 end
 
@@ -207,11 +207,14 @@ end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
-function rpc.add_floor(f)
+function rpc.add_floor(f, ping)
     if pvp.players_by_floor[f] == nil then
         pvp.players_by_floor[f] = {}
     end
     pvp.players_by_floor[f][ctx.rpc_peer_id] = true
+    if ping then
+        rpc.add_floor(pvp.floor, false)
+    end
 end
 
 local function float()
@@ -325,7 +328,7 @@ function pvp.move_next_hm(died)
 end
 
 function pvp.teleport_into_biome()
-    rpc.add_floor(pvp.floor)
+    rpc.add_floor(pvp.floor, true)
     local n = pvp.floor % #chunks_by_floor
     if n == 0 then
         n = #chunks_by_floor
