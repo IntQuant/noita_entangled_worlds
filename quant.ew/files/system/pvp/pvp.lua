@@ -20,9 +20,9 @@ local chunks_by_floor = {
     { { -10, 15, -9, 18 }, { -8, 14, -7, 17 } }, --Lukki Lair
     { { 24, 16, 30, 20 } }, --Powerplant
     { { -6, 29, 4, 32 } }, --The Work(below)
+    { { 27, 27, 30, 31 } }, --Meat Realm (Tiny)
     { { -6, -19, 4, -16 } }, --The Work(above)
     { { 12, 14, 14, 17 }, { 13, 11, 14, 13 } }, --Meat Realm (Heart)
-    { { 27, 27, 30, 31 } }, --Meat Realm (Tiny)
     { { 18, 9, 20, 16 } }, --The Tower
 }
 
@@ -43,21 +43,77 @@ local names_by_floor = {
     "Lukki Lair",
     "Powerplant",
     "The Work (Below)",
+    "Meat Realm (Tiny)",
     "The Work (Above)",
     "Meat Realm (Heart)",
-    "Meat Realm (Tiny)",
     "The Tower",
 }
 
 if ModIsEnabled("Apotheosis") then
-    chunks_by_floor = {}
-    names_by_floor = {}
+    chunks_by_floor = {
+        { { -3, 1, 3, 1 }, { 0, 0, 2, 0 } }, --(Collapsed) Mines
+        { { -6, 3, 3, 4 }, { -7, 3, -7, 3 } }, --Coal Pits
+        { { -5, 6, 4, 8 } }, --Snowy Depths
+        { { -4, 10, 2, 11 } }, --Hiisi Base
+        { { -5, 13, 3, 15 } }, --Underground Jungle
+        { { -6, 17, 4, 19 } }, --Vault
+        { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --Temple of the Art
+        { { -29, 1, -27, 0 } }, --Island
+        { { 16, 1, 22, 5 }, { 17, 0, 21, 0 }, { 18, -1, 20, -1 } }, --Sand Cave/Pyramid
+        { { -9, 0, -7, 0 }, { -9, 1, -5, 1 } }, --Ancient Laboratory
+        { { -31, -13, -21, 10 } }, --Cloudscape
+        { { -20, 25, -15, 28 } }, --Snow Chasm
+        { { -23, 1, -17, 5 } }, --Frozen Vault
+        { { 24, 4, 30, 8 } }, --Overgrown Caverns
+        { { 18, 25, 22, 30 } }, --Wizards Den
+        { { -10, 15, -9, 18 }, { -8, 14, -7, 17 } }, --Lukki Lair
+        { { 24, 16, 30, 20 } }, --Powerplant
+        { { -6, 29, 4, 32 } }, --The Work(below)
+        { { -6, -19, 4, -16 } }, --The Work(above)
+        { { 12, 14, 14, 17 }, { 13, 11, 14, 13 } }, --Meat Realm (Heart)
+        { { 27, 27, 30, 31 } }, --Meat Realm (Tiny)
+        { { 18, 9, 20, 16 } }, --The Tower
+    }
+    names_by_floor = {
+        "Mines",
+        "Coal Pits",
+        "Snowy Depths",
+        "Fungal Caverns",
+        "Ant Nest",
+        "Core Mines",
+        "Hiisi Base",
+        "Sand Cave/Pyramid",
+        "Underground Jungle",
+        "Ancient Laboratory",
+        "Vault",
+        "Lukki Lair",
+        "The Work (Below)",
+        "Frozen Vault",
+        "Tower",
+        "Island",
+        "Overgrown Caverns",
+        "Cloudscape",
+        "Snowy Chasm",
+        "Sunken Caverns",
+        "Sinkhole",
+        "Powerplant",
+        "Virulent Caverns/Contaminated Outpost",
+        "Sinkhole (Temple)",
+        "Temple of the Art",
+        "Meat Realm (Tiny)",
+        "Wizards Den",
+        "Meat Realm (Heart)",
+        "The Work (Above)",
+        "The Work (Below Below)",
+        "Temple of Sacrilegious Remains",
+    }
 end
 
 local needs_ase = {
     "Wizards Den",
+    "Magical Temple",
     "Ant Nest",
-    "Temple of Sacreligious Remains",
+    "Temple of Sacrilegious Remains",
 }
 
 local player_count = 1
@@ -299,7 +355,7 @@ function pvp.teleport_into_biome()
             teleportation_radius_min = 256,
         })
         float()
-        wait(12)
+        wait(16)
         x, y = EntityGetTransform(ctx.my_player.entity)
         LoadPixelScene("mods/quant.ew/files/system/pvp/tp.png", "", x - 6, y - 6, "", true, true)
     end)

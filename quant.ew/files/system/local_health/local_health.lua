@@ -557,6 +557,14 @@ function module.on_world_update()
         end
         local final_hp = math.max(new_hp, math.min(2 / 5, max_hp_new))
         util.set_ent_health(ctx.my_player.entity, { final_hp, max_hp_new })
+        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+            if EntityHasTag(child, "no_heal_in_meat_biome") then
+                local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
+                if ComponentGetValue2(com, "no_heal_max_hp_cap") < final_hp then
+                    ComponentSetValue2(com, "no_heal_max_hp_cap", final_hp)
+                end
+            end
+        end
         player_died()
     end
     if ctx.proxy_opt.no_notplayer and first and notplayer_active then
