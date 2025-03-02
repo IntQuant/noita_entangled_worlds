@@ -5,13 +5,13 @@ use bitcode::{Decode, Encode};
 use eframe::egui;
 use eframe::egui::color_picker::{Alpha, color_picker_color32};
 use eframe::egui::{Color32, Image, TextureHandle, TextureOptions, Ui};
+use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Pixel, Rgba, RgbaImage};
 use std::ffi::OsString;
 use std::fs::{self, File, remove_file};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-
 pub fn player_path(path: PathBuf) -> PathBuf {
     path.join("files/system/player/unmodified.png")
 }
@@ -372,6 +372,13 @@ pub fn create_player_png(
     rgb: &PlayerPngDesc,
     is_host: bool,
 ) {
+    let icon = get_player_skin(
+        image::open(player_path)
+            .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
+            .crop(1, 1, 8, 18)
+            .into_rgba8(),
+        *rgb,
+    );
     let inv = rgb.invert_border;
     let id = peer.as_hex();
     let cosmetics = rgb.cosmetics;
@@ -380,6 +387,8 @@ pub fn create_player_png(
     let (arrows_path, ping_path, map_icon) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
     let player_lukki = tmp_path.join("unmodified_lukki.png");
+    icon.save(tmp_path.join(format!("tmp/{}_icon.png", id)))
+        .unwrap();
     replace_colors(
         player_path.into(),
         tmp_path.join(format!("tmp/{}.png", id)),

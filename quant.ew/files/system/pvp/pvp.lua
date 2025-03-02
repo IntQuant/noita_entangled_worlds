@@ -211,12 +211,19 @@ end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
-function rpc.add_floor(f, ping)
+function rpc.add_floor(f, ping, msg)
     if pvp.players_by_floor[f] == nil then
         pvp.players_by_floor[f] = {}
     end
     pvp.players_by_floor[f][ctx.rpc_peer_id] = true
-    if ping then
+    if msg then
+        local n = pvp.floor % #names_by_floor
+        if n == 0 then
+            n = #names_by_floor
+        end
+        GamePrint(ctx.rpc_player_data.name .. " has entered: " .. names_by_floor[n])
+    end
+    if ping and ctx.rpc_peer_id ~= ctx.my_id then
         rpc.add_floor(pvp.floor, false)
     end
 end
@@ -342,7 +349,7 @@ function pvp.move_next_hm(died)
 end
 
 function pvp.teleport_into_biome()
-    rpc.add_floor(pvp.floor, true)
+    rpc.add_floor(pvp.floor, true, true)
     local n = pvp.floor % #chunks_by_floor
     if n == 0 then
         n = #chunks_by_floor
