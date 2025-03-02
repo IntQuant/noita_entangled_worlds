@@ -28,7 +28,7 @@ function rpc.gather_and_do_ending(x, y, sx, sy)
     local died = false
     if EntityHasTag(ctx.my_player.entity, "ew_notplayer") then
         died = true
-        local damage = ComponentGetValue2(ctx.my_player.entity, "DamageModelComponent")
+        local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         if damage ~= nil then
             ComponentSetValue2(damage, "ui_report_damage", false)
             ComponentSetValue2(damage, "hp", 2 ^ -38)

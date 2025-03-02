@@ -263,7 +263,7 @@ end
 
 function net_handling.proxy.end_run(_, _)
     local entity = ctx.my_player.entity
-    local damage = ComponentGetValue2(entity, "DamageModelComponent")
+    local damage = EntityGetFirstComponentIncludingDisabled(entity, "DamageModelComponent")
     if damage ~= nil then
         ComponentSetValue2(damage, "ui_report_damage", false)
         ComponentSetValue2(damage, "hp", 2 ^ -38)

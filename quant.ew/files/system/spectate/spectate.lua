@@ -22,7 +22,12 @@ local attached = false
 
 local redo = false
 
-local function cant_spectate(ent)
+local pvp
+if ctx.proxy_opt.pvp then
+    pvp = dofile_once("mods/quant.ew/files/system/pvp/pvp.lua")
+end
+
+local function cant_spectate(ent, peer_id)
     local x, y = EntityGetTransform(ctx.my_player.entity)
     local tx, ty = EntityGetTransform(ent)
     local dx, dy = tx - x, ty - y
@@ -33,6 +38,14 @@ local function cant_spectate(ent)
         or (EntityHasTag(ent, "polymorphed_cessation") and cam_target ~= nil and cam_target.entity ~= ent)
         or (ctx.proxy_opt.no_notplayer and EntityHasTag(ent, "ew_notplayer"))
         or dx * dx + dy * dy >= 256000 * 256000
+        or (
+            ctx.proxy_opt.pvp
+            and peer_id ~= nil
+            and pvp.hm_y == nil
+            and pvp.players_by_floor[pvp.floor] ~= nil
+            and pvp.players_by_floor[pvp.floor][peer_id]
+
+        )
 end
 
 local function perks_ui(enable)
@@ -88,7 +101,7 @@ local function get_me()
     local i = 0
     local alive = { -1, -1 }
     for peer_id, potential_target in pairs(ctx.players) do
-        if cant_spectate(potential_target.entity) then
+        if cant_spectate(potential_target.entity, peer_id) then
             goto continue
         end
         i = i + 1
@@ -245,7 +258,7 @@ local function set_camera_pos()
     if cam_target == nil or re_cam then
         local i = 0
         for peer_id, potential_target in pairs(ctx.players) do
-            if cant_spectate(potential_target.entity) then
+            if cant_spectate(potential_target.entity, peer_id) then
                 goto continue
             end
             i = i + 1
@@ -276,7 +289,7 @@ end
 local function update_i()
     local i = 0
     for peer_id, potential_target in pairs(ctx.players) do
-        if cant_spectate(potential_target.entity) then
+        if cant_spectate(potential_target.entity, peer_id) then
             goto continue
         end
         i = i + 1
@@ -292,8 +305,8 @@ end
 
 local function number_of_players()
     local i = 0
-    for _, potential_target in pairs(ctx.players) do
-        if not cant_spectate(potential_target.entity) then
+    for peer_id, potential_target in pairs(ctx.players) do
+        if not cant_spectate(potential_target.entity, peer_id) then
             i = i + 1
         end
     end
@@ -325,7 +338,7 @@ function spectate.on_world_update()
         update_i()
         last_len = number_of_players()
     end
-    if cam_target ~= nil and cant_spectate(cam_target.entity) then
+    if cam_target ~= nil and cant_spectate(cam_target.entity, nil) then
         update_i()
         last_len = number_of_players()
     end
