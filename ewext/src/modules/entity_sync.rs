@@ -152,8 +152,8 @@ impl EntitySync {
                                         for lua in entity
                                             .iter_all_components_of_type::<LuaComponent>(None)?
                                         {
-                                            if !lua.script_damage_received()?.is_empty() {
-                                                entity.remove_component(*lua)?;
+                                            if ["data/entities/animals/boss_spirit/islandspirit.lua","data/entities/animals/boss_sky/boss_sky.lua"].contains(&&*lua.script_damage_received()?) {
+                                                lua.set_script_damage_received("".into())?
                                             }
                                         }
                                         entity

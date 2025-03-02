@@ -1796,16 +1796,9 @@ impl RemoteDiffModel {
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 }
-                for lua in entity.iter_all_components_of_type::<LuaComponent>(None)? {
-                    if !lua.script_damage_received()?.is_empty()
-                        || !lua.script_damage_about_to_be_received()?.is_empty()
-                    {
-                        entity.remove_component(*lua)?;
-                    }
-                }
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
-                    damage.hp()?,
+                    damage.hp()? + f32::MIN_POSITIVE as f64,
                     "DAMAGE_CURSE".into(), //TODO should be enum
                     "kill sync".into(),
                     "NONE".into(),
