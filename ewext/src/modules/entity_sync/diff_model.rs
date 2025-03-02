@@ -1068,14 +1068,6 @@ impl LocalDiffModel {
                         lid,
                     );
                     diff(
-                        &current.hp,
-                        &mut last.hp,
-                        EntityUpdate::SetHp(current.hp),
-                        &mut res,
-                        &mut had_any_delta,
-                        lid,
-                    );
-                    diff(
                         &current.animations,
                         &mut last.animations,
                         EntityUpdate::SetAnimations(current.animations.clone()),
@@ -1541,6 +1533,9 @@ impl RemoteDiffModel {
             }
         }
         if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+            if entity_info.hp > damage.max_hp()? as f32 {
+                damage.set_max_hp(entity_info.hp as f64)?
+            }
             let current_hp = damage.hp()? as f32;
             if current_hp > entity_info.hp {
                 noita_api::raw::entity_inflict_damage(
