@@ -234,6 +234,7 @@ function pvp.move_next_hm(died)
             EntityAddChild(ctx.my_player.entity, temp_ase)
             EntityAddComponent2(temp_ase, "GameEffectComponent", {
                 effect = "REMOVE_FOG_OF_WAR",
+                frames = -1,
             })
         end
     elseif temp_ase ~= nil then
@@ -278,9 +279,15 @@ function pvp.teleport_into_biome()
     local x = my_chunk[1] * 512 + 256
     local y = my_chunk[2] * 512 + 256
     tp(x, y)
+    local com = EntityCreateNew()
+    EntityAddChild(ctx.my_player.entity, com)
+    EntityAddComponent2(com, "GameEffectComponent", {
+        effect = "PROTECTION_ALL",
+        frames = 300,
+    })
     async(function()
         wait(8)
-        local com = EntityCreateNew()
+        com = EntityCreateNew()
         EntityAddChild(ctx.my_player.entity, com)
         EntityAddTag(com, "perk_entity")
         EntityAddComponent2(com, "GameEffectComponent", {
