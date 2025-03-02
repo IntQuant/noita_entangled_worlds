@@ -358,25 +358,12 @@ function pvp.teleport_into_biome()
     local x = my_chunk[1] * 512 + 256
     local y = my_chunk[2] * 512 + 256
     tp(x, y)
-    local com = EntityCreateNew()
+    local com = EntityLoad("/home/.r/noita_entangled_worlds/quant.ew/files/system/pvp/tp.xml", x, y)
     EntityAddChild(ctx.my_player.entity, com)
-    EntityAddComponent2(com, "GameEffectComponent", {
-        effect = "PROTECTION_ALL",
-        frames = 300,
-    })
     async(function()
         wait(8)
-        com = EntityCreateNew()
+        com = EntityLoad("/home/.r/noita_entangled_worlds/quant.ew/files/system/pvp/tp.xml", x, y)
         EntityAddChild(ctx.my_player.entity, com)
-        EntityAddTag(com, "perk_entity")
-        EntityAddComponent2(com, "GameEffectComponent", {
-            effect = "TELEPORTATION",
-            frames = 4,
-            teleportation_probability = 1,
-            teleportation_delay_min_frames = 8,
-            teleportation_radius_min = 1,
-            teleportation_radius_min = 256,
-        })
         float()
         wait(16)
         x, y = EntityGetTransform(ctx.my_player.entity)

@@ -1,0 +1,14 @@
+<Entity>
+    <InheritTransformComponent>
+    </InheritTransformComponent>
+
+    <GameEffectComponent
+            effect = "TELEPORTATION"
+            frames = "4"
+            teleportation_probability = "1"
+            teleportation_delay_min_frames = "8"
+            teleportation_radius_min = "1"
+            teleportation_radius_max = "256"
+    >
+    </GameEffectComponent >
+</Entity>

@@ -30,6 +30,9 @@ end
 local function cant_spectate(ent, peer_id)
     local x, y = EntityGetTransform(ctx.my_player.entity)
     local tx, ty = EntityGetTransform(ent)
+    if tx == nil or x == nil then
+        return true
+    end
     local dx, dy = tx - x, ty - y
     return (
         (GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death)
@@ -41,6 +44,7 @@ local function cant_spectate(ent, peer_id)
         or (
             ctx.proxy_opt.pvp
             and peer_id ~= nil
+            and peer_id ~= ctx.my_id
             and pvp.hm_y == nil
             and pvp.players_by_floor[pvp.floor] ~= nil
             and pvp.players_by_floor[pvp.floor][peer_id]
