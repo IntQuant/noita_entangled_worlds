@@ -361,7 +361,11 @@ function pvp.move_next_hm(died)
     pvp.floor = pvp.floor + 1
     pvp.last_damage = nil
     GlobalsSetValue("ew_floor", tostring(pvp.floor))
-    if table.contains(needs_ase, names_by_floor[pvp.floor]) then
+    local n = pvp.floor % #names_by_floor
+    if n == 0 then
+        n = #names_by_floor
+    end
+    if table.contains(needs_ase, names_by_floor[n]) then
         local has_ase = false
         for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
             local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
