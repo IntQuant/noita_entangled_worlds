@@ -1810,7 +1810,6 @@ impl RemoteDiffModel {
                     None,
                 )?;
                 damage.set_ui_report_damage(false)?;
-                damage.set_hp(f32::MIN_POSITIVE as f64)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     damage.max_hp()? * 100.0,
@@ -1826,6 +1825,8 @@ impl RemoteDiffModel {
                 )?;
                 if wait_on_kill {
                     damage.set_kill_now(true)?;
+                } else {
+                    entity.kill()
                 }
             }
         }
