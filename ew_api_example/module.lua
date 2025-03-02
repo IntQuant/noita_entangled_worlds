@@ -28,7 +28,7 @@ return module
 
 -- tags:
 -- player_unit, only on the local player, besides when a client fires a wand, just for the fire function
--- ew_peer, on all players when not polied, unless notplayer(dead player in local health)
+-- ew_peer, on all players when not polied
 -- ew_client, on all players besides your own, always
 -- ew_synced, syncs an entity that isn't synced otherwise, needed before next preupdate loop after entity is spawned
 -- ew_synced_var, syncs a variable storage component by name, needs to be on a synced entity

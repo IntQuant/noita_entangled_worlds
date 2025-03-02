@@ -23,12 +23,16 @@ local attached = false
 local redo = false
 
 local function cant_spectate(ent)
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+    local tx, ty = EntityGetTransform(ent)
+    local dx, dy = tx - x, ty - y
     return (
         (GameHasFlagRun("ending_game_completed") or ctx.proxy_opt.perma_death)
         and EntityHasTag(ent, "ew_notplayer")
     )
         or (EntityHasTag(ent, "polymorphed_cessation") and cam_target ~= nil and cam_target.entity ~= ent)
         or (ctx.proxy_opt.no_notplayer and EntityHasTag(ent, "ew_notplayer"))
+        or dx * dx + dy * dy >= 256000 * 256000
 end
 
 local function perks_ui(enable)
