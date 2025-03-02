@@ -185,7 +185,11 @@ end
 rpc.opts_everywhere()
 function rpc.win(num)
     GamePrint(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
-    GamePrint("next biome: " .. names_by_floor[pvp.floor - 1])
+    local n = pvp.floor % #names_by_floor
+    if n == 0 then
+        n = #names_by_floor
+    end
+    GamePrint("next biome: " .. names_by_floor[n])
 end
 
 rpc.opts_everywhere()
@@ -264,13 +268,15 @@ end
 dofile_once("data/scripts/perks/perk.lua")
 
 function pvp.move_next_hm(died)
+    local inv = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "InventoryGuiComponent")
+    EntitySetComponentIsEnabled(ctx.my_player.entity, inv, false)
     hm_y = hm_ys[math.min(pvp.floor, #hm_ys)]
     tp(hm_x - 677, hm_y)
     if pvp.floor > #hm_ys then
         local x, y = hm_x - 480, 10564
         EntityLoad("data/entities/items/pickup/heart_fullhp_temple.xml", x - 16, y)
         EntityLoad("data/entities/items/pickup/spell_refresh.xml", x + 16, y)
-        x, y = hm_x - 36, 10625
+        x, y = hm_x - 32, 10626
         perk_spawn_many(x, y)
     end
     if died then
@@ -329,6 +335,10 @@ function pvp.move_next_hm(died)
         end
         temp_ase = nil
     end
+    async(function()
+        wait(1)
+        EntitySetComponentIsEnabled(ctx.my_player.entity, inv, true)
+    end)
 end
 
 function pvp.teleport_into_biome()

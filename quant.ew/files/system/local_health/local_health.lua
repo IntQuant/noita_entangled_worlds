@@ -348,6 +348,7 @@ local function player_died()
     end
 
     if ctx.proxy_opt.pvp then
+        remove_stuff(ctx.my_player.entity)
         pvp.move_next_hm(true)
         return
     end
