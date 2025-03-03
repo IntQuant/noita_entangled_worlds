@@ -14,7 +14,13 @@ function fungal_shift(entity, x, y, debug_no_limits)
         if arg1 == "$logdesc_reality_mutation" then
             from_material_name = arg2
         end
-        return old_get_text(arg1, arg2, arg3, arg4)
+        if arg3 == nil then
+            return old_get_text(arg1, arg2)
+        elseif arg4 == nil then
+            return old_get_text(arg1, arg2, arg3)
+        else
+            return old_get_text(arg1, arg2, arg3, arg4)
+        end
     end
     old_fungal_shift(entity, x, y, debug_no_limits)
     ConvertMaterialEverywhere = old_convert_mat
