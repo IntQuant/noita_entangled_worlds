@@ -457,6 +457,7 @@ function pvp.teleport_into_biome()
 end
 
 local gui
+
 if ctx.proxy_opt.timed then
     gui = GuiCreate()
 end
@@ -493,6 +494,7 @@ function pvp.on_world_update_host()
                 tmr = 60 * ctx.proxy_opt.time_out
                 is_hm = false
             end
+            rpc.update_timer(tmr)
         else
             tmr = tmr - 1
             if tmr == 0 then
@@ -574,6 +576,21 @@ function pvp.on_world_update()
             my_wins = my_wins + 1
             GlobalsSetValue("ew_wins", tostring(my_wins))
             rpc.win(my_wins)
+        end
+    end
+    if ctx.proxy_opt.timed then
+        local n = 0
+        for _, d in pairs(pvp.players_by_floor) do
+            for _, _ in pairs(d) do
+                n = n + 1
+            end
+        end
+        if is_hm then
+            if n == player_count then
+                tmr = nil
+            end
+        elseif n == 0 then
+            tmr = nil
         end
     end
 end
