@@ -85,6 +85,7 @@ impl From<tangled::NetworkEvent> for OmniNetworkEvent {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 pub enum PeerVariant {
     Tangled(tangled::Peer),
     Steam(steam_networking::SteamPeer),

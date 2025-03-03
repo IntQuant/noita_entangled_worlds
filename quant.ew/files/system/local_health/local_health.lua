@@ -348,6 +348,8 @@ local function player_died()
     end
 
     if ctx.proxy_opt.pvp then
+        local x, y = EntityGetTransform(ctx.my_player.entity)
+        rpc.spawn_ragdoll(x, y)
         remove_stuff(ctx.my_player.entity)
         pvp.move_next_hm(true)
         return

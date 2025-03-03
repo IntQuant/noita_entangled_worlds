@@ -145,6 +145,11 @@ pub struct GameSettings {
     pvp_kill_steal: Option<u32>,
     dont_steal: Option<bool>,
     wait_on_players: Option<bool>,
+    time_in_hm: Option<u32>,
+    time_out_hm: Option<u32>,
+    chest_on_kill: Option<bool>,
+    wait_for_time: Option<bool>,
+    timed: Option<bool>,
 }
 impl GameSettings {
     fn show_editor(&mut self, ui: &mut Ui, enabled: bool) {
@@ -269,8 +274,8 @@ impl GameSettings {
                         LocalHealthMode::PvP => {
                             ui.label("round based pvp mode");
                             ui.add_space(5.0);
-                            ui.label("% money stolen on kill");
                             {
+                                ui.label("% money stolen on kill");
                                 let mut temp =
                                     game_settings.pvp_kill_steal.unwrap_or(def.pvp_kill_steal);
                                 if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
@@ -290,10 +295,52 @@ impl GameSettings {
                                 let mut temp =
                                     game_settings.wait_on_players.unwrap_or(def.wait_on_players);
                                 if ui
-                                    .checkbox(&mut temp, "wait on players to finish round")
+                                    .checkbox(
+                                        &mut temp,
+                                        "wait on players to finish round to start next round",
+                                    )
                                     .changed()
                                 {
                                     game_settings.wait_on_players = Some(temp)
+                                }
+                            }
+                            {
+                                let mut temp =
+                                    game_settings.chest_on_kill.unwrap_or(def.chest_on_kill);
+                                if ui.checkbox(&mut temp, "spawns chest on kill/win").changed() {
+                                    game_settings.chest_on_kill = Some(temp)
+                                }
+                            }
+                            let mut timed = game_settings.timed.unwrap_or(def.timed);
+                            if ui.checkbox(&mut timed, "timed rounds/hm").changed() {
+                                game_settings.timed = Some(timed)
+                            }
+                            if timed {
+                                {
+                                    let mut temp =
+                                        game_settings.wait_for_time.unwrap_or(def.wait_for_time);
+                                    if ui
+                                        .checkbox(&mut temp, "wait on time to finish round")
+                                        .changed()
+                                    {
+                                        game_settings.wait_for_time = Some(temp)
+                                    }
+                                }
+                                {
+                                    ui.label("time in hm");
+                                    let mut temp =
+                                        game_settings.time_in_hm.unwrap_or(def.time_in_hm);
+                                    if ui.add(Slider::new(&mut temp, 30..=1200)).changed() {
+                                        game_settings.time_in_hm = Some(temp)
+                                    }
+                                }
+                                {
+                                    ui.label("time in round");
+                                    let mut temp =
+                                        game_settings.time_out_hm.unwrap_or(def.time_out_hm);
+                                    if ui.add(Slider::new(&mut temp, 30..=1200)).changed() {
+                                        game_settings.time_out_hm = Some(temp)
+                                    }
                                 }
                             }
                         }
@@ -481,6 +528,11 @@ pub struct DefaultSettings {
     pvp_kill_steal: u32,
     dont_steal: bool,
     wait_on_players: bool,
+    time_in_hm: u32,
+    time_out_hm: u32,
+    chest_on_kill: bool,
+    wait_for_time: bool,
+    timed: bool,
 }
 
 impl Default for DefaultSettings {
@@ -509,6 +561,11 @@ impl Default for DefaultSettings {
             pvp_kill_steal: 50,
             dont_steal: true,
             wait_on_players: true,
+            time_in_hm: 300,
+            time_out_hm: 600,
+            chest_on_kill: true,
+            wait_for_time: false,
+            timed: true,
         }
     }
 }

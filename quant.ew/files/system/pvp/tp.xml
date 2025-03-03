@@ -3,7 +3,7 @@
     </InheritTransformComponent>
 
     <GameEffectComponent
-            effect = "TELEPORTATION"
+            effect = "UNSTABLE_TELEPORTATION"
             frames = "30"
             teleportation_probability = "1"
             teleportation_delay_min_frames = "60"
