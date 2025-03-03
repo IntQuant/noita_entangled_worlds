@@ -872,12 +872,14 @@ impl LocalDiffModel {
     pub(crate) fn enable_later(&mut self) -> eyre::Result<()> {
         for entity in self.enable_later.drain(..) {
             if entity.is_alive() {
-                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                 entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                 entity
                     .children(Some("protection".into()))
                     .iter()
                     .for_each(|ent| ent.kill());
+                entity.add_tag("boss_centipede_active")?;
+                noita_api::raw::physics_set_static(entity, false)?;
             }
         }
         Ok(())
@@ -1432,8 +1434,9 @@ impl RemoteDiffModel {
                 .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
                 .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
             {
-                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                 entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
+                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                entity.add_tag("boss_centipede_active")?;
                 for lua in
                     entity.iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
                 {
@@ -1538,6 +1541,10 @@ impl RemoteDiffModel {
             }
             let current_hp = damage.hp()? as f32;
             if current_hp > entity_info.hp {
+                let old = damage.object_get_value::<f64>("damage_multipliers", "curse")?;
+                if old != 1.0 {
+                    damage.object_set_value("damage_multipliers", "curse", 1.0)?
+                }
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     (current_hp - entity_info.hp) as f64,
@@ -1551,10 +1558,17 @@ impl RemoteDiffModel {
                     None,
                     None,
                 )?;
+                if old != 0.0 {
+                    damage.object_set_value("damage_multipliers", "curse", old)?
+                }
                 damage.set_hp(entity_info.hp as f64)?;
             } else if current_hp < entity_info.hp {
                 if current_hp < 0.0 && entity_info.hp >= 0.0 {
                     damage.set_hp(f32::MIN_POSITIVE as f64)?;
+                }
+                let old = damage.object_get_value::<f64>("damage_multipliers", "healing")?;
+                if old != 0.0 {
+                    damage.object_set_value("damage_multipliers", "healing", 1.0)?
                 }
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
@@ -1569,6 +1583,9 @@ impl RemoteDiffModel {
                     None,
                     None,
                 )?;
+                if old != 0.0 {
+                    damage.object_set_value("damage_multipliers", "healing", old)?
+                }
                 damage.set_hp(entity_info.hp as f64)?;
             }
         }
@@ -1796,6 +1813,7 @@ impl RemoteDiffModel {
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 }
+                damage.object_set_value("damage_multipliers", "curse", 1.0)?;
                 noita_api::raw::entity_inflict_damage(
                     entity.raw() as i32,
                     damage.hp()? + f32::MIN_POSITIVE as f64,
