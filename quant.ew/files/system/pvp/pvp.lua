@@ -228,6 +228,8 @@ function rpc.get_player_num()
     end
 end
 
+local tmr
+
 rpc.opts_everywhere()
 function rpc.win(num)
     GamePrint(ctx.rpc_player_data.name .. " wins, score: " .. tostring(num))
@@ -242,6 +244,7 @@ function rpc.win(num)
         local ent = EntityLoad("data/entities/items/pickup/chest_random.xml", hm_x - 600, hm_y + 40)
         ewext.notrack(ent)
     end
+    tmr = nil
 end
 
 rpc.opts_everywhere()
@@ -453,28 +456,48 @@ function pvp.teleport_into_biome()
     hm_y = nil
 end
 
-rpc.opts_everywhere()
-rpc.opts_reliable()
-function rpc.update_timer() end
+local gui
+if ctx.proxy_opt.timed then
+    gui = GuiCreate()
+end
+
+local time = 0
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
-function rpc.timer_ended() end
+function rpc.update_timer(t)
+    time = t
+end
 
-local tmr
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.timer_ended(is_hm)
+    if is_hm then
+        if hm_y ~= nil then
+            pvp.teleport_into_biome()
+        end
+    elseif hm_y == nil then
+        pvp.move_next_hm(false)
+    end
+end
+
+local is_hm
 
 function pvp.on_world_update_host()
     if ctx.proxy_opt.timed then
         if tmr == nil then
             if hm_y ~= nil then
                 tmr = 60 * ctx.proxy_opt.time_in
+                is_hm = true
             else
                 tmr = 60 * ctx.proxy_opt.time_out
+                is_hm = false
             end
         else
             tmr = tmr - 1
             if tmr == 0 then
-                rpc.timer_ended()
+                rpc.timer_ended(is_hm)
+                tmr = nil
             elseif GameGetFrameNum() % 20 == 14 then
                 rpc.update_timer(tmr)
             end
@@ -506,6 +529,12 @@ function pvp.on_world_update()
             end
             pvp.teleport_into_biome()
         end
+        if ctx.proxy_opt.timed then
+            GuiStartFrame(gui)
+        end
+    end
+    if ctx.proxy_opt.timed then
+        GuiText(gui, 128, 0, math.ceil(time / 60))
     end
     local x, y = EntityGetTransform(ctx.my_player.entity)
     if

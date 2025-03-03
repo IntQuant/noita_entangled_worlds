@@ -10,9 +10,6 @@ local RPressed = false
 
 local unread_messages_counter = 0
 
-rpc.opts_everywhere()
-rpc.opts_reliable()
-
 local chatMessages = {}
 local maxMessages = 128
 local lineHeight = 10
@@ -25,10 +22,7 @@ local in_camera_ref
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
 
-    local gui_n = GuiCreate()
-    GuiStartFrame(gui_n)
-    local w, h = GuiGetScreenDimensions(gui_n)
-    GuiDestroy(gui_n)
+    local w, h = GuiGetScreenDimensions(gui)
 
     local vres_scaling_factor = w
         / (MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") + MagicNumbersGetValue("VIRTUAL_RESOLUTION_OFFSET_X"))
@@ -213,6 +207,8 @@ local function disable_movement(controls)
     ComponentSetValue2(controls, "mButtonDownEat", false)
 end
 
+rpc.opts_everywhere()
+rpc.opts_reliable()
 function rpc.text(msg, color, colorAlt, tx, ty)
     local x, y = GameGetCameraPos()
     local r = tonumber(ModSettingGet("quant.ew.text_range") or 0) or 0

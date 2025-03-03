@@ -4,15 +4,14 @@ local module = {}
 
 local last_coords = {}
 
+local in_camera_ref
+
 -- "Borrowed" from MK VIII QF 2-puntaa NAVAL-ASE in Noita discord server.
 -- https://discord.com/channels/453998283174576133/632303734877192192/1178002118368559175
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
 
-    local gui_n = GuiCreate()
-    GuiStartFrame(gui_n)
-    local w, h = GuiGetScreenDimensions(gui_n)
-    GuiDestroy(gui_n)
+    local w, h = GuiGetScreenDimensions(gui)
 
     local vres_scaling_factor = w
         / (MagicNumbersGetValue("VIRTUAL_RESOLUTION_X") + MagicNumbersGetValue("VIRTUAL_RESOLUTION_OFFSET_X"))
