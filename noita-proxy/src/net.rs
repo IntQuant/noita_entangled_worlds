@@ -931,10 +931,6 @@ impl NetManager {
                         settings.dont_steal.unwrap_or(def.dont_steal),
                     );
                     state.try_ws_write_option(
-                        "wait_on_players",
-                        settings.wait_on_players.unwrap_or(def.wait_on_players),
-                    );
-                    state.try_ws_write_option(
                         "chest_on_win",
                         settings.chest_on_win.unwrap_or(def.chest_on_win),
                     );
@@ -952,6 +948,11 @@ impl NetManager {
                         state.try_ws_write_option(
                             "time_out",
                             settings.time_out_hm.unwrap_or(def.time_out_hm),
+                        );
+                    } else {
+                        state.try_ws_write_option(
+                            "wait_on_players",
+                            settings.wait_on_players.unwrap_or(def.wait_on_players),
                         );
                     }
                 }

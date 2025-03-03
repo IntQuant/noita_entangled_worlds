@@ -453,6 +453,35 @@ function pvp.teleport_into_biome()
     hm_y = nil
 end
 
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.update_timer() end
+
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.timer_ended() end
+
+local tmr
+
+function pvp.on_world_update_host()
+    if ctx.proxy_opt.timed then
+        if tmr == nil then
+            if hm_y ~= nil then
+                tmr = 60 * ctx.proxy_opt.time_in
+            else
+                tmr = 60 * ctx.proxy_opt.time_out
+            end
+        else
+            tmr = tmr - 1
+            if tmr == 0 then
+                rpc.timer_ended()
+            elseif GameGetFrameNum() % 20 == 14 then
+                rpc.update_timer(tmr)
+            end
+        end
+    end
+end
+
 local first = true
 
 function pvp.on_world_update()

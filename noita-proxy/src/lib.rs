@@ -156,199 +156,203 @@ impl GameSettings {
         ui.add_enabled_ui(enabled, |ui| {
             let def = DefaultSettings::default();
             let game_settings = self;
-            {
-                let mut temp = game_settings.game_mode.unwrap_or(def.game_mode);
-                ui.label(tr("Game-mode"));
-                if ui
-                    .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
-                    .changed()
-                    || ui
-                        .radio_value(
-                            &mut temp,
-                            GameMode::LocalHealth(LocalHealthMode::Normal),
-                            tr("Local-health"),
-                        )
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    let mut temp = game_settings.game_mode.unwrap_or(def.game_mode);
+                    ui.label(tr("Game-mode"));
+                    if ui
+                        .radio_value(&mut temp, GameMode::SharedHealth, tr("Shared-health"))
                         .changed()
-                    || ui
-                        .radio_value(
-                            &mut temp,
-                            GameMode::LocalHealth(LocalHealthMode::Alternate),
-                            tr("Local-health-alt"),
-                        )
-                        .changed()
-                    || ui
-                        .radio_value(
-                            &mut temp,
-                            GameMode::LocalHealth(LocalHealthMode::PermaDeath),
-                            tr("Local-health-perma"),
-                        )
-                        .changed()
-                    || ui
-                        .radio_value(
-                            &mut temp,
-                            GameMode::LocalHealth(LocalHealthMode::PvP),
-                            "PvP",
-                        )
-                        .changed()
-                {
-                    game_settings.game_mode = Some(temp)
-                }
-            }
-            ui.scope(|ui| {
-                ui.set_height(100.0);
-                match game_settings.game_mode.unwrap_or(def.game_mode) {
-                    GameMode::SharedHealth => {
-                        ui.label(tr("shared_health_desc_1"));
-                        ui.label(tr("shared_health_desc_2"));
-                        ui.label(tr("shared_health_desc_3"));
-                        ui.add_space(5.0);
-                        ui.label(tr("Health-per-player"));
-                        let mut temp = game_settings
-                            .health_per_player
-                            .unwrap_or(def.health_per_player);
-                        if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                            game_settings.health_per_player = Some(temp)
-                        }
+                        || ui
+                            .radio_value(
+                                &mut temp,
+                                GameMode::LocalHealth(LocalHealthMode::Normal),
+                                tr("Local-health"),
+                            )
+                            .changed()
+                        || ui
+                            .radio_value(
+                                &mut temp,
+                                GameMode::LocalHealth(LocalHealthMode::Alternate),
+                                tr("Local-health-alt"),
+                            )
+                            .changed()
+                        || ui
+                            .radio_value(
+                                &mut temp,
+                                GameMode::LocalHealth(LocalHealthMode::PermaDeath),
+                                tr("Local-health-perma"),
+                            )
+                            .changed()
+                        || ui
+                            .radio_value(
+                                &mut temp,
+                                GameMode::LocalHealth(LocalHealthMode::PvP),
+                                "PvP",
+                            )
+                            .changed()
+                    {
+                        game_settings.game_mode = Some(temp)
                     }
-                    GameMode::LocalHealth(mode) => match mode {
-                        LocalHealthMode::Normal => {
-                            ui.label(tr("local_health_desc_1"));
+                });
+                ui.vertical(|ui| {
+                    ui.set_height(220.0);
+                    match game_settings.game_mode.unwrap_or(def.game_mode) {
+                        GameMode::SharedHealth => {
+                            ui.label(tr("shared_health_desc_1"));
+                            ui.label(tr("shared_health_desc_2"));
+                            ui.label(tr("shared_health_desc_3"));
                             ui.add_space(5.0);
-                            ui.label(tr("Health-percent-lost-on-reviving"));
-                            {
-                                let mut temp = game_settings
-                                    .health_lost_on_revive
-                                    .unwrap_or(def.health_lost_on_revive);
-                                if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                                    game_settings.health_lost_on_revive = Some(temp)
-                                }
-                            }
-                            {
-                                let mut temp =
-                                    game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
-                                if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
-                                    game_settings.global_hp_loss = Some(temp)
-                                }
-                            }
-                            {
-                                let mut temp = game_settings
-                                    .no_material_damage
-                                    .unwrap_or(def.no_material_damage);
-                                if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
-                                    game_settings.no_material_damage = Some(temp)
-                                }
-                            }
-                            ui.add_space(1.0);
-                            {
-                                let mut temp =
-                                    game_settings.physics_damage.unwrap_or(def.physics_damage);
-                                if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
-                                    game_settings.physics_damage = Some(temp)
-                                }
+                            ui.label(tr("Health-per-player"));
+                            let mut temp = game_settings
+                                .health_per_player
+                                .unwrap_or(def.health_per_player);
+                            if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                game_settings.health_per_player = Some(temp)
                             }
                         }
-                        LocalHealthMode::Alternate => {
-                            ui.label(tr("local_health_desc_1"));
-                            ui.add_space(5.0);
-                            ui.label(tr("Health-percent-lost-on-reviving"));
-                            {
-                                let mut temp = game_settings
-                                    .health_lost_on_revive
-                                    .unwrap_or(def.health_lost_on_revive);
-                                if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                                    game_settings.health_lost_on_revive = Some(temp)
-                                }
-                            }
-                            {
-                                let mut temp =
-                                    game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
-                                if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
-                                    game_settings.global_hp_loss = Some(temp)
-                                }
-                            }
-                        }
-                        LocalHealthMode::PermaDeath => {
-                            ui.label(tr("local_health_desc_1"));
-                        }
-
-                        LocalHealthMode::PvP => {
-                            ui.label("round based pvp mode");
-                            ui.add_space(5.0);
-                            {
-                                ui.label("% money stolen on kill");
-                                let mut temp =
-                                    game_settings.pvp_kill_steal.unwrap_or(def.pvp_kill_steal);
-                                if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
-                                    game_settings.pvp_kill_steal = Some(temp)
-                                }
-                            }
-                            {
-                                let mut temp = game_settings.dont_steal.unwrap_or(def.dont_steal);
-                                if ui
-                                    .checkbox(&mut temp, "just gain money instead of stealing")
-                                    .changed()
+                        GameMode::LocalHealth(mode) => match mode {
+                            LocalHealthMode::Normal => {
+                                ui.label(tr("local_health_desc_1"));
+                                ui.add_space(5.0);
+                                ui.label(tr("Health-percent-lost-on-reviving"));
                                 {
-                                    game_settings.dont_steal = Some(temp)
+                                    let mut temp = game_settings
+                                        .health_lost_on_revive
+                                        .unwrap_or(def.health_lost_on_revive);
+                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                        game_settings.health_lost_on_revive = Some(temp)
+                                    }
                                 }
-                            }
-                            {
-                                let mut temp =
-                                    game_settings.wait_on_players.unwrap_or(def.wait_on_players);
-                                if ui
-                                    .checkbox(
-                                        &mut temp,
-                                        "wait on players to finish round to start next round",
-                                    )
-                                    .changed()
-                                {
-                                    game_settings.wait_on_players = Some(temp)
-                                }
-                            }
-                            {
-                                let mut temp =
-                                    game_settings.chest_on_win.unwrap_or(def.chest_on_win);
-                                if ui.checkbox(&mut temp, "spawns chest on win").changed() {
-                                    game_settings.chest_on_win = Some(temp)
-                                }
-                            }
-                            let mut timed = game_settings.timed.unwrap_or(def.timed);
-                            if ui.checkbox(&mut timed, "timed rounds/hm").changed() {
-                                game_settings.timed = Some(timed)
-                            }
-                            if timed {
                                 {
                                     let mut temp =
-                                        game_settings.wait_for_time.unwrap_or(def.wait_for_time);
+                                        game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                                    if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                        game_settings.global_hp_loss = Some(temp)
+                                    }
+                                }
+                                {
+                                    let mut temp = game_settings
+                                        .no_material_damage
+                                        .unwrap_or(def.no_material_damage);
+                                    if ui.checkbox(&mut temp, tr("no_material_damage")).changed() {
+                                        game_settings.no_material_damage = Some(temp)
+                                    }
+                                }
+                                ui.add_space(1.0);
+                                {
+                                    let mut temp =
+                                        game_settings.physics_damage.unwrap_or(def.physics_damage);
+                                    if ui.checkbox(&mut temp, tr("physics_damage")).changed() {
+                                        game_settings.physics_damage = Some(temp)
+                                    }
+                                }
+                            }
+                            LocalHealthMode::Alternate => {
+                                ui.label(tr("local_health_desc_1"));
+                                ui.add_space(5.0);
+                                ui.label(tr("Health-percent-lost-on-reviving"));
+                                {
+                                    let mut temp = game_settings
+                                        .health_lost_on_revive
+                                        .unwrap_or(def.health_lost_on_revive);
+                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                        game_settings.health_lost_on_revive = Some(temp)
+                                    }
+                                }
+                                {
+                                    let mut temp =
+                                        game_settings.global_hp_loss.unwrap_or(def.global_hp_loss);
+                                    if ui.checkbox(&mut temp, tr("global_hp_loss")).changed() {
+                                        game_settings.global_hp_loss = Some(temp)
+                                    }
+                                }
+                            }
+                            LocalHealthMode::PermaDeath => {
+                                ui.label(tr("local_health_desc_1"));
+                            }
+
+                            LocalHealthMode::PvP => {
+                                ui.label("round based pvp mode");
+                                ui.add_space(5.0);
+                                {
+                                    ui.label("% money stolen on kill");
+                                    let mut temp =
+                                        game_settings.pvp_kill_steal.unwrap_or(def.pvp_kill_steal);
+                                    if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
+                                        game_settings.pvp_kill_steal = Some(temp)
+                                    }
+                                }
+                                {
+                                    let mut temp =
+                                        game_settings.dont_steal.unwrap_or(def.dont_steal);
                                     if ui
-                                        .checkbox(&mut temp, "wait on time to finish round")
+                                        .checkbox(&mut temp, "just gain money instead of stealing")
                                         .changed()
                                     {
-                                        game_settings.wait_for_time = Some(temp)
+                                        game_settings.dont_steal = Some(temp)
                                     }
                                 }
                                 {
-                                    ui.label("time in hm");
                                     let mut temp =
-                                        game_settings.time_in_hm.unwrap_or(def.time_in_hm);
-                                    if ui.add(Slider::new(&mut temp, 30..=1200)).changed() {
-                                        game_settings.time_in_hm = Some(temp)
+                                        game_settings.chest_on_win.unwrap_or(def.chest_on_win);
+                                    if ui.checkbox(&mut temp, "spawns chest on win").changed() {
+                                        game_settings.chest_on_win = Some(temp)
                                     }
                                 }
-                                {
-                                    ui.label("time in round");
-                                    let mut temp =
-                                        game_settings.time_out_hm.unwrap_or(def.time_out_hm);
-                                    if ui.add(Slider::new(&mut temp, 30..=1200)).changed() {
-                                        game_settings.time_out_hm = Some(temp)
+                                let mut timed = game_settings.timed.unwrap_or(def.timed);
+                                if ui.checkbox(&mut timed, "timed rounds/hm").changed() {
+                                    game_settings.timed = Some(timed)
+                                }
+                                if timed {
+                                    {
+                                        let mut temp = game_settings
+                                            .wait_for_time
+                                            .unwrap_or(def.wait_for_time);
+                                        if ui
+                                            .checkbox(&mut temp, "wait on time to finish round")
+                                            .changed()
+                                        {
+                                            game_settings.wait_for_time = Some(temp)
+                                        }
+                                    }
+                                    {
+                                        ui.label("time in hm");
+                                        let mut temp =
+                                            game_settings.time_in_hm.unwrap_or(def.time_in_hm);
+                                        if ui.add(Slider::new(&mut temp, 30..=1200)).changed() {
+                                            game_settings.time_in_hm = Some(temp)
+                                        }
+                                    }
+                                    {
+                                        ui.label("time in round");
+                                        let mut temp =
+                                            game_settings.time_out_hm.unwrap_or(def.time_out_hm);
+                                        if ui.add(Slider::new(&mut temp, 30..=1200)).changed() {
+                                            game_settings.time_out_hm = Some(temp)
+                                        }
+                                    }
+                                } else {
+                                    let mut temp = game_settings
+                                        .wait_on_players
+                                        .unwrap_or(def.wait_on_players);
+                                    if ui
+                                        .checkbox(
+                                            &mut temp,
+                                            "wait on players to finish round to start next round",
+                                        )
+                                        .changed()
+                                    {
+                                        game_settings.wait_on_players = Some(temp)
                                     }
                                 }
                             }
-                        }
-                    },
-                }
+                        },
+                    }
+                });
             });
-            ui.add_space(10.0);
             if cfg!(debug_assertions) {
+                ui.add_space(10.0);
                 ui.label(tr("connect_settings_debug"));
                 {
                     let mut temp = game_settings.debug_mode.unwrap_or(def.debug_mode);
