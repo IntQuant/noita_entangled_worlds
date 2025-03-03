@@ -935,22 +935,25 @@ impl NetManager {
                         settings.wait_on_players.unwrap_or(def.wait_on_players),
                     );
                     state.try_ws_write_option(
-                        "chest_on_kill",
-                        settings.chest_on_kill.unwrap_or(def.chest_on_kill),
+                        "chest_on_win",
+                        settings.chest_on_win.unwrap_or(def.chest_on_win),
                     );
-                    state.try_ws_write_option("timed", settings.timed.unwrap_or(def.timed));
-                    state.try_ws_write_option(
-                        "wait_for_time",
-                        settings.wait_for_time.unwrap_or(def.wait_for_time),
-                    );
-                    state.try_ws_write_option(
-                        "time_in",
-                        settings.time_in_hm.unwrap_or(def.time_in_hm),
-                    );
-                    state.try_ws_write_option(
-                        "time_out",
-                        settings.time_out_hm.unwrap_or(def.time_out_hm),
-                    );
+                    let timed = settings.timed.unwrap_or(def.timed);
+                    state.try_ws_write_option("timed", timed);
+                    if timed {
+                        state.try_ws_write_option(
+                            "wait_for_time",
+                            settings.wait_for_time.unwrap_or(def.wait_for_time),
+                        );
+                        state.try_ws_write_option(
+                            "time_in",
+                            settings.time_in_hm.unwrap_or(def.time_in_hm),
+                        );
+                        state.try_ws_write_option(
+                            "time_out",
+                            settings.time_out_hm.unwrap_or(def.time_out_hm),
+                        );
+                    }
                 }
             }
         }

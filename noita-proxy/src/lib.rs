@@ -147,7 +147,7 @@ pub struct GameSettings {
     wait_on_players: Option<bool>,
     time_in_hm: Option<u32>,
     time_out_hm: Option<u32>,
-    chest_on_kill: Option<bool>,
+    chest_on_win: Option<bool>,
     wait_for_time: Option<bool>,
     timed: Option<bool>,
 }
@@ -306,9 +306,9 @@ impl GameSettings {
                             }
                             {
                                 let mut temp =
-                                    game_settings.chest_on_kill.unwrap_or(def.chest_on_kill);
-                                if ui.checkbox(&mut temp, "spawns chest on kill/win").changed() {
-                                    game_settings.chest_on_kill = Some(temp)
+                                    game_settings.chest_on_win.unwrap_or(def.chest_on_win);
+                                if ui.checkbox(&mut temp, "spawns chest on win").changed() {
+                                    game_settings.chest_on_win = Some(temp)
                                 }
                             }
                             let mut timed = game_settings.timed.unwrap_or(def.timed);
@@ -530,7 +530,7 @@ pub struct DefaultSettings {
     wait_on_players: bool,
     time_in_hm: u32,
     time_out_hm: u32,
-    chest_on_kill: bool,
+    chest_on_win: bool,
     wait_for_time: bool,
     timed: bool,
 }
@@ -563,7 +563,7 @@ impl Default for DefaultSettings {
             wait_on_players: true,
             time_in_hm: 300,
             time_out_hm: 600,
-            chest_on_kill: true,
+            chest_on_win: true,
             wait_for_time: false,
             timed: true,
         }

@@ -185,7 +185,6 @@ local function create_board()
         local p = v[1]
         local n = v[2]
         local ent = EntityCreateNew()
-        --35284, 1310, x + 16,y + 18, 35414
         local x = hm_x - 556 + 18 * math.floor((i - 1) / 4)
         if i > 8 then
             x = x + 100
@@ -239,6 +238,10 @@ function rpc.win(num)
     GamePrint("next biome: " .. names_by_floor[n])
     wins[ctx.rpc_peer_id] = num
     create_board()
+    if ctx.my_id == ctx.rpc_peer_id and ctx.proxy_opt.chest_on_win then
+        local ent = EntityLoad("data/entities/items/pickup/chest_random.xml", hm_x - 600, hm_y + 40)
+        ewext.notrack(ent)
+    end
 end
 
 rpc.opts_everywhere()
@@ -475,8 +478,14 @@ function pvp.on_world_update()
             pvp.teleport_into_biome()
         end
     end
-    local _, y = EntityGetTransform(ctx.my_player.entity)
-    if hm_y ~= nil and math.floor(hm_y / 512) ~= math.floor(y / 512) then
+    local x, y = EntityGetTransform(ctx.my_player.entity)
+    if
+        hm_y ~= nil
+        and (
+            math.floor(hm_y / 512) ~= math.floor(y / 512)
+            or math.abs(math.floor(hm_x / 512) - math.floor(x / 512)) > 8
+        )
+    then
         local has_alive = false
         for _, _ in pairs(pvp.players_by_floor[pvp.floor - 1] or {}) do
             has_alive = true
@@ -492,20 +501,22 @@ function pvp.on_world_update()
     if player_died[pvp.floor] == nil then
         player_died[pvp.floor] = {}
     end
-    local dead = 0
-    for _, _ in pairs(player_died[pvp.floor]) do
-        dead = dead + 1
-    end
-    if
-        player_count ~= 1
-        and GameGetFrameNum() % 60 == 32
-        and #player_died[pvp.floor] == player_count - 1
-        and not table.contains(player_died[pvp.floor], ctx.my_id)
-    then
-        pvp.move_next_hm(false)
-        my_wins = my_wins + 1
-        GlobalsSetValue("ew_wins", tostring(my_wins))
-        rpc.win(my_wins)
+    if not ctx.proxy_opt.wait_for_time then
+        local dead = 0
+        for _, _ in pairs(player_died[pvp.floor]) do
+            dead = dead + 1
+        end
+        if
+            player_count ~= 1
+            and GameGetFrameNum() % 60 == 32
+            and #player_died[pvp.floor] == player_count - 1
+            and not table.contains(player_died[pvp.floor], ctx.my_id)
+        then
+            pvp.move_next_hm(false)
+            my_wins = my_wins + 1
+            GlobalsSetValue("ew_wins", tostring(my_wins))
+            rpc.win(my_wins)
+        end
     end
 end
 
