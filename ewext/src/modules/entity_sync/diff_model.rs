@@ -95,7 +95,7 @@ impl LocalDiffModel {
                             gid: *gid,
                             pos: WorldPos::from_f32(current.x, current.y),
                             data: current.spawn_info.clone(),
-                            wand: current.wand.clone().map(|(_, w)| w),
+                            wand: current.wand.clone().map(|(_, w, _)| w),
                             //rotation: entry_pair.current.r,
                             drops_gold: current.drops_gold,
                             is_charmed: current.is_charmed(),
@@ -128,7 +128,7 @@ impl LocalDiffModel {
                             gid: *gid,
                             pos: WorldPos::from_f32(current.x, current.y),
                             data: current.spawn_info.clone(),
-                            wand: current.wand.clone().map(|(_, w)| w),
+                            wand: current.wand.clone().map(|(_, w, _)| w),
                             //rotation: entry_pair.current.r,
                             drops_gold: current.drops_gold,
                             is_charmed: current.is_charmed(),
@@ -292,6 +292,7 @@ impl LocalDiffModelTracker {
         {
             info.wand = if let Some(wand) = inv.m_actual_active_item()? {
                 wand.remove_all_components_of_type::<LuaComponent>(Some("ew_immortal".into()))?;
+                let r = entity.rotation()?;
                 if let Some(gid) = wand
                     .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
                         None,
@@ -304,9 +305,9 @@ impl LocalDiffModelTracker {
                         }
                     })
                 {
-                    Some((Some(Gid(gid)), serialize_entity(wand)?))
+                    Some((Some(Gid(gid)), serialize_entity(wand)?, r))
                 } else {
-                    Some((None, serialize_entity(wand)?))
+                    Some((None, serialize_entity(wand)?, r))
                 }
             } else {
                 None
@@ -618,7 +619,7 @@ impl LocalDiffModelTracker {
             .starts_with("data/entities/animals/wand_ghost")
         {
             ctx.net.send(&NoitaOutbound::DesToProxy(
-                shared::des::DesToProxy::UpdateWand(gid, info.wand.clone().map(|(_, w)| w)),
+                shared::des::DesToProxy::UpdateWand(gid, info.wand.clone().map(|(_, w, _)| w)),
             ))?;
         }
         ctx.net.send(&NoitaOutbound::DesToProxy(
@@ -627,7 +628,7 @@ impl LocalDiffModelTracker {
                     gid,
                     pos: WorldPos::from_f32(info.x, info.y),
                     data: info.spawn_info.clone(),
-                    wand: info.wand.clone().map(|(_, w)| w),
+                    wand: info.wand.clone().map(|(_, w, _)| w),
                     //rotation: entry_pair.info.r,
                     drops_gold: info.drops_gold,
                     is_charmed: info.is_charmed(),
@@ -948,7 +949,7 @@ impl LocalDiffModel {
                 lua.set_execute_every_n_frame(-1)?;
             }
             if let Some(wand) = entity_data.wand {
-                give_wand(entity, &wand, None, false)?;
+                give_wand(entity, &wand, None, false, None)?;
             }
             let lid = self.track_entity(entity, entity_data.gid)?;
             self.dont_upload.insert(lid);
@@ -1031,7 +1032,9 @@ impl LocalDiffModel {
                             *last = current.clone();
                         }
                     }
-                    if current.wand.clone().map(|(g, _)| g) != last.wand.clone().map(|(g, _)| g) {
+                    if current.wand.clone().map(|(g, _, _)| g)
+                        != last.wand.clone().map(|(g, _, _)| g)
+                    {
                         had_any_delta = true;
                         res.push(EntityUpdate::CurrentEntity(lid));
                         res.push(EntityUpdate::SetWand(current.wand.clone()));
@@ -1420,8 +1423,8 @@ impl RemoteDiffModel {
         mom(entity, entity_info.counter, Some(entity_info.cost as i32))?;
         sun(entity, entity_info.counter)?;
 
-        if let Some((gid, seri)) = &entity_info.wand {
-            give_wand(entity, seri, *gid, true)?;
+        if let Some((gid, seri, r)) = &entity_info.wand {
+            give_wand(entity, seri, *gid, true, Some(*r))?;
         } else if let Some(inv) = entity
             .children(None)
             .iter()
@@ -2222,7 +2225,13 @@ fn safe_entitykill(entity: EntityID) {
     }
 }
 
-fn give_wand(entity: EntityID, seri: &[u8], gid: Option<Gid>, delete: bool) -> eyre::Result<()> {
+fn give_wand(
+    entity: EntityID,
+    seri: &[u8],
+    gid: Option<Gid>,
+    delete: bool,
+    r: Option<f32>,
+) -> eyre::Result<()> {
     let inv = if let Some(inv) =
         entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
     {
@@ -2254,6 +2263,9 @@ fn give_wand(entity: EntityID, seri: &[u8], gid: Option<Gid>, delete: bool) -> e
             stop = true
         } else {
             wand.kill()
+        }
+        if let Some(r) = r {
+            wand.set_rotation(r)?;
         }
     }
     if !stop {

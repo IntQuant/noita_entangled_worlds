@@ -189,6 +189,11 @@ impl EntityID {
         )
     }
 
+    pub fn set_rotation(self, r: f32) -> eyre::Result<()> {
+        let (x, y) = self.position()?;
+        raw::entity_set_transform(self, x as f64, Some(y as f64), Some(r as f64), None, None)
+    }
+
     pub fn transform(self) -> eyre::Result<(f32, f32, f32, f32, f32)> {
         let (a, b, c, d, e) = raw::entity_get_transform(self)?;
         Ok((a as f32, b as f32, c as f32, d as f32, e as f32))
