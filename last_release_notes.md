@@ -1,22 +1,16 @@
-## Noita Entangled Worlds v1.4.3
+## Noita Entangled Worlds v1.4.4
 
-- maybe fix frozen enemys
+- fix kolmi when changing auth
 
-- fix a crash in pvp(i think?)
+- add timer option and chest on win for pvp
 
-- fix errors when you wrap stages in pvp
+- spawn ragdolls on kill for pvp
 
-- remove effects like personal fireball thrower in pvp
+- fix container object duping items
 
-- announce when entering a floor in pvp
+- maybe fix a fungal shift error
 
-- add leaderboards in pvp
-
-- fix next names being wrong in pvp
-
-- make old lobbies not linger
-
-- fix meta leveling
+- try to rotate wands in enemys hands
 
 ## Accepted pull requests
 
