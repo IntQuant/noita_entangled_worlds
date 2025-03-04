@@ -81,7 +81,7 @@ end)
 
 local function string_split(s, splitter)
     local words = {}
-    if s == nil or splitter == nil then
+    if s == nil or splitter == nil or s == "" then
         return {}
     end
     for word in string.gmatch(s, "([^" .. splitter .. "]+)") do

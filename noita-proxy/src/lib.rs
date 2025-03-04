@@ -135,6 +135,8 @@ pub struct GameSettings {
     no_material_damage: Option<bool>,
     global_hp_loss: Option<bool>,
     perk_ban_list: Option<String>,
+    disabled_globals: Option<String>,
+    spell_ban_list: Option<String>,
     physics_damage: Option<bool>,
     share_gold: Option<bool>,
     nice_terraforming: Option<bool>,
@@ -420,6 +422,35 @@ impl GameSettings {
                     game_settings.give_host_sampo = Some(temp)
                 }
             }
+            {
+                let mut temp = game_settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult);
+                if ui
+                    .add(
+                        Slider::new(&mut temp, 1.0..=1000.0)
+                            .logarithmic(true)
+                            .text(tr("connect_settings_enemy_hp_scale")),
+                    )
+                    .changed()
+                {
+                    game_settings.enemy_hp_mult = Some(temp)
+                }
+            }
+            {
+                let mut temp = game_settings
+                    .spell_ban_list
+                    .clone()
+                    .unwrap_or(def.spell_ban_list);
+                ui.label("spell ban list, by internal names, comma seperated");
+                if ui
+                    .add_sized(
+                        [ui.available_width() - 30.0, 20.0],
+                        egui::TextEdit::singleline(&mut temp),
+                    )
+                    .changed()
+                {
+                    game_settings.spell_ban_list = Some(temp)
+                }
+            }
             ui.add_space(10.0);
             ui.label("Player settings");
             ui.horizontal(|ui| {
@@ -478,7 +509,7 @@ impl GameSettings {
                     .perk_ban_list
                     .clone()
                     .unwrap_or(def.perk_ban_list);
-                ui.label("perk ban list, comma seperated");
+                ui.label("perk ban list, by internal names, comma seperated");
                 if ui
                     .add_sized(
                         [ui.available_width() - 30.0, 20.0],
@@ -490,16 +521,19 @@ impl GameSettings {
                 }
             }
             {
-                let mut temp = game_settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult);
+                let mut temp = game_settings
+                    .disabled_globals
+                    .clone()
+                    .unwrap_or(def.disabled_globals);
+                ui.label("global perks to ignore, by internal names, comma seperated, will cause undefined behaviour do not report issues, find list in perk_fns.lua");
                 if ui
-                    .add(
-                        Slider::new(&mut temp, 1.0..=1000.0)
-                            .logarithmic(true)
-                            .text(tr("connect_settings_enemy_hp_scale")),
+                    .add_sized(
+                        [ui.available_width() - 30.0, 20.0],
+                        egui::TextEdit::singleline(&mut temp),
                     )
                     .changed()
                 {
-                    game_settings.enemy_hp_mult = Some(temp)
+                    game_settings.disabled_globals = Some(temp)
                 }
             }
             if ui.button(tr("apply_default_settings")).clicked() {
@@ -521,6 +555,8 @@ pub struct DefaultSettings {
     no_material_damage: bool,
     global_hp_loss: bool,
     perk_ban_list: String,
+    disabled_globals: String,
+    spell_ban_list: String,
     physics_damage: bool,
     share_gold: bool,
     nice_terraforming: bool,
@@ -554,6 +590,8 @@ impl Default for DefaultSettings {
             no_material_damage: false,
             global_hp_loss: false,
             perk_ban_list: String::new(),
+            disabled_globals: String::new(),
+            spell_ban_list: String::new(),
             physics_damage: true,
             share_gold: false,
             nice_terraforming: true,

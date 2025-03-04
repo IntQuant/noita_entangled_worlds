@@ -247,6 +247,17 @@ function perk_fns.update_perks_for_entity(perk_data, entity, allow_perk)
     -- util.set_ent_variable(entity, "ew_current_perks", perk_data)
 end
 
+local function string_split(s, splitter)
+    local words = {}
+    if s == nil or splitter == nil or s == "" then
+        return {}
+    end
+    for word in string.gmatch(s, "([^" .. splitter .. "]+)") do
+        table.insert(words, word)
+    end
+    return words
+end
+
 local first = true
 
 function perk_fns.on_world_update()
@@ -267,6 +278,9 @@ function perk_fns.on_world_update()
                     EntityKill(data.entity)
                 end
             end
+        end
+        for _, perk in ipairs(string_split(ctx.proxy_opt.disabled_globals, ",")) do
+            global_perks[perk] = nil
         end
         first = false
     end

@@ -970,6 +970,16 @@ impl NetManager {
             lst.perk_ban_list.unwrap_or(def.perk_ban_list).as_str(),
         );
         state.try_ws_write_option(
+            "spell_ban_list",
+            lst.spell_ban_list.unwrap_or(def.spell_ban_list).as_str(),
+        );
+        state.try_ws_write_option(
+            "disabled_globals",
+            lst.disabled_globals
+                .unwrap_or(def.disabled_globals)
+                .as_str(),
+        );
+        state.try_ws_write_option(
             "disable_kummitus",
             settings.disable_kummitus.unwrap_or(def.disable_kummitus),
         );
