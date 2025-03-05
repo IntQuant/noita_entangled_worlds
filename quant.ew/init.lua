@@ -275,21 +275,7 @@ function OnProjectileFired(
             end
         end
         --ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
-    elseif
-        n == "data/entities/projectiles/deck/rock.xml"
-        or n == "data/entities/projectiles/deck/levitation_field.xml"
-        or n == "data/entities/projectiles/bomb.xml"
-        or n == "data/entities/projectiles/propane_tank.xml"
-        or n == "data/entities/projectiles/deck/disc_bullet_big.xml"
-        or n == "data/entities/projectiles/deck/disc_bullet_bigger.xml"
-        or n == "data/entities/projectiles/deck/black_hole.xml"
-        or n == "data/entities/projectiles/deck/black_hole_giga.xml"
-        or n == "data/entities/projectiles/deck/white_hole.xml"
-        or n == "data/entities/projectiles/deck/white_hole_giga.xml"
-        or n == "data/entities/projectiles/deck/orb_laseremitter_four.xml"
-        or n == "data/entities/projectiles/deck/projectile_transmutation_field.xml"
-        or EntityHasTag(projectile_id, "ew_projectile_position_sync")
-    then
+    elseif EntityHasTag(projectile_id, "ew_projectile_position_sync") then
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
         local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         local life = EntityGetFirstComponentIncludingDisabled(projectile_id, "LifetimeComponent")

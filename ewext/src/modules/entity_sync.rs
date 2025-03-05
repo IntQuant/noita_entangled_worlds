@@ -115,7 +115,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
         || ENTITY_EXCLUDES.contains(&filename)
         || filename.starts_with(good)
         || entity.has_tag("player_unit")
-        || entity.root()? != Some(entity))
+        || (entity.root()? != Some(entity) && !entity.has_tag("ew_sync_child")))
 }
 
 impl EntitySync {

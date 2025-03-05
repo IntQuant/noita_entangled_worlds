@@ -40,6 +40,7 @@ return module
 -- ew_ghost_rnd, for something to sync perk ghosts rng
 -- ew_projectile_position_sync, syncs a projectile by des
 -- ew_unique, kills an entity if another one was spawned within the same chunk on any peer, by filename
+-- ew_sync_child, syncs a thing in des ignoring weather its a child or not
 
 -- var components(by name not tag):
 -- ew_peer_id, on all peers, contains peerid in value_string

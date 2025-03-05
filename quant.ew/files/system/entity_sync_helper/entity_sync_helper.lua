@@ -119,6 +119,25 @@ for _, filename in ipairs(unique) do
     util.add_tag_to(filename, "ew_unique")
 end
 
+local projs = {
+    "data/entities/projectiles/deck/rock.xml",
+    "data/entities/projectiles/deck/levitation_field.xml",
+    "data/entities/projectiles/bomb.xml",
+    "data/entities/projectiles/propane_tank.xml",
+    "data/entities/projectiles/deck/disc_bullet_big.xml",
+    "data/entities/projectiles/deck/disc_bullet_bigger.xml",
+    "data/entities/projectiles/deck/black_hole.xml",
+    "data/entities/projectiles/deck/black_hole_giga.xml",
+    "data/entities/projectiles/deck/white_hole.xml",
+    "data/entities/projectiles/deck/white_hole_giga.xml",
+    "data/entities/projectiles/deck/orb_laseremitter_four.xml",
+    "data/entities/projectiles/deck/projectile_transmutation_field.xml",
+}
+
+for _, proj in ipairs(projs) do
+    util.add_tag_to(proj, "ew_projectile_position_sync")
+end
+
 util.add_cross_call("ew_broken_wand", function(ent, x, y)
     local gid
     for _, v in ipairs(EntityGetComponent(ent, "VariableStorageComponent") or {}) do
