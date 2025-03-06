@@ -1,13 +1,25 @@
 local module = {}
 
+local ptt = 0
+
 function module.on_world_update()
     if GameGetFrameNum() % 4 ~= 2 then
         return
     end
     local rebind = tonumber(ModSettingGet("quant.ew.rebind_ptt") or 42)
-    local ptt = 0
-    if (rebind == 42 and InputIsMouseButtonDown(3)) or (rebind ~= 42 and InputIsKeyDown(rebind)) then
-        ptt = 1
+    if ModSettingGet("quant.ew.ptt_toggle") then
+        if InputIsKeyJustDown(rebind) then
+            if ptt == 1 then
+                ptt = 0
+            else
+                ptt = 1
+            end
+        end
+    else
+        ptt = 0
+        if InputIsKeyDown(rebind) then
+            ptt = 1
+        end
     end
     local x, y = GameGetCameraPos()
     local mx, my = EntityGetTransform(ctx.my_player.entity)

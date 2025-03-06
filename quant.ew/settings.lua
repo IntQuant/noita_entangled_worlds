@@ -158,6 +158,13 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "ptt_toggle",
+                    ui_name = "toggle mute",
+                    ui_description = "toggle mute instead of hold to push to talk",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "text",
                     ui_name = "text",
                     ui_description = "hi",
