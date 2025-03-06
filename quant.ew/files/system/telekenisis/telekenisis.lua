@@ -139,7 +139,9 @@ function tele.on_world_update()
                     )
                 elseif not table.contains(sent_track_req, ent) then
                     table.insert(sent_track_req, ent)
-                    ewext.track(ent)
+                    if EntityGetIsAlive(ent) then
+                        ewext.track(ent)
+                    end
                 end
             end
         elseif has_tele then

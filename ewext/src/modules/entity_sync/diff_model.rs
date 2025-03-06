@@ -291,23 +291,27 @@ impl LocalDiffModelTracker {
             entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
         {
             info.wand = if let Some(wand) = inv.m_actual_active_item()? {
-                wand.remove_all_components_of_type::<LuaComponent>(Some("ew_immortal".into()))?;
-                let r = entity.rotation()?;
-                if let Some(gid) = wand
-                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                        None,
-                    )?
-                    .find_map(|var| {
-                        if var.name().ok()? == "ew_gid_lid" {
-                            Some(var.value_string().ok()?.parse::<u64>().ok()?)
-                        } else {
-                            None
-                        }
-                    })
-                {
-                    Some((Some(Gid(gid)), serialize_entity(wand)?, r))
+                if wand.is_alive() {
+                    wand.remove_all_components_of_type::<LuaComponent>(Some("ew_immortal".into()))?;
+                    let r = entity.rotation()?;
+                    if let Some(gid) = wand
+                        .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                            None,
+                        )?
+                        .find_map(|var| {
+                            if var.name().ok()? == "ew_gid_lid" {
+                                Some(var.value_string().ok()?.parse::<u64>().ok()?)
+                            } else {
+                                None
+                            }
+                        })
+                    {
+                        Some((Some(Gid(gid)), serialize_entity(wand)?, r))
+                    } else {
+                        Some((None, serialize_entity(wand)?, r))
+                    }
                 } else {
-                    Some((None, serialize_entity(wand)?, r))
+                    None
                 }
             } else {
                 None
