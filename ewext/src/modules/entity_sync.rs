@@ -372,6 +372,11 @@ impl EntitySync {
                 }
             }
             RemoteDes::SpawnOnce(pos, data) => self.spawn_once.push((pos, data)),
+            RemoteDes::AllEntities(lids) => self
+                .remote_models
+                .entry(source)
+                .or_insert(RemoteDiffModel::new(source))
+                .check_entities(lids),
             RemoteDes::CameraPos(pos) => {
                 return Ok((None, Some(pos)));
             }
@@ -594,6 +599,19 @@ impl Module for EntitySync {
                 }
             }
             Arc::make_mut(&mut self.pending_fired_projectiles).clear();
+            if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
+                == self.real_sync_rate - 1
+            {
+                let lids = self.local_diff_model.get_lids();
+                for peer in self.interest_tracker.iter_interested() {
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peer(peer),
+                        RemoteDes::AllEntities(lids.clone()),
+                    )?
+                }
+            }
         }
         if frame_num > 120 {
             for (owner, remote_model) in self.remote_models.iter_mut() {
