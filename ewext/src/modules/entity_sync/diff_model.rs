@@ -593,12 +593,19 @@ impl LocalDiffModelTracker {
             }
         }
         if let Some(var) = entity.get_var("ew_was_stealable") {
-            if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
-                let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
-                if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 512.0 * 512.0 {
-                    cost.set_stealable(true)?;
-                    entity.remove_component(*var)?;
+            let n = var.value_int()?;
+            if n == 1 {
+                if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+                    let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
+                    if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 512.0 * 512.0 {
+                        cost.set_stealable(true)?;
+                        entity.remove_component(*var)?;
+                    }
                 }
+            } else if n == 0 {
+                var.set_value_int(16)?;
+            } else {
+                var.set_value_int(n - 1)?;
             }
         }
         Ok(false)
