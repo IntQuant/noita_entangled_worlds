@@ -302,31 +302,44 @@ impl LocalDiffModelTracker {
         if let Some(inv) =
             entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
         {
-            info.wand = if let Some(wand) = inv.m_actual_active_item()? {
-                if wand.is_alive() {
-                    wand.remove_all_components_of_type::<LuaComponent>(Some("ew_immortal".into()))?;
-                    let r = entity.rotation()?;
-                    if let Some(gid) = wand
-                        .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                            None,
-                        )?
-                        .find_map(|var| {
-                            if var.name().ok()? == "ew_gid_lid" {
-                                Some(var.value_string().ok()?.parse::<u64>().ok()?)
-                            } else {
-                                None
-                            }
-                        })
-                    {
-                        Some((Some(Gid(gid)), serialize_entity(wand)?, r))
+            if let Some(wand) = inv.m_actual_active_item()? {
+                if info.wand.is_none() {
+                    info.wand = if wand.is_alive() {
+                        wand.remove_all_components_of_type::<LuaComponent>(Some(
+                            "ew_immortal".into(),
+                        ))?;
+                        let r = wand.rotation()?;
+                        info.wand_rotation = r;
+                        if let Some(gid) = wand
+                            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                                None,
+                            )?
+                            .find_map(|var| {
+                                if var.name().ok()? == "ew_gid_lid" {
+                                    Some(var.value_string().ok()?.parse::<u64>().ok()?)
+                                } else {
+                                    None
+                                }
+                            })
+                        {
+                            Some((Some(Gid(gid)), serialize_entity(wand)?, wand.raw()))
+                        } else {
+                            Some((None, serialize_entity(wand)?, wand.raw()))
+                        }
                     } else {
-                        Some((None, serialize_entity(wand)?, r))
+                        None
                     }
-                } else {
-                    None
+                } else if let Some((_, _, ent)) = info.wand {
+                    let ent = EntityID::try_from(ent)?;
+                    if ent != wand {
+                        info.wand = None
+                    } else {
+                        let r = wand.rotation()?;
+                        info.wand_rotation = r;
+                    }
                 }
             } else {
-                None
+                info.wand = None;
             };
         }
         info.is_enabled = (entity.has_tag("boss_centipede")
@@ -858,6 +871,7 @@ impl LocalDiffModel {
                     facing_direction: (false, false),
                     animations: Vec::new(),
                     wand: None,
+                    wand_rotation: 0.0,
                     is_global,
                     drops_gold,
                     laser: Default::default(),
@@ -1073,14 +1087,22 @@ impl LocalDiffModel {
                             *last = current.clone();
                         }
                     }
-                    if current.wand.clone().map(|(g, _, _)| g)
-                        != last.wand.clone().map(|(g, _, _)| g)
+                    if current.wand.clone().map(|(_, _, g)| g)
+                        != last.wand.clone().map(|(_, _, g)| g)
                     {
                         had_any_delta = true;
                         res.push(EntityUpdate::CurrentEntity(lid));
                         res.push(EntityUpdate::SetWand(current.wand.clone()));
                         last.wand = current.wand.clone();
                     }
+                    diff(
+                        &current.wand_rotation,
+                        &mut last.wand_rotation,
+                        EntityUpdate::SetWandRotation(current.wand_rotation),
+                        &mut res,
+                        &mut had_any_delta,
+                        lid,
+                    );
                     diff(
                         &current.laser,
                         &mut last.laser,
@@ -1410,7 +1432,8 @@ impl RemoteDiffModel {
                     } => self
                         .pending_death_notify
                         .push((lid, wait_on_kill, responsible_peer)),
-                    EntityUpdate::SetWand(gid) => ent_data.wand = gid,
+                    EntityUpdate::SetWand(wand) => ent_data.wand = wand,
+                    EntityUpdate::SetWandRotation(rot) => ent_data.wand_rotation = rot,
                     EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
                     EntityUpdate::SetAiRotation(rot) => ent_data.ai_rotation = rot,
                     EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
@@ -1435,7 +1458,9 @@ impl RemoteDiffModel {
         lid: &Lid,
         to_remove: &mut Vec<Lid>,
     ) -> eyre::Result<()> {
-        if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)? {
+        if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)?
+            || item_in_entity_inventory(entity)?
+        {
             if !self.grab_request.contains(lid) {
                 to_remove.push(*lid);
                 entity.remove_tag(DES_TAG)?;
@@ -1464,8 +1489,8 @@ impl RemoteDiffModel {
         mom(entity, entity_info.counter, Some(entity_info.cost as i32))?;
         sun(entity, entity_info.counter)?;
 
-        if let Some((gid, seri, r)) = &entity_info.wand {
-            give_wand(entity, seri, *gid, true, Some(*r))?;
+        if let Some((gid, seri, _)) = &entity_info.wand {
+            give_wand(entity, seri, *gid, true, Some(entity_info.wand_rotation))?;
         } else if let Some(inv) = entity
             .children(None)
             .iter()
@@ -2165,6 +2190,13 @@ fn item_in_my_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
         .unwrap_or(false))
 }
 
+fn item_in_entity_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
+    Ok(entity
+        .root()?
+        .and_then(|e| e.get_var("ew_gid_lid").unwrap().value_bool().ok())
+        .unwrap_or(false))
+}
+
 fn not_in_player_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
     Ok(entity
         .root()?
@@ -2300,23 +2332,40 @@ fn give_wand(
             })
         {
             if gid != Some(Gid(tgid)) {
+                if r.is_some() {
+                    entity.set_component_enabled(*inv, true)?;
+                }
                 wand.kill()
             } else {
+                if r.is_some() {
+                    entity.set_component_enabled(*inv, false)?;
+                }
                 stop = true
             }
         } else if wand
             .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
             .any(|p| p.name().ok().unwrap_or("".into()) == "ew_spawned_wand")
         {
+            if r.is_some() {
+                entity.set_component_enabled(*inv, false)?;
+            }
             stop = true
         } else {
+            if r.is_some() {
+                entity.set_component_enabled(*inv, true)?;
+            }
             wand.kill()
         }
         if let Some(r) = r {
-            wand.set_rotation(r)?;
+            let (x, y) =
+                noita_api::raw::entity_get_hotspot(entity.raw() as i32, "hand".into(), true, None)?;
+            wand.set_position(x as f32, y as f32, Some(r))?;
         }
     }
     if !stop {
+        if r.is_some() {
+            entity.set_component_enabled(*inv, true)?;
+        }
         let (x, y) = entity.position()?;
         let wand = deserialize_entity(seri, x, y)?;
         if delete {
