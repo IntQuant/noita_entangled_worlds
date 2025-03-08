@@ -13,7 +13,7 @@ pub mod encoding;
 pub(crate) const CHUNK_SIZE: usize = 128;
 
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
-pub(crate) struct ChunkCoord(pub i32, pub i32);
+pub struct ChunkCoord(pub i32, pub i32);
 
 #[derive(Default)]
 pub(crate) struct WorldModel {

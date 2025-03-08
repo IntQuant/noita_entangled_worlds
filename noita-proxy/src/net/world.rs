@@ -1,4 +1,5 @@
 use bitcode::{Decode, Encode};
+use image::RgbaImage;
 use rand::{Rng, rng};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -6,7 +7,10 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
-use std::{cmp, env, mem};
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
+use std::time::Duration;
+use std::{cmp, env, mem, thread};
 use tracing::{debug, info, warn};
 use wide::f32x8;
 use world_model::{
@@ -197,11 +201,12 @@ pub(crate) struct WorldManager {
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
     world_num: i32,
-    pub materials: FxHashMap<u16, (u32, u32, CellType)>,
+    pub materials: FxHashMap<u16, (u32, u32, CellType, u32)>,
     is_storage_recent: FxHashSet<ChunkCoord>,
     explosion_pointer: FxHashMap<ChunkCoord, Vec<usize>>,
     explosion_data: Vec<(usize, usize, ExTarget, u64)>,
     explosion_heap: Vec<ExplosionData>,
+    tx: Sender<(ChunkCoord, ChunkData)>,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -212,32 +217,61 @@ pub(crate) enum ExTarget {
 }
 
 impl WorldManager {
-    pub(crate) fn new(is_host: bool, my_peer_id: OmniPeerId, save_state: SaveState) -> Self {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn new(
+        is_host: bool,
+        my_peer_id: OmniPeerId,
+        save_state: SaveState,
+    ) -> (
+        Self,
+        Receiver<(ChunkCoord, RgbaImage)>,
+        Sender<FxHashMap<u16, u32>>,
+    ) {
+        let (send, rx) = mpsc::channel::<(ChunkCoord, RgbaImage)>();
+        let (sendm, rxm) = mpsc::channel::<FxHashMap<u16, u32>>();
+        let (tx, recv) = mpsc::channel::<(ChunkCoord, ChunkData)>();
+        thread::spawn(move || {
+            let mut mats = Default::default();
+            loop {
+                while let Ok(mat) = rxm.try_recv() {
+                    mats = mat;
+                }
+                while let Ok((c, data)) = recv.try_recv() {
+                    let _ = send.send((c, create_image(data, &mats)));
+                }
+                thread::sleep(Duration::from_millis(16));
+            }
+        });
         let chunk_storage = save_state.load().unwrap_or_default();
-        WorldManager {
-            nice_terraforming: true,
-            is_host,
-            my_pos: (i32::MIN / 2, i32::MIN / 2),
-            cam_pos: (i32::MIN / 2, i32::MIN / 2),
-            is_notplayer: false,
-            my_peer_id,
-            save_state,
-            inbound_model: Default::default(),
-            outbound_model: Default::default(),
-            authority_map: Default::default(),
-            chunk_storage,
-            chunk_state: Default::default(),
-            emitted_messages: Default::default(),
-            current_update: 0,
-            chunk_last_update: Default::default(),
-            last_request_priority: Default::default(),
-            world_num: 0,
-            materials: Default::default(),
-            is_storage_recent: Default::default(),
-            explosion_pointer: Default::default(),
-            explosion_data: Default::default(),
-            explosion_heap: Default::default(),
-        }
+        (
+            WorldManager {
+                nice_terraforming: true,
+                is_host,
+                my_pos: (i32::MIN / 2, i32::MIN / 2),
+                cam_pos: (i32::MIN / 2, i32::MIN / 2),
+                is_notplayer: false,
+                my_peer_id,
+                save_state,
+                inbound_model: Default::default(),
+                outbound_model: Default::default(),
+                authority_map: Default::default(),
+                chunk_storage,
+                chunk_state: Default::default(),
+                emitted_messages: Default::default(),
+                current_update: 0,
+                chunk_last_update: Default::default(),
+                last_request_priority: Default::default(),
+                world_num: 0,
+                materials: Default::default(),
+                is_storage_recent: Default::default(),
+                explosion_pointer: Default::default(),
+                explosion_data: Default::default(),
+                explosion_heap: Default::default(),
+                tx,
+            },
+            rx,
+            sendm,
+        )
     }
 
     pub(crate) fn add_update(&mut self, update: NoitaWorldUpdate) {
@@ -756,6 +790,16 @@ impl WorldManager {
                 if let Some(chunk_data) = chunk_data {
                     self.inbound_model.apply_chunk_data(chunk, &chunk_data);
                     self.outbound_model.apply_chunk_data(chunk, &chunk_data);
+                } else {
+                    self.emit_msg(
+                        Destination::Host,
+                        WorldNetMessage::UpdateStorage {
+                            chunk,
+                            chunk_data: self.outbound_model.get_chunk_data(chunk),
+                            world_num: self.world_num,
+                            priority: None,
+                        },
+                    )
                 }
             }
             WorldNetMessage::UpdateStorage {
@@ -772,6 +816,7 @@ impl WorldManager {
                     return;
                 }
                 if let Some(chunk_data) = chunk_data {
+                    let _ = self.tx.send((chunk, chunk_data.clone()));
                     self.chunk_storage.insert(chunk, chunk_data);
                     if let Some(p) = priority {
                         self.cut_through_world_explosion_chunk(chunk);
@@ -803,6 +848,7 @@ impl WorldManager {
                 }
                 self.authority_map.remove(&chunk);
                 if let Some(chunk_data) = chunk_data {
+                    let _ = self.tx.send((chunk, chunk_data.clone()));
                     self.chunk_storage.insert(chunk, chunk_data);
                     self.emit_msg(
                         Destination::Broadcast,
@@ -1175,6 +1221,7 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
+            let _ = self.tx.send((entry.0, entry.1.clone()));
             self.chunk_storage.insert(entry.0, entry.1);
         }
     }
@@ -1332,7 +1379,7 @@ impl WorldManager {
                                 || self
                                     .materials
                                     .get(&chunk.pixel(px).material)
-                                    .map(|(_, _, cell)| cell.can_remove(true, false))
+                                    .map(|(_, _, cell, _)| cell.can_remove(true, false))
                                     .unwrap_or(true))
                                 && (chance == 100
                                     || rng.random_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
@@ -1351,6 +1398,7 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
+            let _ = self.tx.send((entry.0, entry.1.clone()));
             self.chunk_storage.insert(entry.0, entry.1);
             if entry.2 {
                 self.is_storage_recent.insert(entry.0);
@@ -1437,7 +1485,7 @@ impl WorldManager {
                                 || self
                                     .materials
                                     .get(&chunk.pixel(px).material)
-                                    .map(|(_, _, cell)| cell.can_remove(true, false))
+                                    .map(|(_, _, cell, _)| cell.can_remove(true, false))
                                     .unwrap_or(true))
                                 && (chance == 100
                                     || rng.random_bool((chance as f64 / 100.0).clamp(0.0, 1.0)))
@@ -1456,6 +1504,7 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
+            let _ = self.tx.send((entry.0, entry.1.clone()));
             self.chunk_storage.insert(entry.0, entry.1);
             if entry.2 {
                 self.is_storage_recent.insert(entry.0);
@@ -1631,6 +1680,7 @@ impl WorldManager {
             for entry in chunks {
                 if let Some(entry) = entry.loaded {
                     if entry.3 {
+                        let _ = self.tx.send((entry.0, entry.1.clone()));
                         self.chunk_storage.insert(entry.0, entry.1);
                     } else {
                         self.chunk_storage
@@ -1851,7 +1901,7 @@ impl WorldManager {
                             if self
                                 .materials
                                 .get(&chunk.pixel(px).material)
-                                .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
+                                .map(|(dur, _, cell, _)| *dur <= d && cell.can_remove(hole, liquid))
                                 .unwrap_or(true)
                             {
                                 if prob != 0
@@ -1963,6 +2013,7 @@ impl WorldManager {
         let ch = self.explosion_chunk(&data, chunk);
         if let Some(ch) = ch {
             if ch.1 {
+                let _ = self.tx.send((chunk, ch.0.clone()));
                 self.chunk_storage.insert(chunk, ch.0);
             } else {
                 self.chunk_storage
@@ -2072,7 +2123,7 @@ impl WorldManager {
                     }) && self
                         .materials
                         .get(&chunk.pixel(px).material)
-                        .map(|(dur, _, cell)| *dur <= d && cell.can_remove(hole, liquid))
+                        .map(|(dur, _, cell, _)| *dur <= d && cell.can_remove(hole, liquid))
                         .unwrap_or(true)
                     {
                         if prob != 0
@@ -2270,6 +2321,25 @@ impl WorldManager {
         }
     }
 }
+fn create_image(chunk: ChunkData, materials: &FxHashMap<u16, u32>) -> RgbaImage {
+    let mut working_chunk = Chunk::default();
+    chunk.apply_to_chunk(&mut working_chunk);
+    let w = 128;
+    let mut image = RgbaImage::new(w as u32, w as u32);
+    for (i, px) in image.pixels_mut().enumerate() {
+        let x = i % w as usize;
+        let y = i / w as usize;
+        let p = y * CHUNK_SIZE + x;
+        if let Some(c) = materials.get(&working_chunk.pixel(p).material) {
+            let a = (c >> 24) & 0xFFu32;
+            let r = (c >> 16) & 0xFFu32;
+            let g = (c >> 8) & 0xFFu32;
+            let b = c & 0xFF;
+            *px = image::Rgba([r as u8, g as u8, b as u8, a as u8])
+        }
+    }
+    image
+}
 #[allow(clippy::too_many_arguments)]
 fn should_process_chunk(
     chunk_x: i32,
@@ -2395,7 +2465,7 @@ fn get_ray(r: u64) -> u64 {
 #[test]
 #[serial]
 fn test_explosion_img() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2497,7 +2567,7 @@ fn test_explosion_img() {
 #[test]
 #[serial]
 fn test_explosion_img_big() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2566,7 +2636,7 @@ fn test_explosion_img_big() {
 #[test]
 #[serial]
 fn test_explosion_img_big_br() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2642,7 +2712,7 @@ fn test_explosion_img_big_br() {
 #[test]
 #[serial]
 fn test_explosion_img_big_empty() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2701,7 +2771,7 @@ fn test_explosion_img_big_empty() {
 #[test]
 #[serial]
 fn test_explosion_large() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2746,7 +2816,7 @@ fn test_explosion_large() {
 #[test]
 #[serial]
 fn test_cut_img() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2789,7 +2859,7 @@ fn test_cut_img() {
 #[test]
 #[serial]
 fn test_line_img() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2876,7 +2946,7 @@ fn test_line_img() {
 #[test]
 #[serial]
 fn test_circ_img() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2919,7 +2989,7 @@ fn test_circ_img() {
 #[test]
 #[serial]
 fn test_explosion_img_big_many() {
-    let mut world = WorldManager::new(
+    let (mut world, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3027,20 +3097,20 @@ fn test_explosion_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let mut world = WorldManager::new(
+        let (mut world, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
         world
             .materials
-            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
         world
             .materials
-            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static), 0));
         world
             .materials
-            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static), 0));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -3079,20 +3149,20 @@ fn test_explosion_perf_unloaded() {
     let iters = 4;
     let mut n = 0;
     for _ in 0..iters {
-        let mut world = WorldManager::new(
+        let (mut world, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
         world
             .materials
-            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
         world
             .materials
-            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static), 0));
         world
             .materials
-            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static), 0));
         let w = 4;
         for i in -w..w {
             for j in -w..w {
@@ -3147,20 +3217,20 @@ fn test_explosion_perf_large() {
     let mut total = 0;
     let iters = 16;
     for _ in 0..iters {
-        let mut world = WorldManager::new(
+        let (mut world, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
         world
             .materials
-            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
         world
             .materials
-            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static), 0));
         world
             .materials
-            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static), 0));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -3198,20 +3268,20 @@ fn test_line_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let mut world = WorldManager::new(
+        let (mut world, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
         world
             .materials
-            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
         world
             .materials
-            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static), 0));
         world
             .materials
-            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static), 0));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -3237,20 +3307,20 @@ fn test_circle_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let mut world = WorldManager::new(
+        let (mut world, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
         world
             .materials
-            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
         world
             .materials
-            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static), 0));
         world
             .materials
-            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static), 0));
         let w = 48;
         for i in -w..w {
             for j in -w..w {
@@ -3276,20 +3346,20 @@ fn test_cut_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let mut world = WorldManager::new(
+        let (mut world, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
         );
         world
             .materials
-            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid)));
+            .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
         world
             .materials
-            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static)));
+            .insert(1, (6, 2000, CellType::Liquid(LiquidType::Static), 0));
         world
             .materials
-            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static)));
+            .insert(2, (14, 1_000_000, CellType::Liquid(LiquidType::Static), 0));
         let w = 48;
         for i in -w..w {
             for j in -w..w {

@@ -6,7 +6,7 @@ use image::{ImageBuffer, Rgba, RgbaImage};
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use shared::message_socket::MessageSocket;
 use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
 use socket2::{Domain, Socket, Type};
@@ -15,6 +15,7 @@ use std::fs::{File, create_dir, remove_dir_all};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, Ordering};
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::{
     env,
@@ -28,6 +29,7 @@ use world::{NoitaWorldUpdate, WorldManager};
 
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{ModmanagerSettings, get_mods};
+use crate::net::world::world_model::ChunkCoord;
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::steam_helper::LobbyExtraData;
@@ -204,6 +206,7 @@ pub struct NetManager {
     is_cess: AtomicBool,
     duplicate: AtomicBool,
     pub back_out: AtomicBool,
+    pub chunk_map: Mutex<FxHashMap<ChunkCoord, RgbaImage>>,
 }
 
 impl NetManager {
@@ -240,6 +243,7 @@ impl NetManager {
             is_cess: Default::default(),
             duplicate: Default::default(),
             back_out: Default::default(),
+            chunk_map: Default::default(),
         }
         .into()
     }
@@ -369,13 +373,14 @@ impl NetManager {
         let audio_settings = self.audio.lock().unwrap().clone();
         let audio_state = AudioManager::new(audio_settings);
 
+        let (world, rx, sendm) = WorldManager::new(
+            is_host,
+            self.peer.my_id(),
+            self.init_settings.save_state.clone(),
+        );
         let mut state = NetInnerState {
             ms: None,
-            world: WorldManager::new(
-                is_host,
-                self.peer.my_id(),
-                self.init_settings.save_state.clone(),
-            ),
+            world,
             explosion_data: Vec::new(),
             des: DesManager::new(is_host, self.init_settings.save_state.clone()),
             had_a_disconnect: false,
@@ -493,7 +498,7 @@ impl NetManager {
                 let msg = ws.try_read();
                 match msg {
                     Ok(Some(msg)) => {
-                        self.handle_mod_message_2(msg, &mut state);
+                        self.handle_mod_message_2(msg, &mut state, &sendm);
                     }
                     Ok(None) => break,
                     Err(err) => {
@@ -563,6 +568,16 @@ impl NetManager {
                         self.send(self.peer.my_id(), &data, Reliability::Reliable)
                     }
                     self.broadcast(&data, Reliability::Reliable);
+                }
+            }
+            let mut map = FxHashMap::default();
+            while let Ok((ch, img)) = rx.try_recv() {
+                map.insert(ch, img);
+            }
+            if !map.is_empty() {
+                let chunk_map = &mut self.chunk_map.lock().unwrap();
+                for (ch, img) in map {
+                    chunk_map.insert(ch, img);
                 }
             }
             // Don't do excessive busy-waiting;
@@ -1021,13 +1036,18 @@ impl NetManager {
         info!("Settings sent")
     }
 
-    fn handle_mod_message_2(&self, msg: NoitaOutbound, state: &mut NetInnerState) {
+    fn handle_mod_message_2(
+        &self,
+        msg: NoitaOutbound,
+        state: &mut NetInnerState,
+        sendm: &Sender<FxHashMap<u16, u32>>,
+    ) {
         match msg {
             NoitaOutbound::Raw(raw_msg) => {
                 match raw_msg[0] & 0b11 {
                     // Message to proxy
                     1 => {
-                        self.handle_message_to_proxy(&raw_msg[1..], state);
+                        self.handle_message_to_proxy(&raw_msg[1..], state, sendm);
                     }
                     // Broadcast
                     2 => {
@@ -1112,7 +1132,12 @@ impl NetManager {
         self.peer.is_host()
     }
 
-    pub(crate) fn handle_message_to_proxy(&self, msg: &[u8], state: &mut NetInnerState) {
+    pub(crate) fn handle_message_to_proxy(
+        &self,
+        msg: &[u8],
+        state: &mut NetInnerState,
+        sendm: &Sender<FxHashMap<u16, u32>>,
+    ) {
         let msg = String::from_utf8_lossy(msg);
         let mut msg = msg.split_ascii_whitespace();
         let key = msg.next();
@@ -1152,6 +1177,7 @@ impl NetManager {
             }
             Some("material_list") => {
                 state.world.materials.clear();
+                let mut colors = FxHashMap::default();
                 while let (
                     Some(i),
                     Some(d),
@@ -1159,6 +1185,7 @@ impl NetManager {
                     Some(cell_type),
                     Some(liquid_sand),
                     Some(liquid_static),
+                    Some(wang_color),
                 ) = (
                     msg.next().and_then(|s| s.parse().ok()),
                     msg.next().and_then(|s| s.parse().ok()),
@@ -1166,12 +1193,21 @@ impl NetManager {
                     msg.next(),
                     msg.next().map(|s| s == "1"),
                     msg.next().map(|s| s == "1"),
+                    msg.next()
+                        .and_then(|s| u32::from_str_radix(&s.to_lowercase(), 16).ok()),
                 ) {
                     state.world.materials.insert(
                         i,
-                        (d, h, CellType::new(cell_type, liquid_static, liquid_sand)),
+                        (
+                            d,
+                            h,
+                            CellType::new(cell_type, liquid_static, liquid_sand),
+                            wang_color,
+                        ),
                     );
+                    colors.insert(i, wang_color);
                 }
+                let _ = sendm.send(colors);
                 let c = msg.count();
                 if c != 0 {
                     error!("bad materials data {}", c);

@@ -53,6 +53,8 @@ local function send_mats()
                 .. " "
                 .. tostring(liquid_static)
                 .. " "
+                .. tostring(element.attr.wang_color)
+                .. " "
         end
     end
     net.proxy_send("material_list", string.sub(inp, 0, -2))

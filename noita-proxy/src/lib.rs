@@ -9,8 +9,10 @@ use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
     ImageButton, InnerResponse, Key, Layout, Margin, OpenUrl, OutputCommand, Rect, RichText,
-    ScrollArea, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window,
+    ScrollArea, Sense, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals,
+    Window, pos2,
 };
+use eframe::epaint::TextureHandle;
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{LANGS, set_current_locale, tr};
@@ -22,6 +24,7 @@ use net::{
     steam_networking::{ExtraPeerState, PerPeerStatusEntry},
 };
 use player_cosmetics::PlayerPngDesc;
+use rustc_hash::FxHashMap;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -51,6 +54,7 @@ use util::{args::Args, steam_helper::LobbyExtraData};
 mod bookkeeping;
 use crate::net::messages::NetMsg;
 use crate::net::omni::OmniPeerId;
+use crate::net::world::world_model::ChunkCoord;
 use crate::player_cosmetics::{
     display_player_skin, get_player_skin, player_path, player_select_current_color_slot,
     player_skin_display_color_picker, shift_hue,
@@ -661,6 +665,7 @@ enum ConnectedMenu {
     BanList,
     ConnectionInfo,
     VoIP,
+    Map,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1016,6 +1021,82 @@ impl AudioSettings {
         changed
     }
 }
+struct ImageMap {
+    textures: FxHashMap<ChunkCoord, TextureHandle>,
+    zoom: f32,
+    offset: Vec2,
+}
+impl Default for ImageMap {
+    fn default() -> Self {
+        Self {
+            textures: FxHashMap::default(),
+            zoom: 1.0,
+            offset: Vec2::new(f32::MAX, f32::MAX),
+        }
+    }
+}
+impl ImageMap {
+    fn update_textures(
+        &mut self,
+        ui: &mut Ui,
+        map: &FxHashMap<ChunkCoord, RgbaImage>,
+        ctx: &Context,
+    ) {
+        for (coord, img) in map {
+            let name = format!("{}x{}", coord.0, coord.1);
+            if self.textures.contains_key(coord) {
+                ctx.forget_image(&name)
+            }
+            let size = [img.width() as usize, img.height() as usize];
+            let color_image =
+                egui::ColorImage::from_rgba_unmultiplied(size, img.as_flat_samples().as_slice());
+            let tex = ui
+                .ctx()
+                .load_texture(name, color_image, TextureOptions::NEAREST);
+            self.textures.insert(*coord, tex);
+        }
+    }
+    fn ui(&mut self, ui: &mut Ui, netman: &NetManStopOnDrop, ctx: &Context) {
+        if self.offset == Vec2::new(f32::MAX, f32::MAX) {
+            self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0);
+        }
+        {
+            let map = &mut netman.chunk_map.lock().unwrap();
+            self.update_textures(ui, map, ctx);
+            map.clear();
+        }
+        let response = ui.interact(
+            ui.available_rect_before_wrap(),
+            ui.id().with("map_interact"),
+            Sense::drag(),
+        );
+        if response.dragged() {
+            self.offset += response.drag_delta();
+        }
+
+        if ui.input(|i| i.raw_scroll_delta.y) != 0.0 {
+            let mouse_pos = ui.input(|i| i.pointer.latest_pos().unwrap_or_default());
+            let mouse_relative = mouse_pos - self.offset;
+            let zoom_factor = 2.0_f32.powf(ui.input(|i| i.raw_scroll_delta.y / 256.0));
+            self.zoom *= zoom_factor;
+            let new_mouse_relative = mouse_relative * zoom_factor;
+            self.offset = mouse_pos - new_mouse_relative;
+        }
+        let tile_size = self.zoom * 128.0;
+        let painter = ui.painter();
+        for (coord, tex) in &self.textures {
+            let pos =
+                self.offset + Vec2::new(coord.0 as f32 * tile_size, coord.1 as f32 * tile_size);
+            let rect = Rect::from_min_size(pos.to_pos2(), Vec2::splat(tile_size));
+            painter.image(
+                tex.id(),
+                rect,
+                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                Color32::WHITE,
+            );
+        }
+    }
+}
 
 impl Default for AudioSettings {
     fn default() -> Self {
@@ -1067,6 +1148,7 @@ pub struct App {
     copied_lobby: bool,
     my_lobby_kind: LobbyKind,
     show_lobby_list: bool,
+    map: ImageMap,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -1230,6 +1312,7 @@ impl App {
             copied_lobby: true,
             my_lobby_kind,
             show_lobby_list: false,
+            map: Default::default(),
         }
     }
 
@@ -1933,6 +2016,9 @@ impl App {
                     ConnectedMenu::VoIP,
                     "VoIP Settings",
                 );
+                if netman.peer.is_host() {
+                    ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Map, "Chunk Map");
+                }
                 if netman.peer.is_steam() {
                     ui.selectable_value(
                         &mut self.connected_menu,
@@ -2059,6 +2145,7 @@ impl App {
                         self.connected_menu = ConnectedMenu::Normal
                     }
                 }
+                ConnectedMenu::Map => self.map.ui(ui, netman, ctx),
                 ConnectedMenu::BanList => {
                     let mut ban_list = netman.ban_list.lock().unwrap();
                     let mut i = ban_list.len();

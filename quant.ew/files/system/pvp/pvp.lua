@@ -244,7 +244,9 @@ function rpc.win(num)
         local ent = EntityLoad("data/entities/items/pickup/chest_random.xml", hm_x - 600, hm_y + 40)
         ewext.notrack(ent)
     end
-    tmr = nil
+    if ctx.is_host then
+        tmr = nil
+    end
 end
 
 rpc.opts_everywhere()
@@ -578,7 +580,7 @@ function pvp.on_world_update()
             rpc.win(my_wins)
         end
     end
-    if ctx.proxy_opt.timed then
+    if ctx.proxy_opt.timed and ctx.is_host then
         local n = 0
         for _, d in pairs(pvp.players_by_floor) do
             for _, _ in pairs(d) do
