@@ -99,8 +99,21 @@ function tele.on_world_update()
     end
     last_wait = wait_for_ent
     wait_for_ent = {}
-    if GameGetFrameNum() % 60 == 23 then
-        for ent, _ in pairs(ent_to_body) do
+    local part = GameGetFrameNum() % 180
+    local len = 0
+    for _, _ in pairs(ent_to_body) do
+        len = len + 1
+    end
+    local chunk = math.max(math.floor(len / 180), 1)
+    local start_i = part * chunk
+    local end_i = math.min(start_i + chunk, len)
+    local n = 0
+    for ent, _ in pairs(ent_to_body) do
+        if end_i <= n then
+            break
+        end
+        n = n + 1
+        if start_i <= n then
             if not EntityGetIsAlive(ent) then
                 ent_to_body[ent] = nil
             else
