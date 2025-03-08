@@ -307,6 +307,7 @@ function OnProjectileFired(
             if
                 s == "data/entities/projectiles/deck/pebble_player.xml"
                 or s == "data/scripts/animals/wand_ghost.lua"
+                or s == "data/scripts/animals/pebble_player_spawn.lua"
             then
                 EntityRemoveComponent(projectile_id, com)
             end
