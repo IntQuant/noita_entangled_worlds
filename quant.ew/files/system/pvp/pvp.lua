@@ -358,40 +358,43 @@ local function spawn_items(x, y)
             EntityKill(ent)
         end
     end
-    --if Random(0, 100) <= 50 then
-    for i = 1, count do
-        if i == sale_item_i then
-            local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, true, nil, true)
-            EntitySetTransform(ent, x + (i - 1) * item_width, y)
-        else
-            local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, false, nil, true)
-            EntitySetTransform(ent, x + (i - 1) * item_width, y)
-        end
-        local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 - 30 + dy, false, nil, true)
-        EntitySetTransform(ent, x + (i - 1) * item_width, y - 30)
-        if not has_did then
-            LoadPixelScene(
-                "data/biome_impl/temple/shop_second_row.png",
-                "data/biome_impl/temple/shop_second_row_visual.png",
-                x + (i - 1) * item_width - 8,
-                y - 22,
-                "",
-                true
-            )
-        end
-    end
-    has_did = true
-    --[[else
+    if Random(0, 100) <= 50 then
         for i = 1, count do
             if i == sale_item_i then
-                local ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, true)
+                local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, true, nil, true)
                 EntitySetTransform(ent, x + (i - 1) * item_width, y)
             else
-                local ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, false)
+                local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, false, nil, true)
                 EntitySetTransform(ent, x + (i - 1) * item_width, y)
             end
+            local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 - 30 + dy, false, nil, true)
+            EntitySetTransform(ent, x + (i - 1) * item_width, y - 30)
+            if not has_did then
+                LoadPixelScene(
+                    "data/biome_impl/temple/shop_second_row.png",
+                    "data/biome_impl/temple/shop_second_row_visual.png",
+                    x + (i - 1) * item_width - 8,
+                    y - 22,
+                    "",
+                    true
+                )
+            end
         end
-    end]]
+        has_did = true
+    else
+        for i = 1, count do
+            local ent
+            if i == sale_item_i then
+                ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, true)
+            else
+                ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, false)
+            end
+            local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+            ComponentSetValue2(item, "play_hover_animation", false)
+            ComponentSetValue2(item, "play_spinning_animation", false)
+            EntitySetTransform(ent, x + (i - 1) * item_width, y)
+        end
+    end
 end
 
 dofile_once("data/scripts/perks/perk.lua")
