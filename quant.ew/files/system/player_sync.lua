@@ -206,7 +206,7 @@ function module.on_world_update()
         end
     end
 
-    if GameGetFrameNum() % 16 == 7 then
+    if GameGetFrameNum() % 32 == 7 then
         local mx, my = GameGetCameraPos()
         for peer_id, player in pairs(ctx.players) do
             local ent = player.entity
@@ -288,7 +288,7 @@ function module.on_world_update()
         end
     end
 
-    if GameGetFrameNum() % 10 == 9 then
+    if GameGetFrameNum() % 37 == 9 then
         local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
         local ingestion = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "IngestionComponent")
         if was_polied ~= ctx.my_player.currently_polymorphed then
@@ -325,44 +325,51 @@ function module.on_world_update()
         end
     end
 
-    if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
-        if find_later or (HasFlagPersistent("ew_twwe") and has_twwe_locally == nil) then
-            find_later = false
-            RemoveFlagPersistent("ew_twwe")
-            for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
-                local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
-                if
-                    com ~= nil
-                    and ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
-                    and not EntityHasTag(ent, "perk_entity")
-                then
-                    RemoveFlagPersistent("ew_twwe")
-                    EntityKill(ent)
-                    break
-                end
-            end
-        end
-        local x, y = EntityGetTransform(ctx.my_player.entity)
-        if not ctx.my_player.twwe then
-            local found = false
-            for _, data in pairs(ctx.players) do
-                if data.twwe then
-                    local tx, ty = EntityGetTransform(data.entity)
-                    if tx ~= nil then
-                        local dx, dy = tx - x, ty - y
-                        if dx * dx + dy * dy < 20 * 20 then
-                            found = true
-                            break
-                        end
+    if GameGetFrameNum() % 19 == 7 then
+        if not EntityHasTag(ctx.my_player.entity, "polymorphed_player") then
+            if find_later or (HasFlagPersistent("ew_twwe") and has_twwe_locally == nil) then
+                find_later = false
+                RemoveFlagPersistent("ew_twwe")
+                for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+                    local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
+                    if
+                        com ~= nil
+                        and ComponentGetValue2(com, "effect") == "EDIT_WANDS_EVERYWHERE"
+                        and not EntityHasTag(ent, "perk_entity")
+                    then
+                        RemoveFlagPersistent("ew_twwe")
+                        EntityKill(ent)
+                        break
                     end
                 end
             end
-            if found then
-                twwe_x, twwe_y = x, y
-                if has_twwe_locally == nil then
-                    AddFlagPersistent("ew_twwe")
-                    has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml", twwe_x, twwe_y)
-                    EntityAddChild(ctx.my_player.entity, has_twwe_locally)
+            local x, y = EntityGetTransform(ctx.my_player.entity)
+            if not ctx.my_player.twwe then
+                local found = false
+                for _, data in pairs(ctx.players) do
+                    if data.twwe then
+                        local tx, ty = EntityGetTransform(data.entity)
+                        if tx ~= nil then
+                            local dx, dy = tx - x, ty - y
+                            if dx * dx + dy * dy < 20 * 20 then
+                                found = true
+                                break
+                            end
+                        end
+                    end
+                end
+                if found then
+                    twwe_x, twwe_y = x, y
+                    if has_twwe_locally == nil then
+                        AddFlagPersistent("ew_twwe")
+                        has_twwe_locally = EntityLoad("mods/quant.ew/files/system/player/twwe.xml", twwe_x, twwe_y)
+                        EntityAddChild(ctx.my_player.entity, has_twwe_locally)
+                    end
+                elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
+                    RemoveFlagPersistent("ew_twwe")
+                    EntityKill(has_twwe_locally)
+                    has_twwe_locally = nil
+                    twwe_x, twwe_y = nil, nil
                 end
             elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
                 RemoveFlagPersistent("ew_twwe")
@@ -370,16 +377,11 @@ function module.on_world_update()
                 has_twwe_locally = nil
                 twwe_x, twwe_y = nil, nil
             end
-        elseif has_twwe_locally ~= nil and (math.abs(twwe_x - x) >= 8 or math.abs(twwe_y - y) >= 8) then
-            RemoveFlagPersistent("ew_twwe")
-            EntityKill(has_twwe_locally)
+        elseif has_twwe_locally ~= nil or HasFlagPersistent("ew_twwe") then
+            find_later = true
             has_twwe_locally = nil
             twwe_x, twwe_y = nil, nil
         end
-    elseif has_twwe_locally ~= nil or HasFlagPersistent("ew_twwe") then
-        find_later = true
-        has_twwe_locally = nil
-        twwe_x, twwe_y = nil, nil
     end
 end
 

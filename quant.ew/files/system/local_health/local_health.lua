@@ -31,11 +31,11 @@ util.add_cross_call("ew_damage_message", function(message, entity_thats_responsi
     end
 end)
 
-function module.on_player_died(player_entity)
+--[[function module.on_player_died(player_entity)
     -- This would be a good place to put on death logic
     -- BUT... player entity is already dead at this point, so it's a bit problematic to do stuff.
     -- Also inventory items seem to be borked.
-end
+end]]
 
 local function get_gold()
     local wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
@@ -521,10 +521,13 @@ local gui = GuiCreate()
 
 local wait_f = 0
 
+local last_hp
+
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
-    if GameGetFrameNum() % 15 == 6 then
+    if GameGetFrameNum() % 17 == 3 or hp ~= last_hp then
+        last_hp = hp
         local status = {
             is_alive = not notplayer_active,
             hp = hp,
@@ -619,7 +622,7 @@ function module.on_world_update_host()
     end
 end
 
-function module.on_new_player_seen(new_playerdata, player_count) end
+--function module.on_new_player_seen(new_playerdata, player_count) end
 
 function module.on_client_spawned(peer_id, playerdata)
     playerdata.status = { is_alive = true }
