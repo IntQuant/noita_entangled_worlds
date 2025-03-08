@@ -281,8 +281,8 @@ function rpc.add_floor(f, ping, msg)
         end
         GamePrint(ctx.rpc_player_data.name .. " has entered: " .. names_by_floor[n])
     end
-    if ping and ctx.rpc_peer_id ~= ctx.my_id then
-        rpc.add_floor(pvp.floor, false)
+    if ping and ctx.rpc_peer_id ~= ctx.my_id and hm_y == nil then
+        rpc.add_floor(pvp.floor, false, false)
     end
 end
 
