@@ -576,14 +576,16 @@ impl NetManager {
                     self.broadcast(&data, Reliability::Reliable);
                 }
             }
-            let mut map = FxHashMap::default();
-            while let Ok((ch, img)) = rx.try_recv() {
-                map.insert(ch, img);
-            }
-            if !map.is_empty() {
-                let chunk_map = &mut self.chunk_map.lock().unwrap();
-                for (ch, img) in map {
-                    chunk_map.insert(ch, img);
+            if self.is_host() {
+                let mut map = FxHashMap::default();
+                while let Ok((ch, img)) = rx.try_recv() {
+                    map.insert(ch, img);
+                }
+                if !map.is_empty() {
+                    let chunk_map = &mut self.chunk_map.lock().unwrap();
+                    for (ch, img) in map {
+                        chunk_map.insert(ch, img);
+                    }
                 }
             }
             // Don't do excessive busy-waiting;
