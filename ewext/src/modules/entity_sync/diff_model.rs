@@ -1842,12 +1842,12 @@ impl RemoteDiffModel {
                 .get_by_left(lid)
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
-                Some(entity) => {
+                Some(entity) if entity.is_alive() => {
                     if let Err(s) = self.inner(ctx, entity_info, entity, lid, &mut to_remove) {
                         print_error(s)?;
                     }
                 }
-                None => {
+                _ => {
                     if let Some(gid) = self.lid_to_gid.get(lid) {
                         if ctx.dont_spawn.contains(gid) {
                             continue;
@@ -1865,9 +1865,6 @@ impl RemoteDiffModel {
                         entity_info.drops_gold,
                     )?;
                     self.tracked.insert(*lid, entity);
-                    if let Err(s) = self.inner(ctx, entity_info, entity, lid, &mut to_remove) {
-                        print_error(s)?;
-                    }
                 }
             }
         }

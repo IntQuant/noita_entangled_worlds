@@ -523,10 +523,13 @@ local wait_f = 0
 
 local last_hp
 
+local last_active
+
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
-    if GameGetFrameNum() % 17 == 3 or hp ~= last_hp then
+    if GameGetFrameNum() % 17 == 3 or hp ~= last_hp or last_active ~= notplayer_active then
+        last_active = notplayer_active
         last_hp = hp
         local status = {
             is_alive = not notplayer_active,

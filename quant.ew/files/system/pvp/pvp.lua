@@ -444,7 +444,7 @@ function pvp.move_next_hm(died)
     end
     if table.contains(needs_ase, names_by_floor[n]) then
         local has_ase = false
-        for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+        for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
             local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
             if com ~= nil and ComponentGetValue2(com, "effect") == "REMOVE_FOG_OF_WAR" then
                 has_ase = true
@@ -458,7 +458,7 @@ function pvp.move_next_hm(died)
         if EntityGetIsAlive(temp_ase) then
             EntityKill(temp_ase)
         else
-            for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity)) do
+            for _, ent in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
                 local com = EntityGetFirstComponentIncludingDisabled(ent, "GameEffectComponent")
                 if
                     com ~= nil
@@ -575,6 +575,19 @@ function pvp.on_world_update_host()
                 rpc.update_timer(tmr)
             end
         end
+        local n = 0
+        for _, d in pairs(pvp.players_by_floor) do
+            for _, _ in pairs(d) do
+                n = n + 1
+            end
+        end
+        if is_hm then
+            if n == player_count then
+                tmr = nil
+            end
+        elseif n == 0 then
+            tmr = nil
+        end
     end
 end
 
@@ -622,17 +635,17 @@ function pvp.on_world_update()
             has_alive = true
             break
         end
-        if ctx.proxy_opt.wait_on_players and has_alive then
+        if (ctx.proxy_opt.wait_on_players or ctx.proxy_opt.timed) and has_alive then
             pvp.floor = pvp.floor - 1
             pvp.move_next_hm(false)
         else
             pvp.teleport_into_biome()
         end
     end
-    if player_died[pvp.floor] == nil then
-        player_died[pvp.floor] = {}
-    end
     if not ctx.proxy_opt.wait_for_time then
+        if player_died[pvp.floor] == nil then
+            player_died[pvp.floor] = {}
+        end
         local dead = 0
         for _, _ in pairs(player_died[pvp.floor]) do
             dead = dead + 1
@@ -647,21 +660,6 @@ function pvp.on_world_update()
             my_wins = my_wins + 1
             GlobalsSetValue("ew_wins", tostring(my_wins))
             rpc.win(my_wins)
-        end
-    end
-    if ctx.proxy_opt.timed and ctx.is_host then
-        local n = 0
-        for _, d in pairs(pvp.players_by_floor) do
-            for _, _ in pairs(d) do
-                n = n + 1
-            end
-        end
-        if is_hm then
-            if n == player_count then
-                tmr = nil
-            end
-        elseif n == 0 then
-            tmr = nil
         end
     end
 end
