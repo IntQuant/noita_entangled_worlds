@@ -330,6 +330,70 @@ function rpc.give_gold(peer, gold)
     end
 end
 
+dofile_once("data/scripts/items/generate_shop_item.lua")
+
+local has_did = false
+
+local function spawn_items(x, y)
+    local n = pvp.floor % #chunks_by_floor
+    if n == 0 then
+        n = #chunks_by_floor
+    end
+    local dx = pvp.floor
+    local dy = chunks_by_floor[n][1][1] - my_wins
+    SetRandomSeed(x + dx, y + dy)
+    local count = tonumber(GlobalsGetValue("TEMPLE_SHOP_ITEM_COUNT", "5"))
+    local width = 132
+    local item_width = width / count
+    local sale_item_i = Random(1, count)
+    for _, ent in ipairs(EntityGetWithTag("wand") or {}) do
+        local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
+        if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
+            EntityKill(ent)
+        end
+    end
+    for _, ent in ipairs(EntityGetWithTag("card_action") or {}) do
+        local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
+        if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
+            EntityKill(ent)
+        end
+    end
+    --if Random(0, 100) <= 50 then
+    for i = 1, count do
+        if i == sale_item_i then
+            local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, true, nil, true)
+            EntitySetTransform(ent, x + (i - 1) * item_width, y)
+        else
+            local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, false, nil, true)
+            EntitySetTransform(ent, x + (i - 1) * item_width, y)
+        end
+        local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 - 30 + dy, false, nil, true)
+        EntitySetTransform(ent, x + (i - 1) * item_width, y - 30)
+        if not has_did then
+            LoadPixelScene(
+                "data/biome_impl/temple/shop_second_row.png",
+                "data/biome_impl/temple/shop_second_row_visual.png",
+                x + (i - 1) * item_width - 8,
+                y - 22,
+                "",
+                true
+            )
+        end
+    end
+    has_did = true
+    --[[else
+        for i = 1, count do
+            if i == sale_item_i then
+                local ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, true)
+                EntitySetTransform(ent, x + (i - 1) * item_width, y)
+            else
+                local ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, false)
+                EntitySetTransform(ent, x + (i - 1) * item_width, y)
+            end
+        end
+    end]]
+end
+
 dofile_once("data/scripts/perks/perk.lua")
 
 function pvp.move_next_hm(died)
@@ -343,6 +407,7 @@ function pvp.move_next_hm(died)
         EntityLoad("data/entities/items/pickup/spell_refresh.xml", x + 16, y)
         x, y = hm_x - 32, 10626
         perk_spawn_many(x, y)
+        spawn_items(hm_x - 327, 10611)
     end
     if died then
         rpc.died(pvp.floor)
