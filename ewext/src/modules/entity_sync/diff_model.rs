@@ -17,7 +17,7 @@ use noita_api::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{
-    GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS, UpdateOrUpload,
+    GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS, Target, UpdateOrUpload,
 };
 use shared::{
     GameEffectData, GameEffectEnum, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
@@ -371,7 +371,7 @@ impl LocalDiffModelTracker {
         if entity.has_tag("card_action") {
             if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
                 let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
-                if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) > 256.0 * 256.0 {
+                if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) > 512.0 * 512.0 {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
                 } else {
@@ -510,15 +510,26 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .collect();
-            info.laser = None;
             if entity
                 .try_get_first_component::<SpriteComponent>(Some("laser_sight".into()))?
                 .is_some()
                 && &entity.name()? != "$animal_turret"
             {
                 let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
-                if let Some(target) = ai.m_greatest_prey()? {
-                    info.laser = ctx.player_map.get_by_right(&target).copied()
+                info.laser = if let Some(target) = ai.m_greatest_prey()? {
+                    if let Some(peer) = ctx.player_map.get_by_right(&target) {
+                        Target::Peer(*peer)
+                    } else if let Some(var) = target.get_var("ew_gid_lid") {
+                        if var.value_bool()? {
+                            Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+                        } else {
+                            Target::None
+                        }
+                    } else {
+                        Target::None
+                    }
+                } else {
+                    Target::None
                 }
             }
         } else {
@@ -568,10 +579,17 @@ impl LocalDiffModelTracker {
                 }
             }
         }
-
+        if let Some(var) = entity.get_var("ew_was_stealable") {
+            if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+                let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
+                if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 512.0 * 512.0 {
+                    cost.set_stealable(true)?;
+                    entity.remove_component(*var)?;
+                }
+            }
+        }
         Ok(false)
     }
-
     fn untrack_entity(
         &mut self,
         ctx: &mut ModuleCtx<'_>,
@@ -740,6 +758,13 @@ impl LocalDiffModel {
         self.tracker.tracked.insert(lid, entity);
 
         let (x, y) = entity.position()?;
+
+        if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+            if cost.stealable()? {
+                cost.set_stealable(false)?;
+                entity.get_var_or_default("ew_was_stealable")?;
+            }
+        }
 
         let entity_kind = classify_entity(entity)?;
         let spawn_info = match entity_kind {
@@ -1712,7 +1737,7 @@ impl RemoteDiffModel {
                 }
             }
             let laser = entity.try_get_first_component::<LaserEmitterComponent>(None)?;
-            if let Some(peer) = entity_info.laser {
+            if entity_info.laser != Target::None {
                 let laser = if let Some(laser) = laser {
                     laser
                 } else {
@@ -1729,7 +1754,14 @@ impl RemoteDiffModel {
                     laser.object_set_value::<i32>("laser", "beam_particle_type", 225)?;
                     laser
                 };
-                if let Some(ent) = ctx.player_map.get_by_left(&peer) {
+                let ent = if let Target::Peer(peer) = entity_info.laser {
+                    ctx.player_map.get_by_left(&peer).cloned()
+                } else if let Target::Gid(gid) = entity_info.laser {
+                    self.find_by_gid(gid)
+                } else {
+                    None
+                };
+                if let Some(ent) = ent {
                     let (x, y) = entity.position()?;
                     let (tx, ty) = ent.position()?;
                     if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0 {

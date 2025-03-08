@@ -107,6 +107,14 @@ pub enum EntityKind {
     Item,
 }
 
+#[derive(Debug, Encode, Decode, Clone, PartialEq, Copy, Default)]
+pub enum Target {
+    Peer(PeerId),
+    Gid(Gid),
+    #[default]
+    None,
+}
+
 #[derive(Debug, Encode, Decode, Clone, PartialEq, Default)]
 pub struct EntityInfo {
     pub spawn_info: EntitySpawnInfo,
@@ -127,7 +135,7 @@ pub struct EntityInfo {
     pub drops_gold: bool,
     pub limbs: Vec<(f32, f32)>,
     pub ai_state: i32,
-    pub laser: Option<PeerId>,
+    pub laser: Target,
     pub ai_rotation: f32,
     pub facing_direction: (bool, bool),
     pub is_enabled: bool, //for kolmi/runestones/etc
@@ -166,7 +174,7 @@ pub enum EntityUpdate {
         responsible_peer: Option<PeerId>,
     },
     SetCost(i64),
-    SetLaser(Option<PeerId>),
+    SetLaser(Target),
     SetStains(u64),
     SetFacingDirection((bool, bool)),
     SetAnimations(Vec<u16>),
