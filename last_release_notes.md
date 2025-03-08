@@ -1,16 +1,28 @@
-## Noita Entangled Worlds v1.4.4
+## Noita Entangled Worlds v1.4.5
 
-- fix kolmi when changing auth
+- add option to disable global perks and spells
 
-- add timer option and chest on win for pvp
+- try to forcefully fix enemys not disappearing
 
-- spawn ragdolls on kill for pvp
+- fix shop spells going through platform and fix them sometimes being free
 
-- fix container object duping items
+- fix pvp biome names
 
-- maybe fix a fungal shift error
+- optimize some wand logic
 
-- try to rotate wands in enemys hands
+- fix a bunch of pvp bugs
+
+- fix enemys holding wands at angles
+
+- change pvp platform
+
+- add a little chunk map for host with little minas
+
+- add push to mute option
+
+- fix some serialization errors
+
+- add a tag for modding
 
 ## Accepted pull requests
 
