@@ -230,18 +230,20 @@ impl WorldManager {
         let (send, rx) = mpsc::channel::<(ChunkCoord, RgbaImage)>();
         let (sendm, rxm) = mpsc::channel::<FxHashMap<u16, u32>>();
         let (tx, recv) = mpsc::channel::<(ChunkCoord, ChunkData)>();
-        thread::spawn(move || {
-            let mut mats = Default::default();
-            loop {
-                while let Ok(mat) = rxm.try_recv() {
-                    mats = mat;
+        if is_host {
+            thread::spawn(move || {
+                let mut mats = Default::default();
+                loop {
+                    while let Ok(mat) = rxm.try_recv() {
+                        mats = mat;
+                    }
+                    while let Ok((c, data)) = recv.try_recv() {
+                        let _ = send.send((c, create_image(data, &mats)));
+                    }
+                    thread::sleep(Duration::from_millis(16));
                 }
-                while let Ok((c, data)) = recv.try_recv() {
-                    let _ = send.send((c, create_image(data, &mats)));
-                }
-                thread::sleep(Duration::from_millis(16));
-            }
-        });
+            });
+        }
         let chunk_storage = save_state.load().unwrap_or_default();
         (
             WorldManager {

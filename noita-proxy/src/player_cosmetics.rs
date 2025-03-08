@@ -7,11 +7,14 @@ use eframe::egui::color_picker::{Alpha, color_picker_color32};
 use eframe::egui::{Color32, Image, TextureHandle, TextureOptions, Ui};
 use image::DynamicImage::ImageRgba8;
 use image::{ImageBuffer, Pixel, Rgba, RgbaImage};
+use rustc_hash::FxHashMap;
+use shared::WorldPos;
 use std::ffi::OsString;
 use std::fs::{self, File, remove_file};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
+use std::sync::MutexGuard;
 pub fn player_path(path: PathBuf) -> PathBuf {
     path.join("files/system/player/unmodified.png")
 }
@@ -371,6 +374,7 @@ pub fn create_player_png(
     player_path: &Path,
     rgb: &PlayerPngDesc,
     is_host: bool,
+    player_map: &mut MutexGuard<FxHashMap<OmniPeerId, (WorldPos, RgbaImage)>>,
 ) {
     let icon = get_player_skin(
         image::open(player_path)
@@ -379,6 +383,7 @@ pub fn create_player_png(
             .into_rgba8(),
         *rgb,
     );
+    player_map.insert(peer, (WorldPos::default(), icon.clone()));
     let inv = rgb.invert_border;
     let id = peer.as_hex();
     let cosmetics = rgb.cosmetics;

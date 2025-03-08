@@ -60,6 +60,7 @@ use crate::player_cosmetics::{
     player_skin_display_color_picker, shift_hue,
 };
 pub use bookkeeping::{mod_manager, releases, self_update};
+use shared::WorldPos;
 mod lobby_code;
 pub mod net;
 mod player_cosmetics;
@@ -1025,6 +1026,7 @@ struct ImageMap {
     textures: FxHashMap<ChunkCoord, TextureHandle>,
     zoom: f32,
     offset: Vec2,
+    players: FxHashMap<OmniPeerId, (WorldPos, TextureHandle)>,
 }
 impl Default for ImageMap {
     fn default() -> Self {
@@ -1032,6 +1034,7 @@ impl Default for ImageMap {
             textures: FxHashMap::default(),
             zoom: 1.0,
             offset: Vec2::new(f32::MAX, f32::MAX),
+            players: Default::default(),
         }
     }
 }
@@ -1056,6 +1059,27 @@ impl ImageMap {
             self.textures.insert(*coord, tex);
         }
     }
+    fn update_player_textures(
+        &mut self,
+        ui: &mut Ui,
+        map: &FxHashMap<OmniPeerId, (WorldPos, RgbaImage)>,
+    ) {
+        for (p, (coord, img)) in map {
+            if !self.players.contains_key(p) {
+                let name = format!("{}", p);
+                let size = [img.width() as usize, img.height() as usize];
+                let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                    size,
+                    img.as_flat_samples().as_slice(),
+                );
+                let tex = ui
+                    .ctx()
+                    .load_texture(name, color_image, TextureOptions::NEAREST);
+                self.players.insert(*p, (*coord, tex));
+            }
+            self.players.entry(*p).and_modify(|(w, _)| *w = *coord);
+        }
+    }
     fn ui(&mut self, ui: &mut Ui, netman: &NetManStopOnDrop, ctx: &Context) {
         if self.offset == Vec2::new(f32::MAX, f32::MAX) {
             self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0);
@@ -1065,6 +1089,11 @@ impl ImageMap {
             self.update_textures(ui, map, ctx);
             map.clear();
         }
+        if netman.reset_map.load(Ordering::Relaxed) {
+            netman.reset_map.store(false, Ordering::Relaxed);
+            self.textures.clear()
+        }
+        self.update_player_textures(ui, &netman.players_sprite.lock().unwrap());
         let response = ui.interact(
             ui.available_rect_before_wrap(),
             ui.id().with("map_interact"),
@@ -1088,6 +1117,23 @@ impl ImageMap {
             let pos =
                 self.offset + Vec2::new(coord.0 as f32 * tile_size, coord.1 as f32 * tile_size);
             let rect = Rect::from_min_size(pos.to_pos2(), Vec2::splat(tile_size));
+            painter.image(
+                tex.id(),
+                rect,
+                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                Color32::WHITE,
+            );
+        }
+        for (pos, tex) in self.players.values() {
+            let pos = self.offset
+                + Vec2::new(
+                    pos.x as f32 * tile_size / 128.0,
+                    (pos.y - 13) as f32 * tile_size / 128.0,
+                );
+            let rect = Rect::from_min_size(
+                pos.to_pos2(),
+                Vec2::new(8.0 * tile_size / 128.0, 18.0 * tile_size / 128.0),
+            );
             painter.image(
                 tex.id(),
                 rect,

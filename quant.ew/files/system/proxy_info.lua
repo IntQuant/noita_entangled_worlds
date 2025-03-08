@@ -62,4 +62,19 @@ function module.on_world_update()
     )
 end
 
+function module.on_world_update_host()
+    if GameGetFrameNum() % 8 ~= 2 then
+        return
+    end
+    local s = ""
+    for peer, data in pairs(ctx.players) do
+        local x, y = EntityGetTransform(data.entity)
+        if x == nil then
+            return
+        end
+        s = s .. " " .. tostring(peer) .. " " .. math.floor(x) .. " " .. math.floor(y)
+    end
+    net.proxy_send("players_pos", string.sub(s, 2, -1))
+end
+
 return module

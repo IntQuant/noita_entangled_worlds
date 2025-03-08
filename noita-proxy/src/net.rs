@@ -8,7 +8,7 @@ use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::message_socket::MessageSocket;
-use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage};
+use shared::{Destination, NoitaInbound, NoitaOutbound, RemoteMessage, WorldPos};
 use socket2::{Domain, Socket, Type};
 use std::collections::HashMap;
 use std::fs::{File, create_dir, remove_dir_all};
@@ -207,6 +207,8 @@ pub struct NetManager {
     duplicate: AtomicBool,
     pub back_out: AtomicBool,
     pub chunk_map: Mutex<FxHashMap<ChunkCoord, RgbaImage>>,
+    pub players_sprite: Mutex<FxHashMap<OmniPeerId, (WorldPos, RgbaImage)>>,
+    pub reset_map: AtomicBool,
 }
 
 impl NetManager {
@@ -244,6 +246,8 @@ impl NetManager {
             duplicate: Default::default(),
             back_out: Default::default(),
             chunk_map: Default::default(),
+            players_sprite: Default::default(),
+            reset_map: AtomicBool::new(false),
         }
         .into()
     }
@@ -300,6 +304,7 @@ impl NetManager {
             &self.init_settings.player_path,
             &desc,
             self.is_host(),
+            &mut self.players_sprite.lock().unwrap(),
         );
         self.minas
             .lock()
@@ -404,6 +409,7 @@ impl NetManager {
             &self.init_settings.player_path,
             &self.init_settings.player_png_desc,
             self.is_host(),
+            &mut self.players_sprite.lock().unwrap(),
         );
         self.nicknames
             .lock()
@@ -619,6 +625,7 @@ impl NetManager {
                         &self.init_settings.player_path,
                         &PlayerPngDesc::default(),
                         id == self.peer.host_id(),
+                        &mut self.players_sprite.lock().unwrap(),
                     );
                     info!("Sending PlayerColor to {id}");
                     self.send(
@@ -708,6 +715,9 @@ impl NetManager {
                 info!("Settings updated");
                 self.accept_local.store(true, Ordering::SeqCst);
                 state.world.reset();
+                state.des.reset();
+                state.flags.clear();
+                self.reset_map.store(true, Ordering::Relaxed);
             }
             NetMsg::ModRaw { data } => {
                 state.try_ms_write(&ws_encode_mod(src, &data));
@@ -727,6 +737,7 @@ impl NetManager {
                     &self.init_settings.player_path,
                     &rgb,
                     host,
+                    &mut self.players_sprite.lock().unwrap(),
                 );
                 self.nicknames.lock().unwrap().insert(src, name);
                 self.minas
@@ -1170,10 +1181,22 @@ impl NetManager {
                 let cess = msg.next().and_then(|s| s.parse().ok()) == Some(1);
                 self.is_cess.store(cess, Ordering::Relaxed);
             }
+            Some("players_pos") => {
+                let map = &mut self.players_sprite.lock().unwrap();
+                while let (Some(peer), Some(x), Some(y)) = (
+                    msg.next().and_then(OmniPeerId::from_hex),
+                    msg.next().and_then(|s| s.parse().ok()),
+                    msg.next().and_then(|s| s.parse().ok()),
+                ) {
+                    map.entry(peer)
+                        .and_modify(|(w, _)| *w = WorldPos::from((x, y)));
+                }
+            }
             Some("reset_world") => {
                 state.world.reset();
                 state.des.reset();
                 state.flags.clear();
+                self.reset_map.store(true, Ordering::Relaxed);
             }
             Some("material_list") => {
                 state.world.materials.clear();
@@ -1357,6 +1380,7 @@ impl NetManager {
             state.world.reset();
             state.des.reset();
             state.flags.clear();
+            self.reset_map.store(true, Ordering::Relaxed);
             self.dirty.store(false, Ordering::Relaxed);
         }
         self.resend_game_settings();
