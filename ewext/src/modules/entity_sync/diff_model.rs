@@ -602,10 +602,22 @@ impl LocalDiffModelTracker {
                         entity.remove_component(*var)?;
                     }
                 }
+                if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                    vel.set_gravity_y(400.0)?;
+                    vel.set_air_friction(0.55)?;
+                }
             } else if n == 0 {
                 var.set_value_int(16)?;
+                if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                    vel.set_gravity_y(0.0)?;
+                    vel.set_air_friction(10.0)?;
+                }
             } else {
                 var.set_value_int(n - 1)?;
+                if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                    vel.set_gravity_y(0.0)?;
+                    vel.set_air_friction(10.0)?;
+                }
             }
         }
         Ok(false)
