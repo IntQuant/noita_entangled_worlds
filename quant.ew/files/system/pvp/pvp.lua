@@ -30,6 +30,7 @@ local names_by_floor = {
     "(Collapsed) Mines",
     "Coal Pits",
     "Snowy Depths",
+    "Hiisi Base",
     "Underground Jungle",
     "Vault",
     "Temple of The Art",
