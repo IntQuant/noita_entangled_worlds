@@ -868,7 +868,11 @@ impl LocalDiffModel {
                     .any(|lua| {
                         lua.script_death().ok()
                             == Some("data/scripts/animals/boss_dragon_death.lua".into())
-                    }));
+                    }))
+            || entity
+                .get_var("throw_time")
+                .map(|v| v.value_int().ok() != Some(-1))
+                .unwrap_or(false);
 
         self.entity_entries.insert(
             lid,
@@ -2165,7 +2169,7 @@ pub fn init_remote_entity(
             let name = var.name().unwrap_or("".into());
             if name == "ew_gid_lid" {
                 let _ = entity.remove_component(*var);
-            } else if name == "throw_time" {
+            } else if name == "throw_time" && drops_gold {
                 let _ = var.set_value_int(game_get_frame_num().unwrap_or(0) - 4);
             }
         });
