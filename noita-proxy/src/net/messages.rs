@@ -1,8 +1,8 @@
-use bitcode::{Decode, Encode};
-
-use crate::{GameSettings, player_cosmetics::PlayerPngDesc};
-
 use super::{omni::OmniPeerId, world::WorldNetMessage};
+use crate::net::world::world_model::{ChunkCoord, ChunkData};
+use crate::{GameSettings, player_cosmetics::PlayerPngDesc};
+use bitcode::{Decode, Encode};
+use rustc_hash::FxHashMap;
 
 pub(crate) type Destination = shared::Destination<OmniPeerId>;
 
@@ -35,6 +35,7 @@ pub(crate) enum NetMsg {
     RespondFlagMoon(i32, i32, bool),
     RespondFlagStevari(i32, i32, OmniPeerId),
     AudioData(Vec<Vec<u8>>, bool, i32, i32, f32),
+    MapData(FxHashMap<ChunkCoord, ChunkData>),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

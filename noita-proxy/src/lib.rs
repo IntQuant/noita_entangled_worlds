@@ -2062,9 +2062,7 @@ impl App {
                     ConnectedMenu::VoIP,
                     "VoIP Settings",
                 );
-                if netman.peer.is_host() {
-                    ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Map, "Chunk Map");
-                }
+                ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Map, "Chunk Map");
                 if netman.peer.is_steam() {
                     ui.selectable_value(
                         &mut self.connected_menu,

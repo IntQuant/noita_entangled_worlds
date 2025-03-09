@@ -29,8 +29,8 @@ use world::{NoitaWorldUpdate, WorldManager};
 
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{ModmanagerSettings, get_mods};
-use crate::net::world::world_model::ChunkCoord;
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
+use crate::net::world::world_model::{ChunkCoord, ChunkData};
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::steam_helper::LobbyExtraData;
 use crate::{
@@ -378,7 +378,7 @@ impl NetManager {
         let audio_settings = self.audio.lock().unwrap().clone();
         let audio_state = AudioManager::new(audio_settings);
 
-        let (world, rx, sendm) = WorldManager::new(
+        let (world, rx, recv, sendm, tx) = WorldManager::new(
             is_host,
             self.peer.my_id(),
             self.init_settings.save_state.clone(),
@@ -493,11 +493,16 @@ impl NetManager {
             to_kick.clear();
             for net_event in self.peer.recv() {
                 self.clone()
-                    .handle_network_event(&mut state, &player_image, net_event);
+                    .handle_network_event(&mut state, &player_image, net_event, &tx);
             }
             for net_msg in self.loopback_channel.1.try_iter() {
-                self.clone()
-                    .handle_net_msg(&mut state, &player_image, self.peer.my_id(), net_msg);
+                self.clone().handle_net_msg(
+                    &mut state,
+                    &player_image,
+                    self.peer.my_id(),
+                    net_msg,
+                    &tx,
+                );
             }
             // Handle all available messages from Noita.
             while let Some(ws) = &mut state.ms {
@@ -576,16 +581,24 @@ impl NetManager {
                     self.broadcast(&data, Reliability::Reliable);
                 }
             }
+            let mut map = FxHashMap::default();
+            while let Ok((ch, img)) = rx.try_recv() {
+                map.insert(ch, img);
+            }
+            if !map.is_empty() {
+                let chunk_map = &mut self.chunk_map.lock().unwrap();
+                for (ch, img) in map {
+                    chunk_map.insert(ch, img);
+                }
+            }
             if self.is_host() {
                 let mut map = FxHashMap::default();
-                while let Ok((ch, img)) = rx.try_recv() {
-                    map.insert(ch, img);
+                while let Ok((ch, c)) = recv.try_recv() {
+                    map.insert(ch, c);
                 }
                 if !map.is_empty() {
-                    let chunk_map = &mut self.chunk_map.lock().unwrap();
-                    for (ch, img) in map {
-                        chunk_map.insert(ch, img);
-                    }
+                    let data = NetMsg::MapData(map);
+                    self.broadcast(&data, Reliability::Reliable)
                 }
             }
             // Don't do excessive busy-waiting;
@@ -603,6 +616,7 @@ impl NetManager {
         state: &mut NetInnerState,
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
+        tx: &Sender<(ChunkCoord, ChunkData)>,
     ) {
         match net_event {
             omni::OmniNetworkEvent::PeerConnected(id) => {
@@ -661,7 +675,7 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(state, player_image, src, net_msg);
+                self.handle_net_msg(state, player_image, src, net_msg, tx);
             }
         }
     }
@@ -673,6 +687,7 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
+        tx: &Sender<(ChunkCoord, ChunkData)>,
     ) {
         match net_msg {
             NetMsg::AudioData(data, global, tx, ty, vol) => {
@@ -692,6 +707,11 @@ impl NetManager {
                     state
                         .audio
                         .play_audio(audio, pos, src, data, global, (tx, ty), vol);
+                }
+            }
+            NetMsg::MapData(chunks) => {
+                for (ch, c) in chunks {
+                    let _ = tx.send((ch, c));
                 }
             }
             NetMsg::RequestMods => {

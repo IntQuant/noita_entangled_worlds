@@ -225,55 +225,96 @@ impl WorldManager {
     ) -> (
         Self,
         Receiver<(ChunkCoord, RgbaImage)>,
+        Receiver<(ChunkCoord, ChunkData)>,
         Sender<FxHashMap<u16, u32>>,
+        Sender<(ChunkCoord, ChunkData)>,
     ) {
         let (send, rx) = mpsc::channel::<(ChunkCoord, RgbaImage)>();
         let (sendm, rxm) = mpsc::channel::<FxHashMap<u16, u32>>();
         let (tx, recv) = mpsc::channel::<(ChunkCoord, ChunkData)>();
-        if is_host {
-            thread::spawn(move || {
-                let mut mats = Default::default();
-                loop {
-                    while let Ok(mat) = rxm.try_recv() {
-                        mats = mat;
-                    }
-                    while let Ok((c, data)) = recv.try_recv() {
-                        let _ = send.send((c, create_image(data, &mats)));
-                    }
-                    thread::sleep(Duration::from_millis(16));
+        let (tsx, recv2) = mpsc::channel::<(ChunkCoord, ChunkData)>();
+        thread::spawn(move || {
+            let mut mats = Default::default();
+            loop {
+                while let Ok(mat) = rxm.try_recv() {
+                    mats = mat;
                 }
-            });
-        }
+                while let Ok((c, data)) = recv.try_recv() {
+                    if is_host {
+                        let _ = tsx.send((c, data.clone()));
+                    }
+                    let _ = send.send((c, create_image(data, &mats)));
+                }
+                thread::sleep(Duration::from_millis(16));
+            }
+        });
         let chunk_storage = save_state.load().unwrap_or_default();
-        (
-            WorldManager {
-                nice_terraforming: true,
-                is_host,
-                my_pos: (i32::MIN / 2, i32::MIN / 2),
-                cam_pos: (i32::MIN / 2, i32::MIN / 2),
-                is_notplayer: false,
-                my_peer_id,
-                save_state,
-                inbound_model: Default::default(),
-                outbound_model: Default::default(),
-                authority_map: Default::default(),
-                chunk_storage,
-                chunk_state: Default::default(),
-                emitted_messages: Default::default(),
-                current_update: 0,
-                chunk_last_update: Default::default(),
-                last_request_priority: Default::default(),
-                world_num: 0,
-                materials: Default::default(),
-                is_storage_recent: Default::default(),
-                explosion_pointer: Default::default(),
-                explosion_data: Default::default(),
-                explosion_heap: Default::default(),
+        let (fx, _) = mpsc::channel::<(ChunkCoord, ChunkData)>();
+        if is_host {
+            (
+                WorldManager {
+                    nice_terraforming: true,
+                    is_host,
+                    my_pos: (i32::MIN / 2, i32::MIN / 2),
+                    cam_pos: (i32::MIN / 2, i32::MIN / 2),
+                    is_notplayer: false,
+                    my_peer_id,
+                    save_state,
+                    inbound_model: Default::default(),
+                    outbound_model: Default::default(),
+                    authority_map: Default::default(),
+                    chunk_storage,
+                    chunk_state: Default::default(),
+                    emitted_messages: Default::default(),
+                    current_update: 0,
+                    chunk_last_update: Default::default(),
+                    last_request_priority: Default::default(),
+                    world_num: 0,
+                    materials: Default::default(),
+                    is_storage_recent: Default::default(),
+                    explosion_pointer: Default::default(),
+                    explosion_data: Default::default(),
+                    explosion_heap: Default::default(),
+                    tx,
+                },
+                rx,
+                recv2,
+                sendm,
+                fx,
+            )
+        } else {
+            (
+                WorldManager {
+                    nice_terraforming: true,
+                    is_host,
+                    my_pos: (i32::MIN / 2, i32::MIN / 2),
+                    cam_pos: (i32::MIN / 2, i32::MIN / 2),
+                    is_notplayer: false,
+                    my_peer_id,
+                    save_state,
+                    inbound_model: Default::default(),
+                    outbound_model: Default::default(),
+                    authority_map: Default::default(),
+                    chunk_storage,
+                    chunk_state: Default::default(),
+                    emitted_messages: Default::default(),
+                    current_update: 0,
+                    chunk_last_update: Default::default(),
+                    last_request_priority: Default::default(),
+                    world_num: 0,
+                    materials: Default::default(),
+                    is_storage_recent: Default::default(),
+                    explosion_pointer: Default::default(),
+                    explosion_data: Default::default(),
+                    explosion_heap: Default::default(),
+                    tx: fx,
+                },
+                rx,
+                recv2,
+                sendm,
                 tx,
-            },
-            rx,
-            sendm,
-        )
+            )
+        }
     }
 
     pub(crate) fn add_update(&mut self, update: NoitaWorldUpdate) {
@@ -2467,7 +2508,7 @@ fn get_ray(r: u64) -> u64 {
 #[test]
 #[serial]
 fn test_explosion_img() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2569,7 +2610,7 @@ fn test_explosion_img() {
 #[test]
 #[serial]
 fn test_explosion_img_big() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2638,7 +2679,7 @@ fn test_explosion_img_big() {
 #[test]
 #[serial]
 fn test_explosion_img_big_br() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2714,7 +2755,7 @@ fn test_explosion_img_big_br() {
 #[test]
 #[serial]
 fn test_explosion_img_big_empty() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2773,7 +2814,7 @@ fn test_explosion_img_big_empty() {
 #[test]
 #[serial]
 fn test_explosion_large() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2818,7 +2859,7 @@ fn test_explosion_large() {
 #[test]
 #[serial]
 fn test_cut_img() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2861,7 +2902,7 @@ fn test_cut_img() {
 #[test]
 #[serial]
 fn test_line_img() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2948,7 +2989,7 @@ fn test_line_img() {
 #[test]
 #[serial]
 fn test_circ_img() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -2991,7 +3032,7 @@ fn test_circ_img() {
 #[test]
 #[serial]
 fn test_explosion_img_big_many() {
-    let (mut world, _, _) = WorldManager::new(
+    let (mut world, _, _, _, _) = WorldManager::new(
         true,
         OmniPeerId(0),
         SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3099,7 +3140,7 @@ fn test_explosion_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _) = WorldManager::new(
+        let (mut world, _, _, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3151,7 +3192,7 @@ fn test_explosion_perf_unloaded() {
     let iters = 4;
     let mut n = 0;
     for _ in 0..iters {
-        let (mut world, _, _) = WorldManager::new(
+        let (mut world, _, _, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3219,7 +3260,7 @@ fn test_explosion_perf_large() {
     let mut total = 0;
     let iters = 16;
     for _ in 0..iters {
-        let (mut world, _, _) = WorldManager::new(
+        let (mut world, _, _, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3270,7 +3311,7 @@ fn test_line_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _) = WorldManager::new(
+        let (mut world, _, _, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3309,7 +3350,7 @@ fn test_circle_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _) = WorldManager::new(
+        let (mut world, _, _, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
@@ -3348,7 +3389,7 @@ fn test_cut_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _) = WorldManager::new(
+        let (mut world, _, _, _, _) = WorldManager::new(
             true,
             OmniPeerId(0),
             SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
