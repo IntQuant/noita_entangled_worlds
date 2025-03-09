@@ -684,7 +684,7 @@ function pvp.on_world_update()
         end
     end
     if hm_y == nil then
-        if GameGetFrameNum % 121 == 27 then
+        if GameGetFrameNum() % 121 == 27 then
             local ents = EntityGetWithTag("item_perk") or {}
             for _, ent in ipairs(ents) do
                 x, y = EntityGetTransform(ent)
@@ -693,7 +693,7 @@ function pvp.on_world_update()
                 end
             end
         end
-        if GameGetFrameNum % 121 == 47 then
+        if GameGetFrameNum() % 121 == 47 then
             local ents = EntityGetWithTag("wand") or {}
             for _, ent in ipairs(ents) do
                 x, y = EntityGetTransform(ent)
@@ -705,7 +705,7 @@ function pvp.on_world_update()
                 end
             end
         end
-        if GameGetFrameNum % 121 == 67 then
+        if GameGetFrameNum() % 121 == 67 then
             local ents = EntityGetWithTag("card_action") or {}
             for _, ent in ipairs(ents) do
                 x, y = EntityGetTransform(ent)
@@ -717,7 +717,7 @@ function pvp.on_world_update()
                 end
             end
         end
-        if GameGetFrameNum % 121 == 87 then
+        if GameGetFrameNum() % 121 == 87 then
             local ents = EntityGetWithTag("workshop") or {}
             for _, ent in ipairs(ents) do
                 x, _ = EntityGetTransform(ent)
