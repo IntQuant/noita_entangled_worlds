@@ -9,7 +9,7 @@ local chunks_by_floor = {
     { { -5, 13, 3, 15 } }, --Underground Jungle
     { { -6, 17, 4, 19 } }, --Vault
     { { -6, 21, 4, 23 }, { -6, 24, 2, 24 } }, --Temple of the Art
-    { { -29, -1, -27, 0 } }, --Island
+    { { -30, -2, -26, -1 } }, --Island
     { { 16, 1, 22, 5 }, { 17, 0, 21, 0 }, { 18, -1, 20, -1 } }, --Sand Cave/Pyramid
     { { -9, 0, -7, 0 }, { -9, 1, -5, 1 } }, --Ancient Laboratory
     { { -31, -13, -21, -10 } }, --Cloudscape
@@ -67,7 +67,7 @@ if ModIsEnabled("Apotheosis") then
         { { -6, 29, 4, 32 } }, --The Work(below)
         { { -23, 1, -17, 5 } }, --Frozen Vault
         { { 18, 9, 20, 16 } }, --The Tower
-        { { -29, -1, -27, 0 } }, --Island
+        { { -30, -2, -26, -1 } }, --Island
         { { 24, 4, 30, 8 } }, --Overgrown Caverns
         { { -31, -13, -21, -10 } }, --Cloudscape
         { { -20, 25, -15, 28 } }, --Snowy Chasm
