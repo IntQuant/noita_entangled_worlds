@@ -1,28 +1,18 @@
-## Noita Entangled Worlds v1.4.5
+## Noita Entangled Worlds v1.4.6
 
-- add option to disable global perks and spells
+- fix pvp not wating on rounds to finish
 
-- try to forcefully fix enemys not disappearing
+- change home on players behaviour
 
-- fix shop spells going through platform and fix them sometimes being free
+- randomize end chest better in pvp, fix shop and perk reroll in pvp after a couple rounds
 
-- fix pvp biome names
+- fix kammi
 
-- optimize some wand logic
+- dont dupe pebble
 
-- fix a bunch of pvp bugs
+- attempt to fix a crash
 
-- fix enemys holding wands at angles
-
-- change pvp platform
-
-- add a little chunk map for host with little minas
-
-- add push to mute option
-
-- fix some serialization errors
-
-- add a tag for modding
+- some optimizations
 
 ## Accepted pull requests
 
