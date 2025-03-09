@@ -242,7 +242,10 @@ function rpc.win(num)
     wins[ctx.rpc_peer_id] = num
     create_board()
     if ctx.my_id == ctx.rpc_peer_id and ctx.proxy_opt.chest_on_win then
-        local ent = EntityLoad("data/entities/items/pickup/chest_random.xml", hm_x - 600, hm_y + 40)
+        local dx = pvp.floor
+        local dy = chunks_by_floor[n][1][1] - my_wins
+        local ent = EntityLoad("data/entities/items/pickup/chest_random.xml", hm_x - 600 + dx, hm_y + 40 + dy)
+        EntitySetTransform(ent, hm_x - 600, hm_y + 40)
         ewext.notrack(ent)
     end
     if ctx.is_host then
@@ -335,66 +338,74 @@ dofile_once("data/scripts/items/generate_shop_item.lua")
 local has_did = false
 
 local function spawn_items(x, y)
-    local n = pvp.floor % #chunks_by_floor
-    if n == 0 then
-        n = #chunks_by_floor
-    end
-    local dx = pvp.floor
-    local dy = chunks_by_floor[n][1][1] - my_wins
-    SetRandomSeed(x + dx, y + dy)
-    local count = tonumber(GlobalsGetValue("TEMPLE_SHOP_ITEM_COUNT", "5"))
-    local width = 132
-    local item_width = width / count
-    local sale_item_i = Random(1, count)
-    for _, ent in ipairs(EntityGetWithTag("wand") or {}) do
-        local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
-        if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
-            EntityKill(ent)
+    async(function()
+        wait(64)
+        local n = pvp.floor % #chunks_by_floor
+        if n == 0 then
+            n = #chunks_by_floor
         end
-    end
-    for _, ent in ipairs(EntityGetWithTag("card_action") or {}) do
-        local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
-        if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
-            EntityKill(ent)
+        local dx = pvp.floor
+        local dy = chunks_by_floor[n][1][1] - my_wins
+        SetRandomSeed(x + dx, y + dy)
+        local count = tonumber(GlobalsGetValue("TEMPLE_SHOP_ITEM_COUNT", "5"))
+        local width = 132
+        local item_width = width / count
+        local sale_item_i = Random(1, count)
+        for _, ent in ipairs(EntityGetWithTag("wand") or {}) do
+            local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
+            if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
+                EntityKill(ent)
+            end
         end
-    end
-    if Random(0, 100) <= 50 then
-        for i = 1, count do
-            if i == sale_item_i then
-                local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, true, nil, true)
+        for _, ent in ipairs(EntityGetWithTag("card_action") or {}) do
+            local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
+            if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
+                EntityKill(ent)
+            end
+        end
+        if Random(0, 100) <= 50 then
+            for i = 1, count do
+                if i == sale_item_i then
+                    local ent = generate_shop_item(x + (i - 1) * item_width + dx, 15360 + dy, true, nil, true)
+                    EntitySetTransform(ent, x + (i - 1) * item_width, y)
+                else
+                    local ent = generate_shop_item(x + (i - 1) * item_width + dx, 15360 + dy, false, nil, true)
+                    EntitySetTransform(ent, x + (i - 1) * item_width, y)
+                end
+                local ent = generate_shop_item(x + (i - 1) * item_width + dx, 15360 - 30 + dy, false, nil, true)
+                EntitySetTransform(ent, x + (i - 1) * item_width, y - 30)
+                if not has_did then
+                    LoadPixelScene(
+                        "data/biome_impl/temple/shop_second_row.png",
+                        "data/biome_impl/temple/shop_second_row_visual.png",
+                        x + (i - 1) * item_width - 8,
+                        y - 22,
+                        "",
+                        true
+                    )
+                end
+            end
+            has_did = true
+        else
+            for i = 1, count do
+                local ent
+                if i == sale_item_i then
+                    ent = generate_shop_wand(x + (i - 1) * item_width + dx, 15360 + dy, true)
+                else
+                    ent = generate_shop_wand(x + (i - 1) * item_width + dx, 15360 + dy, false)
+                end
+                local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+                ComponentSetValue2(item, "play_hover_animation", false)
+                ComponentSetValue2(item, "play_spinning_animation", false)
                 EntitySetTransform(ent, x + (i - 1) * item_width, y)
-            else
-                local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 + dy, false, nil, true)
-                EntitySetTransform(ent, x + (i - 1) * item_width, y)
-            end
-            local ent = generate_shop_item(x + (i - 1) * item_width + dx, 13156 - 30 + dy, false, nil, true)
-            EntitySetTransform(ent, x + (i - 1) * item_width, y - 30)
-            if not has_did then
-                LoadPixelScene(
-                    "data/biome_impl/temple/shop_second_row.png",
-                    "data/biome_impl/temple/shop_second_row_visual.png",
-                    x + (i - 1) * item_width - 8,
-                    y - 22,
-                    "",
-                    true
-                )
             end
         end
-        has_did = true
-    else
-        for i = 1, count do
-            local ent
-            if i == sale_item_i then
-                ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, true)
-            else
-                ent = generate_shop_wand(x + (i - 1) * item_width + dx, 13156 + dy, false)
-            end
-            local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
-            ComponentSetValue2(item, "play_hover_animation", false)
-            ComponentSetValue2(item, "play_spinning_animation", false)
-            EntitySetTransform(ent, x + (i - 1) * item_width, y)
+        local reroll = EntityGetClosestWithTag("perk_reroll_machine")
+        if reroll ~= nil then
+            EntitySetComponentsWithTagEnabled(reroll, "shop_cost", true)
+            EntitySetComponentsWithTagEnabled(reroll, "perk_reroll_disable", true)
         end
-    end
+    end)
 end
 
 dofile_once("data/scripts/perks/perk.lua")
