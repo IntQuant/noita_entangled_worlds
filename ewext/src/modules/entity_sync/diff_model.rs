@@ -1479,28 +1479,25 @@ impl RemoteDiffModel {
         entity_info: &EntityInfo,
         entity: EntityID,
         lid: &Lid,
-        to_remove: &mut Vec<Lid>,
-    ) -> eyre::Result<()> {
+    ) -> eyre::Result<Option<Lid>> {
         if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)?
             || item_in_entity_inventory(entity)?
         {
-            if !self.grab_request.contains(lid) {
-                to_remove.push(*lid);
-                entity.remove_tag(DES_TAG)?;
+            entity.remove_tag(DES_TAG)?;
+            with_entity_scripts(entity, |luac| {
+                luac.set_script_throw_item(
+                    "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
+                )
+            })?;
+            for entity in entity.children(None) {
                 with_entity_scripts(entity, |luac| {
                     luac.set_script_throw_item(
                         "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
                     )
                 })?;
-                for entity in entity.children(None) {
-                    with_entity_scripts(entity, |luac| {
-                        luac.set_script_throw_item(
-                            "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
-                        )
-                    })?;
-                }
             }
-            return Ok(());
+            entity.set_components_with_tag_enabled("ew_enable_on_pickup".into(), true)?;
+            return Ok(Some(*lid));
         }
         for (name, s, i, f, b) in &entity_info.synced_var {
             let v = entity.get_var_or_default(name)?;
@@ -1826,7 +1823,7 @@ impl RemoteDiffModel {
                 laser.set_is_emitting(false)?;
             }
         }
-        Ok(())
+        Ok(None)
     }
 
     pub(crate) fn apply_entities(
@@ -1847,8 +1844,10 @@ impl RemoteDiffModel {
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
                 Some(entity) if entity.is_alive() => {
-                    if let Err(s) = self.inner(ctx, entity_info, entity, lid, &mut to_remove) {
-                        print_error(s)?;
+                    match self.inner(ctx, entity_info, entity, lid) {
+                        Ok(Some(lid)) => to_remove.push(lid),
+                        Err(s) => print_error(s)?,
+                        _ => {}
                     }
                 }
                 _ => {
@@ -2067,18 +2066,20 @@ pub fn init_remote_entity(
     }
 
     for lua in entity.iter_all_components_of_type_including_disabled::<LuaComponent>(None)? {
-        if (!drops_gold
-            && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
-            || [
-                "data/scripts/animals/leader_damage.lua",
-                "data/scripts/animals/giantshooter_death.lua",
-                "data/scripts/animals/blob_damage.lua",
-                "data/scripts/items/die_roll.lua",
-                "data/scripts/animals/iceskull_damage.lua",
-                "data/scripts/buildings/lukki_eggs.lua",
-                "data/scripts/props/physics_vase_damage.lua",
-            ]
-            .contains(&&*lua.script_damage_received()?)
+        if !drops_gold
+            && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into())
+        {
+            entity.remove_component(*lua)?;
+        } else if [
+            "data/scripts/animals/leader_damage.lua",
+            "data/scripts/animals/giantshooter_death.lua",
+            "data/scripts/animals/blob_damage.lua",
+            "data/scripts/items/die_roll.lua",
+            "data/scripts/animals/iceskull_damage.lua",
+            "data/scripts/buildings/lukki_eggs.lua",
+            "data/scripts/props/physics_vase_damage.lua",
+        ]
+        .contains(&&*lua.script_damage_received()?)
             || [
                 "data/scripts/buildings/firebugnest.lua",
                 "data/scripts/buildings/flynest.lua",
@@ -2115,7 +2116,8 @@ pub fn init_remote_entity(
                 .contains(&&*lua.script_death()?)
             || ["data/scripts/items/broken_wand_throw.lua"].contains(&&*lua.script_throw_item()?)
         {
-            entity.remove_component(*lua)?;
+            entity.set_component_enabled(*lua, false)?;
+            lua.add_tag("ew_enable_on_pickup")?;
         }
     }
     let immortal = entity.add_component::<LuaComponent>()?;
