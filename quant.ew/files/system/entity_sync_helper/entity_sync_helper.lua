@@ -71,6 +71,9 @@ util.prepend(
         .. 'GlobalsSetValue( "ULTIMATE_KILLER_KILLS", tostring( count ) )\n'
         .. "end"
 )
+
+util.prepend("data/scripts/props/forcefield_generator.lua", '"player_unit"', '"ew_peer"')
+
 local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 
 local thrown = {}
