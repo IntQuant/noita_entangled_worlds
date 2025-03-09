@@ -171,7 +171,6 @@ end
 --- Encode the given rectangle of the world
 -- The rectangle defined by {`start_x`, `start_y`, `end_x`, `end_y`} must not
 -- exceed 256 in width or height.
--- @param chunk_map
 -- @tparam int start_x coordinate
 -- @tparam int start_y coordinate
 -- @tparam int end_x coordinate
@@ -179,11 +178,11 @@ end
 -- @tparam EncodedArea encoded_area memory to use, if nil this function allocates its own memory
 -- @return returns an EncodedArea or nil if the area could not be encoded
 -- @see decode
-function world.encode_area(chunk_map, start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
-    start_x = ffi.cast("int32_t", start_x_ini)
-    start_y = ffi.cast("int32_t", start_y_ini)
-    end_x = ffi.cast("int32_t", end_x_ini)
-    end_y = ffi.cast("int32_t", end_y_ini)
+function world.encode_area(start_x_ini, start_y_ini, end_x_ini, end_y_ini, encoded_area)
+    local start_x = ffi.cast("int32_t", start_x_ini)
+    local start_y = ffi.cast("int32_t", start_y_ini)
+    local end_x = ffi.cast("int32_t", end_x_ini)
+    local end_y = ffi.cast("int32_t", end_y_ini)
 
     encoded_area = encoded_area or world.EncodedArea()
 

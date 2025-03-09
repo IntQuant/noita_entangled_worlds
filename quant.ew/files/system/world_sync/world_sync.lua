@@ -51,11 +51,11 @@ function world_sync.on_world_initialized()
     -- do_benchmark()
 end
 
-local function send_chunks(cx, cy, chunk_map)
+local function send_chunks(cx, cy)
     local chx, chy = cx * CHUNK_SIZE, cy * CHUNK_SIZE
     local crect = rect.Rectangle(chx, chy, chx + CHUNK_SIZE, chy + CHUNK_SIZE)
     if DoesWorldExistAt(crect.left, crect.top, crect.right, crect.bottom) then
-        local area = world.encode_area(chunk_map, crect.left, crect.top, crect.right, crect.bottom, encoded_area)
+        local area = world.encode_area(crect.left, crect.top, crect.right, crect.bottom, encoded_area)
         if area ~= nil then
             --if ctx.proxy_opt.debug then
             --     GameCreateSpriteForXFrames("mods/quant.ew/files/resource/debug/box_128x128.png", crect.left+64, crect.top + 64, true, 0, 0, 11, true)
@@ -68,11 +68,11 @@ end
 local int = 4 -- ctx.proxy_opt.world_sync_interval
 
 local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
-    local grid_world = world_ffi.get_grid_world()
-    local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
+    --local grid_world = world_ffi.get_grid_world()
+    --local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     --local thread_impl = grid_world.mThreadImpl
     if GameGetFrameNum() % int == 0 then
-        send_chunks(ocx, ocy, chunk_map)
+        send_chunks(ocx, ocy)
         local pri = priority
         if give_0 then
             pri = 0
@@ -80,17 +80,17 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
         net.proxy_bin_send(KEY_WORLD_END, string.char(pri) .. pos_data)
     elseif GameGetFrameNum() % int == 2 then
         if iter_fast == 0 then
-            send_chunks(ocx + 1, ocy, chunk_map)
-            send_chunks(ocx + 1, ocy + 1, chunk_map)
+            send_chunks(ocx + 1, ocy)
+            send_chunks(ocx + 1, ocy + 1)
         elseif iter_fast == 1 then
-            send_chunks(ocx, ocy + 1, chunk_map)
-            send_chunks(ocx - 1, ocy + 1, chunk_map)
+            send_chunks(ocx, ocy + 1)
+            send_chunks(ocx - 1, ocy + 1)
         elseif iter_fast == 2 then
-            send_chunks(ocx - 1, ocy, chunk_map)
-            send_chunks(ocx - 1, ocy - 1, chunk_map)
+            send_chunks(ocx - 1, ocy)
+            send_chunks(ocx - 1, ocy - 1)
         else
-            send_chunks(ocx, ocy - 1, chunk_map)
-            send_chunks(ocx + 1, ocy - 1, chunk_map)
+            send_chunks(ocx, ocy - 1)
+            send_chunks(ocx + 1, ocy - 1)
         end
         net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 1, 16)) .. pos_data)
         iter_fast = iter_fast + 1
@@ -99,25 +99,25 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
         end
     elseif GameGetFrameNum() % (int * 4) == 3 then
         if iter_slow == 0 then
-            send_chunks(ocx + 2, ocy - 1, chunk_map)
-            send_chunks(ocx + 2, ocy, chunk_map)
-            send_chunks(ocx + 2, ocy + 1, chunk_map)
-            send_chunks(ocx + 2, ocy + 2, chunk_map)
+            send_chunks(ocx + 2, ocy - 1)
+            send_chunks(ocx + 2, ocy)
+            send_chunks(ocx + 2, ocy + 1)
+            send_chunks(ocx + 2, ocy + 2)
         elseif iter_slow == 1 then
-            send_chunks(ocx + 1, ocy + 2, chunk_map)
-            send_chunks(ocx, ocy + 2, chunk_map)
-            send_chunks(ocx - 1, ocy + 2, chunk_map)
-            send_chunks(ocx - 2, ocy + 2, chunk_map)
+            send_chunks(ocx + 1, ocy + 2)
+            send_chunks(ocx, ocy + 2)
+            send_chunks(ocx - 1, ocy + 2)
+            send_chunks(ocx - 2, ocy + 2)
         elseif iter_slow == 2 then
-            send_chunks(ocx - 2, ocy + 1, chunk_map)
-            send_chunks(ocx - 2, ocy, chunk_map)
-            send_chunks(ocx - 2, ocy - 1, chunk_map)
-            send_chunks(ocx - 2, ocy - 2, chunk_map)
+            send_chunks(ocx - 2, ocy + 1)
+            send_chunks(ocx - 2, ocy)
+            send_chunks(ocx - 2, ocy - 1)
+            send_chunks(ocx - 2, ocy - 2)
         else
-            send_chunks(ocx - 1, ocy - 2, chunk_map)
-            send_chunks(ocx, ocy - 2, chunk_map)
-            send_chunks(ocx + 1, ocy - 2, chunk_map)
-            send_chunks(ocx + 2, ocy - 2, chunk_map)
+            send_chunks(ocx - 1, ocy - 2)
+            send_chunks(ocx, ocy - 2)
+            send_chunks(ocx + 1, ocy - 2)
+            send_chunks(ocx + 2, ocy - 2)
         end
         net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 2, 16)) .. pos_data)
         iter_slow = iter_slow + 1
@@ -126,35 +126,35 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
         end
     elseif (priority == 0 and not GameHasFlagRun("ending_game_completed")) and GameGetFrameNum() % (int * 3) == 1 then
         if iter_slow_2 == 0 then
-            send_chunks(ocx + 3, ocy, chunk_map)
-            send_chunks(ocx + 3, ocy + 1, chunk_map)
-            send_chunks(ocx + 3, ocy + 2, chunk_map)
-            send_chunks(ocx + 3, ocy + 3, chunk_map)
+            send_chunks(ocx + 3, ocy)
+            send_chunks(ocx + 3, ocy + 1)
+            send_chunks(ocx + 3, ocy + 2)
+            send_chunks(ocx + 3, ocy + 3)
         elseif iter_slow_2 == 1 then
-            send_chunks(ocx + 2, ocy + 3, chunk_map)
-            send_chunks(ocx + 1, ocy + 3, chunk_map)
-            send_chunks(ocx, ocy + 3, chunk_map)
-            send_chunks(ocx - 1, ocy + 3, chunk_map)
+            send_chunks(ocx + 2, ocy + 3)
+            send_chunks(ocx + 1, ocy + 3)
+            send_chunks(ocx, ocy + 3)
+            send_chunks(ocx - 1, ocy + 3)
         elseif iter_slow_2 == 2 then
-            send_chunks(ocx - 2, ocy + 3, chunk_map)
-            send_chunks(ocx - 3, ocy + 3, chunk_map)
-            send_chunks(ocx - 3, ocy + 2, chunk_map)
-            send_chunks(ocx - 3, ocy + 1, chunk_map)
+            send_chunks(ocx - 2, ocy + 3)
+            send_chunks(ocx - 3, ocy + 3)
+            send_chunks(ocx - 3, ocy + 2)
+            send_chunks(ocx - 3, ocy + 1)
         elseif iter_slow_2 == 3 then
-            send_chunks(ocx - 3, ocy, chunk_map)
-            send_chunks(ocx - 3, ocy - 1, chunk_map)
-            send_chunks(ocx - 3, ocy - 2, chunk_map)
-            send_chunks(ocx - 3, ocy - 3, chunk_map)
+            send_chunks(ocx - 3, ocy)
+            send_chunks(ocx - 3, ocy - 1)
+            send_chunks(ocx - 3, ocy - 2)
+            send_chunks(ocx - 3, ocy - 3)
         elseif iter_slow_2 == 4 then
-            send_chunks(ocx - 2, ocy - 3, chunk_map)
-            send_chunks(ocx - 1, ocy - 3, chunk_map)
-            send_chunks(ocx, ocy - 3, chunk_map)
-            send_chunks(ocx + 1, ocy - 3, chunk_map)
+            send_chunks(ocx - 2, ocy - 3)
+            send_chunks(ocx - 1, ocy - 3)
+            send_chunks(ocx, ocy - 3)
+            send_chunks(ocx + 1, ocy - 3)
         else
-            send_chunks(ocx + 2, ocy - 3, chunk_map)
-            send_chunks(ocx + 3, ocy - 3, chunk_map)
-            send_chunks(ocx + 3, ocy - 2, chunk_map)
-            send_chunks(ocx + 3, ocy - 1, chunk_map)
+            send_chunks(ocx + 2, ocy - 3)
+            send_chunks(ocx + 3, ocy - 3)
+            send_chunks(ocx + 3, ocy - 2)
+            send_chunks(ocx + 3, ocy - 1)
         end
         net.proxy_bin_send(KEY_WORLD_END, string.char(math.min(priority + 2, 16)) .. pos_data)
         iter_slow_2 = iter_slow_2 + 1
