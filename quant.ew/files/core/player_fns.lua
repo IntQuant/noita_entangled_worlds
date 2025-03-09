@@ -498,6 +498,9 @@ function player_fns.spawn_player_for(peer_id, x, y, existing_playerdata)
     local new = EntityLoad("mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_base.xml", x, y)
     util.make_ephemerial(new)
     LoadGameEffectEntityTo(new, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+    if ctx.proxy_opt.home_on_players then
+        EntityAddTag(new, "homing_target")
+    end
 
     for _, child in ipairs(EntityGetAllChildren(new) or {}) do
         if EntityGetName(child) == "cursor" then

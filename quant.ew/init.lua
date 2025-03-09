@@ -391,6 +391,9 @@ local last_flex
 
 function OnPlayerSpawned(player_entity) -- This runs when player entity has been created
     print("Initial player entity: " .. player_entity)
+    if ctx.proxy_opt.home_on_players then
+        EntityAddTag(player_entity, "homing_target")
+    end
 
     if GlobalsGetValue("ew_player_count", "") == "" then
         GlobalsSetValue("ew_player_count", "1")
@@ -539,11 +542,7 @@ local function on_world_pre_update_inner()
                     local projcom = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
                     if projcom ~= nil then
                         local whoshot = ComponentGetValue2(projcom, "mWhoShot")
-                        if
-                            EntityHasTag(whoshot, "ew_notplayer")
-                            or GameHasFlagRun("ending_game_completed")
-                            or ctx.proxy_opt.home_on_players
-                        then
+                        if EntityHasTag(whoshot, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
                             ComponentSetValue2(homing, "target_tag", "ew_peer")
                         end
                     end
