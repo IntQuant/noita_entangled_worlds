@@ -156,6 +156,12 @@ local hm_ys = {
     10552,
 }
 
+local hm_cys = {}
+
+for _, y in ipairs(hm_ys) do
+    table.insert(hm_cys, math.floor(y / 512))
+end
+
 local wins = {}
 
 local boards = {}
@@ -421,6 +427,10 @@ function pvp.move_next_hm(died)
         EntityLoad("data/entities/items/pickup/spell_refresh.xml", x + 16, y)
         x, y = hm_x - 32, 10626
         perk_spawn_many(x, y)
+        local ents = EntityGetWithTag("item_perk") or {}
+        for _, ent in ipairs(ents) do
+            util.make_ephemerial(ent)
+        end
         spawn_items(hm_x - 327, 10611)
     end
     if died then
@@ -671,6 +681,50 @@ function pvp.on_world_update()
             my_wins = my_wins + 1
             GlobalsSetValue("ew_wins", tostring(my_wins))
             rpc.win(my_wins)
+        end
+    end
+    if hm_y == nil then
+        if GameGetFrameNum % 121 == 27 then
+            local ents = EntityGetWithTag("item_perk") or {}
+            for _, ent in ipairs(ents) do
+                x, y = EntityGetTransform(ent)
+                if table.contains(hm_cys, math.floor(y / 512)) and math.abs(x / 512) <= 8 then
+                    EntityKill(ent)
+                end
+            end
+        end
+        if GameGetFrameNum % 121 == 47 then
+            local ents = EntityGetWithTag("wand") or {}
+            for _, ent in ipairs(ents) do
+                x, y = EntityGetTransform(ent)
+                if table.contains(hm_cys, math.floor(y / 512)) and math.abs(x / 512) <= 8 then
+                    local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
+                    if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
+                        EntityKill(ent)
+                    end
+                end
+            end
+        end
+        if GameGetFrameNum % 121 == 67 then
+            local ents = EntityGetWithTag("card_action") or {}
+            for _, ent in ipairs(ents) do
+                x, y = EntityGetTransform(ent)
+                if table.contains(hm_cys, math.floor(y / 512)) and math.abs(x / 512) <= 8 then
+                    local cost = EntityGetFirstComponentIncludingDisabled(ent, "ItemCostComponent")
+                    if cost ~= nil and ComponentGetValue2(cost, "cost") > 0 then
+                        EntityKill(ent)
+                    end
+                end
+            end
+        end
+        if GameGetFrameNum % 121 == 87 then
+            local ents = EntityGetWithTag("workshop") or {}
+            for _, ent in ipairs(ents) do
+                x, _ = EntityGetTransform(ent)
+                if math.abs(x / 512) <= 8 then
+                    EntityKill(ent)
+                end
+            end
         end
     end
 end
