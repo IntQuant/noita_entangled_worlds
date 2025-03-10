@@ -235,6 +235,7 @@ impl WorldManager {
         let (tsx, recv2) = mpsc::channel::<(ChunkCoord, ChunkData)>();
         thread::spawn(move || {
             let mut mats = Default::default();
+            let mut chunks = Vec::new();
             loop {
                 while let Ok(mat) = rxm.try_recv() {
                     mats = mat;
@@ -243,12 +244,20 @@ impl WorldManager {
                     if is_host {
                         let _ = tsx.send((c, data.clone()));
                     }
-                    let _ = send.send((c, create_image(data, &mats)));
+                    chunks.push((c, data));
+                }
+                if !mats.is_empty() {
+                    for (c, data) in chunks.drain(..) {
+                        let _ = send.send((c, create_image(data, &mats)));
+                    }
                 }
                 thread::sleep(Duration::from_millis(16));
             }
         });
-        let chunk_storage = save_state.load().unwrap_or_default();
+        let chunk_storage: FxHashMap<ChunkCoord, ChunkData> = save_state.load().unwrap_or_default();
+        for (ch, c) in chunk_storage.iter() {
+            let _ = tx.send((*ch, c.clone()));
+        }
         let (fx, _) = mpsc::channel::<(ChunkCoord, ChunkData)>();
         if is_host {
             (
@@ -315,6 +324,10 @@ impl WorldManager {
                 tx,
             )
         }
+    }
+
+    pub(crate) fn get_chunks(&self) -> FxHashMap<ChunkCoord, ChunkData> {
+        self.chunk_storage.clone()
     }
 
     pub(crate) fn add_update(&mut self, update: NoitaWorldUpdate) {

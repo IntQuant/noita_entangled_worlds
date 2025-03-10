@@ -631,6 +631,11 @@ impl NetManager {
                         },
                         Reliability::Reliable,
                     );
+                    self.send(
+                        id,
+                        &NetMsg::MapData(state.world.get_chunks()),
+                        Reliability::Reliable,
+                    );
                 }
                 if id != self.peer.my_id() {
                     // Create temporary appearance files for new player.
