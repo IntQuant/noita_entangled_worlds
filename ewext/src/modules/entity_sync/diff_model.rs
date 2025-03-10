@@ -523,24 +523,25 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .collect();
-            let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
-            if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
-                info.laser = if let Some(target) = ai.m_greatest_prey()? {
-                    if ![15, 16].contains(&ai.ai_state()?) {
-                        Target::None
-                    } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
-                        Target::Peer(*peer)
-                    } else if let Some(var) = target.get_var("ew_gid_lid") {
-                        if var.value_bool()? {
-                            Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+            if let Some(ai) = entity.try_get_first_component::<AnimalAIComponent>(None)? {
+                if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
+                    info.laser = if let Some(target) = ai.m_greatest_prey()? {
+                        if ![15, 16].contains(&ai.ai_state()?) {
+                            Target::None
+                        } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
+                            Target::Peer(*peer)
+                        } else if let Some(var) = target.get_var("ew_gid_lid") {
+                            if var.value_bool()? {
+                                Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+                            } else {
+                                Target::None
+                            }
                         } else {
                             Target::None
                         }
                     } else {
                         Target::None
                     }
-                } else {
-                    Target::None
                 }
             }
         } else {
