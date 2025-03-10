@@ -2,6 +2,7 @@ use std::{env, sync::Arc, thread, time::Duration};
 
 use eframe::egui::{self, RichText, TextureHandle, Ui};
 use steamworks::{LobbyId, SResult, SteamAPIInitError, SteamId};
+use tokio::time;
 use tracing::{error, info, warn};
 
 use crate::{GameMode, releases::Version};
@@ -35,6 +36,7 @@ pub(crate) enum MaybeLobbyList {
 enum LobbyListState {
     None,
     Pending {
+        list: Arc<Vec<LobbyId>>,
         receiver: tokio::sync::oneshot::Receiver<SResult<Vec<LobbyId>>>,
     },
     List {
@@ -50,7 +52,12 @@ impl LobbyListState {
     fn try_resolve(&mut self) -> MaybeLobbyList {
         match self {
             LobbyListState::None => MaybeLobbyList::Pending,
-            LobbyListState::Pending { receiver } => {
+            LobbyListState::Pending { list, receiver } => {
+                let r = if list.is_empty() {
+                    MaybeLobbyList::Pending
+                } else {
+                    MaybeLobbyList::List(list.clone())
+                };
                 if let Ok(lst) = receiver.try_recv() {
                     match lst {
                         Ok(list) => *self = LobbyListState::List { list: list.into() },
@@ -60,7 +67,7 @@ impl LobbyListState {
                         }
                     }
                 }
-                MaybeLobbyList::Pending
+                r
             }
             LobbyListState::List { list } => MaybeLobbyList::List(list.clone()),
             LobbyListState::Errored => MaybeLobbyList::Errored,
@@ -126,19 +133,25 @@ impl SteamState {
         self.client.user().steam_id()
     }
 
-    pub(crate) fn update_lobby_list(&mut self) {
+    pub(crate) fn update_lobby_list(&mut self, timer: &mut time::Instant) {
+        *timer = time::Instant::now();
         let (s, r) = tokio::sync::oneshot::channel();
         let matchmaking = self.client.matchmaking();
         matchmaking.set_request_lobby_list_distance_filter(steamworks::DistanceFilter::Worldwide);
         matchmaking.request_lobby_list(|res| {
             let _ = s.send(res);
         });
-        self.lobby_state = LobbyListState::Pending { receiver: r };
+        let list = match &self.lobby_state {
+            LobbyListState::List { list } => list.clone(),
+            LobbyListState::Pending { list, receiver: _ } => list.clone(),
+            _ => Arc::new(Vec::new()),
+        };
+        self.lobby_state = LobbyListState::Pending { list, receiver: r }
     }
 
-    pub(crate) fn list_lobbies(&mut self) -> MaybeLobbyList {
-        if self.lobby_state.is_none() {
-            self.update_lobby_list();
+    pub(crate) fn list_lobbies(&mut self, timer: &mut time::Instant) -> MaybeLobbyList {
+        if self.lobby_state.is_none() || timer.elapsed().as_secs() > 8 {
+            self.update_lobby_list(timer);
         }
         self.lobby_state.try_resolve()
     }

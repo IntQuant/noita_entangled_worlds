@@ -44,6 +44,7 @@ use std::{
 use std::{net::IpAddr, path::PathBuf};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::{Peer, Reliability};
+use tokio::time;
 use tracing::info;
 use unic_langid::LanguageIdentifier;
 
@@ -800,7 +801,6 @@ struct AppSavedState {
     random_ports: bool,
     public_lobby: bool,
     allow_friends: bool,
-    only_ew_lobbies: bool,
 }
 
 impl Default for AppSavedState {
@@ -818,7 +818,6 @@ impl Default for AppSavedState {
             random_ports: false,
             public_lobby: false,
             allow_friends: true,
-            only_ew_lobbies: true,
         }
     }
 }
@@ -1195,6 +1194,7 @@ pub struct App {
     my_lobby_kind: LobbyKind,
     show_lobby_list: bool,
     map: ImageMap,
+    refresh_timer: time::Instant,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -1359,6 +1359,7 @@ impl App {
             my_lobby_kind,
             show_lobby_list: false,
             map: Default::default(),
+            refresh_timer: time::Instant::now(),
         }
     }
 
@@ -1682,78 +1683,82 @@ impl App {
                     let steam_state = self.steam_state.as_mut().unwrap();
                     ui.horizontal(|ui| {
                         if ui.button(tr("Refresh")).clicked() {
-                            steam_state.update_lobby_list();
+                            steam_state.update_lobby_list(&mut self.refresh_timer);
                         }
-                        ui.toggle_value(
-                            &mut self.app_saved_state.only_ew_lobbies,
-                            tr("Only-EW-lobbies"),
-                        );
                     });
-                    ScrollArea::vertical().show(ui, |ui| match steam_state.list_lobbies() {
-                        steam_helper::MaybeLobbyList::Pending => {
-                            ui.label(tr("Lobby-list-pending"));
-                        }
-                        steam_helper::MaybeLobbyList::List(lobby_ids) => {
-                            let mut shown_anything = false;
-                            for id in lobby_ids.iter() {
-                                let info = steam_state.lobby_info(*id);
-                                if self.app_saved_state.only_ew_lobbies && info.version.is_none() {
-                                    continue;
-                                }
-                                shown_anything = true;
-                                ui.group(|ui| {
-                                    ui.set_max_height(50.0);
-                                    ui.horizontal(|ui| {
-                                        ui.colored_label(Color32::WHITE, info.data.name);
-                                        ui.with_layout(
-                                            Layout::right_to_left(egui::Align::Center),
-                                            |ui| {
-                                                ui.label(format!(
-                                                    "{}/{}",
-                                                    info.member_count, info.member_limit
-                                                ));
-                                                if let Some(game_mode) = &info.data.game_mode {
-                                                    ui.label(" - ");
-                                                    let color = game_mode.color();
-                                                    ui.colored_label(
-                                                        color,
-                                                        tr(&format!("game_mode_{}", game_mode)),
-                                                    );
-                                                }
-                                            },
-                                        );
-                                    });
-                                    ui.horizontal(|ui| {
-                                        let mut enabled = false;
-                                        if let Some(version) = info.version {
-                                            enabled = version == Version::current();
-                                            let color =
-                                                if enabled { Color32::GRAY } else { Color32::RED };
-                                            ui.colored_label(color, format!("EW {}", version));
-                                        } else if info.is_noita_online {
-                                            ui.colored_label(Color32::LIGHT_BLUE, "Noita Online");
-                                        } else {
-                                            ui.label(tr("Not-Entangled-Worlds-lobby"));
-                                        }
-                                        ui.with_layout(
-                                            Layout::right_to_left(egui::Align::Center),
-                                            |ui| {
-                                                ui.add_enabled_ui(enabled, |ui| {
-                                                    if ui.small_button(tr("Join")).clicked() {
-                                                        connect_to = Some(*id);
+                    ScrollArea::vertical().show(ui, |ui| {
+                        match steam_state.list_lobbies(&mut self.refresh_timer) {
+                            steam_helper::MaybeLobbyList::Pending => {
+                                ui.label(tr("Lobby-list-pending"));
+                            }
+                            steam_helper::MaybeLobbyList::List(lobby_ids) => {
+                                let mut shown_anything = false;
+                                for id in lobby_ids.iter() {
+                                    let info = steam_state.lobby_info(*id);
+                                    if info.version != Some(Version::current()) {
+                                        continue;
+                                    }
+                                    shown_anything = true;
+                                    ui.group(|ui| {
+                                        ui.set_max_height(50.0);
+                                        ui.horizontal(|ui| {
+                                            ui.colored_label(Color32::WHITE, info.data.name);
+                                            ui.with_layout(
+                                                Layout::right_to_left(egui::Align::Center),
+                                                |ui| {
+                                                    ui.label(format!(
+                                                        "{}/{}",
+                                                        info.member_count, info.member_limit
+                                                    ));
+                                                    if let Some(game_mode) = &info.data.game_mode {
+                                                        ui.label(" - ");
+                                                        let color = game_mode.color();
+                                                        ui.colored_label(
+                                                            color,
+                                                            tr(&format!("game_mode_{}", game_mode)),
+                                                        );
                                                     }
-                                                });
-                                            },
-                                        );
+                                                },
+                                            );
+                                        });
+                                        ui.horizontal(|ui| {
+                                            let mut enabled = false;
+                                            if let Some(version) = info.version {
+                                                enabled = version == Version::current();
+                                                let color = if enabled {
+                                                    Color32::GRAY
+                                                } else {
+                                                    Color32::RED
+                                                };
+                                                ui.colored_label(color, format!("EW {}", version));
+                                            } else if info.is_noita_online {
+                                                ui.colored_label(
+                                                    Color32::LIGHT_BLUE,
+                                                    "Noita Online",
+                                                );
+                                            } else {
+                                                ui.label(tr("Not-Entangled-Worlds-lobby"));
+                                            }
+                                            ui.with_layout(
+                                                Layout::right_to_left(egui::Align::Center),
+                                                |ui| {
+                                                    ui.add_enabled_ui(enabled, |ui| {
+                                                        if ui.small_button(tr("Join")).clicked() {
+                                                            connect_to = Some(*id);
+                                                        }
+                                                    });
+                                                },
+                                            );
+                                        });
                                     });
-                                });
+                                }
+                                if !shown_anything {
+                                    ui.label(tr("No-public-lobbies-at-the-moment"));
+                                }
                             }
-                            if !shown_anything {
-                                ui.label(tr("No-public-lobbies-at-the-moment"));
+                            steam_helper::MaybeLobbyList::Errored => {
+                                ui.label("Failed to request lobby list");
                             }
-                        }
-                        steam_helper::MaybeLobbyList::Errored => {
-                            ui.label("Failed to request lobby list");
                         }
                     });
                 });
