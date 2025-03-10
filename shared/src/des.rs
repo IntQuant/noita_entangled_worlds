@@ -202,7 +202,7 @@ pub enum RemoteDes {
     CameraPos(WorldPos),
     DeadEntities(Vec<(WorldPos, SpawnOnce)>),
     SpawnOnce(WorldPos, SpawnOnce),
-    AllEntities(Vec<Lid>),
+    //AllEntities(Vec<Lid>),
     ChestOpen(Gid, i32, i32, String, f32, f32),
     ChestOpenRequest(Gid, i32, i32, String, f32, f32),
 }

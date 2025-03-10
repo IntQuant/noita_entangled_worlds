@@ -60,9 +60,9 @@ pub(crate) struct LocalDiffModel {
     phys_later: Vec<(EntityID, Vec<Option<PhysBodyInfo>>)>,
 }
 impl LocalDiffModel {
-    pub(crate) fn get_lids(&self) -> Vec<Lid> {
+    /*pub(crate) fn get_lids(&self) -> Vec<Lid> {
         self.tracker.tracked.left_values().cloned().collect()
-    }
+    }*/
     pub(crate) fn dont_save(&mut self, lid: Lid) {
         self.dont_save.insert(lid);
     }
@@ -167,7 +167,7 @@ pub(crate) struct RemoteDiffModel {
 }
 
 impl RemoteDiffModel {
-    pub fn check_entities(&mut self, lids: Vec<Lid>) {
+    /*pub fn check_entities(&mut self, lids: Vec<Lid>) {
         let to_remove: Vec<Lid> = self
             .tracked
             .left_values()
@@ -175,7 +175,7 @@ impl RemoteDiffModel {
             .cloned()
             .collect();
         self.pending_remove.extend(to_remove)
-    }
+    }*/
     pub fn new(peer_id: PeerId) -> Self {
         Self {
             tracked: Default::default(),
