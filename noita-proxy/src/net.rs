@@ -881,6 +881,11 @@ impl NetManager {
     fn do_message_request(&self, request: impl Into<MessageRequest<NetMsg>>) {
         let request: MessageRequest<NetMsg> = request.into();
         match request.dst {
+            Destination::Peers(peers) => {
+                for peer in peers {
+                    self.send(peer, &request.msg, request.reliability);
+                }
+            }
             Destination::Peer(peer) => {
                 self.send(peer, &request.msg, request.reliability);
             }
@@ -1128,6 +1133,21 @@ impl NetManager {
                 let destination = destination.convert::<OmniPeerId>();
                 let reliability = Reliability::from_reliability_bool(reliable);
                 match destination {
+                    Destination::Peers(peers) => {
+                        if !peers.is_empty() {
+                            if peers.len() == 1 {
+                                self.send(peers[0], &NetMsg::RemoteMsg(message), reliability)
+                            } else {
+                                for peer in peers {
+                                    self.send(
+                                        peer,
+                                        &NetMsg::RemoteMsg(message.clone()),
+                                        reliability,
+                                    )
+                                }
+                            }
+                        }
+                    }
                     Destination::Peer(peer) => {
                         self.send(peer, &NetMsg::RemoteMsg(message), reliability)
                     }

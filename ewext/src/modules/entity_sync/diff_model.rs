@@ -597,7 +597,7 @@ impl LocalDiffModelTracker {
             if n == 1 {
                 if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
                     let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
-                    if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 512.0 * 512.0 {
+                    if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 256.0 * 256.0 {
                         cost.set_stealable(true)?;
                         entity.remove_component(*var)?;
                     }
@@ -607,7 +607,7 @@ impl LocalDiffModelTracker {
                     vel.set_air_friction(0.55)?;
                 }
             } else if n == 0 {
-                var.set_value_int(16)?;
+                var.set_value_int(32)?;
                 if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
@@ -912,11 +912,8 @@ impl LocalDiffModel {
         Ok(lid)
     }
 
-    pub(crate) fn track_and_upload_entity(
-        &mut self,
-        entity: EntityID,
-        gid: Gid,
-    ) -> eyre::Result<()> {
+    pub(crate) fn track_and_upload_entity(&mut self, entity: EntityID) -> eyre::Result<()> {
+        let gid = Gid(rand::random());
         let lid = self.track_entity(entity, gid)?;
         self.upload.insert(lid);
         Ok(())
@@ -964,7 +961,7 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<()> {
+    pub(crate) fn update_pending_authority(&mut self) -> eyre::Result<u128> {
         let start = Instant::now();
         while let Some(entity_data) = self.tracker.pending_authority.pop() {
             let entity = spawn_entity_by_data(
@@ -1033,11 +1030,11 @@ impl LocalDiffModel {
             self.dont_upload.insert(lid);
 
             // Don't handle too much in one frame to avoid stutters.
-            if start.elapsed().as_millis() > 2 {
+            if start.elapsed().as_micros() > 2000 {
                 break;
             }
         }
-        Ok(())
+        Ok(start.elapsed().as_micros())
     }
 
     #[allow(clippy::type_complexity)]

@@ -104,6 +104,7 @@ impl PeerId {
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq)]
 pub enum Destination<PeerType> {
+    Peers(Vec<PeerType>),
     Peer(PeerType),
     Host,
     Broadcast,
@@ -113,9 +114,14 @@ impl<T> Destination<T> {
     pub fn convert<A>(self) -> Destination<A>
     where
         A: From<T>,
+        T: Copy,
+        T: Clone,
     {
         match self {
             Destination::Peer(p) => Destination::Peer(p.into()),
+            Destination::Peers(p) => {
+                Destination::Peers(p.iter().cloned().map(|p| p.into()).collect())
+            }
             Destination::Host => Destination::Host,
             Destination::Broadcast => Destination::Broadcast,
         }

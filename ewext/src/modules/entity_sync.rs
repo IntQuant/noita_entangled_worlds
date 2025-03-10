@@ -12,8 +12,8 @@ use interest::InterestTracker;
 use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, EntityID, LuaComponent, PositionSeedComponent, ProjectileComponent,
-    VariableStorageComponent,
+    DamageModelComponent, EntityID, ItemCostComponent, LuaComponent, PositionSeedComponent,
+    ProjectileComponent, VariableStorageComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -55,15 +55,14 @@ pub(crate) struct EntitySync {
     delta_sync_rate: usize,
     kill_later: Vec<(EntityID, Option<PeerId>)>,
     timer: u128,
+    to_track: Vec<EntityID>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
     }*/
     pub(crate) fn track_entity(&mut self, ent: EntityID) {
-        let _ = self
-            .local_diff_model
-            .track_and_upload_entity(ent, Gid(rand::random()));
+        let _ = self.local_diff_model.track_and_upload_entity(ent);
     }
     pub(crate) fn notrack_entity(&mut self, ent: EntityID) {
         self.dont_track.insert(ent);
@@ -101,6 +100,7 @@ impl Default for EntitySync {
             delta_sync_rate: 0,
             kill_later: Vec::new(),
             timer: 0,
+            to_track: Vec::new(),
         }
     }
 }
@@ -413,8 +413,7 @@ impl EntitySync {
         let entity = entity.ok_or_eyre("Passed entity 0 into cross call")?;
         // It might be already tracked in case of tablet telekinesis, no need to track it again.
         if !self.local_diff_model.is_entity_tracked(entity) {
-            self.local_diff_model
-                .track_and_upload_entity(entity, Gid(rand::random()))?;
+            self.local_diff_model.track_and_upload_entity(entity)?;
         }
         Ok(())
     }
@@ -495,8 +494,13 @@ impl Module for EntitySync {
             return Ok(());
         }
         if self.should_be_tracked(entity)? {
-            let gid = Gid(rand::random());
-            self.local_diff_model.track_and_upload_entity(entity, gid)?;
+            if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+                if cost.stealable()? {
+                    cost.set_stealable(false)?;
+                    entity.get_var_or_default("ew_was_stealable")?;
+                }
+            }
+            self.to_track.push(entity);
         }
         Ok(())
     }
@@ -535,10 +539,17 @@ impl Module for EntitySync {
         self.look_current_entity = EntityID::max_in_use()?;
         self.local_diff_model.enable_later()?;
         self.local_diff_model.phys_later()?;
-        self.local_diff_model.update_pending_authority()?;
+        let t = self.local_diff_model.update_pending_authority()?;
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             if let Ok(ent) = EntityID::try_from(ent) {
                 self.on_new_entity(ent, false)?;
+            }
+        }
+        let start = std::time::Instant::now();
+        while let Some(entity) = self.to_track.pop() {
+            self.local_diff_model.track_and_upload_entity(entity)?;
+            if start.elapsed().as_micros() + t > 2000 {
+                break;
             }
         }
         let tmr = std::time::Instant::now();
@@ -554,63 +565,63 @@ impl Module for EntitySync {
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
                 let init = self.local_diff_model.make_init();
-                for peer in &new_intersects {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(*peer),
-                        RemoteDes::EntityUpdate(init.clone()),
-                    )?;
-                }
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(new_intersects.clone()),
+                    RemoteDes::EntityUpdate(init),
+                )?;
             }
-            // FIXME (perf): allow a Destination that can send to several peers at once, to prevent cloning and stuff.
-            for peer in self.interest_tracker.iter_interested() {
-                if !self.pending_fired_projectiles.is_empty() {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(peer),
-                        RemoteDes::Projectiles(self.pending_fired_projectiles.clone()),
-                    )?;
-                }
-                if new_intersects.contains(&peer) {
-                    continue;
-                }
-                if !diff.is_empty() {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(peer),
-                        RemoteDes::EntityUpdate(diff.clone()),
-                    )?;
-                }
+            let proj = std::mem::take(&mut self.pending_fired_projectiles);
+            if !proj.is_empty() {
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(self.interest_tracker.iter_interested().collect()),
+                    RemoteDes::Projectiles(proj),
+                )?;
             }
-            for peer in ctx.player_map.clone().left_values() {
-                if !self.interest_tracker.contains(*peer)
-                    && *peer != my_peer_id()
-                    && !dead.is_empty()
-                {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(*peer),
-                        RemoteDes::DeadEntities(dead.clone()),
-                    )?;
-                }
+            if !diff.is_empty() {
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(
+                        self.interest_tracker
+                            .iter_interested()
+                            .filter(|p| !new_intersects.contains(p))
+                            .collect(),
+                    ),
+                    RemoteDes::EntityUpdate(diff),
+                )?;
             }
-            Arc::make_mut(&mut self.pending_fired_projectiles).clear();
+            if !dead.is_empty() {
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(
+                        ctx.player_map
+                            .left_values()
+                            .filter(|p| {
+                                !self.interest_tracker.contains(**p)
+                                    && **p != my_peer_id()
+                                    && !dead.is_empty()
+                            })
+                            .cloned()
+                            .collect(),
+                    ),
+                    RemoteDes::DeadEntities(dead),
+                )?;
+            }
             if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
                 == self.real_sync_rate - 1
             {
                 let lids = self.local_diff_model.get_lids();
-                for peer in self.interest_tracker.iter_interested() {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(peer),
-                        RemoteDes::AllEntities(lids.clone()),
-                    )?
-                }
+                send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(self.interest_tracker.iter_interested().collect()),
+                    RemoteDes::AllEntities(lids),
+                )?;
             }
         }
         if frame_num > 120 {
@@ -675,7 +686,7 @@ impl Module for EntitySync {
         }
 
         let ms = tmr.elapsed().as_micros();
-        self.timer += ms;
+        self.timer += ms + start.elapsed().as_micros() + t;
         if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
             == self.real_sync_rate - 1
         {
