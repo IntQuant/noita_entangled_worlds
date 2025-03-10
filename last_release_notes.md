@@ -1,18 +1,20 @@
-## Noita Entangled Worlds v1.4.6
+## Noita Entangled Worlds v1.4.7
 
-- fix pvp not wating on rounds to finish
+- fix lake spawns in pvp
 
-- change home on players behaviour
+- fix dice and some items not working sometimes
 
-- randomize end chest better in pvp, fix shop and perk reroll in pvp after a couple rounds
+- remove main hm stuff in pvp
 
-- fix kammi
+- fix shield sector in hiisi base not syncing
 
-- dont dupe pebble
+- enable chunk map on clients
 
-- attempt to fix a crash
+- optimize entity sync
 
-- some optimizations
+- make laser sync work better
+
+- sync greed curse and duplicate it
 
 ## Accepted pull requests
 
