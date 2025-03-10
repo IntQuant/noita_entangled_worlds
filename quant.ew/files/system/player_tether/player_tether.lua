@@ -1,6 +1,6 @@
 local rpc = net.new_rpc_namespace()
 
-local module = {}
+local tether = {}
 
 local tether_length
 
@@ -10,15 +10,16 @@ local tether_length_3
 
 local ignore_tower = false
 
-function is_in_box(x1, x2, y1, y2, x, y)
+function tether.is_in_box(x1, x2, y1, y2, x, y)
     return x1 < x and x < x2 and y1 < y and y < y2
 end
 
-function not_in_normal_area(x, y)
-    return not (-5646 < x and x < 5120 and -1400 < y and y < 14336) and not is_in_box(5632, 7168, 14336, 15872, x, y)
+function tether.not_in_normal_area(x, y)
+    return not (-5646 < x and x < 5120 and -1400 < y and y < 14336)
+        and not tether.is_in_box(5632, 7168, 14336, 15872, x, y)
 end
 
-function position_to_area_number(x, y, is_dead)
+function tether.position_to_area_number(x, y, is_dead)
     if np.GetGameModeNr() == 2 then
         if y < 1199 then
             return 1, 1199
@@ -30,9 +31,9 @@ function position_to_area_number(x, y, is_dead)
             return 4, 10415
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
-        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+        elseif tether.is_in_box(5632, 7168, 14336, 15872, x, y) then
             return 11
-        elseif not is_in_box(3000, 4200, 12800, 13500, x, y) then
+        elseif not tether.is_in_box(3000, 4200, 12800, 13500, x, y) then
             return 6
         else
             return 7
@@ -48,15 +49,15 @@ function position_to_area_number(x, y, is_dead)
             return 4, 10415
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 5
-        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+        elseif tether.is_in_box(5632, 7168, 14336, 15872, x, y) then
             return 11
-        elseif not is_in_box(3000, 4200, 12800, 13500, x, y) then
+        elseif not tether.is_in_box(3000, 4200, 12800, 13500, x, y) then
             return 6
         else
             return 7
         end
     else
-        if is_in_box(3584 - 512, 3584 + 1024, 512, 3584, x, y) and is_dead then
+        if tether.is_in_box(3584 - 512, 3584 + 1024, 512, 3584, x, y) and is_dead then
             return 3, 4783
         elseif y < 1199 then
             return 1, 1199
@@ -72,9 +73,9 @@ function position_to_area_number(x, y, is_dead)
             return 6, 10415
         elseif y < 12975 and (x < 2726 or x > 4135 or y < 12800) then
             return 7
-        elseif is_in_box(5632, 7168, 14336, 15872, x, y) then
+        elseif tether.is_in_box(5632, 7168, 14336, 15872, x, y) then
             return 11
-        elseif not is_in_box(3000, 4200, 12800, 13500, x, y) then
+        elseif not tether.is_in_box(3000, 4200, 12800, 13500, x, y) then
             return 8
         else
             return 9
@@ -95,7 +96,7 @@ local function in_normal_hm(list, x, y)
     local x2 = 512
     local dy = 338
     for _, y1 in ipairs(list) do
-        if is_in_box(x1, x2, y1, y1 + dy, x, y) then
+        if tether.is_in_box(x1, x2, y1, y1 + dy, x, y) then
             return true
         end
     end
@@ -107,26 +108,38 @@ local function not_in_hm(x, y)
         local list = { 1198, 3758, 6318, 10414 }
         local in_hm = in_normal_hm(list, x, y)
         return not in_hm,
-            not (in_hm or is_in_box(1536, 2726, 12798, 13312, x, y))
-                or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
+            not (in_hm or tether.is_in_box(1536, 2726, 12798, 13312, x, y)) or tether.is_in_box(
+                5632,
+                7168,
+                14336,
+                15872,
+                x,
+                y
+            ) --final room
     elseif tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) > 0 then
         local list = { 1198, 2734, 6318, 10414 }
         local in_hm = in_normal_hm(list, x, y)
         return not in_hm,
-            not (in_hm or is_in_box(1536, 2726, 12798, 13312, x, y))
-                or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
+            not (in_hm or tether.is_in_box(1536, 2726, 12798, 13312, x, y)) or tether.is_in_box(
+                5632,
+                7168,
+                14336,
+                15872,
+                x,
+                y
+            ) --final room
     else
         local list = { 1198, 2734, 4782, 6318, 8366, 10414 }
         local in_hm = in_normal_hm(list, x, y)
         return not in_hm,
             not (
                     in_hm
-                    or is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
-                    or is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
-                    or is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
-                    or is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
-                    or is_in_box(8700, 11300, 3550, 10240, x, y) --tower
-                    or is_in_box(5632, 7168, 14336, 15872, x, y) --final room
+                    or tether.is_in_box(1536, 2726, 12798, 13312, x, y) --last holy mountain
+                    or tether.is_in_box(-4634, -4054, 2006, 2580, x, y) --meditation cube
+                    or tether.is_in_box(-4060, -3656, 5078, 5660, x, y) --eye room
+                    or tether.is_in_box(3578, 4080, 4048, 4640, x, y) --snow room
+                    or tether.is_in_box(8700, 11300, 3550, 10240, x, y) --tower
+                    or tether.is_in_box(5632, 7168, 14336, 15872, x, y) --final room
                 )
     end
 end
@@ -182,7 +195,7 @@ function rpc.teleport_to_tower()
         return
     end
     local x2, y2 = EntityGetTransform(ctx.my_player.entity)
-    if is_in_box(9200, 11000, 8300, 9800, x2, y2) then
+    if tether.is_in_box(9200, 11000, 8300, 9800, x2, y2) then
         return
     end
     async(function()
@@ -225,7 +238,7 @@ end
 
 local wait_on_send
 
-function module.on_world_update()
+function tether.on_world_update()
     if GameGetFrameNum() % 10 == 7 then
         if ctx.is_host then
             local new_range = tonumber(ModSettingGet("quant.ew.tetherrange") or 0) or 0
@@ -271,21 +284,21 @@ function module.on_world_update()
             return
         end
         local x2, y2 = EntityGetTransform(ctx.my_player.entity)
-        if is_in_box(9200, 11000, 4000, 8300, x2, y2) then
+        if tether.is_in_box(9200, 11000, 4000, 8300, x2, y2) then
             ignore_tower = true
         end
         if
             np.GetGameModeNr() ~= 2
             and tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT")) == 0
-            and is_in_box(9200, 11000, 8300, 9800, x2, y2)
+            and tether.is_in_box(9200, 11000, 8300, 9800, x2, y2)
         then
             local any_not = false
             for _, player in pairs(ctx.players) do
                 local x, y = EntityGetTransform(player.entity)
-                if not is_in_box(9200, 11000, 4000, 9800, x, y) then
+                if not tether.is_in_box(9200, 11000, 4000, 9800, x, y) then
                     any_not = true
                 end
-                if is_in_box(0, 1000, -2000, 0, x, y) then
+                if tether.is_in_box(0, 1000, -2000, 0, x, y) then
                     async(function()
                         EntitySetTransform(ctx.my_player.entity, 770, 900)
                         wait(30)
@@ -312,10 +325,10 @@ function module.on_world_update()
         end
         if
             host_playerdata == nil
-            or (not is_suitable_target(host_playerdata.entity) and not (not not_in_normal_area(x1, y1) and not not_in_normal_area(
+            or (not is_suitable_target(host_playerdata.entity) and not (not tether.not_in_normal_area(x1, y1) and not tether.not_in_normal_area(
                 x2,
                 y2
-            ) and position_to_area_number(x1, y1) > position_to_area_number(x2, y2)))
+            ) and tether.position_to_area_number(x1, y1) > tether.position_to_area_number(x2, y2)))
             or not is_suitable_target(ctx.my_player.entity)
         then
             if
@@ -364,11 +377,11 @@ function module.on_world_update()
                 end
                 if dist_sq > tether_length_3 * tether_length_3 then
                     local x, y = x1, y1
-                    local my_pos, given = position_to_area_number(x2, y2)
+                    local my_pos, given = tether.position_to_area_number(x2, y2)
                     if
-                        not not_in_normal_area(x, y)
-                        and not not_in_normal_area(x2, y2)
-                        and position_to_area_number(x, y) > my_pos
+                        not tether.not_in_normal_area(x, y)
+                        and not tether.not_in_normal_area(x2, y2)
+                        and tether.position_to_area_number(x, y) > my_pos
                     then
                         x, y = new_pos(given)
                     end
@@ -396,4 +409,4 @@ function module.on_world_update()
     end
 end
 
-return module
+return tether

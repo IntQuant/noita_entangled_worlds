@@ -1,5 +1,5 @@
 local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfinder.lua")
-dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
+local tether = dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
 local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
 local MAX_RADIUS = 128 * 5
@@ -1097,13 +1097,13 @@ local function teleport_to_next_hm()
     for peer_id, player_data in pairs(ctx.players) do
         local player = player_data.entity
         local x, y = EntityGetTransform(player)
-        if x == nil or not_in_normal_area(x, y) then
+        if x == nil or tether.not_in_normal_area(x, y) then
             return
         end
         if peer_id == ctx.my_id then
-            my_area_num = position_to_area_number(x, y, true)
+            my_area_num = tether.position_to_area_number(x, y, true)
         elseif is_suitable_target(player) then
-            local area_num = position_to_area_number(x, y)
+            local area_num = tether.position_to_area_number(x, y)
             if area_num < others_area_num then
                 others_area_num = area_num
             end
