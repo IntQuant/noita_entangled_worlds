@@ -523,14 +523,10 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .collect();
-            if entity
-                .try_get_first_component::<SpriteComponent>(Some("laser_sight".into()))?
-                .is_some()
-                && &entity.name()? != "$animal_turret"
-            {
-                let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
+            let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
+            if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
                 info.laser = if let Some(target) = ai.m_greatest_prey()? {
-                    if ai.m_last_frame_attack_was_done()? == game_get_frame_num()? {
+                    if ![15, 16].contains(&ai.ai_state()?) {
                         Target::None
                     } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
                         Target::Peer(*peer)
