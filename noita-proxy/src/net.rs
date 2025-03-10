@@ -188,6 +188,8 @@ pub struct NetManager {
     pub ban_list: Mutex<Vec<OmniPeerId>>,
     pub kick_list: Mutex<Vec<OmniPeerId>>,
     pub no_more_players: AtomicBool,
+    pub no_chunkmap_to_players: AtomicBool,
+    pub no_chunkmap: AtomicBool,
     dont_kick: Mutex<Vec<OmniPeerId>>,
     pub dirty: AtomicBool,
     pub actual_noita_port: AtomicU16,
@@ -248,6 +250,8 @@ impl NetManager {
             chunk_map: Default::default(),
             players_sprite: Default::default(),
             reset_map: AtomicBool::new(false),
+            no_chunkmap_to_players: AtomicBool::new(false),
+            no_chunkmap: AtomicBool::new(false),
         }
         .into()
     }
@@ -585,7 +589,7 @@ impl NetManager {
             while let Ok((ch, img)) = rx.try_recv() {
                 map.insert(ch, img);
             }
-            if !map.is_empty() {
+            if !self.no_chunkmap.load(Ordering::Relaxed) && !map.is_empty() {
                 let chunk_map = &mut self.chunk_map.lock().unwrap();
                 for (ch, img) in map {
                     chunk_map.insert(ch, img);
@@ -596,7 +600,7 @@ impl NetManager {
                 while let Ok((ch, c)) = recv.try_recv() {
                     map.insert(ch, c);
                 }
-                if !map.is_empty() {
+                if !self.no_chunkmap_to_players.load(Ordering::Relaxed) && !map.is_empty() {
                     let data = NetMsg::MapData(map);
                     self.broadcast(&data, Reliability::Reliable)
                 }
@@ -631,11 +635,12 @@ impl NetManager {
                         },
                         Reliability::Reliable,
                     );
-                    self.send(
-                        id,
-                        &NetMsg::MapData(state.world.get_chunks()),
-                        Reliability::Reliable,
-                    );
+                    if !self.no_chunkmap_to_players.load(Ordering::Relaxed) {
+                        let map = state.world.get_chunks();
+                        if !map.is_empty() {
+                            self.send(id, &NetMsg::MapData(map), Reliability::Reliable);
+                        }
+                    }
                 }
                 if id != self.peer.my_id() {
                     // Create temporary appearance files for new player.

@@ -2178,6 +2178,15 @@ impl App {
                         {
                             netman.no_more_players.store(temp, Ordering::Relaxed);
                         }
+                        if ui
+                            .checkbox(&mut temp, "don't send chunk map to players")
+                            .changed()
+                        {
+                            netman.no_chunkmap_to_players.store(temp, Ordering::Relaxed);
+                        }
+                        if ui.checkbox(&mut temp, "don't save chunk map").changed() {
+                            netman.no_chunkmap.store(temp, Ordering::Relaxed);
+                        }
                     }
                 }
                 ConnectedMenu::Mods => {
