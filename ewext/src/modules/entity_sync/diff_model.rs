@@ -530,7 +530,9 @@ impl LocalDiffModelTracker {
             {
                 let ai = entity.get_first_component::<AnimalAIComponent>(None)?;
                 info.laser = if let Some(target) = ai.m_greatest_prey()? {
-                    if let Some(peer) = ctx.player_map.get_by_right(&target) {
+                    if ai.m_last_frame_attack_was_done()? == game_get_frame_num()? {
+                        Target::None
+                    } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
                         Target::Peer(*peer)
                     } else if let Some(var) = target.get_var("ew_gid_lid") {
                         if var.value_bool()? {
