@@ -1083,14 +1083,16 @@ impl ImageMap {
         if self.offset == Vec2::new(f32::MAX, f32::MAX) {
             self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0);
         }
-        {
-            let map = &mut netman.chunk_map.lock().unwrap();
-            self.update_textures(ui, map, ctx);
-            map.clear();
-        }
         if netman.reset_map.load(Ordering::Relaxed) {
             netman.reset_map.store(false, Ordering::Relaxed);
             self.textures.clear()
+        }
+        {
+            let map = &mut netman.chunk_map.lock().unwrap();
+            if !map.is_empty() {
+                self.update_textures(ui, map, ctx);
+            }
+            map.clear();
         }
         self.update_player_textures(ui, &netman.players_sprite.lock().unwrap());
         let response = ui.interact(

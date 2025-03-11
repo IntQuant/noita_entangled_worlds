@@ -668,15 +668,15 @@ impl NetManager {
                         Reliability::Reliable,
                     );
                     if self.is_host() && !self.no_chunkmap_to_players.load(Ordering::Relaxed) {
-                        info!("sending map/mat data to {id}");
+                        let colors = self.colors.lock().unwrap().clone();
+                        info!("sending {} mat data to {id}", colors.len());
+                        if !colors.is_empty() {
+                            self.send(id, &NetMsg::MatData(colors), Reliability::Reliable);
+                        }
                         let map = state.world.get_chunks();
                         info!("sending {} chunks to {id}", map.len());
                         if !map.is_empty() {
                             self.send(id, &NetMsg::MapData(map), Reliability::Reliable);
-                        }
-                        let colors = self.colors.lock().unwrap().clone();
-                        if !colors.is_empty() {
-                            self.send(id, &NetMsg::MatData(colors), Reliability::Reliable);
                         }
                     }
                 }
