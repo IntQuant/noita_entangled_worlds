@@ -104,7 +104,6 @@ struct ExtState {
     player_entity_map: BiHashMap<PeerId, EntityID>,
     fps_by_player: FxHashMap<PeerId, u8>,
     dont_spawn: FxHashSet<Gid>,
-    sync_rate: i32,
     cam_pos: FxHashMap<PeerId, WorldPos>,
 }
 
@@ -313,7 +312,6 @@ fn with_every_module(
             net,
             player_map: &mut state.player_entity_map,
             fps_by_player: &mut state.fps_by_player,
-            sync_rate: state.sync_rate.max(1) as usize,
             dont_spawn: &state.dont_spawn,
             camera_pos: &mut state.cam_pos,
         };
@@ -608,15 +606,6 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
             })?
         }
         add_lua_fn!(register_player_entity);
-
-        fn send_sync_rate(lua: LuaState) -> eyre::Result<()> {
-            let rate = lua.to_string(1)?.parse::<i32>()?;
-            ExtState::with_global(|state| {
-                state.sync_rate = rate.clamp(1, 60);
-                Ok(())
-            })?
-        }
-        add_lua_fn!(send_sync_rate);
 
         fn set_player_fps(lua: LuaState) -> eyre::Result<()> {
             let peer = PeerId::from_hex(&lua.to_string(1)?)?;

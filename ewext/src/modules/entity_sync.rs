@@ -51,11 +51,10 @@ pub(crate) struct EntitySync {
     dont_kill_by_gid: FxHashSet<Gid>,
     dont_track: FxHashSet<EntityID>,
     spawn_once: Vec<(WorldPos, shared::SpawnOnce)>,
-    real_sync_rate: usize,
-    delta_sync_rate: usize,
     kill_later: Vec<(EntityID, Option<PeerId>)>,
-    timer: u128,
     to_track: Vec<EntityID>,
+    local_index: usize,
+    remote_index: FxHashMap<PeerId, usize>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -96,11 +95,10 @@ impl Default for EntitySync {
             dont_kill_by_gid: Default::default(),
             dont_track: Default::default(),
             spawn_once: Default::default(),
-            real_sync_rate: 2,
-            delta_sync_rate: 0,
             kill_later: Vec::new(),
-            timer: 0,
             to_track: Vec::new(),
+            local_index: 0,
+            remote_index: Default::default(),
         }
     }
 }
@@ -559,15 +557,12 @@ impl Module for EntitySync {
                 break;
             }
         }
-        let tmr = std::time::Instant::now();
+        let mut t = start.elapsed().as_micros() + t;
         {
-            let (diff, dead) = self
+            let (diff, dead);
+            (diff, dead, t, self.local_index) = self
                 .local_diff_model
-                .update_tracked_entities(
-                    ctx,
-                    frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate,
-                    self.real_sync_rate,
-                )
+                .update_tracked_entities(ctx, self.local_index, t)
                 .wrap_err("Failed to update locally tracked entities")?;
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
@@ -619,35 +614,14 @@ impl Module for EntitySync {
                     RemoteDes::DeadEntities(dead),
                 )?;
             }
-            /*if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
-                == self.real_sync_rate - 1
-            {
-                let lids = self.local_diff_model.get_lids();
-                send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(self.interest_tracker.iter_interested().collect()),
-                    RemoteDes::AllEntities(lids),
-                )?;
-            }*/
         }
         if frame_num > 120 {
             for (owner, remote_model) in self.remote_models.iter_mut() {
-                let total_parts = self.real_sync_rate.max(1);
-                remote_model
-                    .apply_entities(
-                        ctx,
-                        frame_num.saturating_sub(self.delta_sync_rate) % total_parts,
-                        total_parts,
-                    )
+                let v = self.remote_index.entry(*owner).or_insert(0);
+                let v = remote_model
+                    .apply_entities(ctx, *v, t)
                     .wrap_err("Failed to apply entity infos")?;
-                /*for entity in remote_model.drain_backtrack() {
-                    self.local_diff_model.track_and_upload_entity(
-                        ctx.net,
-                        entity,
-                        Gid(rand::random()),
-                    )?;
-                }*/
+                self.remote_index.insert(*owner, v);
                 for lid in remote_model.drain_grab_request() {
                     send_remotedes(
                         ctx,
@@ -690,30 +664,6 @@ impl Module for EntitySync {
         }
         if let Err(s) = self.spawn_once(ctx) {
             crate::print_error(s)?;
-        }
-
-        let ms = tmr.elapsed().as_micros();
-        self.timer += ms + start.elapsed().as_micros() + t;
-        if frame_num.saturating_sub(self.delta_sync_rate) % self.real_sync_rate
-            == self.real_sync_rate - 1
-        {
-            if self.timer > 3000 * self.real_sync_rate as u128 {
-                self.real_sync_rate = self.real_sync_rate.saturating_add(
-                    (self.timer / (self.real_sync_rate as u128 * 1000) - 2) as usize,
-                )
-            } else if self.timer < 2000 * self.real_sync_rate as u128 {
-                self.real_sync_rate = self.real_sync_rate.saturating_sub(
-                    (self.timer as f64 / (self.real_sync_rate as f64 * 1000.0))
-                        .min(1.0)
-                        .powi(-2)
-                        .round() as usize,
-                )
-            };
-            self.real_sync_rate = self
-                .real_sync_rate
-                .clamp(ctx.sync_rate, 60 * (ctx.sync_rate + 1));
-            self.delta_sync_rate = (frame_num + 1) % self.real_sync_rate;
-            self.timer = 0;
         }
 
         if frame_num % 7 == 3 {

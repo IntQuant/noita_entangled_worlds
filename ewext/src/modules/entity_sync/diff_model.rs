@@ -1033,7 +1033,7 @@ impl LocalDiffModel {
             self.dont_upload.insert(lid);
 
             // Don't handle too much in one frame to avoid stutters.
-            if start.elapsed().as_micros() > 2000 {
+            if start.elapsed().as_micros() > 1000 {
                 break;
             }
         }
@@ -1044,16 +1044,12 @@ impl LocalDiffModel {
     pub(crate) fn update_tracked_entities(
         &mut self,
         ctx: &mut ModuleCtx,
-        part: usize,
-        total: usize,
-    ) -> eyre::Result<(Vec<EntityUpdate>, Vec<(WorldPos, SpawnOnce)>)> {
+        start: usize,
+        time: u128,
+    ) -> eyre::Result<(Vec<EntityUpdate>, Vec<(WorldPos, SpawnOnce)>, u128, usize)> {
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
-        let l = self.entity_entries.len();
-        let chunk_size = l.div_ceil(total);
-        let start = part * chunk_size;
-        let end = (start + chunk_size).min(l);
         let mut res = Vec::new();
         let mut should_transfer = false;
         if let Some(pe) = ctx.player_map.get_by_left(&my_peer_id()) {
@@ -1066,8 +1062,13 @@ impl LocalDiffModel {
         } else {
             self.wait_to_transfer = self.wait_to_transfer.saturating_sub(1)
         }
-        for (&lid, EntityEntryPair { last, current, gid }) in
-            self.entity_entries.iter_mut().skip(start).take(end - start)
+        let l = self.entity_entries.len();
+        game_print(format!("{} {}", start, l));
+        let tmr = Instant::now();
+        let mut end = 0;
+        let start = if start >= l { 0 } else { start };
+        for (i, (&lid, EntityEntryPair { last, current, gid })) in
+            self.entity_entries.iter_mut().skip(start).enumerate()
         {
             match self
                 .tracker
@@ -1269,6 +1270,10 @@ impl LocalDiffModel {
                     );
                 }
             }
+            if time + tmr.elapsed().as_micros() > 3000 {
+                end = (start + i + 1) % l;
+                break;
+            }
         }
         for (lid, peer) in self.tracker.pending_localize.drain(..) {
             res.push(EntityUpdate::LocalizeEntity(lid, peer));
@@ -1306,7 +1311,7 @@ impl LocalDiffModel {
             self.upload.remove(&lid);
             self.dont_save.remove(&lid);
         }
-        Ok((res, dead))
+        Ok((res, dead, time + tmr.elapsed().as_nanos(), end))
     }
     pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
         let mut res = Vec::new();
@@ -1834,15 +1839,16 @@ impl RemoteDiffModel {
     pub(crate) fn apply_entities(
         &mut self,
         ctx: &mut ModuleCtx,
-        part: usize,
-        total: usize,
-    ) -> eyre::Result<()> {
+        start: usize,
+        time: u128,
+    ) -> eyre::Result<usize> {
         let mut to_remove = Vec::new();
+        let tmr = Instant::now();
         let l = self.entity_infos.len();
-        let chunk_size = l.div_ceil(total);
-        let start = part * chunk_size;
-        let end = (start + chunk_size).min(l);
-        for (lid, entity_info) in self.entity_infos.iter().skip(start).take(end - start) {
+        game_print(format!("{} {}", start, l));
+        let mut end = 0;
+        let start = if start >= l { 0 } else { start };
+        for (i, (lid, entity_info)) in self.entity_infos.iter().skip(start).enumerate() {
             match self
                 .tracked
                 .get_by_left(lid)
@@ -1875,12 +1881,16 @@ impl RemoteDiffModel {
                     self.tracked.insert(*lid, entity);
                 }
             }
+            if time + tmr.elapsed().as_micros() > 4000 {
+                end = (start + i + 1) % l;
+                break;
+            }
         }
         for lid in to_remove {
             self.grab_request.push(lid);
             self.entity_infos.remove(&lid);
         }
-        Ok(())
+        Ok(end)
     }
 
     pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {

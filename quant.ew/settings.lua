@@ -291,13 +291,13 @@ local function build_settings()
                     value_default = "0",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
-                {
+                --[[{
                     id = "entity_sync",
                     ui_name = "entity sync interval",
                     ui_description = "every N frames entitys under your authority are synced",
                     value_default = "2",
                     scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
+                },]]
                 {
                     id = "world_sync",
                     ui_name = "world sync interval",

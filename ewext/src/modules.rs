@@ -14,7 +14,6 @@ pub(crate) struct ModuleCtx<'a> {
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,
     pub(crate) camera_pos: &'a mut FxHashMap<PeerId, WorldPos>,
     pub(crate) fps_by_player: &'a mut FxHashMap<PeerId, u8>,
-    pub(crate) sync_rate: usize,
     pub(crate) dont_spawn: &'a FxHashSet<Gid>,
 }
 impl ModuleCtx<'_> {
