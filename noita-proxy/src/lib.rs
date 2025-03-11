@@ -1120,10 +1120,12 @@ impl ImageMap {
         }
         if self.notplayer.is_none() {
             self.notplayer = egui::include_image!("../assets/notplayer.png")
-                .load(ctx, TextureOptions::NEAREST, SizeHint::Size(7, 16))
+                .load(ctx, TextureOptions::NEAREST, SizeHint::Size(7, 17))
                 .ok();
         }
-        self.update_player_textures(ui, &netman.players_sprite.lock().unwrap());
+        {
+            self.update_player_textures(ui, &netman.players_sprite.lock().unwrap());
+        }
         let response = ui.interact(
             ui.available_rect_before_wrap(),
             ui.id().with("map_interact"),
@@ -1141,23 +1143,24 @@ impl ImageMap {
             let new_mouse_relative = mouse_relative * zoom_factor;
             self.offset = mouse_pos - new_mouse_relative;
         }
+        let s = 32.0;
         if ui.input(|i| i.keys_down.contains(&Key::W) || i.keys_down.contains(&Key::ArrowUp)) {
-            self.offset.y += 16.0
+            self.offset.y += s
         }
         if ui.input(|i| i.keys_down.contains(&Key::S) || i.keys_down.contains(&Key::ArrowDown)) {
-            self.offset.y -= 16.0
-        }
-        if ui.input(|i| i.keys_down.contains(&Key::D) || i.keys_down.contains(&Key::ArrowRight)) {
-            self.offset.x -= 16.0
+            self.offset.y -= s
         }
         if ui.input(|i| i.keys_down.contains(&Key::A) || i.keys_down.contains(&Key::ArrowLeft)) {
-            self.offset.x += 16.0
+            self.offset.x += s
         }
-        if ui.input(|i| i.keys_down.contains(&Key::X)) {
+        if ui.input(|i| i.keys_down.contains(&Key::D) || i.keys_down.contains(&Key::ArrowRight)) {
+            self.offset.x -= s
+        }
+        if ui.input(|i| i.key_released(Key::X)) {
             self.dont_scale = !self.dont_scale
         }
-        let q = ui.input(|i| i.keys_down.contains(&Key::Q));
-        let e = ui.input(|i| i.keys_down.contains(&Key::E));
+        let q = ui.input(|i| i.key_released(Key::Q));
+        let e = ui.input(|i| i.key_released(Key::E));
         if q || e {
             let players: Vec<OmniPeerId> = self
                 .players
@@ -1165,28 +1168,32 @@ impl ImageMap {
                 .filter_map(|(a, (c, _, d, _))| if c.is_some() && !d { Some(a) } else { None })
                 .cloned()
                 .collect();
-            if !players.is_empty() {
-                if self.centered_on.is_none() {
-                    self.centered_on = Some(players[0])
-                } else if let Some(id) = self.centered_on {
+            self.centered_on = if !players.is_empty() {
+                if let Some(id) = self.centered_on {
                     if let Some(i) = players.iter().position(|o| *o == id) {
-                        self.centered_on =
-                            Some(players[if q { i - 1 } else { i + 1 } % players.len()])
+                        let i = if q { i - 1 } else { i + 1 } % (players.len() + 1);
+                        if i == players.len() {
+                            None
+                        } else {
+                            Some(players[i])
+                        }
                     } else {
-                        self.centered_on = Some(players[0])
+                        Some(players[0])
                     }
+                } else {
+                    Some(players[0])
                 }
             } else {
-                self.centered_on = None
+                None
             }
         }
-        let mut tile_size = self.zoom * 128.0;
+        let tile_size = self.zoom * 128.0;
         if let Some(peer) = self.centered_on {
             if let Some((Some(pos), _, _, _)) = self.players.get(&peer) {
                 self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0)
                     - Vec2::new(
                         pos.x as f32 * tile_size / 128.0,
-                        (pos.y - 13) as f32 * tile_size / 128.0,
+                        (pos.y - 12) as f32 * tile_size / 128.0,
                     )
             }
         }
@@ -1203,21 +1210,22 @@ impl ImageMap {
             );
         }
         for (pos, is_dead, does_exist, tex) in self.players.values() {
-            if !does_exist {
+            if *does_exist {
                 continue;
             }
             if let Some(pos) = pos {
-                if self.dont_scale {
-                    tile_size = 128.0
-                }
                 let pos = self.offset
                     + Vec2::new(
                         pos.x as f32 * tile_size / 128.0,
-                        (pos.y - 13) as f32 * tile_size / 128.0,
+                        (pos.y - 12) as f32 * tile_size / 128.0,
                     );
+                let mut tile_size = tile_size;
+                if self.dont_scale && self.zoom < 1.0 {
+                    tile_size = 128.0
+                }
                 let rect = Rect::from_min_size(
                     pos.to_pos2(),
-                    Vec2::new(8.0 * tile_size / 128.0, 18.0 * tile_size / 128.0),
+                    Vec2::new(7.0 * tile_size / 128.0, 16.0 * tile_size / 128.0),
                 );
                 if *is_dead {
                     if let Some(tex) = &self.notplayer {
@@ -1424,10 +1432,10 @@ impl App {
         let player_image = if path.exists() {
             image::open(path)
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-                .crop(1, 1, 8, 18)
+                .crop(1, 1, 7, 16)
                 .into_rgba8()
         } else {
-            RgbaImage::new(1, 1)
+            RgbaImage::new(7, 17)
         };
 
         let my_lobby_kind = if saved_state.spacewars {
@@ -2006,7 +2014,7 @@ impl App {
         if self.player_image.width() == 1 {
             self.player_image = image::open(player_path(self.modmanager_settings.mod_path()))
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-                .crop(1, 1, 8, 18)
+                .crop(1, 1, 7, 16)
                 .into_rgba8();
         }
         ui.add_space(20.0);

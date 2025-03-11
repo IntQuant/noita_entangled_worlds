@@ -404,10 +404,10 @@ impl NetManager {
         let player_image = if path.exists() {
             image::open(path)
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-                .crop(1, 1, 8, 18)
+                .crop(1, 1, 7, 16)
                 .into_rgba8()
         } else {
-            RgbaImage::new(1, 1)
+            RgbaImage::new(7, 17)
         };
         // Create appearance files for local player.
         create_player_png(

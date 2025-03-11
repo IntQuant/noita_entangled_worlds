@@ -125,12 +125,12 @@ pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
             *pixel = arm
         } else {
             match i {
-                49 | 41 | 33 => *pixel = forearm,
-                25 => *pixel = Rgba::from([219, 192, 103, 255]),
-                82 | 90 | 98 | 106 | 89 | 97 | 105 | 113 | 121 | 96 | 104 | 112 | 120 | 128 => {
+                29 | 36 | 43 => *pixel = forearm,
+                22 => *pixel = Rgba::from([219, 192, 103, 255]),
+                105 | 98 | 91 | 84 | 112 | 99 | 92 | 85 | 78 | 106 | 86 | 79 | 72 | 93 => {
                     *pixel = cape
                 }
-                74 | 73 | 81 | 80 | 88 => *pixel = cape_edge,
+                70 | 77 | 64 | 71 | 65 => *pixel = cape_edge,
                 _ => {}
             }
         }
@@ -141,17 +141,17 @@ pub fn add_cosmetics(image: &mut RgbaImage, cosmetics: &[bool]) {
     for (i, pixel) in image.pixels_mut().enumerate() {
         match i {
             2 | 4 | 6 if cosmetics[0] => *pixel = Rgba::from([255, 244, 140, 255]),
-            10 | 14 if cosmetics[0] => *pixel = Rgba::from([191, 141, 65, 255]),
-            11..=13 if cosmetics[0] => *pixel = Rgba::from([255, 206, 98, 255]),
-            61 if cosmetics[2] => *pixel = Rgba::from([255, 242, 162, 255]),
-            68 if cosmetics[2] => *pixel = Rgba::from([255, 227, 133, 255]),
-            69 if cosmetics[2] => *pixel = Rgba::from([255, 94, 38, 255]),
-            70 | 77 if cosmetics[2] => *pixel = Rgba::from([247, 188, 86, 255]),
-            51 | 60 if cosmetics[1] => *pixel = Rgba::from([247, 188, 86, 255]),
-            61 if cosmetics[1] => *pixel = Rgba::from([255, 227, 133, 255]),
-            69 if cosmetics[1] => *pixel = Rgba::from([255, 242, 162, 255]),
-            54 if cosmetics[1] => *pixel = Rgba::from([198, 111, 57, 255]),
-            62 if cosmetics[1] => *pixel = Rgba::from([177, 97, 48, 149]),
+            9 | 13 if cosmetics[0] => *pixel = Rgba::from([191, 141, 65, 255]),
+            10..=12 if cosmetics[0] => *pixel = Rgba::from([255, 206, 98, 255]),
+            54 if cosmetics[2] => *pixel = Rgba::from([255, 242, 162, 255]),
+            60 if cosmetics[2] => *pixel = Rgba::from([255, 227, 133, 255]),
+            61 if cosmetics[2] => *pixel = Rgba::from([255, 94, 38, 255]),
+            62 | 68 if cosmetics[2] => *pixel = Rgba::from([247, 188, 86, 255]),
+            45 | 53 if cosmetics[1] => *pixel = Rgba::from([247, 188, 86, 255]),
+            54 if cosmetics[1] => *pixel = Rgba::from([255, 227, 133, 255]),
+            61 if cosmetics[1] => *pixel = Rgba::from([255, 242, 162, 255]),
+            55 if cosmetics[1] => *pixel = Rgba::from([198, 111, 57, 255]),
+            48 if cosmetics[1] => *pixel = Rgba::from([177, 97, 48, 149]),
             _ => {}
         }
     }
@@ -319,7 +319,10 @@ pub fn get_player_skin(
 pub fn display_player_skin(ui: &mut Ui, img: ImageBuffer<Rgba<u8>, Vec<u8>>, scale: f32) {
     let texture: TextureHandle = ui.ctx().load_texture(
         "player",
-        egui::ColorImage::from_rgba_unmultiplied([8, 18], &img.into_raw()),
+        egui::ColorImage::from_rgba_unmultiplied(
+            [img.width() as usize, img.height() as usize],
+            &img.into_raw(),
+        ),
         TextureOptions::NEAREST,
     );
     ui.add(Image::new(&texture).fit_to_original_size(scale));
@@ -380,7 +383,7 @@ pub fn create_player_png(
     let icon = get_player_skin(
         image::open(player_path)
             .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-            .crop(1, 1, 8, 18)
+            .crop(1, 1, 7, 16)
             .into_rgba8(),
         *rgb,
     );
