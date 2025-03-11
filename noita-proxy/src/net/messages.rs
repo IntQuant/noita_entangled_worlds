@@ -33,7 +33,7 @@ pub(crate) enum NetMsg {
     RespondFlagNormal(String, bool),
     RespondFlagSlow(usize, bool),
     RespondFlagMoon(i32, i32, bool),
-    PlayerPosition(i32, i32),
+    PlayerPosition(i32, i32, bool, bool),
     RespondFlagStevari(i32, i32, OmniPeerId),
     AudioData(Vec<Vec<u8>>, bool, i32, i32, f32),
     MapData(FxHashMap<ChunkCoord, ChunkData>),

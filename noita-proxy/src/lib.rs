@@ -6,11 +6,12 @@ use bookkeeping::{
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use cpal::traits::{DeviceTrait, HostTrait};
+use eframe::egui::load::TexturePoll;
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
     ImageButton, InnerResponse, Key, Layout, Margin, OpenUrl, OutputCommand, Rect, RichText,
-    ScrollArea, Sense, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals,
-    Window, pos2,
+    ScrollArea, Sense, SizeHint, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2,
+    Visuals, Window, pos2,
 };
 use eframe::epaint::TextureHandle;
 use image::DynamicImage::ImageRgba8;
@@ -844,6 +845,18 @@ impl Default for PlayerColor {
         }
     }
 }
+/*impl PlayerColor {
+    pub fn notplayer() -> Self {
+        Self {
+            player_main: [155.0, 111.0, 154.0, 255.0],
+            player_alt: [127.0, 84.0, 118.0, 255.0],
+            player_arm: [89.0, 67.0, 84.0, 255.0],
+            player_cape: [118.0, 84.0, 127.0, 255.0],
+            player_cape_edge: [154.0, 111.0, 155.0, 255.0],
+            player_forearm: [158.0, 115.0, 154.0, 255.0],
+        }
+    }
+}*/
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 enum PlayerPicker {
     None,
@@ -1025,7 +1038,8 @@ struct ImageMap {
     textures: FxHashMap<ChunkCoord, TextureHandle>,
     zoom: f32,
     offset: Vec2,
-    players: FxHashMap<OmniPeerId, (Option<WorldPos>, TextureHandle)>,
+    players: FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, TextureHandle)>,
+    notplayer: Option<TexturePoll>,
     centered_on: Option<OmniPeerId>,
     dont_scale: bool,
 }
@@ -1036,6 +1050,7 @@ impl Default for ImageMap {
             zoom: 1.0,
             offset: Vec2::new(f32::MAX, f32::MAX),
             players: Default::default(),
+            notplayer: None,
             centered_on: None,
             dont_scale: false,
         }
@@ -1065,9 +1080,9 @@ impl ImageMap {
     fn update_player_textures(
         &mut self,
         ui: &mut Ui,
-        map: &FxHashMap<OmniPeerId, (Option<WorldPos>, RgbaImage)>,
+        map: &FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, RgbaImage)>,
     ) {
-        for (p, (coord, img)) in map {
+        for (p, (coord, is_dead, does_exist, img)) in map {
             if !self.players.contains_key(p) {
                 let name = format!("{}", p);
                 let size = [img.width() as usize, img.height() as usize];
@@ -1078,9 +1093,14 @@ impl ImageMap {
                 let tex = ui
                     .ctx()
                     .load_texture(name, color_image, TextureOptions::NEAREST);
-                self.players.insert(*p, (*coord, tex));
+                self.players
+                    .insert(*p, (*coord, *is_dead, *does_exist, tex));
             }
-            self.players.entry(*p).and_modify(|(w, _)| *w = *coord);
+            self.players.entry(*p).and_modify(|(w, b, d, _)| {
+                *w = *coord;
+                *b = *is_dead;
+                *d = *does_exist;
+            });
         }
     }
     fn ui(&mut self, ui: &mut Ui, netman: &NetManStopOnDrop, ctx: &Context) {
@@ -1089,7 +1109,7 @@ impl ImageMap {
         }
         if netman.reset_map.load(Ordering::Relaxed) {
             netman.reset_map.store(false, Ordering::Relaxed);
-            self.textures.clear()
+            self.textures.clear();
         }
         {
             let map = &mut netman.chunk_map.lock().unwrap();
@@ -1097,6 +1117,11 @@ impl ImageMap {
                 self.update_textures(ui, map, ctx);
             }
             map.clear();
+        }
+        if self.notplayer.is_none() {
+            self.notplayer = egui::include_image!("../assets/notplayer.png")
+                .load(ctx, TextureOptions::NEAREST, SizeHint::Size(7, 16))
+                .ok();
         }
         self.update_player_textures(ui, &netman.players_sprite.lock().unwrap());
         let response = ui.interact(
@@ -1123,10 +1148,10 @@ impl ImageMap {
             self.offset.y -= 16.0
         }
         if ui.input(|i| i.keys_down.contains(&Key::D) || i.keys_down.contains(&Key::ArrowRight)) {
-            self.offset.x += 16.0
+            self.offset.x -= 16.0
         }
         if ui.input(|i| i.keys_down.contains(&Key::A) || i.keys_down.contains(&Key::ArrowLeft)) {
-            self.offset.x -= 16.0
+            self.offset.x += 16.0
         }
         if ui.input(|i| i.keys_down.contains(&Key::X)) {
             self.dont_scale = !self.dont_scale
@@ -1137,7 +1162,7 @@ impl ImageMap {
             let players: Vec<OmniPeerId> = self
                 .players
                 .iter()
-                .filter_map(|(a, (c, _))| if c.is_some() { Some(a) } else { None })
+                .filter_map(|(a, (c, _, d, _))| if c.is_some() && !d { Some(a) } else { None })
                 .cloned()
                 .collect();
             if !players.is_empty() {
@@ -1156,6 +1181,15 @@ impl ImageMap {
             }
         }
         let mut tile_size = self.zoom * 128.0;
+        if let Some(peer) = self.centered_on {
+            if let Some((Some(pos), _, _, _)) = self.players.get(&peer) {
+                self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0)
+                    - Vec2::new(
+                        pos.x as f32 * tile_size / 128.0,
+                        (pos.y - 13) as f32 * tile_size / 128.0,
+                    )
+            }
+        }
         let painter = ui.painter();
         for (coord, tex) in &self.textures {
             let pos =
@@ -1168,7 +1202,10 @@ impl ImageMap {
                 Color32::WHITE,
             );
         }
-        for (pos, tex) in self.players.values() {
+        for (pos, is_dead, does_exist, tex) in self.players.values() {
+            if !does_exist {
+                continue;
+            }
             if let Some(pos) = pos {
                 if self.dont_scale {
                     tile_size = 128.0
@@ -1182,12 +1219,25 @@ impl ImageMap {
                     pos.to_pos2(),
                     Vec2::new(8.0 * tile_size / 128.0, 18.0 * tile_size / 128.0),
                 );
-                painter.image(
-                    tex.id(),
-                    rect,
-                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
+                if *is_dead {
+                    if let Some(tex) = &self.notplayer {
+                        if let Some(id) = tex.texture_id() {
+                            painter.image(
+                                id,
+                                rect,
+                                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                                Color32::WHITE,
+                            );
+                        }
+                    }
+                } else {
+                    painter.image(
+                        tex.id(),
+                        rect,
+                        Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
+                }
             }
         }
     }
@@ -1606,7 +1656,7 @@ impl App {
             if self.app_saved_state.times_started % 20 == 0 {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
                     .texture_options(TextureOptions::NEAREST);
-                image.paint_at(ui, ui.ctx().screen_rect());
+                image.paint_at(ui, ctx.screen_rect());
             } else {
                 draw_bg(ui);
             }

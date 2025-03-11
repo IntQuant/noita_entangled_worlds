@@ -42,6 +42,14 @@ function module.on_world_update()
     if cess then
         c = 1
     end
+    local is_dead = 0
+    if GameHasFlagRun("ew_flag_notplayer_active") then
+        is_dead = 1
+    end
+    local d = 0
+    if ctx.proxy_opt.no_notplayer or ctx.proxy_opt.perma_death then
+        d = 1
+    end
     net.proxy_send(
         "cam_pos",
         math.floor(x)
@@ -51,6 +59,10 @@ function module.on_world_update()
             .. math.floor(mx)
             .. " "
             .. math.floor(my)
+            .. " "
+            .. is_dead
+            .. " "
+            .. d
             .. " "
             .. ptt
             .. " "

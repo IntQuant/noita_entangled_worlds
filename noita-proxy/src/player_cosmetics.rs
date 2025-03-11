@@ -368,13 +368,14 @@ fn replace_colors_opt(path: PathBuf, save: PathBuf, rgb: &PlayerColor, inv: bool
     img.save(save).unwrap();
 }
 
+#[allow(clippy::type_complexity)]
 pub fn create_player_png(
     peer: OmniPeerId,
     mod_path: &Path,
     player_path: &Path,
     rgb: &PlayerPngDesc,
     is_host: bool,
-    player_map: &mut MutexGuard<FxHashMap<OmniPeerId, (Option<WorldPos>, RgbaImage)>>,
+    player_map: &mut MutexGuard<FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, RgbaImage)>>,
 ) {
     let icon = get_player_skin(
         image::open(player_path)
@@ -383,7 +384,7 @@ pub fn create_player_png(
             .into_rgba8(),
         *rgb,
     );
-    player_map.insert(peer, (None, icon.clone()));
+    player_map.insert(peer, (None, false, false, icon.clone()));
     let inv = rgb.invert_border;
     let id = peer.as_hex();
     let cosmetics = rgb.cosmetics;

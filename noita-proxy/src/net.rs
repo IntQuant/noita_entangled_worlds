@@ -209,7 +209,8 @@ pub struct NetManager {
     duplicate: AtomicBool,
     pub back_out: AtomicBool,
     pub chunk_map: Mutex<FxHashMap<ChunkCoord, RgbaImage>>,
-    pub players_sprite: Mutex<FxHashMap<OmniPeerId, (Option<WorldPos>, RgbaImage)>>,
+    #[allow(clippy::type_complexity)]
+    pub players_sprite: Mutex<FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, RgbaImage)>>,
     pub reset_map: AtomicBool,
     colors: Mutex<FxHashMap<u16, u32>>,
 }
@@ -735,10 +736,13 @@ impl NetManager {
                         .play_audio(audio, pos, src, data, global, (tx, ty), vol);
                 }
             }
-            NetMsg::PlayerPosition(x, y) => {
+            NetMsg::PlayerPosition(x, y, is_dead, does_exist) => {
                 let map = &mut self.players_sprite.lock().unwrap();
-                map.entry(src)
-                    .and_modify(|(w, _)| *w = Some(WorldPos::from((x, y))));
+                map.entry(src).and_modify(|(w, b, d, _)| {
+                    *w = Some(WorldPos::from((x, y)));
+                    *b = is_dead;
+                    *d = does_exist
+                });
             }
             NetMsg::MapData(chunks) => {
                 for (ch, c) in chunks {
@@ -1245,13 +1249,21 @@ impl NetManager {
                 }
                 let x: Option<i32> = msg.next().and_then(|s| s.parse().ok());
                 let y: Option<i32> = msg.next().and_then(|s| s.parse().ok());
+                let b: bool = msg
+                    .next()
+                    .map(|s| s.parse().ok() == Some(1))
+                    .unwrap_or(false);
+                let d: bool = msg
+                    .next()
+                    .map(|s| s.parse().ok() == Some(1))
+                    .unwrap_or(false);
                 if let (Some(x), Some(y)) = (x, y) {
                     self.player_pos.0.store(x, Ordering::Relaxed);
                     self.player_pos.1.store(y, Ordering::Relaxed);
-                    self.broadcast(&NetMsg::PlayerPosition(x, y), Reliability::Reliable);
+                    self.broadcast(&NetMsg::PlayerPosition(x, y, b, d), Reliability::Reliable);
                     self.send(
                         self.peer.my_id(),
-                        &NetMsg::PlayerPosition(x, y),
+                        &NetMsg::PlayerPosition(x, y, b, d),
                         Reliability::Reliable,
                     );
                 }
