@@ -13,7 +13,7 @@ use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
     DamageModelComponent, EntityID, ItemCostComponent, LuaComponent, PositionSeedComponent,
-    ProjectileComponent, VariableStorageComponent,
+    ProjectileComponent, VariableStorageComponent, VelocityComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -495,10 +495,16 @@ impl Module for EntitySync {
             return Ok(());
         }
         if self.should_be_tracked(entity)? {
-            if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
-                if cost.stealable()? {
-                    cost.set_stealable(false)?;
-                    entity.get_var_or_default("ew_was_stealable")?;
+            if entity.has_tag("card_action") {
+                if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+                    if cost.stealable()? {
+                        cost.set_stealable(false)?;
+                        entity.get_var_or_default("ew_was_stealable")?;
+                    }
+                }
+                if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
+                    vel.set_gravity_y(0.0)?;
+                    vel.set_air_friction(10.0)?;
                 }
             }
             self.to_track.push(entity);
