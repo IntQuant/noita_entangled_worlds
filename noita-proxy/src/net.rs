@@ -209,7 +209,7 @@ pub struct NetManager {
     duplicate: AtomicBool,
     pub back_out: AtomicBool,
     pub chunk_map: Mutex<FxHashMap<ChunkCoord, RgbaImage>>,
-    pub players_sprite: Mutex<FxHashMap<OmniPeerId, (WorldPos, RgbaImage)>>,
+    pub players_sprite: Mutex<FxHashMap<OmniPeerId, (Option<WorldPos>, RgbaImage)>>,
     pub reset_map: AtomicBool,
     colors: Mutex<FxHashMap<u16, u32>>,
 }
@@ -738,7 +738,7 @@ impl NetManager {
             NetMsg::PlayerPosition(x, y) => {
                 let map = &mut self.players_sprite.lock().unwrap();
                 map.entry(src)
-                    .and_modify(|(w, _)| *w = WorldPos::from((x, y)));
+                    .and_modify(|(w, _)| *w = Some(WorldPos::from((x, y))));
             }
             NetMsg::MapData(chunks) => {
                 for (ch, c) in chunks {

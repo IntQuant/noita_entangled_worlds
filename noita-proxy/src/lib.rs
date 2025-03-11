@@ -1025,7 +1025,9 @@ struct ImageMap {
     textures: FxHashMap<ChunkCoord, TextureHandle>,
     zoom: f32,
     offset: Vec2,
-    players: FxHashMap<OmniPeerId, (WorldPos, TextureHandle)>,
+    players: FxHashMap<OmniPeerId, (Option<WorldPos>, TextureHandle)>,
+    centered_on: Option<OmniPeerId>,
+    dont_scale: bool,
 }
 impl Default for ImageMap {
     fn default() -> Self {
@@ -1034,6 +1036,8 @@ impl Default for ImageMap {
             zoom: 1.0,
             offset: Vec2::new(f32::MAX, f32::MAX),
             players: Default::default(),
+            centered_on: None,
+            dont_scale: false,
         }
     }
 }
@@ -1061,7 +1065,7 @@ impl ImageMap {
     fn update_player_textures(
         &mut self,
         ui: &mut Ui,
-        map: &FxHashMap<OmniPeerId, (WorldPos, RgbaImage)>,
+        map: &FxHashMap<OmniPeerId, (Option<WorldPos>, RgbaImage)>,
     ) {
         for (p, (coord, img)) in map {
             if !self.players.contains_key(p) {
@@ -1112,7 +1116,46 @@ impl ImageMap {
             let new_mouse_relative = mouse_relative * zoom_factor;
             self.offset = mouse_pos - new_mouse_relative;
         }
-        let tile_size = self.zoom * 128.0;
+        if ui.input(|i| i.keys_down.contains(&Key::W) || i.keys_down.contains(&Key::ArrowUp)) {
+            self.offset.y += 16.0
+        }
+        if ui.input(|i| i.keys_down.contains(&Key::S) || i.keys_down.contains(&Key::ArrowDown)) {
+            self.offset.y -= 16.0
+        }
+        if ui.input(|i| i.keys_down.contains(&Key::D) || i.keys_down.contains(&Key::ArrowRight)) {
+            self.offset.x += 16.0
+        }
+        if ui.input(|i| i.keys_down.contains(&Key::A) || i.keys_down.contains(&Key::ArrowLeft)) {
+            self.offset.x -= 16.0
+        }
+        if ui.input(|i| i.keys_down.contains(&Key::X)) {
+            self.dont_scale = !self.dont_scale
+        }
+        let q = ui.input(|i| i.keys_down.contains(&Key::Q));
+        let e = ui.input(|i| i.keys_down.contains(&Key::E));
+        if q || e {
+            let players: Vec<OmniPeerId> = self
+                .players
+                .iter()
+                .filter_map(|(a, (c, _))| if c.is_some() { Some(a) } else { None })
+                .cloned()
+                .collect();
+            if !players.is_empty() {
+                if self.centered_on.is_none() {
+                    self.centered_on = Some(players[0])
+                } else if let Some(id) = self.centered_on {
+                    if let Some(i) = players.iter().position(|o| *o == id) {
+                        self.centered_on =
+                            Some(players[if q { i - 1 } else { i + 1 } % players.len()])
+                    } else {
+                        self.centered_on = Some(players[0])
+                    }
+                }
+            } else {
+                self.centered_on = None
+            }
+        }
+        let mut tile_size = self.zoom * 128.0;
         let painter = ui.painter();
         for (coord, tex) in &self.textures {
             let pos =
@@ -1126,21 +1169,26 @@ impl ImageMap {
             );
         }
         for (pos, tex) in self.players.values() {
-            let pos = self.offset
-                + Vec2::new(
-                    pos.x as f32 * tile_size / 128.0,
-                    (pos.y - 13) as f32 * tile_size / 128.0,
+            if let Some(pos) = pos {
+                if self.dont_scale {
+                    tile_size = 128.0
+                }
+                let pos = self.offset
+                    + Vec2::new(
+                        pos.x as f32 * tile_size / 128.0,
+                        (pos.y - 13) as f32 * tile_size / 128.0,
+                    );
+                let rect = Rect::from_min_size(
+                    pos.to_pos2(),
+                    Vec2::new(8.0 * tile_size / 128.0, 18.0 * tile_size / 128.0),
                 );
-            let rect = Rect::from_min_size(
-                pos.to_pos2(),
-                Vec2::new(8.0 * tile_size / 128.0, 18.0 * tile_size / 128.0),
-            );
-            painter.image(
-                tex.id(),
-                rect,
-                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                Color32::WHITE,
-            );
+                painter.image(
+                    tex.id(),
+                    rect,
+                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                    Color32::WHITE,
+                );
+            }
         }
     }
 }
