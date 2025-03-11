@@ -58,6 +58,7 @@ pub(crate) struct LocalDiffModel {
     enable_later: Vec<EntityID>,
     dont_save: FxHashSet<Lid>,
     phys_later: Vec<(EntityID, Vec<Option<PhysBodyInfo>>)>,
+    wait_to_transfer: u8,
 }
 impl LocalDiffModel {
     /*pub(crate) fn get_lids(&self) -> Vec<Lid> {
@@ -225,6 +226,7 @@ impl Default for LocalDiffModel {
             enable_later: Default::default(),
             phys_later: Default::default(),
             dont_save: Default::default(),
+            wait_to_transfer: 0,
         }
     }
 }
@@ -1059,6 +1061,11 @@ impl LocalDiffModel {
             should_transfer =
                 (px - cam_x).powi(2) + (py - cam_y).powi(2) > AUTHORITY_RADIUS.powi(2);
         }
+        if !should_transfer {
+            self.wait_to_transfer = 8
+        } else {
+            self.wait_to_transfer = self.wait_to_transfer.saturating_sub(1)
+        }
         for (&lid, EntityEntryPair { last, current, gid }) in
             self.entity_entries.iter_mut().skip(start).take(end - start)
         {
@@ -1071,7 +1078,7 @@ impl LocalDiffModel {
                     lid,
                     (cam_x, cam_y),
                     self.upload.contains(&lid) && !self.dont_upload.contains(&lid),
-                    should_transfer,
+                    should_transfer && self.wait_to_transfer == 0,
                     !self.dont_save.contains(&lid),
                 )
                 .wrap_err("Failed to update local entity")
