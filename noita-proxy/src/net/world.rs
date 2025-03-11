@@ -2381,12 +2381,15 @@ fn create_image(chunk: ChunkData, materials: &FxHashMap<u16, u32>) -> RgbaImage 
         let x = i % w as usize;
         let y = i / w as usize;
         let p = y * CHUNK_SIZE + x;
-        if let Some(c) = materials.get(&working_chunk.pixel(p).material) {
-            let a = (c >> 24) & 0xFFu32;
-            let r = (c >> 16) & 0xFFu32;
-            let g = (c >> 8) & 0xFFu32;
-            let b = c & 0xFF;
-            *px = image::Rgba([r as u8, g as u8, b as u8, a as u8])
+        let m = working_chunk.pixel(p);
+        if m.flags != PixelFlags::Unknown {
+            if let Some(c) = materials.get(&m.material) {
+                let a = (c >> 24) & 0xFFu32;
+                let r = (c >> 16) & 0xFFu32;
+                let g = (c >> 8) & 0xFFu32;
+                let b = c & 0xFF;
+                *px = image::Rgba([r as u8, g as u8, b as u8, a as u8])
+            }
         }
     }
     image
