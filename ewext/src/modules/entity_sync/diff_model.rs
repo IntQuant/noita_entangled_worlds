@@ -1063,7 +1063,6 @@ impl LocalDiffModel {
             self.wait_to_transfer = self.wait_to_transfer.saturating_sub(1)
         }
         let l = self.entity_entries.len();
-        game_print(format!("{} {}", start, l));
         let tmr = Instant::now();
         let mut end = 0;
         let start = if start >= l { 0 } else { start };
@@ -1845,7 +1844,6 @@ impl RemoteDiffModel {
         let mut to_remove = Vec::new();
         let tmr = Instant::now();
         let l = self.entity_infos.len();
-        game_print(format!("{} {}", start, l));
         let mut end = 0;
         let start = if start >= l { 0 } else { start };
         for (i, (lid, entity_info)) in self.entity_infos.iter().skip(start).enumerate() {
