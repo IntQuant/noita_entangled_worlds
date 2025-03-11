@@ -1,20 +1,12 @@
-## Noita Entangled Worlds v1.4.7
+## Noita Entangled Worlds v1.4.8
 
-- fix lake spawns in pvp
+- improve performance for entity sync
 
-- fix dice and some items not working sometimes
+- lots of chunk map improvements, add some keybinds
 
-- remove main hm stuff in pvp
+- fix spells falling through hm
 
-- fix shield sector in hiisi base not syncing
-
-- enable chunk map on clients
-
-- optimize entity sync
-
-- make laser sync work better
-
-- sync greed curse and duplicate it
+- change some stuff in lobby list
 
 ## Accepted pull requests
 
