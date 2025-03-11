@@ -33,9 +33,11 @@ pub(crate) enum NetMsg {
     RespondFlagNormal(String, bool),
     RespondFlagSlow(usize, bool),
     RespondFlagMoon(i32, i32, bool),
+    PlayerPosition(i32, i32),
     RespondFlagStevari(i32, i32, OmniPeerId),
     AudioData(Vec<Vec<u8>>, bool, i32, i32, f32),
     MapData(FxHashMap<ChunkCoord, ChunkData>),
+    MatData(FxHashMap<u16, u32>),
 }
 
 impl From<MessageRequest<WorldNetMessage>> for MessageRequest<NetMsg> {

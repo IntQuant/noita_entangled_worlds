@@ -211,6 +211,7 @@ pub struct NetManager {
     pub chunk_map: Mutex<FxHashMap<ChunkCoord, RgbaImage>>,
     pub players_sprite: Mutex<FxHashMap<OmniPeerId, (WorldPos, RgbaImage)>>,
     pub reset_map: AtomicBool,
+    colors: Mutex<FxHashMap<u16, u32>>,
 }
 
 impl NetManager {
@@ -252,6 +253,7 @@ impl NetManager {
             reset_map: AtomicBool::new(false),
             no_chunkmap_to_players: AtomicBool::new(false),
             no_chunkmap: AtomicBool::new(false),
+            colors: Default::default(),
         }
         .into()
     }
@@ -496,8 +498,13 @@ impl NetManager {
             }
             to_kick.clear();
             for net_event in self.peer.recv() {
-                self.clone()
-                    .handle_network_event(&mut state, &player_image, net_event, &tx);
+                self.clone().handle_network_event(
+                    &mut state,
+                    &player_image,
+                    net_event,
+                    &tx,
+                    &sendm,
+                );
             }
             for net_msg in self.loopback_channel.1.try_iter() {
                 self.clone().handle_net_msg(
@@ -506,6 +513,7 @@ impl NetManager {
                     self.peer.my_id(),
                     net_msg,
                     &tx,
+                    &sendm,
                 );
             }
             // Handle all available messages from Noita.
@@ -621,6 +629,7 @@ impl NetManager {
         player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
         tx: &Sender<(ChunkCoord, ChunkData)>,
+        sendm: &Sender<FxHashMap<u16, u32>>,
     ) {
         match net_event {
             omni::OmniNetworkEvent::PeerConnected(id) => {
@@ -635,12 +644,6 @@ impl NetManager {
                         },
                         Reliability::Reliable,
                     );
-                    if !self.no_chunkmap_to_players.load(Ordering::Relaxed) {
-                        let map = state.world.get_chunks();
-                        if !map.is_empty() {
-                            self.send(id, &NetMsg::MapData(map), Reliability::Reliable);
-                        }
-                    }
                 }
                 if id != self.peer.my_id() {
                     // Create temporary appearance files for new player.
@@ -664,6 +667,16 @@ impl NetManager {
                         ),
                         Reliability::Reliable,
                     );
+                    if self.is_host() && !self.no_chunkmap_to_players.load(Ordering::Relaxed) {
+                        let map = state.world.get_chunks();
+                        if !map.is_empty() {
+                            self.send(id, &NetMsg::MapData(map), Reliability::Reliable);
+                        }
+                        let colors = self.colors.lock().unwrap().clone();
+                        if !colors.is_empty() {
+                            self.send(id, &NetMsg::MatData(colors), Reliability::Reliable);
+                        }
+                    }
                 }
                 state.try_ms_write(&ws_encode_proxy("join", id.as_hex()));
             }
@@ -685,7 +698,7 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(state, player_image, src, net_msg, tx);
+                self.handle_net_msg(state, player_image, src, net_msg, tx, sendm);
             }
         }
     }
@@ -698,6 +711,7 @@ impl NetManager {
         src: OmniPeerId,
         net_msg: NetMsg,
         tx: &Sender<(ChunkCoord, ChunkData)>,
+        sendm: &Sender<FxHashMap<u16, u32>>,
     ) {
         match net_msg {
             NetMsg::AudioData(data, global, tx, ty, vol) => {
@@ -719,10 +733,18 @@ impl NetManager {
                         .play_audio(audio, pos, src, data, global, (tx, ty), vol);
                 }
             }
+            NetMsg::PlayerPosition(x, y) => {
+                let map = &mut self.players_sprite.lock().unwrap();
+                map.entry(src)
+                    .and_modify(|(w, _)| *w = WorldPos::from((x, y)));
+            }
             NetMsg::MapData(chunks) => {
                 for (ch, c) in chunks {
                     let _ = tx.send((ch, c));
                 }
+            }
+            NetMsg::MatData(colors) => {
+                let _ = sendm.send(colors);
             }
             NetMsg::RequestMods => {
                 if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
@@ -1223,6 +1245,7 @@ impl NetManager {
                 if let (Some(x), Some(y)) = (x, y) {
                     self.player_pos.0.store(x, Ordering::Relaxed);
                     self.player_pos.1.store(y, Ordering::Relaxed);
+                    self.broadcast(&NetMsg::PlayerPosition(x, y), Reliability::Reliable);
                 }
                 let x: Option<u8> = msg.next().and_then(|s| s.parse().ok());
                 self.push_to_talk.store(x == Some(1), Ordering::Relaxed);
@@ -1232,17 +1255,6 @@ impl NetManager {
                 self.is_polied.store(polied, Ordering::Relaxed);
                 let cess = msg.next().and_then(|s| s.parse().ok()) == Some(1);
                 self.is_cess.store(cess, Ordering::Relaxed);
-            }
-            Some("players_pos") => {
-                let map = &mut self.players_sprite.lock().unwrap();
-                while let (Some(peer), Some(x), Some(y)) = (
-                    msg.next().and_then(OmniPeerId::from_hex),
-                    msg.next().and_then(|s| s.parse().ok()),
-                    msg.next().and_then(|s| s.parse().ok()),
-                ) {
-                    map.entry(peer)
-                        .and_modify(|(w, _)| *w = WorldPos::from((x, y)));
-                }
             }
             Some("reset_world") => {
                 state.world.reset();
@@ -1282,7 +1294,11 @@ impl NetManager {
                     );
                     colors.insert(i, wang_color);
                 }
-                let _ = sendm.send(colors);
+                if self.is_host() {
+                    *self.colors.lock().unwrap() = colors.clone();
+                    self.broadcast(&NetMsg::MatData(colors.clone()), Reliability::Reliable);
+                    let _ = sendm.send(colors);
+                }
                 let c = msg.count();
                 if c != 0 {
                     error!("bad materials data {}", c);
