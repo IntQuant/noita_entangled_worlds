@@ -1277,7 +1277,6 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
-            let _ = self.tx.send((entry.0, entry.1.clone()));
             self.chunk_storage.insert(entry.0, entry.1);
         }
     }
@@ -1454,7 +1453,6 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
-            let _ = self.tx.send((entry.0, entry.1.clone()));
             self.chunk_storage.insert(entry.0, entry.1);
             if entry.2 {
                 self.is_storage_recent.insert(entry.0);
@@ -1560,7 +1558,6 @@ impl WorldManager {
             })
             .collect();
         for entry in chunk_storage.into_iter() {
-            let _ = self.tx.send((entry.0, entry.1.clone()));
             self.chunk_storage.insert(entry.0, entry.1);
             if entry.2 {
                 self.is_storage_recent.insert(entry.0);
@@ -1736,7 +1733,6 @@ impl WorldManager {
             for entry in chunks {
                 if let Some(entry) = entry.loaded {
                     if entry.3 {
-                        let _ = self.tx.send((entry.0, entry.1.clone()));
                         self.chunk_storage.insert(entry.0, entry.1);
                     } else {
                         self.chunk_storage
@@ -2069,7 +2065,6 @@ impl WorldManager {
         let ch = self.explosion_chunk(&data, chunk);
         if let Some(ch) = ch {
             if ch.1 {
-                let _ = self.tx.send((chunk, ch.0.clone()));
                 self.chunk_storage.insert(chunk, ch.0);
             } else {
                 self.chunk_storage
