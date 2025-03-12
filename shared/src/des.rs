@@ -1,5 +1,4 @@
 use std::num::NonZero;
-use std::sync::Arc;
 
 use crate::{GameEffectData, GameEffectEnum, PeerId, SpawnOnce, WorldPos};
 use bitcode::{Decode, Encode};
@@ -197,7 +196,7 @@ pub enum RemoteDes {
     InterestRequest(InterestRequest),
     EntityUpdate(Vec<EntityUpdate>),
     ExitedInterest,
-    Projectiles(Arc<Vec<ProjectileFired>>),
+    Projectiles(Vec<ProjectileFired>),
     RequestGrab(Lid),
     CameraPos(WorldPos),
     DeadEntities(Vec<(WorldPos, SpawnOnce)>),
@@ -213,4 +212,5 @@ pub struct ProjectileFired {
     pub position: (f32, f32),
     pub target: (f32, f32),
     pub serialized: Vec<u8>,
+    pub vel: Option<(f32, f32)>,
 }

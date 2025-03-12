@@ -21,7 +21,7 @@ use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
     des::{Gid, InterestRequest, ProjectileFired, RemoteDes},
 };
-use std::sync::{Arc, LazyLock};
+use std::sync::{LazyLock, Mutex};
 mod diff_model;
 mod interest;
 
@@ -46,7 +46,7 @@ pub(crate) struct EntitySync {
     local_diff_model: LocalDiffModel,
     remote_models: FxHashMap<PeerId, RemoteDiffModel>,
 
-    pending_fired_projectiles: Arc<Vec<ProjectileFired>>,
+    pending_fired_projectiles: Mutex<Vec<(EntityID, ProjectileFired)>>,
     dont_kill: FxHashSet<EntityID>,
     dont_kill_by_gid: FxHashSet<Gid>,
     dont_track: FxHashSet<EntityID>,
@@ -574,14 +574,29 @@ impl Module for EntitySync {
                     RemoteDes::EntityUpdate(init),
                 )?;
             }
-            let proj = std::mem::take(&mut self.pending_fired_projectiles);
-            if !proj.is_empty() {
-                send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(self.interest_tracker.iter_interested().collect()),
-                    RemoteDes::Projectiles(proj),
-                )?;
+            {
+                let proj = &mut self.pending_fired_projectiles.lock().unwrap();
+                if !proj.is_empty() {
+                    let mut data = Vec::new();
+                    for (ent, mut proj) in proj.drain(..) {
+                        if ent.is_alive() {
+                            if let Some(vel) = ent
+                                .try_get_first_component_including_disabled::<VelocityComponent>(
+                                    None,
+                                )?
+                            {
+                                proj.vel = vel.m_velocity().ok()
+                            }
+                        }
+                        data.push(proj)
+                    }
+                    send_remotedes(
+                        ctx,
+                        true,
+                        Destination::Peers(self.interest_tracker.iter_interested().collect()),
+                        RemoteDes::Projectiles(data),
+                    )?;
+                }
             }
             if !diff.is_empty() {
                 send_remotedes(
@@ -723,12 +738,16 @@ impl Module for EntitySync {
 
         let serialized = serialize_entity(projectile)?;
 
-        Arc::make_mut(&mut self.pending_fired_projectiles).push(ProjectileFired {
-            shooter_lid,
-            position,
-            target,
-            serialized,
-        });
+        self.pending_fired_projectiles.lock().unwrap().push((
+            projectile,
+            ProjectileFired {
+                shooter_lid,
+                position,
+                target,
+                serialized,
+                vel: None,
+            },
+        ));
 
         //TODO initial_rng might need to be handled with np.SetProjectileSpreadRNG?
 

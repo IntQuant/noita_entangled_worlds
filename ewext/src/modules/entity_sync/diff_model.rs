@@ -1988,6 +1988,11 @@ impl RemoteDiffModel {
                 None,
                 None,
             );
+            if let Ok(Some(vel)) = deserialized.try_get_first_component::<VelocityComponent>(None) {
+                if let Some((vx, vy)) = projectile.vel {
+                    let _ = vel.set_m_velocity((vx, vy));
+                }
+            }
         }
     }
 
