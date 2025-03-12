@@ -2284,21 +2284,29 @@ impl App {
                         ui.add_space(15.0);
                         self.end_run_button.show(ui, netman);
                         ui.add_space(15.0);
-                        let mut temp = netman.no_more_players.load(Ordering::Relaxed);
-                        if ui
-                            .checkbox(&mut temp, "don't let more players join")
-                            .changed()
                         {
-                            netman.no_more_players.store(temp, Ordering::Relaxed);
+                            let mut temp = netman.no_more_players.load(Ordering::Relaxed);
+                            if ui
+                                .checkbox(&mut temp, "don't let more players join")
+                                .changed()
+                            {
+                                netman.no_more_players.store(temp, Ordering::Relaxed);
+                            }
                         }
-                        if ui
-                            .checkbox(&mut temp, "don't send chunk map to players")
-                            .changed()
                         {
-                            netman.no_chunkmap_to_players.store(temp, Ordering::Relaxed);
+                            let mut temp = netman.no_chunkmap_to_players.load(Ordering::Relaxed);
+                            if ui
+                                .checkbox(&mut temp, "don't send chunk map to players")
+                                .changed()
+                            {
+                                netman.no_chunkmap_to_players.store(temp, Ordering::Relaxed);
+                            }
                         }
-                        if ui.checkbox(&mut temp, "don't save chunk map").changed() {
-                            netman.no_chunkmap.store(temp, Ordering::Relaxed);
+                        {
+                            let mut temp = netman.no_chunkmap.load(Ordering::Relaxed);
+                            if ui.checkbox(&mut temp, "don't save chunk map").changed() {
+                                netman.no_chunkmap.store(temp, Ordering::Relaxed);
+                            }
                         }
                     }
                 }

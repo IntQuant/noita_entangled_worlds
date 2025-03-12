@@ -820,7 +820,7 @@ impl NetManager {
                     }
                 }
             }
-            NetMsg::Kick => std::process::exit(0),
+            NetMsg::Kick => self.back_out.store(true, Ordering::Relaxed),
             NetMsg::RemoteMsg(remote_message) => self.handle_remote_msg(state, src, remote_message),
             NetMsg::ForwardDesToProxy(des_to_proxy) => {
                 state.des.handle_noita_msg(src, des_to_proxy)
