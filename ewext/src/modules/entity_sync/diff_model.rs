@@ -765,6 +765,7 @@ impl LocalDiffModel {
     }
 
     pub(crate) fn track_entity(&mut self, entity: EntityID, gid: Gid) -> eyre::Result<Lid> {
+        self.wait_to_transfer = 16;
         let lid = self.alloc_lid();
         let should_not_serialize = entity
             .remove_all_components_of_type::<CameraBoundComponent>(None)?
@@ -1058,7 +1059,7 @@ impl LocalDiffModel {
                 (px - cam_x).powi(2) + (py - cam_y).powi(2) > AUTHORITY_RADIUS.powi(2);
         }
         if !should_transfer {
-            self.wait_to_transfer = 8
+            self.wait_to_transfer = 16
         } else {
             self.wait_to_transfer = self.wait_to_transfer.saturating_sub(1)
         }
@@ -1269,7 +1270,7 @@ impl LocalDiffModel {
                     );
                 }
             }
-            if time + tmr.elapsed().as_micros() > 4000 {
+            if time + tmr.elapsed().as_micros() > 3000 {
                 end = (start + i + 1) % l;
                 break;
             }
@@ -1310,7 +1311,7 @@ impl LocalDiffModel {
             self.upload.remove(&lid);
             self.dont_save.remove(&lid);
         }
-        Ok((res, dead, time + tmr.elapsed().as_nanos(), end))
+        Ok((res, dead, time + tmr.elapsed().as_micros(), end))
     }
     pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
         let mut res = Vec::new();
@@ -1839,7 +1840,7 @@ impl RemoteDiffModel {
         ctx: &mut ModuleCtx,
         start: usize,
         time: u128,
-    ) -> eyre::Result<usize> {
+    ) -> eyre::Result<(usize, u128)> {
         let mut to_remove = Vec::new();
         let tmr = Instant::now();
         let l = self.entity_infos.len();
@@ -1878,7 +1879,7 @@ impl RemoteDiffModel {
                     self.tracked.insert(*lid, entity);
                 }
             }
-            if time + tmr.elapsed().as_micros() > 6000 {
+            if time + tmr.elapsed().as_micros() > 5000 {
                 end = (start + i + 1) % l;
                 break;
             }
@@ -1887,7 +1888,7 @@ impl RemoteDiffModel {
             self.grab_request.push(lid);
             self.entity_infos.remove(&lid);
         }
-        Ok(end)
+        Ok((end, time + tmr.elapsed().as_micros()))
     }
 
     pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {

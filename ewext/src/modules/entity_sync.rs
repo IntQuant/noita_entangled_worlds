@@ -632,9 +632,10 @@ impl Module for EntitySync {
         }
         if frame_num > 120 {
             for (owner, remote_model) in self.remote_models.iter_mut() {
-                let v = self.remote_index.entry(*owner).or_insert(0);
-                let v = remote_model
-                    .apply_entities(ctx, *v, t)
+                let vi = self.remote_index.entry(*owner).or_insert(0);
+                let v;
+                (v, t) = remote_model
+                    .apply_entities(ctx, *vi, t)
                     .wrap_err("Failed to apply entity infos")?;
                 self.remote_index.insert(*owner, v);
                 for lid in remote_model.drain_grab_request() {
