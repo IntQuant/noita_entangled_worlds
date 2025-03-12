@@ -1,12 +1,20 @@
-## Noita Entangled Worlds v1.4.8
+## Noita Entangled Worlds v1.4.9
 
-- improve performance for entity sync
+- sync more things in a frame
 
-- lots of chunk map improvements, add some keybinds
+- dont try to sync file-less game effects
 
-- fix spells falling through hm
+- kick to main lobby instead of exiting application
 
-- change some stuff in lobby list
+- fix some lobby settings not working
+
+- tweak notplayer ai
+
+- re-enable alot of fixes i accidentally broke
+
+- remove lifetime componenets on synced entities
+
+- fix projectile speed being incorrect on client entities
 
 ## Accepted pull requests
 
