@@ -1269,7 +1269,7 @@ impl LocalDiffModel {
                     );
                 }
             }
-            if time + tmr.elapsed().as_micros() > 3000 {
+            if time + tmr.elapsed().as_micros() > 4000 {
                 end = (start + i + 1) % l;
                 break;
             }
@@ -1879,7 +1879,7 @@ impl RemoteDiffModel {
                     self.tracked.insert(*lid, entity);
                 }
             }
-            if time + tmr.elapsed().as_micros() > 4000 {
+            if time + tmr.elapsed().as_micros() > 6000 {
                 end = (start + i + 1) % l;
                 break;
             }
