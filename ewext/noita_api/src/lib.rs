@@ -363,19 +363,20 @@ impl EntityID {
                         if let Ok(file) = ent.filename() {
                             if !file.is_empty() {
                                 effects.push((GameEffectData::Custom(file), ent))
-                            } else if let Ok(data) = serialize::serialize_entity(ent) {
-                                let n = ent.filename().unwrap_or(String::new());
-                                effects.push((GameEffectData::Projectile((n, data)), ent))
                             }
-                        } else if let Ok(data) = serialize::serialize_entity(ent) {
-                            let n = ent.filename().unwrap_or(String::new());
-                            let num = name_to_n.entry(n.clone()).or_insert(0);
-                            *num += 1;
-                            effects.push((
-                                GameEffectData::Projectile((format!("{}{}", n, num), data)),
-                                ent,
-                            ))
+                        } /* else if let Ok(data) = serialize::serialize_entity(ent) {
+                        let n = ent.filename().unwrap_or(String::new());
+                        effects.push((GameEffectData::Projectile((n, data)), ent))
                         }
+                        } else if let Ok(data) = serialize::serialize_entity(ent) {
+                        let n = ent.filename().unwrap_or(String::new());
+                        let num = name_to_n.entry(n.clone()).or_insert(0);
+                         *num += 1;
+                        effects.push((
+                        GameEffectData::Projectile((format!("{}{}", n, num), data)),
+                        ent,
+                        ))
+                        }*/
                     }
                     GameEffectEnum::Polymorph
                     | GameEffectEnum::PolymorphRandom

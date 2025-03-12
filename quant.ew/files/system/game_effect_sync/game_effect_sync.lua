@@ -71,8 +71,7 @@ function effect_sync.get_sync_data(entity, perks)
             else
                 table.insert(sync_data, name)
             end
-        else
-            table.insert(sync_data, util.serialize_entity(effect))
+            --[[else table.insert(sync_data, util.serialize_entity(effect))]]
         end
     end
     return sync_data
