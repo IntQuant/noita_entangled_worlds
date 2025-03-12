@@ -2018,6 +2018,7 @@ pub fn init_remote_entity(
     entity.remove_all_components_of_type::<PhysicsAIComponent>(None)?;
     entity.remove_all_components_of_type::<AdvancedFishAIComponent>(None)?;
     entity.remove_all_components_of_type::<IKLimbsAnimatorComponent>(None)?;
+    entity.remove_all_components_of_type::<LifetimeComponent>(None)?;
     let mut any = false;
     for ai in entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)? {
         any = any || ai.attack_ranged_aim_rotation_enabled()?;
