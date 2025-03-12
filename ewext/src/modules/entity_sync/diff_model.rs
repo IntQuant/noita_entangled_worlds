@@ -1505,7 +1505,6 @@ impl RemoteDiffModel {
                     )
                 })?;
             }
-            entity.set_components_with_tag_enabled("ew_enable_on_pickup".into(), true)?;
             return Ok(Some(*lid));
         }
         for (name, s, i, f, b) in &entity_info.synced_var {
@@ -2079,20 +2078,18 @@ pub fn init_remote_entity(
     }
 
     for lua in entity.iter_all_components_of_type_including_disabled::<LuaComponent>(None)? {
-        if !drops_gold
-            && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into())
-        {
-            entity.remove_component(*lua)?;
-        } else if [
-            "data/scripts/animals/leader_damage.lua",
-            "data/scripts/animals/giantshooter_death.lua",
-            "data/scripts/animals/blob_damage.lua",
-            "data/scripts/items/die_roll.lua",
-            "data/scripts/animals/iceskull_damage.lua",
-            "data/scripts/buildings/lukki_eggs.lua",
-            "data/scripts/props/physics_vase_damage.lua",
-        ]
-        .contains(&&*lua.script_damage_received()?)
+        if (!drops_gold
+            && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
+            || [
+                "data/scripts/animals/leader_damage.lua",
+                "data/scripts/animals/giantshooter_death.lua",
+                "data/scripts/animals/blob_damage.lua",
+                "data/scripts/items/die_roll.lua",
+                "data/scripts/animals/iceskull_damage.lua",
+                "data/scripts/buildings/lukki_eggs.lua",
+                "data/scripts/props/physics_vase_damage.lua",
+            ]
+            .contains(&&*lua.script_damage_received()?)
             || [
                 "data/scripts/buildings/firebugnest.lua",
                 "data/scripts/buildings/flynest.lua",
@@ -2109,12 +2106,7 @@ pub fn init_remote_entity(
                 "data/scripts/props/suspended_container_physics_objects.lua",
             ]
             .contains(&&*lua.script_source_file()?)
-            || ["data/scripts/items/die_roll.lua"].contains(&&*lua.script_enabled_changed()?)
-            || [
-                "data/scripts/items/die_roll.lua",
-                "data/scripts/buildings/statue_hand_modified.lua",
-            ]
-            .contains(&&*lua.script_kick()?)
+            || ["data/scripts/buildings/statue_hand_modified.lua"].contains(&&*lua.script_kick()?)
             || [
                 "data/scripts/items/utility_box.lua",
                 "data/scripts/items/chest_random.lua",
@@ -2127,10 +2119,8 @@ pub fn init_remote_entity(
             .contains(&&*lua.script_physics_body_modified()?)
             || ["data/scripts/animals/failed_alchemist_b_death.lua"]
                 .contains(&&*lua.script_death()?)
-            || ["data/scripts/items/broken_wand_throw.lua"].contains(&&*lua.script_throw_item()?)
         {
-            entity.set_component_enabled(*lua, false)?;
-            lua.add_tag("ew_enable_on_pickup")?;
+            entity.remove_component(*lua)?;
         }
     }
     let immortal = entity.add_component::<LuaComponent>()?;

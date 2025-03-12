@@ -25,4 +25,19 @@ util.prepend(
     s
 )
 util.prepend("data/scripts/items/die_status.lua", "SetRandomSeed( GameGetFrameNum(), pos_x + pos_y + entity_id )", s)
+
+s = "GetUpdatedEntityID()\n"
+    .. 'local util = dofile_once("mods/quant.ew/files/resource/util_min.lua")\n'
+    .. "if not util.do_i_own(entity_id) then\n"
+    .. "return\n"
+    .. "end"
+local lst = {
+    "data/scripts/items/broken_wand_spells.lua",
+    "data/scripts/items/die_roll.lua",
+    "data/scripts/buildings/sun/spot_2.lua",
+    "data/scripts/items/broken_wand_throw.lua",
+}
+for _, f in ipairs(lst) do
+    util.prepend(f, "GetUpdatedEntityID()", s)
+end
 return {}

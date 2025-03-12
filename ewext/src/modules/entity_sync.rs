@@ -13,7 +13,7 @@ use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
     DamageModelComponent, EntityID, ItemCostComponent, LuaComponent, PositionSeedComponent,
-    ProjectileComponent, VariableStorageComponent, VelocityComponent,
+    ProjectileComponent, VariableStorageComponent, VelocityComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;

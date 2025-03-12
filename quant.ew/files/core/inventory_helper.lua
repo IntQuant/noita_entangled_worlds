@@ -76,7 +76,7 @@ function inventory_helper.serialize_single_item(item)
     return item_data
 end
 
-function inventory_helper.deserialize_single_item(item_data)
+function inventory_helper.deserialize_single_item(item_data, local_ent)
     local x, y = item_data[2], item_data[3]
     local item = util.deserialize_entity(item_data[1], x, y)
     local ability = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
@@ -85,40 +85,13 @@ function inventory_helper.deserialize_single_item(item_data)
         ComponentSetValue2(ability, "mCastDelayStartFrame", 0)
         ComponentSetValue2(ability, "mReloadNextFrameUsable", 0)
     end
-
-    if item_data.shop_info ~= nil then
-        local item_cost_component = util.get_or_create_component(item, "ItemCostComponent")
-        ComponentAddTag(item_cost_component, "enabled_in_world")
-        ComponentAddTag(item_cost_component, "shop_cost")
-        ComponentSetValue2(item_cost_component, "cost", item_data.shop_info[1])
-        if item_data.gid == nil then
-            ComponentSetValue2(item_cost_component, "stealable", false)
-            print("ERROR: why is " .. tostring(item) .. " gid nil")
-        elseif string.sub(item_data.gid, 1, 16) ~= ctx.my_id then
-            ComponentSetValue2(item_cost_component, "stealable", false)
-        else
-            local mx, my = GameGetCameraPos()
-            if math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 then
-                if ComponentGetValue2(item_cost_component, "stealable") then
-                    EntityAddComponent2(item, "VariableStorageComponent", { _tags = "ew_try_stealable" })
-                    ComponentSetValue2(item_cost_component, "stealable", false)
-                else
-                    EntityAddComponent2(eid, "VariableStorageComponent", { _tags = "ew_try_float" })
-                end
-                local vel = EntityGetFirstComponentIncludingDisabled(item, "VelocityComponent")
-                ComponentSetValue2(vel, "gravity_y", 0)
+    if not local_ent then
+        for _, v in ipairs(EntityGetComponentIncludingDisabled(item, "VariableStorageComponent") or {}) do
+            if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+                ComponentSetValue2(v, "value_bool", false)
+                break
             end
         end
-
-        util.ensure_component_present(item, "SpriteComponent", "shop_cost", {
-            image_file = "data/fonts/font_pixel_white.xml",
-            is_text_sprite = true,
-            offset_x = 7,
-            offset_y = 25,
-            alpha = 1,
-            z_index = -1,
-            update_transform_rotation = false,
-        }, "shop_cost,enabled_in_world")
     end
 
     return item
@@ -274,13 +247,13 @@ local function get_item(itemInfo, inv, player, local_ent)
             end
         end
     elseif itemInfo.is_wand then
-        item = inventory_helper.deserialize_single_item(itemInfo.data)
+        item = inventory_helper.deserialize_single_item(itemInfo.data, local_ent)
         remove_non_send(item)
         item = EZWand(item)
     elseif itemInfo.peer_id ~= nil then
         item = ctx.players[itemInfo.peer_id].entity
     else
-        item = inventory_helper.deserialize_single_item(itemInfo.data)
+        item = inventory_helper.deserialize_single_item(itemInfo.data, local_ent)
         remove_non_send(item)
     end
 
