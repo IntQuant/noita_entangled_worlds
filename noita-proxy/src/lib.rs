@@ -1156,11 +1156,17 @@ impl ImageMap {
         if ui.input(|i| i.keys_down.contains(&Key::D) || i.keys_down.contains(&Key::ArrowRight)) {
             self.offset.x -= s
         }
+        if ui.input(|i| i.key_released(Key::Q)) {
+            self.zoom *= 2.0 / 3.0
+        }
+        if ui.input(|i| i.key_released(Key::E)) {
+            self.zoom *= 3.0 / 2.0
+        }
         if ui.input(|i| i.key_released(Key::X)) {
             self.dont_scale = !self.dont_scale
         }
-        let q = ui.input(|i| i.key_released(Key::Q));
-        let e = ui.input(|i| i.key_released(Key::E));
+        let q = ui.input(|i| i.key_released(Key::Z));
+        let e = ui.input(|i| i.key_released(Key::C));
         if q || e {
             let players: Vec<OmniPeerId> = self
                 .players
@@ -1171,7 +1177,9 @@ impl ImageMap {
             self.centered_on = if !players.is_empty() {
                 if let Some(id) = self.centered_on {
                     if let Some(i) = players.iter().position(|o| *o == id) {
-                        let i = if q { i - 1 } else { i + 1 } % (players.len() + 1);
+                        let i = if q { i as i32 - 1 } else { i as i32 + 1 }
+                            .rem_euclid(players.len() as i32 + 1)
+                            as usize;
                         if i == players.len() {
                             None
                         } else {
@@ -1180,6 +1188,8 @@ impl ImageMap {
                     } else {
                         Some(players[0])
                     }
+                } else if q {
+                    Some(players[players.len() - 1])
                 } else {
                     Some(players[0])
                 }
