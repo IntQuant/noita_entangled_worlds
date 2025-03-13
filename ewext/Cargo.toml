@@ -1,6 +1,6 @@
 [package]
 name = "ewext"
-version = "1.4.10"
+version = "1.4.11"
 edition = "2024"
 
 [lib]

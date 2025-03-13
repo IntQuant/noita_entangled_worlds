@@ -1,8 +1,10 @@
-## Noita Entangled Worlds v1.4.10
+## Noita Entangled Worlds v1.4.11
 
-- fix over optimization
+- ensure enemy positions are correct
 
-- fix shops being free sometimes
+- try to keep all peers entities equally updated
+
+- fix some bugs with chunk map and add some keybinds
 
 ## Accepted pull requests
 
