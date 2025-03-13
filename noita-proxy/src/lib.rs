@@ -32,7 +32,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::process::exit;
 use std::thread::sleep;
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, fs, str::FromStr};
 use std::{
     fmt::Display,
     mem,
@@ -669,6 +669,8 @@ enum ConnectedMenu {
     ConnectionInfo,
     VoIP,
     Map,
+    NoitaLog,
+    ProxyLog,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1313,6 +1315,9 @@ pub struct App {
     show_lobby_list: bool,
     map: ImageMap,
     refresh_timer: time::Instant,
+    noitalog_number: usize,
+    noitalog: Vec<String>,
+    proxylog: String,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -1478,6 +1483,9 @@ impl App {
             show_lobby_list: false,
             map: Default::default(),
             refresh_timer: time::Instant::now(),
+            noitalog_number: 0,
+            noitalog: Vec::new(),
+            proxylog: String::new(),
         }
     }
 
@@ -2186,6 +2194,16 @@ impl App {
                     "VoIP Settings",
                 );
                 ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Map, "Chunk Map");
+                ui.selectable_value(
+                    &mut self.connected_menu,
+                    ConnectedMenu::NoitaLog,
+                    "Noita Log",
+                );
+                ui.selectable_value(
+                    &mut self.connected_menu,
+                    ConnectedMenu::ProxyLog,
+                    "Proxy Log",
+                );
                 if netman.peer.is_steam() {
                     ui.selectable_value(
                         &mut self.connected_menu,
@@ -2228,6 +2246,19 @@ impl App {
                     ui.label(err.to_string());
                 }
                 ui.separator();
+            }
+            if let Some(game) = self.modmanager_settings.game_exe_path.parent() {
+                if let Ok(s) = fs::read_to_string(game.join("logger.txt")) {
+                    let l = self.noitalog.len();
+                    if l != 0 && s.len() >= self.noitalog[l - 1].len() {
+                        if s.len() != self.noitalog[l - 1].len() {
+                            self.noitalog[l - 1] = s
+                        }
+                    } else {
+                        self.noitalog_number = self.noitalog.len();
+                        self.noitalog.push(s);
+                    }
+                }
             }
             match self.connected_menu {
                 ConnectedMenu::Normal => {
@@ -2394,6 +2425,49 @@ impl App {
                     if save {
                         *netman.audio.lock().unwrap() = self.audio.clone()
                     }
+                }
+                ConnectedMenu::NoitaLog => {
+                    if !self.noitalog.is_empty() {
+                        let l = self.noitalog.len();
+                        if l > 1 {
+                            ui.add(Slider::new(&mut self.noitalog_number, 0..=l - 1));
+                        }
+                        let mut s = self.noitalog[self.noitalog_number].clone() + "\n";
+                        ScrollArea::vertical()
+                            .auto_shrink([false; 2])
+                            .stick_to_bottom(true)
+                            .show(ui, |ui| {
+                                ui.add(
+                                    egui::TextEdit::multiline(&mut s)
+                                        .font(egui::TextStyle::Monospace)
+                                        .desired_width(f32::INFINITY)
+                                        .lock_focus(true),
+                                );
+                            });
+                    }
+                }
+                ConnectedMenu::ProxyLog => {
+                    if let Ok(s) = fs::read_to_string(if let Ok(path) = std::env::current_exe() {
+                        path.parent().unwrap().join("ew_log.txt")
+                    } else {
+                        "ew_log.txt".into()
+                    }) {
+                        if s.len() > self.proxylog.len() {
+                            self.proxylog = s
+                        }
+                    }
+                    let mut s = self.proxylog.clone() + "\n";
+                    ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .stick_to_bottom(true)
+                        .show(ui, |ui| {
+                            ui.add(
+                                egui::TextEdit::multiline(&mut s)
+                                    .font(egui::TextStyle::Monospace)
+                                    .desired_width(f32::INFINITY)
+                                    .lock_focus(true),
+                            );
+                        });
                 }
             }
             if self.app_saved_state.show_extra_debug_stuff {

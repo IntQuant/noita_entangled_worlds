@@ -1,35 +1,38 @@
 #![windows_subsystem = "windows"]
 
-use std::{
-    backtrace,
-    fs::File,
-    io::{self, BufWriter},
-    panic,
-};
-
 use eframe::{
     NativeOptions,
     egui::{IconData, ViewportBuilder},
 };
 use noita_proxy::{App, args::Args, connect_cli, host_cli};
+use std::{
+    backtrace, fs,
+    fs::File,
+    io::{self, BufWriter},
+    panic,
+};
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 #[allow(clippy::needless_return)]
 #[tokio::main(worker_threads = 2)]
 async fn main() {
-    let log_to_file = cfg!(windows);
-    let writer = {
-        if log_to_file {
-            let file = File::create("ew_log.txt");
-            println!("Creating a log file");
-            match file {
-                Ok(file) => Box::new(BufWriter::new(file)) as Box<dyn io::Write + Send>,
-                Err(_) => Box::new(io::stdout()) as Box<dyn io::Write + Send>,
-            }
-        } else {
-            Box::new(io::stdout()) as Box<dyn io::Write + Send>
-        }
+    let log = if let Ok(path) = std::env::current_exe() {
+        path.parent().unwrap().join("ew_log.txt")
+    } else {
+        "ew_log.txt".into()
+    };
+    if log.exists() {
+        let _ = fs::copy(
+            log.clone(),
+            log.clone().parent().unwrap().join("ew_log_old.txt"),
+        );
+    }
+    let file = File::create(log);
+    println!("Creating a log file");
+    let writer = match file {
+        Ok(file) => Box::new(BufWriter::new(file)) as Box<dyn io::Write + Send>,
+        Err(_) => Box::new(io::stdout()) as Box<dyn io::Write + Send>,
     };
 
     let (non_blocking_writer, _guard) = tracing_appender::non_blocking(writer);
@@ -41,6 +44,7 @@ async fn main() {
                 .from_env_lossy(),
         )
         .with_writer(non_blocking_writer)
+        .with_ansi(false)
         .finish();
 
     tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");

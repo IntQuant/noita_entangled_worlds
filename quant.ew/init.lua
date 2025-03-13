@@ -35,7 +35,8 @@ dofile_once("data/scripts/lib/coroutines.lua")
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/resource/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/resource/append/action_fix.lua")
 
-ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
+--ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
+ModMagicNumbersFileAdd("mods/quant.ew/files/magic_numbers.xml")
 
 util.add_cross_call("ew_per_peer_seed", function()
     return tonumber(string.sub(ctx.my_id, 8, 12), 16), tonumber(string.sub(ctx.my_id, 12), 16)
