@@ -1844,51 +1844,91 @@ impl RemoteDiffModel {
         let mut to_remove = Vec::new();
         let tmr = Instant::now();
         let l = self.entity_infos.len();
-        let mut end = 0;
+        let mut end = None;
         let start = if start >= l { 0 } else { start };
-        for (i, (lid, entity_info)) in self.entity_infos.iter().skip(start).enumerate() {
+        for (i, (lid, entity_info)) in self.entity_infos.iter().enumerate() {
             match self
                 .tracked
                 .get_by_left(lid)
                 .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
             {
-                Some(entity) if entity.is_alive() => {
-                    match self.inner(ctx, entity_info, entity, lid) {
-                        Ok(Some(lid)) => to_remove.push(lid),
-                        Err(s) => print_error(s)?,
-                        _ => {}
+                Some(entity) => {
+                    if time + tmr.elapsed().as_micros() > 5000 || start > i {
+                        if end.is_none() && start <= i {
+                            end = Some(i);
+                        }
+                        if entity_info.phys.is_empty()
+                            || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
+                        {
+                            let should_send_position = if let Some(com) =
+                                entity.try_get_first_component::<ItemComponent>(None)?
+                            {
+                                !com.play_hover_animation()?
+                            } else {
+                                true
+                            };
+                            let should_send_rotation = if let Some(com) =
+                                entity.try_get_first_component::<ItemComponent>(None)?
+                            {
+                                !com.play_spinning_animation()? || com.play_hover_animation()?
+                            } else {
+                                true
+                            };
+                            if should_send_rotation && should_send_position {
+                                entity.set_position(
+                                    entity_info.x,
+                                    entity_info.y,
+                                    Some(entity_info.r),
+                                )?;
+                            } else if should_send_position {
+                                entity.set_position(entity_info.x, entity_info.y, None)?;
+                            } else if should_send_rotation {
+                                let (x, y) = entity.position()?;
+                                entity.set_position(x, y, Some(entity_info.r))?;
+                            }
+                        }
+                    } else {
+                        match self.inner(ctx, entity_info, entity, lid) {
+                            Ok(Some(lid)) => to_remove.push(lid),
+                            Err(s) => print_error(s)?,
+                            _ => {}
+                        }
                     }
                 }
                 _ => {
-                    if let Some(gid) = self.lid_to_gid.get(lid) {
-                        if ctx.dont_spawn.contains(gid) {
-                            continue;
+                    if start <= i {
+                        if time + tmr.elapsed().as_micros() > 5000 {
+                            if end.is_none() {
+                                end = Some(i);
+                            }
+                        } else {
+                            if let Some(gid) = self.lid_to_gid.get(lid) {
+                                if ctx.dont_spawn.contains(gid) {
+                                    continue;
+                                }
+                            }
+                            let entity = spawn_entity_by_data(
+                                &entity_info.spawn_info,
+                                entity_info.x,
+                                entity_info.y,
+                            )?;
+                            init_remote_entity(
+                                entity,
+                                Some(*lid),
+                                self.lid_to_gid.get(lid).copied(),
+                                entity_info.drops_gold,
+                            )?;
+                            self.tracked.insert(*lid, entity);
                         }
                     }
-                    let entity = spawn_entity_by_data(
-                        &entity_info.spawn_info,
-                        entity_info.x,
-                        entity_info.y,
-                    )?;
-                    init_remote_entity(
-                        entity,
-                        Some(*lid),
-                        self.lid_to_gid.get(lid).copied(),
-                        entity_info.drops_gold,
-                    )?;
-                    self.tracked.insert(*lid, entity);
                 }
-            }
-            if time + tmr.elapsed().as_micros() > 5000 {
-                end = (start + i + 1) % l;
-                break;
             }
         }
         for lid in to_remove {
             self.grab_request.push(lid);
             self.entity_infos.remove(&lid);
         }
-        Ok((end, time + tmr.elapsed().as_micros()))
+        Ok((end.unwrap_or(0), time + tmr.elapsed().as_micros()))
     }
 
     pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {

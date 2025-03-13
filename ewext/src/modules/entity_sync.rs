@@ -55,6 +55,7 @@ pub(crate) struct EntitySync {
     to_track: Vec<EntityID>,
     local_index: usize,
     remote_index: FxHashMap<PeerId, usize>,
+    peer_order: Vec<PeerId>,
 }
 impl EntitySync {
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
@@ -99,6 +100,7 @@ impl Default for EntitySync {
             to_track: Vec::new(),
             local_index: 0,
             remote_index: Default::default(),
+            peer_order: Vec::new(),
         }
     }
 }
@@ -631,21 +633,41 @@ impl Module for EntitySync {
             }
         }
         if frame_num > 120 {
-            for (owner, remote_model) in self.remote_models.iter_mut() {
-                let vi = self.remote_index.entry(*owner).or_insert(0);
-                let v;
-                (v, t) = remote_model
-                    .apply_entities(ctx, *vi, t)
-                    .wrap_err("Failed to apply entity infos")?;
-                self.remote_index.insert(*owner, v);
-                for lid in remote_model.drain_grab_request() {
-                    send_remotedes(
-                        ctx,
-                        true,
-                        Destination::Peer(*owner),
-                        RemoteDes::RequestGrab(lid),
-                    )?;
+            let mut to_remove = Vec::new();
+            for peer in self.remote_models.keys() {
+                if !self.peer_order.contains(peer) {
+                    self.peer_order.insert(0, *peer);
                 }
+            }
+            for (i, owner) in self.peer_order.iter().enumerate() {
+                match self.remote_models.get_mut(owner) {
+                    Some(remote_model) => {
+                        let vi = self.remote_index.entry(*owner).or_insert(0);
+                        let v;
+                        (v, t) = remote_model
+                            .apply_entities(ctx, *vi, t)
+                            .wrap_err("Failed to apply entity infos")?;
+                        self.remote_index.insert(*owner, v);
+                        for lid in remote_model.drain_grab_request() {
+                            send_remotedes(
+                                ctx,
+                                true,
+                                Destination::Peer(*owner),
+                                RemoteDes::RequestGrab(lid),
+                            )?;
+                        }
+                    }
+                    None => {
+                        to_remove.insert(0, i);
+                    }
+                }
+            }
+            for i in to_remove {
+                self.peer_order.remove(i);
+            }
+            if self.peer_order.len() > 1 {
+                let p = self.peer_order.remove(0);
+                self.peer_order.push(p)
             }
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
