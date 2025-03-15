@@ -1102,6 +1102,16 @@ impl WorldManager {
                             priority: 0,
                         },
                     );
+                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
+                    self.emit_msg(
+                        Destination::Host,
+                        WorldNetMessage::UpdateStorage {
+                            chunk,
+                            chunk_data,
+                            world_num: self.world_num,
+                            priority: None,
+                        },
+                    );
                 } else {
                     self.emit_msg(
                         Destination::Peer(source),
