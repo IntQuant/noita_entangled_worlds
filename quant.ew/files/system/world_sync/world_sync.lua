@@ -189,10 +189,12 @@ function world_sync.on_world_update()
         pos_data = ctx.proxy_opt.world_num
     end
     if math.abs(cx - ocx) > 2 or math.abs(cy - ocy) > 2 then
-        if GameGetFrameNum() % 3 ~= 2 then
-            get_all_chunks(cx, cy, pos_data, 16, false)
-        else
-            get_all_chunks(ocx, ocy, pos_data, 16, true)
+        if ctx.spectating_over_peer_id ~= nil and ctx.spectating_over_peer_id ~= ctx.my_id then
+            if GameGetFrameNum() % 3 ~= 2 then
+                get_all_chunks(cx, cy, pos_data, 16, false)
+            else
+                get_all_chunks(ocx, ocy, pos_data, 16, true)
+            end
         end
     else
         local pri = 0
