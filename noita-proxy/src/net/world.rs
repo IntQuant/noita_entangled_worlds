@@ -125,6 +125,7 @@ pub(crate) enum WorldNetMessage {
     },
     TransferOk {
         chunk: ChunkCoord,
+        chunk_data: Option<ChunkData>,
         listeners: FxHashSet<OmniPeerId>,
     },
     TransferFailed {
@@ -1089,19 +1090,16 @@ impl WorldManager {
                 debug!("Got a request for authority transfer");
                 let state = self.chunk_state.get(&chunk);
                 if let Some(ChunkState::Authority { listeners, .. }) = state {
-                    let mut listeners = listeners.clone();
-                    listeners.insert(self.my_peer_id);
+                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Peer(source),
-                        WorldNetMessage::TransferOk { chunk, listeners },
-                    );
-                    self.chunk_state.insert(
-                        chunk,
-                        ChunkState::Listening {
-                            authority: source,
-                            priority: 0,
+                        WorldNetMessage::TransferOk {
+                            chunk,
+                            chunk_data,
+                            listeners: listeners.clone(),
                         },
                     );
+                    self.chunk_state.insert(chunk, ChunkState::UnloadPending);
                     let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Host,
@@ -1119,8 +1117,16 @@ impl WorldManager {
                     );
                 }
             }
-            WorldNetMessage::TransferOk { chunk, listeners } => {
+            WorldNetMessage::TransferOk {
+                chunk,
+                chunk_data,
+                listeners,
+            } => {
                 debug!("Transfer ok");
+                if let Some(chunk_data) = chunk_data {
+                    self.inbound_model.apply_chunk_data(chunk, &chunk_data);
+                    self.outbound_model.apply_chunk_data(chunk, &chunk_data);
+                }
                 for listener in listeners.iter() {
                     self.emit_msg(
                         Destination::Peer(*listener),
