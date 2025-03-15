@@ -1935,6 +1935,7 @@ impl RemoteDiffModel {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
                 .copied();
+            self.entity_infos.remove(&lid);
             let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
                 continue;
             };
@@ -1956,7 +1957,6 @@ impl RemoteDiffModel {
                     .iter()
                     .for_each(|ent| ent.kill());
                 self.pending_remove.retain(|l| l != &lid);
-                self.entity_infos.remove(&lid);
                 if !wait_on_kill {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 }
