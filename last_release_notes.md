@@ -1,10 +1,12 @@
-## Noita Entangled Worlds v1.4.11
+## Noita Entangled Worlds v1.5.0
 
-- ensure enemy positions are correct
+- fix invincible enemys
 
-- try to keep all peers entities equally updated
+- some minor world sync changes
 
-- fix some bugs with chunk map and add some keybinds
+- fix chunk map on first enter
+
+- add logs to lobby ui
 
 ## Accepted pull requests
 
