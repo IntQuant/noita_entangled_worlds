@@ -1847,12 +1847,8 @@ impl RemoteDiffModel {
         let mut end = None;
         let start = if start >= l { 0 } else { start };
         for (i, (lid, entity_info)) in self.entity_infos.iter().enumerate() {
-            match self
-                .tracked
-                .get_by_left(lid)
-                .and_then(|entity_id| entity_id.is_alive().then_some(*entity_id))
-            {
-                Some(entity) => {
+            match self.tracked.get_by_left(lid) {
+                Some(entity) if entity.is_alive() => {
                     if time + tmr.elapsed().as_micros() > 5000 || start > i {
                         if end.is_none() && start <= i {
                             end = Some(i);
@@ -1888,7 +1884,7 @@ impl RemoteDiffModel {
                             }
                         }
                     } else {
-                        match self.inner(ctx, entity_info, entity, lid) {
+                        match self.inner(ctx, entity_info, *entity, lid) {
                             Ok(Some(lid)) => to_remove.push(lid),
                             Err(s) => print_error(s)?,
                             _ => {}

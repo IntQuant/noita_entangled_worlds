@@ -125,7 +125,6 @@ pub(crate) enum WorldNetMessage {
     },
     TransferOk {
         chunk: ChunkCoord,
-        chunk_data: Option<ChunkData>,
         listeners: FxHashSet<OmniPeerId>,
     },
     TransferFailed {
@@ -1090,12 +1089,10 @@ impl WorldManager {
                 debug!("Got a request for authority transfer");
                 let state = self.chunk_state.get(&chunk);
                 if let Some(ChunkState::Authority { listeners, .. }) = state {
-                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
                     self.emit_msg(
                         Destination::Peer(source),
                         WorldNetMessage::TransferOk {
                             chunk,
-                            chunk_data,
                             listeners: listeners.clone(),
                         },
                     );
@@ -1117,16 +1114,8 @@ impl WorldManager {
                     );
                 }
             }
-            WorldNetMessage::TransferOk {
-                chunk,
-                chunk_data,
-                listeners,
-            } => {
+            WorldNetMessage::TransferOk { chunk, listeners } => {
                 debug!("Transfer ok");
-                if let Some(chunk_data) = chunk_data {
-                    self.inbound_model.apply_chunk_data(chunk, &chunk_data);
-                    self.outbound_model.apply_chunk_data(chunk, &chunk_data);
-                }
                 for listener in listeners.iter() {
                     self.emit_msg(
                         Destination::Peer(*listener),

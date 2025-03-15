@@ -164,10 +164,13 @@ local function get_all_chunks(ocx, ocy, pos_data, priority, give_0)
     end
 end
 
+local wait
+
 function world_sync.on_world_update()
-    if ctx.run_ended then
+    if ctx.run_ended or (wait ~= nil and wait > GameGetFrameNum()) then
         return
     end
+    wait = nil
     int = math.floor(tonumber(ModSettingGet("quant.ew.world_sync") or 4) or 4 + 0.5)
     local cx, cy = GameGetCameraPos()
     cx, cy = math.floor(cx / CHUNK_SIZE), math.floor(cy / CHUNK_SIZE)
@@ -195,6 +198,8 @@ function world_sync.on_world_update()
             else
                 get_all_chunks(ocx, ocy, pos_data, 16, true)
             end
+        else
+            wait = GameGetFrameNum() + 30
         end
     else
         local pri = 0
