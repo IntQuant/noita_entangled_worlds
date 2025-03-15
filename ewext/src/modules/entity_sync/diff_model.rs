@@ -1446,6 +1446,14 @@ impl RemoteDiffModel {
                     self.entity_infos.remove(&lid);
                     ent_data = empty_data;
                 }
+                EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
+                EntityUpdate::KillEntity {
+                    lid,
+                    wait_on_kill,
+                    responsible_peer,
+                } => self
+                    .pending_death_notify
+                    .push((lid, wait_on_kill, responsible_peer)),
                 entry if *ent_data != EntityInfo::default() => match entry {
                     EntityUpdate::SetPosition(x, y) => (ent_data.x, ent_data.y) = (x, y),
                     EntityUpdate::SetRotation(r) => ent_data.r = r,
@@ -1460,14 +1468,6 @@ impl RemoteDiffModel {
                     EntityUpdate::SetStains(stains) => ent_data.current_stains = stains,
                     EntityUpdate::SetGameEffects(effects) => ent_data.game_effects = effects,
                     EntityUpdate::SetAiState(state) => ent_data.ai_state = state,
-                    EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
-                    EntityUpdate::KillEntity {
-                        lid,
-                        wait_on_kill,
-                        responsible_peer,
-                    } => self
-                        .pending_death_notify
-                        .push((lid, wait_on_kill, responsible_peer)),
                     EntityUpdate::SetWand(wand) => ent_data.wand = wand,
                     EntityUpdate::SetWandRotation(rot) => ent_data.wand_rotation = rot,
                     EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
@@ -1476,7 +1476,9 @@ impl RemoteDiffModel {
                     EntityUpdate::SetSyncedVar(vars) => ent_data.synced_var = vars,
                     EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
                     EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
-                    EntityUpdate::CurrentEntity(_)
+                    EntityUpdate::KillEntity { .. }
+                    | EntityUpdate::RemoveEntity(_)
+                    | EntityUpdate::CurrentEntity(_)
                     | EntityUpdate::Init(_, _, _)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },
