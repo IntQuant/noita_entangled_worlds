@@ -20,7 +20,7 @@ pub(crate) enum NetMsg {
     EndRun,
     Kick,
     PeerDisconnected { id: OmniPeerId },
-    StartGame { settings: GameSettings },
+    StartGame { settings: GameSettings, init: bool },
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
     WorldMessage(WorldNetMessage),

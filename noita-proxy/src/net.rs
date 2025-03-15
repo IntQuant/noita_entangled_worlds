@@ -642,6 +642,7 @@ impl NetManager {
                         id,
                         &NetMsg::StartGame {
                             settings: self.settings.lock().unwrap().clone(),
+                            init: true,
                         },
                         Reliability::Reliable,
                     );
@@ -771,14 +772,16 @@ impl NetManager {
             NetMsg::EndRun => {
                 state.try_ms_write(&ws_encode_proxy("end_run", self.peer.my_id().to_string()))
             }
-            NetMsg::StartGame { settings } => {
+            NetMsg::StartGame { settings, init } => {
                 *self.settings.lock().unwrap() = settings;
                 info!("Settings updated");
                 self.accept_local.store(true, Ordering::SeqCst);
                 state.world.reset();
                 state.des.reset();
                 state.flags.clear();
-                self.reset_map.store(true, Ordering::Relaxed);
+                if !init {
+                    self.reset_map.store(true, Ordering::Relaxed);
+                }
             }
             NetMsg::ModRaw { data } => {
                 state.try_ms_write(&ws_encode_mod(src, &data));
@@ -1217,7 +1220,13 @@ impl NetManager {
 
     fn resend_game_settings(&self) {
         let settings = self.settings.lock().unwrap().clone();
-        self.broadcast(&NetMsg::StartGame { settings }, Reliability::Reliable);
+        self.broadcast(
+            &NetMsg::StartGame {
+                settings,
+                init: false,
+            },
+            Reliability::Reliable,
+        );
     }
 
     fn is_host(&self) -> bool {
