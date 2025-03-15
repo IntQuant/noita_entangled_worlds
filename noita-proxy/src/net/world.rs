@@ -1089,22 +1089,17 @@ impl WorldManager {
                 debug!("Got a request for authority transfer");
                 let state = self.chunk_state.get(&chunk);
                 if let Some(ChunkState::Authority { listeners, .. }) = state {
+                    let mut listeners = listeners.clone();
+                    listeners.insert(self.my_peer_id);
                     self.emit_msg(
                         Destination::Peer(source),
-                        WorldNetMessage::TransferOk {
-                            chunk,
-                            listeners: listeners.clone(),
-                        },
+                        WorldNetMessage::TransferOk { chunk, listeners },
                     );
-                    self.chunk_state.insert(chunk, ChunkState::UnloadPending);
-                    let chunk_data = self.outbound_model.get_chunk_data(chunk);
-                    self.emit_msg(
-                        Destination::Host,
-                        WorldNetMessage::UpdateStorage {
-                            chunk,
-                            chunk_data,
-                            world_num: self.world_num,
-                            priority: None,
+                    self.chunk_state.insert(
+                        chunk,
+                        ChunkState::Listening {
+                            authority: source,
+                            priority: 0,
                         },
                     );
                 } else {
