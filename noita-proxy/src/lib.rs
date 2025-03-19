@@ -3,6 +3,7 @@ use bookkeeping::{
     noita_launcher::{LaunchTokenResult, NoitaLauncher},
     releases::Version,
     save_state::SaveState,
+    self_restart::SelfRestarter,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use cpal::traits::{DeviceTrait, HostTrait};
@@ -658,6 +659,7 @@ enum AppState {
     SelfUpdate,
     LangPick,
     AskSavestateReset,
+    GogModeIssue(LobbyCode),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -1419,8 +1421,16 @@ impl App {
         info!("Installing image loaders...");
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
+        let my_lobby_kind = args.override_lobby_kind.unwrap_or_else(|| {
+            if saved_state.spacewars {
+                LobbyKind::Gog
+            } else {
+                LobbyKind::Steam
+            }
+        });
+
         info!("Initializing steam state...");
-        let steam_state = steam_helper::SteamState::new(saved_state.spacewars);
+        let steam_state = steam_helper::SteamState::new(my_lobby_kind == LobbyKind::Gog);
 
         info!("Checking if running on steam deck...");
         let running_on_steamdeck = steam_state
@@ -1453,13 +1463,7 @@ impl App {
             RgbaImage::new(7, 17)
         };
 
-        let my_lobby_kind = if saved_state.spacewars {
-            LobbyKind::Gog
-        } else {
-            LobbyKind::Steam
-        };
-
-        Self {
+        let mut me = Self {
             state,
             audio,
             modmanager: Modmanager::default(),
@@ -1486,7 +1490,13 @@ impl App {
             noitalog_number: 0,
             noitalog: Vec::new(),
             proxylog: String::new(),
+        };
+
+        if let Some(connect_to) = me.args.auto_connect_to {
+            me.start_steam_connect(connect_to.code);
         }
+
+        me
     }
 
     fn set_settings(&self) {
@@ -2055,10 +2065,7 @@ impl App {
                 if self.my_lobby_kind == lobby.kind {
                     self.start_steam_connect(lobby.code)
                 } else {
-                    self.notify_error(format!(
-                        "Mismathing modes: Host is in {:?} mode, you're in {:?} mode",
-                        lobby.kind, self.my_lobby_kind
-                    ));
+                    self.state = AppState::GogModeIssue(lobby);
                 }
             }
             Err(LobbyError::NotALobbyCode) => {
@@ -2622,6 +2629,31 @@ impl eframe::App for App {
                         unreachable!();
                     };
                     self.start_connect_step_2(peer);
+                }
+            }
+            AppState::GogModeIssue(target_lobby) => {
+                let mut button_back = false;
+                let mut button_restart = false;
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label(format!(
+                        "Mismathing modes: Host is in {:?} mode, you're in {:?} mode",
+                        target_lobby.kind, self.my_lobby_kind
+                    ));
+                    button_restart = ui
+                        .add(Button::new(tr("Switch-mode-and-restart")).fill(Color32::RED))
+                        .clicked();
+                    button_back = ui.button(tr("button_back")).clicked();
+                });
+                if button_restart {
+                    let Err(err) = SelfRestarter::new().and_then(|mut r| {
+                        r.override_lobby_kind(target_lobby.kind)
+                            .connect_to(*target_lobby)
+                            .restart()
+                    });
+                    self.notify_error(format!("Failed to self-restart: {}", err));
+                }
+                if button_back {
+                    self.state = AppState::Connect;
                 }
             }
         };

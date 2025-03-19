@@ -171,6 +171,7 @@ hide-cursors-checkbox-tooltip = Manchmal kann man die Cursor anderer Spieler mit
 
 ## Steam connect
 
+Switch-mode-and-restart = Switch mode and restart
 Make-lobby-public = Make lobby public
 ## Lobby list
 

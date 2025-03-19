@@ -167,6 +167,7 @@ hide-cursors-checkbox = 禁用其他人的光标
 hide-cursors-checkbox-tooltip = 有时候你可能会把朋友的光标和自己的混淆。在这种情况下，你可以通过这个复选框完全禁用它们。
 ## Steam connect
 
+Switch-mode-and-restart = Switch mode and restart
 Make-lobby-public = Make lobby public
 ## Lobby list
 

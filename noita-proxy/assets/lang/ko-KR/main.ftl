@@ -169,6 +169,7 @@ hide-cursors-checkbox-tooltip = 가끔씩 다른 플레이어의 커서를 자�
 
 ## Steam connect
 
+Switch-mode-and-restart = Switch mode and restart
 Make-lobby-public = Make lobby public
 ## Lobby list
 

@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use argh::FromArgs;
+use argh::{FromArgValue, FromArgs};
+
+use crate::lobby_code::{LobbyCode, LobbyKind};
 
 #[derive(FromArgs, PartialEq, Debug, Clone)]
 /// Noita proxy.
@@ -23,4 +25,28 @@ pub struct Args {
     /// language for gui
     #[argh(option)]
     pub language: Option<String>,
+
+    // Used internally.
+    /// override lobby mode to use. Options: "Gog", "Steam".
+    #[argh(option)]
+    pub override_lobby_kind: Option<LobbyKind>,
+    /// used internally.
+    #[argh(option)]
+    pub auto_connect_to: Option<LobbyCode>,
+}
+
+impl FromArgValue for LobbyKind {
+    fn from_arg_value(value: &str) -> Result<Self, String> {
+        match value {
+            "Steam" => Ok(LobbyKind::Steam),
+            "Gog" => Ok(LobbyKind::Gog),
+            _ => Err("Unknown mode".to_string()),
+        }
+    }
+}
+
+impl FromArgValue for LobbyCode {
+    fn from_arg_value(value: &str) -> Result<Self, String> {
+        LobbyCode::parse(value).map_err(|e| e.to_string())
+    }
 }

@@ -1,3 +1,5 @@
+use std::fmt::{self};
+
 use steamworks::LobbyId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,6 +18,15 @@ pub struct LobbyCode {
 pub enum LobbyError {
     NotALobbyCode,
     CodeVersionMismatch,
+}
+
+impl fmt::Display for LobbyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LobbyError::NotALobbyCode => write!(f, "Not a lobby code"),
+            LobbyError::CodeVersionMismatch => write!(f, "Code version mismatch"),
+        }
+    }
 }
 
 impl LobbyCode {

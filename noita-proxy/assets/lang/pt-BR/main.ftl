@@ -169,6 +169,7 @@ hide-cursors-checkbox-tooltip = De vez em quando você pode confundir o cursor d
 
 ## Steam connect
 
+Switch-mode-and-restart = Switch mode and restart
 Make-lobby-public = Make lobby public
 ## Lobby list
 

@@ -165,6 +165,7 @@ hide-cursors-checkbox-tooltip = Иногда можно перепутать к�
 
 ## Steam connect
 
+Switch-mode-and-restart = Switch mode and restart
 Make-lobby-public = Make lobby public
 ## Lobby list
 

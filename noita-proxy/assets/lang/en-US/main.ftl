@@ -168,6 +168,7 @@ hide-cursors-checkbox = Disable others' cursors
 hide-cursors-checkbox-tooltip = Sometimes you can confuse your friends' cursors with yours. In that case, you can disable them altogether with this checkbox.
 ## Steam connect
 
+Switch-mode-and-restart = Switch mode and restart
 Make-lobby-public = Make lobby public
 ## Lobby list
 
