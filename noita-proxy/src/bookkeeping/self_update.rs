@@ -15,6 +15,8 @@ use crate::{
     releases::{Downloader, ReleasesError, Version, get_latest_release},
 };
 
+use super::self_restart::SelfRestarter;
+
 struct VersionCheckResult {
     newest: Version,
     ord: Ordering,
@@ -135,6 +137,7 @@ impl SelfUpdateManager {
             State::Unpack(promise) => match promise.ready() {
                 Some(Ok(_)) => {
                     ui.label(tr("selfupdate_updated"));
+                    let _ = SelfRestarter::new().and_then(|mut r| r.restart());
                 }
                 Some(Err(err)) => {
                     ui.label(format!("Could not update proxy: {}", err));
