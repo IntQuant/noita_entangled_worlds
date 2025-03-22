@@ -1421,7 +1421,7 @@ impl App {
         info!("Installing image loaders...");
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
-        let my_lobby_kind = args.override_lobby_kind.unwrap_or_else(|| {
+        let my_lobby_kind = args.override_lobby_kind.unwrap_or({
             if saved_state.spacewars {
                 LobbyKind::Gog
             } else {

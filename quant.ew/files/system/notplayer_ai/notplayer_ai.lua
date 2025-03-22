@@ -2,6 +2,10 @@ local wandfinder = dofile_once("mods/quant.ew/files/system/notplayer_ai/wandfind
 local tether = dofile_once("mods/quant.ew/files/system/player_tether/player_tether.lua")
 local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
+--TODO lake music box
+
+--TODO inventory bug, maybe from unobtainable status?
+
 local MAX_RADIUS = 128 * 5
 
 local INVIS_RANGE = 30

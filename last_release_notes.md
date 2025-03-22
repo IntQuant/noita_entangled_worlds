@@ -1,12 +1,9 @@
-## Noita Entangled Worlds v1.5.0
+## Noita Entangled Worlds v1.5.1
 
-- fix invincible enemys
+- fix hamis vase
 
-- some minor world sync changes
+- some ui changes
 
-- fix chunk map on first enter
-
-- add logs to lobby ui
 
 ## Accepted pull requests
 
