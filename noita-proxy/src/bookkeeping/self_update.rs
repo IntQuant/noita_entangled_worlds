@@ -161,6 +161,8 @@ impl SelfUpdateManager {
 fn proxy_asset_name() -> &'static str {
     if cfg!(target_os = "windows") {
         "noita-proxy-win.zip"
+    } else if cfg!(target_os = "macos") {
+        "noita-proxy-macos-arm64.zip"
     } else {
         "noita-proxy-linux.zip"
     }
@@ -169,6 +171,8 @@ fn proxy_asset_name() -> &'static str {
 fn proxy_bin_name() -> &'static str {
     if cfg!(target_os = "windows") {
         "noita_proxy.exe"
+    } else if cfg!(target_os = "macos") {
+        "noita_proxy.arm64"
     } else {
         "noita_proxy.x86_64"
     }

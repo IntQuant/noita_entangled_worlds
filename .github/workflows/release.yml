@@ -59,6 +59,28 @@ jobs:
           name: noita-proxy-linux.zip
           path: target/noita-proxy-linux.zip
 
+  build-proxy-macos:
+    name: Build proxy for macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: noita-proxy -> target
+
+      - name: Build Linux proxy release
+        run: cargo build --release
+        working-directory: ./noita-proxy
+
+      - name: Create archives
+        run: python scripts/ci_make_archives.py macos
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noita-proxy-macos-arm64.zip
+          path: target/noita-proxy-macos.zip
+  
   build-proxy-windows:
     name: Build proxy for windows
     runs-on: windows-2019
