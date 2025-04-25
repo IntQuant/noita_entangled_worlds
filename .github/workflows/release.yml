@@ -69,7 +69,7 @@ jobs:
         with:
           workspaces: noita-proxy -> target
 
-      - name: Build Linux proxy release
+      - name: Build Macos proxy release
         run: cargo build --release
         working-directory: ./noita-proxy
 
