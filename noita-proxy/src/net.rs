@@ -252,8 +252,8 @@ impl NetManager {
             chunk_map: Default::default(),
             players_sprite: Default::default(),
             reset_map: AtomicBool::new(false),
-            no_chunkmap_to_players: AtomicBool::new(false),
-            no_chunkmap: AtomicBool::new(false),
+            no_chunkmap_to_players: AtomicBool::new(true),
+            no_chunkmap: AtomicBool::new(true),
             colors: Default::default(),
         }
         .into()
