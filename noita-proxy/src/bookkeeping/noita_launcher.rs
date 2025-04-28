@@ -128,12 +128,13 @@ fn linux_try_get_noita_start_cmd(
             .ok()?;
         let runtime_appid = BufReader::new(tool_manifest)
             .lines()
-            .nth(4)
-            .map(|a| a.unwrap().split('"').nth(3).map(|b| b.parse::<u32>()));
+            .map(|l| l.unwrap())
+            .find(|l| l.contains("require_tool_appid"))
+            .map(|a| a.split('"').nth(3).map(|b| b.parse::<u32>()));
         match (steam_state, runtime_appid) {
-            (Some(state), Some(Some(Ok(appid)))) => {
+            (Some(state), Some(Some(Ok(1628350)))) => {
                 let apps = state.client.apps();
-                let app_id = AppId::from(appid);
+                let app_id = AppId::from(1628350);
                 let app_install_dir = apps.app_install_dir(app_id);
                 Some(NoitaStartCmd {
                     executable: PathBuf::from(app_install_dir)
@@ -208,6 +209,8 @@ impl LaunchToken<'_> {
             info!("Steam install: {}", steam_install.display());
             info!("Compat data: {}", compat_data.display());
             info!("Game path: {}", game_path.display());
+            info!("Exe path: {}", start_cmd.executable.to_str().unwrap());
+            info!("Args: {:?}", start_cmd.args);
 
             Command::new(&start_cmd.executable)
                 .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", steam_install)
