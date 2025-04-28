@@ -28,10 +28,10 @@ module.phys_sync_allowed = {
     ["data/entities/props/physics_box_harmless.xml"] = true,
     --["data/entities/props/physics_tubelamp.xml"] = true,
 
-    ["data/entities/props/suspended_container.xml"] = true,
-    ["data/entities/props/suspended_seamine.xml"] = true,
-    ["data/entities/props/suspended_tank_acid.xml"] = true,
-    ["data/entities/props/suspended_tank_radioactive.xml"] = true,
+    --["data/entities/props/suspended_container.xml"] = true,
+    --["data/entities/props/suspended_seamine.xml"] = true,
+    --["data/entities/props/suspended_tank_acid.xml"] = true,
+    --["data/entities/props/suspended_tank_radioactive.xml"] = true,
 
     ["data/entities/props/physics_wheel_small.xml"] = true,
     ["data/entities/props/physics_wheel_stand_01.xml"] = true,
