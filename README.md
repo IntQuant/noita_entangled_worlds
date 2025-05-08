@@ -42,6 +42,30 @@ In the Proxy window, click on "Create Lobby". Then, "Save lobby ID to clipboard"
 
 After that, just start a new Noita game on everyone's PCs, and you should be in multiplayer mode :)
 
+## When to press "New Game" and when to press "Continue"
+
+ - "New Game" - you're joining a multiplayer run you haven't joined before.
+ - "Continue" - you're reconnecting to a multiplayer run that you've joined before and hasn't ended yet.
+
+Using the same save file for multiplayer and singleplayer isn't something that should be done.
+
+## Global perks
+
+Some perks are perks and affect the entire world, and thus are shown for every player.
+
+There are 11 global perks:
+ - No More Shuffle
+ - Unlimited Spells
+ - Trick Blood Money
+ - Gold is Forever
+ - Greed
+ - Trick Greed
+ - Peace with Gods
+ - Extra Item in Holy Mountain
+ - More Love
+ - More Hatred
+ - More Blood
+
 ## Mods support
 
 [The mods listed here](https://docs.google.com/spreadsheets/d/1nMdqzrLCav_diXbNPB9RgxPcCQzDPgXdEv-klKWJyS0) have been tested by the community, it is publically editable so please add any untested mod with your findings
