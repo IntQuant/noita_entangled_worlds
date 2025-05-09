@@ -1,14 +1,7 @@
-## Noita Entangled Worlds v1.5.2
+## Noita Entangled Worlds v1.5.3
 
-- disable chunk map since im too lazy to make it not use up all memory and vram
+- fix pvp (why did it take 2 weeks to get a report :( )
 
-- dont use cell eater logic for physics bodys since prob breaks in jungle sometimes
-
-- dont sync most things with chains cuz game gets angy at me "deleting" chains prob
-
-- detect exe on linux better
-
-- make suspended containers spawn extra stuff only on host cuz im lazy
 
 ## Accepted pull requests
 
