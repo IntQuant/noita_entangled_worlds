@@ -6,6 +6,8 @@ local spectate = dofile_once("mods/quant.ew/files/system/spectate/spectate.lua")
 
 --TODO inventory bug, maybe from unobtainable status?
 
+--TODO lukki legs prob need time to init before being killed from load in
+
 local MAX_RADIUS = 128 * 5
 
 local INVIS_RANGE = 30

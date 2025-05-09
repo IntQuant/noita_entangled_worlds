@@ -1,6 +1,6 @@
 local rpc = net.new_rpc_namespace()
 local pvp = {}
-//TODO allow optionally voting to stay in current area
+--TODO allow optionally voting to stay in current area
 local chunks_by_floor = {
     { { -3, 1, 3, 1 }, { 0, 0, 2, 0 } }, --(Collapsed) Mines
     { { -6, 3, 3, 4 }, { -7, 3, -7, 3 } }, --Coal Pits
