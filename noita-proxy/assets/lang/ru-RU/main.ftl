@@ -65,8 +65,8 @@ error_lobby_does_not_exist = Лобби не существует.
 
 launcher_already_started = Noita уже запущена.
 launcher_no_command = Не получается запустить Noita: отсутствует команда запуска.
-launcher_no_command_2 = Launch command can be specified with --launch-cmd <command> option.
-launcher_no_command_3 = You can put `noita-proxy --launch-cmd "%command%"` in steam's launch options to intercept whatever command steam uses to start the game.
+launcher_no_command_2 = Команду запуска можно уточнить с помощью опции --launch-cmd <команда>.
+launcher_no_command_3 = Вы можете вставить `noita-proxy --launch-cmd "%command%"` в настройки запуска Steam чтобы перехватить команду, которую Steam использует для запуска.
 launcher_start_game = Запустить Noita
 launcher_end_run = Закончить забег
 launcher_end_run_confirm = Подтвердить
@@ -89,8 +89,8 @@ connect_settings_autostart = Запускать игру автоматичес�
 
 ## Game settings
 
-Player-have-same-starting-loadout = Player have same starting loadout
-connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
+Player-have-same-starting-loadout = У игроков одинаковые начальные предметы
+connect_settings_spacewars = Разрешить использование сетевой игры через Steam при отсутствии лицензионной версии игры в Steam, в случае покупки GOG версии. У всех игроков должна быть включена настройка, применяется после перезапуска.
 Health-per-player = Стартовое здоровье
 Enable-friendly-fire = Включить дружественный огонь
 Have-perk-pools-be-independent-of-each-other = Сделать перки локальными для каждого игрока
@@ -146,11 +146,11 @@ ip_wait_for_connection = Подключение к ip...
 
 ## Info
 
-info_stress_tests = We're doing public lobbies (a.k.a stress tests) every saturday, 18:00 UTC. Join our discord for more info.
-Info = Info
+info_stress_tests = Мы создаём публичные лобби (стресс тесты) каждую субботу, 21:00 по МСК. Посетите Discord для дополнительной информации.
+Info = Информация
 ## Local settings
 
-connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
+connect_settings_random_ports = Не использовать предопределенный порт. Делает вещи слегка надёжнее и позволяет запускать несколько прокси на одном ПК, но Noita придётся запускать через прокси.
 
 ## UX settings
 
@@ -165,15 +165,15 @@ hide-cursors-checkbox-tooltip = Иногда можно перепутать к�
 
 ## Steam connect
 
-Switch-mode-and-restart = Switch mode and restart
-Make-lobby-public = Make lobby public
+Switch-mode-and-restart = Переключить режим и перезагрузиться
+Make-lobby-public = Сделать лобби публичным
 ## Lobby list
 
-Open-lobby-list = Open lobby list
-Only-EW-lobbies = Only EW lobbies
-Join = Join
-Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
-No-public-lobbies-at-the-moment = No public lobbies at the moment :(
-Lobby-list-pending = Lobby list pending...
-Refresh = Refresh
-Lobby-list = Lobby list
+Open-lobby-list = Открыть список лобби
+Only-EW-lobbies = Только лобби EW
+Join = Присоединиться
+Not-Entangled-Worlds-lobby = Не лобби Entangled Worlds
+No-public-lobbies-at-the-moment = Сейчас нет публичных лобби :(
+Lobby-list-pending = Загрузка списка лобби...
+Refresh = Поиск
+Lobby-list = Список лобби
