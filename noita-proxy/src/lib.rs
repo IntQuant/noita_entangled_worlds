@@ -1695,8 +1695,8 @@ impl App {
                 |ui| {
                     filled_group(ui, |ui| {
                         ui.set_min_size(ui.available_size());
-                        heading_with_underline(ui, tr("Info"));
-                        ui.label(tr("info_stress_tests"));
+                        // heading_with_underline(ui, tr("Info"));
+                        // ui.label(tr("info_stress_tests"));
                     });
                 },
             );
