@@ -3151,11 +3151,8 @@ fn test_explosion_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _, _, _) = WorldManager::new(
-            true,
-            OmniPeerId(0),
-            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
-        );
+        let (mut world, _, _, _, _) =
+            WorldManager::new(true, OmniPeerId(0), SaveState::new("/tmp/ew_tmp_save"));
         world
             .materials
             .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
@@ -3203,11 +3200,8 @@ fn test_explosion_perf_unloaded() {
     let iters = 4;
     let mut n = 0;
     for _ in 0..iters {
-        let (mut world, _, _, _, _) = WorldManager::new(
-            true,
-            OmniPeerId(0),
-            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
-        );
+        let (mut world, _, _, _, _) =
+            WorldManager::new(true, OmniPeerId(0), SaveState::new("/tmp/ew_tmp_save"));
         world
             .materials
             .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
@@ -3271,11 +3265,8 @@ fn test_explosion_perf_large() {
     let mut total = 0;
     let iters = 16;
     for _ in 0..iters {
-        let (mut world, _, _, _, _) = WorldManager::new(
-            true,
-            OmniPeerId(0),
-            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
-        );
+        let (mut world, _, _, _, _) =
+            WorldManager::new(true, OmniPeerId(0), SaveState::new("/tmp/ew_tmp_save"));
         world
             .materials
             .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
@@ -3322,11 +3313,8 @@ fn test_line_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _, _, _) = WorldManager::new(
-            true,
-            OmniPeerId(0),
-            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
-        );
+        let (mut world, _, _, _, _) =
+            WorldManager::new(true, OmniPeerId(0), SaveState::new("/tmp/ew_tmp_save"));
         world
             .materials
             .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
@@ -3361,11 +3349,8 @@ fn test_circle_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _, _, _) = WorldManager::new(
-            true,
-            OmniPeerId(0),
-            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
-        );
+        let (mut world, _, _, _, _) =
+            WorldManager::new(true, OmniPeerId(0), SaveState::new("/tmp/ew_tmp_save"));
         world
             .materials
             .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));
@@ -3400,11 +3385,8 @@ fn test_cut_perf() {
     let mut total = 0;
     let iters = 64;
     for _ in 0..iters {
-        let (mut world, _, _, _, _) = WorldManager::new(
-            true,
-            OmniPeerId(0),
-            SaveState::new("/tmp/ew_tmp_save".parse().unwrap()),
-        );
+        let (mut world, _, _, _, _) =
+            WorldManager::new(true, OmniPeerId(0), SaveState::new("/tmp/ew_tmp_save"));
         world
             .materials
             .insert(0, (0, 100, CellType::Liquid(LiquidType::Liquid), 0));

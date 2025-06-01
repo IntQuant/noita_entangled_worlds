@@ -1,6 +1,6 @@
 use std::{
     fs, io,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         Arc,
         atomic::{self, AtomicBool},
@@ -26,13 +26,16 @@ pub struct SaveState {
 }
 
 impl SaveState {
-    pub(crate) fn new(path: PathBuf) -> Self {
-        let has_savestate = path.join("run_info.bit").exists();
+    pub(crate) fn new(path: impl AsRef<Path>) -> Self {
+        let has_savestate = path.as_ref().join("run_info.bit").exists();
         info!("Has savestate: {has_savestate}");
         if let Err(err) = fs::create_dir_all(&path) {
             error!("Error while creating directories: {err}");
         }
-        let path = path.canonicalize().unwrap_or(path);
+        let path = path
+            .as_ref()
+            .canonicalize()
+            .unwrap_or(path.as_ref().to_path_buf());
         info!("Will save to: {}", path.display());
         Self {
             path,

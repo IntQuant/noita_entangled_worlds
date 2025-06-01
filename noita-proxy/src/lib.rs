@@ -2,12 +2,12 @@ use bitcode::{Decode, Encode};
 use bookkeeping::{
     noita_launcher::{LaunchTokenResult, NoitaLauncher},
     releases::Version,
+    save_paths::SavePaths,
     save_state::SaveState,
     self_restart::SelfRestarter,
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use cpal::traits::{DeviceTrait, HostTrait};
-use directories::ProjectDirs;
 use eframe::egui::load::TexturePoll;
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
@@ -16,7 +16,6 @@ use eframe::egui::{
     Visuals, Window, pos2,
 };
 use eframe::epaint::TextureHandle;
-use eyre::{Context as _, OptionExt};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{LANGS, set_current_locale, tr};
@@ -31,8 +30,6 @@ use player_cosmetics::PlayerPngDesc;
 use rustc_hash::FxHashMap;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::{Read, Write};
 use std::process::exit;
 use std::thread::sleep;
 use std::{collections::HashMap, fs, str::FromStr};
@@ -49,7 +46,7 @@ use std::{net::IpAddr, path::PathBuf};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::{Peer, Reliability};
 use tokio::time;
-use tracing::{info, warn};
+use tracing::info;
 use unic_langid::LanguageIdentifier;
 
 mod util;
@@ -1322,6 +1319,7 @@ pub struct App {
     noitalog_number: usize,
     noitalog: Vec<String>,
     proxylog: String,
+    save_paths: SavePaths,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -1364,69 +1362,12 @@ pub struct Settings {
     audio: AudioSettings,
 }
 
-fn settings_path() -> eyre::Result<PathBuf> {
-    let base_path = std::env::current_exe()
-        .map(|p| p.parent().unwrap().to_path_buf())
-        .unwrap_or(".".into());
-    let config_name = "proxy.ron";
-    let next_to_exe_path = base_path.join(config_name);
-    if next_to_exe_path.exists() {
-        info!("Using 'next to exe' path to store settings");
-        Ok(next_to_exe_path)
-    } else {
-        info!("Using 'system' path to store settings");
-        let project_dirs = ProjectDirs::from("", "quant", "entangledworlds")
-            .ok_or_eyre("Failed to retrieve ProjectDirs")?;
-        fs::create_dir_all(project_dirs.config_dir())
-            .wrap_err("Failed to create config directory")?;
-        let config_path = project_dirs.config_dir().join(config_name);
-        info!("Config path: {}", config_path.display());
-        Ok(config_path)
-    }
-}
-
-fn settings_get() -> Settings {
-    if let Ok(settings_path) = settings_path() {
-        // info!("Settings path: {}", settings_path.display());
-        if let Ok(mut file) = File::open(settings_path) {
-            let mut s = String::new();
-            let _ = file.read_to_string(&mut s);
-            ron::from_str::<Settings>(&s).unwrap_or_default()
-        } else {
-            info!("Failed to load settings file, returing default settings");
-            Settings::default()
-        }
-    } else {
-        warn!("Failed to get settings file location, returing default settings");
-        Settings::default()
-    }
-}
-
-fn settings_set(
-    app: AppSavedState,
-    color: PlayerAppearance,
-    modmanager: ModmanagerSettings,
-    audio: AudioSettings,
-) {
-    if let Ok(settings_path) = settings_path() {
-        let settings = Settings {
-            app,
-            color,
-            modmanager,
-            audio,
-        };
-        let settings = ron::to_string(&settings).unwrap();
-        if let Ok(mut file) = File::create(settings_path) {
-            file.write_all(settings.as_bytes()).unwrap();
-        }
-    }
-}
-
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
         cc.egui_ctx.set_visuals(Visuals::dark());
         cc.egui_ctx.set_theme(ThemePreference::Dark);
-        let settings = settings_get();
+        let save_paths = SavePaths::new();
+        let settings = save_paths.load_settings();
         let mut saved_state: AppSavedState = settings.app;
         let modmanager_settings: ModmanagerSettings = settings.modmanager;
         let appearance: PlayerAppearance = settings.color;
@@ -1472,11 +1413,7 @@ impl App {
         cc.egui_ctx
             .set_zoom_factor(args.ui_zoom_factor.unwrap_or(default_zoom_factor));
         info!("Creating the app...");
-        let run_save_state = if let Ok(path) = std::env::current_exe() {
-            SaveState::new(path.parent().unwrap().join("save_state"))
-        } else {
-            SaveState::new("./save_state/".into())
-        };
+        let run_save_state = SaveState::new(&save_paths.save_state_path);
         let path = player_path(modmanager_settings.mod_path());
         let player_image = if path.exists() {
             image::open(path)
@@ -1514,6 +1451,7 @@ impl App {
             noitalog_number: 0,
             noitalog: Vec::new(),
             proxylog: String::new(),
+            save_paths,
         };
 
         if let Some(connect_to) = me.args.auto_connect_to {
@@ -1527,12 +1465,12 @@ impl App {
         let mut audio = self.audio.clone();
         audio.input_devices.clear();
         audio.output_devices.clear();
-        settings_set(
-            self.app_saved_state.clone(),
-            self.appearance.clone(),
-            self.modmanager_settings.clone(),
+        self.save_paths.save_settings(Settings {
+            color: self.appearance.clone(),
+            app: self.app_saved_state.clone(),
+            modmanager: self.modmanager_settings.clone(),
             audio,
-        )
+        });
     }
 
     fn get_netman_init(&self) -> NetManagerInit {
@@ -2839,7 +2777,7 @@ fn cli_setup(
     AudioSettings,
     steamworks::LobbyType,
 ) {
-    let settings = settings_get();
+    let settings = SavePaths::new().load_settings();
     let saved_state: AppSavedState = settings.app;
     let mut mod_manager: ModmanagerSettings = settings.modmanager;
     let appearance: PlayerAppearance = settings.color;
@@ -2860,7 +2798,7 @@ fn cli_setup(
     let run_save_state = if let Ok(path) = std::env::current_exe() {
         SaveState::new(path.parent().unwrap().join("save_state"))
     } else {
-        SaveState::new("./save_state/".into())
+        SaveState::new("./save_state/")
     };
     let player_path = player_path(mod_manager.mod_path());
     let mut cosmetics = (false, false, false);
