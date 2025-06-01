@@ -7,6 +7,7 @@ use bookkeeping::{
 };
 use clipboard::{ClipboardContext, ClipboardProvider};
 use cpal::traits::{DeviceTrait, HostTrait};
+use directories::ProjectDirs;
 use eframe::egui::load::TexturePoll;
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
@@ -15,6 +16,7 @@ use eframe::egui::{
     Visuals, Window, pos2,
 };
 use eframe::epaint::TextureHandle;
+use eyre::{Context as _, OptionExt};
 use image::DynamicImage::ImageRgba8;
 use image::RgbaImage;
 use lang::{LANGS, set_current_locale, tr};
@@ -47,7 +49,7 @@ use std::{net::IpAddr, path::PathBuf};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::{Peer, Reliability};
 use tokio::time;
-use tracing::info;
+use tracing::{info, warn};
 use unic_langid::LanguageIdentifier;
 
 mod util;
@@ -1362,17 +1364,40 @@ pub struct Settings {
     audio: AudioSettings,
 }
 
+fn settings_path() -> eyre::Result<PathBuf> {
+    let base_path = std::env::current_exe()
+        .map(|p| p.parent().unwrap().to_path_buf())
+        .unwrap_or(".".into());
+    let config_name = "proxy.ron";
+    let next_to_exe_path = base_path.join(config_name);
+    if next_to_exe_path.exists() {
+        info!("Using 'next to exe' path to store settings");
+        Ok(next_to_exe_path)
+    } else {
+        info!("Using 'system' path to store settings");
+        let project_dirs = ProjectDirs::from("", "quant", "entangledworlds")
+            .ok_or_eyre("Failed to retrieve ProjectDirs")?;
+        fs::create_dir_all(project_dirs.config_dir())
+            .wrap_err("Failed to create config directory")?;
+        let config_path = project_dirs.config_dir().join(config_name);
+        info!("Config path: {}", config_path.display());
+        Ok(config_path)
+    }
+}
+
 fn settings_get() -> Settings {
-    if let Ok(s) = std::env::current_exe() {
-        let file = s.parent().unwrap().join("proxy.ron");
-        if let Ok(mut file) = File::open(file) {
+    if let Ok(settings_path) = settings_path() {
+        // info!("Settings path: {}", settings_path.display());
+        if let Ok(mut file) = File::open(settings_path) {
             let mut s = String::new();
             let _ = file.read_to_string(&mut s);
             ron::from_str::<Settings>(&s).unwrap_or_default()
         } else {
+            info!("Failed to load settings file, returing default settings");
             Settings::default()
         }
     } else {
+        warn!("Failed to get settings file location, returing default settings");
         Settings::default()
     }
 }
@@ -1383,16 +1408,15 @@ fn settings_set(
     modmanager: ModmanagerSettings,
     audio: AudioSettings,
 ) {
-    if let Ok(s) = std::env::current_exe() {
+    if let Ok(settings_path) = settings_path() {
         let settings = Settings {
             app,
             color,
             modmanager,
             audio,
         };
-        let file = s.parent().unwrap().join("proxy.ron");
         let settings = ron::to_string(&settings).unwrap();
-        if let Ok(mut file) = File::create(file) {
+        if let Ok(mut file) = File::create(settings_path) {
             file.write_all(settings.as_bytes()).unwrap();
         }
     }
