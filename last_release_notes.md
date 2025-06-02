@@ -1,12 +1,13 @@
-## Noita Entangled Worlds v1.5.3
+## Noita Entangled Worlds v1.5.4
 
-- fix pvp (why did it take 2 weeks to get a report :( )
+Changed config and save_state location to system-specific locations (%APPDATA%\Roaming\quant\entangledworlds on windows, ~/.config/entangledworlds and ~/.local/share/entangledworlds on Linux)
+Old locations (right next to the executable) will be used if proxy.ron already exists here.
 
+Should fix issues related to saving when location next to executable isn't writeable.
 
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
+- translated more strings for russian by @goluboch in #378
 
 ## Installation
 
