@@ -18,21 +18,19 @@ impl SavePaths {
     pub fn new() -> Self {
         if Self::settings_next_to_exe_path().exists() {
             Self::new_next_to_exe()
+        } else if let Some(project_dirs) = Self::project_dirs() {
+            info!("Using 'system' paths to store things");
+            let me = Self {
+                settings_path: project_dirs.config_dir().join("proxy.ron"),
+                save_state_path: project_dirs.data_dir().join("save_state"),
+            };
+            info!("Settings path: {}", me.settings_path.display());
+            let _ = fs::create_dir_all(project_dirs.config_dir());
+            let _ = fs::create_dir_all(&me.save_state_path);
+            me
         } else {
-            if let Some(project_dirs) = Self::project_dirs() {
-                info!("Using 'system' paths to store things");
-                let me = Self {
-                    settings_path: project_dirs.config_dir().join("proxy.ron"),
-                    save_state_path: project_dirs.data_dir().join("save_state"),
-                };
-                info!("Settings path: {}", me.settings_path.display());
-                let _ = fs::create_dir_all(project_dirs.config_dir());
-                let _ = fs::create_dir_all(&me.save_state_path);
-                me
-            } else {
-                warn!("Failed to get project dirst!");
-                Self::new_next_to_exe()
-            }
+            warn!("Failed to get project dirst!");
+            Self::new_next_to_exe()
         }
     }
 
