@@ -47,10 +47,9 @@ impl SavePaths {
     }
 
     fn next_to_exe_path() -> PathBuf {
-        let base_path = std::env::current_exe()
+        std::env::current_exe()
             .map(|p| p.parent().unwrap().to_path_buf())
-            .unwrap_or(".".into());
-        base_path
+            .unwrap_or(".".into())
     }
 
     fn settings_next_to_exe_path() -> PathBuf {
