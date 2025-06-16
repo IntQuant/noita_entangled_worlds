@@ -363,7 +363,6 @@ impl LocalDiffModelTracker {
 
         info.limbs = entity
             .children(None)
-            .iter()
             .filter_map(|ent| {
                 if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
                     limb.end_position().ok()
@@ -411,7 +410,6 @@ impl LocalDiffModelTracker {
             info.cost = game_get_frame_num()? as i64;
             info.counter = entity
                 .children(None)
-                .iter()
                 .filter_map(|ent| {
                     if ent.has_tag("touchmagic_immunity") {
                         let var = ent
@@ -462,8 +460,8 @@ impl LocalDiffModelTracker {
 
         info.game_effects = entity
             .get_game_effects()?
-            .iter()
-            .map(|(e, _)| e.clone())
+            .into_iter()
+            .map(|(e, _)| e)
             .collect::<Vec<GameEffectData>>();
 
         info.current_stains = if let Some(var) = entity.get_var("rolling") {
@@ -512,12 +510,10 @@ impl LocalDiffModelTracker {
                         let text = noita_api::raw::mod_text_file_get_content(file).ok()?;
                         let mut split = text.split("name=\"");
                         split.next();
-                        let data: Vec<&str> =
-                            split.filter_map(|piece| piece.split("\"").next()).collect();
+                        let mut data = split.filter_map(|piece| piece.split("\"").next());
                         let animation = sprite.rect_animation().unwrap_or("".into());
                         Some(
-                            data.iter()
-                                .position(|name| name == &animation)
+                            data.position(|name| name == animation)
                                 .unwrap_or(usize::MAX) as u16,
                         )
                     } else {
@@ -956,7 +952,6 @@ impl LocalDiffModel {
                 entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
                 entity
                     .children(Some("protection".into()))
-                    .iter()
                     .for_each(|ent| ent.kill());
                 entity.add_tag("boss_centipede_active")?;
                 noita_api::raw::physics_set_static(entity, false)?;
@@ -1143,9 +1138,11 @@ impl LocalDiffModel {
                             *last = current.clone();
                         }
                     }
-                    if current.wand.clone().map(|(_, _, g)| g)
-                        != last.wand.clone().map(|(_, _, g)| g)
-                    {
+                    if match (&current.wand, &last.wand) {
+                        (Some((_, _, a)), Some((_, _, b))) => a != b,
+                        (Some(_), None) | (None, Some(_)) => true,
+                        (None, None) => false,
+                    } {
                         had_any_delta = true;
                         res.push(EntityUpdate::CurrentEntity(lid));
                         res.push(EntityUpdate::SetWand(current.wand.clone()));
@@ -1527,10 +1524,9 @@ impl RemoteDiffModel {
             give_wand(entity, seri, *gid, true, Some(entity_info.wand_rotation))?;
         } else if let Some(inv) = entity
             .children(None)
-            .iter()
             .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
         {
-            inv.children(None).iter().for_each(|e| e.kill())
+            inv.children(None).for_each(|e| e.kill())
         }
         if entity_info.is_enabled {
             if entity
@@ -1562,7 +1558,6 @@ impl RemoteDiffModel {
                     .set_name("ew_has_started".into())?;
                 entity
                     .children(Some("protection".into()))
-                    .iter()
                     .for_each(|ent| ent.kill());
             } else if let Some(var) = entity
                 .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
@@ -1582,7 +1577,6 @@ impl RemoteDiffModel {
         }
         for (ent, (x, y)) in entity
             .children(None)
-            .iter()
             .filter(|ent| ent.get_first_component::<IKLimbComponent>(None).is_ok())
             .zip(&entity_info.limbs)
         {
@@ -1948,15 +1942,13 @@ impl RemoteDiffModel {
             }
             if let Some(inv) = entity
                 .children(None)
-                .iter()
                 .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
             {
-                inv.children(None).iter().for_each(|e| e.kill())
+                inv.children(None).for_each(|e| e.kill())
             }
             if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
                 entity
                     .children(Some("protection".into()))
-                    .iter()
                     .for_each(|ent| ent.kill());
                 self.pending_remove.retain(|l| l != &lid);
                 if !wait_on_kill {
@@ -2370,10 +2362,9 @@ fn safe_entitykill(entity: EntityID) {
     } else {
         if let Some(inv) = entity
             .children(None)
-            .iter()
             .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
         {
-            inv.children(None).iter().for_each(|e| e.kill())
+            inv.children(None).for_each(|e| e.kill())
         }
         entity.kill();
     }
@@ -2448,15 +2439,15 @@ fn give_wand(
             {
                 pickup.set_only_pick_this_entity(Some(wand))?;
             }
-            let quick = if let Some(quick) = entity.children(None).iter().find_map(|a| {
+            let quick = if let Some(quick) = entity.children(None).find_map(|a| {
                 if a.name().ok()? == "inventory_quick" {
-                    a.children(None).iter().for_each(|e| e.kill());
+                    a.children(None).for_each(|e| e.kill());
                     Some(a)
                 } else {
                     None
                 }
             }) {
-                *quick
+                quick
             } else {
                 let quick =
                     entity_create_new(Some("inventory_quick".into()))?.wrap_err("unreachable")?;

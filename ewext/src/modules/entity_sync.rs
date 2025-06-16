@@ -159,7 +159,6 @@ impl EntitySync {
                                         }
                                         entity
                                             .children(Some("protection".into()))
-                                            .iter()
                                             .for_each(|ent| ent.kill());
                                         damage.set_ui_report_damage(false)?;
                                         if entity.has_tag("boss_centipede") {
@@ -240,17 +239,17 @@ impl EntitySync {
         }
         Ok(())
     }
-    pub fn iter_peers(&self, player_map: &BiHashMap<PeerId, EntityID>) -> Vec<(bool, PeerId)> {
-        player_map
-            .left_values()
-            .filter_map(|p| {
-                if *p != my_peer_id() {
-                    Some((self.interest_tracker.contains(*p), *p))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(bool, PeerId)>>()
+    pub fn iter_peers<'a>(
+        &'a self,
+        player_map: &'a BiHashMap<PeerId, EntityID>,
+    ) -> impl Iterator<Item = (bool, PeerId)> + 'a {
+        player_map.left_values().filter_map(move |p| {
+            if *p != my_peer_id() {
+                Some((self.interest_tracker.contains(*p), *p))
+            } else {
+                None
+            }
+        })
     }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
         let should_be_tracked = [
@@ -525,7 +524,8 @@ impl Module for EntitySync {
                 RemoteDes::InterestRequest(InterestRequest { pos }),
             )?;
         }
-        for (_, peer) in self.iter_peers(ctx.player_map) {
+        let iter = self.iter_peers(ctx.player_map).map(|(_, b)| b);
+        for peer in iter.collect::<Vec<PeerId>>() {
             send_remotedes(
                 ctx,
                 false,
