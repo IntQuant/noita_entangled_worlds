@@ -10,6 +10,11 @@ use std::{
     fs::File,
     io::{self, BufWriter},
     panic,
+    net::{
+        SocketAddr,
+        SocketAddrV4,
+        Ipv4Addr,
+    },
 };
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
@@ -81,12 +86,17 @@ async fn main() {
     info!("Launch command: {:?}", args.launch_cmd);
 
     if let Some(host) = args.clone().host {
-        let port = if host.eq_ignore_ascii_case("steam") {
-            0
+        let bind_addr = if host.eq_ignore_ascii_case("steam") {
+            None
         } else {
-            host.parse::<u16>().unwrap_or(5123)
+            // allows binding to both IPv6 and IPv4
+            host.parse::<SocketAddr>().ok()
+                // compatibility with providing only the port (which then proceeds to bind to IPv4 only)
+                .or_else(|| Some(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, host.parse().ok()?))))
+                .map(Some)
+                .expect("host argument is neither SocketAddr nor port")
         };
-        host_cli(port, args)
+        host_cli(bind_addr, args)
     } else if let Some(lobby) = args.clone().lobby {
         connect_cli(lobby, args)
     } else {

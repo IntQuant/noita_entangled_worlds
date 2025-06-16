@@ -2852,7 +2852,7 @@ fn cli_setup(
 
 pub fn connect_cli(lobby: String, args: Args) {
     let (state, netmaninit, kind, audio, _) = cli_setup(args);
-    let varient = if lobby.contains(':') {
+    let variant = if lobby.contains(':') {
         let p = Peer::connect(lobby.parse().unwrap(), None).unwrap();
         while p.my_id().is_none() {
             sleep(Duration::from_millis(100))
@@ -2869,14 +2869,16 @@ pub fn connect_cli(lobby: String, args: Args) {
         exit(1)
     };
     let player_path = netmaninit.player_path.clone();
-    let netman = net::NetManager::new(varient, netmaninit, audio);
+    let netman = net::NetManager::new(variant, netmaninit, audio);
     netman.start_inner(player_path, Some(kind)).unwrap();
 }
 
-pub fn host_cli(port: u16, args: Args) {
+/// Bind to the provided `bind_addr` with `args` with CLI output only.
+///
+/// The `bind_addr` is either `Some` address/port pair to bind to, or `None` to use Steam networking.
+pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
     let (state, netmaninit, kind, audio, lobbytype) = cli_setup(args);
-    let varient = if port != 0 {
-        let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
+    let variant = if let Some(bind_addr) = bind_addr {
         let peer = Peer::host(bind_addr, None).unwrap();
         PeerVariant::Tangled(peer)
     } else if let Some(state) = state {
@@ -2895,6 +2897,6 @@ pub fn host_cli(port: u16, args: Args) {
         exit(1)
     };
     let player_path = netmaninit.player_path.clone();
-    let netman = net::NetManager::new(varient, netmaninit, audio);
+    let netman = net::NetManager::new(variant, netmaninit, audio);
     netman.start_inner(player_path, Some(kind)).unwrap();
 }
