@@ -1,13 +1,8 @@
-## Noita Entangled Worlds v1.5.4
-
-Changed config and save_state location to system-specific locations (%APPDATA%\Roaming\quant\entangledworlds on windows, ~/.config/entangledworlds and ~/.local/share/entangledworlds on Linux)
-Old locations (right next to the executable) will be used if proxy.ron already exists here.
-
-Should fix issues related to saving when location next to executable isn't writeable.
+## Noita Entangled Worlds v1.5.5
 
 ## Accepted pull requests
 
-- translated more strings for russian by @goluboch in #378
+- noita-proxy: socketaddr binding via --host by @benaryorg in #390
 
 ## Installation
 
