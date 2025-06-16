@@ -9,12 +9,8 @@ use std::{
     backtrace, fs,
     fs::File,
     io::{self, BufWriter},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     panic,
-    net::{
-        SocketAddr,
-        SocketAddrV4,
-        Ipv4Addr,
-    },
 };
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
@@ -90,9 +86,15 @@ async fn main() {
             None
         } else {
             // allows binding to both IPv6 and IPv4
-            host.parse::<SocketAddr>().ok()
+            host.parse::<SocketAddr>()
+                .ok()
                 // compatibility with providing only the port (which then proceeds to bind to IPv4 only)
-                .or_else(|| Some(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, host.parse().ok()?))))
+                .or_else(|| {
+                    Some(SocketAddr::V4(SocketAddrV4::new(
+                        Ipv4Addr::UNSPECIFIED,
+                        host.parse().ok()?,
+                    )))
+                })
                 .map(Some)
                 .expect("host argument is neither SocketAddr nor port")
         };
