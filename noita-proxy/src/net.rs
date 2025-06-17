@@ -213,6 +213,7 @@ pub struct NetManager {
     pub players_sprite: Mutex<FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, RgbaImage)>>,
     pub reset_map: AtomicBool,
     colors: Mutex<FxHashMap<u16, u32>>,
+    pub log_performance: AtomicBool,
 }
 
 impl NetManager {
@@ -255,6 +256,7 @@ impl NetManager {
             no_chunkmap_to_players: AtomicBool::new(true),
             no_chunkmap: AtomicBool::new(true),
             colors: Default::default(),
+            log_performance: AtomicBool::new(false),
         }
         .into()
     }
@@ -1063,6 +1065,10 @@ impl NetManager {
         state.try_ws_write_option(
             "perk_ban_list",
             lst.perk_ban_list.unwrap_or(def.perk_ban_list).as_str(),
+        );
+        state.try_ws_write_option(
+            "log_performance",
+            self.log_performance.load(Ordering::Relaxed),
         );
         state.try_ws_write_option(
             "spell_ban_list",

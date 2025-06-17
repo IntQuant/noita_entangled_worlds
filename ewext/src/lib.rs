@@ -434,6 +434,15 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     Ok(())
 }
 
+pub(crate) fn print(string: &str) -> eyre::Result<()> {
+    let lua = LuaState::current()?;
+    lua.get_global(c"EwextPrint");
+    lua.push_string(string);
+    lua.call(1, 0i32)
+        .wrap_err("Failed to call EwextPrintError")?;
+    Ok(())
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
@@ -720,6 +729,19 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
             })?
         }
         add_lua_fn!(des_broken_wand);
+
+        fn set_log(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .unwrap()
+                    .set_perf(lua.to_bool(1));
+                Ok(())
+            })?
+        }
+        add_lua_fn!(set_log);
     }
     println!("Initializing ewext - Ok");
     1

@@ -64,7 +64,12 @@ local first = true
 
 local function hole(item)
     local ce = EntityGetFirstComponent(item, "CellEaterComponent")
-    if ce == nil or ComponentGetValue2(ce, "only_stain") or ComponentGetValue2(ce, "limited_materials") or EntityGetFirstComponent(item, "PhysicsBodyComponent") ~= nil then
+    if
+        ce == nil
+        or ComponentGetValue2(ce, "only_stain")
+        or ComponentGetValue2(ce, "limited_materials")
+        or EntityGetFirstComponent(item, "PhysicsBodyComponent") ~= nil
+    then
         return
     end
     local r = 0

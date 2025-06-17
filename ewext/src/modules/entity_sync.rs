@@ -56,8 +56,12 @@ pub(crate) struct EntitySync {
     local_index: usize,
     remote_index: FxHashMap<PeerId, usize>,
     peer_order: Vec<PeerId>,
+    log_performance: bool,
 }
 impl EntitySync {
+    pub(crate) fn set_perf(&mut self, perf: bool) {
+        self.log_performance = perf;
+    }
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
     }*/
@@ -101,6 +105,7 @@ impl Default for EntitySync {
             local_index: 0,
             remote_index: Default::default(),
             peer_order: Vec::new(),
+            log_performance: false,
         }
     }
 }
@@ -547,6 +552,8 @@ impl Module for EntitySync {
         self.local_diff_model.enable_later()?;
         self.local_diff_model.phys_later()?;
         let t = self.local_diff_model.update_pending_authority()?;
+        let mut times = vec![0; 3];
+        times[0] = t;
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             if let Ok(ent) = EntityID::try_from(ent) {
                 self.on_new_entity(ent, false)?;
@@ -560,12 +567,14 @@ impl Module for EntitySync {
             }
         }
         let mut t = start.elapsed().as_micros() + t;
+        times[1] = t;
         {
             let (diff, dead);
             (diff, dead, t, self.local_index) = self
                 .local_diff_model
                 .update_tracked_entities(ctx, self.local_index, t)
                 .wrap_err("Failed to update locally tracked entities")?;
+            times[2] = t;
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
                 let init = self.local_diff_model.make_init();
@@ -648,6 +657,7 @@ impl Module for EntitySync {
                             .apply_entities(ctx, *vi, t)
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
+                        times.push(t);
                         for lid in remote_model.drain_grab_request() {
                             send_remotedes(
                                 ctx,
@@ -716,6 +726,9 @@ impl Module for EntitySync {
         if !pos_data.is_empty() {
             ctx.net
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
+        }
+        if self.log_performance {
+            crate::print(&format!("{:?}", times))?;
         }
         Ok(())
     }

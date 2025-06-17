@@ -11,6 +11,9 @@ local module = {}
 EwextSerialize = util.serialize_entity
 EwextDeserialize = util.deserialize_entity
 EwextPrintError = util.print_error
+function EwextPrint(s)
+    print(s)
+end
 function EwextAddInitLuaComponent(entity, file)
     return EntityAddComponent2(entity, "LuaComponent", {
         script_source_file = file,
@@ -29,6 +32,7 @@ function module.on_world_initialized()
     local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
     ewext.init_particle_world_state(grid_world, chunk_map, material_list)
     ewext.module_on_world_init()
+    ewext.set_log(ctx.proxy_opt.log_performance)
 end
 
 local function oh_another_world_state(entity)

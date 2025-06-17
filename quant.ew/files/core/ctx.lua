@@ -28,11 +28,19 @@ ctx.init = function()
     ctx.host_frame_num = 0
     ctx.is_texting = false
     ctx.stop_cam = false
+    ctx.timings = ""
 end
 
 local function is_measure_perf_enabled()
     -- return ctx.proxy_opt.debug
-    return false
+    return ctx.proxy_opt.log_performance
+end
+
+function ctx.finish()
+    if is_measure_perf_enabled() and string.len(ctx.timings) > 1 then
+        print(string.sub(ctx.timings, 1, -2) .. "}")
+        ctx.timings = "{"
+    end
 end
 
 function ctx.add_hook(hook_name, system_name, fn)
@@ -45,10 +53,8 @@ function ctx.add_hook(hook_name, system_name, fn)
                         local start_time = GameGetRealWorldTimeSinceStarted()
                         util.tpcall(entry.fn, ...)
                         local end_time = GameGetRealWorldTimeSinceStarted()
-                        local delta = (end_time - start_time) * 1000
-                        if delta > 0.02 then
-                            print("Hook " .. hook_name .. " took " .. delta .. " ms to run for " .. entry.system_name)
-                        end
+                        local delta = (end_time - start_time) * 1000000
+                        ctx.timings = ctx.timings .. entry.system_name .. ":" .. delta .. ","
                     end
                 end,
             })
