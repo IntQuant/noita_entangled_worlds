@@ -2,7 +2,7 @@ use std::{fmt::Display, mem, sync::Mutex};
 
 use crossbeam::channel;
 use dashmap::DashMap;
-use fluent_bundle::FluentValue;
+use fluent_templates::fluent_bundle::FluentValue;
 use steamworks::{
     CallbackHandle, ClientManager, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
     networking_sockets::{ListenSocket, NetPollGroup},
