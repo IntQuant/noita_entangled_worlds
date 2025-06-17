@@ -2314,7 +2314,7 @@ impl App {
                         }
                         {
                             let mut temp = netman.no_chunkmap.load(Ordering::Relaxed);
-                            if ui.checkbox(&mut temp, "don't save chunk map").changed() {
+                            if ui.checkbox(&mut temp, "don't save chunk map, chunkmap is disabled by default do to current implementation ram/vram leaking on long runs").changed() {
                                 netman.no_chunkmap.store(temp, Ordering::Relaxed);
                             }
                         }
