@@ -80,10 +80,10 @@ jobs:
         with:
           name: noita-proxy-macos-arm64.zip
           path: target/noita-proxy-macos.zip
-  
+
   build-proxy-windows:
     name: Build proxy for windows
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
