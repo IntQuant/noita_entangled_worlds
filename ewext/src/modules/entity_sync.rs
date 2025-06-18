@@ -569,24 +569,27 @@ impl Module for EntitySync {
         let mut t = start.elapsed().as_micros() + t;
         times[1] = t;
         {
-            let (diff, dead);
-            (diff, dead, t, self.local_index) = self
+            let new_intersects = self.interest_tracker.got_any_new_interested();
+            if !new_intersects.is_empty() {
+                self.local_diff_model.make_init();
+                let res = std::mem::take(&mut self.local_diff_model.res);
+                let RemoteDes::EntityUpdate(diff) = send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(new_intersects.clone()),
+                    RemoteDes::EntityUpdate(res),
+                )?
+                else {
+                    unreachable!()
+                };
+                self.local_diff_model.res = diff;
+            }
+            let dead;
+            (dead, t, self.local_index) = self
                 .local_diff_model
                 .update_tracked_entities(ctx, self.local_index, t)
                 .wrap_err("Failed to update locally tracked entities")?;
             times[2] = t;
-            let new_intersects = self.interest_tracker.got_any_new_interested();
-            if !new_intersects.is_empty() {
-                let init = self.local_diff_model.make_init();
-                if let RemoteDes::EntityUpdate(diff) = send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(new_intersects.clone()),
-                    RemoteDes::EntityUpdate(init),
-                )? {
-                    self.local_diff_model.res = diff;
-                }
-            }
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
                 if !proj.is_empty() {
@@ -611,8 +614,9 @@ impl Module for EntitySync {
                     )?;
                 }
             }
-            if !diff.is_empty() {
-                if let RemoteDes::EntityUpdate(diff) = send_remotedes(
+            if !self.local_diff_model.res.is_empty() {
+                let res = std::mem::take(&mut self.local_diff_model.res);
+                let RemoteDes::EntityUpdate(diff) = send_remotedes(
                     ctx,
                     true,
                     Destination::Peers(
@@ -621,10 +625,12 @@ impl Module for EntitySync {
                             .filter(|p| !new_intersects.contains(p))
                             .collect(),
                     ),
-                    RemoteDes::EntityUpdate(diff),
-                )? {
-                    self.local_diff_model.res = diff;
-                }
+                    RemoteDes::EntityUpdate(res),
+                )?
+                else {
+                    unreachable!()
+                };
+                self.local_diff_model.res = diff;
             }
             if !dead.is_empty() {
                 send_remotedes(
