@@ -60,6 +60,7 @@ pub(crate) struct LocalDiffModel {
     dont_save: FxHashSet<Lid>,
     phys_later: Vec<(EntityID, Vec<Option<PhysBodyInfo>>)>,
     wait_to_transfer: u8,
+    pub res: Vec<EntityUpdate>,
 }
 impl LocalDiffModel {
     /*pub(crate) fn get_lids(&self) -> Vec<Lid> {
@@ -228,6 +229,7 @@ impl Default for LocalDiffModel {
             phys_later: Default::default(),
             dont_save: Default::default(),
             wait_to_transfer: 0,
+            res: Vec::new(),
         }
     }
 }
@@ -1047,9 +1049,9 @@ impl LocalDiffModel {
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
-        let mut res = Vec::new();
-        let mut dead = Vec::new();
-        let mut to_untrack = Vec::new();
+        let mut res = std::mem::take(&mut self.res);
+        let mut dead = Vec::with_capacity(self.tracker.pending_death_notify.len());
+        let mut to_untrack = Vec::with_capacity(self.tracker.pending_death_notify.len());
         for (killed, wait_on_kill, pos, file, responsible) in
             self.tracker.pending_death_notify.drain(..)
         {
@@ -1317,7 +1319,7 @@ impl LocalDiffModel {
         Ok((res, dead, time + tmr.elapsed().as_micros(), end))
     }
     pub(crate) fn make_init(&mut self) -> Vec<EntityUpdate> {
-        let mut res = Vec::new();
+        let mut res = std::mem::take(&mut self.res);
         for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.clone() {
             //res.push(EntityUpdate::CurrentEntity(*lid));
             //*last = Some(current.clone());

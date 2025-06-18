@@ -578,12 +578,14 @@ impl Module for EntitySync {
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
                 let init = self.local_diff_model.make_init();
-                send_remotedes(
+                if let RemoteDes::EntityUpdate(diff) = send_remotedes(
                     ctx,
                     true,
                     Destination::Peers(new_intersects.clone()),
                     RemoteDes::EntityUpdate(init),
-                )?;
+                )? {
+                    self.local_diff_model.res = diff;
+                }
             }
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
@@ -610,7 +612,7 @@ impl Module for EntitySync {
                 }
             }
             if !diff.is_empty() {
-                send_remotedes(
+                if let RemoteDes::EntityUpdate(diff) = send_remotedes(
                     ctx,
                     true,
                     Destination::Peers(
@@ -620,7 +622,9 @@ impl Module for EntitySync {
                             .collect(),
                     ),
                     RemoteDes::EntityUpdate(diff),
-                )?;
+                )? {
+                    self.local_diff_model.res = diff;
+                }
             }
             if !dead.is_empty() {
                 send_remotedes(
@@ -796,11 +800,19 @@ fn send_remotedes(
     reliable: bool,
     destination: Destination<PeerId>,
     remote_des: RemoteDes,
-) -> Result<(), eyre::Error> {
-    ctx.net.send(&NoitaOutbound::RemoteMessage {
+) -> Result<RemoteDes, eyre::Error> {
+    let message = NoitaOutbound::RemoteMessage {
         reliable,
         destination,
         message: RemoteMessage::RemoteDes(remote_des),
-    })?;
-    Ok(())
+    };
+    ctx.net.send(&message)?;
+    let NoitaOutbound::RemoteMessage {
+        message: RemoteMessage::RemoteDes(des),
+        ..
+    } = message
+    else {
+        unreachable!()
+    };
+    Ok(des)
 }
