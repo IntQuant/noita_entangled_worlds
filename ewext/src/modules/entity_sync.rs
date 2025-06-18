@@ -593,19 +593,21 @@ impl Module for EntitySync {
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
                 if !proj.is_empty() {
-                    let mut data = Vec::new();
-                    for (ent, mut proj) in proj.drain(..) {
-                        if ent.is_alive() {
-                            if let Some(vel) = ent
+                    let data = proj
+                        .drain(..)
+                        .map(|(ent, mut proj)| {
+                            if ent.is_alive() {
+                                if let Ok(Some(vel)) = ent
                                 .try_get_first_component_including_disabled::<VelocityComponent>(
                                     None,
-                                )?
-                            {
-                                proj.vel = vel.m_velocity().ok()
+                                )
+                                {
+                                    proj.vel = vel.m_velocity().ok()
+                                }
                             }
-                        }
-                        data.push(proj)
-                    }
+                            proj
+                        })
+                        .collect();
                     send_remotedes(
                         ctx,
                         true,
