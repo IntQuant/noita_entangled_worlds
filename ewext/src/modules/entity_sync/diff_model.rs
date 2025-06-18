@@ -1048,13 +1048,14 @@ impl LocalDiffModel {
         let cam_y = cam_y as f32;
         let mut res = Vec::new();
         let mut dead = Vec::new();
+        let mut to_untrack = Vec::new();
         for (killed, wait_on_kill, pos, file, responsible) in
             self.tracker.pending_death_notify.drain(..)
         {
             let responsible_peer = responsible
                 .and_then(|ent| ctx.player_map.get_by_right(&ent))
                 .copied();
-            let Some(lid) = self.tracker.tracked.get_by_right(&killed).copied() else {
+            let Some((lid, _)) = self.tracker.tracked.remove_by_right(&killed) else {
                 continue;
             };
             let drops_gold = if let Some(info) = self.entity_entries.get(&lid) {
@@ -1069,10 +1070,15 @@ impl LocalDiffModel {
             });
             dead.push((pos, SpawnOnce::Enemy(file, drops_gold, responsible_peer)));
             self.tracker.global_entities.remove(&killed);
-            self.tracker.tracked.remove_by_left(&lid);
-            self.entity_entries.remove(&lid);
+            let e = self.entity_entries.remove(&lid);
             self.upload.remove(&lid);
             self.dont_save.remove(&lid);
+            if let Some(e) = e {
+                to_untrack.push((e.gid, lid));
+            }
+        }
+        for (gid, lid) in to_untrack {
+            self.tracker.untrack_entity(ctx, gid, lid, None)?
         }
         let mut should_transfer = false;
         if let Some(pe) = ctx.player_map.get_by_left(&my_peer_id()) {
