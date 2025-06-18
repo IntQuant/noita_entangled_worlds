@@ -1135,6 +1135,9 @@ impl LocalDiffModel {
                     if do_remove {
                         self.upload.remove(&lid);
                     }
+                    if self.tracker.pending_removal.contains(&lid) {
+                        continue;
+                    }
                     let Some(last) = last.as_mut() else {
                         *last = current.clone();
                         self.init_buffer.push(EntityInit {

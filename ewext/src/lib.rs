@@ -36,7 +36,7 @@ pub mod noita;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
-       #[cfg(debug_assertions)]
+        #[cfg(debug_assertions)]
         println!("Initializing ExtState");
         ExtState::default().into()
     });
@@ -422,10 +422,10 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn probe(_lua: LuaState) {
-    #[cfg(debug_assertions)]
     backtrace::trace(|frame| {
-        let ip = frame.ip() as usize;
-        println!("Probe: 0x{ip:x}");
+        let _ip = frame.ip() as usize;
+        #[cfg(debug_assertions)]
+        println!("Probe: 0x{_ip:x}");
         false
     });
 }
