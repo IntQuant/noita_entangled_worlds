@@ -1,3 +1,4 @@
+use arboard::Clipboard;
 use bitcode::{Decode, Encode};
 use bookkeeping::{
     noita_launcher::{LaunchTokenResult, NoitaLauncher},
@@ -6,14 +7,12 @@ use bookkeeping::{
     save_state::SaveState,
     self_restart::SelfRestarter,
 };
-use clipboard::{ClipboardContext, ClipboardProvider};
 use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui::load::TexturePoll;
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
-    ImageButton, InnerResponse, Key, Layout, Margin, OpenUrl, OutputCommand, Rect, RichText,
-    ScrollArea, Sense, SizeHint, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2,
-    Visuals, Window, pos2,
+    ImageButton, InnerResponse, Key, Layout, Margin, OpenUrl, Rect, RichText, ScrollArea, Sense,
+    SizeHint, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window, pos2,
 };
 use eframe::epaint::TextureHandle;
 use image::DynamicImage::ImageRgba8;
@@ -1320,6 +1319,7 @@ pub struct App {
     noitalog: Vec<String>,
     proxylog: String,
     save_paths: SavePaths,
+    clipboard: Option<Clipboard>,
 }
 
 fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -1452,6 +1452,7 @@ impl App {
             noitalog: Vec::new(),
             proxylog: String::new(),
             save_paths,
+            clipboard: Clipboard::new().ok(),
         };
 
         if let Some(connect_to) = me.args.auto_connect_to {
@@ -1911,14 +1912,17 @@ impl App {
                 );
                 ui.checkbox(&mut self.app_saved_state.allow_friends, "Allow friends");
                 if ui.button(tr("connect_steam_connect")).clicked() {
-                    let id = ClipboardProvider::new()
-                        .and_then(|mut ctx: ClipboardContext| ctx.get_contents());
+                    let id = self.clipboard.as_mut().and_then(|c| c.get_text().ok());
                     match id {
-                        Ok(id) => {
+                        Some(id) => {
                             self.set_settings();
                             self.connect_to_steam_lobby(id);
                         }
-                        Err(error) => self.notify_error(error),
+                        None => self.notify_error(if self.clipboard.is_none() {
+                            "no clipboard"
+                        } else {
+                            "clipboard failed"
+                        }),
                     }
                 }
                 if ui.button(tr("Open-lobby-list")).clicked() {
@@ -2238,10 +2242,9 @@ impl App {
                                     kind: self.my_lobby_kind,
                                     code: id,
                                 };
-                                ui.output_mut(|o| {
-                                    o.commands
-                                        .push(OutputCommand::CopyText(lobby_code.serialize()))
-                                });
+                                if let Some(clipboard) = self.clipboard.as_mut() {
+                                    let _ = clipboard.set_text(lobby_code.serialize());
+                                }
                                 self.copied_lobby = true;
                             }
                         } else {
@@ -2403,11 +2406,18 @@ impl App {
                 }
                 ConnectedMenu::NoitaLog => {
                     if !self.noitalog.is_empty() {
-                        let l = self.noitalog.len();
-                        if l > 1 {
-                            ui.add(Slider::new(&mut self.noitalog_number, 0..=l - 1));
-                        }
                         let mut s = self.noitalog[self.noitalog_number].clone() + "\n";
+                        ui.horizontal(|ui| {
+                            let l = self.noitalog.len();
+                            if l > 1 {
+                                ui.add(Slider::new(&mut self.noitalog_number, 0..=l - 1));
+                            }
+                            if let Some(clipboard) = self.clipboard.as_mut() {
+                                if ui.button("save to clipboard").clicked() {
+                                    let _ = clipboard.set_text(&s);
+                                }
+                            }
+                        });
                         ScrollArea::vertical()
                             .auto_shrink([false; 2])
                             .stick_to_bottom(true)

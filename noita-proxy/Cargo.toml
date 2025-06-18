@@ -29,7 +29,7 @@ lz4_flex = { version = "0.11.3", default-features = false, features = ["std"]}
 rand = "0.9.0"
 steamworks = "0.11.0"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
-clipboard = "0.5.0"
+arboard = { version = "3.5.0", features = ["wayland-data-control"]}
 socket2 = { version = "0.5.7", features = ["all"] }
 reqwest = { version = "0.12.12", features = ["blocking", "json"]}
 poll-promise = "0.3.0"
