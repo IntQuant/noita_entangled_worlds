@@ -1,3 +1,4 @@
+local nxml = dofile_once("mods/quant.ew/files/lib/nxml.lua")
 local uniq_flags = dofile_once("mods/quant.ew/files/system/uniq_flags/uniq_flags.lua")
 
 local rpc = net.new_rpc_namespace()
@@ -36,7 +37,7 @@ local function generate_detour_fn(orig_fn_name)
     return detour_fn
 end
 
-local function ungenerate_detour_fn(orig_fn_name)
+local function generate_dummy_detour_fn(orig_fn_name)
     local detour_fn_name = detour_name(orig_fn_name)
 
     local detour_fn = "\n"
@@ -173,33 +174,49 @@ local function patch_file(filename)
     ModTextFileSetContent(filename, content)
 end
 
-local function unpatch_file(filename)
-    --print("Patching", filename)
+local function patch_file_dummy_detour(filename)
     local content = ModTextFileGetContent(filename)
-    --current_file = filename
-    -- A textbook example of how to NOT use regular expressions.
-    --content = string.gsub(content, 'RegisterSpawnFunction[(][ ]?(.-), "(.-)"[ ]?[)]', patch_fn)
-    --content = content .. "\n" .. 'EW_CURRENT_FILE="' .. filename .. '"\n'
-    -- .. "dofile_once('mods/quant.ew/files/system/wang_hooks/synced_pixel_scenes.lua')\n"
 
     for val in string.gmatch(wang_scripts, "ew_detour_(.-),") do
-        -- print("Generating detour fn for", val)
-        content = content .. ungenerate_detour_fn(val)
+        content = content .. generate_dummy_detour_fn(val)
     end
-
-    -- content = content .. generate_detour_fn("spawn_small_enemies")
-    -- content = content .. generate_detour_fn("spawn_big_enemies")
-    -- content = content .. generate_detour_fn("spawn_items")
 
     ModTextFileSetContent(filename, content)
 end
 
 function module.on_late_init()
+    -- Get list of all files to hook into
+    print("Entangled: discovering biome scripts. Expect some error messages from nxml.")
+    local already_found = {}
+    local ignore = {
+        ["data/scripts/biomes/moon_room.lua"] = true,
+        ["data/scripts/biomes/watercave.lua"] = true,
+        ["data/scripts/biomes/tower_end.lua"] = true,
+    }
+    local biomes_to_load = nxml.parse_file("data/biome/_biomes_all.xml")
+    for biome in biomes_to_load:each_of("Biome") do
+        local biome_filename = biome.attr.biome_filename
+        if biome_filename == nil then
+            goto continue
+        end
+        local biome_file = nxml.parse_file(biome_filename)
+        for topology in biome_file:each_of("Topology") do
+            local script = topology.attr.lua_script
+            if script ~= nil and not already_found[script] and not ignore[script] then
+                -- print("Discovered script", script)
+                already_found[script] = true
+                table.insert(module.files_with_spawnhooks, script)
+            end
+        end
+        ::continue::
+    end
+    print("Complete")
+
     for _, filename in ipairs(module.files_with_spawnhooks) do
         if string.sub(filename, 1, 1) ~= "#" then
             patch_file(filename)
         elseif filename ~= "#" then
-            unpatch_file(string.sub(filename, 2, -1))
+            patch_file_dummy_detour(string.sub(filename, 2, -1))
         end
     end
 end
