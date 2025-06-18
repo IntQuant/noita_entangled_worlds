@@ -4,7 +4,7 @@
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
 use super::{Module, NetManager};
-use crate::my_peer_id;
+use crate::{ToState, my_peer_id};
 use bimap::BiHashMap;
 use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
 use eyre::{Context, OptionExt};
@@ -307,7 +307,7 @@ impl EntitySync {
         net: &mut NetManager,
         player_entity_map: &BiHashMap<PeerId, EntityID>,
         dont_spawn: &FxHashSet<Gid>,
-    ) -> eyre::Result<(Option<Gid>, Option<WorldPos>)> {
+    ) -> eyre::Result<ToState> {
         match remote_des {
             RemoteDes::ChestOpen(gid, x, y, file, rx, ry) => {
                 if !dont_spawn.contains(&gid) {
@@ -335,7 +335,7 @@ impl EntitySync {
                         }
                     }
                 }
-                return Ok((Some(gid), None));
+                return Ok(ToState::Gid(gid));
             }
             RemoteDes::ChestOpenRequest(gid, x, y, file, rx, ry) => {
                 net.send(&NoitaOutbound::RemoteMessage {
@@ -383,7 +383,7 @@ impl EntitySync {
             .or_insert(RemoteDiffModel::new(source))
             .check_entities(lids),*/
             RemoteDes::CameraPos(pos) => {
-                return Ok((None, Some(pos)));
+                return Ok(ToState::Pos(pos));
             }
             RemoteDes::DeadEntities(vec) => self.spawn_once.extend(vec),
             RemoteDes::InterestRequest(interest_request) => self
@@ -417,7 +417,7 @@ impl EntitySync {
                 self.local_diff_model.entity_grabbed(source, lid, net);
             }
         }
-        Ok((None, None))
+        Ok(ToState::None)
     }
 
     pub(crate) fn cross_item_thrown(&mut self, entity: Option<EntityID>) -> eyre::Result<()> {
