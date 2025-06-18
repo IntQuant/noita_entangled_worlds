@@ -17,7 +17,8 @@ use noita_api::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{
-    GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS, Target, UpdateOrUpload,
+    EntityInit, GLOBAL_AUTHORITY_RADIUS, GLOBAL_TRANSFER_RADIUS, TRANSFER_RADIUS, Target,
+    UpdateOrUpload,
 };
 use shared::{
     GameEffectData, GameEffectEnum, NoitaOutbound, PeerId, SpawnOnce, WorldPos,
@@ -60,7 +61,8 @@ pub(crate) struct LocalDiffModel {
     dont_save: FxHashSet<Lid>,
     phys_later: Vec<(EntityID, Vec<Option<PhysBodyInfo>>)>,
     wait_to_transfer: u8,
-    pub res: Vec<EntityUpdate>,
+    pub update_buffer: Vec<EntityUpdate>,
+    pub init_buffer: Vec<EntityInit>,
 }
 impl LocalDiffModel {
     /*pub(crate) fn get_lids(&self) -> Vec<Lid> {
@@ -229,7 +231,8 @@ impl Default for LocalDiffModel {
             phys_later: Default::default(),
             dont_save: Default::default(),
             wait_to_transfer: 0,
-            res: Vec::new(),
+            update_buffer: Vec::new(),
+            init_buffer: Vec::new(),
         }
     }
 }
@@ -1046,7 +1049,7 @@ impl LocalDiffModel {
         start: usize,
         time: u128,
     ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, u128, usize)> {
-        self.res.clear();
+        self.update_buffer.clear();
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
@@ -1067,7 +1070,7 @@ impl LocalDiffModel {
             } else {
                 false
             };
-            self.res.push(EntityUpdate::KillEntity {
+            self.update_buffer.push(EntityUpdate::KillEntity {
                 lid,
                 wait_on_kill,
                 responsible_peer,
@@ -1122,8 +1125,12 @@ impl LocalDiffModel {
                     }
                     let Some(last) = last.as_mut() else {
                         *last = Some(current.clone());
-                        self.res
-                            .push(EntityUpdate::Init(Box::from(current.clone()), lid, *gid));
+                        self.update_buffer
+                            .push(EntityUpdate::Init(Box::from(EntityInit {
+                                info: current.clone(), //TODO technically possible to get rid of
+                                lid,
+                                gid: *gid,
+                            })));
                         continue;
                     };
                     let mut had_any_delta = false;
@@ -1150,15 +1157,16 @@ impl LocalDiffModel {
                         (None, None) => false,
                     } {
                         had_any_delta = true;
-                        self.res.push(EntityUpdate::CurrentEntity(lid));
-                        self.res.push(EntityUpdate::SetWand(current.wand.clone()));
+                        self.update_buffer.push(EntityUpdate::CurrentEntity(lid));
+                        self.update_buffer
+                            .push(EntityUpdate::SetWand(current.wand.clone()));
                         last.wand = current.wand.clone();
                     }
                     diff(
                         &current.wand_rotation,
                         &mut last.wand_rotation,
                         || EntityUpdate::SetWandRotation(current.wand_rotation),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1166,7 +1174,7 @@ impl LocalDiffModel {
                         &current.laser,
                         &mut last.laser,
                         || EntityUpdate::SetLaser(current.laser),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1174,7 +1182,7 @@ impl LocalDiffModel {
                         &(current.x, current.y),
                         &mut (last.x, last.y),
                         || EntityUpdate::SetPosition(current.x, current.y),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1182,7 +1190,7 @@ impl LocalDiffModel {
                         &(current.vx, current.vy),
                         &mut (last.vx, last.vy),
                         || EntityUpdate::SetVelocity(current.vx, current.vy),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1190,7 +1198,7 @@ impl LocalDiffModel {
                         &current.hp,
                         &mut last.hp,
                         || EntityUpdate::SetHp(current.hp),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1198,7 +1206,7 @@ impl LocalDiffModel {
                         &current.animations,
                         &mut last.animations,
                         || EntityUpdate::SetAnimations(current.animations.clone()),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1206,7 +1214,7 @@ impl LocalDiffModel {
                         &current.synced_var,
                         &mut last.synced_var,
                         || EntityUpdate::SetSyncedVar(current.synced_var.clone()),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1214,7 +1222,7 @@ impl LocalDiffModel {
                         &current.facing_direction,
                         &mut last.facing_direction,
                         || EntityUpdate::SetFacingDirection(current.facing_direction),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1222,7 +1230,7 @@ impl LocalDiffModel {
                         &current.r,
                         &mut last.r,
                         || EntityUpdate::SetRotation(current.r),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1230,7 +1238,7 @@ impl LocalDiffModel {
                         &current.phys,
                         &mut last.phys,
                         || EntityUpdate::SetPhysInfo(current.phys.clone()),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1238,7 +1246,7 @@ impl LocalDiffModel {
                         &current.cost,
                         &mut last.cost,
                         || EntityUpdate::SetCost(current.cost),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1246,7 +1254,7 @@ impl LocalDiffModel {
                         &current.current_stains,
                         &mut last.current_stains,
                         || EntityUpdate::SetStains(current.current_stains),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1254,7 +1262,7 @@ impl LocalDiffModel {
                         &current.game_effects,
                         &mut last.game_effects,
                         || EntityUpdate::SetGameEffects(current.game_effects.clone()),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1262,7 +1270,7 @@ impl LocalDiffModel {
                         &current.ai_rotation,
                         &mut last.ai_rotation,
                         || EntityUpdate::SetAiRotation(current.ai_rotation),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1270,7 +1278,7 @@ impl LocalDiffModel {
                         &current.ai_state,
                         &mut last.ai_state,
                         || EntityUpdate::SetAiState(current.ai_state),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1278,7 +1286,7 @@ impl LocalDiffModel {
                         &current.limbs,
                         &mut last.limbs,
                         || EntityUpdate::SetLimbs(current.limbs.clone()),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1286,7 +1294,7 @@ impl LocalDiffModel {
                         &current.is_enabled,
                         &mut last.is_enabled,
                         || EntityUpdate::SetIsEnabled(current.is_enabled),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1294,7 +1302,7 @@ impl LocalDiffModel {
                         &current.counter,
                         &mut last.counter,
                         || EntityUpdate::SetCounter(current.counter),
-                        &mut self.res,
+                        &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
                     );
@@ -1306,11 +1314,12 @@ impl LocalDiffModel {
             }
         }
         for (lid, peer) in self.tracker.pending_localize.drain(..) {
-            self.res.push(EntityUpdate::LocalizeEntity(lid, peer));
+            self.update_buffer
+                .push(EntityUpdate::LocalizeEntity(lid, peer));
         }
 
         for lid in self.tracker.pending_removal.drain(..) {
-            self.res.push(EntityUpdate::RemoveEntity(lid));
+            self.update_buffer.push(EntityUpdate::RemoveEntity(lid));
             // "Untrack" entity
             self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
@@ -1320,12 +1329,15 @@ impl LocalDiffModel {
         Ok((dead, time + tmr.elapsed().as_micros(), end))
     }
     pub(crate) fn make_init(&mut self) {
-        self.res.clear();
+        self.init_buffer.clear();
         for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.clone() {
             //res.push(EntityUpdate::CurrentEntity(*lid));
             //*last = Some(current.clone());
-            self.res
-                .push(EntityUpdate::Init(Box::from(current), lid, gid));
+            self.init_buffer.push(EntityInit {
+                info: current,
+                lid,
+                gid,
+            });
         }
     }
 
@@ -1421,24 +1433,45 @@ impl RemoteDiffModel {
     pub(crate) fn wait_for_gid(&mut self, entity: EntityID, gid: Gid) {
         self.waiting_for_lid.insert(gid, entity);
     }
-    pub(crate) fn apply_diff(&mut self, diff: &[EntityUpdate]) -> Vec<EntityID> {
+    pub(crate) fn apply_init(&mut self, diff: Vec<EntityInit>) -> Vec<EntityID> {
+        let mut dont_kill = Vec::new();
+        for info in diff {
+            if let Some(ent) = self.waiting_for_lid.remove(&info.gid) {
+                self.tracked.insert(info.lid, ent);
+                let _ = init_remote_entity(ent, Some(info.lid), Some(info.gid), false);
+                dont_kill.push(ent);
+            }
+            self.lid_to_gid.insert(info.lid, info.gid);
+            self.entity_infos.insert(info.lid, info.info);
+        }
+        dont_kill
+    }
+    pub(crate) fn apply_diff(&mut self, diff: Vec<EntityUpdate>) -> Vec<EntityID> {
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
         let mut dont_kill = Vec::new();
-        for entry in diff.iter().cloned() {
+        let mut is_empty = true;
+        for entry in diff {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => {
-                    ent_data = self.entity_infos.get_mut(&lid).unwrap_or(empty_data)
+                    if let Some(data) = self.entity_infos.get_mut(&lid) {
+                        ent_data = data;
+                        is_empty = false;
+                    } else {
+                        ent_data = empty_data;
+                        is_empty = true;
+                    }
                 }
-                EntityUpdate::Init(entity_entry, lid, gid) => {
-                    if let Some(ent) = self.waiting_for_lid.remove(&gid) {
-                        self.tracked.insert(lid, ent);
-                        let _ = init_remote_entity(ent, Some(lid), Some(gid), false);
+                EntityUpdate::Init(info) => {
+                    if let Some(ent) = self.waiting_for_lid.remove(&info.gid) {
+                        self.tracked.insert(info.lid, ent);
+                        let _ = init_remote_entity(ent, Some(info.lid), Some(info.gid), false);
                         dont_kill.push(ent);
                     }
-                    self.lid_to_gid.insert(lid, gid);
-                    self.entity_infos.insert(lid, *entity_entry);
-                    ent_data = self.entity_infos.get_mut(&lid).unwrap_or(empty_data)
+                    self.lid_to_gid.insert(info.lid, info.gid);
+                    self.entity_infos.insert(info.lid, info.info);
+                    ent_data = empty_data;
+                    is_empty = true;
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
@@ -1448,6 +1481,7 @@ impl RemoteDiffModel {
                     }
                     self.entity_infos.remove(&lid);
                     ent_data = empty_data;
+                    is_empty = true;
                 }
                 EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
                 EntityUpdate::KillEntity {
@@ -1457,7 +1491,7 @@ impl RemoteDiffModel {
                 } => self
                     .pending_death_notify
                     .push((lid, wait_on_kill, responsible_peer)),
-                entry if *ent_data != EntityInfo::default() => match entry {
+                entry if !is_empty => match entry {
                     EntityUpdate::SetPosition(x, y) => (ent_data.x, ent_data.y) = (x, y),
                     EntityUpdate::SetRotation(r) => ent_data.r = r,
                     EntityUpdate::SetVelocity(vx, vy) => (ent_data.vx, ent_data.vy) = (vx, vy),
@@ -1482,7 +1516,7 @@ impl RemoteDiffModel {
                     EntityUpdate::KillEntity { .. }
                     | EntityUpdate::RemoveEntity(_)
                     | EntityUpdate::CurrentEntity(_)
-                    | EntityUpdate::Init(_, _, _)
+                    | EntityUpdate::Init(_)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },
                 _ => {}
@@ -1813,12 +1847,10 @@ impl RemoteDiffModel {
                     laser.object_set_value::<i32>("laser", "beam_particle_type", 225)?;
                     laser
                 };
-                let ent = if let Target::Peer(peer) = entity_info.laser {
-                    ctx.player_map.get_by_left(&peer).cloned()
-                } else if let Target::Gid(gid) = entity_info.laser {
-                    self.find_by_gid(gid)
-                } else {
-                    None
+                let ent = match entity_info.laser {
+                    Target::Peer(peer) => ctx.player_map.get_by_left(&peer).cloned(),
+                    Target::Gid(gid) => self.find_by_gid(gid),
+                    Target::None => None,
                 };
                 if let Some(ent) = ent {
                     let (x, y) = entity.position()?;

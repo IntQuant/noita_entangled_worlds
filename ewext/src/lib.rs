@@ -26,7 +26,6 @@ use std::{
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
     sync::{LazyLock, Mutex, OnceLock, TryLockError},
-    thread,
     time::Instant,
 };
 use std::{num::NonZero, sync::MutexGuard};
@@ -295,7 +294,7 @@ fn on_world_initialized(lua: LuaState) {
     #[cfg(debug_assertions)]
     println!(
         "ewext on_world_initialized in thread {:?}",
-        thread::current().id()
+        std::thread::current().id()
     );
     grab_addrs(lua);
 
@@ -417,9 +416,9 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn probe(_lua: LuaState) {
+    #[cfg(debug_assertions)]
     backtrace::trace(|frame| {
         let ip = frame.ip() as usize;
-        #[cfg(debug_assertions)]
         println!("Probe: 0x{ip:x}");
         false
     });
@@ -427,7 +426,10 @@ fn probe(_lua: LuaState) {
 
 fn __gc(_lua: LuaState) {
     #[cfg(debug_assertions)]
-    println!("ewext collected in thread {:?}", thread::current().id());
+    println!(
+        "ewext collected in thread {:?}",
+        std::thread::current().id()
+    );
     NETMANAGER.lock().unwrap().take();
     // TODO this doesn't actually work because it's a thread local
     STATE.with(|state| state.take());
@@ -459,9 +461,9 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
     #[cfg(debug_assertions)]
     println!("Initializing ewext");
 
-    #[cfg(debug_assertions)]
-    if let Err(e) = KEEP_SELF_LOADED.as_ref() {
-        println!("Got an error while loading self: {}", e);
+    if let Err(_e) = KEEP_SELF_LOADED.as_ref() {
+        #[cfg(debug_assertions)]
+        println!("Got an error while loading self: {}", _e);
     }
     #[cfg(debug_assertions)]
     println!(

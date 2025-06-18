@@ -153,12 +153,19 @@ impl EntityInfo {
     }
 }
 
+#[derive(Debug, Encode, Decode, Clone)]
+pub struct EntityInit {
+    pub info: EntityInfo,
+    pub lid: Lid,
+    pub gid: Gid,
+}
+
 //TODO authority transfers should serialize entities probably
 #[derive(Debug, Encode, Decode, Clone)]
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
-    Init(Box<EntityInfo>, Lid, Gid),
+    Init(Box<EntityInit>),
     // TODO diffing for position
     SetPosition(f32, f32),
     SetRotation(f32),
@@ -195,6 +202,7 @@ pub enum RemoteDes {
     Reset,
     InterestRequest(InterestRequest),
     EntityUpdate(Vec<EntityUpdate>),
+    EntityInit(Vec<EntityInit>),
     ExitedInterest,
     Projectiles(Vec<ProjectileFired>),
     RequestGrab(Lid),

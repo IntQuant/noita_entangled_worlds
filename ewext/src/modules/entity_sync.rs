@@ -394,7 +394,15 @@ impl EntitySync {
                     self.remote_models
                         .entry(source)
                         .or_insert(RemoteDiffModel::new(source))
-                        .apply_diff(&vec),
+                        .apply_diff(vec),
+                );
+            }
+            RemoteDes::EntityInit(vec) => {
+                self.dont_kill.extend(
+                    self.remote_models
+                        .entry(source)
+                        .or_insert(RemoteDiffModel::new(source))
+                        .apply_init(vec),
                 );
             }
             RemoteDes::ExitedInterest => {
@@ -572,17 +580,17 @@ impl Module for EntitySync {
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
                 self.local_diff_model.make_init();
-                let res = std::mem::take(&mut self.local_diff_model.res);
-                let RemoteDes::EntityUpdate(diff) = send_remotedes(
+                let res = std::mem::take(&mut self.local_diff_model.init_buffer);
+                let RemoteDes::EntityInit(diff) = send_remotedes(
                     ctx,
                     true,
                     Destination::Peers(new_intersects.clone()),
-                    RemoteDes::EntityUpdate(res),
+                    RemoteDes::EntityInit(res),
                 )?
                 else {
                     unreachable!()
                 };
-                self.local_diff_model.res = diff;
+                self.local_diff_model.init_buffer = diff;
             }
             let dead;
             (dead, t, self.local_index) = self
@@ -616,8 +624,8 @@ impl Module for EntitySync {
                     )?;
                 }
             }
-            if !self.local_diff_model.res.is_empty() {
-                let res = std::mem::take(&mut self.local_diff_model.res);
+            if !self.local_diff_model.update_buffer.is_empty() {
+                let res = std::mem::take(&mut self.local_diff_model.update_buffer);
                 let RemoteDes::EntityUpdate(diff) = send_remotedes(
                     ctx,
                     true,
@@ -632,7 +640,7 @@ impl Module for EntitySync {
                 else {
                     unreachable!()
                 };
-                self.local_diff_model.res = diff;
+                self.local_diff_model.update_buffer = diff;
             }
             if !dead.is_empty() {
                 send_remotedes(
