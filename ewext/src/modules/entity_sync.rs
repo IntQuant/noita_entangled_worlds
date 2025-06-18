@@ -390,12 +390,10 @@ impl EntitySync {
                 .interest_tracker
                 .handle_interest_request(source, interest_request),
             RemoteDes::EntityUpdate(vec) => {
-                self.dont_kill.extend(
-                    self.remote_models
-                        .entry(source)
-                        .or_insert(RemoteDiffModel::new(source))
-                        .apply_diff(vec),
-                );
+                self.remote_models
+                    .entry(source)
+                    .or_insert(RemoteDiffModel::new(source))
+                    .apply_diff(vec);
             }
             RemoteDes::EntityInit(vec) => {
                 self.dont_kill.extend(
@@ -591,6 +589,7 @@ impl Module for EntitySync {
                     unreachable!()
                 };
                 self.local_diff_model.init_buffer = diff;
+                self.local_diff_model.uninit();
             }
             let dead;
             (dead, t, self.local_index) = self
@@ -623,6 +622,25 @@ impl Module for EntitySync {
                         RemoteDes::Projectiles(data),
                     )?;
                 }
+            }
+            if !self.local_diff_model.init_buffer.is_empty() {
+                let res = std::mem::take(&mut self.local_diff_model.init_buffer);
+                let RemoteDes::EntityInit(diff) = send_remotedes(
+                    ctx,
+                    true,
+                    Destination::Peers(
+                        self.interest_tracker
+                            .iter_interested()
+                            .filter(|p| !new_intersects.contains(p))
+                            .collect(),
+                    ),
+                    RemoteDes::EntityInit(res),
+                )?
+                else {
+                    unreachable!()
+                };
+                self.local_diff_model.init_buffer = diff;
+                self.local_diff_model.uninit();
             }
             if !self.local_diff_model.update_buffer.is_empty() {
                 let res = std::mem::take(&mut self.local_diff_model.update_buffer);

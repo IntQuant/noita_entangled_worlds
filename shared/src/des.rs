@@ -165,7 +165,6 @@ pub struct EntityInit {
 pub enum EntityUpdate {
     /// Sets the gid that following EntityUpdates will act on.
     CurrentEntity(Lid),
-    Init(Box<EntityInit>),
     // TODO diffing for position
     SetPosition(f32, f32),
     SetRotation(f32),

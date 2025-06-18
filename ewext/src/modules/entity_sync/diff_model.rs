@@ -36,7 +36,7 @@ pub(crate) static DES_SCRIPTS_TAG: &str = "ew_des_lua";
 #[derive(Clone)]
 struct EntityEntryPair {
     last: Option<EntityInfo>,
-    current: EntityInfo,
+    current: Option<EntityInfo>,
     gid: Gid,
 }
 
@@ -96,7 +96,14 @@ impl LocalDiffModel {
             .skip(start)
             .take(end - start)
             .filter_map(|(lid, p)| {
-                let EntityEntryPair { current, gid, last } = p;
+                let EntityEntryPair {
+                    current: Some(current),
+                    gid,
+                    last,
+                } = p
+                else {
+                    unreachable!()
+                };
                 if last.is_some() && !self.dont_save.contains(lid) {
                     Some(if upload.remove(lid) && !self.dont_upload.contains(lid) {
                         UpdateOrUpload::Upload(FullEntityData {
@@ -129,7 +136,12 @@ impl LocalDiffModel {
             })
             .collect();
         for lid in upload {
-            if let Some(EntityEntryPair { current, gid, last }) = self.entity_entries.get(&lid) {
+            if let Some(EntityEntryPair {
+                current: Some(current),
+                gid,
+                last,
+            }) = self.entity_entries.get(&lid)
+            {
                 if !self.dont_upload.contains(&lid) {
                     if last.is_some() {
                         res.push(UpdateOrUpload::Upload(FullEntityData {
@@ -884,7 +896,7 @@ impl LocalDiffModel {
             lid,
             EntityEntryPair {
                 last: None,
-                current: EntityInfo {
+                current: Some(EntityInfo {
                     spawn_info,
                     kind: entity_kind,
                     x,
@@ -910,7 +922,7 @@ impl LocalDiffModel {
                     is_enabled: false,
                     counter: 0,
                     synced_var: Vec::new(),
-                },
+                }),
                 gid,
             },
         );
@@ -1066,7 +1078,7 @@ impl LocalDiffModel {
             };
             let drops_gold = if let Some(info) = self.entity_entries.remove(&lid) {
                 to_untrack.push((info.gid, lid));
-                info.current.drops_gold
+                info.current.unwrap().drops_gold
             } else {
                 false
             };
@@ -1106,7 +1118,7 @@ impl LocalDiffModel {
                 .update_entity(
                     ctx,
                     *gid,
-                    current,
+                    current.as_mut().unwrap(),
                     lid,
                     (cam_x, cam_y),
                     self.upload.contains(&lid) && !self.dont_upload.contains(&lid),
@@ -1124,14 +1136,16 @@ impl LocalDiffModel {
                         self.upload.remove(&lid);
                     }
                     let Some(last) = last.as_mut() else {
-                        *last = Some(current.clone());
-                        self.update_buffer
-                            .push(EntityUpdate::Init(Box::from(EntityInit {
-                                info: current.clone(), //TODO technically possible to get rid of
-                                lid,
-                                gid: *gid,
-                            })));
+                        *last = current.clone();
+                        self.init_buffer.push(EntityInit {
+                            info: std::mem::take(current).unwrap(),
+                            lid,
+                            gid: *gid,
+                        });
                         continue;
+                    };
+                    let Some(current) = current else {
+                        unreachable!()
                     };
                     let mut had_any_delta = false;
                     fn diff<T: PartialEq + Clone, K: Fn() -> EntityUpdate>(
@@ -1329,15 +1343,19 @@ impl LocalDiffModel {
         Ok((dead, time + tmr.elapsed().as_micros(), end))
     }
     pub(crate) fn make_init(&mut self) {
-        self.init_buffer.clear();
-        for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.clone() {
+        for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.iter_mut() {
             //res.push(EntityUpdate::CurrentEntity(*lid));
             //*last = Some(current.clone());
             self.init_buffer.push(EntityInit {
-                info: current,
-                lid,
-                gid,
+                info: std::mem::take(current).unwrap(),
+                lid: *lid,
+                gid: *gid,
             });
+        }
+    }
+    pub(crate) fn uninit(&mut self) {
+        for EntityInit { info, lid, .. } in self.init_buffer.drain(..) {
+            self.entity_entries.get_mut(&lid).unwrap().current = Some(info);
         }
     }
 
@@ -1358,7 +1376,7 @@ impl LocalDiffModel {
             return;
         };
         if let Ok(entity) = self.tracker.entity_by_lid(lid) {
-            if info.current.kind == EntityKind::Item {
+            if info.current.as_ref().unwrap().kind == EntityKind::Item {
                 self.tracker.pending_localize.push((lid, source));
                 safe_entitykill(entity);
                 // "Untrack" entity
@@ -1434,7 +1452,7 @@ impl RemoteDiffModel {
         self.waiting_for_lid.insert(gid, entity);
     }
     pub(crate) fn apply_init(&mut self, diff: Vec<EntityInit>) -> Vec<EntityID> {
-        let mut dont_kill = Vec::new();
+        let mut dont_kill = Vec::with_capacity(self.waiting_for_lid.len());
         for info in diff {
             if let Some(ent) = self.waiting_for_lid.remove(&info.gid) {
                 self.tracked.insert(info.lid, ent);
@@ -1446,10 +1464,9 @@ impl RemoteDiffModel {
         }
         dont_kill
     }
-    pub(crate) fn apply_diff(&mut self, diff: Vec<EntityUpdate>) -> Vec<EntityID> {
+    pub(crate) fn apply_diff(&mut self, diff: Vec<EntityUpdate>) {
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
-        let mut dont_kill = Vec::new();
         let mut is_empty = true;
         for entry in diff {
             match entry {
@@ -1461,17 +1478,6 @@ impl RemoteDiffModel {
                         ent_data = empty_data;
                         is_empty = true;
                     }
-                }
-                EntityUpdate::Init(info) => {
-                    if let Some(ent) = self.waiting_for_lid.remove(&info.gid) {
-                        self.tracked.insert(info.lid, ent);
-                        let _ = init_remote_entity(ent, Some(info.lid), Some(info.gid), false);
-                        dont_kill.push(ent);
-                    }
-                    self.lid_to_gid.insert(info.lid, info.gid);
-                    self.entity_infos.insert(info.lid, info.info);
-                    ent_data = empty_data;
-                    is_empty = true;
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
@@ -1516,13 +1522,11 @@ impl RemoteDiffModel {
                     EntityUpdate::KillEntity { .. }
                     | EntityUpdate::RemoveEntity(_)
                     | EntityUpdate::CurrentEntity(_)
-                    | EntityUpdate::Init(_)
                     | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
                 },
                 _ => {}
             }
         }
-        dont_kill
     }
 
     fn inner(
