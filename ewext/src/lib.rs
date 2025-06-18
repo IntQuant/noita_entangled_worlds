@@ -37,6 +37,7 @@ pub mod noita;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
+       #[cfg(debug_assertions)]
         println!("Initializing ExtState");
         ExtState::default().into()
     });
@@ -119,10 +120,12 @@ impl ExtState {
 }
 
 fn init_particle_world_state(lua: LuaState) {
+    #[cfg(debug_assertions)]
     println!("\nInitializing particle world state");
     let world_pointer = lua.to_integer(1);
     let chunk_map_pointer = lua.to_integer(2);
     let material_list_pointer = lua.to_integer(3);
+    #[cfg(debug_assertions)]
     println!("pws stuff: {world_pointer:?} {chunk_map_pointer:?}");
 
     STATE.with(|state| {
@@ -195,6 +198,7 @@ impl From<ProxyKV> for InitKV {
 }
 
 fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
+    #[cfg(debug_assertions)]
     println!("Connecting to proxy...");
     let mut netman = NetManager::new()?;
 
@@ -212,6 +216,7 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
     }
 
     *NETMANAGER.lock().unwrap() = Some(netman);
+    #[cfg(debug_assertions)]
     println!("Ok!");
     Ok(kvs)
 }
@@ -287,6 +292,7 @@ impl LuaFnRet for InitKV {
 }
 
 fn on_world_initialized(lua: LuaState) {
+    #[cfg(debug_assertions)]
     println!(
         "ewext on_world_initialized in thread {:?}",
         thread::current().id()
@@ -413,12 +419,14 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
 fn probe(_lua: LuaState) {
     backtrace::trace(|frame| {
         let ip = frame.ip() as usize;
+        #[cfg(debug_assertions)]
         println!("Probe: 0x{ip:x}");
         false
     });
 }
 
 fn __gc(_lua: LuaState) {
+    #[cfg(debug_assertions)]
     println!("ewext collected in thread {:?}", thread::current().id());
     NETMANAGER.lock().unwrap().take();
     // TODO this doesn't actually work because it's a thread local
@@ -448,16 +456,19 @@ pub(crate) fn print(string: &str) -> eyre::Result<()> {
 /// Only gets called by lua when loading a module.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
+    #[cfg(debug_assertions)]
     println!("Initializing ewext");
 
+    #[cfg(debug_assertions)]
     if let Err(e) = KEEP_SELF_LOADED.as_ref() {
         println!("Got an error while loading self: {}", e);
     }
-
+    #[cfg(debug_assertions)]
     println!(
         "lua_call: 0x{:x}",
         (*LUA.lua_call.as_ref().unwrap()) as usize
     );
+    #[cfg(debug_assertions)]
     println!(
         "lua_pcall: 0x{:x}",
         (*LUA.lua_pcall.as_ref().unwrap()) as usize
@@ -743,6 +754,7 @@ pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
         }
         add_lua_fn!(set_log);
     }
+    #[cfg(debug_assertions)]
     println!("Initializing ewext - Ok");
     1
 }

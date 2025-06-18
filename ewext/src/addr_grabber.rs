@@ -23,6 +23,7 @@ pub(crate) unsafe fn grab_addr_from_instruction(
     );
     let instruction = decoder.decode();
 
+    #[cfg(debug_assertions)]
     if instruction.mnemonic() != expected_mnemonic {
         println!("Encountered unexpected mnemonic: {}", instruction);
     }
@@ -56,6 +57,7 @@ pub(crate) fn grab_addrs(lua: LuaState) {
     let base = lua.to_cfunction(-1).unwrap() as *const c_void;
     let world_state_entity =
         unsafe { grab_addr_from_instruction(base, 0x007aa7ce - 0x007aa540, Mnemonic::Mov).cast() };
+    #[cfg(debug_assertions)]
     println!(
         "World state entity addr: 0x{:x}",
         world_state_entity as usize
@@ -66,10 +68,12 @@ pub(crate) fn grab_addrs(lua: LuaState) {
     let base = lua.to_cfunction(-1).unwrap() as *const c_void;
     let load_game_global =
         unsafe { grab_addr_from_instruction(base, 0x007bf3c9 - 0x007bf140, Mnemonic::Call) }; // CALL load_game_global
+    #[cfg(debug_assertions)]
     println!("Load game global addr: 0x{:x}", load_game_global as usize);
     let game_global = unsafe {
         grab_addr_from_instruction(load_game_global, 0x00439c17 - 0x00439bb0, Mnemonic::Mov).cast()
     };
+    #[cfg(debug_assertions)]
     println!("Game global addr: 0x{:x}", game_global as usize);
     lua.pop_last();
 
@@ -82,9 +86,11 @@ pub(crate) fn grab_addrs(lua: LuaState) {
             Mnemonic::Call,
         ))
     };
+    #[cfg(debug_assertions)]
     println!("get_entity addr: 0x{:x}", get_entity as usize);
     let entity_manager =
         unsafe { grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov).cast() };
+    #[cfg(debug_assertions)]
     println!("entity_manager addr: 0x{:x}", entity_manager as usize);
     lua.pop_last();
 
