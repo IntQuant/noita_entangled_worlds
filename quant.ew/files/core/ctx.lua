@@ -54,7 +54,7 @@ function ctx.add_hook(hook_name, system_name, fn)
                         util.tpcall(entry.fn, ...)
                         local end_time = GameGetRealWorldTimeSinceStarted()
                         local delta = (end_time - start_time) * 1000000
-                        ctx.timings = ctx.timings .. entry.system_name .. ":" .. delta .. ","
+                        ctx.timings = ctx.timings .. hook_name .. "/" .. entry.system_name .. ":" .. delta .. ","
                     end
                 end,
             })
