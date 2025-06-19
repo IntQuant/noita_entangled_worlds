@@ -1,6 +1,6 @@
 set -e
 f=$(cat $1)
-a=$(echo "$f"|grep "LUA: \["|sed 's/LUA: \[//g;s/].*//;s/ //g'|awk -F',' '{col1 = col1 $1 " "; col2 = col2 $2 " "; col3 = col3 $3 " "} END {print col1; print col2; print col3}'|sed 's/ /,/g;s/,$/}/g;s/^/{/')
+a=$(echo "$f"|grep "LUA: \["|sed 's/LUA: \[//g;s/].*//;s/ //g'|awk -F',' '{for (i=1; i<=NF; i++) cols[i] = cols[i] $i " "} END {for (i in cols) {gsub(/ $/, "", cols[i]); gsub(/ /, ",", cols[i]); print "{" cols[i] "}"}}')
 for b in $a;do
   echo "{mean$b,standarddeviation$b,max$b,len$b}"|kalc
 done
