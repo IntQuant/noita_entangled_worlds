@@ -1470,17 +1470,10 @@ impl RemoteDiffModel {
     pub(crate) fn apply_diff(&mut self, diff: Vec<EntityUpdate>) {
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
-        let mut is_empty = true;
         for entry in diff {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => {
-                    if let Some(data) = self.entity_infos.get_mut(&lid) {
-                        ent_data = data;
-                        is_empty = false;
-                    } else {
-                        ent_data = empty_data;
-                        is_empty = true;
-                    }
+                    ent_data = self.entity_infos.get_mut(&lid).unwrap();
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
@@ -1490,7 +1483,6 @@ impl RemoteDiffModel {
                     }
                     self.entity_infos.remove(&lid);
                     ent_data = empty_data;
-                    is_empty = true;
                 }
                 EntityUpdate::RemoveEntity(lid) => self.pending_remove.push(lid),
                 EntityUpdate::KillEntity {
@@ -1500,34 +1492,27 @@ impl RemoteDiffModel {
                 } => self
                     .pending_death_notify
                     .push((lid, wait_on_kill, responsible_peer)),
-                entry if !is_empty => match entry {
-                    EntityUpdate::SetPosition(x, y) => (ent_data.x, ent_data.y) = (x, y),
-                    EntityUpdate::SetRotation(r) => ent_data.r = r,
-                    EntityUpdate::SetVelocity(vx, vy) => (ent_data.vx, ent_data.vy) = (vx, vy),
-                    EntityUpdate::SetHp(hp) => ent_data.hp = hp,
-                    EntityUpdate::SetFacingDirection(direction) => {
-                        ent_data.facing_direction = direction
-                    }
-                    EntityUpdate::SetPhysInfo(vec) => ent_data.phys = vec,
-                    EntityUpdate::SetCost(cost) => ent_data.cost = cost,
-                    EntityUpdate::SetAnimations(ani) => ent_data.animations = ani,
-                    EntityUpdate::SetStains(stains) => ent_data.current_stains = stains,
-                    EntityUpdate::SetGameEffects(effects) => ent_data.game_effects = effects,
-                    EntityUpdate::SetAiState(state) => ent_data.ai_state = state,
-                    EntityUpdate::SetWand(wand) => ent_data.wand = wand,
-                    EntityUpdate::SetWandRotation(rot) => ent_data.wand_rotation = rot,
-                    EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
-                    EntityUpdate::SetAiRotation(rot) => ent_data.ai_rotation = rot,
-                    EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
-                    EntityUpdate::SetSyncedVar(vars) => ent_data.synced_var = vars,
-                    EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
-                    EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
-                    EntityUpdate::KillEntity { .. }
-                    | EntityUpdate::RemoveEntity(_)
-                    | EntityUpdate::CurrentEntity(_)
-                    | EntityUpdate::LocalizeEntity(_, _) => unreachable!(),
-                },
-                _ => {}
+                EntityUpdate::SetPosition(x, y) => (ent_data.x, ent_data.y) = (x, y),
+                EntityUpdate::SetRotation(r) => ent_data.r = r,
+                EntityUpdate::SetVelocity(vx, vy) => (ent_data.vx, ent_data.vy) = (vx, vy),
+                EntityUpdate::SetHp(hp) => ent_data.hp = hp,
+                EntityUpdate::SetFacingDirection(direction) => {
+                    ent_data.facing_direction = direction
+                }
+                EntityUpdate::SetPhysInfo(vec) => ent_data.phys = vec,
+                EntityUpdate::SetCost(cost) => ent_data.cost = cost,
+                EntityUpdate::SetAnimations(ani) => ent_data.animations = ani,
+                EntityUpdate::SetStains(stains) => ent_data.current_stains = stains,
+                EntityUpdate::SetGameEffects(effects) => ent_data.game_effects = effects,
+                EntityUpdate::SetAiState(state) => ent_data.ai_state = state,
+                EntityUpdate::SetWand(wand) => ent_data.wand = wand,
+                EntityUpdate::SetWandRotation(rot) => ent_data.wand_rotation = rot,
+                EntityUpdate::SetLaser(peer) => ent_data.laser = peer,
+                EntityUpdate::SetAiRotation(rot) => ent_data.ai_rotation = rot,
+                EntityUpdate::SetLimbs(limbs) => ent_data.limbs = limbs,
+                EntityUpdate::SetSyncedVar(vars) => ent_data.synced_var = vars,
+                EntityUpdate::SetIsEnabled(enabled) => ent_data.is_enabled = enabled,
+                EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
             }
         }
     }
