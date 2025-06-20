@@ -4,7 +4,7 @@ use std::{
     borrow::Cow,
     cell::Cell,
     ffi::{CStr, c_char, c_int},
-    mem, slice,
+    slice,
     str::FromStr,
     sync::LazyLock,
 };
@@ -292,7 +292,7 @@ impl LuaPutValue for isize {
 
 impl LuaPutValue for u32 {
     fn put(&self, lua: LuaState) {
-        lua.push_integer(unsafe { mem::transmute::<u32, i32>(*self) as isize });
+        lua.push_integer(self.cast_signed() as isize);
     }
 }
 
@@ -421,7 +421,7 @@ impl LuaGetValue for isize {
 
 impl LuaGetValue for u32 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
-        Ok(unsafe { mem::transmute::<i32, u32>(lua.to_integer(index) as i32) })
+        Ok((lua.to_integer(index) as i32).cast_unsigned())
     }
 }
 

@@ -2903,6 +2903,7 @@ dependencies = [
  "tracing-subscriber",
  "unic-langid",
  "wide",
+ "winapi",
  "winresource",
  "zip",
 ]
