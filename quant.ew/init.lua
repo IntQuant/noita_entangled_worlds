@@ -392,6 +392,7 @@ local last_chunk
 local last_flex
 
 function OnPlayerSpawned(player_entity) -- This runs when player entity has been created
+
     print("Initial player entity: " .. player_entity)
     if ctx.proxy_opt.home_on_players then
         EntityAddTag(player_entity, "homing_target")

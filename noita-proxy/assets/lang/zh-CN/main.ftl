@@ -99,6 +99,7 @@ local_health_desc_1 = 每个玩家有自己的独立生命值，所有玩家死�
 local_health_desc_2 = 有一个复活机制：玩家死亡时变为不受控的敌对阵营，击杀后可以复活死亡的玩家。
 Health-percent-lost-on-reviving = 复活时按比例损失最大生命值
 global_hp_loss = 全局生命值损失
+dead_isnt_dead = Dead isn't dead
 no_material_damage = notplayer不受到材料伤害
 perma_death = 玩家永久死亡
 physics_damage = notplayer受到物理伤害
