@@ -77,6 +77,9 @@ local function load_modules()
         ctx.load_system("spectator_helps")
         ctx.load_system("end_fight")
     end
+    if ctx.proxy_opt.dead_isnt_dead then
+        ctx.load_system("Respawn_mountain")
+    end
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/nickname.lua")
 

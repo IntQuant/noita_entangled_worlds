@@ -40,13 +40,13 @@ run-rel: add_dylib_release move_mod
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
 
 flamegraph: add_dylib_debug 
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo flamegraph
+    cd noita-proxy && cargo flamegraph
 
 run: add_dylib_debug build_ext move_mod
     cd noita-proxy && cargo run
 
 run2: add_dylib_debug build_ext move_mod
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
+    cd noita-proxy && cargo run -- --launch-cmd "E:/SteamLibrary/steamapps/common/Noita/noita_dev.exe -gamemode 0"
 
 run2-alt: add_dylib_debug build_ext move_mod
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
