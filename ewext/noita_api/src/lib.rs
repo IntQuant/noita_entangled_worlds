@@ -473,8 +473,8 @@ impl EntityID {
     pub fn get_current_stains(self) -> eyre::Result<u64> {
         let mut current = 0;
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            for (i, v) in status.stain_effects()?.iter().enumerate() {
-                if *v >= 0.15 {
+            for (i, v) in status.stain_effects()?.into_iter().enumerate() {
+                if v >= 0.15 {
                     current += 1 << i
                 }
             }
@@ -496,8 +496,8 @@ impl EntityID {
                     l.split("\"")
                         .map(|a| a.to_string()).nth(1).unwrap()
                 });
-            for ((i, v), id) in status.stain_effects()?.iter().enumerate().zip(to_id) {
-                if *v >= 0.15 && current_stains & (1 << i) == 0 {
+            for ((i, v), id) in status.stain_effects()?.into_iter().enumerate().zip(to_id) {
+                if v >= 0.15 && current_stains & (1 << i) == 0 {
                     raw::entity_remove_stain_status_effect(self.0.get() as i32, id.into(), None)?
                 }
             }

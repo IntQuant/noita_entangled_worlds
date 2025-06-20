@@ -3,7 +3,7 @@
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
-use super::{Module, NetManager};
+use super::{Module, ModuleCtx, NetManager};
 use crate::{ToState, my_peer_id};
 use bimap::BiHashMap;
 use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
@@ -125,6 +125,46 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
 }
 
 impl EntitySync {
+    fn clear_buffer(&mut self, ctx: &mut ModuleCtx, new_intersects: &[PeerId]) -> eyre::Result<()> {
+        if !self.local_diff_model.init_buffer.is_empty() {
+            let res = std::mem::take(&mut self.local_diff_model.init_buffer);
+            let RemoteDes::EntityInit(diff) = send_remotedes(
+                ctx,
+                true,
+                Destination::Peers(
+                    self.interest_tracker
+                        .iter_interested()
+                        .filter(|p| !new_intersects.contains(p))
+                        .collect(),
+                ),
+                RemoteDes::EntityInit(res),
+            )?
+            else {
+                unreachable!()
+            };
+            self.local_diff_model.init_buffer = diff;
+            self.local_diff_model.uninit();
+        }
+        if !self.local_diff_model.update_buffer.is_empty() {
+            let res = std::mem::take(&mut self.local_diff_model.update_buffer);
+            let RemoteDes::EntityUpdate(diff) = send_remotedes(
+                ctx,
+                true,
+                Destination::Peers(
+                    self.interest_tracker
+                        .iter_interested()
+                        .filter(|p| !new_intersects.contains(p))
+                        .collect(),
+                ),
+                RemoteDes::EntityUpdate(res),
+            )?
+            else {
+                unreachable!()
+            };
+            self.local_diff_model.update_buffer = diff;
+        }
+        Ok(())
+    }
     pub(crate) fn spawn_once(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         let frame_num = game_get_frame_num()? as usize;
@@ -592,10 +632,17 @@ impl Module for EntitySync {
                 self.local_diff_model.uninit();
             }
             let dead;
-            (dead, t, self.local_index) = self
+            (dead, t, self.local_index) = match self
                 .local_diff_model
                 .update_tracked_entities(ctx, self.local_index, t)
-                .wrap_err("Failed to update locally tracked entities")?;
+                .wrap_err("Failed to update locally tracked entities")
+            {
+                Ok(ret) => ret,
+                Err(s) => {
+                    self.clear_buffer(ctx, &new_intersects)?;
+                    return Err(s);
+                }
+            };
             times[2] = t;
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
@@ -605,9 +652,9 @@ impl Module for EntitySync {
                         .map(|(ent, mut proj)| {
                             if ent.is_alive() {
                                 if let Ok(Some(vel)) = ent
-                                .try_get_first_component_including_disabled::<VelocityComponent>(
-                                    None,
-                                )
+                                    .try_get_first_component_including_disabled::<VelocityComponent>(
+                                        None,
+                                    )
                                 {
                                     proj.vel = vel.m_velocity().ok()
                                 }
@@ -623,43 +670,7 @@ impl Module for EntitySync {
                     )?;
                 }
             }
-            if !self.local_diff_model.init_buffer.is_empty() {
-                let res = std::mem::take(&mut self.local_diff_model.init_buffer);
-                let RemoteDes::EntityInit(diff) = send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(
-                        self.interest_tracker
-                            .iter_interested()
-                            .filter(|p| !new_intersects.contains(p))
-                            .collect(),
-                    ),
-                    RemoteDes::EntityInit(res),
-                )?
-                else {
-                    unreachable!()
-                };
-                self.local_diff_model.init_buffer = diff;
-                self.local_diff_model.uninit();
-            }
-            if !self.local_diff_model.update_buffer.is_empty() {
-                let res = std::mem::take(&mut self.local_diff_model.update_buffer);
-                let RemoteDes::EntityUpdate(diff) = send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(
-                        self.interest_tracker
-                            .iter_interested()
-                            .filter(|p| !new_intersects.contains(p))
-                            .collect(),
-                    ),
-                    RemoteDes::EntityUpdate(res),
-                )?
-                else {
-                    unreachable!()
-                };
-                self.local_diff_model.update_buffer = diff;
-            }
+            self.clear_buffer(ctx, &new_intersects)?;
             if !dead.is_empty() {
                 send_remotedes(
                     ctx,
