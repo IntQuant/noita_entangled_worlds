@@ -128,7 +128,7 @@ impl EntitySync {
     fn clear_buffer(&mut self, ctx: &mut ModuleCtx, new_intersects: &[PeerId]) -> eyre::Result<()> {
         if !self.local_diff_model.init_buffer.is_empty() {
             let res = std::mem::take(&mut self.local_diff_model.init_buffer);
-            let RemoteDes::EntityInit(diff) = send_remotedes(
+            let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
                 ctx,
                 true,
                 Destination::Peers(
@@ -138,16 +138,16 @@ impl EntitySync {
                         .collect(),
                 ),
                 RemoteDes::EntityInit(res),
-            )?
-            else {
+            ) else {
                 unreachable!()
             };
             self.local_diff_model.init_buffer = diff;
             self.local_diff_model.uninit();
+            err?;
         }
         if !self.local_diff_model.update_buffer.is_empty() {
             let res = std::mem::take(&mut self.local_diff_model.update_buffer);
-            let RemoteDes::EntityUpdate(diff) = send_remotedes(
+            let (RemoteDes::EntityUpdate(diff), err) = send_remotedes_ret(
                 ctx,
                 true,
                 Destination::Peers(
@@ -157,11 +157,11 @@ impl EntitySync {
                         .collect(),
                 ),
                 RemoteDes::EntityUpdate(res),
-            )?
-            else {
+            ) else {
                 unreachable!()
             };
             self.local_diff_model.update_buffer = diff;
+            err?;
         }
         Ok(())
     }
@@ -619,17 +619,17 @@ impl Module for EntitySync {
             if !new_intersects.is_empty() {
                 self.local_diff_model.make_init();
                 let res = std::mem::take(&mut self.local_diff_model.init_buffer);
-                let RemoteDes::EntityInit(diff) = send_remotedes(
+                let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
                     ctx,
                     true,
                     Destination::Peers(new_intersects.clone()),
                     RemoteDes::EntityInit(res),
-                )?
-                else {
+                ) else {
                     unreachable!()
                 };
                 self.local_diff_model.init_buffer = diff;
                 self.local_diff_model.uninit();
+                err?;
             }
             let dead;
             (dead, t, self.local_index) = match self
@@ -841,17 +841,31 @@ impl Module for EntitySync {
 }
 
 fn send_remotedes(
-    ctx: &mut super::ModuleCtx<'_>,
+    ctx: &mut ModuleCtx<'_>,
     reliable: bool,
     destination: Destination<PeerId>,
     remote_des: RemoteDes,
-) -> Result<RemoteDes, eyre::Error> {
+) -> Result<(), eyre::Error> {
     let message = NoitaOutbound::RemoteMessage {
         reliable,
         destination,
         message: RemoteMessage::RemoteDes(remote_des),
     };
-    ctx.net.send(&message)?;
+    ctx.net.send(&message)
+}
+
+fn send_remotedes_ret(
+    ctx: &mut ModuleCtx<'_>,
+    reliable: bool,
+    destination: Destination<PeerId>,
+    remote_des: RemoteDes,
+) -> (RemoteDes, Result<(), eyre::Error>) {
+    let message = NoitaOutbound::RemoteMessage {
+        reliable,
+        destination,
+        message: RemoteMessage::RemoteDes(remote_des),
+    };
+    let err = ctx.net.send(&message);
     let NoitaOutbound::RemoteMessage {
         message: RemoteMessage::RemoteDes(des),
         ..
@@ -859,5 +873,5 @@ fn send_remotedes(
     else {
         unreachable!()
     };
-    Ok(des)
+    (des, err)
 }
