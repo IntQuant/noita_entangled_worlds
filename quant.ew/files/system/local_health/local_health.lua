@@ -409,29 +409,10 @@ local function player_died()
                 EntitySetTransform(player.entity, respawn_position_x, respawn_position_y)
                 EntityLoad("data/entities/misc/matter_eater.xml", respawn_position_x, respawn_position_y)
                 GamePrintImportant("You have died.", respawn_messages[Random(1, #respawn_messages)])
+                local x, y = EntityGetTransform(ctx.my_player.entity)
+		        EntityLoad("mods/quant.ew/files/resource/entities/ankh_emitter.xml", x, y + 30)
             end -- if	not ending_game_completed
         end     -- else	damage_model_components
-        --	if not EntityHasTag(player_id, "enemy") then
-
-        if EntityGetFirstComponent(player.entity, "AnimalAIComponent") == nil and
-            EntityGetFirstComponent(player.entity, "PhysicsAIComponent") == nil and
-            EntityGetFirstComponent(player.entity, "WormAIComponent") == nil and
-            EntityGetFirstComponent(player.entity, "AdvancedFishAIComponent") == nil and
-            player.currently_polymorphed
-        then --end of if statements
-            damage_model_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity,
-                "DamageModelComponent")
-            if damage_model_components == nil then
-                GamePrintImportant("Error", "Missing DamageModelComponent")
-            else -- if	#damage_model_components ~= 0
-                ComponentSetValue2(damage_model_component, "wait_for_kill_flag_on_death", "1")
-                if tonumber(util.get_ent_health(player.entity)) < 0.04 then
-                    util.set_ent_health(player.entity, util.get_ent_health_cap(player.entity))
-                    GamePrintImportant("Polymorph is garbage.",
-                        respawn_messages[Random(1, #respawn_messages)])
-                end -- if	hp
-            end     -- else	damage_model_components
-        end         -- if	not *AIComponent
     else
         -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
         -- Which is, like, perfect.

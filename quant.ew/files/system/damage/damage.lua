@@ -43,7 +43,7 @@ local function do_game_over(message)
         local player, damage_model_component, game_effect_component, found_workshop_guard, respawn_position_x, respawn_position_y, pos_x, pos_y, variable_storage_components, game_stats_component
 
         local respawn_messages = { "But you're better now.", "Let's get you fixed up.", "Take a deep breath.",
-            "Oooh! What in blazes...?" }
+            "Oooh! What in blazes...?", "You feel as if you had a de'ja voo." }
         damage_model_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         player = ctx.my_player
         if player.entity == nil or damage_model_component == nil then
@@ -94,29 +94,10 @@ local function do_game_over(message)
                 EntitySetTransform(player.entity, respawn_position_x, respawn_position_y)
                 EntityLoad("data/entities/misc/matter_eater.xml", respawn_position_x, respawn_position_y)
                 GamePrintImportant("You have died.", respawn_messages[Random(1, #respawn_messages)])
+                local x, y = EntityGetTransform(ctx.my_player.entity)
+                EntityLoad("mods/quant.ew/files/resource/entities/ankh_emitter.xml", x, y + 30)
             end -- if	not ending_game_completed
         end     -- else	damage_model_components
-        --	if not EntityHasTag(player_id, "enemy") then
-
-        if EntityGetFirstComponent(player.entity, "AnimalAIComponent") == nil and
-            EntityGetFirstComponent(player.entity, "PhysicsAIComponent") == nil and
-            EntityGetFirstComponent(player.entity, "WormAIComponent") == nil and
-            EntityGetFirstComponent(player.entity, "AdvancedFishAIComponent") == nil and
-            player.currently_polymorphed
-        then --end of if statements
-            damage_model_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity,
-                "DamageModelComponent")
-            if damage_model_components == nil then
-                GamePrintImportant("Error", "Missing DamageModelComponent")
-            else -- if	#damage_model_components ~= 0
-                ComponentSetValue2(damage_model_component, "wait_for_kill_flag_on_death", "1")
-                if tonumber(util.get_ent_health(player.entity)) < 0.04 then
-                    util.set_ent_health(player.entity, util.get_ent_health_cap(player.entity))
-                    GamePrintImportant("Polymorph is garbage.",
-                        respawn_messages[Random(1, #respawn_messages)])
-                end -- if	hp
-            end     -- else	damage_model_components
-        end         -- if	not *AIComponent
     else
         ctx.run_ended = true
 

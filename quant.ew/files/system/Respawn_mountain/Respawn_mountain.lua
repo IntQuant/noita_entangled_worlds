@@ -1,4 +1,6 @@
 ModLuaFileAppend("data/scripts/biomes/mountain/mountain_left_stub.lua", "mods/quant.ew/files/system/Respawn_mountain/append.lua")
+ModLuaFileAppend("data/scripts/perks/perk_reroll_init.lua", "mods/quant.ew/files/system/Respawn_mountain/Perk_reroll_init.lua")
+
 
 
 util.add_cross_call("ew_spawn_ankh_anchor", function(x, y)
