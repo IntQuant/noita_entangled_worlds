@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>noita_proxy</string>
+    <string>noita-proxy</string>
 
     <key>CFBundleDisplayName</key>
     <string>noita proxy</string>
@@ -19,7 +19,7 @@
     <string>1.5.5</string>
 
     <key>CFBundleExecutable</key>
-    <string>noita_proxy</string>
+    <string>noita-proxy</string>
 
     <key>CFBundlePackageType</key>
     <string>APPL</string>
