@@ -99,7 +99,6 @@ local_health_desc_1 = У каждого игрока свое здоровье, 
 local_health_desc_2 = Включена механика возрождения.
 Health-percent-lost-on-reviving = Процент потери здоровья при возрождении
 global_hp_loss = Все игроки теряют здоровье
-dead_isnt_dead = Dead isn't dead
 no_material_damage = Отключить урон от физики
 shared_health_desc_1 = Здоровье общее, но скалируется в зависимости от количества игроков.
 shared_health_desc_2 = Процентный урон и полное исцеление скорректированы.

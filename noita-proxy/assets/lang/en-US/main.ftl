@@ -100,7 +100,6 @@ local_health_desc_1 = Every player has their own health, run ends when all playe
 local_health_desc_2 = There is a respawn mechanic.
 Health-percent-lost-on-reviving = Percent of Max HP lost on reviving
 global_hp_loss = Lose HP globally
-dead_isnt_dead = Dead isn't dead
 no_material_damage = No material damage
 perma_death = Perma death
 physics_damage = Physics damage

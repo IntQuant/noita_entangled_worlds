@@ -52,7 +52,7 @@ local function run_spawn_fn(fn_name, x, y, ...)
         else
             local mx, my = GameGetCameraPos()
             local item_cost_component = EntityGetFirstComponentIncludingDisabled(eid, "ItemCostComponent")
-            if math.abs(mx - x) > 512 or math.abs(my - y) > 512 then
+            if math.abs(mx - x) > 1024 or math.abs(my - y) > 1024 then
                 if ComponentGetValue2(item_cost_component, "stealable") then
                     EntityAddComponent2(eid, "VariableStorageComponent", { _tags = "ew_try_stealable" })
                     ComponentSetValue2(item_cost_component, "stealable", false)

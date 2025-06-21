@@ -18,13 +18,6 @@ use tracing_subscriber::EnvFilter;
 #[allow(clippy::needless_return)]
 #[tokio::main(worker_threads = 2)]
 async fn main() {
-    #[cfg(target_os = "windows")]
-    {
-        use winapi::um::wincon::{ATTACH_PARENT_PROCESS, AttachConsole};
-        unsafe {
-            AttachConsole(ATTACH_PARENT_PROCESS);
-        }
-    }
     let log = if let Ok(path) = std::env::current_exe() {
         path.parent().unwrap().join("ew_log.txt")
     } else {

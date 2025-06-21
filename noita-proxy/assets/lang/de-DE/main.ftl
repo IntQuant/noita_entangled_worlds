@@ -100,7 +100,6 @@ local_health_desc_1 = Jeder Spieler hat seine eigene Gesundheit, das Spiel endet
 local_health_desc_2 = Es gibt einen Wiederbelebungsmechanismus.
 Health-percent-lost-on-reviving = Prozentualer Maximal-HP-Verlust bei Wiederbelebung
 global_hp_loss = HP global verlieren
-dead_isnt_dead = Dead isn't dead
 no_material_damage = Kein Materialschaden
 perma_death = Permanente Tode
 physics_damage = Physischer Schaden

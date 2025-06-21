@@ -100,7 +100,6 @@ local_health_desc_1 = Tous les joueurs ont leur propre PV, la partie se termine 
 local_health_desc_2 = Il y a un système de respawn.
 Health-percent-lost-on-reviving = Pourcentage de vie max perdu lors d'un respawn
 global_hp_loss = Perte de PV partagé
-dead_isnt_dead = Morir no te mata
 no_material_damage = Pas de dégâts matériels
 perma_death = Mort permanente
 physics_damage = Dégâts physique

@@ -140,7 +140,6 @@ pub struct GameSettings {
     health_lost_on_revive: Option<u32>,
     no_material_damage: Option<bool>,
     global_hp_loss: Option<bool>,
-    dead_isnt_dead: Option<bool>,
     perk_ban_list: Option<String>,
     disabled_globals: Option<String>,
     spell_ban_list: Option<String>,
@@ -219,13 +218,6 @@ impl GameSettings {
                             if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
                                 game_settings.health_per_player = Some(temp)
                             }
-                            {
-                                let mut temp =
-                                    game_settings.dead_isnt_dead.unwrap_or(def.dead_isnt_dead);
-                                if ui.checkbox(&mut temp, tr("dead_isnt_dead")).changed() {
-                                    game_settings.dead_isnt_dead = Some(temp)
-                                }
-                            }
                         }
                         GameMode::LocalHealth(mode) => match mode {
                             LocalHealthMode::Normal => {
@@ -238,13 +230,6 @@ impl GameSettings {
                                         .unwrap_or(def.health_lost_on_revive);
                                     if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
                                         game_settings.health_lost_on_revive = Some(temp)
-                                    }
-                                }
-                                {
-                                    let mut temp =
-                                        game_settings.dead_isnt_dead.unwrap_or(def.dead_isnt_dead);
-                                    if ui.checkbox(&mut temp, tr("dead_isnt_dead")).changed() {
-                                        game_settings.dead_isnt_dead = Some(temp)
                                     }
                                 }
                                 {
@@ -281,13 +266,6 @@ impl GameSettings {
                                         .unwrap_or(def.health_lost_on_revive);
                                     if ui.add(Slider::new(&mut temp, 0..=100)).changed() {
                                         game_settings.health_lost_on_revive = Some(temp)
-                                    }
-                                }
-                                {
-                                    let mut temp =
-                                        game_settings.dead_isnt_dead.unwrap_or(def.dead_isnt_dead);
-                                    if ui.checkbox(&mut temp, tr("dead_isnt_dead")).changed() {
-                                        game_settings.dead_isnt_dead = Some(temp)
                                     }
                                 }
                                 {
@@ -582,7 +560,6 @@ pub struct DefaultSettings {
     health_lost_on_revive: u32,
     no_material_damage: bool,
     global_hp_loss: bool,
-    dead_isnt_dead: bool,
     perk_ban_list: String,
     disabled_globals: String,
     spell_ban_list: String,
@@ -618,7 +595,6 @@ impl Default for DefaultSettings {
             health_lost_on_revive: 0,
             no_material_damage: false,
             global_hp_loss: false,
-            dead_isnt_dead: false,
             perk_ban_list: String::new(),
             disabled_globals: String::new(),
             spell_ban_list: String::new(),

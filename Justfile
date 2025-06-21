@@ -1,13 +1,12 @@
-set shell := ["pwsh.exe","-c"]
 extract_steam_redist:
     python scripts/extract_steam_redist.py
 
 add_dylib_debug: extract_steam_redist
-    mkdir -Force "noita-proxy/target/debug/"
-    cp "redist/libsteam_api.so" "noita-proxy/target/debug/"
+    mkdir noita-proxy/target/debug/ -p
+    cp redist/libsteam_api.so noita-proxy/target/debug/
 
 add_dylib_release: extract_steam_redist
-    mkdir noita-proxy/target/release/ > nul
+    mkdir noita-proxy/target/release/ -p
     cp redist/libsteam_api.so noita-proxy/target/release/
 
 build:
@@ -16,11 +15,11 @@ build:
 
 ## ewext stuff
 build_luajit:
-    mkdir -Force "target/"
-    cd target && git clone https://luajit.org/git/luajit.git || $true
+    mkdir target/ -p
+    cd target && git clone https://luajit.org/git/luajit.git || true
     cd target/luajit && git checkout v2.0.4 && make HOST_CC="gcc -m32" CROSS=i686-w64-mingw32- TARGET_SYS=Windows
-    cp target/luajit/src/ -erroraction 'silentlycontinue' || $true
-    bindgen target/luajit/src/lua.h -o src/lua_bindings.rs --dynamic-loading Lua51 --no-layout-tests
+    cp target/luajit/src/
+    bindgen ../target/luajit/src/lua.h -o src/lua_bindings.rs --dynamic-loading Lua51 --no-layout-tests
 
 # `rustup target add i686-pc-windows-gnu` first
 build_ext:
@@ -31,30 +30,27 @@ build_ext_debug:
     cd ewext && cargo build --target=i686-pc-windows-gnu
     cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext1.dll
 
-## mod movin
-move_mod:
-    cp "quant.ew" "E:/SteamLibrary/steamapps/common/Noita/mods/" -Recurse -Force
+##
 
-##run commands
-run-rel: add_dylib_release move_mod
+run-rel: add_dylib_release
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
 
-flamegraph: add_dylib_debug 
-    cd noita-proxy && cargo flamegraph
+flamegraph: add_dylib_debug
+    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo flamegraph
 
-run: add_dylib_debug build_ext move_mod
-    cd noita-proxy && cargo run
+run: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run
 
-run2: add_dylib_debug build_ext move_mod
-    cd noita-proxy && cargo run -- --launch-cmd "E:/SteamLibrary/steamapps/common/Noita/noita_dev.exe -gamemode 0"
+run2: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 
-run2-alt: add_dylib_debug build_ext move_mod
+run2-alt: add_dylib_debug build_ext
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
 
-run3: add_dylib_debug build_ext move_mod
+run3: add_dylib_debug build_ext
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
 
-release_old: build_ext move_mod
+release_old: build_ext
     python scripts/prepare_release.py
 
 release:

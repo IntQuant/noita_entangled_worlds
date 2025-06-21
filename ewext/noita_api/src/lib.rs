@@ -10,6 +10,8 @@ use std::{
     num::{NonZero, TryFromIntError},
     ops::Deref,
 };
+use std::iter::FilterMap;
+use std::vec::IntoIter;
 pub mod lua;
 pub mod serialize;
 
@@ -306,12 +308,12 @@ impl EntityID {
         isize::from(self.0)
     }
 
-    pub fn children(self, tag: Option<Cow<'_, str>>) -> impl Iterator<Item = EntityID> {
+    pub fn children(self, tag: Option<Cow<'_, str>>) -> FilterMap<IntoIter<Option<EntityID>>, fn(Option<EntityID>) -> Option<EntityID>> {
         raw::entity_get_all_children(self, tag)
             .unwrap_or(None)
             .unwrap_or_default()
             .into_iter()
-            .flatten()
+            .filter_map(|a| a)
     }
 
     pub fn get_game_effects(self) -> eyre::Result<Vec<(GameEffectData, EntityID)>> {
@@ -471,8 +473,8 @@ impl EntityID {
     pub fn get_current_stains(self) -> eyre::Result<u64> {
         let mut current = 0;
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            for (i, v) in status.stain_effects()?.into_iter().enumerate() {
-                if v >= 0.15 {
+            for (i, v) in status.stain_effects()?.iter().enumerate() {
+                if *v >= 0.15 {
                     current += 1 << i
                 }
             }
@@ -490,9 +492,12 @@ impl EntityID {
                 .filter(|l| {
                     !l.starts_with("-") && l.contains("id=\"") && !l.contains("BRAIN_DAMAGE")
                 })
-                .map(|l| l.split("\"").map(|a| a.to_string()).nth(1).unwrap());
-            for ((i, v), id) in status.stain_effects()?.into_iter().enumerate().zip(to_id) {
-                if v >= 0.15 && current_stains & (1 << i) == 0 {
+                .map(|l| {
+                    l.split("\"")
+                        .map(|a| a.to_string()).nth(1).unwrap()
+                });
+            for ((i, v), id) in status.stain_effects()?.iter().enumerate().zip(to_id) {
+                if *v >= 0.15 && current_stains & (1 << i) == 0 {
                     raw::entity_remove_stain_status_effect(self.0.get() as i32, id.into(), None)?
                 }
             }
