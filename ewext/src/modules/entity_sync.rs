@@ -613,7 +613,7 @@ impl Module for EntitySync {
             }
         }
         let mut t = start.elapsed().as_micros() + t;
-        times[1] = t;
+        times[1] = t - times[0];
         {
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
@@ -643,7 +643,7 @@ impl Module for EntitySync {
                     return Err(s);
                 }
             };
-            times[2] = t;
+            times[2] = t - (times[1] + times[0]);
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
                 if !proj.is_empty() {
@@ -706,7 +706,7 @@ impl Module for EntitySync {
                             .apply_entities(ctx, *vi, t)
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
-                        times.push(t);
+                        times.push(t - times.iter().sum::<u128>());
                         for lid in remote_model.drain_grab_request() {
                             send_remotedes(
                                 ctx,
