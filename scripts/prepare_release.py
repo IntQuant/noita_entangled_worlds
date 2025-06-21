@@ -5,6 +5,7 @@ import os
 import tomllib
 import json
 from dataclasses import dataclass
+import readline
 
 cargo_manifest = tomllib.load(open("noita-proxy/Cargo.toml", "rb"))
 version = cargo_manifest["package"]["version"]
