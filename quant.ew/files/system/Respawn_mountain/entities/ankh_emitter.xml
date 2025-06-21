@@ -24,7 +24,7 @@
 		emission_interval_min_frames="1"
 		emission_interval_max_frames="1"
 		emit_cosmetic_particles="1"
-		image_animation_file="mods/quant.ew/files/resource/entities/ankh_emitter.xml"
+		image_animation_file="mods/quant.ew/files/system/respawn_mountain/sprites/ankh_emitter.png"
 		image_animation_speed="2"
 		image_animation_loop="1"
 		image_animation_raytrace_from_center="0"

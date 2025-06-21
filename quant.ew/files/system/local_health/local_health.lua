@@ -410,7 +410,7 @@ local function player_died()
                 EntityLoad("data/entities/misc/matter_eater.xml", respawn_position_x, respawn_position_y)
                 GamePrintImportant("You have died.", respawn_messages[Random(1, #respawn_messages)])
                 local x, y = EntityGetTransform(ctx.my_player.entity)
-		        EntityLoad("mods/quant.ew/files/resource/entities/ankh_emitter.xml", x, y + 30)
+		        EntityLoad("mods/quant.ew/files/system/respawn_mountain/entities/ankh_emitter.xml", x, y + 30)
             end -- if	not ending_game_completed
         end     -- else	damage_model_components
     else

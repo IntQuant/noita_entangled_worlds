@@ -11,7 +11,7 @@ util.add_cross_call("ew_spawn_ankh_anchor", function(x, y)
 	EntityAddComponent(entity_id, "SpriteComponent", { 
 		_tags="enabled_in_world,character",
 		alpha="1",
-		image_file="mods/quant.ew/files/resource/sprites/ankh.png",
+		image_file="mods/quant.ew/files/system/respawn_mountain/sprites/ankh.png",
 		next_rect_animation="",
 		rect_animation="",
 		offset_x="4",
