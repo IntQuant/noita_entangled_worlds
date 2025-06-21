@@ -995,6 +995,10 @@ impl NetManager {
                         settings.global_hp_loss.unwrap_or(def.global_hp_loss),
                     );
                     state.try_ws_write_option(
+                        "dead_isnt_dead",
+                        settings.dead_isnt_dead.unwrap_or(def.dead_isnt_dead),
+                    );
+                    state.try_ws_write_option(
                         "physics_damage",
                         settings.physics_damage.unwrap_or(def.physics_damage),
                     );
@@ -1059,6 +1063,10 @@ impl NetManager {
             state.try_ws_write_option(
                 "health_per_player",
                 settings.health_per_player.unwrap_or(def.health_per_player),
+            );
+            state.try_ws_write_option(
+                "dead_isnt_dead",
+                settings.dead_isnt_dead.unwrap_or(def.dead_isnt_dead),
             );
         }
         let lst = settings.clone();
