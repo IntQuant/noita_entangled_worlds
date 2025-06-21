@@ -4,7 +4,10 @@
         "cast-local-type",
         "param-type-mismatch",
         "undefined-global",
-        "need-check-nil"
+        "need-check-nil",
+        "lowercase-global",
+        "redundant-parameter",
+        "missing-fields"
     ],
     "Lua.diagnostics.globals": [
         "wait",

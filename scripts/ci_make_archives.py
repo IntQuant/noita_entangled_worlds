@@ -27,7 +27,8 @@ elif mode == "macos":
     print("Writing macos release...")
 
     with ZipFile("target/noita-proxy-macos.zip", "w") as release:
-        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.arm64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        #release.write("noita-proxy/assets/Info.plist", arcname="noita_proxy.app/Contents/Info.plist", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/libsteam_api.dylib", arcname="libsteam_api.dylib", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 elif mode == "mod":
     print("Writing mod release...")
@@ -38,4 +39,3 @@ elif mode == "mod":
         release.writestr("files/version.lua", f'return "{version}"')
 else:
     exit(-1)
-
