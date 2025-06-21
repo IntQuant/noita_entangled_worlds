@@ -622,7 +622,7 @@ impl LocalDiffModelTracker {
                     vel.set_air_friction(0.55)?;
                 }
             } else if n == 0 {
-                var.set_value_int(32)?;
+                var.set_value_int(48)?;
                 if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
@@ -1473,7 +1473,12 @@ impl RemoteDiffModel {
         for entry in diff {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => {
-                    ent_data = self.entity_infos.get_mut(&lid).unwrap();
+                    ent_data = if let Some(ent) = self.entity_infos.get_mut(&lid) {
+                        ent
+                    } else {
+                        let _ = print_error(eyre!(format!("failed to find ent data {:?}", lid)));
+                        empty_data
+                    };
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
