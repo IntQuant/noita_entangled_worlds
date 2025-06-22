@@ -1192,7 +1192,12 @@ impl EntityManager {
         }
         if self.has_ran {
             let old_ent = std::mem::replace(&mut self.current_entity, ent);
-            let old_data = std::mem::replace(&mut self.current_data, EntityData::new(ent)?);
+            let data = if let Some(data) = self.cache.remove(&ent) {
+                data
+            } else {
+                EntityData::new(ent)?
+            };
+            let old_data = std::mem::replace(&mut self.current_data, data);
             self.cache.insert(old_ent, old_data);
         } else {
             self.current_entity = ent;
