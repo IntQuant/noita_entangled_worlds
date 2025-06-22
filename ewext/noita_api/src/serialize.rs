@@ -1,12 +1,15 @@
 use crate::lua::{LuaGetValue, LuaPutValue, LuaState};
 use crate::{AbilityComponent, EntityID};
 use eyre::{Context, OptionExt};
+use std::backtrace::Backtrace;
 pub fn serialize_entity(entity: EntityID) -> eyre::Result<Vec<u8>> {
     let lua = LuaState::current()?;
     lua.get_global(c"EwextSerialize");
     entity.put(lua);
-    lua.call(1, 1i32)
-        .wrap_err("Failed to call EwextSerialize")?;
+    lua.call(1, 1i32).wrap_err(format!(
+        "Failed to call EwextSerialize\n{}",
+        Backtrace::force_capture()
+    ))?;
     let res = lua.to_raw_string(-1);
     lua.pop_last_n(1i32);
     res

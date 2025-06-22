@@ -705,9 +705,9 @@ pub mod raw {
                         av: ret.5,
                     }))
                 }
-                Err(err) => {
+                Err(_) => {
                     lua.pop_last_n(6);
-                    Err(err)
+                    Ok(None)
                 }
             }
         }
