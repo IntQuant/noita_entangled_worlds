@@ -1041,7 +1041,7 @@ impl LocalDiffModel {
     pub(crate) fn update_pending_authority(
         &mut self,
         entity_manager: &mut EntityManager,
-    ) -> eyre::Result<u128> {
+    ) -> eyre::Result<Instant> {
         let start = Instant::now();
         while let Some(entity_data) = self.tracker.pending_authority.pop() {
             let entity = spawn_entity_by_data(
@@ -1126,7 +1126,7 @@ impl LocalDiffModel {
                 break;
             }
         }
-        Ok(start.elapsed().as_micros())
+        Ok(start)
     }
 
     #[allow(clippy::type_complexity)]
@@ -1134,9 +1134,9 @@ impl LocalDiffModel {
         &mut self,
         ctx: &mut ModuleCtx,
         start: usize,
-        time: u128,
+        tmr: Instant,
         entity_manager: &mut EntityManager,
-    ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, u128, usize)> {
+    ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, Instant, usize)> {
         self.update_buffer.clear();
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
@@ -1183,7 +1183,6 @@ impl LocalDiffModel {
             self.wait_to_transfer = self.wait_to_transfer.saturating_sub(1)
         }
         let l = self.entity_entries.len();
-        let tmr = Instant::now();
         let mut end = 0;
         let start = if start >= l { 0 } else { start };
         for (i, (&lid, EntityEntryPair { last, current, gid })) in
@@ -1402,7 +1401,7 @@ impl LocalDiffModel {
                     );
                 }
             }
-            if time + tmr.elapsed().as_micros() > 3000 {
+            if tmr.elapsed().as_micros() > 3000 {
                 end = (start + i + 1) % l;
                 break;
             }
@@ -1420,7 +1419,7 @@ impl LocalDiffModel {
             self.upload.remove(&lid);
             self.dont_save.remove(&lid);
         }
-        Ok((dead, time + tmr.elapsed().as_micros(), end))
+        Ok((dead, tmr, end))
     }
     pub(crate) fn make_init(&mut self) {
         for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.iter_mut() {
@@ -2012,11 +2011,10 @@ impl RemoteDiffModel {
         &mut self,
         ctx: &mut ModuleCtx,
         start: usize,
-        time: u128,
+        tmr: Instant,
         entity_manager: &mut EntityManager,
-    ) -> eyre::Result<(usize, u128)> {
+    ) -> eyre::Result<(usize, Instant)> {
         let mut to_remove = Vec::new();
-        let tmr = Instant::now();
         let l = self.entity_infos.len();
         let mut end = None;
         let start = if start >= l { 0 } else { start };
@@ -2024,7 +2022,7 @@ impl RemoteDiffModel {
             match self.tracked.get_by_left(lid) {
                 Some(entity) if entity.is_alive() => {
                     entity_manager.set_current_entity(*entity)?;
-                    if time + tmr.elapsed().as_micros() > 5000 || start > i {
+                    if tmr.elapsed().as_micros() > 5000 || start > i {
                         if end.is_none() && start <= i {
                             end = Some(i);
                         }
@@ -2072,7 +2070,7 @@ impl RemoteDiffModel {
                 }
                 _ => {
                     if start <= i {
-                        if time + tmr.elapsed().as_micros() > 5000 {
+                        if tmr.elapsed().as_micros() > 5000 {
                             if end.is_none() {
                                 end = Some(i);
                             }
@@ -2105,7 +2103,7 @@ impl RemoteDiffModel {
             self.grab_request.push(lid);
             self.entity_infos.remove(&lid);
         }
-        Ok((end.unwrap_or(0), time + tmr.elapsed().as_micros()))
+        Ok((end.unwrap_or(0), tmr))
     }
 
     pub(crate) fn kill_entities(

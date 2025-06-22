@@ -605,26 +605,24 @@ impl Module for EntitySync {
         self.look_current_entity = EntityID::max_in_use()?;
         self.local_diff_model.enable_later()?;
         self.local_diff_model.phys_later()?;
-        let t = self
+        let mut start = self
             .local_diff_model
             .update_pending_authority(&mut self.entity_manager)?;
         let mut times = vec![0; 3];
-        times[0] = t;
+        times[0] = start.elapsed().as_micros();
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             if let Ok(ent) = EntityID::try_from(ent) {
                 self.on_new_entity(ent, false)?;
             }
         }
-        let start = std::time::Instant::now();
         while let Some(entity) = self.to_track.pop() {
             self.local_diff_model
                 .track_and_upload_entity(entity, &mut self.entity_manager)?;
-            if start.elapsed().as_micros() + t > 2000 {
+            if start.elapsed().as_micros() > 2000 {
                 break;
             }
         }
-        let mut t = start.elapsed().as_micros() + t;
-        times[1] = t - times[0];
+        times[1] = start.elapsed().as_micros() - times[0];
         {
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
@@ -643,9 +641,9 @@ impl Module for EntitySync {
                 err?;
             }
             let dead;
-            (dead, t, self.local_index) = match self
+            (dead, start, self.local_index) = match self
                 .local_diff_model
-                .update_tracked_entities(ctx, self.local_index, t, &mut self.entity_manager)
+                .update_tracked_entities(ctx, self.local_index, start, &mut self.entity_manager)
                 .wrap_err("Failed to update locally tracked entities")
             {
                 Ok(ret) => ret,
@@ -654,7 +652,7 @@ impl Module for EntitySync {
                     return Err(s);
                 }
             };
-            times[2] = t - (times[1] + times[0]);
+            times[2] = start.elapsed().as_micros() - (times[1] + times[0]);
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
                 if !proj.is_empty() {
@@ -713,11 +711,11 @@ impl Module for EntitySync {
                     Some(remote_model) => {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
                         let v;
-                        (v, t) = remote_model
-                            .apply_entities(ctx, *vi, t, &mut self.entity_manager)
+                        (v, start) = remote_model
+                            .apply_entities(ctx, *vi, start, &mut self.entity_manager)
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
-                        times.push(t - times.iter().sum::<u128>());
+                        times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
                         for lid in remote_model.drain_grab_request() {
                             send_remotedes(
                                 ctx,
