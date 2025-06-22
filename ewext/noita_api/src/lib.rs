@@ -62,20 +62,17 @@ impl EntityID {
                                 return Ok(None);
                             }
                             if let Ok(data) =
-                                base64::engine::general_purpose::STANDARD.decode(data.to_string())
+                                base64::engine::general_purpose::STANDARD.decode(data.as_bytes())
                             {
-                                let data = String::from_utf8_lossy(&data)
-                                    .chars()
-                                    .filter(|c| c.is_ascii_alphanumeric())
-                                    .collect::<String>();
-                                let mut data = data.split("VariableStorageComponentewgidlid");
-                                let _ = data.next();
-                                if let Some(data) = data.next() {
+                                let data = unsafe { str::from_utf8_unchecked(&data) };
+                                if let Some((_, data)) = data.split_once("ew_gid_lid") {
                                     let mut gid = String::new();
+                                    let mut found = false;
                                     for c in data.chars() {
                                         if c.is_numeric() {
+                                            found = true;
                                             gid.push(c)
-                                        } else {
+                                        } else if found {
                                             break;
                                         }
                                     }
