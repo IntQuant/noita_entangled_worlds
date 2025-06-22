@@ -575,6 +575,9 @@ impl Module for EntitySync {
         let pos = WorldPos::from_f64(x, y);
         self.interest_tracker.set_center(x, y);
         let frame_num = game_get_frame_num()? as usize;
+        if frame_num < 10 {
+            return Ok(());
+        }
         if frame_num % 5 == 0 {
             send_remotedes(
                 ctx,
@@ -616,10 +619,12 @@ impl Module for EntitySync {
             }
         }
         while let Some(entity) = self.to_track.pop() {
-            self.local_diff_model
-                .track_and_upload_entity(entity, &mut self.entity_manager)?;
-            if start.elapsed().as_micros() > 2000 {
-                break;
+            if entity.is_alive() {
+                self.local_diff_model
+                    .track_and_upload_entity(entity, &mut self.entity_manager)?;
+                if start.elapsed().as_micros() > 2000 {
+                    break;
+                }
             }
         }
         times[1] = start.elapsed().as_micros() - times[0];

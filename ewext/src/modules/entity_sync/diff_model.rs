@@ -87,6 +87,7 @@ impl LocalDiffModel {
     pub(crate) fn get_pos_data(&mut self, frame_num: usize) -> Vec<UpdateOrUpload> {
         let len = self.entity_entries.len();
         let batch_size = (len / 60).max(1);
+        //TODO since i do this in other places, i do more work at the start of the second then the end of the second as len is not equal to a multiple of 60 generally, so this should be spread out
         let start = (frame_num % 60) * batch_size;
         let end = (start + batch_size).min(len);
         let mut upload = std::mem::take(&mut self.upload);
