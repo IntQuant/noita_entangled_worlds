@@ -214,6 +214,7 @@ dependencies = [
  "eyre",
  "libloading",
  "noita_api_macro",
+ "rustc-hash",
  "shared",
 ]
 

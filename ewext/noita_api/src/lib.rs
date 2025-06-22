@@ -2,9 +2,10 @@ use crate::lua::{LuaGetValue, LuaPutValue};
 use crate::serialize::deserialize_entity;
 use base64::Engine;
 use eyre::{Context, OptionExt, eyre};
+use rustc_hash::FxHashMap;
 use shared::des::Gid;
 use shared::{GameEffectData, GameEffectEnum};
-use std::collections::HashMap;
+use std::num::NonZeroIsize;
 use std::{
     borrow::Cow,
     num::{NonZero, TryFromIntError},
@@ -251,11 +252,19 @@ impl EntityID {
         self,
         tag: Option<Cow<'_, str>>,
     ) -> eyre::Result<impl Iterator<Item = C>> {
+        Ok(self
+            .iter_all_components_of_type_including_disabled_raw::<C>(tag)?
+            .into_iter()
+            .filter_map(|x| x.map(C::from)))
+    }
+
+    pub fn iter_all_components_of_type_including_disabled_raw<C: Component>(
+        self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<Vec<Option<ComponentID>>> {
         Ok(
             raw::entity_get_component_including_disabled(self, C::NAME_STR.into(), tag)?
-                .unwrap_or_default()
-                .into_iter()
-                .filter_map(|x| x.map(C::from)),
+                .unwrap_or_default(),
         )
     }
 
@@ -316,7 +325,7 @@ impl EntityID {
 
     pub fn get_game_effects(self) -> eyre::Result<Vec<(GameEffectData, EntityID)>> {
         let mut effects = Vec::new();
-        let mut name_to_n: HashMap<String, i32> = HashMap::default();
+        let mut name_to_n: FxHashMap<String, i32> = FxHashMap::default();
         for ent in self.children(None) {
             if ent.has_tag("projectile") {
                 if let Ok(data) = serialize::serialize_entity(ent) {
@@ -738,4 +747,345 @@ pub struct PhysData {
     pub vx: f32,
     pub vy: f32,
     pub av: f32,
+}
+#[derive(PartialEq)]
+pub enum CachedTag {
+    EwClient,
+    PitcheckB,
+    SeedD,
+    BossWizard,
+    CardAction,
+    BossCentipede,
+    BossCentipedeActive,
+    DesTag,
+    BossDragon,
+}
+const TAG_LEN: usize = 9;
+impl CachedTag {
+    /*const fn iter() -> [CachedTag; 1] {
+        [CachedTag::EwClient]
+    }*/
+    const fn to_tag(&self) -> &'static str {
+        match self {
+            Self::EwClient => "ew_client",
+            Self::PitcheckB => "pitcheck_b",
+            Self::SeedD => "seed_d",
+            Self::BossWizard => "boss_wizard",
+            Self::CardAction => "card_action",
+            Self::BossCentipede => "boss_centipede",
+            Self::BossCentipedeActive => "boss_centipede_active",
+            Self::DesTag => "ew_des",
+            Self::BossDragon => "boss_dragon",
+        }
+    }
+    pub const fn from_tag(s: &'static str) -> Self {
+        match s.as_bytes() {
+            b"ew_client" => Self::EwClient,
+            b"pitcheck_b" => Self::PitcheckB,
+            b"seed_d" => Self::SeedD,
+            b"boss_wizard" => Self::BossWizard,
+            b"card_action" => Self::CardAction,
+            b"boss_centipede" => Self::BossCentipede,
+            b"boss_centipede_active" => Self::BossCentipedeActive,
+            b"ew_des" => Self::DesTag,
+            b"boss_dragon" => Self::BossDragon,
+            _ => unreachable!(),
+        }
+    }
+}
+#[derive(Hash, Eq, PartialEq)]
+pub enum CachedComponent {
+    PhysicsBody2Component,
+    VariableStorageComponent,
+    AnimalAIComponent,
+    ItemCostComponent,
+    LaserEmitterComponent,
+    CharacterDataComponent,
+    WormComponent,
+    VelocityComponent,
+    BossDragonComponent,
+    LuaComponent,
+    BossHealthBarComponent,
+    DamageModelComponent,
+    ItemComponent,
+    StreamingKeepAliveComponent,
+}
+const COMP_LEN: usize = 14;
+impl CachedComponent {
+    const fn iter() -> [CachedComponent; COMP_LEN] {
+        [
+            Self::PhysicsBody2Component,
+            Self::VariableStorageComponent,
+            Self::AnimalAIComponent,
+            Self::ItemCostComponent,
+            Self::LaserEmitterComponent,
+            Self::CharacterDataComponent,
+            Self::WormComponent,
+            Self::VelocityComponent,
+            Self::BossDragonComponent,
+            Self::LuaComponent,
+            Self::BossHealthBarComponent,
+            Self::DamageModelComponent,
+            Self::ItemComponent,
+            Self::StreamingKeepAliveComponent,
+        ]
+    }
+    fn get<C: Component>(&self, ent: EntityID) -> eyre::Result<Vec<ComponentData>> {
+        Ok(ent
+            .iter_all_components_of_type_including_disabled_raw::<C>(None)?
+            .into_iter()
+            .filter_map(|c| c.map(ComponentData::new))
+            .collect())
+    }
+    fn to_component(&self, ent: EntityID) -> eyre::Result<Vec<ComponentData>> {
+        //maybe possible to get all components in 1 lua call
+        Ok(match self {
+            Self::PhysicsBody2Component => self.get::<PhysicsBody2Component>(ent)?,
+            Self::VariableStorageComponent => self.get::<VariableStorageComponent>(ent)?,
+            Self::AnimalAIComponent => self.get::<AnimalAIComponent>(ent)?,
+            Self::ItemCostComponent => self.get::<ItemCostComponent>(ent)?,
+            Self::LaserEmitterComponent => self.get::<LaserEmitterComponent>(ent)?,
+            Self::CharacterDataComponent => self.get::<CharacterDataComponent>(ent)?,
+            Self::WormComponent => self.get::<WormComponent>(ent)?,
+            Self::VelocityComponent => self.get::<VelocityComponent>(ent)?,
+            Self::BossDragonComponent => self.get::<BossDragonComponent>(ent)?,
+            Self::LuaComponent => self.get::<LuaComponent>(ent)?,
+            Self::BossHealthBarComponent => self.get::<BossHealthBarComponent>(ent)?,
+            Self::DamageModelComponent => self.get::<DamageModelComponent>(ent)?,
+            Self::ItemComponent => self.get::<ItemComponent>(ent)?,
+            Self::StreamingKeepAliveComponent => self.get::<StreamingKeepAliveComponent>(ent)?,
+        })
+    }
+    const fn from_component<C: Component>() -> Self {
+        match C::NAME_STR.as_bytes() {
+            b"PhysicsBody2Component" => Self::PhysicsBody2Component,
+            b"VariableStorageComponent" => Self::VariableStorageComponent,
+            b"AnimalAIComponent" => Self::AnimalAIComponent,
+            b"ItemCostComponent" => Self::ItemCostComponent,
+            b"LaserEmitterComponent" => Self::LaserEmitterComponent,
+            b"CharacterDataComponent" => Self::CharacterDataComponent,
+            b"WormComponent" => Self::WormComponent,
+            b"VelocityComponent" => Self::VelocityComponent,
+            b"BossDragonComponent" => Self::BossDragonComponent,
+            b"LuaComponent" => Self::LuaComponent,
+            b"BossHealthBarComponent" => Self::BossHealthBarComponent,
+            b"DamageModelComponent" => Self::DamageModelComponent,
+            b"ItemComponent" => Self::ItemComponent,
+            b"StreamingKeepAliveComponent" => Self::StreamingKeepAliveComponent,
+            _ => unreachable!(),
+        }
+    }
+}
+struct ComponentData {
+    id: ComponentID,
+    //maybe cache these on first call instead of on init
+    enabled: bool,
+    //name: Option<String>,
+    //tags: Vec<String>,
+}
+impl ComponentData {
+    fn new(id: ComponentID) -> Self {
+        let enabled = raw::component_get_is_enabled(id).unwrap_or_default();
+        /*let name = if c == &CachedComponent::VariableStorageComponent {
+            Some(
+                VariableStorageComponent::from(id)
+                    .name()
+                    .unwrap_or_default()
+                    .to_string(),
+            )
+        } else {
+            None
+        };*/
+        /*let tags = raw::component_get_tags(id)
+        .unwrap_or_default()
+        .unwrap_or_default()
+        .split(',')
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();*/
+        ComponentData { id, enabled }
+    }
+}
+#[derive(Default)]
+struct EntityData {
+    tags: [bool; TAG_LEN],
+    components: [Vec<ComponentData>; COMP_LEN],
+}
+pub struct EntityManager {
+    cache: FxHashMap<EntityID, EntityData>,
+    current_entity: EntityID,
+    current_data: EntityData,
+    has_ran: bool,
+}
+impl Default for EntityManager {
+    fn default() -> Self {
+        Self {
+            cache: Default::default(),
+            current_entity: EntityID(NonZeroIsize::new(-1).unwrap()),
+            current_data: Default::default(),
+            has_ran: false,
+        }
+    }
+}
+impl EntityData {
+    fn new(ent: EntityID) -> eyre::Result<Self> {
+        let mut tags = [false; TAG_LEN];
+        macro_rules! push_tag {
+            ($($e: expr),*) => {
+                $(
+                    tags[$e as usize] = ent.has_tag(const {$e.to_tag()});
+                )*
+            };
+        }
+        push_tag!(
+            CachedTag::EwClient,
+            CachedTag::PitcheckB,
+            CachedTag::SeedD,
+            CachedTag::BossWizard,
+            CachedTag::CardAction,
+            CachedTag::BossCentipede,
+            CachedTag::BossCentipedeActive,
+            CachedTag::DesTag,
+            CachedTag::BossDragon
+        );
+        let components =
+            const { CachedComponent::iter() }.map(|c| c.to_component(ent).unwrap_or_default());
+        Ok(EntityData { tags, components })
+    }
+    fn has_tag(&self, tag: CachedTag) -> bool {
+        self.tags[tag as usize]
+    }
+    fn add_tag(&mut self, tag: CachedTag) {
+        self.tags[tag as usize] = true
+    }
+    fn remove_tag(&mut self, tag: CachedTag) {
+        self.tags[tag as usize] = false
+    }
+}
+impl EntityManager {
+    pub fn cache_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
+        self.cache.insert(ent, EntityData::new(ent)?);
+        Ok(())
+    }
+    pub fn set_current_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
+        if self.current_entity == ent {
+            return Ok(());
+        }
+        if self.has_ran {
+            let old_ent = std::mem::replace(&mut self.current_entity, ent);
+            let old_data = std::mem::replace(&mut self.current_data, EntityData::new(ent)?);
+            self.cache.insert(old_ent, old_data);
+        } else {
+            self.current_entity = ent;
+            self.current_data = EntityData::new(ent)?;
+            self.has_ran = true;
+        }
+        Ok(())
+    }
+    pub fn entity(&self) -> EntityID {
+        self.current_entity
+    }
+    pub fn remove_ent(&mut self, ent: EntityID) {
+        if self.current_entity == ent {
+            self.has_ran = false;
+        } else {
+            self.cache.remove(&ent);
+        }
+    }
+    pub fn add_tag(&mut self, tag: CachedTag) -> eyre::Result<()> {
+        self.current_entity.add_tag(tag.to_tag())?;
+        self.current_data.add_tag(tag);
+        Ok(())
+    }
+    pub fn has_tag(&self, tag: CachedTag) -> bool {
+        self.current_data.has_tag(tag)
+    }
+    pub fn remove_tag(&mut self, tag: CachedTag) -> eyre::Result<()> {
+        self.current_entity.remove_tag(tag.to_tag())?;
+        self.current_data.remove_tag(tag);
+        Ok(())
+    }
+    pub fn check_all_phys_init(&self) -> eyre::Result<bool> {
+        self.current_entity.check_all_phys_init() //TODO
+    }
+    pub fn try_get_first_component<C: Component>(
+        &self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<Option<C>> {
+        if tag.is_none() {
+            let coms = &self.current_data.components
+                [const { CachedComponent::from_component::<C>() } as usize];
+            Ok(coms.iter().find(|c| c.enabled).map(|com| C::from(com.id)))
+        } else {
+            self.current_entity.try_get_first_component::<C>(tag) //TODO
+        }
+    }
+    pub fn try_get_first_component_including_disabled<C: Component>(
+        &self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<Option<C>> {
+        self.current_entity
+            .try_get_first_component_including_disabled::<C>(tag) //TODO
+    }
+    pub fn get_first_component<C: Component>(&self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
+        self.current_entity.get_first_component::<C>(tag)
+    }
+    pub fn get_first_component_including_disabled<C: Component>(
+        &self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<C> {
+        self.current_entity
+            .get_first_component_including_disabled::<C>(tag) //TODO
+    }
+    pub fn remove_all_components_of_type<C: Component>(
+        &mut self,
+        tags: Option<Cow<str>>,
+    ) -> eyre::Result<bool> {
+        self.current_entity.remove_all_components_of_type::<C>(tags) //TODO
+    }
+    pub fn iter_all_components_of_type<C: Component>(
+        &self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<impl Iterator<Item = C>> {
+        self.current_entity.iter_all_components_of_type::<C>(tag) //TODO
+    }
+    pub fn iter_all_components_of_type_including_disabled<C: Component>(
+        &self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<impl Iterator<Item = C>> {
+        self.current_entity
+            .iter_all_components_of_type_including_disabled::<C>(tag) //TODO
+    }
+    pub fn iter_all_components_of_type_including_disabled_raw<C: Component>(
+        &self,
+        tag: Option<Cow<'_, str>>,
+    ) -> eyre::Result<Vec<Option<ComponentID>>> {
+        self.current_entity
+            .iter_all_components_of_type_including_disabled_raw::<C>(tag) //TODO
+    }
+    pub fn add_component<C: Component>(&mut self) -> eyre::Result<C> {
+        self.current_entity.add_component::<C>() //TODO
+    }
+    pub fn get_var(&self, name: &str) -> Option<VariableStorageComponent> {
+        self.current_entity.get_var(name) //TODO
+    }
+    pub fn get_var_or_default(&mut self, name: &str) -> eyre::Result<VariableStorageComponent> {
+        self.current_entity.get_var_or_default(name) //TODO
+    }
+    pub fn add_lua_init_component<C: Component>(&mut self, file: &str) -> eyre::Result<C> {
+        self.current_entity.add_lua_init_component::<C>(file) //TODO
+    }
+    pub fn set_components_with_tag_enabled(
+        &mut self,
+        tag: Cow<'_, str>,
+        enabled: bool,
+    ) -> eyre::Result<()> {
+        self.current_entity
+            .set_components_with_tag_enabled(tag, enabled) //TODO
+    }
+    pub fn set_component_enabled(&mut self, com: ComponentID, enabled: bool) -> eyre::Result<()> {
+        self.current_entity.set_component_enabled(com, enabled) //TODO
+    }
+    pub fn remove_component(&mut self, component_id: ComponentID) -> eyre::Result<()> {
+        self.current_entity.remove_component(component_id) //TODO
+    }
 }

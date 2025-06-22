@@ -12,8 +12,8 @@ use interest::InterestTracker;
 use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, EntityID, ItemCostComponent, LuaComponent, PositionSeedComponent,
-    ProjectileComponent, VariableStorageComponent, VelocityComponent,
+    DamageModelComponent, EntityID, EntityManager, ItemCostComponent, LuaComponent,
+    PositionSeedComponent, ProjectileComponent, VariableStorageComponent, VelocityComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -57,6 +57,7 @@ pub(crate) struct EntitySync {
     remote_index: FxHashMap<PeerId, usize>,
     peer_order: Vec<PeerId>,
     log_performance: bool,
+    entity_manager: EntityManager,
 }
 impl EntitySync {
     pub(crate) fn set_perf(&mut self, perf: bool) {
@@ -66,7 +67,9 @@ impl EntitySync {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
     }*/
     pub(crate) fn track_entity(&mut self, ent: EntityID) {
-        let _ = self.local_diff_model.track_and_upload_entity(ent);
+        let _ = self
+            .local_diff_model
+            .track_and_upload_entity(ent, &mut self.entity_manager);
     }
     pub(crate) fn notrack_entity(&mut self, ent: EntityID) {
         self.dont_track.insert(ent);
@@ -106,6 +109,7 @@ impl Default for EntitySync {
             remote_index: Default::default(),
             peer_order: Vec::new(),
             log_performance: false,
+            entity_manager: EntityManager::default(),
         }
     }
 }
@@ -464,7 +468,8 @@ impl EntitySync {
         let entity = entity.ok_or_eyre("Passed entity 0 into cross call")?;
         // It might be already tracked in case of tablet telekinesis, no need to track it again.
         if !self.local_diff_model.is_entity_tracked(entity) {
-            self.local_diff_model.track_and_upload_entity(entity)?;
+            self.local_diff_model
+                .track_and_upload_entity(entity, &mut self.entity_manager)?;
         }
         Ok(())
     }
@@ -495,7 +500,9 @@ impl EntitySync {
     ) -> eyre::Result<()> {
         if peer == my_peer_id() {
             self.dont_kill.insert(entity);
-            let lid = self.local_diff_model.track_entity(entity, gid)?;
+            let lid = self
+                .local_diff_model
+                .track_entity(entity, gid, &mut self.entity_manager)?;
             self.local_diff_model.dont_save(lid);
         } else if let Some(remote) = self.remote_models.get_mut(&peer) {
             remote.wait_for_gid(entity, gid);
@@ -597,7 +604,9 @@ impl Module for EntitySync {
         self.look_current_entity = EntityID::max_in_use()?;
         self.local_diff_model.enable_later()?;
         self.local_diff_model.phys_later()?;
-        let t = self.local_diff_model.update_pending_authority()?;
+        let t = self
+            .local_diff_model
+            .update_pending_authority(&mut self.entity_manager)?;
         let mut times = vec![0; 3];
         times[0] = t;
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
@@ -607,7 +616,8 @@ impl Module for EntitySync {
         }
         let start = std::time::Instant::now();
         while let Some(entity) = self.to_track.pop() {
-            self.local_diff_model.track_and_upload_entity(entity)?;
+            self.local_diff_model
+                .track_and_upload_entity(entity, &mut self.entity_manager)?;
             if start.elapsed().as_micros() + t > 2000 {
                 break;
             }
@@ -634,7 +644,7 @@ impl Module for EntitySync {
             let dead;
             (dead, t, self.local_index) = match self
                 .local_diff_model
-                .update_tracked_entities(ctx, self.local_index, t)
+                .update_tracked_entities(ctx, self.local_index, t, &mut self.entity_manager)
                 .wrap_err("Failed to update locally tracked entities")
             {
                 Ok(ret) => ret,
@@ -703,7 +713,7 @@ impl Module for EntitySync {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
                         let v;
                         (v, t) = remote_model
-                            .apply_entities(ctx, *vi, t)
+                            .apply_entities(ctx, *vi, t, &mut self.entity_manager)
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
                         times.push(t - times.iter().sum::<u128>());
