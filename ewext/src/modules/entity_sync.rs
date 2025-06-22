@@ -195,6 +195,7 @@ impl EntitySync {
                                         None,
                                         None,
                                         *drops_gold,
+                                        &mut self.entity_manager,
                                     )?;
                                     if let Some(damage) = entity
                                         .try_get_first_component::<DamageModelComponent>(None)?
@@ -444,7 +445,7 @@ impl EntitySync {
                     self.remote_models
                         .entry(source)
                         .or_insert(RemoteDiffModel::new(source))
-                        .apply_init(vec),
+                        .apply_init(vec, &mut self.entity_manager),
                 );
             }
             RemoteDes::ExitedInterest => {
@@ -742,7 +743,7 @@ impl Module for EntitySync {
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
         for (_, remote_model) in self.remote_models.iter_mut() {
-            remote_model.kill_entities(ctx)?;
+            remote_model.kill_entities(ctx, &mut self.entity_manager)?;
         }
         for (entity, offending_peer) in self.kill_later.drain(..) {
             if entity.is_alive() {

@@ -748,6 +748,7 @@ pub struct PhysData {
     pub vy: f32,
     pub av: f32,
 }
+
 #[derive(PartialEq)]
 pub enum CachedTag {
     EwClient,
@@ -759,8 +760,10 @@ pub enum CachedTag {
     BossCentipedeActive,
     DesTag,
     BossDragon,
+    PolymorphableNOT,
+    EggItem,
 }
-const TAG_LEN: usize = 9;
+const TAG_LEN: usize = 11;
 impl CachedTag {
     /*const fn iter() -> [CachedTag; 1] {
         [CachedTag::EwClient]
@@ -776,6 +779,8 @@ impl CachedTag {
             Self::BossCentipedeActive => "boss_centipede_active",
             Self::DesTag => "ew_des",
             Self::BossDragon => "boss_dragon",
+            Self::PolymorphableNOT => "polymorphable_NOT",
+            Self::EggItem => "egg_item",
         }
     }
     pub const fn from_tag(s: &'static str) -> Self {
@@ -789,6 +794,8 @@ impl CachedTag {
             b"boss_centipede_active" => Self::BossCentipedeActive,
             b"ew_des" => Self::DesTag,
             b"boss_dragon" => Self::BossDragon,
+            b"polymorphable_NOT" => Self::PolymorphableNOT,
+            b"egg_item" => Self::EggItem,
             _ => unreachable!(),
         }
     }
@@ -809,8 +816,23 @@ pub enum CachedComponent {
     DamageModelComponent,
     ItemComponent,
     StreamingKeepAliveComponent,
+    SpriteComponent,
+    CameraBoundComponent,
+    GhostComponent,
+    PhysicsBodyComponent,
+    Inventory2Component,
+    AIAttackComponent,
+    IKLimbWalkerComponent,
+    IKLimbAttackerComponent,
+    IKLimbsAnimatorComponent,
+    CharacterPlatformingComponent,
+    PhysicsAIComponent,
+    AdvancedFishAIComponent,
+    LifetimeComponent,
+    ExplodeOnDamageComponent,
+    ItemPickUpperComponent,
 }
-const COMP_LEN: usize = 14;
+const COMP_LEN: usize = 29;
 impl CachedComponent {
     const fn iter() -> [CachedComponent; COMP_LEN] {
         [
@@ -828,13 +850,30 @@ impl CachedComponent {
             Self::DamageModelComponent,
             Self::ItemComponent,
             Self::StreamingKeepAliveComponent,
+            Self::SpriteComponent,
+            Self::CameraBoundComponent,
+            Self::GhostComponent,
+            Self::PhysicsBodyComponent,
+            Self::Inventory2Component,
+            Self::AIAttackComponent,
+            Self::IKLimbWalkerComponent,
+            Self::IKLimbAttackerComponent,
+            Self::IKLimbsAnimatorComponent,
+            Self::CharacterPlatformingComponent,
+            Self::PhysicsAIComponent,
+            Self::AdvancedFishAIComponent,
+            Self::LifetimeComponent,
+            Self::ExplodeOnDamageComponent,
+            Self::ItemPickUpperComponent,
         ]
     }
     fn get<C: Component>(&self, ent: EntityID) -> eyre::Result<Vec<ComponentData>> {
         Ok(ent
             .iter_all_components_of_type_including_disabled_raw::<C>(None)?
             .into_iter()
-            .filter_map(|c| c.map(ComponentData::new))
+            .filter_map(|c| {
+                c.map(|c| ComponentData::new(c, C::NAME_STR == "VariableStorageComponent"))
+            })
             .collect())
     }
     fn to_component(&self, ent: EntityID) -> eyre::Result<Vec<ComponentData>> {
@@ -854,6 +893,23 @@ impl CachedComponent {
             Self::DamageModelComponent => self.get::<DamageModelComponent>(ent)?,
             Self::ItemComponent => self.get::<ItemComponent>(ent)?,
             Self::StreamingKeepAliveComponent => self.get::<StreamingKeepAliveComponent>(ent)?,
+            Self::SpriteComponent => self.get::<SpriteComponent>(ent)?,
+            Self::CameraBoundComponent => self.get::<CameraBoundComponent>(ent)?,
+            Self::GhostComponent => self.get::<GhostComponent>(ent)?,
+            Self::PhysicsBodyComponent => self.get::<PhysicsBodyComponent>(ent)?,
+            Self::Inventory2Component => self.get::<Inventory2Component>(ent)?,
+            Self::AIAttackComponent => self.get::<AIAttackComponent>(ent)?,
+            Self::IKLimbWalkerComponent => self.get::<IKLimbWalkerComponent>(ent)?,
+            Self::IKLimbAttackerComponent => self.get::<IKLimbAttackerComponent>(ent)?,
+            Self::IKLimbsAnimatorComponent => self.get::<IKLimbsAnimatorComponent>(ent)?,
+            Self::CharacterPlatformingComponent => {
+                self.get::<CharacterPlatformingComponent>(ent)?
+            }
+            Self::PhysicsAIComponent => self.get::<PhysicsAIComponent>(ent)?,
+            Self::AdvancedFishAIComponent => self.get::<AdvancedFishAIComponent>(ent)?,
+            Self::LifetimeComponent => self.get::<LifetimeComponent>(ent)?,
+            Self::ExplodeOnDamageComponent => self.get::<ExplodeOnDamageComponent>(ent)?,
+            Self::ItemPickUpperComponent => self.get::<ItemPickUpperComponent>(ent)?,
         })
     }
     const fn from_component<C: Component>() -> Self {
@@ -872,37 +928,193 @@ impl CachedComponent {
             b"DamageModelComponent" => Self::DamageModelComponent,
             b"ItemComponent" => Self::ItemComponent,
             b"StreamingKeepAliveComponent" => Self::StreamingKeepAliveComponent,
+            b"SpriteComponent" => Self::SpriteComponent,
+            b"CameraBoundComponent" => Self::CameraBoundComponent,
+            b"GhostComponent" => Self::GhostComponent,
+            b"PhysicsBodyComponent" => Self::PhysicsBodyComponent,
+            b"Inventory2Component" => Self::Inventory2Component,
+            b"AIAttackComponent" => Self::AIAttackComponent,
+            b"IKLimbWalkerComponent" => Self::IKLimbWalkerComponent,
+            b"IKLimbAttackerComponent" => Self::IKLimbAttackerComponent,
+            b"IKLimbsAnimatorComponent" => Self::IKLimbsAnimatorComponent,
+            b"CharacterPlatformingComponent" => Self::CharacterPlatformingComponent,
+            b"PhysicsAIComponent" => Self::PhysicsAIComponent,
+            b"AdvancedFishAIComponent" => Self::AdvancedFishAIComponent,
+            b"LifetimeComponent" => Self::LifetimeComponent,
+            b"ExplodeOnDamageComponent" => Self::ExplodeOnDamageComponent,
+            b"ItemPickUpperComponent" => Self::ItemPickUpperComponent,
             _ => unreachable!(),
         }
     }
 }
+#[derive(PartialEq, Copy, Clone)]
+pub enum VarName {
+    None,
+    SunbabyEssencesList,
+    Rolling,
+    EwWasStealable,
+    EwRng,
+    ThrowTime,
+    GhostId,
+    EwGidLid,
+}
+impl VarName {
+    pub const fn from_str(s: &str) -> Self {
+        match s.as_bytes() {
+            b"sunbaby_essences_list" => Self::SunbabyEssencesList,
+            b"rolling" => Self::Rolling,
+            b"ew_was_stealable" => Self::EwWasStealable,
+            b"ew_rng" => Self::EwRng,
+            b"throw_time" => Self::ThrowTime,
+            b"ghost_id" => Self::GhostId,
+            b"ew_gid_lid" => Self::EwGidLid,
+            _ => unreachable!(),
+        }
+    }
+    pub const fn from_str_non_const(s: &str) -> Self {
+        match s.as_bytes() {
+            b"sunbaby_essences_list" => Self::SunbabyEssencesList,
+            b"rolling" => Self::Rolling,
+            b"ew_was_stealable" => Self::EwWasStealable,
+            b"ew_rng" => Self::EwRng,
+            b"throw_time" => Self::ThrowTime,
+            b"ghost_id" => Self::GhostId,
+            b"ew_gid_lid" => Self::EwGidLid,
+            _ => Self::None,
+        }
+    }
+    pub const fn to_str(self) -> &'static str {
+        match self {
+            Self::None => "",
+            Self::SunbabyEssencesList => "sunbaby_essences_list",
+            Self::Rolling => "rolling",
+            Self::EwWasStealable => "ew_was_stealable",
+            Self::EwRng => "ew_rng",
+            Self::ThrowTime => "throw_time",
+            Self::GhostId => "ghost_id",
+            Self::EwGidLid => "ew_gid_lid",
+        }
+    }
+}
+#[derive(PartialEq, Clone, Copy)]
+pub enum ComponentTag {
+    DisabledAtStart,
+    SunbabySprite,
+    EwSyncedVar,
+    Disabled,
+    Activate,
+    EnabledAtStart,
+    ShopCost,
+    Character,
+    Water,
+    Fire,
+    FireDisable,
+    Air,
+    Earth,
+    EarthDisable,
+    Poop,
+    None,
+}
+impl ComponentTag {
+    pub const fn from_str(s: &str) -> Self {
+        match s.as_bytes() {
+            b"disabled_at_start" => Self::DisabledAtStart,
+            b"sunbaby_sprite" => Self::SunbabySprite,
+            b"ew_synced_var" => Self::EwSyncedVar,
+            b"disabled" => Self::Disabled,
+            b"activate" => Self::Activate,
+            b"enabled_at_start" => Self::EnabledAtStart,
+            b"shop_cost" => Self::ShopCost,
+            b"character" => Self::Character,
+            b"water" => Self::Water,
+            b"fire" => Self::Fire,
+            b"fire_disable" => Self::FireDisable,
+            b"air" => Self::Air,
+            b"earth" => Self::Earth,
+            b"earth_disable" => Self::EarthDisable,
+            b"poop" => Self::Poop,
+            _ => unreachable!(),
+        }
+    }
+    pub const fn to_str(self) -> &'static str {
+        match self {
+            Self::DisabledAtStart => "disabled_at_start",
+            Self::SunbabySprite => "sunbaby_sprite",
+            Self::EwSyncedVar => "ew_synced_var",
+            Self::Disabled => "disabled",
+            Self::Activate => "activate",
+            Self::EnabledAtStart => "enabled_at_start",
+            Self::ShopCost => "shop_cost",
+            Self::Character => "character",
+            Self::Water => "water",
+            Self::Fire => "fire",
+            Self::FireDisable => "fire_disable",
+            Self::Air => "air",
+            Self::Earth => "earth",
+            Self::EarthDisable => "earth_disable",
+            Self::Poop => "poop",
+            Self::None => "",
+        }
+    }
+}
+const COMP_TAG_LEN: usize = 15;
 struct ComponentData {
     id: ComponentID,
-    //maybe cache these on first call instead of on init
     enabled: bool,
-    //name: Option<String>,
-    //tags: Vec<String>,
+    phys_init: bool,
+    name: VarName,
+    tags: [bool; COMP_TAG_LEN],
 }
 impl ComponentData {
-    fn new(id: ComponentID) -> Self {
+    fn new(id: ComponentID, is_var: bool) -> Self {
         let enabled = raw::component_get_is_enabled(id).unwrap_or_default();
-        /*let name = if c == &CachedComponent::VariableStorageComponent {
-            Some(
-                VariableStorageComponent::from(id)
+        let name = if is_var {
+            VarName::from_str_non_const(
+                &VariableStorageComponent::from(id)
                     .name()
-                    .unwrap_or_default()
-                    .to_string(),
+                    .unwrap_or_default(),
             )
         } else {
-            None
-        };*/
-        /*let tags = raw::component_get_tags(id)
-        .unwrap_or_default()
-        .unwrap_or_default()
-        .split(',')
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>();*/
-        ComponentData { id, enabled }
+            VarName::None
+        };
+        let ent_tags = format!(
+            ",{},",
+            raw::component_get_tags(id)
+                .unwrap_or_default()
+                .unwrap_or_default(),
+        );
+        let mut tags = [false; COMP_TAG_LEN];
+        macro_rules! push_tag {
+            ($($e: expr),*) => {
+                $(
+                    tags[$e as usize] = ent_tags.contains(&format!(",{},",const {$e.to_str()}));
+                )*
+            };
+        }
+        push_tag!(
+            ComponentTag::DisabledAtStart,
+            ComponentTag::SunbabySprite,
+            ComponentTag::EwSyncedVar,
+            ComponentTag::Disabled,
+            ComponentTag::Activate,
+            ComponentTag::EnabledAtStart,
+            ComponentTag::ShopCost,
+            ComponentTag::Character,
+            ComponentTag::Water,
+            ComponentTag::Fire,
+            ComponentTag::FireDisable,
+            ComponentTag::Air,
+            ComponentTag::Earth,
+            ComponentTag::EarthDisable,
+            ComponentTag::Poop
+        );
+        ComponentData {
+            id,
+            enabled,
+            phys_init: false,
+            name,
+            tags,
+        }
     }
 }
 #[derive(Default)]
@@ -928,11 +1140,17 @@ impl Default for EntityManager {
 }
 impl EntityData {
     fn new(ent: EntityID) -> eyre::Result<Self> {
+        let ent_tags = format!(
+            ",{},",
+            raw::entity_get_tags(ent)
+                .unwrap_or_default()
+                .unwrap_or_default(),
+        );
         let mut tags = [false; TAG_LEN];
         macro_rules! push_tag {
             ($($e: expr),*) => {
                 $(
-                    tags[$e as usize] = ent.has_tag(const {$e.to_tag()});
+                    tags[$e as usize] = ent_tags.contains(&format!(",{},",const {$e.to_tag()}));
                 )*
             };
         }
@@ -945,7 +1163,9 @@ impl EntityData {
             CachedTag::BossCentipede,
             CachedTag::BossCentipedeActive,
             CachedTag::DesTag,
-            CachedTag::BossDragon
+            CachedTag::BossDragon,
+            CachedTag::PolymorphableNOT,
+            CachedTag::EggItem
         );
         let components =
             const { CachedComponent::iter() }.map(|c| c.to_component(ent).unwrap_or_default());
@@ -1004,88 +1224,198 @@ impl EntityManager {
         self.current_data.remove_tag(tag);
         Ok(())
     }
-    pub fn check_all_phys_init(&self) -> eyre::Result<bool> {
-        self.current_entity.check_all_phys_init() //TODO
+    pub fn check_all_phys_init(&mut self) -> eyre::Result<bool> {
+        for phys_c in self.iter_mut_all_components_of_type::<PhysicsBody2Component>()? {
+            if !phys_c.phys_init && !PhysicsBody2Component::from(phys_c.id).m_initialized()? {
+                return Ok(false);
+            } else {
+                phys_c.phys_init = true;
+            }
+        }
+        Ok(true)
     }
     pub fn try_get_first_component<C: Component>(
         &self,
-        tag: Option<Cow<'_, str>>,
+        tag: ComponentTag,
     ) -> eyre::Result<Option<C>> {
-        if tag.is_none() {
-            let coms = &self.current_data.components
-                [const { CachedComponent::from_component::<C>() } as usize];
-            Ok(coms.iter().find(|c| c.enabled).map(|com| C::from(com.id)))
-        } else {
-            self.current_entity.try_get_first_component::<C>(tag) //TODO
-        }
+        let coms = &self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }];
+        Ok(coms
+            .iter()
+            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags[tag as usize]))
+            .map(|com| C::from(com.id)))
     }
     pub fn try_get_first_component_including_disabled<C: Component>(
         &self,
-        tag: Option<Cow<'_, str>>,
+        tag: ComponentTag,
     ) -> eyre::Result<Option<C>> {
-        self.current_entity
-            .try_get_first_component_including_disabled::<C>(tag) //TODO
+        if let Some(coms) = self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter()
+        .find(|c| tag == ComponentTag::None || c.tags[tag as usize])
+        {
+            Ok(Some(C::from(coms.id)))
+        } else {
+            Ok(None)
+        }
     }
-    pub fn get_first_component<C: Component>(&self, tag: Option<Cow<'_, str>>) -> eyre::Result<C> {
-        self.current_entity.get_first_component::<C>(tag)
+    pub fn get_first_component<C: Component>(&self, tag: ComponentTag) -> eyre::Result<C> {
+        let coms = &self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }];
+        Ok(coms
+            .iter()
+            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags[tag as usize]))
+            .map(|com| C::from(com.id))
+            .unwrap())
     }
     pub fn get_first_component_including_disabled<C: Component>(
         &self,
-        tag: Option<Cow<'_, str>>,
+        tag: ComponentTag,
     ) -> eyre::Result<C> {
-        self.current_entity
-            .get_first_component_including_disabled::<C>(tag) //TODO
+        if let Some(coms) = self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter()
+        .find(|c| tag == ComponentTag::None || c.tags[tag as usize])
+        {
+            Ok(C::from(coms.id))
+        } else {
+            Err(eyre!("no comp found"))
+        }
     }
     pub fn remove_all_components_of_type<C: Component>(
         &mut self,
-        tags: Option<Cow<str>>,
+        tags: ComponentTag,
     ) -> eyre::Result<bool> {
-        self.current_entity.remove_all_components_of_type::<C>(tags) //TODO
+        let mut is_some = false;
+        for ComponentData { id, .. } in self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter()
+        .filter(|c| tags == ComponentTag::None || c.tags[tags as usize])
+        {
+            is_some = true;
+            raw::entity_remove_component(self.current_entity, *id)?;
+        }
+        Ok(is_some)
     }
     pub fn iter_all_components_of_type<C: Component>(
         &self,
-        tag: Option<Cow<'_, str>>,
+        tag: ComponentTag,
     ) -> eyre::Result<impl Iterator<Item = C>> {
-        self.current_entity.iter_all_components_of_type::<C>(tag) //TODO
+        Ok(
+            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+                .iter()
+                .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags[tag as usize]))
+                .map(|c| C::from(c.id)),
+        )
+    }
+    fn iter_mut_all_components_of_type<C: Component>(
+        &mut self,
+    ) -> eyre::Result<impl Iterator<Item = &mut ComponentData>> {
+        Ok(
+            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+                .iter_mut()
+                .filter(|c| c.enabled),
+        )
     }
     pub fn iter_all_components_of_type_including_disabled<C: Component>(
         &self,
-        tag: Option<Cow<'_, str>>,
+        tag: ComponentTag,
     ) -> eyre::Result<impl Iterator<Item = C>> {
-        self.current_entity
-            .iter_all_components_of_type_including_disabled::<C>(tag) //TODO
+        Ok(
+            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+                .iter()
+                .filter(move |c| tag == ComponentTag::None || c.tags[tag as usize])
+                .map(|c| C::from(c.id)),
+        )
     }
-    pub fn iter_all_components_of_type_including_disabled_raw<C: Component>(
+    fn iter_all_components_of_type_including_disabled_raw<C: Component>(
         &self,
-        tag: Option<Cow<'_, str>>,
-    ) -> eyre::Result<Vec<Option<ComponentID>>> {
-        self.current_entity
-            .iter_all_components_of_type_including_disabled_raw::<C>(tag) //TODO
+    ) -> impl Iterator<Item = &ComponentData> {
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .iter()
     }
     pub fn add_component<C: Component>(&mut self) -> eyre::Result<C> {
-        self.current_entity.add_component::<C>() //TODO
+        let c = self.current_entity.add_component::<C>()?;
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .push(ComponentData::new(
+                *c,
+                C::NAME_STR == "VariableStorageComponent",
+            ));
+        Ok(c)
     }
-    pub fn get_var(&self, name: &str) -> Option<VariableStorageComponent> {
-        self.current_entity.get_var(name) //TODO
+    pub fn get_var(&self, name: VarName) -> Option<VariableStorageComponent> {
+        let mut i =
+            self.iter_all_components_of_type_including_disabled_raw::<VariableStorageComponent>();
+        i.find_map(|var| {
+            if var.name == name {
+                Some(VariableStorageComponent::from(var.id))
+            } else {
+                None
+            }
+        })
     }
-    pub fn get_var_or_default(&mut self, name: &str) -> eyre::Result<VariableStorageComponent> {
-        self.current_entity.get_var_or_default(name) //TODO
+    pub fn get_var_or_default(&mut self, name: VarName) -> eyre::Result<VariableStorageComponent> {
+        if let Some(var) = self.get_var(name) {
+            Ok(var)
+        } else {
+            let var = self.add_component::<VariableStorageComponent>()?;
+            var.set_name(name.to_str().into())?;
+            Ok(var)
+        }
     }
     pub fn add_lua_init_component<C: Component>(&mut self, file: &str) -> eyre::Result<C> {
-        self.current_entity.add_lua_init_component::<C>(file) //TODO
+        let c = self.current_entity.add_lua_init_component::<C>(file)?;
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .push(ComponentData::new(
+                *c,
+                C::NAME_STR == "VariableStorageComponent",
+            ));
+        Ok(c)
     }
     pub fn set_components_with_tag_enabled(
         &mut self,
-        tag: Cow<'_, str>,
+        tag: ComponentTag,
         enabled: bool,
     ) -> eyre::Result<()> {
-        self.current_entity
-            .set_components_with_tag_enabled(tag, enabled) //TODO
+        if self
+            .current_data
+            .components
+            .iter()
+            .any(|c| c.iter().any(|c| c.tags[tag as usize]))
+        {
+            self.current_entity
+                .set_components_with_tag_enabled(tag.to_str().into(), enabled)?
+        }
+        Ok(())
     }
-    pub fn set_component_enabled(&mut self, com: ComponentID, enabled: bool) -> eyre::Result<()> {
-        self.current_entity.set_component_enabled(com, enabled) //TODO
+    pub fn set_component_enabled<C: Component>(
+        &mut self,
+        com: C,
+        enabled: bool,
+    ) -> eyre::Result<()> {
+        let id = *com;
+        if let Some(n) = self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter_mut()
+        .find(|c| c.id == id)
+        {
+            if n.enabled != enabled {
+                n.enabled = enabled;
+                self.current_entity.set_component_enabled(id, enabled)?;
+            }
+        }
+        Ok(())
     }
-    pub fn remove_component(&mut self, component_id: ComponentID) -> eyre::Result<()> {
-        self.current_entity.remove_component(component_id) //TODO
+    pub fn remove_component<C: Component>(&mut self, component: C) -> eyre::Result<()> {
+        let id = *component;
+        if let Some(n) = self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter()
+        .position(|c| c.id == id)
+        {
+            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+                .remove(n);
+        }
+        self.current_entity.remove_component(id)
     }
 }

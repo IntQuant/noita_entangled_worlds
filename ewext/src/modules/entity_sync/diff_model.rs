@@ -7,13 +7,13 @@ use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
     AudioComponent, BossDragonComponent, BossHealthBarComponent, CachedTag, CameraBoundComponent,
-    CharacterDataComponent, CharacterPlatformingComponent, DamageModelComponent, EntityID,
-    EntityManager, ExplodeOnDamageComponent, GhostComponent, IKLimbAttackerComponent,
+    CharacterDataComponent, CharacterPlatformingComponent, ComponentTag, DamageModelComponent,
+    EntityID, EntityManager, ExplodeOnDamageComponent, GhostComponent, IKLimbAttackerComponent,
     IKLimbComponent, IKLimbWalkerComponent, IKLimbsAnimatorComponent, Inventory2Component,
     ItemComponent, ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent,
     LifetimeComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
-    PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent, VariableStorageComponent,
-    VelocityComponent, WormComponent, game_print,
+    PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent, VarName,
+    VariableStorageComponent, VelocityComponent, WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{
@@ -299,30 +299,32 @@ impl LocalDiffModelTracker {
         }
 
         let (x, y, r, sx, sy) = entity.transform()?;
-        let should_send_position =
-            if let Some(com) = entity_manager.try_get_first_component::<ItemComponent>(None)? {
-                !com.play_hover_animation()?
-            } else {
-                true
-            };
+        let should_send_position = if let Some(com) =
+            entity_manager.try_get_first_component::<ItemComponent>(ComponentTag::None)?
+        {
+            !com.play_hover_animation()?
+        } else {
+            true
+        };
 
         if should_send_position {
             (info.x, info.y) = (x, y);
         }
 
-        let should_send_rotation =
-            if let Some(com) = entity_manager.try_get_first_component::<ItemComponent>(None)? {
-                !com.play_spinning_animation()? || com.play_hover_animation()?
-            } else {
-                true
-            };
+        let should_send_rotation = if let Some(com) =
+            entity_manager.try_get_first_component::<ItemComponent>(ComponentTag::None)?
+        {
+            !com.play_spinning_animation()? || com.play_hover_animation()?
+        } else {
+            true
+        };
 
         if should_send_rotation {
             info.r = r
         }
 
         if let Some(inv) = entity_manager
-            .try_get_first_component_including_disabled::<Inventory2Component>(None)?
+            .try_get_first_component_including_disabled::<Inventory2Component>(ComponentTag::None)?
         {
             if let Some(wand) = inv.m_actual_active_item()? {
                 if info.wand.is_none() {
@@ -366,19 +368,23 @@ impl LocalDiffModelTracker {
         }
         info.is_enabled = (entity_manager.has_tag(const { CachedTag::from_tag("boss_centipede") })
             && entity_manager
-                .try_get_first_component::<BossHealthBarComponent>(Some(
-                    "disabled_at_start".into(),
-                ))?
+                .try_get_first_component::<BossHealthBarComponent>(
+                    const { ComponentTag::from_str("disabled_at_start") },
+                )?
                 .is_some())
             || entity_manager
-                .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+                .try_get_first_component_including_disabled::<VariableStorageComponent>(
+                    ComponentTag::None,
+                )?
                 .iter()
                 .any(|var| {
                     var.name().unwrap_or("".into()) == "active" && var.value_int().unwrap_or(0) == 1
                 })
             || (entity_manager.has_tag(const { CachedTag::from_tag("pitcheck_b") })
                 && entity_manager
-                    .try_get_first_component::<LuaComponent>(Some("disabled".into()))?
+                    .try_get_first_component::<LuaComponent>(
+                        const { ComponentTag::from_str("disabled") },
+                    )?
                     .is_some());
 
         info.limbs = entity
@@ -392,22 +398,28 @@ impl LocalDiffModelTracker {
             })
             .collect();
 
-        if let Some(worm) = entity_manager.try_get_first_component::<BossDragonComponent>(None)? {
+        if let Some(worm) =
+            entity_manager.try_get_first_component::<BossDragonComponent>(ComponentTag::None)?
+        {
             (info.vx, info.vy) = worm.m_target_vec()?;
-        } else if let Some(worm) = entity_manager.try_get_first_component::<WormComponent>(None)? {
+        } else if let Some(worm) =
+            entity_manager.try_get_first_component::<WormComponent>(ComponentTag::None)?
+        {
             (info.vx, info.vy) = worm.m_target_vec()?;
         } else if let Some(vel) =
-            entity_manager.try_get_first_component::<CharacterDataComponent>(None)?
+            entity_manager.try_get_first_component::<CharacterDataComponent>(ComponentTag::None)?
         {
             (info.vx, info.vy) = vel.m_velocity()?;
         } else if let Some(vel) =
-            entity_manager.try_get_first_component::<VelocityComponent>(None)?
+            entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)?
         {
             (info.vx, info.vy) = vel.m_velocity()?;
         }
 
         if entity_manager.has_tag(const { CachedTag::from_tag("card_action") }) {
-            if let Some(vel) = entity_manager.try_get_first_component::<VelocityComponent>(None)? {
+            if let Some(vel) =
+                entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+            {
                 let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
                 if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) > 512.0 * 512.0 {
                     vel.set_gravity_y(0.0)?;
@@ -420,7 +432,7 @@ impl LocalDiffModelTracker {
         }
 
         if let Some(damage) =
-            entity_manager.try_get_first_component::<DamageModelComponent>(None)?
+            entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)?
         {
             let hp = damage.hp()?;
             info.hp = hp as f32;
@@ -431,7 +443,7 @@ impl LocalDiffModelTracker {
         }
 
         if let Some(item_cost) =
-            entity_manager.try_get_first_component::<ItemCostComponent>(None)?
+            entity_manager.try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
         {
             info.cost = item_cost.cost()?;
         } else if entity_manager.has_tag(const { CachedTag::from_tag("boss_wizard") }) {
@@ -459,9 +471,11 @@ impl LocalDiffModelTracker {
             info.cost = 0;
         }
         if entity_manager.has_tag(const { CachedTag::from_tag("seed_d") }) {
-            let essences = entity_manager.get_var_or_default("sunbaby_essences_list")?;
-            let sprite = entity_manager
-                .get_first_component::<SpriteComponent>(Some("sunbaby_sprite".into()))?;
+            let essences = entity_manager
+                .get_var_or_default(const { VarName::from_str("sunbaby_essences_list") })?;
+            let sprite = entity_manager.get_first_component::<SpriteComponent>(
+                const { ComponentTag::from_str("sunbaby_sprite") },
+            )?;
             let sprite = sprite.image_file()?;
             let num: u8 = match sprite.to_string().as_str() {
                 "data/props_gfx/sun_small_purple.png" => 0,
@@ -492,45 +506,53 @@ impl LocalDiffModelTracker {
             .map(|(e, _)| e)
             .collect::<Vec<GameEffectData>>();
 
-        info.current_stains = if let Some(var) = entity_manager.get_var("rolling") {
-            if var.value_int()? == 0 {
-                let rng = rand::random::<i32>();
-                let var = entity_manager.get_var_or_default("ew_rng")?;
-                var.set_value_int(rng)?;
-                let bytes = rng.to_le_bytes();
-                u64::from_le_bytes([0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]])
-            } else {
-                let bytes = info.current_stains.to_le_bytes();
-                if bytes[0] == 0 {
-                    u64::from_le_bytes([1, 0, 0, 0, bytes[4], bytes[5], bytes[6], bytes[7]])
+        info.current_stains =
+            if let Some(var) = entity_manager.get_var(const { VarName::from_str("rolling") }) {
+                if var.value_int()? == 0 {
+                    let rng = rand::random::<i32>();
+                    let var =
+                        entity_manager.get_var_or_default(const { VarName::from_str("ew_rng") })?;
+                    var.set_value_int(rng)?;
+                    let bytes = rng.to_le_bytes();
+                    u64::from_le_bytes([0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]])
                 } else {
-                    info.current_stains
+                    let bytes = info.current_stains.to_le_bytes();
+                    if bytes[0] == 0 {
+                        u64::from_le_bytes([1, 0, 0, 0, bytes[4], bytes[5], bytes[6], bytes[7]])
+                    } else {
+                        info.current_stains
+                    }
                 }
-            }
-        } else {
-            entity.get_current_stains()?
-        };
+            } else {
+                entity.get_current_stains()?
+            };
 
         let mut any = false;
         for ai in entity_manager
-            .iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)?
+            .iter_all_components_of_type_including_disabled::<AIAttackComponent>(
+                ComponentTag::None,
+            )?
         {
             any = any || ai.attack_ranged_aim_rotation_enabled()?;
         }
         for ai in entity_manager
-            .iter_all_components_of_type_including_disabled::<AnimalAIComponent>(None)?
+            .iter_all_components_of_type_including_disabled::<AnimalAIComponent>(
+                ComponentTag::None,
+            )?
         {
             any = any || ai.attack_ranged_aim_rotation_enabled()?;
         }
         if any {
             if let Some(ai) = entity_manager
-                .try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
+                .try_get_first_component_including_disabled::<AnimalAIComponent>(
+                    ComponentTag::None,
+                )?
             {
                 info.ai_state = ai.ai_state()?;
                 info.ai_rotation = ai.m_ranged_attack_current_aim_angle()?;
             }
         } else if let Ok(sprites) =
-            entity_manager.iter_all_components_of_type::<SpriteComponent>(None)
+            entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)
         {
             info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
             info.animations = sprites
@@ -551,7 +573,9 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .collect();
-            if let Some(ai) = entity_manager.try_get_first_component::<AnimalAIComponent>(None)? {
+            if let Some(ai) =
+                entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)?
+            {
                 if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
                     info.laser = if let Some(target) = ai.m_greatest_prey()? {
                         if ![15, 16].contains(&ai.ai_state()?) {
@@ -577,9 +601,9 @@ impl LocalDiffModelTracker {
         }
 
         info.synced_var = entity_manager
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(Some(
-                "ew_synced_var".into(),
-            ))?
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                const { ComponentTag::from_str("ew_synced_var") },
+            )?
             .filter_map(|a| {
                 Some((
                     a.name().ok()?.to_string(),
@@ -619,36 +643,36 @@ impl LocalDiffModelTracker {
                 }
             }
         }
-        if let Some(var) = entity_manager.get_var("ew_was_stealable") {
+        if let Some(var) = entity_manager.get_var(const { VarName::from_str("ew_was_stealable") }) {
             let n = var.value_int()?;
             if n == 1 {
-                if let Some(cost) =
-                    entity_manager.try_get_first_component::<ItemCostComponent>(None)?
+                if let Some(cost) = entity_manager
+                    .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
                 {
                     let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
                     if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 256.0 * 256.0 {
                         cost.set_stealable(true)?;
-                        entity_manager.remove_component(*var)?;
+                        entity_manager.remove_component(var)?;
                     }
                 }
-                if let Some(vel) =
-                    entity_manager.try_get_first_component::<VelocityComponent>(None)?
+                if let Some(vel) = entity_manager
+                    .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
                 {
                     vel.set_gravity_y(400.0)?;
                     vel.set_air_friction(0.55)?;
                 }
             } else if n == 0 {
                 var.set_value_int(48)?;
-                if let Some(vel) =
-                    entity_manager.try_get_first_component::<VelocityComponent>(None)?
+                if let Some(vel) = entity_manager
+                    .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
                 {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
                 }
             } else {
                 var.set_value_int(n - 1)?;
-                if let Some(vel) =
-                    entity_manager.try_get_first_component::<VelocityComponent>(None)?
+                if let Some(vel) = entity_manager
+                    .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
                 {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
@@ -808,23 +832,21 @@ impl LocalDiffModel {
         self.wait_to_transfer = 16;
         let lid = self.alloc_lid();
         let should_not_serialize = entity_manager
-            .remove_all_components_of_type::<CameraBoundComponent>(None)?
+            .remove_all_components_of_type::<CameraBoundComponent>(ComponentTag::None)?
             || (entity.is_alive() && entity_manager.check_all_phys_init()? && noita_api::raw::physics_body_id_get_from_entity(entity, None)
                 .unwrap_or_default()
                 .len()
                 == entity_manager
-                    .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(None)
-                    .iter()
-                    .len()
+                    .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(ComponentTag::None)?
+                    .count()
                     + entity_manager
                         .iter_all_components_of_type_including_disabled::<PhysicsBody2Component>(
-                            None,
-                        )
-                        .iter()
-                        .len());
+                            ComponentTag::None,
+                        )?
+                        .count());
         entity_manager.add_tag(const { CachedTag::from_tag(DES_TAG) })?;
-        if let Some(ghost) =
-            entity_manager.try_get_first_component_including_disabled::<GhostComponent>(None)?
+        if let Some(ghost) = entity_manager
+            .try_get_first_component_including_disabled::<GhostComponent>(ComponentTag::None)?
         {
             ghost.set_target_tag("".into())?;
         }
@@ -834,10 +856,13 @@ impl LocalDiffModel {
         let (x, y) = entity.position()?;
 
         if entity_manager.has_tag(const { CachedTag::from_tag("card_action") }) {
-            if let Some(cost) = entity_manager.try_get_first_component::<ItemCostComponent>(None)? {
+            if let Some(cost) =
+                entity_manager.try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+            {
                 if cost.stealable()? {
                     cost.set_stealable(false)?;
-                    entity_manager.get_var_or_default("ew_was_stealable")?;
+                    entity_manager
+                        .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
                 }
             }
         }
@@ -857,17 +882,13 @@ impl LocalDiffModel {
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
         })?;
-        let mut to_remove = None;
-        for var in entity_manager
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-        {
-            if var.name().unwrap_or("".into()) == "ew_gid_lid" {
-                to_remove = Some(*var);
-                break;
-            }
-        }
-        if let Some(v) = to_remove {
-            entity_manager.remove_component(v)?;
+        let n = entity_manager
+            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                ComponentTag::None,
+            )?
+            .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid");
+        if let Some(lua) = n {
+            entity_manager.remove_component(lua)?;
         }
         let var = entity_manager.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
@@ -876,27 +897,31 @@ impl LocalDiffModel {
         var.set_value_bool(true)?;
 
         if entity_manager.has_tag(const { CachedTag::from_tag("card_action") }) {
-            if let Some(vel) = entity_manager.try_get_first_component::<VelocityComponent>(None)? {
+            if let Some(vel) =
+                entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+            {
                 vel.set_gravity_y(0.0)?;
                 vel.set_air_friction(10.0)?;
             }
         }
 
         if entity_manager
-            .try_get_first_component::<BossDragonComponent>(None)?
+            .try_get_first_component::<BossDragonComponent>(ComponentTag::None)?
             .is_some()
             && entity_manager
-                .try_get_first_component::<StreamingKeepAliveComponent>(None)?
+                .try_get_first_component::<StreamingKeepAliveComponent>(ComponentTag::None)?
                 .is_none()
         {
             entity_manager.add_component::<StreamingKeepAliveComponent>()?;
         }
 
         let is_global = entity_manager
-            .try_get_first_component_including_disabled::<BossHealthBarComponent>(None)?
+            .try_get_first_component_including_disabled::<BossHealthBarComponent>(
+                ComponentTag::None,
+            )?
             .is_some()
             || entity_manager
-                .try_get_first_component::<StreamingKeepAliveComponent>(None)?
+                .try_get_first_component::<StreamingKeepAliveComponent>(ComponentTag::None)?
                 .is_some();
 
         if is_global {
@@ -904,22 +929,22 @@ impl LocalDiffModel {
         }
 
         let drops_gold = (entity_manager
-            .iter_all_components_of_type::<LuaComponent>(None)?
+            .iter_all_components_of_type::<LuaComponent>(ComponentTag::None)?
             .any(|lua| {
                 lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into())
             })
             && entity_manager
-                .iter_all_components_of_type::<VariableStorageComponent>(None)?
+                .iter_all_components_of_type::<VariableStorageComponent>(ComponentTag::None)?
                 .all(|var| !var.has_tag("no_gold_drop")))
             || (entity_manager.has_tag(const { CachedTag::from_tag("boss_dragon") })
                 && entity_manager
-                    .iter_all_components_of_type::<LuaComponent>(None)?
+                    .iter_all_components_of_type::<LuaComponent>(ComponentTag::None)?
                     .any(|lua| {
                         lua.script_death().ok()
                             == Some("data/scripts/animals/boss_dragon_death.lua".into())
                     }))
             || entity_manager
-                .get_var("throw_time")
+                .get_var(const { VarName::from_str("throw_time") })
                 .map(|v| v.value_int().ok() != Some(-1))
                 .unwrap_or(false);
 
@@ -1023,27 +1048,35 @@ impl LocalDiffModel {
                 &entity_data.data,
                 entity_data.pos.x as f32,
                 entity_data.pos.y as f32,
+                entity_manager,
             )?;
-            entity_manager.set_current_entity(entity)?;
             entity.set_position(entity_data.pos.x as f32, entity_data.pos.y as f32, None)?;
             if entity_data.is_charmed {
                 if entity_manager.has_tag(const { CachedTag::from_tag("boss_centipede") }) {
                     self.enable_later.push(entity);
                 } else if entity.has_tag("pitcheck_b") {
-                    entity_manager.set_components_with_tag_enabled("disabled".into(), true)?;
+                    entity_manager.set_components_with_tag_enabled(
+                        const { ComponentTag::from_str("disabled") },
+                        true,
+                    )?;
                 } else if let Some(var) = entity_manager
-                    .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+                    .try_get_first_component_including_disabled::<VariableStorageComponent>(
+                        ComponentTag::None,
+                    )?
                     .iter()
                     .find(|var| var.name().unwrap_or("".into()) == "active")
                 {
                     var.set_value_int(1)?;
-                    entity_manager.set_components_with_tag_enabled("activate".into(), true)?
+                    entity_manager.set_components_with_tag_enabled(
+                        const { ComponentTag::from_str("activate") },
+                        true,
+                    )?
                 } else {
                     entity.set_game_effects(&[GameEffectData::Normal(GameEffectEnum::Charm)])?
                 }
             }
             for (name, s, i, f, b) in &entity_data.synced_var {
-                let v = entity_manager.get_var_or_default(name)?;
+                let v = entity.get_var_or_default(name)?;
                 v.set_value_string(s.into())?;
                 v.set_value_int(*i)?;
                 v.set_value_float(*f)?;
@@ -1056,8 +1089,8 @@ impl LocalDiffModel {
             mom(entity_manager, entity_data.counter, None)?;
             sun(entity_manager, entity_data.counter)?;
             if entity_data.hp != -1.0 {
-                if let Some(damage) =
-                    entity_manager.try_get_first_component::<DamageModelComponent>(None)?
+                if let Some(damage) = entity_manager
+                    .try_get_first_component::<DamageModelComponent>(ComponentTag::None)?
                 {
                     if entity_data.hp > damage.max_hp_cap()? as f32 {
                         damage.set_max_hp_cap(entity_data.hp as f64)?;
@@ -1069,13 +1102,12 @@ impl LocalDiffModel {
                 }
             }
             if !entity_data.drops_gold {
-                let mut to_remove = Vec::new();
-                for lua in entity_manager.iter_all_components_of_type::<LuaComponent>(None)? {
-                    if lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()) {
-                        to_remove.push(*lua)
-                    }
-                }
-                for lua in to_remove {
+                let n = entity_manager
+                    .iter_all_components_of_type::<LuaComponent>(ComponentTag::None)?
+                    .find(|lua| {
+                        lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into())
+                    });
+                if let Some(lua) = n {
                     entity_manager.remove_component(lua)?
                 }
             } else if entity_manager.has_tag(const { CachedTag::from_tag("boss_dragon") }) {
@@ -1084,7 +1116,7 @@ impl LocalDiffModel {
                 lua.set_execute_every_n_frame(-1)?;
             }
             if let Some(wand) = entity_data.wand {
-                give_wand(entity, &wand, None, false, None)?;
+                give_wand(entity, &wand, None, false, None, entity_manager)?;
             }
             let lid = self.track_entity(entity, entity_data.gid, entity_manager)?;
             self.dont_upload.insert(lid);
@@ -1499,12 +1531,17 @@ impl RemoteDiffModel {
     pub(crate) fn wait_for_gid(&mut self, entity: EntityID, gid: Gid) {
         self.waiting_for_lid.insert(gid, entity);
     }
-    pub(crate) fn apply_init(&mut self, diff: Vec<EntityInit>) -> Vec<EntityID> {
+    pub(crate) fn apply_init(
+        &mut self,
+        diff: Vec<EntityInit>,
+        entity_manager: &mut EntityManager,
+    ) -> Vec<EntityID> {
         let mut dont_kill = Vec::with_capacity(self.waiting_for_lid.len());
         for info in diff {
             if let Some(ent) = self.waiting_for_lid.remove(&info.gid) {
                 self.tracked.insert(info.lid, ent);
-                let _ = init_remote_entity(ent, Some(info.lid), Some(info.gid), false);
+                let _ =
+                    init_remote_entity(ent, Some(info.lid), Some(info.gid), false, entity_manager);
                 dont_kill.push(ent);
             }
             self.lid_to_gid.insert(info.lid, info.gid);
@@ -1575,7 +1612,6 @@ impl RemoteDiffModel {
         lid: &Lid,
         entity_manager: &mut EntityManager,
     ) -> eyre::Result<Option<Lid>> {
-        entity_manager.set_current_entity(entity)?;
         if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)?
             || item_in_entity_inventory(entity)?
         {
@@ -1595,7 +1631,7 @@ impl RemoteDiffModel {
             return Ok(Some(*lid));
         }
         for (name, s, i, f, b) in &entity_info.synced_var {
-            let v = entity_manager.get_var_or_default(name)?;
+            let v = entity.get_var_or_default(name)?;
             v.set_value_string(s.into())?;
             v.set_value_int(*i)?;
             v.set_value_float(*f)?;
@@ -1609,7 +1645,14 @@ impl RemoteDiffModel {
         sun(entity_manager, entity_info.counter)?;
 
         if let Some((gid, seri, _)) = &entity_info.wand {
-            give_wand(entity, seri, *gid, true, Some(entity_info.wand_rotation))?;
+            give_wand(
+                entity,
+                seri,
+                *gid,
+                true,
+                Some(entity_info.wand_rotation),
+                entity_manager,
+            )?;
         } else if let Some(inv) = entity
             .children(None)
             .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
@@ -1618,15 +1661,25 @@ impl RemoteDiffModel {
         }
         if entity_info.is_enabled {
             if entity_manager
-                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
+                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                    ComponentTag::None,
+                )?
                 .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
             {
-                entity_manager.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
-                entity_manager.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                entity_manager.set_components_with_tag_enabled(
+                    const { ComponentTag::from_str("disabled_at_start") },
+                    true,
+                )?;
+                entity_manager.set_components_with_tag_enabled(
+                    const { ComponentTag::from_str("enabled_at_start") },
+                    false,
+                )?;
                 entity_manager.add_tag(const { CachedTag::from_tag("boss_centipede_active") })?;
                 let mut to_remove = Vec::new();
                 for lua in entity_manager
-                    .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
+                    .iter_all_components_of_type_including_disabled::<LuaComponent>(
+                        ComponentTag::None,
+                    )?
                 {
                     if [
                         "data/entities/animals/boss_centipede/boss_centipede_before_fight.lua",
@@ -1634,7 +1687,7 @@ impl RemoteDiffModel {
                     ]
                     .contains(&&*lua.script_source_file()?)
                     {
-                        to_remove.push(*lua);
+                        to_remove.push(lua);
                     }
                 }
                 for lua in to_remove {
@@ -1652,20 +1705,30 @@ impl RemoteDiffModel {
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
             } else if let Some(var) = entity_manager
-                .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+                .try_get_first_component_including_disabled::<VariableStorageComponent>(
+                    ComponentTag::None,
+                )?
                 .iter()
                 .find(|var| var.name().unwrap_or("".into()) == "active")
             {
                 var.set_value_int(1)?;
-                entity_manager.set_components_with_tag_enabled("activate".into(), true)?
+                entity_manager.set_components_with_tag_enabled(
+                    const { ComponentTag::from_str("activate") },
+                    true,
+                )?
             }
         } else if let Some(var) = entity_manager
-            .try_get_first_component_including_disabled::<VariableStorageComponent>(None)?
+            .try_get_first_component_including_disabled::<VariableStorageComponent>(
+                ComponentTag::None,
+            )?
             .iter()
             .find(|var| var.name().unwrap_or("".into()) == "active")
         {
             var.set_value_int(0)?;
-            entity_manager.set_components_with_tag_enabled("activate".into(), false)?
+            entity_manager.set_components_with_tag_enabled(
+                const { ComponentTag::from_str("activate") },
+                false,
+            )?
         }
         for (ent, (x, y)) in entity
             .children(None)
@@ -1676,13 +1739,13 @@ impl RemoteDiffModel {
                 limb.set_end_position((*x, *y))?;
             }
             if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
-                entity_manager.remove_component(*limb)?
+                entity_manager.remove_component(limb)?
             };
             if let Ok(limb) = ent.get_first_component::<IKLimbAttackerComponent>(None) {
-                entity_manager.remove_component(*limb)?
+                entity_manager.remove_component(limb)?
             };
             if let Ok(limb) = ent.get_first_component::<IKLimbsAnimatorComponent>(None) {
-                entity_manager.remove_component(*limb)?
+                entity_manager.remove_component(limb)?
             };
         }
         let m = *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32
@@ -1691,19 +1754,21 @@ impl RemoteDiffModel {
         if entity_info.phys.is_empty()
             || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
         {
-            let should_send_position =
-                if let Some(com) = entity_manager.try_get_first_component::<ItemComponent>(None)? {
-                    !com.play_hover_animation()?
-                } else {
-                    true
-                };
+            let should_send_position = if let Some(com) =
+                entity_manager.try_get_first_component::<ItemComponent>(ComponentTag::None)?
+            {
+                !com.play_hover_animation()?
+            } else {
+                true
+            };
 
-            let should_send_rotation =
-                if let Some(com) = entity_manager.try_get_first_component::<ItemComponent>(None)? {
-                    !com.play_spinning_animation()? || com.play_hover_animation()?
-                } else {
-                    true
-                };
+            let should_send_rotation = if let Some(com) =
+                entity_manager.try_get_first_component::<ItemComponent>(ComponentTag::None)?
+            {
+                !com.play_spinning_animation()? || com.play_hover_animation()?
+            } else {
+                true
+            };
             if should_send_rotation && should_send_position {
                 entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
             } else if should_send_position {
@@ -1713,25 +1778,25 @@ impl RemoteDiffModel {
                 entity.set_position(x, y, Some(entity_info.r))?;
             }
             if let Some(worm) =
-                entity_manager.try_get_first_component::<BossDragonComponent>(None)?
+                entity_manager.try_get_first_component::<BossDragonComponent>(ComponentTag::None)?
             {
                 worm.set_m_target_vec((vx, vy))?;
             } else if let Some(worm) =
-                entity_manager.try_get_first_component::<WormComponent>(None)?
+                entity_manager.try_get_first_component::<WormComponent>(ComponentTag::None)?
             {
                 worm.set_m_target_vec((vx, vy))?;
-            } else if let Some(vel) =
-                entity_manager.try_get_first_component::<CharacterDataComponent>(None)?
+            } else if let Some(vel) = entity_manager
+                .try_get_first_component::<CharacterDataComponent>(ComponentTag::None)?
             {
                 vel.set_m_velocity((vx, vy))?;
             } else if let Some(vel) =
-                entity_manager.try_get_first_component::<VelocityComponent>(None)?
+                entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)?
             {
                 vel.set_m_velocity((vx, vy))?;
             }
         }
         if let Some(damage) =
-            entity_manager.try_get_first_component::<DamageModelComponent>(None)?
+            entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)?
         {
             if entity_info.hp > damage.max_hp()? as f32 {
                 damage.set_max_hp(entity_info.hp as f64)?
@@ -1807,28 +1872,36 @@ impl RemoteDiffModel {
             }
         }
 
-        if let Some(cost) = entity_manager.try_get_first_component::<ItemCostComponent>(None)? {
+        if let Some(cost) =
+            entity_manager.try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+        {
             cost.set_cost(entity_info.cost)?;
             if entity_info.cost == 0 {
-                entity_manager.set_components_with_tag_enabled("shop_cost".into(), false)?;
+                entity_manager.set_components_with_tag_enabled(
+                    const { ComponentTag::from_str("shop_cost") },
+                    false,
+                )?;
             }
         }
 
         entity.set_game_effects(&entity_info.game_effects)?;
 
-        if entity_manager.get_var("rolling").is_some() {
-            let var = entity_manager.get_var_or_default("ew_rng")?;
+        if entity_manager
+            .get_var(const { VarName::from_str("rolling") })
+            .is_some()
+        {
+            let var = entity_manager.get_var_or_default(const { VarName::from_str("ew_rng") })?;
             let bytes = entity_info.current_stains.to_le_bytes();
             let is_rolling = bytes[0];
             let bytes: [u8; 4] = [bytes[4], bytes[5], bytes[6], bytes[7]];
             let rng = i32::from_le_bytes(bytes);
             var.set_value_int(rng)?;
-            let var = entity_manager.get_var_or_default("rolling")?;
+            let var = entity_manager.get_var_or_default(const { VarName::from_str("rolling") })?;
             if is_rolling == 1 {
                 if var.value_int()? == 0 {
                     var.set_value_int(4)?;
                     entity_manager
-                        .iter_all_components_of_type::<SpriteComponent>(None)?
+                        .iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)?
                         .for_each(|s| {
                             let _ = s.set_rect_animation("roll".into());
                         })
@@ -1851,13 +1924,13 @@ impl RemoteDiffModel {
         } else {
             entity.set_current_stains(entity_info.current_stains)?;
         }
-        if let Some(ai) =
-            entity_manager.try_get_first_component_including_disabled::<AnimalAIComponent>(None)?
+        if let Some(ai) = entity_manager
+            .try_get_first_component_including_disabled::<AnimalAIComponent>(ComponentTag::None)?
         {
             ai.set_ai_state(entity_info.ai_state)?;
             ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
         } else if let Ok(sprites) =
-            entity_manager.iter_all_components_of_type::<SpriteComponent>(None)
+            entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)
         {
             for (sprite, animation) in sprites
                 .filter(|sprite| {
@@ -1892,7 +1965,8 @@ impl RemoteDiffModel {
                 }
             }
         }
-        let laser = entity_manager.try_get_first_component::<LaserEmitterComponent>(None)?;
+        let laser =
+            entity_manager.try_get_first_component::<LaserEmitterComponent>(ComponentTag::None)?;
         if entity_info.laser != Target::None {
             let laser = if let Some(laser) = laser {
                 laser
@@ -1949,22 +2023,27 @@ impl RemoteDiffModel {
         for (i, (lid, entity_info)) in self.entity_infos.iter().enumerate() {
             match self.tracked.get_by_left(lid) {
                 Some(entity) if entity.is_alive() => {
+                    entity_manager.set_current_entity(*entity)?;
                     if time + tmr.elapsed().as_micros() > 5000 || start > i {
                         if end.is_none() && start <= i {
                             end = Some(i);
                         }
                         if entity_info.phys.is_empty()
-                            || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
+                            || (entity_info.is_enabled
+                                && entity_manager
+                                    .has_tag(const { CachedTag::from_tag("boss_centipede") }))
                         {
                             let should_send_position = if let Some(com) =
-                                entity.try_get_first_component::<ItemComponent>(None)?
+                                entity_manager
+                                    .try_get_first_component::<ItemComponent>(ComponentTag::None)?
                             {
                                 !com.play_hover_animation()?
                             } else {
                                 true
                             };
                             let should_send_rotation = if let Some(com) =
-                                entity.try_get_first_component::<ItemComponent>(None)?
+                                entity_manager
+                                    .try_get_first_component::<ItemComponent>(ComponentTag::None)?
                             {
                                 !com.play_spinning_animation()? || com.play_hover_animation()?
                             } else {
@@ -2007,12 +2086,14 @@ impl RemoteDiffModel {
                                 &entity_info.spawn_info,
                                 entity_info.x,
                                 entity_info.y,
+                                entity_manager,
                             )?;
                             init_remote_entity(
                                 entity,
                                 Some(*lid),
                                 self.lid_to_gid.get(lid).copied(),
                                 entity_info.drops_gold,
+                                entity_manager,
                             )?;
                             self.tracked.insert(*lid, entity);
                         }
@@ -2027,7 +2108,11 @@ impl RemoteDiffModel {
         Ok((end.unwrap_or(0), time + tmr.elapsed().as_micros()))
     }
 
-    pub(crate) fn kill_entities(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
+    pub(crate) fn kill_entities(
+        &mut self,
+        ctx: &mut ModuleCtx,
+        entity_manager: &mut EntityManager,
+    ) -> eyre::Result<()> {
         for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
             let responsible_entity = responsible
                 .and_then(|peer| ctx.player_map.get_by_left(&peer))
@@ -2036,8 +2121,9 @@ impl RemoteDiffModel {
             let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
                 continue;
             };
-            if let Some(explosion) =
-                entity.try_get_first_component::<ExplodeOnDamageComponent>(None)?
+            entity_manager.set_current_entity(entity)?;
+            if let Some(explosion) = entity_manager
+                .try_get_first_component::<ExplodeOnDamageComponent>(ComponentTag::None)?
             {
                 explosion.set_explode_on_death_percent(1.0)?;
             }
@@ -2047,7 +2133,9 @@ impl RemoteDiffModel {
             {
                 inv.children(None).for_each(|e| e.kill())
             }
-            if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+            if let Some(damage) = entity_manager
+                .try_get_first_component::<DamageModelComponent>(ComponentTag::None)?
+            {
                 entity
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
@@ -2148,24 +2236,33 @@ pub fn init_remote_entity(
     lid: Option<Lid>,
     gid: Option<Gid>,
     drops_gold: bool,
+    entity_manager: &mut EntityManager,
 ) -> eyre::Result<()> {
     if entity.has_tag("player_unit") {
-        entity.kill()
+        entity.kill();
+        return Ok(());
     }
-    entity.remove_all_components_of_type::<CameraBoundComponent>(None)?;
-    entity.remove_all_components_of_type::<StreamingKeepAliveComponent>(None)?;
-    entity.remove_all_components_of_type::<CharacterPlatformingComponent>(None)?;
-    entity.remove_all_components_of_type::<PhysicsAIComponent>(None)?;
-    entity.remove_all_components_of_type::<AdvancedFishAIComponent>(None)?;
-    entity.remove_all_components_of_type::<IKLimbsAnimatorComponent>(None)?;
-    entity.remove_all_components_of_type::<LifetimeComponent>(None)?;
+    entity_manager.set_current_entity(entity)?;
+    entity_manager.remove_all_components_of_type::<CameraBoundComponent>(ComponentTag::None)?;
+    entity_manager
+        .remove_all_components_of_type::<StreamingKeepAliveComponent>(ComponentTag::None)?;
+    entity_manager
+        .remove_all_components_of_type::<CharacterPlatformingComponent>(ComponentTag::None)?;
+    entity_manager.remove_all_components_of_type::<PhysicsAIComponent>(ComponentTag::None)?;
+    entity_manager.remove_all_components_of_type::<AdvancedFishAIComponent>(ComponentTag::None)?;
+    entity_manager.remove_all_components_of_type::<IKLimbsAnimatorComponent>(ComponentTag::None)?;
+    entity_manager.remove_all_components_of_type::<LifetimeComponent>(ComponentTag::None)?;
     let mut any = false;
-    for ai in entity.iter_all_components_of_type_including_disabled::<AIAttackComponent>(None)? {
+    for ai in entity_manager
+        .iter_all_components_of_type_including_disabled::<AIAttackComponent>(ComponentTag::None)?
+    {
         any = any || ai.attack_ranged_aim_rotation_enabled()?;
         ai.set_attack_ranged_entity_count_max(0)?;
         ai.set_attack_ranged_entity_count_min(0)?;
     }
-    for ai in entity.iter_all_components_of_type_including_disabled::<AnimalAIComponent>(None)? {
+    for ai in entity_manager
+        .iter_all_components_of_type_including_disabled::<AnimalAIComponent>(ComponentTag::None)?
+    {
         any = any || ai.attack_ranged_aim_rotation_enabled()?;
         ai.set_attack_ranged_entity_count_max(0)?;
         ai.set_attack_ranged_entity_count_min(0)?;
@@ -2177,48 +2274,59 @@ pub fn init_remote_entity(
         ai.set_keep_state_alive_when_enabled(true)?;
     }
     if !any {
-        entity.remove_all_components_of_type::<AnimalAIComponent>(None)?;
-        entity.remove_all_components_of_type::<AIAttackComponent>(None)?;
-        for sprite in
-            entity.iter_all_components_of_type::<SpriteComponent>(Some("character".into()))?
-        {
+        entity_manager.remove_all_components_of_type::<AnimalAIComponent>(ComponentTag::None)?;
+        entity_manager.remove_all_components_of_type::<AIAttackComponent>(ComponentTag::None)?;
+        for sprite in entity_manager.iter_all_components_of_type::<SpriteComponent>(
+            const { ComponentTag::from_str("character") },
+        )? {
             sprite.remove_tag("character")?;
             sprite.set_has_special_scale(true)?;
         }
     }
-    entity
-        .try_get_first_component_including_disabled::<WormComponent>(None)?
+    entity_manager
+        .try_get_first_component_including_disabled::<WormComponent>(ComponentTag::None)?
         .iter()
         .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
-    entity
-        .try_get_first_component_including_disabled::<BossDragonComponent>(None)?
+    entity_manager
+        .try_get_first_component_including_disabled::<BossDragonComponent>(ComponentTag::None)?
         .iter()
         .for_each(|w| w.set_bite_damage(0.0).unwrap_or(()));
 
-    entity.add_tag(DES_TAG)?;
-    entity.add_tag("polymorphable_NOT")?;
+    entity_manager.add_tag(const { CachedTag::from_tag(DES_TAG) })?;
+    entity_manager.add_tag(const { CachedTag::from_tag("polymorphable_NOT") })?;
     if lid.is_some() {
-        if let Some(damage) = entity.try_get_first_component::<DamageModelComponent>(None)? {
+        if let Some(damage) =
+            entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)?
+        {
             damage.set_wait_for_kill_flag_on_death(true)?;
             damage.set_physics_objects_damage(false)?;
         }
     }
 
-    for pb2 in entity.iter_all_components_of_type::<PhysicsBody2Component>(None)? {
+    for pb2 in
+        entity_manager.iter_all_components_of_type::<PhysicsBody2Component>(ComponentTag::None)?
+    {
         pb2.set_destroy_body_if_entity_destroyed(true)?;
     }
 
-    for expl in entity.iter_all_components_of_type::<ExplodeOnDamageComponent>(None)? {
+    for expl in entity_manager
+        .iter_all_components_of_type::<ExplodeOnDamageComponent>(ComponentTag::None)?
+    {
         expl.set_explode_on_damage_percent(0.0)?;
         expl.set_explode_on_death_percent(0.0)?;
         expl.set_physics_body_modified_death_probability(0.0)?;
     }
 
-    if let Some(itemc) = entity.try_get_first_component::<ItemCostComponent>(None)? {
+    if let Some(itemc) =
+        entity_manager.try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+    {
         itemc.set_stealable(false)?;
     }
 
-    for lua in entity.iter_all_components_of_type_including_disabled::<LuaComponent>(None)? {
+    let mut to_remove = Vec::new();
+    for lua in entity_manager
+        .iter_all_components_of_type_including_disabled::<LuaComponent>(ComponentTag::None)?
+    {
         if (!drops_gold
             && lua.script_death().ok() == Some("data/scripts/items/drop_money.lua".into()))
             || [
@@ -2262,45 +2370,50 @@ pub fn init_remote_entity(
             || ["data/scripts/animals/failed_alchemist_b_death.lua"]
                 .contains(&&*lua.script_death()?)
         {
-            entity.remove_component(*lua)?;
+            to_remove.push(lua);
         }
     }
-    let immortal = entity.add_component::<LuaComponent>()?;
+    for lua in to_remove {
+        entity_manager.remove_component(lua)?;
+    }
+    let immortal = entity_manager.add_component::<LuaComponent>()?;
     immortal.add_tag("ew_immortal")?;
     immortal.set_script_damage_about_to_be_received(
         "mods/quant.ew/files/system/entity_sync_helper/immortal.lua".into(),
     )?;
-    if let Some(var) = entity.get_var("ghost_id") {
+    if let Some(var) = entity_manager.get_var(const { VarName::from_str("ghost_id") }) {
         if let Ok(ent) = EntityID::try_from(var.value_int()? as isize) {
             ent.kill()
         }
     }
-    if entity.has_tag("boss_dragon") && drops_gold {
-        let lua = entity.add_component::<LuaComponent>()?;
+    if entity_manager.has_tag(const { CachedTag::from_tag("boss_dragon") }) && drops_gold {
+        let lua = entity_manager.add_component::<LuaComponent>()?;
         lua.set_script_death("data/scripts/animals/boss_dragon_death.lua".into())?;
         lua.set_execute_every_n_frame(-1)?;
     }
-    if let Some(life) =
-        entity.try_get_first_component_including_disabled::<LifetimeComponent>(None)?
+    if let Some(life) = entity_manager
+        .try_get_first_component_including_disabled::<LifetimeComponent>(ComponentTag::None)?
     {
         life.set_lifetime(i32::MAX)?;
     }
-    if let Some(pickup) =
-        entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
+    if let Some(pickup) = entity_manager
+        .try_get_first_component_including_disabled::<ItemPickUpperComponent>(ComponentTag::None)?
     {
         pickup.set_drop_items_on_death(false)?;
         pickup.set_only_pick_this_entity(Some(EntityID(NonZero::new(1).unwrap())))?;
     }
 
-    if let Some(ghost) =
-        entity.try_get_first_component_including_disabled::<GhostComponent>(None)?
+    if let Some(ghost) = entity_manager
+        .try_get_first_component_including_disabled::<GhostComponent>(ComponentTag::None)?
     {
         ghost.set_die_if_no_home(false)?;
     }
 
-    if entity.has_tag("egg_item") {
-        if let Some(explosion) =
-            entity.try_get_first_component_including_disabled::<ExplodeOnDamageComponent>(None)?
+    if entity_manager.has_tag(const { CachedTag::from_tag("egg_item") }) {
+        if let Some(explosion) = entity_manager
+            .try_get_first_component_including_disabled::<ExplodeOnDamageComponent>(
+                ComponentTag::None,
+            )?
         {
             explosion.object_set_value::<Cow<'_, str>>(
                 "config_explosion",
@@ -2310,19 +2423,15 @@ pub fn init_remote_entity(
         }
     }
 
-    entity
-        .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-        .for_each(|var| {
-            let name = var.name().unwrap_or("".into());
-            if name == "ew_gid_lid" {
-                let _ = entity.remove_component(*var);
-            } else if name == "throw_time" && drops_gold {
-                let _ = var.set_value_int(game_get_frame_num().unwrap_or(0) - 4);
-            }
-        });
+    if let Some(var) = entity_manager.get_var(const { VarName::from_str("ew_gid_lid") }) {
+        entity_manager.remove_component(var)?;
+    }
+    if let Some(var) = entity_manager.get_var(const { VarName::from_str("throw_time") }) {
+        var.set_value_int(game_get_frame_num().unwrap_or(0) - 4)?;
+    }
 
     if let Some(lid) = lid {
-        let var = entity.add_component::<VariableStorageComponent>()?;
+        let var = entity_manager.add_component::<VariableStorageComponent>()?;
         var.set_name("ew_gid_lid".into())?;
         if let Some(gid) = gid {
             var.set_value_string(gid.0.to_string().into())?;
@@ -2331,11 +2440,13 @@ pub fn init_remote_entity(
         var.set_value_bool(false)?;
     }
 
-    if entity
-        .try_get_first_component_including_disabled::<PhysicsBodyComponent>(None)?
+    if entity_manager
+        .try_get_first_component_including_disabled::<PhysicsBodyComponent>(ComponentTag::None)?
         .is_none()
-        && entity
-            .try_get_first_component_including_disabled::<PhysicsBody2Component>(None)?
+        && entity_manager
+            .try_get_first_component_including_disabled::<PhysicsBody2Component>(
+                ComponentTag::None,
+            )?
             .is_none()
     {
         ephemerial(entity.0.get() as u32)?
@@ -2380,11 +2491,19 @@ impl Drop for RemoteDiffModel {
     }
 }
 
-fn spawn_entity_by_data(entity_data: &EntitySpawnInfo, x: f32, y: f32) -> eyre::Result<EntityID> {
+fn spawn_entity_by_data(
+    entity_data: &EntitySpawnInfo,
+    x: f32,
+    y: f32,
+    entity_manager: &mut EntityManager,
+) -> eyre::Result<EntityID> {
     match entity_data {
         EntitySpawnInfo::Filename(filename) => {
             let ent = EntityID::load(filename, Some(x as f64), Some(y as f64))?;
-            for lua in ent.iter_all_components_of_type::<LuaComponent>(None)? {
+            entity_manager.set_current_entity(ent)?;
+            for lua in
+                entity_manager.iter_all_components_of_type::<LuaComponent>(ComponentTag::None)?
+            {
                 if ["data/scripts/props/suspended_container_physics_objects.lua"]
                     .contains(&&*lua.script_source_file()?)
                 {
@@ -2477,13 +2596,14 @@ fn give_wand(
     gid: Option<Gid>,
     delete: bool,
     r: Option<f32>,
+    entity_manager: &mut EntityManager,
 ) -> eyre::Result<()> {
-    let inv = if let Some(inv) =
-        entity.try_get_first_component_including_disabled::<Inventory2Component>(None)?
+    let inv = if let Some(inv) = entity_manager
+        .try_get_first_component_including_disabled::<Inventory2Component>(ComponentTag::None)?
     {
         inv
     } else {
-        entity.add_component::<Inventory2Component>()?
+        entity_manager.add_component::<Inventory2Component>()?
     };
     let mut stop = false;
     if let Some(wand) = inv.m_actual_active_item()? {
@@ -2499,12 +2619,12 @@ fn give_wand(
         {
             if gid != Some(Gid(tgid)) {
                 if r.is_some() {
-                    entity.set_component_enabled(*inv, true)?;
+                    entity_manager.set_component_enabled(inv, true)?;
                 }
                 wand.kill()
             } else {
                 if r.is_some() {
-                    entity.set_component_enabled(*inv, false)?;
+                    entity_manager.set_component_enabled(inv, false)?;
                 }
                 stop = true
             }
@@ -2513,12 +2633,12 @@ fn give_wand(
             .any(|p| p.name().ok().unwrap_or("".into()) == "ew_spawned_wand")
         {
             if r.is_some() {
-                entity.set_component_enabled(*inv, false)?;
+                entity_manager.set_component_enabled(inv, false)?;
             }
             stop = true
         } else {
             if r.is_some() {
-                entity.set_component_enabled(*inv, true)?;
+                entity_manager.set_component_enabled(inv, true)?;
             }
             wand.kill()
         }
@@ -2530,13 +2650,15 @@ fn give_wand(
     }
     if !stop {
         if r.is_some() {
-            entity.set_component_enabled(*inv, true)?;
+            entity_manager.set_component_enabled(inv, true)?;
         }
         let (x, y) = entity.position()?;
         let wand = deserialize_entity(seri, x, y)?;
         if delete {
-            if let Some(pickup) =
-                entity.try_get_first_component_including_disabled::<ItemPickUpperComponent>(None)?
+            if let Some(pickup) = entity_manager
+                .try_get_first_component_including_disabled::<ItemPickUpperComponent>(
+                    ComponentTag::None,
+                )?
             {
                 pickup.set_only_pick_this_entity(Some(wand))?;
             }
@@ -2623,35 +2745,48 @@ fn mom(entity: &mut EntityManager, counter: u8, cost: Option<i32>) -> eyre::Resu
 }
 fn sun(entity: &mut EntityManager, counter: u8) -> eyre::Result<()> {
     if entity.has_tag(const { CachedTag::from_tag("seed_d") }) {
-        let essences = entity.get_var_or_default("sunbaby_essences_list")?;
+        let essences =
+            entity.get_var_or_default(const { VarName::from_str("sunbaby_essences_list") })?;
         let mut s = String::new();
         if counter & 1 == 1 {
             s += "water,";
-            entity.set_components_with_tag_enabled("water".into(), true)?;
+            entity
+                .set_components_with_tag_enabled(const { ComponentTag::from_str("water") }, true)?;
         }
         if counter & 2 == 2 {
             s += "fire,";
-            entity.set_components_with_tag_enabled("fire".into(), true)?;
-            entity.set_components_with_tag_enabled("fire_disable".into(), false)?;
+            entity
+                .set_components_with_tag_enabled(const { ComponentTag::from_str("fire") }, true)?;
+            entity.set_components_with_tag_enabled(
+                const { ComponentTag::from_str("fire_disable") },
+                false,
+            )?;
         }
         if counter & 4 == 4 {
             s += "air,";
-            entity.set_components_with_tag_enabled("air".into(), true)?;
+            entity
+                .set_components_with_tag_enabled(const { ComponentTag::from_str("air") }, true)?;
         }
         if counter & 8 == 8 {
             s += "earth,";
-            entity.set_components_with_tag_enabled("earth".into(), true)?;
-            entity.set_components_with_tag_enabled("earth_disable".into(), false)?;
+            entity
+                .set_components_with_tag_enabled(const { ComponentTag::from_str("earth") }, true)?;
+            entity.set_components_with_tag_enabled(
+                const { ComponentTag::from_str("earth_disable") },
+                false,
+            )?;
         }
         if counter & 16 == 16 {
             s += "poop,";
-            entity.set_components_with_tag_enabled("poop".into(), true)?;
+            entity
+                .set_components_with_tag_enabled(const { ComponentTag::from_str("poop") }, true)?;
         }
         essences.set_value_string(s.into())?;
         let n = (counter & (32 + 64 + 128)) / 32;
         if counter != 0 {
-            let sprite =
-                entity.get_first_component::<SpriteComponent>(Some("sunbaby_sprite".into()))?;
+            let sprite = entity.get_first_component::<SpriteComponent>(
+                const { ComponentTag::from_str("sunbaby_sprite") },
+            )?;
             match n {
                 0 => sprite.set_image_file("data/props_gfx/sun_small_purple.png".into())?,
                 1 => sprite.set_image_file("data/props_gfx/sun_small_red.png".into())?,
