@@ -540,7 +540,7 @@ impl<T: LuaGetValue, const N: usize> LuaGetValue for [T; N] {
         }
         let len = lua.objlen(index);
         if len != N {
-            return Err(eyre!("mis matched length"));
+            return Err(eyre!("mis matched length {}", len));
         }
         let mut res: [Option<T>; N] = array::from_fn(|_| None);
         for (i, res) in res.iter_mut().enumerate() {
