@@ -331,7 +331,7 @@ impl EntitySync {
             }
             shared::des::ProxyToDes::RemoveEntities(peer) => {
                 if let Some(remote) = self.remote_models.remove(&peer) {
-                    remote.remove_entities()
+                    remote.remove_entities(&mut self.entity_manager)
                 }
                 self.interest_tracker.remove_peer(peer);
                 let _ = crate::ExtState::with_global(|state| {
@@ -438,7 +438,7 @@ impl EntitySync {
                 self.remote_models
                     .entry(source)
                     .or_insert(RemoteDiffModel::new(source))
-                    .apply_diff(vec);
+                    .apply_diff(vec, &mut self.entity_manager);
             }
             RemoteDes::EntityInit(vec) => {
                 self.dont_kill.extend(
@@ -449,7 +449,9 @@ impl EntitySync {
                 );
             }
             RemoteDes::ExitedInterest => {
-                self.remote_models.remove(&source);
+                if let Some(remote) = self.remote_models.remove(&source) {
+                    remote.remove_entities(&mut self.entity_manager)
+                }
             }
             RemoteDes::Reset => self.interest_tracker.reset_interest_for(source),
             RemoteDes::Projectiles(vec) => {
@@ -459,7 +461,8 @@ impl EntitySync {
                     .spawn_projectiles(&vec);
             }
             RemoteDes::RequestGrab(lid) => {
-                self.local_diff_model.entity_grabbed(source, lid, net);
+                self.local_diff_model
+                    .entity_grabbed(source, lid, net, &mut self.entity_manager);
             }
         }
         Ok(ToState::None)

@@ -2,7 +2,7 @@ use crate::lua::{LuaGetValue, LuaPutValue};
 use crate::serialize::deserialize_entity;
 use base64::Engine;
 use eyre::{Context, OptionExt, eyre};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use shared::des::Gid;
 use shared::{GameEffectData, GameEffectEnum};
 use smallvec::SmallVec;
@@ -1089,7 +1089,7 @@ impl ComponentData {
         macro_rules! push_tag {
             ($($e: expr),*) => {
                 $(
-                    tags[$e as usize] = ent_tags.contains(&format!(",{},",const {$e.to_str()}));
+                    tags[const{$e as usize}] = ent_tags.contains(&format!(",{},",const {$e.to_str()}));
                 )*
             };
         }
@@ -1134,7 +1134,7 @@ pub struct EntityManager {
 impl Default for EntityManager {
     fn default() -> Self {
         Self {
-            cache: Default::default(),
+            cache: FxHashMap::with_capacity_and_hasher(1024, FxBuildHasher),
             current_entity: EntityID(NonZeroIsize::new(-1).unwrap()),
             current_data: Default::default(),
             has_ran: false,
@@ -1153,7 +1153,7 @@ impl EntityData {
         macro_rules! push_tag {
             ($($e: expr),*) => {
                 $(
-                    tags[$e as usize] = ent_tags.contains(&format!(",{},",const {$e.to_tag()}));
+                    tags[const{$e as usize}] = ent_tags.contains(&format!(",{},",const {$e.to_tag()}));
                 )*
             };
         }
@@ -1170,6 +1170,7 @@ impl EntityData {
             CachedTag::PolymorphableNOT,
             CachedTag::EggItem
         );
+        //TODO maybe faster to use EntityGetAllComponents and ComponentGetTypeName
         let components =
             const { CachedComponent::iter() }.map(|c| c.to_component(ent).unwrap_or_default());
         Ok(EntityData { tags, components })
@@ -1212,11 +1213,11 @@ impl EntityManager {
     pub fn entity(&self) -> EntityID {
         self.current_entity
     }
-    pub fn remove_ent(&mut self, ent: EntityID) {
-        if self.current_entity == ent {
+    pub fn remove_ent(&mut self, ent: &EntityID) {
+        if &self.current_entity == ent {
             self.has_ran = false;
         } else {
-            self.cache.remove(&ent);
+            self.cache.remove(ent);
         }
     }
     pub fn add_tag(&mut self, tag: CachedTag) -> eyre::Result<()> {

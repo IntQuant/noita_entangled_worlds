@@ -217,9 +217,10 @@ impl RemoteDiffModel {
             .map(|l| self.tracked.get_by_left(l.0))?
             .copied()
     }
-    pub(crate) fn remove_entities(&self) {
-        for (_, ent) in self.tracked.iter() {
-            safe_entitykill(*ent)
+    pub(crate) fn remove_entities(&self, entity_manager: &mut EntityManager) {
+        for ent in self.tracked.right_values() {
+            entity_manager.remove_ent(ent);
+            safe_entitykill(*ent);
         }
     }
 }
@@ -1168,6 +1169,7 @@ impl LocalDiffModel {
             self.tracker.global_entities.remove(&killed);
             self.upload.remove(&lid);
             self.dont_save.remove(&lid);
+            entity_manager.remove_ent(&killed);
         }
         for (gid, lid) in to_untrack {
             self.tracker.untrack_entity(ctx, gid, lid, None)?
@@ -1415,10 +1417,13 @@ impl LocalDiffModel {
         for lid in self.tracker.pending_removal.drain(..) {
             self.update_buffer.push(EntityUpdate::RemoveEntity(lid));
             // "Untrack" entity
-            self.tracker.tracked.remove_by_left(&lid);
+            let ent = self.tracker.tracked.remove_by_left(&lid);
             self.entity_entries.remove(&lid);
             self.upload.remove(&lid);
             self.dont_save.remove(&lid);
+            if let Some((_, ent)) = ent {
+                entity_manager.remove_ent(&ent);
+            }
         }
         Ok((dead, tmr, end))
     }
@@ -1451,7 +1456,13 @@ impl LocalDiffModel {
         self.tracker.pending_authority.extend(full_entity_data);
     }
 
-    pub(crate) fn entity_grabbed(&mut self, source: PeerId, lid: Lid, net: &mut NetManager) {
+    pub(crate) fn entity_grabbed(
+        &mut self,
+        source: PeerId,
+        lid: Lid,
+        net: &mut NetManager,
+        entity_manager: &mut EntityManager,
+    ) {
         let Some(info) = self.entity_entries.get(&lid) else {
             return;
         };
@@ -1459,6 +1470,7 @@ impl LocalDiffModel {
             if info.current.as_ref().unwrap().kind == EntityKind::Item {
                 self.tracker.pending_localize.push((lid, source));
                 safe_entitykill(entity);
+                entity_manager.remove_ent(&entity);
                 // "Untrack" entity
                 self.tracker.tracked.remove_by_left(&lid);
                 if let Some(gid) = self.entity_entries.remove(&lid).map(|e| e.gid) {
@@ -1549,7 +1561,11 @@ impl RemoteDiffModel {
         }
         dont_kill
     }
-    pub(crate) fn apply_diff(&mut self, diff: Vec<EntityUpdate>) {
+    pub(crate) fn apply_diff(
+        &mut self,
+        diff: Vec<EntityUpdate>,
+        entity_manager: &mut EntityManager,
+    ) {
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
         for entry in diff {
@@ -1566,6 +1582,7 @@ impl RemoteDiffModel {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
                         if peer_id != my_peer_id() {
                             safe_entitykill(entity);
+                            entity_manager.remove_ent(&entity);
                         }
                     }
                     self.entity_infos.remove(&lid);
@@ -2135,6 +2152,7 @@ impl RemoteDiffModel {
             if let Some(damage) = entity_manager
                 .try_get_first_component::<DamageModelComponent>(ComponentTag::None)?
             {
+                entity_manager.remove_ent(&entity);
                 entity
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
@@ -2181,6 +2199,7 @@ impl RemoteDiffModel {
             self.entity_infos.remove(&lid);
             if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
                 safe_entitykill(entity);
+                entity_manager.remove_ent(&entity);
             }
         }
         Ok(())
@@ -2479,15 +2498,6 @@ fn not_in_player_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
         .root()?
         .map(|e| !e.has_tag("ew_client"))
         .unwrap_or(true))
-}
-
-impl Drop for RemoteDiffModel {
-    fn drop(&mut self) {
-        // Cleanup all entities tracked by this model.
-        for ent in self.tracked.right_values() {
-            safe_entitykill(*ent);
-        }
-    }
 }
 
 fn spawn_entity_by_data(
