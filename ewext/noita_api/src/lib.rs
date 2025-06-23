@@ -478,7 +478,7 @@ impl EntityID {
     pub fn get_current_stains(self) -> eyre::Result<u64> {
         let mut current = 0;
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            for (i, v) in status.stain_effects()?.into_iter().enumerate() {
+            for (i, v) in status.stain_effects()?.enumerate() {
                 if v >= 0.15 {
                     current += 1 << i
                 }
@@ -498,7 +498,7 @@ impl EntityID {
                     !l.starts_with("-") && l.contains("id=\"") && !l.contains("BRAIN_DAMAGE")
                 })
                 .map(|l| l.split("\"").map(|a| a.to_string()).nth(1).unwrap());
-            for ((i, v), id) in status.stain_effects()?.into_iter().enumerate().zip(to_id) {
+            for ((i, v), id) in status.stain_effects()?.enumerate().zip(to_id) {
                 if v >= 0.15 && current_stains & (1 << i) == 0 {
                     raw::entity_remove_stain_status_effect(self.0.get() as i32, id.into(), None)?
                 }
@@ -562,11 +562,10 @@ impl ComponentID {
 }
 
 impl StatusEffectDataComponent {
-    pub fn stain_effects(self) -> eyre::Result<Vec<f32>> {
+    pub fn stain_effects(self) -> eyre::Result<impl Iterator<Item = f32>> {
         let v: Vec<f32> = raw::component_get_value(self.0, "stain_effects")?;
-        let mut out = Vec::new();
-        out.copy_from_slice(&v[1..]);
-        Ok(out)
+        let out = v.into_iter();
+        Ok(out.skip(1))
     }
 }
 
