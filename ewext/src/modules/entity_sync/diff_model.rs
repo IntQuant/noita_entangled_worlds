@@ -1571,12 +1571,7 @@ impl RemoteDiffModel {
         for entry in diff {
             match entry {
                 EntityUpdate::CurrentEntity(lid) => {
-                    ent_data = if let Some(ent) = self.entity_infos.get_mut(&lid) {
-                        ent
-                    } else {
-                        let _ = print_error(eyre!(format!("failed to find ent data {:?}", lid)));
-                        empty_data
-                    };
+                    ent_data = self.entity_infos.get_mut(&lid).unwrap_or(empty_data);
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
