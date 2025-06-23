@@ -562,9 +562,9 @@ impl ComponentID {
 }
 
 impl StatusEffectDataComponent {
-    pub fn stain_effects(self) -> eyre::Result<[f32; 45]> {
-        let v: [f32; 46] = raw::component_get_value(self.0, "stain_effects")?;
-        let mut out = [0.0; 45];
+    pub fn stain_effects(self) -> eyre::Result<Vec<f32>> {
+        let v: Vec<f32> = raw::component_get_value(self.0, "stain_effects")?;
+        let mut out = Vec::new();
         out.copy_from_slice(&v[1..]);
         Ok(out)
     }
