@@ -23,12 +23,13 @@ build_luajit:
 
 # `rustup target add i686-pc-windows-gnu` first
 build_ext:
-    cd ewext && cargo build --release --target=i686-pc-windows-gnu
-    cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext1.dll
+    rustup target add i686-pc-windows-gnu --toolchain nightly
+    cd ewext && cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
+    cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
 
 build_ext_debug:
     cd ewext && cargo build --target=i686-pc-windows-gnu
-    cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext1.dll
+    cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext.dll
 
 ##
 

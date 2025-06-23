@@ -22,7 +22,7 @@ jobs:
         run: cargo build --release --target i686-pc-windows-gnu
         working-directory: ./ewext
       - name: Copy ewext
-        run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext1.dll
+        run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
 
       - name: Create archive
         run: python scripts/ci_make_archives.py mod

@@ -11,14 +11,14 @@ use noita::{ParticleWorldState, ntypes::Entity, pixel::NoitaPixelRun};
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
     lua::{
-        LUA, LuaFnRet, LuaGetValue, LuaState, RawString, ValuesOnStack,
+        LUA, LuaGetValue, LuaState, RawString, ValuesOnStack,
         lua_bindings::{LUA_REGISTRYINDEX, lua_State},
     },
 };
 use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
-use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, ProxyKV, SpawnOnce, WorldPos};
+use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
 use std::backtrace::Backtrace;
 use std::{
     arch::asm,
@@ -47,7 +47,7 @@ thread_local! {
 static NETMANAGER: LazyLock<Mutex<Option<NetManager>>> = LazyLock::new(Default::default);
 
 static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
-    LazyLock::new(|| unsafe { libloading::Library::new("ewext1.dll") });
+    LazyLock::new(|| unsafe { libloading::Library::new("ewext.dll") });
 static MY_PEER_ID: OnceLock<PeerId> = OnceLock::new();
 
 fn try_lock_netmanager() -> eyre::Result<MutexGuard<'static, Option<NetManager>>> {
@@ -182,7 +182,7 @@ fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
     Ok(())
 }
 
-struct InitKV {
+/*struct InitKV {
     key: String,
     value: String,
 }
@@ -194,7 +194,7 @@ impl From<ProxyKV> for InitKV {
             value: value.value,
         }
     }
-}
+}*/
 
 fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
     #[cfg(debug_assertions)]
@@ -285,7 +285,7 @@ fn netmanager_flush(_lua: LuaState) -> eyre::Result<()> {
     netmanager.flush()
 }
 
-impl LuaFnRet for InitKV {
+/*impl LuaFnRet for InitKV {
     fn do_return(self, lua: LuaState) -> c_int {
         lua.create_table(2, 0);
         lua.push_string(&self.key);
@@ -294,7 +294,7 @@ impl LuaFnRet for InitKV {
         lua.rawset_table(-2, 2);
         1
     }
-}
+}*/
 
 fn on_world_initialized(lua: LuaState) {
     #[cfg(debug_assertions)]
@@ -463,7 +463,7 @@ pub(crate) fn print(string: &str) -> eyre::Result<()> {
 ///
 /// Only gets called by lua when loading a module.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn luaopen_ewext1(lua: *mut lua_State) -> c_int {
+pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
     #[cfg(debug_assertions)]
     println!("Initializing ewext");
 
