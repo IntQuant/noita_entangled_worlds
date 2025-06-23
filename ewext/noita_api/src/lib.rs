@@ -5,6 +5,7 @@ use eyre::{Context, OptionExt, eyre};
 use rustc_hash::FxHashMap;
 use shared::des::Gid;
 use shared::{GameEffectData, GameEffectEnum};
+use smallvec::SmallVec;
 use std::num::NonZeroIsize;
 use std::{
     borrow::Cow,
@@ -561,9 +562,11 @@ impl ComponentID {
 }
 
 impl StatusEffectDataComponent {
-    pub fn stain_effects(self) -> eyre::Result<Vec<f32>> {
-        let v: Vec<f32> = raw::component_get_value::<Vec<f32>>(self.0, "stain_effects")?;
-        Ok(v[1..].to_vec())
+    pub fn stain_effects(self) -> eyre::Result<[f32; 45]> {
+        let v: [f32; 46] = raw::component_get_value(self.0, "stain_effects")?;
+        let mut out = [0.0; 45];
+        out.copy_from_slice(&v[1..]);
+        Ok(out)
     }
 }
 
@@ -864,7 +867,10 @@ impl CachedComponent {
             Self::ItemPickUpperComponent,
         ]
     }
-    fn get<C: Component>(&self, ent: EntityID) -> eyre::Result<Vec<ComponentData>> {
+    fn get<C: Component>(
+        &self,
+        ent: EntityID,
+    ) -> eyre::Result<SmallVec<[ComponentData; COMP_VEC_LEN]>> {
         Ok(ent
             .iter_all_components_of_type_including_disabled_raw::<C>(None)?
             .into_iter()
@@ -873,7 +879,7 @@ impl CachedComponent {
             })
             .collect())
     }
-    fn to_component(&self, ent: EntityID) -> eyre::Result<Vec<ComponentData>> {
+    fn to_component(&self, ent: EntityID) -> eyre::Result<SmallVec<[ComponentData; COMP_VEC_LEN]>> {
         //maybe possible to get all components in 1 lua call
         Ok(match self {
             Self::PhysicsBody2Component => self.get::<PhysicsBody2Component>(ent)?,
@@ -1114,10 +1120,11 @@ impl ComponentData {
         }
     }
 }
+const COMP_VEC_LEN: usize = 1;
 #[derive(Default)]
 struct EntityData {
     tags: [bool; TAG_LEN],
-    components: [Vec<ComponentData>; COMP_LEN],
+    components: [SmallVec<[ComponentData; COMP_VEC_LEN]>; COMP_LEN],
 }
 pub struct EntityManager {
     cache: FxHashMap<EntityID, EntityData>,
@@ -1289,13 +1296,17 @@ impl EntityManager {
         tags: ComponentTag,
     ) -> eyre::Result<bool> {
         let mut is_some = false;
-        for ComponentData { id, .. } in self.current_data.components
-            [const { CachedComponent::from_component::<C>() as usize }]
-        .iter()
-        .filter(|c| tags == ComponentTag::None || c.tags[tags as usize])
-        {
-            is_some = true;
-            raw::entity_remove_component(self.current_entity, *id)?;
+        let vec = std::mem::take(
+            &mut self.current_data.components[const { CachedComponent::from_component::<C>() as usize }],
+        );
+        for com in vec.into_iter() {
+            if tags == ComponentTag::None || com.tags[tags as usize] {
+                is_some = true;
+                raw::entity_remove_component(self.current_entity, com.id)?;
+            } else {
+                self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }].push(com)
+            }
         }
         Ok(is_some)
     }
@@ -1368,10 +1379,7 @@ impl EntityManager {
     pub fn add_lua_init_component<C: Component>(&mut self, file: &str) -> eyre::Result<C> {
         let c = self.current_entity.add_lua_init_component::<C>(file)?;
         self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-            .push(ComponentData::new(
-                *c,
-                C::NAME_STR == "VariableStorageComponent",
-            ));
+            .push(ComponentData::new(*c, false));
         Ok(c)
     }
     pub fn set_components_with_tag_enabled(
@@ -1379,12 +1387,15 @@ impl EntityManager {
         tag: ComponentTag,
         enabled: bool,
     ) -> eyre::Result<()> {
-        if self
-            .current_data
-            .components
-            .iter()
-            .any(|c| c.iter().any(|c| c.tags[tag as usize]))
-        {
+        let mut some = false;
+        for c in self.current_data.components.iter_mut().flatten() {
+            if c.tags[tag as usize] {
+                some = true;
+                c.enabled = enabled
+            }
+        }
+        if some {
+            //TODO since this does not require C some may be false when a tag exists on a non cached component
             self.current_entity
                 .set_components_with_tag_enabled(tag.to_str().into(), enabled)?
         }

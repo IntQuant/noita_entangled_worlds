@@ -1,6 +1,9 @@
 pub mod lua_bindings;
 
+use eyre::{Context, OptionExt, bail, eyre};
+use lua_bindings::{LUA_GLOBALSINDEX, Lua51, lua_CFunction, lua_State};
 use std::{
+    array,
     borrow::Cow,
     cell::Cell,
     ffi::{CStr, c_char, c_int},
@@ -8,9 +11,6 @@ use std::{
     str::FromStr,
     sync::LazyLock,
 };
-
-use eyre::{Context, OptionExt, bail};
-use lua_bindings::{LUA_GLOBALSINDEX, Lua51, lua_CFunction, lua_State};
 
 use crate::{Color, ComponentID, EntityID, GameEffectEnum, Obj, PhysicsBodyID};
 
@@ -527,6 +527,30 @@ impl<T: LuaGetValue> LuaGetValue for Vec<T> {
             lua.pop_last();
             res.push(get?);
         }
+        Ok(res)
+    }
+}
+
+impl<T: LuaGetValue, const N: usize> LuaGetValue for [T; N] {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        if T::size_on_stack() != 1 {
+            bail!(
+                "Encountered [T; N] where T needs more than 1 slot on the stack. This isn't supported"
+            );
+        }
+        let len = lua.objlen(index);
+        if len != N {
+            return Err(eyre!("mis matched length"));
+        }
+        let mut res: [Option<T>; N] = array::from_fn(|_| None);
+        for (i, res) in res.iter_mut().enumerate() {
+            lua.index_table(index, i);
+            let get = T::get(lua, -1);
+            lua.pop_last();
+            *res = Some(get?)
+        }
+        let mut res = res.into_iter();
+        let res: [T; N] = array::from_fn(|_| res.next().unwrap().unwrap());
         Ok(res)
     }
 }
