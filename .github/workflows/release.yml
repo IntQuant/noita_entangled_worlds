@@ -11,6 +11,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-pc-windows-gnu
+          toolchain: 'nightly'
       - name: Install extra deps
         run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-i686
 
@@ -19,7 +20,7 @@ jobs:
           workspaces: ewext -> target
 
       - name: Build ewext
-        run: cargo build --release --target i686-pc-windows-gnu
+        run: cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
         working-directory: ./ewext
       - name: Copy ewext
         run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
