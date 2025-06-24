@@ -217,11 +217,12 @@ impl RemoteDiffModel {
             .map(|l| self.tracked.get_by_left(l.0))?
             .copied()
     }
-    pub(crate) fn remove_entities(&self, entity_manager: &mut EntityManager) {
-        for ent in self.tracked.right_values() {
-            entity_manager.remove_ent(ent);
-            safe_entitykill(*ent);
+    pub(crate) fn remove_entities(self, entity_manager: &mut EntityManager) -> eyre::Result<()> {
+        for (_, ent) in self.tracked.into_iter() {
+            entity_manager.set_current_entity(ent)?;
+            safe_entitykill(entity_manager);
         }
+        Ok(())
     }
 }
 
@@ -296,7 +297,7 @@ impl LocalDiffModelTracker {
         }
         let item_and_was_picked = info.kind == EntityKind::Item && item_in_inventory(entity)?;
         if item_and_was_picked && not_in_player_inventory(entity)? {
-            self.temporary_untrack_item(ctx, gid, lid, entity)?;
+            self.temporary_untrack_item(ctx, gid, lid, entity, entity_manager)?;
             return Ok(false);
         }
 
@@ -635,11 +636,19 @@ impl LocalDiffModelTracker {
                         TRANSFER_RADIUS
                     },
                 )? {
-                    self.transfer_authority_to(ctx, gid, lid, peer, info, do_upload)
-                        .wrap_err("Failed to transfer authority")?;
+                    self.transfer_authority_to(
+                        ctx,
+                        gid,
+                        lid,
+                        peer,
+                        info,
+                        do_upload,
+                        entity_manager,
+                    )
+                    .wrap_err("Failed to transfer authority")?;
                     return Ok(do_upload);
                 } else if !info.is_global && is_beyond_authority {
-                    self.release_authority(ctx, gid, lid, info, do_upload)
+                    self.release_authority(ctx, gid, lid, info, do_upload, entity_manager)
                         .wrap_err("Failed to release authority")?;
                     return Ok(do_upload);
                 }
@@ -704,16 +713,17 @@ impl LocalDiffModelTracker {
         gid: Gid,
         lid: Lid,
         entity: EntityID,
+        entity_manager: &mut EntityManager,
     ) -> Result<(), eyre::Error> {
         self.untrack_entity(ctx, gid, lid, Some(entity.0))?;
-        entity.remove_tag(DES_TAG)?;
-        with_entity_scripts(entity, |luac| {
+        entity_manager.remove_tag(const { CachedTag::from_tag(DES_TAG) })?;
+        with_entity_scripts(entity_manager, |luac| {
             luac.set_script_throw_item(
                 "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
             )
         })?;
         for entity in entity.children(None) {
-            with_entity_scripts(entity, |luac| {
+            with_entity_scripts_no_mgr(entity, |luac| {
                 luac.set_script_throw_item(
                     "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
                 )
@@ -787,13 +797,15 @@ impl LocalDiffModelTracker {
         lid: Lid,
         info: &EntityInfo,
         do_upload: bool,
+        entity_manager: &mut EntityManager,
     ) -> eyre::Result<()> {
         let entity = self._release_authority_update_data(ctx, gid, lid, info, do_upload)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::ReleaseAuthority(gid),
         ))?;
         self.pending_removal.push(lid);
-        safe_entitykill(entity);
+        entity_manager.set_current_entity(entity)?;
+        safe_entitykill(entity_manager);
         Ok(())
     }
 
@@ -806,13 +818,15 @@ impl LocalDiffModelTracker {
         peer: PeerId,
         info: &EntityInfo,
         do_upload: bool,
+        entity_manager: &mut EntityManager,
     ) -> eyre::Result<()> {
         let entity = self._release_authority_update_data(ctx, gid, lid, info, do_upload)?;
         ctx.net.send(&NoitaOutbound::DesToProxy(
             shared::des::DesToProxy::TransferAuthorityTo(gid, peer),
         ))?;
         self.pending_removal.push(lid);
-        safe_entitykill(entity);
+        entity_manager.set_current_entity(entity)?;
+        safe_entitykill(entity_manager);
         Ok(())
     }
 }
@@ -879,7 +893,7 @@ impl LocalDiffModel {
                 data: serialize_entity(entity)?, //TODO we never update this?
             },
         };
-        with_entity_scripts(entity, |scripts| {
+        with_entity_scripts(entity_manager, |scripts| {
             scripts.set_script_death(
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
@@ -999,9 +1013,10 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn phys_later(&mut self) -> eyre::Result<()> {
+    pub(crate) fn phys_later(&mut self, entity_manager: &mut EntityManager) -> eyre::Result<()> {
         for (entity, phys) in self.phys_later.drain(..) {
-            if entity.is_alive() && entity.check_all_phys_init()? {
+            entity_manager.set_current_entity(entity)?;
+            if entity.is_alive() && entity_manager.check_all_phys_init()? {
                 let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)
                     .unwrap_or_default();
                 for (p, physics_body_id) in phys.iter().zip(phys_bodies.iter()) {
@@ -1025,15 +1040,22 @@ impl LocalDiffModel {
         Ok(())
     }
 
-    pub(crate) fn enable_later(&mut self) -> eyre::Result<()> {
+    pub(crate) fn enable_later(&mut self, entity_manager: &mut EntityManager) -> eyre::Result<()> {
         for entity in self.enable_later.drain(..) {
             if entity.is_alive() {
-                entity.set_components_with_tag_enabled("disabled_at_start".into(), true)?;
-                entity.set_components_with_tag_enabled("enabled_at_start".into(), false)?;
+                entity_manager.set_current_entity(entity)?;
+                entity_manager.set_components_with_tag_enabled(
+                    const { ComponentTag::from_str("disabled_at_start") },
+                    true,
+                )?;
+                entity_manager.set_components_with_tag_enabled(
+                    const { ComponentTag::from_str("enabled_at_start") },
+                    false,
+                )?;
                 entity
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
-                entity.add_tag("boss_centipede_active")?;
+                entity_manager.add_tag(const { CachedTag::from_tag("boss_centipede_active") })?;
                 noita_api::raw::physics_set_static(entity, false)?;
             }
         }
@@ -1056,7 +1078,7 @@ impl LocalDiffModel {
             if entity_data.is_charmed {
                 if entity_manager.has_tag(const { CachedTag::from_tag("boss_centipede") }) {
                     self.enable_later.push(entity);
-                } else if entity.has_tag("pitcheck_b") {
+                } else if entity_manager.has_tag(const { CachedTag::from_tag("pitcheck_b") }) {
                     entity_manager.set_components_with_tag_enabled(
                         const { ComponentTag::from_str("disabled") },
                         true,
@@ -1078,7 +1100,7 @@ impl LocalDiffModel {
                 }
             }
             for (name, s, i, f, b) in &entity_data.synced_var {
-                let v = entity.get_var_or_default(name)?;
+                let v = entity_manager.get_var_or_default_unknown(name)?;
                 v.set_value_string(s.into())?;
                 v.set_value_int(*i)?;
                 v.set_value_float(*f)?;
@@ -1462,15 +1484,15 @@ impl LocalDiffModel {
         lid: Lid,
         net: &mut NetManager,
         entity_manager: &mut EntityManager,
-    ) {
+    ) -> eyre::Result<()> {
         let Some(info) = self.entity_entries.get(&lid) else {
-            return;
+            return Ok(());
         };
         if let Ok(entity) = self.tracker.entity_by_lid(lid) {
             if info.current.as_ref().unwrap().kind == EntityKind::Item {
                 self.tracker.pending_localize.push((lid, source));
-                safe_entitykill(entity);
-                entity_manager.remove_ent(&entity);
+                entity_manager.set_current_entity(entity)?;
+                safe_entitykill(entity_manager);
                 // "Untrack" entity
                 self.tracker.tracked.remove_by_left(&lid);
                 if let Some(gid) = self.entity_entries.remove(&lid).map(|e| e.gid) {
@@ -1482,6 +1504,7 @@ impl LocalDiffModel {
                 game_print("Tried to localize entity that's not an item");
             }
         }
+        Ok(())
     }
 
     pub(crate) fn death_notify(
@@ -1565,7 +1588,7 @@ impl RemoteDiffModel {
         &mut self,
         diff: Vec<EntityUpdate>,
         entity_manager: &mut EntityManager,
-    ) {
+    ) -> eyre::Result<()> {
         let empty_data = &mut EntityInfo::default();
         let mut ent_data = &mut EntityInfo::default();
         for entry in diff {
@@ -1576,8 +1599,8 @@ impl RemoteDiffModel {
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
                     if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
                         if peer_id != my_peer_id() {
-                            safe_entitykill(entity);
-                            entity_manager.remove_ent(&entity);
+                            entity_manager.set_current_entity(entity)?;
+                            safe_entitykill(entity_manager);
                         }
                     }
                     self.entity_infos.remove(&lid);
@@ -1614,6 +1637,7 @@ impl RemoteDiffModel {
                 EntityUpdate::SetCounter(orbs) => ent_data.counter = orbs,
             }
         }
+        Ok(())
     }
 
     fn inner(
@@ -1628,13 +1652,13 @@ impl RemoteDiffModel {
             || item_in_entity_inventory(entity)?
         {
             entity_manager.remove_tag(const { CachedTag::from_tag(DES_TAG) })?;
-            with_entity_scripts(entity, |luac| {
+            with_entity_scripts(entity_manager, |luac| {
                 luac.set_script_throw_item(
                     "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
                 )
             })?;
             for entity in entity.children(None) {
-                with_entity_scripts(entity, |luac| {
+                with_entity_scripts_no_mgr(entity, |luac| {
                     luac.set_script_throw_item(
                         "mods/quant.ew/files/system/entity_sync_helper/item_notify.lua".into(),
                     )
@@ -1643,7 +1667,7 @@ impl RemoteDiffModel {
             return Ok(Some(*lid));
         }
         for (name, s, i, f, b) in &entity_info.synced_var {
-            let v = entity.get_var_or_default(name)?;
+            let v = entity_manager.get_var_or_default_unknown(name)?;
             v.set_value_string(s.into())?;
             v.set_value_int(*i)?;
             v.set_value_float(*f)?;
@@ -1764,7 +1788,8 @@ impl RemoteDiffModel {
             / *ctx.fps_by_player.get(&my_peer_id()).unwrap_or(&60) as f32;
         let (vx, vy) = (entity_info.vx * m, entity_info.vy * m);
         if entity_info.phys.is_empty()
-            || (entity_info.is_enabled && entity.has_tag("boss_centipede"))
+            || (entity_info.is_enabled
+                && entity_manager.has_tag(const { CachedTag::from_tag("boss_centipede") }))
         {
             let should_send_position = if let Some(com) =
                 entity_manager.try_get_first_component::<ItemComponent>(ComponentTag::None)?
@@ -2193,8 +2218,8 @@ impl RemoteDiffModel {
         for lid in self.pending_remove.drain(..) {
             self.entity_infos.remove(&lid);
             if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
-                safe_entitykill(entity);
-                entity_manager.remove_ent(&entity);
+                entity_manager.set_current_entity(entity)?;
+                safe_entitykill(entity_manager);
             }
         }
         Ok(())
@@ -2253,6 +2278,7 @@ pub fn init_remote_entity(
 ) -> eyre::Result<()> {
     if entity.has_tag("player_unit") {
         entity.kill();
+        entity_manager.remove_ent(&entity);
         return Ok(());
     }
     entity_manager.set_current_entity(entity)?;
@@ -2539,6 +2565,25 @@ fn classify_entity(entity: EntityID) -> eyre::Result<EntityKind> {
 }
 
 fn with_entity_scripts<T>(
+    entity: &mut EntityManager,
+    f: impl FnOnce(LuaComponent) -> eyre::Result<T>,
+) -> eyre::Result<T> {
+    let component = entity
+        .try_get_first_component(const { ComponentTag::from_str(DES_SCRIPTS_TAG) })
+        .transpose()
+        .unwrap_or_else(|| {
+            let component = entity.add_component::<LuaComponent>()?;
+            component.add_tag(DES_SCRIPTS_TAG)?;
+            component.add_tag("enabled_in_inventory")?;
+            component.add_tag("enabled_in_world")?;
+            component.add_tag("enabled_in_hand")?;
+            component.add_tag("ew_remove_on_send")?;
+            Ok(component)
+        })?;
+    f(component)
+}
+
+fn with_entity_scripts_no_mgr<T>(
     entity: EntityID,
     f: impl FnOnce(LuaComponent) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
@@ -2558,12 +2603,13 @@ fn with_entity_scripts<T>(
 }
 
 /// If it's a wand, it might be in a pickup screen currently, and deleting it will crash the game.
-fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
+fn _safe_wandkill(entity: &mut EntityManager) -> eyre::Result<()> {
+    //TODO ent mgr
     let lc = entity.add_component::<LuaComponent>()?;
     lc.set_script_source_file(
         "mods/quant.ew/files/system/entity_sync_helper/scripts/killself.lua".into(),
     )?;
-    entity.set_component_enabled(*lc, true)?;
+    entity.set_component_enabled(lc, true)?;
     lc.add_tag("enabled_in_inventory")?;
     lc.add_tag("enabled_in_world")?;
     lc.add_tag("enabled_in_hand")?;
@@ -2572,9 +2618,11 @@ fn _safe_wandkill(entity: EntityID) -> eyre::Result<()> {
     Ok(())
 }
 
-fn safe_entitykill(entity: EntityID) {
-    let _ = entity.remove_all_components_of_type::<AudioComponent>(None);
-    let is_wand = entity.try_get_first_component_including_disabled::<AbilityComponent>(None);
+fn safe_entitykill(entity: &mut EntityManager) {
+    //TODO should use entity manager
+    let _ = entity.remove_all_components_of_type::<AudioComponent>(ComponentTag::None);
+    let is_wand =
+        entity.try_get_first_component_including_disabled::<AbilityComponent>(ComponentTag::None);
     if is_wand
         .map(|a| {
             a.map(|b| b.use_gun_script().unwrap_or(false))
@@ -2585,13 +2633,15 @@ fn safe_entitykill(entity: EntityID) {
         let _ = _safe_wandkill(entity);
     } else {
         if let Some(inv) = entity
+            .entity()
             .children(None)
             .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
         {
             inv.children(None).for_each(|e| e.kill())
         }
-        entity.kill();
+        entity.entity().kill();
     }
+    entity.remove_current();
 }
 
 fn give_wand(

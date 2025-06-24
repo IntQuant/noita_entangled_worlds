@@ -117,15 +117,16 @@ impl Default for EntitySync {
 fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
     let good = "data/entities/items/wands/wand_good/wand_good_";
     let filename = entity.filename()?;
-    Ok(entity.has_tag("ew_no_enemy_sync")
-        || entity.has_tag("polymorphed_player")
-        || entity.has_tag("gold_nugget")
-        || entity.has_tag("nightmare_starting_wand")
+    let tags = format!(",{},", entity.tags()?);
+    Ok(tags.contains(",ew_no_enemy_sync,")
+        || tags.contains(",polymorphed_player,")
+        || tags.contains(",gold_nugget,")
+        || tags.contains(",nightmare_starting_wand,")
         || ENTITY_EXCLUDES.contains(&filename)
         || filename.starts_with(good)
-        || entity.has_tag("player_unit")
+        || tags.contains(",player_unit,")
         || filename == "data/entities/items/pickup/greed_curse.xml"
-        || (entity.root()? != Some(entity) && !entity.has_tag("ew_sync_child")))
+        || (!tags.contains(",ew_sync_child,") && entity.root()? != Some(entity)))
 }
 
 impl EntitySync {
@@ -302,26 +303,30 @@ impl EntitySync {
         })
     }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
+        let tags = format!(",{},", entity.tags()?);
         let should_be_tracked = [
-            "enemy",
-            "ew_synced",
-            "plague_rat",
-            "seed_f",
-            "seed_e",
-            "seed_d",
-            "seed_c",
-            "perk_fungus_tiny",
-            "helpless_animal",
-            "nest",
+            ",enemy,",
+            ",ew_synced,",
+            ",plague_rat,",
+            ",seed_f,",
+            ",seed_e,",
+            ",seed_d,",
+            ",seed_c,",
+            ",perk_fungus_tiny,",
+            ",helpless_animal,",
+            ",nest,",
         ]
         .iter()
-        .any(|tag| entity.has_tag(tag))
+        .any(|tag| tags.contains(tag))
             || entity_is_item(entity)?;
 
         Ok(should_be_tracked && !entity_is_excluded(entity)?)
     }
 
-    pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
+    pub(crate) fn handle_proxytodes(
+        &mut self,
+        proxy_to_des: shared::des::ProxyToDes,
+    ) -> eyre::Result<()> {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
@@ -331,7 +336,7 @@ impl EntitySync {
             }
             shared::des::ProxyToDes::RemoveEntities(peer) => {
                 if let Some(remote) = self.remote_models.remove(&peer) {
-                    remote.remove_entities(&mut self.entity_manager)
+                    remote.remove_entities(&mut self.entity_manager)?
                 }
                 self.interest_tracker.remove_peer(peer);
                 let _ = crate::ExtState::with_global(|state| {
@@ -343,6 +348,7 @@ impl EntitySync {
                 EntityID(entity).kill();
             }
         }
+        Ok(())
     }
 
     pub(crate) fn handle_remotedes(
@@ -438,7 +444,7 @@ impl EntitySync {
                 self.remote_models
                     .entry(source)
                     .or_insert(RemoteDiffModel::new(source))
-                    .apply_diff(vec, &mut self.entity_manager);
+                    .apply_diff(vec, &mut self.entity_manager)?;
             }
             RemoteDes::EntityInit(vec) => {
                 self.dont_kill.extend(
@@ -450,7 +456,7 @@ impl EntitySync {
             }
             RemoteDes::ExitedInterest => {
                 if let Some(remote) = self.remote_models.remove(&source) {
-                    remote.remove_entities(&mut self.entity_manager)
+                    remote.remove_entities(&mut self.entity_manager)?
                 }
             }
             RemoteDes::Reset => self.interest_tracker.reset_interest_for(source),
@@ -462,7 +468,7 @@ impl EntitySync {
             }
             RemoteDes::RequestGrab(lid) => {
                 self.local_diff_model
-                    .entity_grabbed(source, lid, net, &mut self.entity_manager);
+                    .entity_grabbed(source, lid, net, &mut self.entity_manager)?;
             }
         }
         Ok(ToState::None)
@@ -609,8 +615,9 @@ impl Module for EntitySync {
         }
 
         self.look_current_entity = EntityID::max_in_use()?;
-        self.local_diff_model.enable_later()?;
-        self.local_diff_model.phys_later()?;
+        self.local_diff_model
+            .enable_later(&mut self.entity_manager)?;
+        self.local_diff_model.phys_later(&mut self.entity_manager)?;
         let mut start = self
             .local_diff_model
             .update_pending_authority(&mut self.entity_manager)?;

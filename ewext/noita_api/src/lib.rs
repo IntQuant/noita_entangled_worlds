@@ -472,6 +472,9 @@ impl EntityID {
         }
         Ok(())
     }
+    pub fn tags(self) -> eyre::Result<Cow<'static, str>> {
+        Ok(raw::entity_get_tags(self)?.unwrap_or_default())
+    }
     pub fn add_child(self, child: EntityID) {
         let _ = raw::entity_add_child(self.0.get() as i32, child.0.get() as i32);
     }
@@ -830,8 +833,10 @@ pub enum CachedComponent {
     LifetimeComponent,
     ExplodeOnDamageComponent,
     ItemPickUpperComponent,
+    AudioComponent,
+    AbilityComponent,
 }
-const COMP_LEN: usize = 29;
+const COMP_LEN: usize = 31;
 impl CachedComponent {
     const fn iter() -> [CachedComponent; COMP_LEN] {
         [
@@ -864,6 +869,8 @@ impl CachedComponent {
             Self::LifetimeComponent,
             Self::ExplodeOnDamageComponent,
             Self::ItemPickUpperComponent,
+            Self::AudioComponent,
+            Self::AbilityComponent,
         ]
     }
     fn get<C: Component>(
@@ -912,6 +919,8 @@ impl CachedComponent {
             Self::LifetimeComponent => self.get::<LifetimeComponent>(ent)?,
             Self::ExplodeOnDamageComponent => self.get::<ExplodeOnDamageComponent>(ent)?,
             Self::ItemPickUpperComponent => self.get::<ItemPickUpperComponent>(ent)?,
+            Self::AudioComponent => self.get::<AudioComponent>(ent)?,
+            Self::AbilityComponent => self.get::<AbilityComponent>(ent)?,
         })
     }
     const fn from_component<C: Component>() -> Self {
@@ -945,6 +954,8 @@ impl CachedComponent {
             b"LifetimeComponent" => Self::LifetimeComponent,
             b"ExplodeOnDamageComponent" => Self::ExplodeOnDamageComponent,
             b"ItemPickUpperComponent" => Self::ItemPickUpperComponent,
+            b"AudioComponent" => Self::AudioComponent,
+            b"AbilityComponent" => Self::AbilityComponent,
             _ => unreachable!(),
         }
     }
@@ -959,6 +970,7 @@ pub enum VarName {
     ThrowTime,
     GhostId,
     EwGidLid,
+    Unknown,
 }
 impl VarName {
     pub const fn from_str(s: &str) -> Self {
@@ -982,7 +994,8 @@ impl VarName {
             b"throw_time" => Self::ThrowTime,
             b"ghost_id" => Self::GhostId,
             b"ew_gid_lid" => Self::EwGidLid,
-            _ => Self::None,
+            _ if s.is_empty() => Self::None,
+            _ => Self::Unknown,
         }
     }
     pub const fn to_str(self) -> &'static str {
@@ -995,6 +1008,7 @@ impl VarName {
             Self::ThrowTime => "throw_time",
             Self::GhostId => "ghost_id",
             Self::EwGidLid => "ew_gid_lid",
+            Self::Unknown => unreachable!(),
         }
     }
 }
@@ -1015,6 +1029,7 @@ pub enum ComponentTag {
     Earth,
     EarthDisable,
     Poop,
+    EwDesLua,
     None,
 }
 impl ComponentTag {
@@ -1035,6 +1050,7 @@ impl ComponentTag {
             b"earth" => Self::Earth,
             b"earth_disable" => Self::EarthDisable,
             b"poop" => Self::Poop,
+            b"ew_des_lua" => Self::EwDesLua,
             _ => unreachable!(),
         }
     }
@@ -1055,11 +1071,12 @@ impl ComponentTag {
             Self::Earth => "earth",
             Self::EarthDisable => "earth_disable",
             Self::Poop => "poop",
+            Self::EwDesLua => "ew_des_lua",
             Self::None => "",
         }
     }
 }
-const COMP_TAG_LEN: usize = 15;
+const COMP_TAG_LEN: usize = 16;
 struct ComponentData {
     id: ComponentID,
     enabled: bool,
@@ -1108,7 +1125,8 @@ impl ComponentData {
             ComponentTag::Air,
             ComponentTag::Earth,
             ComponentTag::EarthDisable,
-            ComponentTag::Poop
+            ComponentTag::Poop,
+            ComponentTag::EwDesLua
         );
         ComponentData {
             id,
@@ -1143,12 +1161,7 @@ impl Default for EntityManager {
 }
 impl EntityData {
     fn new(ent: EntityID) -> eyre::Result<Self> {
-        let ent_tags = format!(
-            ",{},",
-            raw::entity_get_tags(ent)
-                .unwrap_or_default()
-                .unwrap_or_default(),
-        );
+        let ent_tags = format!(",{},", ent.tags()?,);
         let mut tags = [false; TAG_LEN];
         macro_rules! push_tag {
             ($($e: expr),*) => {
@@ -1212,6 +1225,9 @@ impl EntityManager {
     }
     pub fn entity(&self) -> EntityID {
         self.current_entity
+    }
+    pub fn remove_current(&mut self) {
+        self.has_ran = false;
     }
     pub fn remove_ent(&mut self, ent: &EntityID) {
         if &self.current_entity == ent {
@@ -1367,12 +1383,40 @@ impl EntityManager {
             }
         })
     }
+    pub fn get_var_unknown(&self, name: &str) -> Option<VariableStorageComponent> {
+        let mut i =
+            self.iter_all_components_of_type_including_disabled_raw::<VariableStorageComponent>();
+        i.find_map(|var| {
+            if var.name == VarName::Unknown {
+                let var = VariableStorageComponent::from(var.id);
+                if var.name().unwrap_or_default() == name {
+                    Some(var)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+    }
     pub fn get_var_or_default(&mut self, name: VarName) -> eyre::Result<VariableStorageComponent> {
         if let Some(var) = self.get_var(name) {
             Ok(var)
         } else {
             let var = self.add_component::<VariableStorageComponent>()?;
             var.set_name(name.to_str().into())?;
+            Ok(var)
+        }
+    }
+    pub fn get_var_or_default_unknown(
+        &mut self,
+        name: &str,
+    ) -> eyre::Result<VariableStorageComponent> {
+        if let Some(var) = self.get_var_unknown(name) {
+            Ok(var)
+        } else {
+            let var = self.add_component::<VariableStorageComponent>()?;
+            var.set_name(name.into())?;
             Ok(var)
         }
     }
