@@ -475,6 +475,27 @@ impl EntityID {
     pub fn tags(self) -> eyre::Result<Cow<'static, str>> {
         Ok(raw::entity_get_tags(self)?.unwrap_or_default())
     }
+    pub fn inflict_damage(
+        self,
+        damage: f64,
+        damage_type: DamageType,
+        message: &str,
+        entity: Option<EntityID>,
+    ) -> eyre::Result<()> {
+        raw::entity_inflict_damage(
+            self.raw() as i32,
+            damage,
+            damage_type.to_str(),
+            message.into(),
+            "NONE".into(),
+            0.0,
+            0.0,
+            entity.map(|e| e.raw() as i32),
+            None,
+            None,
+            None,
+        )
+    }
     pub fn add_child(self, child: EntityID) {
         let _ = raw::entity_add_child(self.0.get() as i32, child.0.get() as i32);
     }
@@ -524,6 +545,59 @@ impl EntityID {
 
     pub fn remove_component(self, component_id: ComponentID) -> eyre::Result<()> {
         raw::entity_remove_component(self, component_id)
+    }
+}
+
+pub enum DamageType {
+    None,
+    DamageMelee,
+    DamageProjectile,
+    DamageExplosion,
+    DamageBite,
+    DamageFire,
+    DamageMaterial,
+    DamageFall,
+    DamageElectricity,
+    DamageDrowning,
+    DamagePhysicsBodyDamaged,
+    DamageDrill,
+    DamageSlice,
+    DamageIce,
+    DamageHealing,
+    DamagePhysicsHit,
+    DamageRadioActive,
+    DamagePoison,
+    DamageMaterialWithFlash,
+    DamageOvereating,
+    DamageCurse,
+    DamageHoly,
+}
+impl DamageType {
+    fn to_str(&self) -> Cow<'static, str> {
+        match self {
+            DamageType::None => "NONE".into(),
+            DamageType::DamageMelee => "DAMAGE_MELEE".into(),
+            DamageType::DamageProjectile => "DAMAGE_PROJECTILE".into(),
+            DamageType::DamageExplosion => "DAMAGE_EXPLOSION".into(),
+            DamageType::DamageBite => "DAMAGE_BITE".into(),
+            DamageType::DamageFire => "DAMAGE_FIRE".into(),
+            DamageType::DamageMaterial => "DAMAGE_MATERIAL".into(),
+            DamageType::DamageFall => "DAMAGE_FALL".into(),
+            DamageType::DamageElectricity => "DAMAGE_ELECTRICITY".into(),
+            DamageType::DamageDrowning => "DAMAGE_DROWNING".into(),
+            DamageType::DamagePhysicsBodyDamaged => "DAMAGE_PHYSICS_BODY_DAMAGED".into(),
+            DamageType::DamageDrill => "DAMAGE_DRILL".into(),
+            DamageType::DamageSlice => "DAMAGE_SLICE".into(),
+            DamageType::DamageIce => "DAMAGE_ICE".into(),
+            DamageType::DamageHealing => "DAMAGE_HEALING".into(),
+            DamageType::DamagePhysicsHit => "DAMAGE_PHYSIICS_HIT".into(),
+            DamageType::DamageRadioActive => "DAMAGE_RADIOACTIVE".into(),
+            DamageType::DamagePoison => "DAMAGE_POISON".into(),
+            DamageType::DamageMaterialWithFlash => "DAMAGE_MATERIAL_WITH_FLASH".into(),
+            DamageType::DamageOvereating => "DAMAGE_OVEREATING".into(),
+            DamageType::DamageCurse => "DAMAGE_CURSE".into(),
+            DamageType::DamageHoly => "DAMAGE_HOLY".into(),
+        }
     }
 }
 

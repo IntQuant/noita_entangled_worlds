@@ -8,12 +8,12 @@ use noita_api::{
     AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
     AudioComponent, BossDragonComponent, BossHealthBarComponent, CachedTag, CameraBoundComponent,
     CharacterDataComponent, CharacterPlatformingComponent, ComponentTag, DamageModelComponent,
-    EntityID, EntityManager, ExplodeOnDamageComponent, GhostComponent, IKLimbAttackerComponent,
-    IKLimbComponent, IKLimbWalkerComponent, IKLimbsAnimatorComponent, Inventory2Component,
-    ItemComponent, ItemCostComponent, ItemPickUpperComponent, LaserEmitterComponent,
-    LifetimeComponent, LuaComponent, PhysData, PhysicsAIComponent, PhysicsBody2Component,
-    PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent, VarName,
-    VariableStorageComponent, VelocityComponent, WormComponent, game_print,
+    DamageType, EntityID, EntityManager, ExplodeOnDamageComponent, GhostComponent,
+    IKLimbAttackerComponent, IKLimbComponent, IKLimbWalkerComponent, IKLimbsAnimatorComponent,
+    Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
+    LaserEmitterComponent, LifetimeComponent, LuaComponent, PhysData, PhysicsAIComponent,
+    PhysicsBody2Component, PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent,
+    VarName, VariableStorageComponent, VelocityComponent, WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{
@@ -1844,17 +1844,10 @@ impl RemoteDiffModel {
                 if old != 1.0 {
                     damage.object_set_value("damage_multipliers", "curse", 1.0)?
                 }
-                noita_api::raw::entity_inflict_damage(
-                    entity.raw() as i32,
+                entity.inflict_damage(
                     (current_hp - entity_info.hp) as f64,
-                    "DAMAGE_CURSE".into(), //TODO should be enum
-                    "hp sync".into(),
-                    "NONE".into(),
-                    0.0,
-                    0.0,
-                    None,
-                    None,
-                    None,
+                    DamageType::DamageCurse,
+                    "hp sync",
                     None,
                 )?;
                 if old != 0.0 {
@@ -1869,17 +1862,10 @@ impl RemoteDiffModel {
                 if old != 0.0 {
                     damage.object_set_value("damage_multipliers", "healing", 1.0)?
                 }
-                noita_api::raw::entity_inflict_damage(
-                    entity.raw() as i32,
+                entity.inflict_damage(
                     (current_hp - entity_info.hp) as f64,
-                    "DAMAGE_HEALING".into(), //TODO should be enum
-                    "hp sync".into(),
-                    "NONE".into(),
-                    0.0,
-                    0.0,
-                    None,
-                    None,
-                    None,
+                    DamageType::DamageHealing,
+                    "hp sync",
                     None,
                 )?;
                 if old != 0.0 {
@@ -2181,32 +2167,18 @@ impl RemoteDiffModel {
                     damage.set_wait_for_kill_flag_on_death(false)?;
                 }
                 damage.object_set_value("damage_multipliers", "curse", 1.0)?;
-                noita_api::raw::entity_inflict_damage(
-                    entity.raw() as i32,
+                entity.inflict_damage(
                     damage.hp()? + f32::MIN_POSITIVE as f64,
-                    "DAMAGE_CURSE".into(), //TODO should be enum
-                    "kill sync".into(),
-                    "NONE".into(),
-                    0.0,
-                    0.0,
-                    responsible_entity.map(|e| e.raw() as i32),
-                    None,
-                    None,
-                    None,
+                    DamageType::DamageCurse,
+                    "kill sync",
+                    responsible_entity,
                 )?;
                 damage.set_ui_report_damage(false)?;
-                noita_api::raw::entity_inflict_damage(
-                    entity.raw() as i32,
+                entity.inflict_damage(
                     damage.max_hp()? * 100.0,
-                    "DAMAGE_CURSE".into(), //TODO should be enum
-                    "kill sync".into(),
-                    "NONE".into(),
-                    0.0,
-                    0.0,
-                    responsible_entity.map(|e| e.raw() as i32),
-                    None,
-                    None,
-                    None,
+                    DamageType::DamageCurse,
+                    "kill sync",
+                    responsible_entity,
                 )?;
                 if wait_on_kill {
                     damage.set_kill_now(true)?;

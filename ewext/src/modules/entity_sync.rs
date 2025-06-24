@@ -12,7 +12,7 @@ use interest::InterestTracker;
 use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, EntityID, EntityManager, ItemCostComponent, LuaComponent,
+    DamageModelComponent, DamageType, EntityID, EntityManager, ItemCostComponent, LuaComponent,
     PositionSeedComponent, ProjectileComponent, VariableStorageComponent, VelocityComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -231,18 +231,11 @@ impl EntitySync {
                                                 "curse",
                                                 1.0,
                                             )?;
-                                            noita_api::raw::entity_inflict_damage(
-                                                entity.raw() as i32,
+                                            entity.inflict_damage(
                                                 damage.max_hp()? * 100.0,
-                                                "DAMAGE_CURSE".into(), //TODO should be enum
-                                                "kill sync".into(),
-                                                "NONE".into(),
-                                                0.0,
-                                                0.0,
-                                                responsible_entity.map(|e| e.raw() as i32),
-                                                None,
-                                                None,
-                                                None,
+                                                DamageType::DamageCurse,
+                                                "kill sync",
+                                                responsible_entity,
                                             )?;
                                         }
                                     }
@@ -767,18 +760,11 @@ impl Module for EntitySync {
                     entity.try_get_first_component::<DamageModelComponent>(None)?
                 {
                     damage.object_set_value("damage_multipliers", "curse", 1.0)?;
-                    noita_api::raw::entity_inflict_damage(
-                        entity.raw() as i32,
+                    entity.inflict_damage(
                         damage.max_hp()? * 100.0,
-                        "DAMAGE_CURSE".into(), //TODO should be enum
-                        "kill sync".into(),
-                        "NONE".into(),
-                        0.0,
-                        0.0,
-                        responsible_entity.map(|e| e.raw() as i32),
-                        None,
-                        None,
-                        None,
+                        DamageType::DamageCurse,
+                        "kill sync",
+                        responsible_entity,
                     )?;
                 }
             }
