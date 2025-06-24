@@ -23,7 +23,6 @@ build_luajit:
 
 # `rustup target add i686-pc-windows-gnu` first
 build_ext:
-    rustup target add i686-pc-windows-gnu --toolchain nightly
     cd ewext && cargo build --release --target=i686-pc-windows-gnu
     cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
 
