@@ -354,8 +354,14 @@ fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn module_on_new_entity(lua: LuaState) -> eyre::Result<()> {
-    let entity = EntityID::try_from(lua.to_string(1)?.parse::<isize>()?)?;
-    with_every_module(|_, module| module.on_new_entity(entity, true))
+    let len = lua.to_integer(2);
+    with_every_module(|_, module| {
+        let arr = lua.to_integer_array(1, len as usize);
+        for ent in arr {
+            module.on_new_entity(ent, true)?
+        }
+        Ok(())
+    })
 }
 
 fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
@@ -517,10 +523,10 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn sync_projectile(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let entity = lua.to_string(1)?.parse::<isize>()?;
+                let entity = lua.to_integer(1);
                 let peer = PeerId::from_hex(&lua.to_string(2)?)?;
                 let mut rng: u64 =
-                    u32::from_le_bytes(lua.to_string(3)?.parse::<i32>()?.to_le_bytes()) as u64;
+                    u32::from_le_bytes((lua.to_integer(3) as i32).to_le_bytes()) as u64;
                 if rng == 0 {
                     rng = 1;
                 }
@@ -639,7 +645,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn set_player_fps(lua: LuaState) -> eyre::Result<()> {
             let peer = PeerId::from_hex(&lua.to_string(1)?)?;
-            let fps = lua.to_string(2)?.parse::<u8>()?;
+            let fps = lua.to_integer(2) as u8;
             ExtState::with_global(|state| {
                 state.fps_by_player.insert(peer, fps);
                 Ok(())
@@ -662,13 +668,13 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn des_chest_opened(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let x = lua.to_string(1)?.parse::<f64>()?;
-                let y = lua.to_string(2)?.parse::<f64>()?;
-                let rx = lua.to_string(3)?.parse::<f32>()?;
-                let ry = lua.to_string(4)?.parse::<f32>()?;
-                let file = lua.to_string(5)?.to_string();
+                let x = lua.to_number(1);
+                let y = lua.to_number(2);
+                let rx = lua.to_number(3) as f32;
+                let ry = lua.to_number(4) as f32;
+                let file = lua.to_string(5)?;
                 let gid = Gid(lua.to_string(6)?.parse::<u64>()?);
-                let is_mine = lua.to_string(7)?.parse::<u8>()? == 1;
+                let is_mine = lua.to_bool(7);
                 let entity_sync = state
                     .modules
                     .entity_sync
@@ -730,8 +736,8 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn des_broken_wand(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let x = lua.to_string(1)?.parse::<f64>()?;
-                let y = lua.to_string(2)?.parse::<f64>()?;
+                let x = lua.to_number(1);
+                let y = lua.to_number(2);
                 let mut temp = try_lock_netmanager()?;
                 let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
                 for peer in state.player_entity_map.left_values() {

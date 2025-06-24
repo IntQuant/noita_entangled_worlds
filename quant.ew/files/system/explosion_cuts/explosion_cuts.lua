@@ -175,9 +175,11 @@ local exists
 
 local new_ents = {}
 
-function mod.on_new_entity(ent)
+function mod.on_new_entity(arr)
     if ctx.is_host then
-        table.insert(new_ents, ent)
+        for _, ent in ipairs(arr) do
+            table.insert(new_ents, ent)
+        end
     end
 end
 

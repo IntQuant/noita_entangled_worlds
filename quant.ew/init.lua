@@ -538,20 +538,32 @@ local function on_world_pre_update_inner()
     if not ctx.run_ended then
         --local ti = GameGetRealWorldTimeSinceStarted()
         local n = EntitiesGetMaxID()
+        local arr = {}
         for ent = last_n + 1, n do
             if EntityGetIsAlive(ent) then
-                ctx.hook.on_new_entity(ent)
-                local homing = EntityGetFirstComponentIncludingDisabled(ent, "HomingComponent")
-                if homing ~= nil then
-                    local projcom = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-                    if projcom ~= nil then
-                        local whoshot = ComponentGetValue2(projcom, "mWhoShot")
-                        if EntityHasTag(whoshot, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
-                            ComponentSetValue2(homing, "target_tag", "ew_peer")
+                if
+                    not ctx.is_host
+                    and ctx.proxy_opt.disable_kummitus
+                    and EntityGetName(ent) == "$animal_playerghost"
+                then
+                    EntityKill(ent)
+                else
+                    table.insert(arr, ent)
+                    local homing = EntityGetFirstComponentIncludingDisabled(ent, "HomingComponent")
+                    if homing ~= nil then
+                        local projcom = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
+                        if projcom ~= nil then
+                            local whoshot = ComponentGetValue2(projcom, "mWhoShot")
+                            if EntityHasTag(whoshot, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
+                                ComponentSetValue2(homing, "target_tag", "ew_peer")
+                            end
                         end
                     end
                 end
             end
+        end
+        if #arr ~= 0 then
+            ctx.hook.on_new_entity(arr)
         end
         last_n = n
         --local tf = GameGetRealWorldTimeSinceStarted()

@@ -17,33 +17,35 @@ local function request_flag_slow(flag, ent)
     net.send_flags("1" .. ent .. " " .. flag)
 end
 
-function module.on_new_entity(ent)
-    if not EntityHasTag(ent, "ew_des") and EntityGetRootEntity(ent) == ent then
-        local f = EntityGetFilename(ent)
-        local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
-        local x, y = EntityGetTransform(ent)
-        local lx, ly = math.floor(x / 64), math.floor(y / 64)
-        if EntityHasTag(ent, "ew_unique") then
-            local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
-            ewext.notrack(ent)
-            request_flag_slow(flag, ent)
-        elseif
-            (
-                f == "data/entities/props/physics_fungus.xml"
-                and (lx == -29 or lx == -28 or lx == -27)
-                and (ly == -20 or ly == -19)
-            )
-            or (f == "data/entities/props/physics_fungus_big.xml" and lx == -29 and ly == -20)
-            or (f == "data/entities/props/physics_fungus_small.xml" and lx == -27 and ly == -19)
-            or (f == "data/entities/items/pickup/evil_eye.xml" and lx == -39 and ly == -4)
-        then
-            local flag = f .. ":" .. lx .. ":" .. ly
-            ewext.notrack(ent)
-            request_flag_slow(flag, ent)
-        elseif seed ~= nil then
-            local flag = f .. ":" .. ComponentGetValue2(seed, "pos_x") .. ":" .. ComponentGetValue2(seed, "pos_y")
-            ewext.notrack(ent)
-            request_flag_slow(flag, ent)
+function module.on_new_entity(arr)
+    for _, ent in ipairs(arr) do
+        if not EntityHasTag(ent, "ew_des") and EntityGetRootEntity(ent) == ent then
+            local f = EntityGetFilename(ent)
+            local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
+            local x, y = EntityGetTransform(ent)
+            local lx, ly = math.floor(x / 64), math.floor(y / 64)
+            if EntityHasTag(ent, "ew_unique") then
+                local flag = f .. ":" .. math.floor(x / 512) .. ":" .. math.floor(y / 512)
+                ewext.notrack(ent)
+                request_flag_slow(flag, ent)
+            elseif
+                (
+                    f == "data/entities/props/physics_fungus.xml"
+                    and (lx == -29 or lx == -28 or lx == -27)
+                    and (ly == -20 or ly == -19)
+                )
+                or (f == "data/entities/props/physics_fungus_big.xml" and lx == -29 and ly == -20)
+                or (f == "data/entities/props/physics_fungus_small.xml" and lx == -27 and ly == -19)
+                or (f == "data/entities/items/pickup/evil_eye.xml" and lx == -39 and ly == -4)
+            then
+                local flag = f .. ":" .. lx .. ":" .. ly
+                ewext.notrack(ent)
+                request_flag_slow(flag, ent)
+            elseif seed ~= nil then
+                local flag = f .. ":" .. ComponentGetValue2(seed, "pos_x") .. ":" .. ComponentGetValue2(seed, "pos_y")
+                ewext.notrack(ent)
+                request_flag_slow(flag, ent)
+            end
         end
     end
 end

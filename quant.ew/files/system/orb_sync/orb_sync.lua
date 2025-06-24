@@ -58,22 +58,24 @@ function rpc.update_orbs(found_orbs)
     actual_orbs_update(found_orbs)
 end
 
-function module.on_new_entity(ent)
-    local comp = EntityGetFirstComponent(ent, "OrbComponent")
-    if comp ~= nil then
-        local found_local = orbs_found_this_run()
-        local orb = ComponentGetValue2(comp, "orb_id")
-        if table.contains(found_local, orb) then
+function module.on_new_entity(arr)
+    for _, ent in ipairs(arr) do
+        local comp = EntityGetFirstComponent(ent, "OrbComponent")
+        if comp ~= nil then
+            local found_local = orbs_found_this_run()
+            local orb = ComponentGetValue2(comp, "orb_id")
+            if table.contains(found_local, orb) then
+                EntityKill(ent)
+            end
+        elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
             EntityKill(ent)
         end
-    elseif EntityGetFilename(ent) == "data/entities/base_item.xml" then
-        EntityKill(ent)
-    end
-    local com = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
-    if com ~= nil and ComponentGetValue2(com, "use_gun_script") then
-        com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
-        if com ~= nil then
-            ComponentSetValue2(com, "item_pickup_radius", 256)
+        local com = EntityGetFirstComponentIncludingDisabled(ent, "AbilityComponent")
+        if com ~= nil and ComponentGetValue2(com, "use_gun_script") then
+            com = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
+            if com ~= nil then
+                ComponentSetValue2(com, "item_pickup_radius", 256)
+            end
         end
     end
 end

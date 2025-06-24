@@ -84,8 +84,10 @@ local wait_for_ent = {}
 
 local last_wait = {}
 
-function tele.on_new_entity(ent)
-    table.insert(wait_for_ent, ent)
+function tele.on_new_entity(arr)
+    for _, ent in ipairs(arr) do
+        table.insert(wait_for_ent, ent)
+    end
 end
 
 function tele.on_world_update()

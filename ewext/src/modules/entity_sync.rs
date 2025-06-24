@@ -518,7 +518,8 @@ impl Module for EntitySync {
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
-    fn on_new_entity(&mut self, entity: EntityID, kill: bool) -> eyre::Result<()> {
+    fn on_new_entity(&mut self, ent: isize, kill: bool) -> eyre::Result<()> {
+        let entity = EntityID::try_from(ent)?;
         if !kill && !entity.is_alive() {
             return Ok(());
         }
@@ -646,9 +647,7 @@ impl Module for EntitySync {
         let mut times = vec![0; 3];
         times[0] = start.elapsed().as_micros();
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
-            if let Ok(ent) = EntityID::try_from(ent) {
-                self.on_new_entity(ent, false)?;
-            }
+            self.on_new_entity(ent, false)?;
         }
         for entity in self.to_track.drain(..) {
             if entity.is_alive() {
