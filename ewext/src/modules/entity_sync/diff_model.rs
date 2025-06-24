@@ -1045,9 +1045,9 @@ impl LocalDiffModel {
 
     pub(crate) fn update_pending_authority(
         &mut self,
+        start: Instant,
         entity_manager: &mut EntityManager,
     ) -> eyre::Result<Instant> {
-        let start = Instant::now();
         while let Some(entity_data) = self.tracker.pending_authority.pop() {
             let entity = spawn_entity_by_data(
                 &entity_data.data,
@@ -1137,7 +1137,7 @@ impl LocalDiffModel {
         start: usize,
         tmr: Instant,
         entity_manager: &mut EntityManager,
-    ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, Instant, usize)> {
+    ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, usize)> {
         self.update_buffer.clear();
         let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
         let cam_x = cam_x as f32;
@@ -1424,7 +1424,7 @@ impl LocalDiffModel {
                 entity_manager.remove_ent(&ent);
             }
         }
-        Ok((dead, tmr, end))
+        Ok((dead, end))
     }
     pub(crate) fn make_init(&mut self) {
         for (lid, EntityEntryPair { current, gid, .. }) in self.entity_entries.iter_mut() {
@@ -1990,7 +1990,7 @@ impl RemoteDiffModel {
         start: usize,
         tmr: Instant,
         entity_manager: &mut EntityManager,
-    ) -> eyre::Result<(usize, Instant)> {
+    ) -> eyre::Result<usize> {
         let mut to_remove = Vec::new();
         let l = self.entity_infos.len();
         let mut end = None;
@@ -2080,7 +2080,7 @@ impl RemoteDiffModel {
             self.grab_request.push(lid);
             self.entity_infos.remove(&lid);
         }
-        Ok((end.unwrap_or(0), tmr))
+        Ok(end.unwrap_or(0))
     }
 
     pub(crate) fn kill_entities(

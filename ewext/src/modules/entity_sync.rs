@@ -513,7 +513,7 @@ impl EntitySync {
 
 impl Module for EntitySync {
     fn on_world_init(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        send_remotedes(ctx, true, Destination::Broadcast, RemoteDes::Reset)?;
+        send_remotedes(ctx.net, true, Destination::Broadcast, RemoteDes::Reset)?;
         Ok(())
     }
 
@@ -537,28 +537,6 @@ impl Module for EntitySync {
             self.entity_manager.set_current_entity(entity)?;
             if self
                 .entity_manager
-                .has_tag(const { CachedTag::from_tag("card_action") })
-            {
-                if let Some(cost) = self
-                    .entity_manager
-                    .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
-                {
-                    if cost.stealable()? {
-                        cost.set_stealable(false)?;
-                        self.entity_manager
-                            .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
-                    }
-                }
-                if let Some(vel) = self
-                    .entity_manager
-                    .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
-                {
-                    vel.set_gravity_y(0.0)?;
-                    vel.set_air_friction(10.0)?;
-                }
-            }
-            if self
-                .entity_manager
                 .has_tag(const { CachedTag::from_tag(DES_TAG) })
                 && !self.dont_kill.remove(&entity)
                 && self
@@ -577,6 +555,29 @@ impl Module for EntitySync {
                     entity.kill();
                 }
             } else {
+                if self
+                    .entity_manager
+                    .has_tag(const { CachedTag::from_tag("card_action") })
+                {
+                    if let Some(cost) = self
+                        .entity_manager
+                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+                    {
+                        if cost.stealable()? {
+                            cost.set_stealable(false)?;
+                            self.entity_manager.get_var_or_default(
+                                const { VarName::from_str("ew_was_stealable") },
+                            )?;
+                        }
+                    }
+                    if let Some(vel) = self
+                        .entity_manager
+                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+                    {
+                        vel.set_gravity_y(0.0)?;
+                        vel.set_air_friction(10.0)?;
+                    }
+                }
                 self.to_track.push(entity);
             }
         } else if kill
@@ -599,6 +600,7 @@ impl Module for EntitySync {
     }
 
     fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+        let start = std::time::Instant::now();
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         let pos = WorldPos::from_f64(x, y);
         self.interest_tracker.set_center(x, y);
@@ -608,25 +610,27 @@ impl Module for EntitySync {
         }
         if frame_num % 5 == 0 {
             send_remotedes(
-                ctx,
+                ctx.net,
                 false,
                 Destination::Broadcast,
                 RemoteDes::InterestRequest(InterestRequest { pos }),
             )?;
         }
-        let iter = self.iter_peers(ctx.player_map).map(|(_, b)| b);
-        for peer in iter.collect::<Vec<PeerId>>() {
-            send_remotedes(
-                ctx,
-                false,
-                Destination::Peer(peer),
-                RemoteDes::CameraPos(pos),
-            )?;
+        if frame_num % 5 == 1 {
+            let iter = self.iter_peers(ctx.player_map);
+            for (_, peer) in iter {
+                send_remotedes(
+                    ctx.net,
+                    false,
+                    Destination::Peer(peer),
+                    RemoteDes::CameraPos(pos),
+                )?;
+            }
         }
 
         for lost in self.interest_tracker.drain_lost_interest() {
             send_remotedes(
-                ctx,
+                ctx.net,
                 true,
                 Destination::Peer(lost),
                 RemoteDes::ExitedInterest,
@@ -637,11 +641,15 @@ impl Module for EntitySync {
         self.local_diff_model
             .enable_later(&mut self.entity_manager)?;
         self.local_diff_model.phys_later(&mut self.entity_manager)?;
-        let mut start = self
-            .local_diff_model
-            .update_pending_authority(&mut self.entity_manager)?;
-        let mut times = vec![0; 3];
-        times[0] = start.elapsed().as_micros();
+        let mut times = vec![0; 4];
+        if self.log_performance {
+            times[0] = start.elapsed().as_micros();
+        }
+        self.local_diff_model
+            .update_pending_authority(start, &mut self.entity_manager)?;
+        if self.log_performance {
+            times[1] = start.elapsed().as_micros() - times[0];
+        }
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             self.on_new_entity(ent, false)?;
         }
@@ -656,7 +664,9 @@ impl Module for EntitySync {
                 self.entity_manager.remove_ent(&entity);
             }
         }
-        times[1] = start.elapsed().as_micros() - times[0];
+        if self.log_performance {
+            times[2] = start.elapsed().as_micros() - (times[0] + times[1]);
+        }
         {
             let new_intersects = self.interest_tracker.got_any_new_interested();
             if !new_intersects.is_empty() {
@@ -675,7 +685,7 @@ impl Module for EntitySync {
                 err?;
             }
             let dead;
-            (dead, start, self.local_index) = match self
+            (dead, self.local_index) = match self
                 .local_diff_model
                 .update_tracked_entities(ctx, self.local_index, start, &mut self.entity_manager)
                 .wrap_err("Failed to update locally tracked entities")
@@ -686,7 +696,9 @@ impl Module for EntitySync {
                     return Err(s);
                 }
             };
-            times[2] = start.elapsed().as_micros() - (times[1] + times[0]);
+            if self.log_performance {
+                times[3] = start.elapsed().as_micros() - (times[0] + times[1] + times[2]);
+            }
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
                 if !proj.is_empty() {
@@ -706,7 +718,7 @@ impl Module for EntitySync {
                         })
                         .collect();
                     send_remotedes(
-                        ctx,
+                        ctx.net,
                         true,
                         Destination::Peers(self.interest_tracker.iter_interested().collect()),
                         RemoteDes::Projectiles(data),
@@ -716,7 +728,7 @@ impl Module for EntitySync {
             self.clear_buffer(ctx, &new_intersects)?;
             if !dead.is_empty() {
                 send_remotedes(
-                    ctx,
+                    ctx.net,
                     true,
                     Destination::Peers(
                         ctx.player_map
@@ -744,15 +756,16 @@ impl Module for EntitySync {
                 match self.remote_models.get_mut(owner) {
                     Some(remote_model) => {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
-                        let v;
-                        (v, start) = remote_model
+                        let v = remote_model
                             .apply_entities(ctx, *vi, start, &mut self.entity_manager)
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
-                        times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
+                        if self.log_performance {
+                            times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
+                        }
                         for lid in remote_model.drain_grab_request() {
                             send_remotedes(
-                                ctx,
+                                ctx.net,
                                 true,
                                 Destination::Peer(*owner),
                                 RemoteDes::RequestGrab(lid),
@@ -813,6 +826,7 @@ impl Module for EntitySync {
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }
         if self.log_performance {
+            times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
             crate::print(&format!("{:?}", times))?;
         }
         Ok(())
@@ -877,7 +891,7 @@ impl Module for EntitySync {
 }
 
 fn send_remotedes(
-    ctx: &mut ModuleCtx<'_>,
+    ctx: &mut NetManager,
     reliable: bool,
     destination: Destination<PeerId>,
     remote_des: RemoteDes,
@@ -887,7 +901,7 @@ fn send_remotedes(
         destination,
         message: RemoteMessage::RemoteDes(remote_des),
     };
-    ctx.net.send(&message)
+    ctx.send(&message)
 }
 
 fn send_remotedes_ret(
