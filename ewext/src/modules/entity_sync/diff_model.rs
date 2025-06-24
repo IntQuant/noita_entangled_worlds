@@ -337,17 +337,9 @@ impl LocalDiffModelTracker {
                         ))?;
                         let r = wand.rotation()?;
                         info.wand_rotation = r;
-                        if let Some(gid) = wand
-                            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                                None,
-                            )?
-                            .find_map(|var| {
-                                if var.name().ok()? == "ew_gid_lid" {
-                                    Some(var.value_string().ok()?.parse::<u64>().ok()?)
-                                } else {
-                                    None
-                                }
-                            })
+                        if let Some(Some(gid)) = wand
+                            .get_var("ew_gid_lid")
+                            .map(|var| var.value_string().ok()?.parse::<u64>().ok())
                         {
                             Some((Some(Gid(gid)), serialize_entity(wand)?, wand.raw()))
                         } else {
@@ -376,13 +368,9 @@ impl LocalDiffModelTracker {
                 )?
                 .is_some())
             || entity_manager
-                .try_get_first_component_including_disabled::<VariableStorageComponent>(
-                    ComponentTag::None,
-                )?
-                .iter()
-                .any(|var| {
-                    var.name().unwrap_or("".into()) == "active" && var.value_int().unwrap_or(0) == 1
-                })
+                .get_var(const { VarName::from_str("active") })
+                .map(|var| var.value_int().unwrap_or(0) == 1)
+                .unwrap_or(false)
             || (entity_manager.has_tag(const { CachedTag::from_tag("pitcheck_b") })
                 && entity_manager
                     .try_get_first_component::<LuaComponent>(
@@ -897,11 +885,7 @@ impl LocalDiffModel {
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
         })?;
-        let n = entity_manager
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                ComponentTag::None,
-            )?
-            .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid");
+        let n = entity_manager.get_var(const { VarName::from_str("ew_gid_lid") });
         if let Some(lua) = n {
             entity_manager.remove_component(lua)?;
         }
@@ -1080,12 +1064,8 @@ impl LocalDiffModel {
                         const { ComponentTag::from_str("disabled") },
                         true,
                     )?;
-                } else if let Some(var) = entity_manager
-                    .try_get_first_component_including_disabled::<VariableStorageComponent>(
-                        ComponentTag::None,
-                    )?
-                    .iter()
-                    .find(|var| var.name().unwrap_or("".into()) == "active")
+                } else if let Some(var) =
+                    entity_manager.get_var(const { VarName::from_str("active") })
                 {
                     var.set_value_int(1)?;
                     entity_manager.set_components_with_tag_enabled(
@@ -1690,10 +1670,8 @@ impl RemoteDiffModel {
         }
         if entity_info.is_enabled {
             if entity_manager
-                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                    ComponentTag::None,
-                )?
-                .all(|var| var.name().unwrap_or("".into()) != "ew_has_started")
+                .get_var(const { VarName::from_str("ew_has_started") })
+                .is_none()
             {
                 entity_manager.set_components_with_tag_enabled(
                     const { ComponentTag::from_str("disabled_at_start") },
@@ -1733,12 +1711,7 @@ impl RemoteDiffModel {
                 entity
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
-            } else if let Some(var) = entity_manager
-                .try_get_first_component_including_disabled::<VariableStorageComponent>(
-                    ComponentTag::None,
-                )?
-                .iter()
-                .find(|var| var.name().unwrap_or("".into()) == "active")
+            } else if let Some(var) = entity_manager.get_var(const { VarName::from_str("active") })
             {
                 var.set_value_int(1)?;
                 entity_manager.set_components_with_tag_enabled(
@@ -1746,13 +1719,7 @@ impl RemoteDiffModel {
                     true,
                 )?
             }
-        } else if let Some(var) = entity_manager
-            .try_get_first_component_including_disabled::<VariableStorageComponent>(
-                ComponentTag::None,
-            )?
-            .iter()
-            .find(|var| var.name().unwrap_or("".into()) == "active")
-        {
+        } else if let Some(var) = entity_manager.get_var(const { VarName::from_str("active") }) {
             var.set_value_int(0)?;
             entity_manager.set_components_with_tag_enabled(
                 const { ComponentTag::from_str("activate") },
@@ -2616,15 +2583,9 @@ fn give_wand(
     };
     let mut stop = false;
     if let Some(wand) = inv.m_actual_active_item()? {
-        if let Some(tgid) = wand
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-            .find_map(|var| {
-                if var.name().ok()? == "ew_gid_lid" {
-                    Some(var.value_string().ok()?.parse::<u64>().ok()?)
-                } else {
-                    None
-                }
-            })
+        if let Some(Some(tgid)) = wand
+            .get_var("ew_gid_lid")
+            .map(|var| var.value_string().unwrap_or_default().parse::<u64>().ok())
         {
             if gid != Some(Gid(tgid)) {
                 if r.is_some() {
@@ -2637,10 +2598,7 @@ fn give_wand(
                 }
                 stop = true
             }
-        } else if wand
-            .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-            .any(|p| p.name().ok().unwrap_or("".into()) == "ew_spawned_wand")
-        {
+        } else if wand.get_var("ew_spawned_wand").is_some() {
             if r.is_some() {
                 entity_manager.set_component_enabled(inv, false)?;
             }

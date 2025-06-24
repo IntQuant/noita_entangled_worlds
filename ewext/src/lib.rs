@@ -628,10 +628,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
             let (peer_id, entity): (Cow<'_, str>, Option<EntityID>) = LuaGetValue::get(lua, -1)?;
             let peer_id = PeerId::from_hex(&peer_id)?;
             let entity = entity.ok_or_eyre("Expected a valid entity")?;
-            if entity
-                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                .all(|var| var.name().unwrap_or("".into()) != "ew_peer_id")
-            {
+            if entity.get_var("ew_peer_id").is_none() {
                 let var = entity.add_component::<VariableStorageComponent>()?;
                 var.set_name("ew_peer_id".into())?;
                 var.set_value_string(peer_id.0.to_string().into())?;

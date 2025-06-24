@@ -14,7 +14,7 @@ use noita_api::serialize::serialize_entity;
 use noita_api::{
     CachedTag, ComponentTag, DamageModelComponent, DamageType, EntityID, EntityManager,
     ItemCostComponent, LuaComponent, PositionSeedComponent, ProjectileComponent, VarName,
-    VariableStorageComponent, VelocityComponent,
+    VelocityComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -563,10 +563,7 @@ impl Module for EntitySync {
                 && !self.dont_kill.remove(&entity)
                 && self
                     .entity_manager
-                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
-                        ComponentTag::None,
-                    )?
-                    .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
+                    .get_var(const { VarName::from_str("ew_gid_lid") })
                     .map(|var| {
                         if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
                             !self.dont_kill_by_gid.remove(&Gid(n))
@@ -586,8 +583,7 @@ impl Module for EntitySync {
             && !self.dont_kill.remove(&entity)
             && entity.has_tag(DES_TAG)
             && entity
-                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
+                .get_var("ew_gid_lid")
                 .map(|var| {
                     if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
                         !self.dont_kill_by_gid.remove(&Gid(n))

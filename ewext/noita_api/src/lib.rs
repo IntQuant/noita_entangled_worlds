@@ -1070,6 +1070,8 @@ pub enum VarName {
     ThrowTime,
     GhostId,
     EwGidLid,
+    Active,
+    EwHasStarted,
     Unknown,
 }
 impl VarName {
@@ -1082,6 +1084,8 @@ impl VarName {
             b"throw_time" => Self::ThrowTime,
             b"ghost_id" => Self::GhostId,
             b"ew_gid_lid" => Self::EwGidLid,
+            b"active" => Self::Active,
+            b"ew_has_started" => Self::EwHasStarted,
             _ => unreachable!(),
         }
     }
@@ -1094,6 +1098,8 @@ impl VarName {
             b"throw_time" => Self::ThrowTime,
             b"ghost_id" => Self::GhostId,
             b"ew_gid_lid" => Self::EwGidLid,
+            b"active" => Self::Active,
+            b"ew_has_started" => Self::EwHasStarted,
             _ if s.is_empty() => Self::None,
             _ => Self::Unknown,
         }
@@ -1108,6 +1114,8 @@ impl VarName {
             Self::ThrowTime => "throw_time",
             Self::GhostId => "ghost_id",
             Self::EwGidLid => "ew_gid_lid",
+            Self::Active => "active",
+            Self::EwHasStarted => "ew_has_started",
             Self::Unknown => unreachable!(),
         }
     }
