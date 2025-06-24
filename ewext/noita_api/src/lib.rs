@@ -444,9 +444,7 @@ impl EntityID {
                     }
                     GameEffectData::Custom(file) => {
                         let (x, y) = self.position().unwrap_or_default();
-                        if let Ok(Some(ent)) =
-                            raw::entity_load(file.into(), Some(x as f64), Some(y as f64))
-                        {
+                        if let Ok(ent) = EntityID::load(file, Some(x as f64), Some(y as f64)) {
                             self.add_child(ent);
                             ent
                         } else {

@@ -19,7 +19,12 @@ end
 
 function module.on_new_entity(arr)
     for _, ent in ipairs(arr) do
-        if not EntityHasTag(ent, "ew_des") and EntityGetRootEntity(ent) == ent then
+        if
+            not EntityHasTag(ent, "ew_des")
+            and EntityGetRootEntity(ent) == ent
+            and not EntityHasTag(ent, "polymorphed_player")
+            and not EntityHasTag(ent, "ew_peer")
+        then
             local f = EntityGetFilename(ent)
             local seed = EntityGetFirstComponentIncludingDisabled(ent, "PositionSeedComponent")
             local x, y = EntityGetTransform(ent)
