@@ -20,7 +20,9 @@ jobs:
           workspaces: ewext -> target
 
       - name: Build ewext
-        run: cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
+        run: |
+          rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+          cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
         working-directory: ./ewext
       - name: Copy ewext
         run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
