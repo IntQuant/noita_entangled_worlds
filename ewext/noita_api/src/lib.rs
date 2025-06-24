@@ -1236,6 +1236,11 @@ impl ComponentData {
             tags,
         }
     }
+    fn new_with_name(id: ComponentID, name: VarName) -> Self {
+        let mut c = Self::new(id, true);
+        c.name = name;
+        c
+    }
 }
 const COMP_VEC_LEN: usize = 1;
 #[derive(Default)]
@@ -1480,6 +1485,12 @@ impl EntityManager {
             ));
         Ok(c)
     }
+    fn add_component_var<C: Component>(&mut self, name: VarName) -> eyre::Result<C> {
+        let c = self.current_entity.add_component::<C>()?;
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .push(ComponentData::new_with_name(*c, name));
+        Ok(c)
+    }
     pub fn get_var(&self, name: VarName) -> Option<VariableStorageComponent> {
         let mut i =
             self.iter_all_components_of_type_including_disabled_raw::<VariableStorageComponent>();
@@ -1511,7 +1522,7 @@ impl EntityManager {
         if let Some(var) = self.get_var(name) {
             Ok(var)
         } else {
-            let var = self.add_component::<VariableStorageComponent>()?;
+            let var = self.add_component_var::<VariableStorageComponent>(name)?;
             var.set_name(name.to_str().into())?;
             Ok(var)
         }
@@ -1523,7 +1534,7 @@ impl EntityManager {
         if let Some(var) = self.get_var_unknown(name) {
             Ok(var)
         } else {
-            let var = self.add_component::<VariableStorageComponent>()?;
+            let var = self.add_component_var::<VariableStorageComponent>(VarName::Unknown)?;
             var.set_name(name.into())?;
             Ok(var)
         }

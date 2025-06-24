@@ -12,8 +12,9 @@ use interest::InterestTracker;
 use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, DamageType, EntityID, EntityManager, ItemCostComponent, LuaComponent,
-    PositionSeedComponent, ProjectileComponent, VariableStorageComponent, VelocityComponent,
+    CachedTag, ComponentTag, DamageModelComponent, DamageType, EntityID, EntityManager,
+    ItemCostComponent, LuaComponent, PositionSeedComponent, ProjectileComponent, VarName,
+    VariableStorageComponent, VelocityComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -531,8 +532,58 @@ impl Module for EntitySync {
             self.dont_kill_by_gid.insert(gid);
             self.local_diff_model.got_polied(gid);
         }
-        if entity.has_tag(DES_TAG)
+        if self.should_be_tracked(entity)? {
+            self.entity_manager.set_current_entity(entity)?;
+            if self
+                .entity_manager
+                .has_tag(const { CachedTag::from_tag("card_action") })
+            {
+                if let Some(cost) = self
+                    .entity_manager
+                    .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+                {
+                    if cost.stealable()? {
+                        cost.set_stealable(false)?;
+                        self.entity_manager
+                            .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
+                    }
+                }
+                if let Some(vel) = self
+                    .entity_manager
+                    .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+                {
+                    vel.set_gravity_y(0.0)?;
+                    vel.set_air_friction(10.0)?;
+                }
+            }
+            if self
+                .entity_manager
+                .has_tag(const { CachedTag::from_tag(DES_TAG) })
+                && !self.dont_kill.remove(&entity)
+                && self
+                    .entity_manager
+                    .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(
+                        ComponentTag::None,
+                    )?
+                    .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
+                    .map(|var| {
+                        if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
+                            !self.dont_kill_by_gid.remove(&Gid(n))
+                        } else {
+                            true
+                        }
+                    })
+                    .unwrap_or(true)
+            {
+                if kill {
+                    entity.kill();
+                }
+            } else {
+                self.to_track.push(entity);
+            }
+        } else if kill
             && !self.dont_kill.remove(&entity)
+            && entity.has_tag(DES_TAG)
             && entity
                 .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
                 .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
@@ -545,25 +596,7 @@ impl Module for EntitySync {
                 })
                 .unwrap_or(true)
         {
-            if kill {
-                entity.kill();
-            }
-            return Ok(());
-        }
-        if self.should_be_tracked(entity)? {
-            if entity.has_tag("card_action") {
-                if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
-                    if cost.stealable()? {
-                        cost.set_stealable(false)?;
-                        entity.get_var_or_default("ew_was_stealable")?;
-                    }
-                }
-                if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
-                    vel.set_gravity_y(0.0)?;
-                    vel.set_air_friction(10.0)?;
-                }
-            }
-            self.to_track.push(entity);
+            entity.kill();
         }
         Ok(())
     }
@@ -617,13 +650,15 @@ impl Module for EntitySync {
                 self.on_new_entity(ent, false)?;
             }
         }
-        while let Some(entity) = self.to_track.pop() {
+        for entity in self.to_track.drain(..) {
             if entity.is_alive() {
                 self.local_diff_model
                     .track_and_upload_entity(entity, &mut self.entity_manager)?;
                 if start.elapsed().as_micros() > 2000 {
                     break;
                 }
+            } else {
+                self.entity_manager.remove_ent(&entity);
             }
         }
         times[1] = start.elapsed().as_micros() - times[0];
