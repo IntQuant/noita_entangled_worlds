@@ -581,6 +581,9 @@ impl EntityID {
             None,
         )
     }
+    pub fn get_all_components(self) -> eyre::Result<Vec<i32>> {
+        raw::entity_get_all_components(self)
+    }
     pub fn get_hotspot(self, hotspot: &str) -> eyre::Result<(f64, f64)> {
         raw::entity_get_hotspot(self.raw() as i32, hotspot.into(), true, None)
     }
@@ -704,6 +707,9 @@ impl ComponentID {
         T: LuaGetValue,
     {
         raw::component_object_get_value::<T>(self, object, key)
+    }
+    pub fn get_type(self) -> eyre::Result<Cow<'static, str>> {
+        raw::component_get_type_name(self)
     }
 }
 
@@ -981,91 +987,6 @@ pub enum CachedComponent {
 }
 const COMP_LEN: usize = 31;
 impl CachedComponent {
-    const fn iter() -> [CachedComponent; COMP_LEN] {
-        [
-            Self::PhysicsBody2Component,
-            Self::VariableStorageComponent,
-            Self::AnimalAIComponent,
-            Self::ItemCostComponent,
-            Self::LaserEmitterComponent,
-            Self::CharacterDataComponent,
-            Self::WormComponent,
-            Self::VelocityComponent,
-            Self::BossDragonComponent,
-            Self::LuaComponent,
-            Self::BossHealthBarComponent,
-            Self::DamageModelComponent,
-            Self::ItemComponent,
-            Self::StreamingKeepAliveComponent,
-            Self::SpriteComponent,
-            Self::CameraBoundComponent,
-            Self::GhostComponent,
-            Self::PhysicsBodyComponent,
-            Self::Inventory2Component,
-            Self::AIAttackComponent,
-            Self::IKLimbWalkerComponent,
-            Self::IKLimbAttackerComponent,
-            Self::IKLimbsAnimatorComponent,
-            Self::CharacterPlatformingComponent,
-            Self::PhysicsAIComponent,
-            Self::AdvancedFishAIComponent,
-            Self::LifetimeComponent,
-            Self::ExplodeOnDamageComponent,
-            Self::ItemPickUpperComponent,
-            Self::AudioComponent,
-            Self::AbilityComponent,
-        ]
-    }
-    fn get<C: Component>(
-        &self,
-        ent: EntityID,
-    ) -> eyre::Result<SmallVec<[ComponentData; COMP_VEC_LEN]>> {
-        Ok(ent
-            .iter_all_components_of_type_including_disabled_raw::<C>(None)?
-            .into_iter()
-            .filter_map(|c| {
-                c.map(|c| ComponentData::new(c, C::NAME_STR == "VariableStorageComponent"))
-            })
-            .collect())
-    }
-    fn to_component(&self, ent: EntityID) -> eyre::Result<SmallVec<[ComponentData; COMP_VEC_LEN]>> {
-        //maybe possible to get all components in 1 lua call
-        Ok(match self {
-            Self::PhysicsBody2Component => self.get::<PhysicsBody2Component>(ent)?,
-            Self::VariableStorageComponent => self.get::<VariableStorageComponent>(ent)?,
-            Self::AnimalAIComponent => self.get::<AnimalAIComponent>(ent)?,
-            Self::ItemCostComponent => self.get::<ItemCostComponent>(ent)?,
-            Self::LaserEmitterComponent => self.get::<LaserEmitterComponent>(ent)?,
-            Self::CharacterDataComponent => self.get::<CharacterDataComponent>(ent)?,
-            Self::WormComponent => self.get::<WormComponent>(ent)?,
-            Self::VelocityComponent => self.get::<VelocityComponent>(ent)?,
-            Self::BossDragonComponent => self.get::<BossDragonComponent>(ent)?,
-            Self::LuaComponent => self.get::<LuaComponent>(ent)?,
-            Self::BossHealthBarComponent => self.get::<BossHealthBarComponent>(ent)?,
-            Self::DamageModelComponent => self.get::<DamageModelComponent>(ent)?,
-            Self::ItemComponent => self.get::<ItemComponent>(ent)?,
-            Self::StreamingKeepAliveComponent => self.get::<StreamingKeepAliveComponent>(ent)?,
-            Self::SpriteComponent => self.get::<SpriteComponent>(ent)?,
-            Self::CameraBoundComponent => self.get::<CameraBoundComponent>(ent)?,
-            Self::GhostComponent => self.get::<GhostComponent>(ent)?,
-            Self::PhysicsBodyComponent => self.get::<PhysicsBodyComponent>(ent)?,
-            Self::Inventory2Component => self.get::<Inventory2Component>(ent)?,
-            Self::AIAttackComponent => self.get::<AIAttackComponent>(ent)?,
-            Self::IKLimbWalkerComponent => self.get::<IKLimbWalkerComponent>(ent)?,
-            Self::IKLimbAttackerComponent => self.get::<IKLimbAttackerComponent>(ent)?,
-            Self::IKLimbsAnimatorComponent => self.get::<IKLimbsAnimatorComponent>(ent)?,
-            Self::CharacterPlatformingComponent => {
-                self.get::<CharacterPlatformingComponent>(ent)?
-            }
-            Self::PhysicsAIComponent => self.get::<PhysicsAIComponent>(ent)?,
-            Self::AdvancedFishAIComponent => self.get::<AdvancedFishAIComponent>(ent)?,
-            Self::LifetimeComponent => self.get::<LifetimeComponent>(ent)?,
-            Self::ExplodeOnDamageComponent => self.get::<ExplodeOnDamageComponent>(ent)?,
-            Self::ItemPickUpperComponent => self.get::<ItemPickUpperComponent>(ent)?,
-            Self::AudioComponent => self.get::<AudioComponent>(ent)?,
-            Self::AbilityComponent => self.get::<AbilityComponent>(ent)?,
-        })
-    }
     const fn from_component<C: Component>() -> Self {
         match C::NAME_STR.as_bytes() {
             b"PhysicsBody2Component" => Self::PhysicsBody2Component,
@@ -1101,6 +1022,42 @@ impl CachedComponent {
             b"AbilityComponent" => Self::AbilityComponent,
             _ => unreachable!(),
         }
+    }
+    fn from_component_non_const(s: &str) -> Option<Self> {
+        Some(match s {
+            "PhysicsBody2Component" => Self::PhysicsBody2Component,
+            "VariableStorageComponent" => Self::VariableStorageComponent,
+            "AnimalAIComponent" => Self::AnimalAIComponent,
+            "ItemCostComponent" => Self::ItemCostComponent,
+            "LaserEmitterComponent" => Self::LaserEmitterComponent,
+            "CharacterDataComponent" => Self::CharacterDataComponent,
+            "WormComponent" => Self::WormComponent,
+            "VelocityComponent" => Self::VelocityComponent,
+            "BossDragonComponent" => Self::BossDragonComponent,
+            "LuaComponent" => Self::LuaComponent,
+            "BossHealthBarComponent" => Self::BossHealthBarComponent,
+            "DamageModelComponent" => Self::DamageModelComponent,
+            "ItemComponent" => Self::ItemComponent,
+            "StreamingKeepAliveComponent" => Self::StreamingKeepAliveComponent,
+            "SpriteComponent" => Self::SpriteComponent,
+            "CameraBoundComponent" => Self::CameraBoundComponent,
+            "GhostComponent" => Self::GhostComponent,
+            "PhysicsBodyComponent" => Self::PhysicsBodyComponent,
+            "Inventory2Component" => Self::Inventory2Component,
+            "AIAttackComponent" => Self::AIAttackComponent,
+            "IKLimbWalkerComponent" => Self::IKLimbWalkerComponent,
+            "IKLimbAttackerComponent" => Self::IKLimbAttackerComponent,
+            "IKLimbsAnimatorComponent" => Self::IKLimbsAnimatorComponent,
+            "CharacterPlatformingComponent" => Self::CharacterPlatformingComponent,
+            "PhysicsAIComponent" => Self::PhysicsAIComponent,
+            "AdvancedFishAIComponent" => Self::AdvancedFishAIComponent,
+            "LifetimeComponent" => Self::LifetimeComponent,
+            "ExplodeOnDamageComponent" => Self::ExplodeOnDamageComponent,
+            "ItemPickUpperComponent" => Self::ItemPickUpperComponent,
+            "AudioComponent" => Self::AudioComponent,
+            "AbilityComponent" => Self::AbilityComponent,
+            _ => return None,
+        })
     }
 }
 #[derive(PartialEq, Copy, Clone)]
@@ -1326,9 +1283,17 @@ impl EntityData {
             CachedTag::PolymorphableNOT,
             CachedTag::EggItem
         );
-        //TODO maybe faster to use EntityGetAllComponents and ComponentGetTypeName
-        let components =
-            const { CachedComponent::iter() }.map(|c| c.to_component(ent).unwrap_or_default());
+        let coms = ent.get_all_components()?;
+        let mut components: [SmallVec<[ComponentData; COMP_VEC_LEN]>; COMP_LEN] =
+            std::array::from_fn(|_| SmallVec::new());
+        for c in coms {
+            let c = ComponentID((c as isize).try_into()?);
+            let name = c.get_type()?;
+            if let Some(com) = CachedComponent::from_component_non_const(&name) {
+                let is_var = com == CachedComponent::VariableStorageComponent;
+                components[com as usize].push(ComponentData::new(c, is_var))
+            }
+        }
         Ok(EntityData { tags, components })
     }
     fn has_tag(&self, tag: CachedTag) -> bool {
