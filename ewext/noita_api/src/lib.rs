@@ -118,6 +118,22 @@ impl EntityID {
         Ok(true)
     }
 
+    pub fn get_physics_body_ids(self) -> eyre::Result<Vec<PhysicsBodyID>> {
+        raw::physics_body_id_get_from_entity(self, None)
+    }
+
+    pub fn set_static(self, is_static: bool) -> eyre::Result<()> {
+        raw::physics_set_static(self, is_static)
+    }
+
+    pub fn create(name: Option<Cow<'_, str>>) -> eyre::Result<Self> {
+        match raw::entity_create_new(name) {
+            Ok(Some(n)) => Ok(n),
+            Err(s) => Err(s),
+            _ => Err(eyre!("ent not found")),
+        }
+    }
+
     pub fn kill(self) {
         // Shouldn't ever error.
         if self.is_alive()
@@ -545,6 +561,59 @@ impl EntityID {
 
     pub fn remove_component(self, component_id: ComponentID) -> eyre::Result<()> {
         raw::entity_remove_component(self, component_id)
+    }
+    pub fn shoot_projectile(
+        self,
+        pos_x: f64,
+        pos_y: f64,
+        target_x: f64,
+        target_y: f64,
+        proj: EntityID,
+    ) -> eyre::Result<()> {
+        raw::game_shoot_projectile(
+            self.raw() as i32,
+            pos_x,
+            pos_y,
+            target_x,
+            target_y,
+            proj.raw() as i32,
+            None,
+            None,
+        )
+    }
+    pub fn get_hotspot(self, hotspot: &str) -> eyre::Result<(f64, f64)> {
+        raw::entity_get_hotspot(self.raw() as i32, hotspot.into(), true, None)
+    }
+    pub fn get_closest_with_tag(x: f64, y: f64, tag: &str) -> eyre::Result<Self> {
+        match raw::entity_get_closest_with_tag(x, y, tag.into()) {
+            Ok(Some(n)) => Ok(n),
+            Err(s) => Err(s),
+            _ => Err(eyre!("ent not found")),
+        }
+    }
+    pub fn get_in_radius_with_tag(
+        x: f64,
+        y: f64,
+        r: f64,
+        tag: &str,
+    ) -> eyre::Result<Vec<Option<EntityID>>> {
+        raw::entity_get_in_radius_with_tag(x, y, r, tag.into())
+    }
+}
+impl PhysicsBodyID {
+    pub fn set_transform(
+        self,
+        x: f64,
+        y: f64,
+        r: f64,
+        vx: f64,
+        vy: f64,
+        av: f64,
+    ) -> eyre::Result<()> {
+        raw::physics_body_id_set_transform(self, x, y, r, vx, vy, av)
+    }
+    pub fn get_transform(self) -> eyre::Result<Option<PhysData>> {
+        raw::physics_body_id_get_transform(self)
     }
 }
 

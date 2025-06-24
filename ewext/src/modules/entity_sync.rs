@@ -170,9 +170,12 @@ impl EntitySync {
         }
         Ok(())
     }
-    pub(crate) fn spawn_once(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+    pub(crate) fn spawn_once(
+        &mut self,
+        ctx: &mut super::ModuleCtx,
+        frame_num: usize,
+    ) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
-        let frame_num = game_get_frame_num()? as usize;
         let len = self.spawn_once.len();
         if len > 0 {
             let batch_size = (len / 20).max(1);
@@ -187,9 +190,7 @@ impl EntitySync {
                         let (x, y) = (pos.x as f64, pos.y as f64);
                         match data {
                             shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
-                                if let Ok(Some(entity)) =
-                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                                {
+                                if let Ok(entity) = EntityID::load(file, Some(x), Some(y)) {
                                     entity.add_tag("ew_no_enemy_sync")?;
                                     diff_model::init_remote_entity(
                                         entity,
@@ -242,9 +243,7 @@ impl EntitySync {
                                 }
                             }
                             shared::SpawnOnce::Chest(file, rx, ry) => {
-                                if let Ok(Some(ent)) =
-                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                                {
+                                if let Ok(ent) = EntityID::load(file, Some(x), Some(y)) {
                                     ent.add_tag("ew_no_enemy_sync")?;
                                     if let Some(file) = ent
                                         .iter_all_components_of_type_including_disabled::<LuaComponent>(
@@ -266,13 +265,12 @@ impl EntitySync {
                                 }
                             }
                             shared::SpawnOnce::BrokenWand => {
-                                if let Some(ent) = noita_api::raw::entity_create_new(None)? {
-                                    ent.set_position(x as f32, y as f32, None)?;
-                                    ent.add_tag("broken_wand")?;
-                                    ent.add_lua_init_component::<LuaComponent>(
-                                        "data/scripts/buildings/forge_item_convert.lua",
-                                    )?;
-                                }
+                                let ent = EntityID::create(None)?;
+                                ent.set_position(x as f32, y as f32, None)?;
+                                ent.add_tag("broken_wand")?;
+                                ent.add_lua_init_component::<LuaComponent>(
+                                    "data/scripts/buildings/forge_item_convert.lua",
+                                )?;
                             }
                         }
                         self.spawn_once.remove(i);
@@ -358,9 +356,7 @@ impl EntitySync {
                     if let Some(ent) = self.find_by_gid(gid) {
                         ent.kill()
                     }
-                    if let Ok(Some(ent)) =
-                        noita_api::raw::entity_load(file.into(), Some(x as f64), Some(y as f64))
-                    {
+                    if let Ok(ent) = EntityID::load(file, Some(x as f64), Some(y as f64)) {
                         ent.add_tag("ew_no_enemy_sync")?;
                         if let Some(file) = ent
                             .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
@@ -769,7 +765,7 @@ impl Module for EntitySync {
                 }
             }
         }
-        if let Err(s) = self.spawn_once(ctx) {
+        if let Err(s) = self.spawn_once(ctx, frame_num) {
             crate::print_error(s)?;
         }
 

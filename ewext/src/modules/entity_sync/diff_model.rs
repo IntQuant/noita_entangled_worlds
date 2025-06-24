@@ -1,8 +1,8 @@
 use super::NetManager;
 use crate::{ephemerial, modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
-use eyre::{Context, ContextCompat, OptionExt, eyre};
-use noita_api::raw::{entity_create_new, game_get_frame_num, raytrace_platforms};
+use eyre::{Context, OptionExt, eyre};
+use noita_api::raw::{game_get_frame_num, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
@@ -849,8 +849,7 @@ impl LocalDiffModel {
         let lid = self.alloc_lid();
         let should_not_serialize = entity_manager
             .remove_all_components_of_type::<CameraBoundComponent>(ComponentTag::None)?
-            || (entity.is_alive() && entity_manager.check_all_phys_init()? && noita_api::raw::physics_body_id_get_from_entity(entity, None)
-                .unwrap_or_default()
+            || (entity.is_alive() && entity_manager.check_all_phys_init()? && entity.get_physics_body_ids().unwrap_or_default()
                 .len()
                 == entity_manager
                     .iter_all_components_of_type_including_disabled::<PhysicsBodyComponent>(ComponentTag::None)?
@@ -1017,16 +1016,14 @@ impl LocalDiffModel {
         for (entity, phys) in self.phys_later.drain(..) {
             entity_manager.set_current_entity(entity)?;
             if entity.is_alive() && entity_manager.check_all_phys_init()? {
-                let phys_bodies = noita_api::raw::physics_body_id_get_from_entity(entity, None)
-                    .unwrap_or_default();
+                let phys_bodies = entity.get_physics_body_ids().unwrap_or_default();
                 for (p, physics_body_id) in phys.iter().zip(phys_bodies.iter()) {
                     let Some(p) = p else {
                         continue;
                     };
                     let (x, y) =
                         noita_api::raw::game_pos_to_physics_pos(p.x.into(), Some(p.y.into()))?;
-                    noita_api::raw::physics_body_id_set_transform(
-                        *physics_body_id,
+                    physics_body_id.set_transform(
                         x,
                         y,
                         p.angle.into(),
@@ -1056,7 +1053,7 @@ impl LocalDiffModel {
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
                 entity_manager.add_tag(const { CachedTag::from_tag("boss_centipede_active") })?;
-                noita_api::raw::physics_set_static(entity, false)?;
+                entity.set_static(false)?
             }
         }
         Ok(())
@@ -1527,34 +1524,30 @@ impl LocalDiffModel {
 
 fn collect_phys_info(entity: EntityID) -> eyre::Result<Vec<Option<PhysBodyInfo>>> {
     if entity.is_alive() {
-        let phys_bodies =
-            noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
+        let phys_bodies = entity.get_physics_body_ids().unwrap_or_default();
         phys_bodies
             .into_iter()
             .map(|body| -> eyre::Result<Option<PhysBodyInfo>> {
-                Ok(
-                    noita_api::raw::physics_body_id_get_transform(body)?.and_then(|data| {
-                        let PhysData {
-                            x,
-                            y,
-                            angle,
-                            vx,
-                            vy,
-                            av,
-                        } = data;
-                        let (x, y) =
-                            noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into()))
-                                .ok()?;
-                        Some(PhysBodyInfo {
-                            x: x as f32,
-                            y: y as f32,
-                            angle,
-                            vx,
-                            vy,
-                            av,
-                        })
-                    }),
-                )
+                Ok(body.get_transform()?.and_then(|data| {
+                    let PhysData {
+                        x,
+                        y,
+                        angle,
+                        vx,
+                        vy,
+                        av,
+                    } = data;
+                    let (x, y) =
+                        noita_api::raw::physics_pos_to_game_pos(x.into(), Some(y.into())).ok()?;
+                    Some(PhysBodyInfo {
+                        x: x as f32,
+                        y: y as f32,
+                        angle,
+                        vx,
+                        vy,
+                        av,
+                    })
+                }))
             })
             .collect::<eyre::Result<Vec<_>>>()
     } else {
@@ -1876,15 +1869,13 @@ impl RemoteDiffModel {
         }
 
         if !entity_info.phys.is_empty() && entity_manager.check_all_phys_init()? {
-            let phys_bodies =
-                noita_api::raw::physics_body_id_get_from_entity(entity, None).unwrap_or_default();
+            let phys_bodies = entity.get_physics_body_ids().unwrap_or_default();
             for (p, physics_body_id) in entity_info.phys.iter().zip(phys_bodies.iter()) {
                 let Some(p) = p else {
                     continue;
                 };
                 let (x, y) = noita_api::raw::game_pos_to_physics_pos(p.x.into(), Some(p.y.into()))?;
-                noita_api::raw::physics_body_id_set_transform(
-                    *physics_body_id,
+                physics_body_id.set_transform(
                     x,
                     y,
                     p.angle.into(),
@@ -1930,13 +1921,8 @@ impl RemoteDiffModel {
                         })
                 } else if var.value_int()? == 8 {
                     let (x, y) = entity.position()?;
-                    if !noita_api::raw::entity_get_in_radius_with_tag(
-                        x as f64,
-                        y as f64,
-                        480.0,
-                        "player_unit".into(),
-                    )?
-                    .is_empty()
+                    if !EntityID::get_in_radius_with_tag(x as f64, y as f64, 480.0, "player_unit")?
+                        .is_empty()
                     {
                         game_print("$item_die_roll");
                     }
@@ -2211,15 +2197,12 @@ impl RemoteDiffModel {
                 continue;
             };
 
-            let _ = noita_api::raw::game_shoot_projectile(
-                shooter_entity.raw() as i32,
+            let _ = shooter_entity.shoot_projectile(
                 projectile.position.0 as f64,
                 projectile.position.1 as f64,
                 projectile.target.0 as f64,
                 projectile.target.1 as f64,
-                deserialized.raw() as i32,
-                None,
-                None,
+                deserialized,
             );
             if let Ok(Some(vel)) = deserialized.try_get_first_component::<VelocityComponent>(None) {
                 if let Some((vx, vy)) = projectile.vel {
@@ -2669,8 +2652,7 @@ fn give_wand(
             wand.kill()
         }
         if let Some(r) = r {
-            let (x, y) =
-                noita_api::raw::entity_get_hotspot(entity.raw() as i32, "hand".into(), true, None)?;
+            let (x, y) = entity.get_hotspot("hand")?;
             wand.set_position(x as f32, y as f32, Some(r))?;
         }
     }
@@ -2698,8 +2680,7 @@ fn give_wand(
             }) {
                 quick
             } else {
-                let quick =
-                    entity_create_new(Some("inventory_quick".into()))?.wrap_err("unreachable")?;
+                let quick = EntityID::create(Some("inventory_quick".into()))?;
                 entity.add_child(quick);
                 quick
             };
