@@ -553,11 +553,10 @@ impl LocalDiffModelTracker {
                         let file = sprite.image_file().ok()?;
                         if file.ends_with(".xml") {
                             let text = noita_api::get_file(&mut files, file).ok()?;
-                            let animation =
-                                sprite.rect_animation().unwrap_or("".into()).to_string();
+                            let animation = sprite.rect_animation().unwrap_or("".into());
                             Some(
                                 text.iter()
-                                    .position(|name| name.starts_with(&animation))
+                                    .position(|name| name == &animation)
                                     .unwrap_or(usize::MAX) as u16,
                             )
                         } else {
