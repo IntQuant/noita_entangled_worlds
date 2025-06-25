@@ -2457,14 +2457,18 @@ fn spawn_entity_by_data(
         EntitySpawnInfo::Filename(filename) => {
             let ent = EntityID::load(filename, Some(x as f64), Some(y as f64))?;
             entity_manager.set_current_entity(ent)?;
+            let mut to_remove = Vec::new();
             for lua in
                 entity_manager.iter_all_components_of_type::<LuaComponent>(ComponentTag::None)?
             {
                 if ["data/scripts/props/suspended_container_physics_objects.lua"]
                     .contains(&&*lua.script_source_file()?)
                 {
-                    ent.remove_component(*lua)?;
+                    to_remove.push(lua);
                 }
+            }
+            for lua in to_remove {
+                entity_manager.remove_component(lua)?;
             }
             Ok(ent)
         }
