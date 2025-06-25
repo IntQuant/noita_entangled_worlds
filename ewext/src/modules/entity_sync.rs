@@ -3,8 +3,8 @@
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
-use super::{Module, NetManager};
-use crate::{ToState, my_peer_id};
+use super::{Module, ModuleCtx, NetManager};
+use crate::my_peer_id;
 use bimap::BiHashMap;
 use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
 use eyre::{Context, OptionExt};
@@ -12,8 +12,9 @@ use interest::InterestTracker;
 use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
-    DamageModelComponent, EntityID, ItemCostComponent, LuaComponent, PositionSeedComponent,
-    ProjectileComponent, VariableStorageComponent, VelocityComponent,
+    CachedTag, ComponentTag, DamageModelComponent, DamageType, EntityID, EntityManager,
+    ItemCostComponent, LuaComponent, PositionSeedComponent, ProjectileComponent, VarName,
+    VelocityComponent,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::DesToProxy::UpdatePositions;
@@ -57,6 +58,7 @@ pub(crate) struct EntitySync {
     remote_index: FxHashMap<PeerId, usize>,
     peer_order: Vec<PeerId>,
     log_performance: bool,
+    entity_manager: EntityManager,
 }
 impl EntitySync {
     pub(crate) fn set_perf(&mut self, perf: bool) {
@@ -66,7 +68,9 @@ impl EntitySync {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))
     }*/
     pub(crate) fn track_entity(&mut self, ent: EntityID) {
-        let _ = self.local_diff_model.track_and_upload_entity(ent);
+        let _ = self
+            .local_diff_model
+            .track_and_upload_entity(ent, &mut self.entity_manager);
     }
     pub(crate) fn notrack_entity(&mut self, ent: EntityID) {
         self.dont_track.insert(ent);
@@ -106,6 +110,7 @@ impl Default for EntitySync {
             remote_index: Default::default(),
             peer_order: Vec::new(),
             log_performance: false,
+            entity_manager: EntityManager::default(),
         }
     }
 }
@@ -113,21 +118,68 @@ impl Default for EntitySync {
 fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
     let good = "data/entities/items/wands/wand_good/wand_good_";
     let filename = entity.filename()?;
-    Ok(entity.has_tag("ew_no_enemy_sync")
-        || entity.has_tag("polymorphed_player")
-        || entity.has_tag("gold_nugget")
-        || entity.has_tag("nightmare_starting_wand")
+    let tags = format!(",{},", entity.tags()?);
+    Ok(tags.contains(",ew_no_enemy_sync,")
+        || tags.contains(",polymorphed_player,")
+        || tags.contains(",gold_nugget,")
+        || tags.contains(",nightmare_starting_wand,")
         || ENTITY_EXCLUDES.contains(&filename)
         || filename.starts_with(good)
-        || entity.has_tag("player_unit")
+        || tags.contains(",player_unit,")
         || filename == "data/entities/items/pickup/greed_curse.xml"
-        || (entity.root()? != Some(entity) && !entity.has_tag("ew_sync_child")))
+        || (!tags.contains(",ew_sync_child,") && entity.root()? != Some(entity)))
 }
 
 impl EntitySync {
-    pub(crate) fn spawn_once(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+    fn clear_buffer(&mut self, ctx: &mut ModuleCtx, new_intersects: &[PeerId]) -> eyre::Result<()> {
+        let err1 = if !self.local_diff_model.init_buffer.is_empty() {
+            let res = std::mem::take(&mut self.local_diff_model.init_buffer);
+            let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
+                ctx,
+                true,
+                Destination::Peers(
+                    self.interest_tracker
+                        .iter_interested()
+                        .filter(|p| !new_intersects.contains(p))
+                        .collect(),
+                ),
+                RemoteDes::EntityInit(res),
+            ) else {
+                unreachable!()
+            };
+            self.local_diff_model.init_buffer = diff;
+            self.local_diff_model.uninit();
+            err
+        } else {
+            Ok(())
+        };
+        if !self.local_diff_model.update_buffer.is_empty() {
+            let res = std::mem::take(&mut self.local_diff_model.update_buffer);
+            let (RemoteDes::EntityUpdate(diff), err) = send_remotedes_ret(
+                ctx,
+                true,
+                Destination::Peers(
+                    self.interest_tracker
+                        .iter_interested()
+                        .filter(|p| !new_intersects.contains(p))
+                        .collect(),
+                ),
+                RemoteDes::EntityUpdate(res),
+            ) else {
+                unreachable!()
+            };
+            self.local_diff_model.update_buffer = diff;
+            err1?;
+            err?;
+        }
+        Ok(())
+    }
+    pub(crate) fn spawn_once(
+        &mut self,
+        ctx: &mut super::ModuleCtx,
+        frame_num: usize,
+    ) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
-        let frame_num = game_get_frame_num()? as usize;
         let len = self.spawn_once.len();
         if len > 0 {
             let batch_size = (len / 20).max(1);
@@ -142,15 +194,14 @@ impl EntitySync {
                         let (x, y) = (pos.x as f64, pos.y as f64);
                         match data {
                             shared::SpawnOnce::Enemy(file, drops_gold, offending_peer) => {
-                                if let Ok(Some(entity)) =
-                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                                {
+                                if let Ok(entity) = EntityID::load(file, Some(x), Some(y)) {
                                     entity.add_tag("ew_no_enemy_sync")?;
                                     diff_model::init_remote_entity(
                                         entity,
                                         None,
                                         None,
                                         *drops_gold,
+                                        &mut self.entity_manager,
                                     )?;
                                     if let Some(damage) = entity
                                         .try_get_first_component::<DamageModelComponent>(None)?
@@ -185,27 +236,18 @@ impl EntitySync {
                                                 "curse",
                                                 1.0,
                                             )?;
-                                            noita_api::raw::entity_inflict_damage(
-                                                entity.raw() as i32,
+                                            entity.inflict_damage(
                                                 damage.max_hp()? * 100.0,
-                                                "DAMAGE_CURSE".into(), //TODO should be enum
-                                                "kill sync".into(),
-                                                "NONE".into(),
-                                                0.0,
-                                                0.0,
-                                                responsible_entity.map(|e| e.raw() as i32),
-                                                None,
-                                                None,
-                                                None,
+                                                DamageType::DamageCurse,
+                                                "kill sync",
+                                                responsible_entity,
                                             )?;
                                         }
                                     }
                                 }
                             }
                             shared::SpawnOnce::Chest(file, rx, ry) => {
-                                if let Ok(Some(ent)) =
-                                    noita_api::raw::entity_load(file.into(), Some(x), Some(y))
-                                {
+                                if let Ok(ent) = EntityID::load(file, Some(x), Some(y)) {
                                     ent.add_tag("ew_no_enemy_sync")?;
                                     if let Some(file) = ent
                                         .iter_all_components_of_type_including_disabled::<LuaComponent>(
@@ -227,13 +269,12 @@ impl EntitySync {
                                 }
                             }
                             shared::SpawnOnce::BrokenWand => {
-                                if let Some(ent) = noita_api::raw::entity_create_new(None)? {
-                                    ent.set_position(x as f32, y as f32, None)?;
-                                    ent.add_tag("broken_wand")?;
-                                    ent.add_lua_init_component::<LuaComponent>(
-                                        "data/scripts/buildings/forge_item_convert.lua",
-                                    )?;
-                                }
+                                let ent = EntityID::create(None)?;
+                                ent.set_position(x as f32, y as f32, None)?;
+                                ent.add_tag("broken_wand")?;
+                                ent.add_lua_init_component::<LuaComponent>(
+                                    "data/scripts/buildings/forge_item_convert.lua",
+                                )?;
                             }
                         }
                         self.spawn_once.remove(i);
@@ -257,26 +298,30 @@ impl EntitySync {
         })
     }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
+        let tags = format!(",{},", entity.tags()?);
         let should_be_tracked = [
-            "enemy",
-            "ew_synced",
-            "plague_rat",
-            "seed_f",
-            "seed_e",
-            "seed_d",
-            "seed_c",
-            "perk_fungus_tiny",
-            "helpless_animal",
-            "nest",
+            ",enemy,",
+            ",ew_synced,",
+            ",plague_rat,",
+            ",seed_f,",
+            ",seed_e,",
+            ",seed_d,",
+            ",seed_c,",
+            ",perk_fungus_tiny,",
+            ",helpless_animal,",
+            ",nest,",
         ]
         .iter()
-        .any(|tag| entity.has_tag(tag))
+        .any(|tag| tags.contains(tag))
             || entity_is_item(entity)?;
 
         Ok(should_be_tracked && !entity_is_excluded(entity)?)
     }
 
-    pub(crate) fn handle_proxytodes(&mut self, proxy_to_des: shared::des::ProxyToDes) {
+    pub(crate) fn handle_proxytodes(
+        &mut self,
+        proxy_to_des: shared::des::ProxyToDes,
+    ) -> eyre::Result<()> {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
@@ -286,7 +331,7 @@ impl EntitySync {
             }
             shared::des::ProxyToDes::RemoveEntities(peer) => {
                 if let Some(remote) = self.remote_models.remove(&peer) {
-                    remote.remove_entities()
+                    remote.remove_entities(&mut self.entity_manager)?
                 }
                 self.interest_tracker.remove_peer(peer);
                 let _ = crate::ExtState::with_global(|state| {
@@ -298,6 +343,7 @@ impl EntitySync {
                 EntityID(entity).kill();
             }
         }
+        Ok(())
     }
 
     pub(crate) fn handle_remotedes(
@@ -306,17 +352,16 @@ impl EntitySync {
         remote_des: RemoteDes,
         net: &mut NetManager,
         player_entity_map: &BiHashMap<PeerId, EntityID>,
-        dont_spawn: &FxHashSet<Gid>,
-    ) -> eyre::Result<ToState> {
+        dont_spawn: &mut FxHashSet<Gid>,
+        cam_pos: &mut FxHashMap<PeerId, WorldPos>,
+    ) -> eyre::Result<()> {
         match remote_des {
             RemoteDes::ChestOpen(gid, x, y, file, rx, ry) => {
                 if !dont_spawn.contains(&gid) {
                     if let Some(ent) = self.find_by_gid(gid) {
                         ent.kill()
                     }
-                    if let Ok(Some(ent)) =
-                        noita_api::raw::entity_load(file.into(), Some(x as f64), Some(y as f64))
-                    {
+                    if let Ok(ent) = EntityID::load(file, Some(x as f64), Some(y as f64)) {
                         ent.add_tag("ew_no_enemy_sync")?;
                         if let Some(file) = ent
                             .iter_all_components_of_type_including_disabled::<LuaComponent>(None)?
@@ -335,7 +380,7 @@ impl EntitySync {
                         }
                     }
                 }
-                return Ok(ToState::Gid(gid));
+                dont_spawn.insert(gid);
             }
             RemoteDes::ChestOpenRequest(gid, x, y, file, rx, ry) => {
                 net.send(&NoitaOutbound::RemoteMessage {
@@ -383,7 +428,7 @@ impl EntitySync {
             .or_insert(RemoteDiffModel::new(source))
             .check_entities(lids),*/
             RemoteDes::CameraPos(pos) => {
-                return Ok(ToState::Pos(pos));
+                cam_pos.insert(source, pos);
             }
             RemoteDes::DeadEntities(vec) => self.spawn_once.extend(vec),
             RemoteDes::InterestRequest(interest_request) => self
@@ -393,18 +438,20 @@ impl EntitySync {
                 self.remote_models
                     .entry(source)
                     .or_insert(RemoteDiffModel::new(source))
-                    .apply_diff(vec);
+                    .apply_diff(vec, &mut self.entity_manager)?;
             }
             RemoteDes::EntityInit(vec) => {
                 self.dont_kill.extend(
                     self.remote_models
                         .entry(source)
                         .or_insert(RemoteDiffModel::new(source))
-                        .apply_init(vec),
+                        .apply_init(vec, &mut self.entity_manager),
                 );
             }
             RemoteDes::ExitedInterest => {
-                self.remote_models.remove(&source);
+                if let Some(remote) = self.remote_models.remove(&source) {
+                    remote.remove_entities(&mut self.entity_manager)?
+                }
             }
             RemoteDes::Reset => self.interest_tracker.reset_interest_for(source),
             RemoteDes::Projectiles(vec) => {
@@ -414,17 +461,19 @@ impl EntitySync {
                     .spawn_projectiles(&vec);
             }
             RemoteDes::RequestGrab(lid) => {
-                self.local_diff_model.entity_grabbed(source, lid, net);
+                self.local_diff_model
+                    .entity_grabbed(source, lid, net, &mut self.entity_manager)?;
             }
         }
-        Ok(ToState::None)
+        Ok(())
     }
 
     pub(crate) fn cross_item_thrown(&mut self, entity: Option<EntityID>) -> eyre::Result<()> {
         let entity = entity.ok_or_eyre("Passed entity 0 into cross call")?;
         // It might be already tracked in case of tablet telekinesis, no need to track it again.
         if !self.local_diff_model.is_entity_tracked(entity) {
-            self.local_diff_model.track_and_upload_entity(entity)?;
+            self.local_diff_model
+                .track_and_upload_entity(entity, &mut self.entity_manager)?;
         }
         Ok(())
     }
@@ -455,7 +504,9 @@ impl EntitySync {
     ) -> eyre::Result<()> {
         if peer == my_peer_id() {
             self.dont_kill.insert(entity);
-            let lid = self.local_diff_model.track_entity(entity, gid)?;
+            let lid = self
+                .local_diff_model
+                .track_entity(entity, gid, &mut self.entity_manager)?;
             self.local_diff_model.dont_save(lid);
         } else if let Some(remote) = self.remote_models.get_mut(&peer) {
             remote.wait_for_gid(entity, gid);
@@ -466,12 +517,13 @@ impl EntitySync {
 
 impl Module for EntitySync {
     fn on_world_init(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
-        send_remotedes(ctx, true, Destination::Broadcast, RemoteDes::Reset)?;
+        send_remotedes(ctx.net, true, Destination::Broadcast, RemoteDes::Reset)?;
         Ok(())
     }
 
     /// Looks for newly spawned entities that might need to be tracked.
-    fn on_new_entity(&mut self, entity: EntityID, kill: bool) -> eyre::Result<()> {
+    fn on_new_entity(&mut self, ent: isize, kill: bool) -> eyre::Result<()> {
+        let entity = EntityID::try_from(ent)?;
         if !kill && !entity.is_alive() {
             return Ok(());
         }
@@ -485,11 +537,58 @@ impl Module for EntitySync {
             self.dont_kill_by_gid.insert(gid);
             self.local_diff_model.got_polied(gid);
         }
-        if entity.has_tag(DES_TAG)
+        if self.should_be_tracked(entity)? {
+            self.entity_manager.set_current_entity(entity)?;
+            if self
+                .entity_manager
+                .has_tag(const { CachedTag::from_tag(DES_TAG) })
+                && !self.dont_kill.remove(&entity)
+                && self
+                    .entity_manager
+                    .get_var(const { VarName::from_str("ew_gid_lid") })
+                    .map(|var| {
+                        if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
+                            !self.dont_kill_by_gid.remove(&Gid(n))
+                        } else {
+                            true
+                        }
+                    })
+                    .unwrap_or(true)
+            {
+                if kill {
+                    entity.kill();
+                }
+            } else {
+                if self
+                    .entity_manager
+                    .has_tag(const { CachedTag::from_tag("card_action") })
+                {
+                    if let Some(cost) = self
+                        .entity_manager
+                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+                    {
+                        if cost.stealable()? {
+                            cost.set_stealable(false)?;
+                            self.entity_manager.get_var_or_default(
+                                const { VarName::from_str("ew_was_stealable") },
+                            )?;
+                        }
+                    }
+                    if let Some(vel) = self
+                        .entity_manager
+                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+                    {
+                        vel.set_gravity_y(0.0)?;
+                        vel.set_air_friction(10.0)?;
+                    }
+                }
+                self.to_track.push(entity);
+            }
+        } else if kill
             && !self.dont_kill.remove(&entity)
+            && entity.has_tag(DES_TAG)
             && entity
-                .iter_all_components_of_type_including_disabled::<VariableStorageComponent>(None)?
-                .find(|var| var.name().unwrap_or("".into()) == "ew_gid_lid")
+                .get_var("ew_gid_lid")
                 .map(|var| {
                     if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
                         !self.dont_kill_by_gid.remove(&Gid(n))
@@ -499,55 +598,40 @@ impl Module for EntitySync {
                 })
                 .unwrap_or(true)
         {
-            if kill {
-                entity.kill();
-            }
-            return Ok(());
-        }
-        if self.should_be_tracked(entity)? {
-            if entity.has_tag("card_action") {
-                if let Some(cost) = entity.try_get_first_component::<ItemCostComponent>(None)? {
-                    if cost.stealable()? {
-                        cost.set_stealable(false)?;
-                        entity.get_var_or_default("ew_was_stealable")?;
-                    }
-                }
-                if let Some(vel) = entity.try_get_first_component::<VelocityComponent>(None)? {
-                    vel.set_gravity_y(0.0)?;
-                    vel.set_air_friction(10.0)?;
-                }
-            }
-            self.to_track.push(entity);
+            entity.kill();
         }
         Ok(())
     }
 
     fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+        let start = std::time::Instant::now();
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         let pos = WorldPos::from_f64(x, y);
         self.interest_tracker.set_center(x, y);
         let frame_num = game_get_frame_num()? as usize;
+        if frame_num < 10 {
+            return Ok(());
+        }
         if frame_num % 5 == 0 {
             send_remotedes(
-                ctx,
+                ctx.net,
                 false,
                 Destination::Broadcast,
                 RemoteDes::InterestRequest(InterestRequest { pos }),
             )?;
         }
-        let iter = self.iter_peers(ctx.player_map).map(|(_, b)| b);
-        for peer in iter.collect::<Vec<PeerId>>() {
+        if frame_num % 5 == 1 {
             send_remotedes(
-                ctx,
+                ctx.net,
                 false,
-                Destination::Peer(peer),
+                Destination::Peers(self.iter_peers(ctx.player_map).map(|(_, p)| p).collect()),
                 RemoteDes::CameraPos(pos),
             )?;
         }
 
         for lost in self.interest_tracker.drain_lost_interest() {
             send_remotedes(
-                ctx,
+                ctx.net,
                 true,
                 Destination::Peer(lost),
                 RemoteDes::ExitedInterest,
@@ -555,48 +639,65 @@ impl Module for EntitySync {
         }
 
         self.look_current_entity = EntityID::max_in_use()?;
-        self.local_diff_model.enable_later()?;
-        self.local_diff_model.phys_later()?;
-        let t = self.local_diff_model.update_pending_authority()?;
-        let mut times = vec![0; 3];
-        times[0] = t;
+        self.local_diff_model
+            .enable_later(&mut self.entity_manager)?;
+        self.local_diff_model.phys_later(&mut self.entity_manager)?;
+        let mut times = vec![0; 4];
+        if self.log_performance {
+            times[0] = start.elapsed().as_micros();
+        }
+        self.local_diff_model
+            .update_pending_authority(start, &mut self.entity_manager)?;
+        if self.log_performance {
+            times[1] = start.elapsed().as_micros() - times[0];
+        }
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
-            if let Ok(ent) = EntityID::try_from(ent) {
-                self.on_new_entity(ent, false)?;
-            }
+            self.on_new_entity(ent, false)?;
         }
-        let start = std::time::Instant::now();
         while let Some(entity) = self.to_track.pop() {
-            self.local_diff_model.track_and_upload_entity(entity)?;
-            if start.elapsed().as_micros() + t > 2000 {
-                break;
+            if entity.is_alive() {
+                self.local_diff_model
+                    .track_and_upload_entity(entity, &mut self.entity_manager)?;
+                if start.elapsed().as_micros() > 2000 {
+                    break;
+                }
+            } else {
+                self.entity_manager.remove_ent(&entity);
             }
         }
-        let mut t = start.elapsed().as_micros() + t;
-        times[1] = t;
+        if self.log_performance {
+            times[2] = start.elapsed().as_micros() - (times[0] + times[1]);
+        }
         {
             let new_intersects = self.interest_tracker.got_any_new_interested();
+            let dead;
+            (dead, self.local_index) = match self
+                .local_diff_model
+                .update_tracked_entities(ctx, self.local_index, start, &mut self.entity_manager)
+                .wrap_err("Failed to update locally tracked entities")
+            {
+                Ok(ret) => ret,
+                Err(s) => {
+                    self.clear_buffer(ctx, &new_intersects)?;
+                    return Err(s);
+                }
+            };
+            self.clear_buffer(ctx, &new_intersects)?;
             if !new_intersects.is_empty() {
                 self.local_diff_model.make_init();
                 let res = std::mem::take(&mut self.local_diff_model.init_buffer);
-                let RemoteDes::EntityInit(diff) = send_remotedes(
+                let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
                     ctx,
                     true,
-                    Destination::Peers(new_intersects.clone()),
+                    Destination::Peers(new_intersects),
                     RemoteDes::EntityInit(res),
-                )?
-                else {
+                ) else {
                     unreachable!()
                 };
                 self.local_diff_model.init_buffer = diff;
                 self.local_diff_model.uninit();
+                err?;
             }
-            let dead;
-            (dead, t, self.local_index) = self
-                .local_diff_model
-                .update_tracked_entities(ctx, self.local_index, t)
-                .wrap_err("Failed to update locally tracked entities")?;
-            times[2] = t;
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
                 if !proj.is_empty() {
@@ -616,53 +717,16 @@ impl Module for EntitySync {
                         })
                         .collect();
                     send_remotedes(
-                        ctx,
+                        ctx.net,
                         true,
                         Destination::Peers(self.interest_tracker.iter_interested().collect()),
                         RemoteDes::Projectiles(data),
                     )?;
                 }
             }
-            if !self.local_diff_model.init_buffer.is_empty() {
-                let res = std::mem::take(&mut self.local_diff_model.init_buffer);
-                let RemoteDes::EntityInit(diff) = send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(
-                        self.interest_tracker
-                            .iter_interested()
-                            .filter(|p| !new_intersects.contains(p))
-                            .collect(),
-                    ),
-                    RemoteDes::EntityInit(res),
-                )?
-                else {
-                    unreachable!()
-                };
-                self.local_diff_model.init_buffer = diff;
-                self.local_diff_model.uninit();
-            }
-            if !self.local_diff_model.update_buffer.is_empty() {
-                let res = std::mem::take(&mut self.local_diff_model.update_buffer);
-                let RemoteDes::EntityUpdate(diff) = send_remotedes(
-                    ctx,
-                    true,
-                    Destination::Peers(
-                        self.interest_tracker
-                            .iter_interested()
-                            .filter(|p| !new_intersects.contains(p))
-                            .collect(),
-                    ),
-                    RemoteDes::EntityUpdate(res),
-                )?
-                else {
-                    unreachable!()
-                };
-                self.local_diff_model.update_buffer = diff;
-            }
             if !dead.is_empty() {
                 send_remotedes(
-                    ctx,
+                    ctx.net,
                     true,
                     Destination::Peers(
                         ctx.player_map
@@ -678,6 +742,9 @@ impl Module for EntitySync {
                     RemoteDes::DeadEntities(dead),
                 )?;
             }
+            if self.log_performance {
+                times[3] = start.elapsed().as_micros() - (times[0] + times[1] + times[2]);
+            }
         }
         if frame_num > 120 {
             let mut to_remove = Vec::new();
@@ -690,15 +757,16 @@ impl Module for EntitySync {
                 match self.remote_models.get_mut(owner) {
                     Some(remote_model) => {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
-                        let v;
-                        (v, t) = remote_model
-                            .apply_entities(ctx, *vi, t)
+                        let v = remote_model
+                            .apply_entities(ctx, *vi, start, &mut self.entity_manager)
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
-                        times.push(t);
+                        if self.log_performance {
+                            times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
+                        }
                         for lid in remote_model.drain_grab_request() {
                             send_remotedes(
-                                ctx,
+                                ctx.net,
                                 true,
                                 Destination::Peer(*owner),
                                 RemoteDes::RequestGrab(lid),
@@ -721,7 +789,7 @@ impl Module for EntitySync {
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
         for (_, remote_model) in self.remote_models.iter_mut() {
-            remote_model.kill_entities(ctx)?;
+            remote_model.kill_entities(ctx, &mut self.entity_manager)?;
         }
         for (entity, offending_peer) in self.kill_later.drain(..) {
             if entity.is_alive() {
@@ -732,23 +800,16 @@ impl Module for EntitySync {
                     entity.try_get_first_component::<DamageModelComponent>(None)?
                 {
                     damage.object_set_value("damage_multipliers", "curse", 1.0)?;
-                    noita_api::raw::entity_inflict_damage(
-                        entity.raw() as i32,
+                    entity.inflict_damage(
                         damage.max_hp()? * 100.0,
-                        "DAMAGE_CURSE".into(), //TODO should be enum
-                        "kill sync".into(),
-                        "NONE".into(),
-                        0.0,
-                        0.0,
-                        responsible_entity.map(|e| e.raw() as i32),
-                        None,
-                        None,
-                        None,
+                        DamageType::DamageCurse,
+                        "kill sync",
+                        responsible_entity,
                     )?;
                 }
             }
         }
-        if let Err(s) = self.spawn_once(ctx) {
+        if let Err(s) = self.spawn_once(ctx, frame_num) {
             crate::print_error(s)?;
         }
 
@@ -766,6 +827,7 @@ impl Module for EntitySync {
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }
         if self.log_performance {
+            times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
             crate::print(&format!("{:?}", times))?;
         }
         Ok(())
@@ -830,7 +892,7 @@ impl Module for EntitySync {
 }
 
 fn send_remotedes(
-    ctx: &mut super::ModuleCtx<'_>,
+    ctx: &mut NetManager,
     reliable: bool,
     destination: Destination<PeerId>,
     remote_des: RemoteDes,
@@ -840,7 +902,21 @@ fn send_remotedes(
         destination,
         message: RemoteMessage::RemoteDes(remote_des),
     };
-    ctx.net.send(&message)?;
+    ctx.send(&message)
+}
+
+fn send_remotedes_ret(
+    ctx: &mut ModuleCtx<'_>,
+    reliable: bool,
+    destination: Destination<PeerId>,
+    remote_des: RemoteDes,
+) -> (RemoteDes, Result<(), eyre::Error>) {
+    let message = NoitaOutbound::RemoteMessage {
+        reliable,
+        destination,
+        message: RemoteMessage::RemoteDes(remote_des),
+    };
+    let err = ctx.net.send(&message);
     let NoitaOutbound::RemoteMessage {
         message: RemoteMessage::RemoteDes(des),
         ..
