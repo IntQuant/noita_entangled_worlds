@@ -63,7 +63,7 @@ pub(crate) trait Module {
         Ok(())
     }
 
-    fn on_new_entity(&mut self, _entity: EntityID, _kill: bool) -> eyre::Result<()> {
+    fn on_new_entity(&mut self, _entity: isize, _kill: bool) -> eyre::Result<()> {
         Ok(())
     }
 

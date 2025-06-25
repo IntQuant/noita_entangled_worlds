@@ -729,12 +729,14 @@ function pvp.on_world_update()
     end
 end
 
-function pvp.on_new_entity(ent)
-    if
-        EntityGetFirstComponentIncludingDisabled(ent, "TeleportComponent") ~= nil
-        and string.sub(EntityGetFilename(ent), 1, 24) == "data/entities/buildings/"
-    then
-        EntityKill(ent)
+function pvp.on_new_entity(arr)
+    for _, ent in ipairs(arr) do
+        if
+            EntityGetFirstComponentIncludingDisabled(ent, "TeleportComponent") ~= nil
+            and string.sub(EntityGetFilename(ent), 1, 24) == "data/entities/buildings/"
+        then
+            EntityKill(ent)
+        end
     end
 end
 

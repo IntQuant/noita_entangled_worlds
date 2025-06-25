@@ -15,9 +15,9 @@ function on_open(entity_item)
             rand_x = tonumber(ComponentGetValue(position_comp, "pos_x"))
             rand_y = tonumber(ComponentGetValue(position_comp, "pos_y"))
         end
-        local is_mine = 0
+        local is_mine = false
         if ComponentGetValue2(gid, "value_bool") then
-            is_mine = 1
+            is_mine = true
         end
         gid = ComponentGetValue2(gid, "value_string")
         CrossCall("ew_chest_opened", x, y, rand_x, rand_y, EntityGetFilename(entity_item), gid, is_mine)
