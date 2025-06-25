@@ -447,15 +447,6 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(crate) fn print(string: &str) -> eyre::Result<()> {
-    let lua = LuaState::current()?;
-    lua.get_global(c"EwextPrint");
-    lua.push_string(string);
-    lua.call(1, 0i32)
-        .wrap_err("Failed to call EwextPrintError")?;
-    Ok(())
-}
-
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.

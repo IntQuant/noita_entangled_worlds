@@ -828,7 +828,7 @@ impl Module for EntitySync {
         }
         if self.log_performance {
             times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
-            crate::print(&format!("{:?}", times))?;
+            noita_api::print(format!("{:?}", times));
         }
         Ok(())
     }

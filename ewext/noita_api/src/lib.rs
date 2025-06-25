@@ -709,6 +709,16 @@ impl ComponentID {
     pub fn get_type(self) -> eyre::Result<Cow<'static, str>> {
         raw::component_get_type_name(self)
     }
+    pub fn is_enabled(self) -> eyre::Result<bool> {
+        raw::component_get_is_enabled(self)
+    }
+    pub fn get_tags(self) -> eyre::Result<Cow<'static, str>> {
+        match raw::component_get_tags(self) {
+            Ok(Some(s)) => Ok(s),
+            Ok(None) => Err(eyre!("no string found")),
+            Err(s) => Err(s),
+        }
+    }
 }
 
 impl StatusEffectDataComponent {
@@ -729,6 +739,10 @@ pub fn game_print(value: impl AsRef<str>) {
     let _ = raw::game_print(value.as_ref().into());
 }
 
+pub fn print(value: impl AsRef<str>) {
+    let _ = raw::print(value.as_ref());
+}
+
 pub mod raw {
     use eyre::Context;
     use eyre::eyre;
@@ -744,6 +758,14 @@ pub mod raw {
 
     noita_api_macro::generate_api!();
 
+    pub(crate) fn print(value: &str) -> eyre::Result<()> {
+        let lua = LuaState::current()?;
+        lua.get_global(c"print");
+        lua.push_string(value);
+        lua.call(1, 0)
+            .wrap_err("Failed to call ComponentGetValue2")?;
+        Ok(())
+    }
     pub(crate) fn component_get_value<T>(component: ComponentID, field: &str) -> eyre::Result<T>
     where
         T: LuaGetValue,
@@ -1192,7 +1214,7 @@ struct ComponentData {
 }
 impl ComponentData {
     fn new(id: ComponentID, is_var: bool) -> Self {
-        let enabled = raw::component_get_is_enabled(id).unwrap_or_default();
+        let enabled = id.is_enabled().unwrap_or_default();
         let name = if is_var {
             VarName::from_str_non_const(
                 &VariableStorageComponent::from(id)
@@ -1202,12 +1224,7 @@ impl ComponentData {
         } else {
             VarName::None
         };
-        let ent_tags = format!(
-            ",{},",
-            raw::component_get_tags(id)
-                .unwrap_or_default()
-                .unwrap_or_default(),
-        );
+        let ent_tags = format!(",{},", id.get_tags().unwrap_or_default(),);
         let mut tags = [false; COMP_TAG_LEN];
         macro_rules! push_tag {
             ($($e: expr),*) => {
@@ -1439,10 +1456,10 @@ impl EntityManager {
         for com in vec.into_iter() {
             if tags == ComponentTag::None || com.tags[tags as usize] {
                 is_some = true;
-                raw::entity_remove_component(self.current_entity, com.id)?;
+                self.current_entity.remove_component(com.id)?;
             } else {
                 self.current_data.components
-            [const { CachedComponent::from_component::<C>() as usize }].push(com)
+            [const { CachedComponent::from_component::<C>() as usize }].push(com);
             }
         }
         Ok(is_some)
