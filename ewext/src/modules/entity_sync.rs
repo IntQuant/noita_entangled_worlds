@@ -653,7 +653,7 @@ impl Module for EntitySync {
         for ent in self.look_current_entity.0.get() + 1..=EntityID::max_in_use()?.0.get() {
             self.on_new_entity(ent, false)?;
         }
-        for entity in self.to_track.drain(..) {
+        while let Some(entity) = self.to_track.pop() {
             if entity.is_alive() {
                 self.local_diff_model
                     .track_and_upload_entity(entity, &mut self.entity_manager)?;
