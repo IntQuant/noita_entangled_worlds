@@ -7,6 +7,7 @@ use shared::des::Gid;
 use shared::{GameEffectData, GameEffectEnum};
 use smallvec::SmallVec;
 use std::num::NonZeroIsize;
+use std::sync::LazyLock;
 use std::{
     borrow::Cow,
     num::{NonZero, TryFromIntError},
@@ -33,6 +34,14 @@ pub trait Component: From<ComponentID> + Into<ComponentID> + Deref<Target = Comp
 
 noita_api_macro::generate_components!();
 
+static TO_ID: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let file = raw::mod_text_file_get_content("data/scripts/status_effects/status_list.lua".into())
+        .unwrap();
+    file.lines()
+        .filter(|l| !l.starts_with("-") && l.contains("id=\"") && !l.contains("BRAIN_DAMAGE"))
+        .map(|l| l.split("\"").map(|a| a.to_string()).nth(1).unwrap())
+        .collect::<Vec<String>>()
+});
 impl EntityID {
     /// Returns true if entity is alive.
     ///
@@ -525,21 +534,9 @@ impl EntityID {
         Ok(current)
     }
 
-    pub fn set_current_stains(
-        self,
-        current_stains: u64,
-        entity_manager: &mut EntityManager,
-    ) -> eyre::Result<()> {
+    pub fn set_current_stains(self, current_stains: u64) -> eyre::Result<()> {
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            let file =
-                entity_manager.get_file("data/scripts/status_effects/status_list.lua".into())?;
-            let to_id = file
-                .lines()
-                .filter(|l| {
-                    !l.starts_with("-") && l.contains("id=\"") && !l.contains("BRAIN_DAMAGE")
-                })
-                .map(|l| l.split("\"").map(|a| a.to_string()).nth(1).unwrap());
-            for ((i, v), id) in status.stain_effects()?.enumerate().zip(to_id) {
+            for ((i, v), id) in status.stain_effects()?.enumerate().zip(TO_ID.iter()) {
                 if v >= 0.15 && current_stains & (1 << i) == 0 {
                     raw::entity_remove_stain_status_effect(self.0.get() as i32, id.into(), None)?
                 }
@@ -1262,7 +1259,7 @@ pub struct EntityManager {
     current_entity: EntityID,
     current_data: EntityData,
     has_ran: bool,
-    pub files: Option<FxHashMap<Cow<'static, str>, Cow<'static, str>>>,
+    pub files: Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
 }
 impl Default for EntityManager {
     fn default() -> Self {
@@ -1323,9 +1320,6 @@ impl EntityData {
     }
 }
 impl EntityManager {
-    pub fn get_file(&mut self, file: Cow<'static, str>) -> eyre::Result<&Cow<'static, str>> {
-        get_file(&mut self.files, file)
-    }
     pub fn cache_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
         self.cache.insert(ent, EntityData::new(ent)?);
         Ok(())
@@ -1610,14 +1604,17 @@ impl EntityManager {
     }
 }
 pub fn get_file<'a>(
-    files: &'a mut Option<FxHashMap<Cow<'static, str>, Cow<'static, str>>>,
+    files: &'a mut Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
     file: Cow<'static, str>,
-) -> eyre::Result<&'a Cow<'static, str>> {
+) -> eyre::Result<&'a [String]> {
     match files.as_mut().unwrap().entry(file) {
         std::collections::hash_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
         std::collections::hash_map::Entry::Vacant(entry) => {
             let content = raw::mod_text_file_get_content(entry.key().clone())?;
-            Ok(entry.insert(content))
+            let mut split = content.split("name=\"");
+            split.next();
+            let split = split.map(|piece| piece.split_once("\"").unwrap().0.to_string());
+            Ok(entry.insert(split.collect::<Vec<String>>()))
         }
     }
 }

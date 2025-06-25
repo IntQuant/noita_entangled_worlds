@@ -553,12 +553,10 @@ impl LocalDiffModelTracker {
                         let file = sprite.image_file().ok()?;
                         if file.ends_with(".xml") {
                             let text = noita_api::get_file(&mut files, file).ok()?;
-                            let mut split = text.split("name=\"");
-                            split.next();
                             let animation =
                                 sprite.rect_animation().unwrap_or("".into()).to_string();
                             Some(
-                                split
+                                text.iter()
                                     .position(|name| name.starts_with(&animation))
                                     .unwrap_or(usize::MAX) as u16,
                             )
@@ -1903,7 +1901,7 @@ impl RemoteDiffModel {
                 var.set_value_int(0)?;
             }
         } else {
-            entity.set_current_stains(entity_info.current_stains, entity_manager)?;
+            entity.set_current_stains(entity_info.current_stains)?;
         }
         if let Some(ai) = entity_manager
             .try_get_first_component_including_disabled::<AnimalAIComponent>(ComponentTag::None)?
@@ -1939,12 +1937,7 @@ impl RemoteDiffModel {
                     }
                     let file = sprite.image_file()?;
                     let text = noita_api::get_file(&mut files, file)?;
-                    let mut split = text.split("name=\"");
-                    split.next();
-                    if let Some(ani) = split
-                        .nth(*animation as usize)
-                        .map(|piece| piece.split_once("\"").unwrap().0)
-                    {
+                    if let Some(ani) = text.get(*animation as usize) {
                         sprite.set_rect_animation(ani.into())?;
                         sprite.set_next_rect_animation(ani.into())?;
                     }
@@ -2552,7 +2545,6 @@ fn _safe_wandkill(entity: &mut EntityManager) -> eyre::Result<()> {
 }
 
 fn safe_entitykill(entity: &mut EntityManager) {
-    //TODO should use entity manager
     let _ = entity.remove_all_components_of_type::<AudioComponent>(ComponentTag::None);
     let is_wand =
         entity.try_get_first_component_including_disabled::<AbilityComponent>(ComponentTag::None);
