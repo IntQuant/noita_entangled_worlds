@@ -220,12 +220,6 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
     Ok(kvs)
 }
 
-enum ToState {
-    Gid(Gid),
-    Pos(WorldPos),
-    None,
-}
-
 fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
     let mut binding = try_lock_netmanager()?;
     let netmanager = binding.as_mut().unwrap();
@@ -250,15 +244,10 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
                         remote_des,
                         netmanager,
                         &state.player_entity_map,
-                        &state.dont_spawn,
+                        &mut state.dont_spawn,
+                        &mut state.cam_pos,
                     ) {
-                        Ok(ToState::Gid(gid)) => {
-                            state.dont_spawn.insert(gid);
-                        }
-                        Ok(ToState::Pos(pos)) => {
-                            state.cam_pos.insert(source, pos);
-                        }
-                        Ok(ToState::None) => {}
+                        Ok(()) => {}
                         Err(s) => {
                             let _ = print_error(s);
                         }

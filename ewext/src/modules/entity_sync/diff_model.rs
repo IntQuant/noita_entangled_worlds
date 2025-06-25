@@ -243,8 +243,8 @@ impl Default for LocalDiffModel {
             phys_later: Default::default(),
             dont_save: Default::default(),
             wait_to_transfer: 0,
-            update_buffer: Vec::new(),
-            init_buffer: Vec::new(),
+            update_buffer: Vec::with_capacity(512),
+            init_buffer: Vec::with_capacity(512),
         }
     }
 }
