@@ -4,7 +4,7 @@
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
 
 use super::{Module, ModuleCtx, NetManager};
-use crate::my_peer_id;
+use crate::{ToState, my_peer_id};
 use bimap::BiHashMap;
 use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
 use eyre::{Context, OptionExt};
@@ -132,7 +132,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
 
 impl EntitySync {
     fn clear_buffer(&mut self, ctx: &mut ModuleCtx, new_intersects: &[PeerId]) -> eyre::Result<()> {
-        let err1 = if !self.local_diff_model.init_buffer.is_empty() {
+        if !self.local_diff_model.init_buffer.is_empty() {
             let res = std::mem::take(&mut self.local_diff_model.init_buffer);
             let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
                 ctx,
@@ -149,10 +149,8 @@ impl EntitySync {
             };
             self.local_diff_model.init_buffer = diff;
             self.local_diff_model.uninit();
-            err
-        } else {
-            Ok(())
-        };
+            err?;
+        }
         if !self.local_diff_model.update_buffer.is_empty() {
             let res = std::mem::take(&mut self.local_diff_model.update_buffer);
             let (RemoteDes::EntityUpdate(diff), err) = send_remotedes_ret(
@@ -169,7 +167,6 @@ impl EntitySync {
                 unreachable!()
             };
             self.local_diff_model.update_buffer = diff;
-            err1?;
             err?;
         }
         Ok(())
@@ -352,9 +349,8 @@ impl EntitySync {
         remote_des: RemoteDes,
         net: &mut NetManager,
         player_entity_map: &BiHashMap<PeerId, EntityID>,
-        dont_spawn: &mut FxHashSet<Gid>,
-        cam_pos: &mut FxHashMap<PeerId, WorldPos>,
-    ) -> eyre::Result<()> {
+        dont_spawn: &FxHashSet<Gid>,
+    ) -> eyre::Result<ToState> {
         match remote_des {
             RemoteDes::ChestOpen(gid, x, y, file, rx, ry) => {
                 if !dont_spawn.contains(&gid) {
@@ -380,7 +376,7 @@ impl EntitySync {
                         }
                     }
                 }
-                dont_spawn.insert(gid);
+                return Ok(ToState::Gid(gid));
             }
             RemoteDes::ChestOpenRequest(gid, x, y, file, rx, ry) => {
                 net.send(&NoitaOutbound::RemoteMessage {
@@ -428,7 +424,7 @@ impl EntitySync {
             .or_insert(RemoteDiffModel::new(source))
             .check_entities(lids),*/
             RemoteDes::CameraPos(pos) => {
-                cam_pos.insert(source, pos);
+                return Ok(ToState::Pos(pos));
             }
             RemoteDes::DeadEntities(vec) => self.spawn_once.extend(vec),
             RemoteDes::InterestRequest(interest_request) => self
@@ -465,7 +461,7 @@ impl EntitySync {
                     .entity_grabbed(source, lid, net, &mut self.entity_manager)?;
             }
         }
-        Ok(())
+        Ok(ToState::None)
     }
 
     pub(crate) fn cross_item_thrown(&mut self, entity: Option<EntityID>) -> eyre::Result<()> {
@@ -621,12 +617,15 @@ impl Module for EntitySync {
             )?;
         }
         if frame_num % 5 == 1 {
-            send_remotedes(
-                ctx.net,
-                false,
-                Destination::Peers(self.iter_peers(ctx.player_map).map(|(_, p)| p).collect()),
-                RemoteDes::CameraPos(pos),
-            )?;
+            let iter = self.iter_peers(ctx.player_map);
+            for (_, peer) in iter {
+                send_remotedes(
+                    ctx.net,
+                    false,
+                    Destination::Peer(peer),
+                    RemoteDes::CameraPos(pos),
+                )?;
+            }
         }
 
         for lost in self.interest_tracker.drain_lost_interest() {
@@ -670,6 +669,21 @@ impl Module for EntitySync {
         }
         {
             let new_intersects = self.interest_tracker.got_any_new_interested();
+            if !new_intersects.is_empty() {
+                self.local_diff_model.make_init();
+                let res = std::mem::take(&mut self.local_diff_model.init_buffer);
+                let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
+                    ctx,
+                    true,
+                    Destination::Peers(new_intersects.clone()),
+                    RemoteDes::EntityInit(res),
+                ) else {
+                    unreachable!()
+                };
+                self.local_diff_model.init_buffer = diff;
+                self.local_diff_model.uninit();
+                err?;
+            }
             let dead;
             (dead, self.local_index) = match self
                 .local_diff_model
@@ -682,21 +696,8 @@ impl Module for EntitySync {
                     return Err(s);
                 }
             };
-            self.clear_buffer(ctx, &new_intersects)?;
-            if !new_intersects.is_empty() {
-                self.local_diff_model.make_init();
-                let res = std::mem::take(&mut self.local_diff_model.init_buffer);
-                let (RemoteDes::EntityInit(diff), err) = send_remotedes_ret(
-                    ctx,
-                    true,
-                    Destination::Peers(new_intersects),
-                    RemoteDes::EntityInit(res),
-                ) else {
-                    unreachable!()
-                };
-                self.local_diff_model.init_buffer = diff;
-                self.local_diff_model.uninit();
-                err?;
+            if self.log_performance {
+                times[3] = start.elapsed().as_micros() - (times[0] + times[1] + times[2]);
             }
             {
                 let proj = &mut self.pending_fired_projectiles.lock().unwrap();
@@ -706,9 +707,9 @@ impl Module for EntitySync {
                         .map(|(ent, mut proj)| {
                             if ent.is_alive() {
                                 if let Ok(Some(vel)) = ent
-                                .try_get_first_component_including_disabled::<VelocityComponent>(
-                                    None,
-                                )
+                                    .try_get_first_component_including_disabled::<VelocityComponent>(
+                                        None,
+                                    )
                                 {
                                     proj.vel = vel.m_velocity().ok()
                                 }
@@ -724,6 +725,7 @@ impl Module for EntitySync {
                     )?;
                 }
             }
+            self.clear_buffer(ctx, &new_intersects)?;
             if !dead.is_empty() {
                 send_remotedes(
                     ctx.net,
@@ -741,9 +743,6 @@ impl Module for EntitySync {
                     ),
                     RemoteDes::DeadEntities(dead),
                 )?;
-            }
-            if self.log_performance {
-                times[3] = start.elapsed().as_micros() - (times[0] + times[1] + times[2]);
             }
         }
         if frame_num > 120 {
@@ -896,7 +895,7 @@ fn send_remotedes(
     reliable: bool,
     destination: Destination<PeerId>,
     remote_des: RemoteDes,
-) -> Result<RemoteDes, eyre::Error> {
+) -> Result<(), eyre::Error> {
     let message = NoitaOutbound::RemoteMessage {
         reliable,
         destination,
@@ -924,5 +923,5 @@ fn send_remotedes_ret(
     else {
         unreachable!()
     };
-    Ok(des)
+    (des, err)
 }
