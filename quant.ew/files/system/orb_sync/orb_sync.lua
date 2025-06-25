@@ -11,12 +11,15 @@ local function orbs_found_this_run()
     return ComponentGetValue2(wsc, "orbs_found_thisrun")
 end
 
+local spawned_orbs = {}
+
 local function actual_orbs_update(found_orbs)
     local found_local = orbs_found_this_run()
     for _, orb in ipairs(found_orbs) do
-        if table.contains(found_local, orb) then
+        if table.contains(found_local, orb) or table.contains(spawned_orbs, orb) then
             goto continue
         end
+        table.insert(spawned_orbs, orb)
         local orb_ent = EntityCreateNew()
         EntityAddTag(orb_ent, "ew_no_enemy_sync")
         EntityAddComponent2(orb_ent, "ItemComponent", {
