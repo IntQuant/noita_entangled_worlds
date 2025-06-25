@@ -542,53 +542,58 @@ impl LocalDiffModelTracker {
                 info.ai_state = ai.ai_state()?;
                 info.ai_rotation = ai.m_ranged_attack_current_aim_angle()?;
             }
-        } else if let Ok(sprites) =
-            entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)
-        {
-            info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
-            info.animations = sprites
-                .filter_map(|sprite| {
-                    let file = sprite.image_file().ok()?;
-                    if file.ends_with(".xml") {
-                        let text = noita_api::raw::mod_text_file_get_content(file).ok()?;
-                        let mut split = text.split("name=\"");
-                        split.next();
-                        let mut data = split.filter_map(|piece| piece.split("\"").next());
-                        let animation = sprite.rect_animation().unwrap_or("".into());
-                        Some(
-                            data.position(|name| name == animation)
-                                .unwrap_or(usize::MAX) as u16,
-                        )
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            if let Some(ai) =
-                entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)?
+        } else {
+            let mut files = std::mem::take(&mut entity_manager.files);
+            if let Ok(sprites) =
+                entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)
             {
-                if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
-                    info.laser = if let Some(target) = ai.m_greatest_prey()? {
-                        if ![15, 16].contains(&ai.ai_state()?) {
-                            Target::None
-                        } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
-                            Target::Peer(*peer)
-                        } else if let Some(var) = target.get_var("ew_gid_lid") {
-                            if var.value_bool()? {
-                                Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+                info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
+                info.animations = sprites
+                    .filter_map(|sprite| {
+                        let file = sprite.image_file().ok()?;
+                        if file.ends_with(".xml") {
+                            let text = noita_api::get_file(&mut files, file).ok()?;
+                            let mut split = text.split("name=\"");
+                            split.next();
+                            let animation =
+                                sprite.rect_animation().unwrap_or("".into()).to_string();
+                            Some(
+                                split
+                                    .position(|name| name.starts_with(&animation))
+                                    .unwrap_or(usize::MAX) as u16,
+                            )
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                if let Some(ai) = entity_manager
+                    .try_get_first_component::<AnimalAIComponent>(ComponentTag::None)?
+                {
+                    if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
+                        info.laser = if let Some(target) = ai.m_greatest_prey()? {
+                            if ![15, 16].contains(&ai.ai_state()?) {
+                                Target::None
+                            } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
+                                Target::Peer(*peer)
+                            } else if let Some(var) = target.get_var("ew_gid_lid") {
+                                if var.value_bool()? {
+                                    Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+                                } else {
+                                    Target::None
+                                }
                             } else {
                                 Target::None
                             }
                         } else {
                             Target::None
                         }
-                    } else {
-                        Target::None
                     }
                 }
+            } else {
+                info.animations.clear()
             }
-        } else {
-            info.animations.clear()
+            entity_manager.files = files;
         }
 
         info.synced_var = entity_manager
@@ -1898,48 +1903,54 @@ impl RemoteDiffModel {
                 var.set_value_int(0)?;
             }
         } else {
-            entity.set_current_stains(entity_info.current_stains)?;
+            entity.set_current_stains(entity_info.current_stains, entity_manager)?;
         }
         if let Some(ai) = entity_manager
             .try_get_first_component_including_disabled::<AnimalAIComponent>(ComponentTag::None)?
         {
             ai.set_ai_state(entity_info.ai_state)?;
             ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
-        } else if let Ok(sprites) =
-            entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)
-        {
-            for (sprite, animation) in sprites
-                .filter(|sprite| {
-                    sprite
-                        .image_file()
-                        .map(|c| c.ends_with(".xml"))
-                        .unwrap_or(false)
-                })
-                .zip(entity_info.animations.iter())
+        } else {
+            let mut files = std::mem::take(&mut entity_manager.files);
+            if let Ok(sprites) =
+                entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None)
             {
-                sprite.set_special_scale_x(if entity_info.facing_direction.0 {
-                    1.0
-                } else {
-                    -1.0
-                })?;
-                sprite.set_special_scale_y(if entity_info.facing_direction.1 {
-                    1.0
-                } else {
-                    -1.0
-                })?;
-                if *animation == u16::MAX {
-                    continue;
-                }
-                let file = sprite.image_file()?;
-                let text = noita_api::raw::mod_text_file_get_content(file)?;
-                let mut split = text.split("name=\"");
-                split.next();
-                let data: Vec<&str> = split.filter_map(|piece| piece.split("\"").next()).collect();
-                if data.len() > *animation as usize {
-                    sprite.set_rect_animation(data[*animation as usize].into())?;
-                    sprite.set_next_rect_animation(data[*animation as usize].into())?;
+                for (sprite, animation) in sprites
+                    .filter(|sprite| {
+                        sprite
+                            .image_file()
+                            .map(|c| c.ends_with(".xml"))
+                            .unwrap_or(false)
+                    })
+                    .zip(entity_info.animations.iter())
+                {
+                    sprite.set_special_scale_x(if entity_info.facing_direction.0 {
+                        1.0
+                    } else {
+                        -1.0
+                    })?;
+                    sprite.set_special_scale_y(if entity_info.facing_direction.1 {
+                        1.0
+                    } else {
+                        -1.0
+                    })?;
+                    if *animation == u16::MAX {
+                        continue;
+                    }
+                    let file = sprite.image_file()?;
+                    let text = noita_api::get_file(&mut files, file)?;
+                    let mut split = text.split("name=\"");
+                    split.next();
+                    if let Some(ani) = split
+                        .nth(*animation as usize)
+                        .map(|piece| piece.split_once("\"").unwrap().0)
+                    {
+                        sprite.set_rect_animation(ani.into())?;
+                        sprite.set_next_rect_animation(ani.into())?;
+                    }
                 }
             }
+            entity_manager.files = files;
         }
         let laser =
             entity_manager.try_get_first_component::<LaserEmitterComponent>(ComponentTag::None)?;

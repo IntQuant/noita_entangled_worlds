@@ -40,6 +40,7 @@ local function actual_orbs_update(found_orbs)
     last_orb_count = GameGetOrbCountThisRun()
 end
 
+rpc.opts_reliable()
 function rpc.update_orbs(found_orbs)
     if ctx.rpc_peer_id ~= ctx.host_id and not ctx.is_host then
         return

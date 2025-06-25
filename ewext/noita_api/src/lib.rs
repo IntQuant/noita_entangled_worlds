@@ -525,11 +525,14 @@ impl EntityID {
         Ok(current)
     }
 
-    pub fn set_current_stains(self, current_stains: u64) -> eyre::Result<()> {
+    pub fn set_current_stains(
+        self,
+        current_stains: u64,
+        entity_manager: &mut EntityManager,
+    ) -> eyre::Result<()> {
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
-            let file = raw::mod_text_file_get_content(
-                "data/scripts/status_effects/status_list.lua".into(),
-            )?;
+            let file =
+                entity_manager.get_file("data/scripts/status_effects/status_list.lua".into())?;
             let to_id = file
                 .lines()
                 .filter(|l| {
@@ -1259,6 +1262,7 @@ pub struct EntityManager {
     current_entity: EntityID,
     current_data: EntityData,
     has_ran: bool,
+    pub files: Option<FxHashMap<Cow<'static, str>, Cow<'static, str>>>,
 }
 impl Default for EntityManager {
     fn default() -> Self {
@@ -1267,6 +1271,7 @@ impl Default for EntityManager {
             current_entity: EntityID(NonZeroIsize::new(-1).unwrap()),
             current_data: Default::default(),
             has_ran: false,
+            files: Some(FxHashMap::with_capacity_and_hasher(512, FxBuildHasher)),
         }
     }
 }
@@ -1318,6 +1323,9 @@ impl EntityData {
     }
 }
 impl EntityManager {
+    pub fn get_file(&mut self, file: Cow<'static, str>) -> eyre::Result<&Cow<'static, str>> {
+        get_file(&mut self.files, file)
+    }
     pub fn cache_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
         self.cache.insert(ent, EntityData::new(ent)?);
         Ok(())
@@ -1599,5 +1607,17 @@ impl EntityManager {
                 .remove(n);
         }
         self.current_entity.remove_component(id)
+    }
+}
+pub fn get_file<'a>(
+    files: &'a mut Option<FxHashMap<Cow<'static, str>, Cow<'static, str>>>,
+    file: Cow<'static, str>,
+) -> eyre::Result<&'a Cow<'static, str>> {
+    match files.as_mut().unwrap().entry(file) {
+        std::collections::hash_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
+        std::collections::hash_map::Entry::Vacant(entry) => {
+            let content = raw::mod_text_file_get_content(entry.key().clone())?;
+            Ok(entry.insert(content))
+        }
     }
 }
