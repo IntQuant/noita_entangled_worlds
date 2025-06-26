@@ -323,7 +323,7 @@ impl Modmanager {
                 }
             }
             State::EyreErrorReport(err) => {
-                ui.label(format!("Encountered an error: \n {:?}", err));
+                ui.label(format!("Encountered an error: \n {err:?}"));
                 if ui.button(tr("button_retry")).clicked() {
                     self.state = State::JustStarted;
                 }
@@ -368,7 +368,7 @@ fn mod_downloader_for(
         .build()
         .wrap_err("Failed to build client")?;
     get_release_by_tag(&client, tag.clone())
-        .wrap_err_with(|| format!("while getting release for tag {:?}", tag))
+        .wrap_err_with(|| format!("while getting release for tag {tag:?}"))
         .and_then(|release| {
             release
                 .get_release_assets(&client)

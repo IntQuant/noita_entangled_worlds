@@ -311,7 +311,7 @@ impl LocalDiffModelTracker {
         };
 
         if should_send_position {
-            (info.x, info.y) = (x, y);
+            (info.x, info.y) = (x as f32, y as f32);
         }
 
         let should_send_rotation = if let Some(com) =
@@ -323,7 +323,7 @@ impl LocalDiffModelTracker {
         };
 
         if should_send_rotation {
-            info.r = r
+            info.r = r as f32
         }
 
         if let Some(inv) = entity_manager
@@ -336,7 +336,7 @@ impl LocalDiffModelTracker {
                             "ew_immortal".into(),
                         ))?;
                         let r = wand.rotation()?;
-                        info.wand_rotation = r;
+                        info.wand_rotation = r as f32;
                         if let Some(Some(gid)) = wand
                             .get_var("ew_gid_lid")
                             .map(|var| var.value_string().ok()?.parse::<u64>().ok())
@@ -354,7 +354,7 @@ impl LocalDiffModelTracker {
                         info.wand = None
                     } else {
                         let r = wand.rotation()?;
-                        info.wand_rotation = r;
+                        info.wand_rotation = r as f32;
                     }
                 }
             } else {
@@ -412,7 +412,7 @@ impl LocalDiffModelTracker {
                 entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)?
             {
                 let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
-                if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) > 512.0 * 512.0 {
+                if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) > 512.0 * 512.0 {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
                 } else {
@@ -609,7 +609,8 @@ impl LocalDiffModelTracker {
             .collect::<Vec<(String, String, i32, f32, bool)>>();
         if ignore_transfer {
             // Check if entity went out of range, remove and release authority if it did.
-            let is_beyond_authority = (x - cam_pos.0).powi(2) + (y - cam_pos.1).powi(2)
+            let is_beyond_authority = (x as f32 - cam_pos.0).powi(2)
+                + (y as f32 - cam_pos.1).powi(2)
                 > if info.is_global {
                     GLOBAL_AUTHORITY_RADIUS
                 } else {
@@ -651,7 +652,7 @@ impl LocalDiffModelTracker {
                     .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
                 {
                     let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
-                    if (cx as f32 - x).powi(2) + (cy as f32 - y).powi(2) < 256.0 * 256.0 {
+                    if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) < 256.0 * 256.0 {
                         cost.set_stealable(true)?;
                         entity_manager.remove_component(var)?;
                     }
@@ -956,8 +957,8 @@ impl LocalDiffModel {
                 current: Some(EntityInfo {
                     spawn_info,
                     kind: entity_kind,
-                    x,
-                    y,
+                    x: x as f32,
+                    y: y as f32,
                     r: 0.0,
                     vx: 0.0,
                     vy: 0.0,
@@ -1057,7 +1058,7 @@ impl LocalDiffModel {
                 entity_data.pos.y as f32,
                 entity_manager,
             )?;
-            entity.set_position(entity_data.pos.x as f32, entity_data.pos.y as f32, None)?;
+            entity.set_position(entity_data.pos.x as f64, entity_data.pos.y as f64, None)?;
             if entity_data.is_charmed {
                 if entity_manager.has_tag(const { CachedTag::from_tag("boss_centipede") }) {
                     self.enable_later.push(entity);
@@ -1178,8 +1179,8 @@ impl LocalDiffModel {
         let mut should_transfer = false;
         if let Some(pe) = ctx.player_map.get_by_left(&my_peer_id()) {
             let (px, py) = pe.position()?;
-            should_transfer =
-                (px - cam_x).powi(2) + (py - cam_y).powi(2) > AUTHORITY_RADIUS.powi(2);
+            should_transfer = (px as f32 - cam_x).powi(2) + (py as f32 - cam_y).powi(2)
+                > AUTHORITY_RADIUS.powi(2);
         }
         if !should_transfer {
             self.wait_to_transfer = 16
@@ -1769,12 +1770,16 @@ impl RemoteDiffModel {
                 true
             };
             if should_send_rotation && should_send_position {
-                entity.set_position(entity_info.x, entity_info.y, Some(entity_info.r))?;
+                entity.set_position(
+                    entity_info.x as f64,
+                    entity_info.y as f64,
+                    Some(entity_info.r as f64),
+                )?;
             } else if should_send_position {
-                entity.set_position(entity_info.x, entity_info.y, None)?;
+                entity.set_position(entity_info.x as f64, entity_info.y as f64, None)?;
             } else if should_send_rotation {
                 let (x, y) = entity.position()?;
-                entity.set_position(x, y, Some(entity_info.r))?;
+                entity.set_position(x, y, Some(entity_info.r as f64))?;
             }
             if let Some(worm) =
                 entity_manager.try_get_first_component::<BossDragonComponent>(ComponentTag::None)?
@@ -1890,9 +1895,7 @@ impl RemoteDiffModel {
                         })
                 } else if var.value_int()? == 8 {
                     let (x, y) = entity.position()?;
-                    if !EntityID::get_in_radius_with_tag(x as f64, y as f64, 480.0, "player_unit")?
-                        .is_empty()
-                    {
+                    if !EntityID::get_in_radius_with_tag(x, y, 480.0, "player_unit")?.is_empty() {
                         game_print("$item_die_roll");
                     }
                 }
@@ -1971,12 +1974,12 @@ impl RemoteDiffModel {
             if let Some(ent) = ent {
                 let (x, y) = entity.position()?;
                 let (tx, ty) = ent.position()?;
-                if !raytrace_platforms(x as f64, y as f64, tx as f64, ty as f64)?.0 {
+                if !raytrace_platforms(x, y, tx, ty)?.0 {
                     laser.set_is_emitting(true)?;
                     let (dx, dy) = (tx - x, ty - y);
                     let theta = dy.atan2(dx);
-                    laser.set_laser_angle_add_rad(theta - entity.rotation()?)?;
-                    laser.object_set_value::<f32>("laser", "max_length", dx.hypot(dy))?;
+                    laser.set_laser_angle_add_rad((theta - entity.rotation()?) as f32)?;
+                    laser.object_set_value("laser", "max_length", dx.hypot(dy))?;
                 } else {
                     laser.set_is_emitting(false)?;
                 }
@@ -2029,15 +2032,19 @@ impl RemoteDiffModel {
                             };
                             if should_send_rotation && should_send_position {
                                 entity.set_position(
-                                    entity_info.x,
-                                    entity_info.y,
-                                    Some(entity_info.r),
+                                    entity_info.x as f64,
+                                    entity_info.y as f64,
+                                    Some(entity_info.r as f64),
                                 )?;
                             } else if should_send_position {
-                                entity.set_position(entity_info.x, entity_info.y, None)?;
+                                entity.set_position(
+                                    entity_info.x as f64,
+                                    entity_info.y as f64,
+                                    None,
+                                )?;
                             } else if should_send_rotation {
                                 let (x, y) = entity.position()?;
-                                entity.set_position(x, y, Some(entity_info.r))?;
+                                entity.set_position(x, y, Some(entity_info.r as f64))?;
                             }
                         }
                     } else {
@@ -2617,7 +2624,7 @@ fn give_wand(
         }
         if let Some(r) = r {
             let (x, y) = entity.get_hotspot("hand")?;
-            wand.set_position(x as f32, y as f32, Some(r))?;
+            wand.set_position(x, y, Some(r as f64))?;
         }
     }
     if !stop {
@@ -2625,7 +2632,7 @@ fn give_wand(
             entity_manager.set_component_enabled(inv, true)?;
         }
         let (x, y) = entity.position()?;
-        let wand = deserialize_entity(seri, x, y)?;
+        let wand = deserialize_entity(seri, x as f32, y as f32)?;
         if delete {
             if let Some(pickup) = entity_manager
                 .try_get_first_component_including_disabled::<ItemPickUpperComponent>(

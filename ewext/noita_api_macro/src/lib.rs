@@ -178,9 +178,9 @@ fn generate_code_for_component(com: Component) -> proc_macro2::TokenStream {
     let impls = com.fields.iter().filter_map(|field| {
         let field_name_raw = &field.field;
         let field_name_s = convert_field_name(&field.field);
-        let field_name = format_ident!("{}", field_name_s);
+        let field_name = format_ident!("{field_name_s}");
         let field_doc = &field.desc;
-        let set_method_name = format_ident!("set_{}", field_name);
+        let set_method_name = format_ident!("set_{field_name}");
         match field.typ {
             Typ::Other => None,
             _ => {

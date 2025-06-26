@@ -25,7 +25,7 @@ pub(crate) unsafe fn grab_addr_from_instruction(
 
     #[cfg(debug_assertions)]
     if instruction.mnemonic() != expected_mnemonic {
-        println!("Encountered unexpected mnemonic: {}", instruction);
+        println!("Encountered unexpected mnemonic: {instruction}");
     }
     assert_eq!(instruction.mnemonic(), expected_mnemonic);
 

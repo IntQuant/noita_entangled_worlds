@@ -174,11 +174,7 @@ impl EntitySync {
         }
         Ok(())
     }
-    pub(crate) fn spawn_once(
-        &mut self,
-        ctx: &mut super::ModuleCtx,
-        frame_num: usize,
-    ) -> eyre::Result<()> {
+    pub(crate) fn spawn_once(&mut self, ctx: &mut ModuleCtx, frame_num: usize) -> eyre::Result<()> {
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         let len = self.spawn_once.len();
         if len > 0 {
@@ -270,7 +266,7 @@ impl EntitySync {
                             }
                             shared::SpawnOnce::BrokenWand => {
                                 let ent = EntityID::create(None)?;
-                                ent.set_position(x as f32, y as f32, None)?;
+                                ent.set_position(x, y, None)?;
                                 ent.add_tag("broken_wand")?;
                                 ent.add_lua_init_component::<LuaComponent>(
                                     "data/scripts/buildings/forge_item_convert.lua",
@@ -516,7 +512,7 @@ impl EntitySync {
 }
 
 impl Module for EntitySync {
-    fn on_world_init(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+    fn on_world_init(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         send_remotedes(ctx.net, true, Destination::Broadcast, RemoteDes::Reset)?;
         Ok(())
     }
@@ -603,7 +599,7 @@ impl Module for EntitySync {
         Ok(())
     }
 
-    fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+    fn on_world_update(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         let start = std::time::Instant::now();
         let (x, y) = noita_api::raw::game_get_camera_pos()?;
         let pos = WorldPos::from_f64(x, y);
@@ -828,14 +824,14 @@ impl Module for EntitySync {
         }
         if self.log_performance {
             times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
-            noita_api::print(format!("{:?}", times));
+            noita_api::print(format!("{times:?}"));
         }
         Ok(())
     }
 
     fn on_projectile_fired(
         &mut self,
-        _ctx: &mut super::ModuleCtx,
+        _ctx: &mut ModuleCtx,
         shooter: Option<EntityID>,
         projectile: Option<EntityID>,
         _initial_rng: i32,

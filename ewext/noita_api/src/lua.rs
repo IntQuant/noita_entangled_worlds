@@ -234,7 +234,7 @@ impl<R: LuaFnRet> LuaFnRet for eyre::Result<R> {
         match self {
             Ok(ok) => ok.do_return(lua),
             Err(err) => unsafe {
-                lua.raise_error(format!("Error in rust call: {:?}", err));
+                lua.raise_error(format!("Error in rust call: {err:?}"));
             },
         }
     }

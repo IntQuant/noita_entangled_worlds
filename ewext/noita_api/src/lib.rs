@@ -42,6 +42,16 @@ static TO_ID: LazyLock<Vec<String>> = LazyLock::new(|| {
         .map(|l| l.split("\"").map(|a| a.to_string()).nth(1).unwrap())
         .collect::<Vec<String>>()
 });
+impl GameEffectComponent {
+    pub fn m_serialized_data(self) -> eyre::Result<Cow<'static, str>> {
+        raw::component_get_value::<Cow<str>>(*self, "mSerializedData")
+    }
+}
+impl TelekinesisComponent {
+    pub fn set_m_state(self, value: isize) -> eyre::Result<()> {
+        raw::component_set_value(*self, "mState", value)
+    }
+}
 impl EntityID {
     /// Returns true if entity is alive.
     ///
@@ -65,9 +75,7 @@ impl EntityID {
                     | GameEffectEnum::PolymorphRandom
                     | GameEffectEnum::PolymorphUnstable
                     | GameEffectEnum::PolymorphCessation => {
-                        if let Ok(data) =
-                            raw::component_get_value::<Cow<str>>(effect.0, "mSerializedData")
-                        {
+                        if let Ok(data) = effect.m_serialized_data() {
                             if data.is_empty() {
                                 return Ok(None);
                             }
@@ -153,59 +161,55 @@ impl EntityID {
                 .unwrap_or(true)
             && self.check_all_phys_init().unwrap_or(false)
         {
-            let body_id = raw::physics_body_id_get_from_entity(self, None).unwrap_or_default();
+            let body_id = self.get_physics_body_ids().unwrap_or_default();
             if !body_id.is_empty() {
-                for com in raw::entity_get_with_tag("ew_peer".into())
-                    .unwrap_or_default()
-                    .iter()
-                    .filter_map(|e| {
-                        e.map(|e| {
+                if let Ok(iter) = EntityID::get_with_tag("ew_peer") {
+                    for com in iter
+                        .filter_map(|e| {
                             e.try_get_first_component_including_disabled::<TelekinesisComponent>(
                                 None,
                             )
+                            .ok()
                         })
-                    })
-                    .flatten()
-                    .flatten()
-                {
-                    if body_id.contains(&com.get_body_id()) {
-                        let _ = raw::component_set_value(*com, "mState", 0);
+                        .flatten()
+                    {
+                        if body_id.contains(&com.get_body_id()) {
+                            let _ = com.set_m_state(0);
+                        }
                     }
                 }
             }
         }
         let _ = raw::entity_kill(self);
     }
-
-    pub fn set_position(self, x: f32, y: f32, r: Option<f32>) -> eyre::Result<()> {
-        raw::entity_set_transform(
-            self,
-            x as f64,
-            Some(y as f64),
-            r.map(|a| a as f64),
-            None,
-            None,
-        )
+    pub fn get_with_tag(tag: &str) -> eyre::Result<impl Iterator<Item = EntityID>> {
+        match raw::entity_get_with_tag(tag.into()) {
+            Ok(v) => Ok(v.into_iter().flatten()),
+            Err(s) => Err(s),
+        }
     }
 
-    pub fn set_rotation(self, r: f32) -> eyre::Result<()> {
+    pub fn set_position(self, x: f64, y: f64, r: Option<f64>) -> eyre::Result<()> {
+        raw::entity_set_transform(self, x, Some(y), r, None, None)
+    }
+
+    pub fn set_rotation(self, r: f64) -> eyre::Result<()> {
         let (x, y) = self.position()?;
-        raw::entity_set_transform(self, x as f64, Some(y as f64), Some(r as f64), None, None)
+        raw::entity_set_transform(self, x, Some(y), Some(r), None, None)
     }
 
-    pub fn transform(self) -> eyre::Result<(f32, f32, f32, f32, f32)> {
-        let (a, b, c, d, e) = raw::entity_get_transform(self)?;
-        Ok((a as f32, b as f32, c as f32, d as f32, e as f32))
+    pub fn transform(self) -> eyre::Result<(f64, f64, f64, f64, f64)> {
+        raw::entity_get_transform(self)
     }
 
-    pub fn position(self) -> eyre::Result<(f32, f32)> {
+    pub fn position(self) -> eyre::Result<(f64, f64)> {
         let (x, y, _, _, _) = raw::entity_get_transform(self)?;
-        Ok((x as f32, y as f32))
+        Ok((x, y))
     }
 
-    pub fn rotation(self) -> eyre::Result<f32> {
+    pub fn rotation(self) -> eyre::Result<f64> {
         let (_, _, r, _, _) = raw::entity_get_transform(self)?;
-        Ok(r as f32)
+        Ok(r)
     }
 
     pub fn filename(self) -> eyre::Result<Cow<'static, str>> {
@@ -256,7 +260,7 @@ impl EntityID {
         let mut is_some = false;
         while let Some(c) = self.try_get_first_component_including_disabled::<C>(tags.clone())? {
             is_some = true;
-            raw::entity_remove_component(self, c.into())?;
+            raw::entity_remove_component(self, *c)?;
         }
         Ok(is_some)
     }
@@ -355,10 +359,7 @@ impl EntityID {
                     let n = ent.filename()?;
                     let num = name_to_n.entry(n.clone()).or_insert(0);
                     *num += 1;
-                    effects.push((
-                        GameEffectData::Projectile((format!("{}{}", n, num), data)),
-                        ent,
-                    ));
+                    effects.push((GameEffectData::Projectile((format!("{n}{num}"), data)), ent));
                 }
             } else if let Ok(Some(effect)) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)
@@ -453,7 +454,7 @@ impl EntityID {
                     }
                     GameEffectData::Custom(file) => {
                         let (x, y) = self.position().unwrap_or_default();
-                        if let Ok(ent) = EntityID::load(file, Some(x as f64), Some(y as f64)) {
+                        if let Ok(ent) = EntityID::load(file, Some(x), Some(y)) {
                             self.add_child(ent);
                             ent
                         } else {
@@ -462,7 +463,7 @@ impl EntityID {
                     }
                     GameEffectData::Projectile((_, data)) => {
                         let (x, y) = self.position().unwrap_or_default();
-                        if let Ok(ent) = deserialize_entity(data, x, y) {
+                        if let Ok(ent) = deserialize_entity(data, x as f32, y as f32) {
                             self.add_child(ent);
                             ent
                         } else {
@@ -1239,7 +1240,7 @@ impl ComponentData {
         } else {
             VarName::None
         };
-        let ent_tags = format!(",{},", id.get_tags().unwrap_or_default(),);
+        let ent_tags = format!(",{},", id.get_tags().unwrap_or_default());
         let mut tags = Tags(0);
         macro_rules! push_tag {
             ($($e: expr),*) => {
