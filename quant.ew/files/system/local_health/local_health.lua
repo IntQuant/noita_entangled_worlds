@@ -346,7 +346,7 @@ local function player_died()
     if not ctx.run_ended then
         show_death_message()
     end
-
+    
     if ctx.proxy_opt.pvp then
         local x, y = EntityGetTransform(ctx.my_player.entity)
         rpc.spawn_ragdoll(x, y)
@@ -354,7 +354,10 @@ local function player_died()
         pvp.move_next_hm(true)
         return
     end
-
+    if ctx.proxy_opt.dead_isnt_dead and not ctx.run_ended then
+        ctx.run_ended = true
+        CrossCall("ew_respwan_local_player")
+    else
     -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
     -- Which is, like, perfect.
     GameAddFlagRun("ew_flag_notplayer_active")
@@ -381,75 +384,76 @@ local function player_died()
         rpc.spawn_ragdoll(x, y)
         return
     end
-    local gold = get_gold()
+        local gold = get_gold()
 
-    rpc.remove_homing(false)
-    -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
-    local item_data = inventory_helper.get_item_data(ctx.my_player)
-    remove_inventory()
-    local perk_data = perk_fns.get_my_perks()
-    local _, max_hp = util.get_ent_health(ctx.my_player.entity)
-    local cap = util.get_ent_health_cap(ctx.my_player.entity)
+        rpc.remove_homing(false)
+        -- Serialize inventory, perks, and max_hp, we'll need to copy it over to notplayer.
+        local item_data = inventory_helper.get_item_data(ctx.my_player)
+        remove_inventory()
+        local perk_data = perk_fns.get_my_perks()
+        local _, max_hp = util.get_ent_health(ctx.my_player.entity)
+        local cap = util.get_ent_health_cap(ctx.my_player.entity)
 
-    local ent = LoadGameEffectEntityTo(
-        ctx.my_player.entity,
-        "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml"
-    )
-    ctx.my_player.entity = ent + 1
-    if ctx.proxy_opt.physics_damage then
-        local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-        ComponentSetValue2(damage, "physics_objects_damage", true)
-    end
-    do_switch_effect(false)
-    EntitySetName(ctx.my_player.entity, ctx.my_id .. "?")
-    util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
-    util.set_ent_health_cap(ctx.my_player.entity, cap)
-    local iron = LoadGameEffectEntityTo(
-        ctx.my_player.entity,
-        "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml"
-    )
-    EntityAddTag(iron, "kill_on_revive")
-    LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
-    cos.set_cosmetics_locally(ctx.my_id)
+        local ent = LoadGameEffectEntityTo(
+            ctx.my_player.entity,
+            "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml"
+        )
+        ctx.my_player.entity = ent + 1
+        if ctx.proxy_opt.physics_damage then
+            local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+            ComponentSetValue2(damage, "physics_objects_damage", true)
+        end
+        do_switch_effect(false)
+        EntitySetName(ctx.my_player.entity, ctx.my_id .. "?")
+        util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
+        util.set_ent_health_cap(ctx.my_player.entity, cap)
+        local iron = LoadGameEffectEntityTo(
+            ctx.my_player.entity,
+            "mods/quant.ew/files/system/local_health/notplayer/iron_stomach.xml"
+        )
+        EntityAddTag(iron, "kill_on_revive")
+        LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/spectate/no_tinker.xml")
+        cos.set_cosmetics_locally(ctx.my_id)
 
-    local inv = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
-    if inv ~= nil then
-        ComponentSetValue2(inv, "mItemHolstered", false)
-        ComponentSetValue2(inv, "mActualActiveItem", 0)
-        ComponentSetValue2(inv, "mActiveItem", 0)
-        local quick
-        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-            if EntityGetName(child) == "inventory_quick" then
-                quick = child
-                break
+        local inv = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
+        if inv ~= nil then
+            ComponentSetValue2(inv, "mItemHolstered", false)
+            ComponentSetValue2(inv, "mActualActiveItem", 0)
+            ComponentSetValue2(inv, "mActiveItem", 0)
+            local quick
+            for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+                if EntityGetName(child) == "inventory_quick" then
+                    quick = child
+                    break
+                end
+            end
+            for _, child in ipairs(EntityGetAllChildren(quick) or {}) do
+                EntitySetComponentsWithTagEnabled(child, "enabled_in_hand", false)
+                EntitySetComponentsWithTagEnabled(child, "enabled_in_world", false)
+                EntitySetComponentsWithTagEnabled(child, "enabled_in_inventory", true)
             end
         end
-        for _, child in ipairs(EntityGetAllChildren(quick) or {}) do
-            EntitySetComponentsWithTagEnabled(child, "enabled_in_hand", false)
-            EntitySetComponentsWithTagEnabled(child, "enabled_in_world", false)
-            EntitySetComponentsWithTagEnabled(child, "enabled_in_inventory", true)
-        end
-    end
 
-    polymorph.switch_entity(ent + 1, true)
+        polymorph.switch_entity(ent + 1, true)
 
-    remove_healthbar_locally()
-    inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
-    for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
-        if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
-            EntitySetComponentIsEnabled(
-                child,
-                EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"),
-                false
-            )
+        remove_healthbar_locally()
+        inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
+        for _, child in ipairs(EntityGetAllChildren(ctx.my_player.entity) or {}) do
+            if EntityGetName(child) == "cursor" or EntityGetName(child) == "notcursor" then
+                EntitySetComponentIsEnabled(
+                    child,
+                    EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent"),
+                    false
+                )
+            end
         end
+        reset_cast_state_if_has_any_other_item(ctx.my_player)
+        perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
+        util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
+        util.set_ent_health_cap(ctx.my_player.entity, cap)
+        rpc.add_nickname_change_cursor()
+        set_gold(gold)
     end
-    reset_cast_state_if_has_any_other_item(ctx.my_player)
-    perk_fns.update_perks_for_entity(perk_data, ctx.my_player.entity, allow_notplayer_perk)
-    util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
-    util.set_ent_health_cap(ctx.my_player.entity, cap)
-    rpc.add_nickname_change_cursor()
-    set_gold(gold)
 end
 
 local function do_game_over(message)
@@ -813,6 +817,7 @@ function rpc.melee_damage_client(target_peer, damage, message)
         EntityInflictDamage(ctx.my_player.entity, damage, "DAMAGE_MELEE", message, "NONE", 0, 0, 0)
     end
 end
+
 util.add_cross_call("ew_ds_client_damaged", rpc.melee_damage_client)
 
 rpc.opts_everywhere()

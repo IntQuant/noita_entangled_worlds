@@ -100,6 +100,7 @@ local_health_desc_1 = 모든 플레이어가 각자 체력을 가지고, 모든 
 local_health_desc_2 = 리스폰을 하는 방법이 있습니다.
 Health-percent-lost-on-reviving = 다시 살아났을 때 잃는 최대 체력 퍼센트
 global_hp_loss = 체력 손실 공유
+dead_isnt_dead = Dead isn't dead
 no_material_damage = 물질로 인한 피해 없음
 perma_death = 퍼마데스
 physics_damage = 물리 피해
