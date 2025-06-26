@@ -6,3 +6,5 @@ save_state
 /quant.ew/ewext.dll
 /quant.ew/ewext0.dll
 /quant.ew/ewext1.dll
+Justfile
+Justfile.old
