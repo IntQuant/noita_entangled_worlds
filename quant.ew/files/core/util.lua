@@ -70,6 +70,7 @@ function util.print_traceback()
     util.print_error(debug.traceback())
 end
 
+
 function util.get_ent_variable(entity, key)
     local storage = EntityGetFirstComponentIncludingDisabled(entity, "VariableStorageComponent", key)
     if storage == nil then
@@ -176,7 +177,7 @@ function util.set_ent_firing_blocked(entity, do_block)
     end
 end
 
--- Adds this component with given data if it doesn't exist
+--- Adds this component with given data if it doesn't exist
 function util.ensure_component_present(entity, component, tag, data, tags)
     local current = EntityGetFirstComponentIncludingDisabled(entity, component, tag)
     data._tags = tags or tag

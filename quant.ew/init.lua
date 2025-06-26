@@ -65,6 +65,9 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
     -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
 
+    if ctx.proxy_opt.dead_isnt_dead then
+        ctx.load_system("respawn_mountain")
+    end
     if ctx.proxy_opt.game_mode == "shared_health" then
         ctx.load_system("damage")
         ctx.load_system("heart_pickups")
@@ -77,7 +80,6 @@ local function load_modules()
         ctx.load_system("spectator_helps")
         ctx.load_system("end_fight")
     end
-
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/nickname.lua")
 
     if ctx.proxy_opt.debug then
@@ -392,6 +394,7 @@ local last_chunk
 local last_flex
 
 function OnPlayerSpawned(player_entity) -- This runs when player entity has been created
+
     print("Initial player entity: " .. player_entity)
     if ctx.proxy_opt.home_on_players then
         EntityAddTag(player_entity, "homing_target")

@@ -1,0 +1,36 @@
+<Entity name = "Ankh_use" serialize = "1">
+	<InheritTransformComponent
+		only_position="1" 
+    ></InheritTransformComponent>
+
+  	<ParticleEmitterComponent 
+		emitted_material_name="magic_liquid_teleportation"
+		gravity.y="-0.6"
+		offset.y="-18.0"
+		lifetime_min="2"
+		lifetime_max="8"
+		count_min="2"
+		count_max="8"
+		render_on_grid="1"
+		collide_with_grid="0"
+		collide_with_gas_and_fire="0"
+		fade_based_on_lifetime="1"
+		area_circle_radius.min="0"
+		area_circle_radius.max="0"
+		cosmetic_force_create="1"
+		airflow_force="0.03"
+		airflow_time="0.04"
+		airflow_scale="0.05"
+		emission_interval_min_frames="1"
+		emission_interval_max_frames="1"
+		emit_cosmetic_particles="1"
+		image_animation_file="mods/quant.ew/files/system/respawn_mountain/sprites/ankh_emitter.png"
+		image_animation_speed="2"
+		image_animation_loop="1"
+		image_animation_raytrace_from_center="0"
+		is_emitting="1" 
+    ></ParticleEmitterComponent>
+    <LifetimeComponent
+		lifetime="500" >
+	</LifetimeComponent>
+</Entity>

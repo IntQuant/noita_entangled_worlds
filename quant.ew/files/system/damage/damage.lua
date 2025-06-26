@@ -36,20 +36,25 @@ local function damage_received(damage, message, entity_id, add_healing_effect)
 end
 
 util.add_cross_call("ew_ds_damaged", damage_received)
-
 local function do_game_over(message)
-    net.proxy_notify_game_over()
-    ctx.run_ended = true
+    if ctx.proxy_opt.dead_isnt_dead and not ctx.run_ended then
+        ctx.run_ended = true 
+        CrossCall("ew_respwan_local_player")
+    else
+        net.proxy_notify_game_over()
+        ctx.run_ended = true
 
-    local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
-    if damage_model ~= nil then
-        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
-        ComponentSetValue2(damage_model, "ui_report_damage", false)
-        ComponentSetValue2(damage_model, "hp", 2 ^ -38)
+        local damage_model = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
+        if damage_model ~= nil then
+            ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", false)
+            ComponentSetValue2(damage_model, "ui_report_damage", false)
+            ComponentSetValue2(damage_model, "hp", 2 ^ -38)
+        end
+        EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0,
+            GameGetWorldStateEntity())
+        GameTriggerGameOver()
+        EntityKill(ctx.my_player.entity)
     end
-    EntityInflictDamage(ctx.my_player.entity, 1000000, "DAMAGE_CURSE", message, "NONE", 0, 0, GameGetWorldStateEntity())
-    GameTriggerGameOver()
-    EntityKill(ctx.my_player.entity)
 end
 
 function module.on_local_player_spawn(my_player)
@@ -236,6 +241,7 @@ function rpc.melee_damage_client(target_peer, damage, message)
         EntityInflictDamage(ctx.my_player.entity, damage, "DAMAGE_MELEE", message, "NONE", 0, 0, 0)
     end
 end
+
 util.add_cross_call("ew_ds_client_damaged", rpc.melee_damage_client)
 
 return module
