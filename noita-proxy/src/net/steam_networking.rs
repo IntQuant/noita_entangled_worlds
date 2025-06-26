@@ -46,7 +46,7 @@ impl Display for ConnectError {
                         ),
                     ],
                 );
-                write!(f, "{}", translated)
+                write!(f, "{translated}")
             }
             ConnectError::VersionMissing => write!(f, "{}", tr("error_missing_version_field")),
             ConnectError::LobbyDoesNotExist => write!(f, "{}", tr("error_lobby_does_not_exist")),

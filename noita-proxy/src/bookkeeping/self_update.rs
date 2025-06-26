@@ -128,7 +128,7 @@ impl SelfUpdateManager {
                         None => {}
                     }
                 }
-                Some(Err(err)) => self.state = State::ReleasesError2(format!("{:?}", err)),
+                Some(Err(err)) => self.state = State::ReleasesError2(format!("{err:?}")),
                 None => {
                     ui.label(tr("selfupdate_receiving_rel_info"));
                     ui.spinner();
@@ -140,7 +140,7 @@ impl SelfUpdateManager {
                     let _ = SelfRestarter::new().and_then(|mut r| r.restart());
                 }
                 Some(Err(err)) => {
-                    ui.label(format!("Could not update proxy: {}", err));
+                    ui.label(format!("Could not update proxy: {err}"));
                 }
                 None => {
                     ctx.request_repaint();
@@ -149,10 +149,10 @@ impl SelfUpdateManager {
                 }
             },
             State::ReleasesError(err) => {
-                ui.label(format!("Encountered an error: {:?}", err));
+                ui.label(format!("Encountered an error: {err:?}"));
             }
             State::ReleasesError2(err) => {
-                ui.label(format!("Encountered an error:\n{}", err));
+                ui.label(format!("Encountered an error:\n{err}"));
             }
         }
     }

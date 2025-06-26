@@ -50,7 +50,7 @@ pub mod world;
 pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> NoitaInbound {
     let mut buf = Vec::new();
     buf.push(2);
-    write!(buf, "{} {}", key, value).unwrap();
+    write!(buf, "{key} {value}").unwrap();
     NoitaInbound::RawMessage(buf)
 }
 
@@ -891,10 +891,10 @@ impl NetManager {
                 }
             }
             NetMsg::RespondFlagNormal(flag, new) => {
-                state.try_ms_write(&ws_encode_proxy("normal_flag", format!("{} {}", flag, new)));
+                state.try_ms_write(&ws_encode_proxy("normal_flag", format!("{flag} {new}")));
             }
             NetMsg::RespondFlagSlow(ent, new) => {
-                state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{} {}", ent, new)));
+                state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{ent} {new}")));
             }
             NetMsg::RespondFlagMoon(x, y, b) => {
                 state.try_ms_write(&ws_encode_proxy(

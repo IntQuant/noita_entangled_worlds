@@ -95,7 +95,7 @@ impl Display for GameMode {
             GameMode::LocalHealth(LocalHealthMode::PermaDeath) => "LocalPermadeath",
             GameMode::LocalHealth(LocalHealthMode::PvP) => "PvP",
         };
-        write!(f, "{}", desc)
+        write!(f, "{desc}")
     }
 }
 
@@ -1086,7 +1086,7 @@ impl ImageMap {
     ) {
         for (p, (coord, is_dead, does_exist, img)) in map {
             if !self.players.contains_key(p) {
-                let name = format!("{}", p);
+                let name = format!("{p}");
                 let size = [img.width() as usize, img.height() as usize];
                 let color_image = egui::ColorImage::from_rgba_unmultiplied(
                     size,
@@ -1814,7 +1814,7 @@ impl App {
                                                         let color = game_mode.color();
                                                         ui.colored_label(
                                                             color,
-                                                            tr(&format!("game_mode_{}", game_mode)),
+                                                            tr(&format!("game_mode_{game_mode}")),
                                                         );
                                                     }
                                                 },
@@ -1829,7 +1829,7 @@ impl App {
                                                 } else {
                                                     Color32::RED
                                                 };
-                                                ui.colored_label(color, format!("EW {}", version));
+                                                ui.colored_label(color, format!("EW {version}"));
                                             } else if info.is_noita_online {
                                                 ui.colored_label(
                                                     Color32::LIGHT_BLUE,
@@ -1940,7 +1940,7 @@ impl App {
                 }
             }
             Err(err) => {
-                ui.label(format!("Could not init steam networking: {}", err));
+                ui.label(format!("Could not init steam networking: {err}"));
             }
         }
     }
@@ -2628,7 +2628,7 @@ impl eframe::App for App {
                             .connect_to(*target_lobby)
                             .restart()
                     });
-                    self.notify_error(format!("Failed to self-restart: {}", err));
+                    self.notify_error(format!("Failed to self-restart: {err}"));
                 }
                 if button_back {
                     self.state = AppState::Connect;

@@ -396,11 +396,11 @@ pub fn create_player_png(
     let (arrows_path, ping_path, map_icon) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());
     let player_lukki = tmp_path.join("unmodified_lukki.png");
-    icon.save(tmp_path.join(format!("tmp/{}_icon.png", id)))
+    icon.save(tmp_path.join(format!("tmp/{id}_icon.png")))
         .unwrap();
     replace_colors(
         player_path.into(),
-        tmp_path.join(format!("tmp/{}.png", id)),
+        tmp_path.join(format!("tmp/{id}.png")),
         &rgb,
     );
     {
@@ -414,49 +414,48 @@ pub fn create_player_png(
         for px in img.pixels_mut() {
             px.0[3] = px.0[3].min(64)
         }
-        img.save(tmp_path.join(format!("tmp/{}_dc.png", id)))
-            .unwrap();
+        img.save(tmp_path.join(format!("tmp/{id}_dc.png"))).unwrap();
     }
     replace_colors(
         player_lukki,
-        tmp_path.join(format!("tmp/{}_lukki.png", id)),
+        tmp_path.join(format!("tmp/{id}_lukki.png")),
         &rgb,
     );
     replace_colors_opt(
         arrows_path,
-        tmp_path.join(format!("tmp/{}_arrow.png", id)),
+        tmp_path.join(format!("tmp/{id}_arrow.png")),
         &rgb,
         inv,
     );
     replace_colors_opt(
         ping_path,
-        tmp_path.join(format!("tmp/{}_ping.png", id)),
+        tmp_path.join(format!("tmp/{id}_ping.png")),
         &rgb,
         inv,
     );
     replace_colors_opt(
         cursor_path,
-        tmp_path.join(format!("tmp/{}_cursor.png", id)),
+        tmp_path.join(format!("tmp/{id}_cursor.png")),
         &rgb,
         inv,
     );
     replace_colors(
         tmp_path.join("knee.png"),
-        tmp_path.join(format!("tmp/{}_knee.png", id)),
+        tmp_path.join(format!("tmp/{id}_knee.png")),
         &rgb,
     );
     replace_colors(
         tmp_path.join("limb_a.png"),
-        tmp_path.join(format!("tmp/{}_limb_a.png", id)),
+        tmp_path.join(format!("tmp/{id}_limb_a.png")),
         &rgb,
     );
     replace_colors(
         tmp_path.join("limb_b.png"),
-        tmp_path.join(format!("tmp/{}_limb_b.png", id)),
+        tmp_path.join(format!("tmp/{id}_limb_b.png")),
         &rgb,
     );
-    replace_colors(map_icon, tmp_path.join(format!("tmp/{}_map.png", id)), &rgb);
-    let ragdoll_path = tmp_path.join(format!("tmp/{}_ragdoll.txt", id));
+    replace_colors(map_icon, tmp_path.join(format!("tmp/{id}_map.png")), &rgb);
+    let ragdoll_path = tmp_path.join(format!("tmp/{id}_ragdoll.txt"));
     if ragdoll_path.exists() {
         remove_file(ragdoll_path.clone()).unwrap()
     }
@@ -476,21 +475,16 @@ pub fn create_player_png(
     .rev()
     {
         let f = tmp_path.join(s);
-        replace_colors(f, tmp_path.join(format!("tmp/{}_ragdoll_{}", id, s)), &rgb);
-        files = format!(
-            "{}mods/quant.ew/files/system/player/tmp/{}_ragdoll_{}\n",
-            files, id, s
-        );
+        replace_colors(f, tmp_path.join(format!("tmp/{id}_ragdoll_{s}")), &rgb);
+        files = format!("{files}mods/quant.ew/files/system/player/tmp/{id}_ragdoll_{s}\n");
     }
     ragdoll.write_all(files.as_bytes()).unwrap();
     let img = create_arm(Rgba::from(to_u8(rgb.player_forearm)));
-    let path = tmp_path.join(format!("tmp/{}_arm.png", id));
+    let path = tmp_path.join(format!("tmp/{id}_arm.png"));
     img.save(path).unwrap();
     edit_nth_line(
         tmp_path.join("unmodified_cape.xml").into(),
-        tmp_path
-            .join(format!("tmp/{}_cape.xml", id))
-            .into_os_string(),
+        tmp_path.join(format!("tmp/{id}_cape.xml")).into_os_string(),
         vec![16, 16],
         vec![
             format!("cloth_color=\"0xFF{}\"", rgb_to_hex(to_u8(rgb.player_cape))),
@@ -502,7 +496,7 @@ pub fn create_player_png(
     );
     edit_nth_line(
         tmp_path.join("unmodified.xml").into(),
-        tmp_path.join(format!("tmp/{}_dc.xml", id)).into_os_string(),
+        tmp_path.join(format!("tmp/{id}_dc.xml")).into_os_string(),
         vec![1],
         vec![format!(
             "filename=\"mods/quant.ew/files/system/player/tmp/{}_dc.png\"",
@@ -511,7 +505,7 @@ pub fn create_player_png(
     );
     edit_nth_line(
         tmp_path.join("unmodified.xml").into(),
-        tmp_path.join(format!("tmp/{}.xml", id)).into_os_string(),
+        tmp_path.join(format!("tmp/{id}.xml")).into_os_string(),
         vec![1],
         vec![format!(
             "filename=\"mods/quant.ew/files/system/player/tmp/{}.png\"",
@@ -523,7 +517,7 @@ pub fn create_player_png(
         tmp_path.join("tmp/".to_owned() + &id.clone() + "_lukki.xml"),
         &[(
             "MARKER_LUKKI_PNG",
-            format!("mods/quant.ew/files/system/player/tmp/{}_lukki.png", id),
+            format!("mods/quant.ew/files/system/player/tmp/{id}_lukki.png"),
         )],
     );
     edit_by_replacing(
@@ -559,31 +553,29 @@ pub fn create_player_png(
             ),
             (
                 "MARKER_MAIN_SPRITE",
-                format!("mods/quant.ew/files/system/player/tmp/{}.xml", id),
+                format!("mods/quant.ew/files/system/player/tmp/{id}.xml"),
             ),
             (
                 "MARKER_LUKKI_SPRITE",
-                format!("mods/quant.ew/files/system/player/tmp/{}_lukki.xml", id),
+                format!("mods/quant.ew/files/system/player/tmp/{id}_lukki.xml"),
             ),
             (
                 "MARKER_ARM_SPRITE",
-                format!("mods/quant.ew/files/system/player/tmp/{}_arm.xml", id),
+                format!("mods/quant.ew/files/system/player/tmp/{id}_arm.xml"),
             ),
             (
                 "MARKER_CAPE",
-                format!("mods/quant.ew/files/system/player/tmp/{}_cape.xml", id),
+                format!("mods/quant.ew/files/system/player/tmp/{id}_cape.xml"),
             ),
             (
                 "RAGDOLL_MARKER",
-                format!("mods/quant.ew/files/system/player/tmp/{}_ragdoll.txt", id),
+                format!("mods/quant.ew/files/system/player/tmp/{id}_ragdoll.txt"),
             ),
         ],
     );
     edit_nth_line(
         tmp_path.join("unmodified_arm.xml").into(),
-        tmp_path
-            .join(format!("tmp/{}_arm.xml", id))
-            .into_os_string(),
+        tmp_path.join(format!("tmp/{id}_arm.xml")).into_os_string(),
         vec![1],
         vec![format!(
             "filename=\"mods/quant.ew/files/system/player/tmp/{}_arm.png\"",
@@ -609,7 +601,7 @@ fn edit_nth_line(path: OsString, exit: OsString, v: Vec<usize>, newline: Vec<Str
     }
     let mut file = File::create(exit).unwrap();
     for line in lines {
-        writeln!(file, "{}", line).unwrap();
+        writeln!(file, "{line}").unwrap();
     }
 }
 

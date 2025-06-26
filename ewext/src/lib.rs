@@ -454,7 +454,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
     if let Err(_e) = KEEP_SELF_LOADED.as_ref() {
         #[cfg(debug_assertions)]
-        println!("Got an error while loading self: {}", _e);
+        println!("Got an error while loading self: {_e}");
     }
     #[cfg(debug_assertions)]
     println!(
