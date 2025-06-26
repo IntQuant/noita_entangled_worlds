@@ -934,7 +934,7 @@ pub enum CachedTag {
     PolymorphableNOT,
     EggItem,
 }
-const TAG_LEN: usize = 11;
+//const TAG_LEN: usize = 11;
 impl CachedTag {
     /*const fn iter() -> [CachedTag; 1] {
         [CachedTag::EwClient]
@@ -1204,14 +1204,29 @@ impl ComponentTag {
         }
     }
 }
-const COMP_TAG_LEN: usize = 16;
+//const COMP_TAG_LEN: usize = 16;
 struct ComponentData {
     id: ComponentID,
     enabled: bool,
     phys_init: bool,
     name: VarName,
-    tags: [bool; COMP_TAG_LEN],
+    tags: Tags<u16>, //[bool; COMP_TAG_LEN],
 }
+
+#[derive(Default)]
+struct Tags<T: Default>(T);
+impl Tags<u16> {
+    fn get(&self, n: u16) -> bool {
+        self.0 & (1 << n) != 0
+    }
+    fn set(&mut self, n: u16) {
+        self.0 |= 1 << n
+    }
+    fn clear(&mut self, n: u16) {
+        self.0 &= !(1 << n)
+    }
+}
+
 impl ComponentData {
     fn new(id: ComponentID, is_var: bool) -> Self {
         let enabled = id.is_enabled().unwrap_or_default();
@@ -1225,11 +1240,13 @@ impl ComponentData {
             VarName::None
         };
         let ent_tags = format!(",{},", id.get_tags().unwrap_or_default(),);
-        let mut tags = [false; COMP_TAG_LEN];
+        let mut tags = Tags(0);
         macro_rules! push_tag {
             ($($e: expr),*) => {
                 $(
-                    tags[const{$e as usize}] = ent_tags.contains(&format!(",{},",const {$e.to_str()}));
+                    if ent_tags.contains(&format!(",{},",const {$e.to_str()})){
+                        tags.set(const{$e as u16});
+                    }
                 )*
             };
         }
@@ -1268,7 +1285,7 @@ impl ComponentData {
 const COMP_VEC_LEN: usize = 1;
 #[derive(Default)]
 struct EntityData {
-    tags: [bool; TAG_LEN],
+    tags: Tags<u16>, //[bool; TAG_LEN],
     components: [SmallVec<[ComponentData; COMP_VEC_LEN]>; COMP_LEN],
 }
 pub struct EntityManager {
@@ -1292,11 +1309,13 @@ impl Default for EntityManager {
 impl EntityData {
     fn new(ent: EntityID) -> eyre::Result<Self> {
         let ent_tags = format!(",{},", ent.tags()?,);
-        let mut tags = [false; TAG_LEN];
+        let mut tags = Tags(0);
         macro_rules! push_tag {
             ($($e: expr),*) => {
                 $(
-                    tags[const{$e as usize}] = ent_tags.contains(&format!(",{},",const {$e.to_tag()}));
+                    if ent_tags.contains(&format!(",{},",const {$e.to_tag()})) {
+                        tags.set(const{$e as u16});
+                    }
                 )*
             };
         }
@@ -1327,13 +1346,13 @@ impl EntityData {
         Ok(EntityData { tags, components })
     }
     fn has_tag(&self, tag: CachedTag) -> bool {
-        self.tags[tag as usize]
+        self.tags.get(tag as u16)
     }
     fn add_tag(&mut self, tag: CachedTag) {
-        self.tags[tag as usize] = true
+        self.tags.set(tag as u16)
     }
     fn remove_tag(&mut self, tag: CachedTag) {
-        self.tags[tag as usize] = false
+        self.tags.clear(tag as u16)
     }
 }
 impl EntityManager {
@@ -1405,7 +1424,7 @@ impl EntityManager {
             [const { CachedComponent::from_component::<C>() as usize }];
         Ok(coms
             .iter()
-            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags[tag as usize]))
+            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
             .map(|com| C::from(com.id)))
     }
     pub fn try_get_first_component_including_disabled<C: Component>(
@@ -1415,7 +1434,7 @@ impl EntityManager {
         if let Some(coms) = self.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter()
-        .find(|c| tag == ComponentTag::None || c.tags[tag as usize])
+        .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
         {
             Ok(Some(C::from(coms.id)))
         } else {
@@ -1427,7 +1446,7 @@ impl EntityManager {
             [const { CachedComponent::from_component::<C>() as usize }];
         Ok(coms
             .iter()
-            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags[tag as usize]))
+            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
             .map(|com| C::from(com.id))
             .unwrap())
     }
@@ -1438,7 +1457,7 @@ impl EntityManager {
         if let Some(coms) = self.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter()
-        .find(|c| tag == ComponentTag::None || c.tags[tag as usize])
+        .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
         {
             Ok(C::from(coms.id))
         } else {
@@ -1454,7 +1473,7 @@ impl EntityManager {
             &mut self.current_data.components[const { CachedComponent::from_component::<C>() as usize }],
         );
         for com in vec.into_iter() {
-            if tags == ComponentTag::None || com.tags[tags as usize] {
+            if tags == ComponentTag::None || com.tags.get(tags as u16) {
                 is_some = true;
                 self.current_entity.remove_component(com.id)?;
             } else {
@@ -1471,7 +1490,7 @@ impl EntityManager {
         Ok(
             self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
                 .iter()
-                .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags[tag as usize]))
+                .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
                 .map(|c| C::from(c.id)),
         )
     }
@@ -1491,7 +1510,7 @@ impl EntityManager {
         Ok(
             self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
                 .iter()
-                .filter(move |c| tag == ComponentTag::None || c.tags[tag as usize])
+                .filter(move |c| tag == ComponentTag::None || c.tags.get(tag as u16))
                 .map(|c| C::from(c.id)),
         )
     }
@@ -1577,7 +1596,7 @@ impl EntityManager {
     ) -> eyre::Result<()> {
         let mut some = false;
         for c in self.current_data.components.iter_mut().flatten() {
-            if c.tags[tag as usize] {
+            if c.tags.get(tag as u16) {
                 some = true;
                 c.enabled = enabled
             }
