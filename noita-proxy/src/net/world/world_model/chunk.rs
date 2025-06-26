@@ -102,10 +102,10 @@ pub struct Chunk {
 struct Changed<T: Default>([T; CHUNK_SIZE]);
 impl Changed<u128> {
     fn get(&self, n: usize) -> bool {
-        self.0[n / CHUNK_SIZE] & (1 << n) != 0
+        self.0[n / CHUNK_SIZE] & (1 << (n % CHUNK_SIZE)) != 0
     }
     fn set(&mut self, n: usize) {
-        self.0[n / CHUNK_SIZE] |= 1 << n
+        self.0[n / CHUNK_SIZE] |= 1 << (n % CHUNK_SIZE)
     }
 }
 
