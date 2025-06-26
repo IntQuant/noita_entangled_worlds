@@ -1295,6 +1295,8 @@ pub struct EntityManager {
     current_data: EntityData,
     has_ran: bool,
     pub files: Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
+    frame_num: i32,
+    camera_pos: (f64, f64),
 }
 impl Default for EntityManager {
     fn default() -> Self {
@@ -1304,6 +1306,8 @@ impl Default for EntityManager {
             current_data: Default::default(),
             has_ran: false,
             files: Some(FxHashMap::with_capacity_and_hasher(512, FxBuildHasher)),
+            frame_num: -1,
+            camera_pos: (0.0, 0.0),
         }
     }
 }
@@ -1357,6 +1361,24 @@ impl EntityData {
     }
 }
 impl EntityManager {
+    pub fn init_frame_num(&mut self) -> eyre::Result<()> {
+        if self.frame_num == -1 {
+            self.frame_num = raw::game_get_frame_num()?;
+        } else {
+            self.frame_num += 1;
+        }
+        Ok(())
+    }
+    pub fn frame_num(&self) -> i32 {
+        self.frame_num
+    }
+    pub fn init_pos(&mut self) -> eyre::Result<()> {
+        self.camera_pos = raw::game_get_camera_pos()?;
+        Ok(())
+    }
+    pub fn camera_pos(&self) -> (f64, f64) {
+        self.camera_pos
+    }
     pub fn cache_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
         self.cache.insert(ent, EntityData::new(ent)?);
         Ok(())

@@ -9,7 +9,6 @@ use bimap::BiHashMap;
 use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
-use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
     CachedTag, ComponentTag, DamageModelComponent, DamageType, EntityID, EntityManager,
@@ -174,8 +173,13 @@ impl EntitySync {
         }
         Ok(())
     }
-    pub(crate) fn spawn_once(&mut self, ctx: &mut ModuleCtx, frame_num: usize) -> eyre::Result<()> {
-        let (x, y) = noita_api::raw::game_get_camera_pos()?;
+    pub(crate) fn spawn_once(
+        &mut self,
+        ctx: &mut ModuleCtx,
+        frame_num: usize,
+        x: f64,
+        y: f64,
+    ) -> eyre::Result<()> {
         let len = self.spawn_once.len();
         if len > 0 {
             let batch_size = (len / 20).max(1);
@@ -601,10 +605,12 @@ impl Module for EntitySync {
 
     fn on_world_update(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         let start = std::time::Instant::now();
-        let (x, y) = noita_api::raw::game_get_camera_pos()?;
+        self.entity_manager.init_pos()?;
+        self.entity_manager.init_frame_num()?;
+        let (x, y) = self.entity_manager.camera_pos();
         let pos = WorldPos::from_f64(x, y);
         self.interest_tracker.set_center(x, y);
-        let frame_num = game_get_frame_num()? as usize;
+        let frame_num = self.entity_manager.frame_num();
         if frame_num < 10 {
             return Ok(());
         }
@@ -805,7 +811,7 @@ impl Module for EntitySync {
                 }
             }
         }
-        if let Err(s) = self.spawn_once(ctx, frame_num) {
+        if let Err(s) = self.spawn_once(ctx, frame_num as usize, x, y) {
             crate::print_error(s)?;
         }
 
@@ -817,7 +823,7 @@ impl Module for EntitySync {
                 },
             ))?;
         }
-        let pos_data = self.local_diff_model.get_pos_data(frame_num);
+        let pos_data = self.local_diff_model.get_pos_data(frame_num as usize);
         if !pos_data.is_empty() {
             ctx.net
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;

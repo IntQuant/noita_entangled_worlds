@@ -2,7 +2,7 @@ use super::NetManager;
 use crate::{ephemerial, modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt, eyre};
-use noita_api::raw::{game_get_frame_num, raytrace_platforms};
+use noita_api::raw::raytrace_platforms;
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
@@ -411,7 +411,7 @@ impl LocalDiffModelTracker {
             if let Some(vel) =
                 entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)?
             {
-                let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
+                let (cx, cy) = entity_manager.camera_pos();
                 if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) > 512.0 * 512.0 {
                     vel.set_gravity_y(0.0)?;
                     vel.set_air_friction(10.0)?;
@@ -438,7 +438,7 @@ impl LocalDiffModelTracker {
         {
             info.cost = item_cost.cost()?;
         } else if entity_manager.has_tag(const { CachedTag::from_tag("boss_wizard") }) {
-            info.cost = game_get_frame_num()? as i64;
+            info.cost = entity_manager.frame_num() as i64;
             info.counter = entity
                 .children(None)
                 .filter_map(|ent| {
@@ -651,7 +651,7 @@ impl LocalDiffModelTracker {
                 if let Some(cost) = entity_manager
                     .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
                 {
-                    let (cx, cy) = noita_api::raw::game_get_camera_pos()?;
+                    let (cx, cy) = entity_manager.camera_pos();
                     if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) < 256.0 * 256.0 {
                         cost.set_stealable(true)?;
                         entity_manager.remove_component(var)?;
@@ -1142,7 +1142,7 @@ impl LocalDiffModel {
         entity_manager: &mut EntityManager,
     ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, usize)> {
         self.update_buffer.clear();
-        let (cam_x, cam_y) = noita_api::raw::game_get_camera_pos()?;
+        let (cam_x, cam_y) = entity_manager.camera_pos();
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
         let mut dead = Vec::with_capacity(self.tracker.pending_death_notify.len());
@@ -2398,7 +2398,7 @@ pub fn init_remote_entity(
         entity_manager.remove_component(var)?;
     }
     if let Some(var) = entity_manager.get_var(const { VarName::from_str("throw_time") }) {
-        var.set_value_int(game_get_frame_num().unwrap_or(0) - 4)?;
+        var.set_value_int(entity_manager.frame_num() - 4)?;
     }
 
     if let Some(lid) = lid {
@@ -2550,7 +2550,7 @@ fn _safe_wandkill(entity: &mut EntityManager) -> eyre::Result<()> {
     lc.add_tag("enabled_in_world")?;
     lc.add_tag("enabled_in_hand")?;
     lc.set_execute_on_added(false)?;
-    lc.set_m_next_execution_time(game_get_frame_num()? + 1)?;
+    lc.set_m_next_execution_time(entity.frame_num() + 1)?;
     Ok(())
 }
 
