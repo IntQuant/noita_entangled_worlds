@@ -93,14 +93,15 @@ impl Default for CompactPixel {
 }
 
 pub struct Chunk {
-    pixels: [u16; CHUNK_SIZE * CHUNK_SIZE],
-    changed: Changed<u128>,
+    pixels: [u16; CHUNK_SQUARE],
+    changed: Changed<bool, CHUNK_SQUARE>,
     any_changed: bool,
     crc: AtomicCell<Option<u64>>,
 }
 
-struct Changed<T: Default>([T; CHUNK_SIZE]);
-impl Changed<u128> {
+struct Changed<T: Default, const N: usize>([T; N]);
+#[cfg(test)]
+impl Changed<u128, CHUNK_SIZE> {
     fn get(&self, n: usize) -> bool {
         self.0[n / CHUNK_SIZE] & (1 << (n % CHUNK_SIZE)) != 0
     }
@@ -108,14 +109,46 @@ impl Changed<u128> {
         self.0[n / CHUNK_SIZE] |= 1 << (n % CHUNK_SIZE)
     }
 }
-
+#[cfg(test)]
 const _: () = assert!(u128::BITS as usize == CHUNK_SIZE);
+const CHUNK_SQUARE: usize = CHUNK_SIZE * CHUNK_SIZE;
+impl Changed<bool, CHUNK_SQUARE> {
+    fn get(&self, n: usize) -> bool {
+        self.0[n]
+    }
+    fn set(&mut self, n: usize) {
+        self.0[n] = true
+    }
+}
+#[test]
+fn test_changed() {
+    let tmr = std::time::Instant::now();
+    for _ in 0..8192 {
+        let mut chunk = Changed([0; CHUNK_SIZE]);
+        for i in 0..CHUNK_SQUARE {
+            std::hint::black_box(chunk.get(i));
+            chunk.set(CHUNK_SQUARE - i - 1);
+        }
+        std::hint::black_box(chunk);
+    }
+    println!("u128 {}", tmr.elapsed().as_nanos());
+    let tmr = std::time::Instant::now();
+    for _ in 0..8192 {
+        let mut chunk = Changed([false; CHUNK_SQUARE]);
+        for i in 0..CHUNK_SQUARE {
+            std::hint::black_box(chunk.get(i));
+            chunk.set(CHUNK_SQUARE - i - 1);
+        }
+        std::hint::black_box(chunk);
+    }
+    println!("bool {}", tmr.elapsed().as_nanos())
+}
 
 impl Default for Chunk {
     fn default() -> Self {
         Self {
-            pixels: [4095; CHUNK_SIZE * CHUNK_SIZE],
-            changed: Changed([0; CHUNK_SIZE]),
+            pixels: [4095; CHUNK_SQUARE],
+            changed: Changed([false; CHUNK_SQUARE]),
             any_changed: false,
             crc: None.into(),
         }
@@ -158,13 +191,13 @@ impl Chunk {
     }
 
     pub fn clear_changed(&mut self) {
-        self.changed = Changed([0; CHUNK_SIZE]);
+        self.changed = Changed([false; CHUNK_SQUARE]);
         self.any_changed = false;
     }
 
     pub fn to_chunk_data(&self) -> ChunkData {
         let mut runner = PixelRunner::new();
-        for i in 0..CHUNK_SIZE * CHUNK_SIZE {
+        for i in 0..CHUNK_SQUARE {
             runner.put_pixel(self.compact_pixel(i))
         }
         let runs = runner.build();
