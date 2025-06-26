@@ -94,16 +94,28 @@ impl Default for CompactPixel {
 
 pub struct Chunk {
     pixels: [u16; CHUNK_SIZE * CHUNK_SIZE],
-    changed: [bool; CHUNK_SIZE * CHUNK_SIZE],
+    changed: Changed<u128>,
     any_changed: bool,
     crc: AtomicCell<Option<u64>>,
 }
+
+struct Changed<T: Default>([T; CHUNK_SIZE]);
+impl Changed<u128> {
+    fn get(&self, n: usize) -> bool {
+        self.0[n / CHUNK_SIZE] & (1 << (n % CHUNK_SIZE)) != 0
+    }
+    fn set(&mut self, n: usize) {
+        self.0[n / CHUNK_SIZE] |= 1 << (n % CHUNK_SIZE)
+    }
+}
+
+const _: () = assert!(u128::BITS as usize == CHUNK_SIZE);
 
 impl Default for Chunk {
     fn default() -> Self {
         Self {
             pixels: [4095; CHUNK_SIZE * CHUNK_SIZE],
-            changed: [false; CHUNK_SIZE * CHUNK_SIZE],
+            changed: Changed([0; CHUNK_SIZE]),
             any_changed: false,
             crc: None.into(),
         }
@@ -136,17 +148,17 @@ impl Chunk {
         }
     }
     pub fn changed(&self, offset: usize) -> bool {
-        self.changed[offset]
+        self.changed.get(offset)
     }
 
     pub fn mark_changed(&mut self, offset: usize) {
-        self.changed[offset] = true;
+        self.changed.set(offset);
         self.any_changed = true;
         self.crc.store(None);
     }
 
     pub fn clear_changed(&mut self) {
-        self.changed = [false; CHUNK_SIZE * CHUNK_SIZE];
+        self.changed = Changed([0; CHUNK_SIZE]);
         self.any_changed = false;
     }
 

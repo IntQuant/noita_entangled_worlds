@@ -172,7 +172,7 @@ fn proxy_bin_name() -> &'static str {
     if cfg!(target_os = "windows") {
         "noita_proxy.exe"
     } else if cfg!(target_os = "macos") {
-        "noita_proxy.arm64"
+        "noita_proxy"
     } else {
         "noita_proxy.x86_64"
     }

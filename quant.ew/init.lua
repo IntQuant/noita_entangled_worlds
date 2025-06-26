@@ -12,7 +12,7 @@ np.EnableGameSimulatePausing(false)
 np.InstallDamageDetailsPatch()
 np.SilenceLogs("Warning - streaming didn't find any chunks it could stream away...\n")
 
-ewext = require("ewext1")
+ewext = require("ewext")
 
 -- Make some stuff global, as it's way too annoying to import each time.
 constants = dofile_once("mods/quant.ew/files/core/constants.lua")
@@ -284,7 +284,9 @@ function OnProjectileFired(
         local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         local life = EntityGetFirstComponentIncludingDisabled(projectile_id, "LifetimeComponent")
         if proj == nil or ComponentGetValue2(proj, "lifetime") > 4 or ComponentGetValue2(life, "lifetime") > 4 then
-            ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
+            if EntityGetIsAlive(projectile_id) then
+                ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
+            end
         end
         if shooter_player_data.peer_id ~= ctx.my_id then
             if proj ~= nil then
@@ -539,20 +541,32 @@ local function on_world_pre_update_inner()
     if not ctx.run_ended then
         --local ti = GameGetRealWorldTimeSinceStarted()
         local n = EntitiesGetMaxID()
+        local arr = {}
         for ent = last_n + 1, n do
             if EntityGetIsAlive(ent) then
-                ctx.hook.on_new_entity(ent)
-                local homing = EntityGetFirstComponentIncludingDisabled(ent, "HomingComponent")
-                if homing ~= nil then
-                    local projcom = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
-                    if projcom ~= nil then
-                        local whoshot = ComponentGetValue2(projcom, "mWhoShot")
-                        if EntityHasTag(whoshot, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
-                            ComponentSetValue2(homing, "target_tag", "ew_peer")
+                if
+                    not ctx.is_host
+                    and ctx.proxy_opt.disable_kummitus
+                    and EntityGetName(ent) == "$animal_playerghost"
+                then
+                    EntityKill(ent)
+                else
+                    table.insert(arr, ent)
+                    local homing = EntityGetFirstComponentIncludingDisabled(ent, "HomingComponent")
+                    if homing ~= nil then
+                        local projcom = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
+                        if projcom ~= nil then
+                            local whoshot = ComponentGetValue2(projcom, "mWhoShot")
+                            if EntityHasTag(whoshot, "ew_notplayer") or GameHasFlagRun("ending_game_completed") then
+                                ComponentSetValue2(homing, "target_tag", "ew_peer")
+                            end
                         end
                     end
                 end
             end
+        end
+        if #arr ~= 0 then
+            ctx.hook.on_new_entity(arr)
         end
         last_n = n
         --local tf = GameGetRealWorldTimeSinceStarted()

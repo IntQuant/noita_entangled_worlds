@@ -1,16 +1,16 @@
 pub mod lua_bindings;
 
+use eyre::{Context, OptionExt, bail, eyre};
+use lua_bindings::{LUA_GLOBALSINDEX, Lua51, lua_CFunction, lua_State};
 use std::{
+    array,
     borrow::Cow,
     cell::Cell,
     ffi::{CStr, c_char, c_int},
-    mem, slice,
+    slice,
     str::FromStr,
     sync::LazyLock,
 };
-
-use eyre::{Context, OptionExt, bail};
-use lua_bindings::{LUA_GLOBALSINDEX, Lua51, lua_CFunction, lua_State};
 
 use crate::{Color, ComponentID, EntityID, GameEffectEnum, Obj, PhysicsBodyID};
 
@@ -50,6 +50,14 @@ impl LuaState {
 
     pub fn to_integer(&self, index: i32) -> isize {
         unsafe { LUA.lua_tointeger(self.lua, index) }
+    }
+
+    pub fn to_integer_array(&self, index: i32, len: usize) -> impl Iterator<Item = isize> {
+        (1..=len).map(move |i| unsafe {
+            LUA.lua_pushinteger(self.lua, i as lua_bindings::lua_Integer);
+            LUA.lua_gettable(self.lua, index);
+            LUA.lua_tointeger(self.lua, -1)
+        })
     }
 
     pub fn to_number(&self, index: i32) -> f64 {
@@ -292,7 +300,7 @@ impl LuaPutValue for isize {
 
 impl LuaPutValue for u32 {
     fn put(&self, lua: LuaState) {
-        lua.push_integer(unsafe { mem::transmute::<u32, i32>(*self) as isize });
+        lua.push_integer(self.cast_signed() as isize);
     }
 }
 
@@ -421,7 +429,7 @@ impl LuaGetValue for isize {
 
 impl LuaGetValue for u32 {
     fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
-        Ok(unsafe { mem::transmute::<i32, u32>(lua.to_integer(index) as i32) })
+        Ok((lua.to_integer(index) as i32).cast_unsigned())
     }
 }
 
@@ -527,6 +535,30 @@ impl<T: LuaGetValue> LuaGetValue for Vec<T> {
             lua.pop_last();
             res.push(get?);
         }
+        Ok(res)
+    }
+}
+
+impl<T: LuaGetValue, const N: usize> LuaGetValue for [T; N] {
+    fn get(lua: LuaState, index: i32) -> eyre::Result<Self> {
+        if T::size_on_stack() != 1 {
+            bail!(
+                "Encountered [T; N] where T needs more than 1 slot on the stack. This isn't supported"
+            );
+        }
+        let len = lua.objlen(index);
+        if len != N {
+            return Err(eyre!("mis matched length {}", len));
+        }
+        let mut res: [Option<T>; N] = array::from_fn(|_| None);
+        for (i, res) in res.iter_mut().enumerate() {
+            lua.index_table(index, i);
+            let get = T::get(lua, -1);
+            lua.pop_last();
+            *res = Some(get?)
+        }
+        let mut res = res.into_iter();
+        let res: [T; N] = array::from_fn(|_| res.next().unwrap().unwrap());
         Ok(res)
     }
 }

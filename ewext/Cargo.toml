@@ -9,8 +9,12 @@ crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
-#strip = true # Not having that causes wine debugger to crash.
+strip = true # Not having that causes wine debugger to crash.
 panic = "abort"
+split-debuginfo = "packed"
+incremental=true
+codegen-units=1
+opt-level = 3
 
 [dependencies]
 backtrace = "0.3.74"

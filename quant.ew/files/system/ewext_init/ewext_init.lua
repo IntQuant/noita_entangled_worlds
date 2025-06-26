@@ -11,9 +11,6 @@ local module = {}
 EwextSerialize = util.serialize_entity
 EwextDeserialize = util.deserialize_entity
 EwextPrintError = util.print_error
-function EwextPrint(s)
-    print(s)
-end
 function EwextAddInitLuaComponent(entity, file)
     return EntityAddComponent2(entity, "LuaComponent", {
         script_source_file = file,
@@ -91,12 +88,8 @@ function module.on_world_update()
     ewext.module_on_world_update()
 end
 
-function module.on_new_entity(ent)
-    if not ctx.is_host and ctx.proxy_opt.disable_kummitus and EntityGetName(ent) == "$animal_playerghost" then
-        EntityKill(ent)
-    else
-        ewext.module_on_new_entity(ent)
-    end
+function module.on_new_entity(arr)
+    ewext.module_on_new_entity(arr, #arr)
 end
 
 function module.on_projectile_fired(
