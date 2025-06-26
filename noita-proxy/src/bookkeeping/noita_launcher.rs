@@ -89,7 +89,7 @@ impl NoitaLauncher {
         }
     }
 
-    pub fn launch_token(&mut self) -> LaunchTokenResult {
+    pub fn launch_token(&mut self) -> LaunchTokenResult<'_> {
         if self.check_if_noita_running() {
             return LaunchTokenResult::AlreadyStarted;
         }

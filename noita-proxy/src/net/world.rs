@@ -894,13 +894,13 @@ impl WorldManager {
                 if world_num != self.world_num {
                     return;
                 }
-                if let Some(state) = self.authority_map.get(&chunk) {
-                    if state.0 != source {
-                        debug!(
-                            "{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority"
-                        );
-                        return;
-                    }
+                if let Some(state) = self.authority_map.get(&chunk)
+                    && state.0 != source
+                {
+                    debug!(
+                        "{source} sent RelinquishAuthority for {chunk:?}, but isn't currently an authority"
+                    );
+                    return;
                 }
                 self.authority_map.remove(&chunk);
                 if let Some(chunk_data) = chunk_data {
@@ -1743,32 +1743,28 @@ impl WorldManager {
                         self.is_storage_recent.insert(entry.0);
                     }
                 }
-                if let Some((coord, rays)) = entry.unloaded {
-                    if self.nice_terraforming {
-                        exists = true;
-                        let lst = rays
-                            .iter()
-                            .filter_map(|i| {
-                                if raydata[*i] == 0 {
-                                    None
-                                } else if let Some(n) = data.get(i) {
-                                    Some(*n)
-                                } else {
-                                    let n = self.explosion_data.len();
-                                    self.explosion_data.push((
-                                        m,
-                                        *i,
-                                        ExTarget::Ray(raydata[*i]),
-                                        0,
-                                    ));
-                                    data.insert(*i, n);
-                                    Some(n)
-                                }
-                            })
-                            .collect::<Vec<usize>>();
-                        if !lst.is_empty() {
-                            self.explosion_pointer.entry(coord).or_default().extend(lst)
-                        }
+                if let Some((coord, rays)) = entry.unloaded
+                    && self.nice_terraforming
+                {
+                    exists = true;
+                    let lst = rays
+                        .iter()
+                        .filter_map(|i| {
+                            if raydata[*i] == 0 {
+                                None
+                            } else if let Some(n) = data.get(i) {
+                                Some(*n)
+                            } else {
+                                let n = self.explosion_data.len();
+                                self.explosion_data
+                                    .push((m, *i, ExTarget::Ray(raydata[*i]), 0));
+                                data.insert(*i, n);
+                                Some(n)
+                            }
+                        })
+                        .collect::<Vec<usize>>();
+                    if !lst.is_empty() {
+                        self.explosion_pointer.entry(coord).or_default().extend(lst)
                     }
                 }
             }
@@ -2382,14 +2378,14 @@ fn create_image(chunk: ChunkData, materials: &FxHashMap<u16, u32>) -> RgbaImage 
         let y = i / w as usize;
         let p = y * CHUNK_SIZE + x;
         let m = working_chunk.pixel(p);
-        if m.flags != PixelFlags::Unknown {
-            if let Some(c) = materials.get(&m.material) {
-                let a = (c >> 24) & 0xFFu32;
-                let r = (c >> 16) & 0xFFu32;
-                let g = (c >> 8) & 0xFFu32;
-                let b = c & 0xFF;
-                *px = image::Rgba([r as u8, g as u8, b as u8, a as u8])
-            }
+        if m.flags != PixelFlags::Unknown
+            && let Some(c) = materials.get(&m.material)
+        {
+            let a = (c >> 24) & 0xFFu32;
+            let r = (c >> 16) & 0xFFu32;
+            let g = (c >> 8) & 0xFFu32;
+            let b = c & 0xFF;
+            *px = image::Rgba([r as u8, g as u8, b as u8, a as u8])
         }
     }
     image

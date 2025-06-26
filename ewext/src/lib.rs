@@ -229,10 +229,10 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::Ready { .. } => bail!("Unexpected Ready message"),
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
-                if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    if let Err(e) = entity_sync.handle_proxytodes(proxy_to_des) {
-                        let _ = print_error(e);
-                    }
+                if let Some(entity_sync) = &mut state.modules.entity_sync
+                    && let Err(e) = entity_sync.handle_proxytodes(proxy_to_des)
+                {
+                    let _ = print_error(e);
                 }
             })?,
             NoitaInbound::RemoteMessage {

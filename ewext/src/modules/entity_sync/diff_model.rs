@@ -142,25 +142,24 @@ impl LocalDiffModel {
                 gid,
                 last,
             }) = self.entity_entries.get(&lid)
+                && !self.dont_upload.contains(&lid)
             {
-                if !self.dont_upload.contains(&lid) {
-                    if last.is_some() {
-                        res.push(UpdateOrUpload::Upload(FullEntityData {
-                            gid: *gid,
-                            pos: WorldPos::from_f32(current.x, current.y),
-                            data: current.spawn_info.clone(),
-                            wand: current.wand.clone().map(|(_, w, _)| w),
-                            //rotation: entry_pair.current.r,
-                            drops_gold: current.drops_gold,
-                            is_charmed: current.is_charmed(),
-                            hp: current.hp,
-                            counter: current.counter,
-                            phys: current.phys.clone(),
-                            synced_var: current.synced_var.clone(),
-                        }));
-                    } else {
-                        self.upload.insert(lid);
-                    }
+                if last.is_some() {
+                    res.push(UpdateOrUpload::Upload(FullEntityData {
+                        gid: *gid,
+                        pos: WorldPos::from_f32(current.x, current.y),
+                        data: current.spawn_info.clone(),
+                        wand: current.wand.clone().map(|(_, w, _)| w),
+                        //rotation: entry_pair.current.r,
+                        drops_gold: current.drops_gold,
+                        is_charmed: current.is_charmed(),
+                        hp: current.hp,
+                        counter: current.counter,
+                        phys: current.phys.clone(),
+                        synced_var: current.synced_var.clone(),
+                    }));
+                } else {
+                    self.upload.insert(lid);
                 }
             }
         }
@@ -407,18 +406,17 @@ impl LocalDiffModelTracker {
             (info.vx, info.vy) = vel.m_velocity()?;
         }
 
-        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") }) {
-            if let Some(vel) =
+        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") })
+            && let Some(vel) =
                 entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-            {
-                let (cx, cy) = entity_manager.camera_pos();
-                if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) > 512.0 * 512.0 {
-                    vel.set_gravity_y(0.0)?;
-                    vel.set_air_friction(10.0)?;
-                } else {
-                    vel.set_gravity_y(400.0)?;
-                    vel.set_air_friction(0.55)?;
-                }
+        {
+            let (cx, cy) = entity_manager.camera_pos();
+            if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) > 512.0 * 512.0 {
+                vel.set_gravity_y(0.0)?;
+                vel.set_air_friction(10.0)?;
+            } else {
+                vel.set_gravity_y(400.0)?;
+                vel.set_air_friction(0.55)?;
             }
         }
 
@@ -559,25 +557,25 @@ impl LocalDiffModelTracker {
                 .collect();
             if let Some(ai) =
                 entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)
+                && ai.attack_ranged_use_laser_sight()?
+                && !ai.is_static_turret()?
             {
-                if ai.attack_ranged_use_laser_sight()? && !ai.is_static_turret()? {
-                    info.laser = if let Some(target) = ai.m_greatest_prey()? {
-                        if ![15, 16].contains(&ai.ai_state()?) {
-                            Target::None
-                        } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
-                            Target::Peer(*peer)
-                        } else if let Some(var) = target.get_var("ew_gid_lid") {
-                            if var.value_bool()? {
-                                Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
-                            } else {
-                                Target::None
-                            }
+                info.laser = if let Some(target) = ai.m_greatest_prey()? {
+                    if ![15, 16].contains(&ai.ai_state()?) {
+                        Target::None
+                    } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
+                        Target::Peer(*peer)
+                    } else if let Some(var) = target.get_var("ew_gid_lid") {
+                        if var.value_bool()? {
+                            Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
                         } else {
                             Target::None
                         }
                     } else {
                         Target::None
                     }
+                } else {
+                    Target::None
                 }
             }
             entity_manager.files = files;
@@ -851,16 +849,13 @@ impl LocalDiffModel {
 
         let (x, y) = entity.position()?;
 
-        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") }) {
-            if let Some(cost) =
+        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") })
+            && let Some(cost) =
                 entity_manager.try_get_first_component::<ItemCostComponent>(ComponentTag::None)
-            {
-                if cost.stealable()? {
-                    cost.set_stealable(false)?;
-                    entity_manager
-                        .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
-                }
-            }
+            && cost.stealable()?
+        {
+            cost.set_stealable(false)?;
+            entity_manager.get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
         }
 
         let entity_kind = classify_entity(entity)?;
@@ -888,13 +883,12 @@ impl LocalDiffModel {
         var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(true)?;
 
-        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") }) {
-            if let Some(vel) =
+        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") })
+            && let Some(vel) =
                 entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-            {
-                vel.set_gravity_y(0.0)?;
-                vel.set_air_friction(10.0)?;
-            }
+        {
+            vel.set_gravity_y(0.0)?;
+            vel.set_air_friction(10.0)?;
         }
 
         if entity_manager
@@ -1081,19 +1075,18 @@ impl LocalDiffModel {
 
             mom(entity_manager, entity_data.counter, None)?;
             sun(entity_manager, entity_data.counter)?;
-            if entity_data.hp != -1.0 {
-                if let Some(damage) = entity_manager
+            if entity_data.hp != -1.0
+                && let Some(damage) = entity_manager
                     .try_get_first_component::<DamageModelComponent>(ComponentTag::None)
-                {
-                    noita_api::print(format!("a {:?} {:?}", entity, damage.0));
-                    if entity_data.hp > damage.max_hp_cap()? as f32 {
-                        damage.set_max_hp_cap(entity_data.hp as f64)?;
-                    }
-                    if entity_data.hp > damage.max_hp()? as f32 {
-                        damage.set_max_hp(entity_data.hp as f64)?;
-                    }
-                    damage.set_hp(entity_data.hp as f64)?;
+            {
+                noita_api::print(format!("a {:?} {:?}", entity, damage.0));
+                if entity_data.hp > damage.max_hp_cap()? as f32 {
+                    damage.set_max_hp_cap(entity_data.hp as f64)?;
                 }
+                if entity_data.hp > damage.max_hp()? as f32 {
+                    damage.set_max_hp(entity_data.hp as f64)?;
+                }
+                damage.set_hp(entity_data.hp as f64)?;
             }
             if !entity_data.drops_gold {
                 let n = entity_manager
@@ -1563,11 +1556,11 @@ impl RemoteDiffModel {
                     ent_data = self.entity_infos.get_mut(&lid).unwrap_or(empty_data);
                 }
                 EntityUpdate::LocalizeEntity(lid, peer_id) => {
-                    if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
-                        if peer_id != my_peer_id() {
-                            entity_manager.set_current_entity(entity)?;
-                            safe_entitykill(entity_manager);
-                        }
+                    if let Some((_, entity)) = self.tracked.remove_by_left(&lid)
+                        && peer_id != my_peer_id()
+                    {
+                        entity_manager.set_current_entity(entity)?;
+                        safe_entitykill(entity_manager);
                     }
                     self.entity_infos.remove(&lid);
                     ent_data = empty_data;
@@ -2051,10 +2044,10 @@ impl RemoteDiffModel {
                                 end = Some(i);
                             }
                         } else {
-                            if let Some(gid) = self.lid_to_gid.get(lid) {
-                                if ctx.dont_spawn.contains(gid) {
-                                    continue;
-                                }
+                            if let Some(gid) = self.lid_to_gid.get(lid)
+                                && ctx.dont_spawn.contains(gid)
+                            {
+                                continue;
                             }
                             let entity = spawn_entity_by_data(
                                 &entity_info.spawn_info,
@@ -2170,10 +2163,10 @@ impl RemoteDiffModel {
                 projectile.target.1 as f64,
                 deserialized,
             );
-            if let Ok(Some(vel)) = deserialized.try_get_first_component::<VelocityComponent>(None) {
-                if let Some((vx, vy)) = projectile.vel {
-                    let _ = vel.set_m_velocity((vx, vy));
-                }
+            if let Ok(Some(vel)) = deserialized.try_get_first_component::<VelocityComponent>(None)
+                && let Some((vx, vy)) = projectile.vel
+            {
+                let _ = vel.set_m_velocity((vx, vy));
             }
         }
     }
@@ -2255,13 +2248,12 @@ pub fn init_remote_entity(
     }
     entity_manager.add_tag(const { CachedTag::from_tag(DES_TAG) })?;
     entity_manager.add_tag(const { CachedTag::from_tag("polymorphable_NOT") })?;
-    if lid.is_some() {
-        if let Some(damage) =
+    if lid.is_some()
+        && let Some(damage) =
             entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
-        {
-            damage.set_wait_for_kill_flag_on_death(true)?;
-            damage.set_physics_objects_damage(false)?;
-        }
+    {
+        damage.set_wait_for_kill_flag_on_death(true)?;
+        damage.set_physics_objects_damage(false)?;
     }
 
     for pb2 in
@@ -2342,10 +2334,10 @@ pub fn init_remote_entity(
     immortal.set_script_damage_about_to_be_received(
         "mods/quant.ew/files/system/entity_sync_helper/immortal.lua".into(),
     )?;
-    if let Some(var) = entity_manager.get_var(const { VarName::from_str("ghost_id") }) {
-        if let Ok(ent) = EntityID::try_from(var.value_int()? as isize) {
-            ent.kill()
-        }
+    if let Some(var) = entity_manager.get_var(const { VarName::from_str("ghost_id") })
+        && let Ok(ent) = EntityID::try_from(var.value_int()? as isize)
+    {
+        ent.kill()
     }
     if entity_manager.has_tag(const { CachedTag::from_tag("boss_dragon") }) && drops_gold {
         let lua = entity_manager.add_component::<LuaComponent>()?;
@@ -2370,18 +2362,17 @@ pub fn init_remote_entity(
         ghost.set_die_if_no_home(false)?;
     }
 
-    if entity_manager.has_tag(const { CachedTag::from_tag("egg_item") }) {
-        if let Some(explosion) = entity_manager
+    if entity_manager.has_tag(const { CachedTag::from_tag("egg_item") })
+        && let Some(explosion) = entity_manager
             .try_get_first_component_including_disabled::<ExplodeOnDamageComponent>(
                 ComponentTag::None,
             )
-        {
-            explosion.object_set_value::<Cow<'_, str>>(
-                "config_explosion",
-                "load_this_entity",
-                "".into(),
-            )?
-        }
+    {
+        explosion.object_set_value::<Cow<'_, str>>(
+            "config_explosion",
+            "load_this_entity",
+            "".into(),
+        )?
     }
 
     if let Some(var) = entity_manager.get_var(const { VarName::from_str("ew_gid_lid") }) {
@@ -2679,29 +2670,27 @@ fn give_wand(
 fn mom(entity: &mut EntityManager, counter: u8, cost: Option<i32>) -> eyre::Result<()> {
     if entity.has_tag(const { CachedTag::from_tag("boss_wizard") }) {
         for ent in entity.entity().children(None) {
-            if ent.has_tag("touchmagic_immunity") {
-                if let Ok(var) = ent
+            if ent.has_tag("touchmagic_immunity")
+                && let Ok(var) = ent
                     .get_first_component_including_disabled::<VariableStorageComponent>(Some(
                         "wizard_orb_id".into(),
                     ))
+            {
+                if let Ok(n) = var.value_int() {
+                    if (counter & (1 << (n as u8))) == 0 {
+                        ent.kill()
+                    } else if let Ok(damage) = ent.get_first_component::<DamageModelComponent>(None)
+                    {
+                        noita_api::print(format!("c {:?} {:?}", entity.entity(), damage.0));
+                        damage.set_wait_for_kill_flag_on_death(true)?;
+                        damage.set_hp(damage.max_hp()?)?;
+                    }
+                }
+                if let Some(cost) = cost
+                    && let Ok(v) = ent.get_var_or_default("ew_frame_num")
                 {
-                    if let Ok(n) = var.value_int() {
-                        if (counter & (1 << (n as u8))) == 0 {
-                            ent.kill()
-                        } else if let Ok(damage) =
-                            ent.get_first_component::<DamageModelComponent>(None)
-                        {
-                            noita_api::print(format!("c {:?} {:?}", entity.entity(), damage.0));
-                            damage.set_wait_for_kill_flag_on_death(true)?;
-                            damage.set_hp(damage.max_hp()?)?;
-                        }
-                    }
-                    if let Some(cost) = cost {
-                        if let Ok(v) = ent.get_var_or_default("ew_frame_num") {
-                            let _ = v.add_tag("ew_frame_num");
-                            let _ = v.set_value_int(cost);
-                        }
-                    }
+                    let _ = v.add_tag("ew_frame_num");
+                    let _ = v.set_value_int(cost);
                 }
             }
         }

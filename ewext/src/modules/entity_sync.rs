@@ -566,13 +566,11 @@ impl Module for EntitySync {
                     if let Some(cost) = self
                         .entity_manager
                         .try_get_first_component::<ItemCostComponent>(ComponentTag::None)
+                        && cost.stealable()?
                     {
-                        if cost.stealable()? {
-                            cost.set_stealable(false)?;
-                            self.entity_manager.get_var_or_default(
-                                const { VarName::from_str("ew_was_stealable") },
-                            )?;
-                        }
+                        cost.set_stealable(false)?;
+                        self.entity_manager
+                            .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
                     }
                     if let Some(vel) = self
                         .entity_manager
@@ -706,15 +704,14 @@ impl Module for EntitySync {
                     let data = proj
                         .drain(..)
                         .map(|(ent, mut proj)| {
-                            if ent.is_alive() {
-                                if let Ok(Some(vel)) = ent
+                            if ent.is_alive()
+                                && let Ok(Some(vel)) = ent
                                     .try_get_first_component_including_disabled::<VelocityComponent>(
                                         None,
                                     )
                                 {
                                     proj.vel = vel.m_velocity().ok()
                                 }
-                            }
                             proj
                         })
                         .collect();

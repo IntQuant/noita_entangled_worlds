@@ -162,20 +162,18 @@ impl EntityID {
             && self.check_all_phys_init().unwrap_or(false)
         {
             let body_id = self.get_physics_body_ids().unwrap_or_default();
-            if !body_id.is_empty() {
-                if let Ok(iter) = EntityID::get_with_tag("ew_peer") {
-                    for com in iter
-                        .filter_map(|e| {
-                            e.try_get_first_component_including_disabled::<TelekinesisComponent>(
-                                None,
-                            )
+            if !body_id.is_empty()
+                && let Ok(iter) = EntityID::get_with_tag("ew_peer")
+            {
+                for com in iter
+                    .filter_map(|e| {
+                        e.try_get_first_component_including_disabled::<TelekinesisComponent>(None)
                             .ok()
-                        })
-                        .flatten()
-                    {
-                        if body_id.contains(&com.get_body_id()) {
-                            let _ = com.set_m_state(0);
-                        }
+                    })
+                    .flatten()
+                {
+                    if body_id.contains(&com.get_body_id()) {
+                        let _ = com.set_m_state(0);
                     }
                 }
             }
@@ -367,10 +365,10 @@ impl EntityID {
                 let name = effect.effect()?;
                 match name {
                     GameEffectEnum::Custom => {
-                        if let Ok(file) = ent.filename() {
-                            if !file.is_empty() {
-                                effects.push((GameEffectData::Custom(file.to_string()), ent))
-                            }
+                        if let Ok(file) = ent.filename()
+                            && !file.is_empty()
+                        {
+                            effects.push((GameEffectData::Custom(file.to_string()), ent))
                         } /* else if let Ok(data) = serialize::serialize_entity(ent) {
                         let n = ent.filename().unwrap_or(String::new());
                         effects.push((GameEffectData::Projectile((n, data)), ent))
@@ -399,31 +397,28 @@ impl EntityID {
         fn set_frames(ent: EntityID) -> eyre::Result<()> {
             if let Some(effect) =
                 ent.try_get_first_component_including_disabled::<GameEffectComponent>(None)?
+                && effect.frames()? >= 0
             {
-                if effect.frames()? >= 0 {
-                    effect.set_frames(i32::MAX)?;
-                }
+                effect.set_frames(i32::MAX)?;
             }
             if let Some(life) =
                 ent.try_get_first_component_including_disabled::<LifetimeComponent>(None)?
+                && life.lifetime()? >= 0
             {
-                if life.lifetime()? >= 0 {
-                    life.set_lifetime(i32::MAX)?;
-                }
+                life.set_lifetime(i32::MAX)?;
             }
             Ok(())
         }
         let local_effects = self.get_game_effects()?;
         for (i, (e1, ent)) in local_effects.iter().enumerate() {
-            if let GameEffectData::Normal(e1) = e1 {
-                if *e1 == GameEffectEnum::Polymorph
+            if let GameEffectData::Normal(e1) = e1
+                && (*e1 == GameEffectEnum::Polymorph
                     || *e1 == GameEffectEnum::PolymorphRandom
                     || *e1 == GameEffectEnum::PolymorphUnstable
-                    || *e1 == GameEffectEnum::PolymorphCessation
-                {
-                    ent.kill();
-                    continue;
-                }
+                    || *e1 == GameEffectEnum::PolymorphCessation)
+            {
+                ent.kill();
+                continue;
             }
             for (j, (e2, _)) in local_effects.iter().enumerate() {
                 if i < j && e1 == e2 {
@@ -1610,11 +1605,10 @@ impl EntityManager {
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter_mut()
         .find(|c| c.id == id)
+            && n.enabled != enabled
         {
-            if n.enabled != enabled {
-                n.enabled = enabled;
-                self.current_entity.set_component_enabled(id, enabled)?;
-            }
+            n.enabled = enabled;
+            self.current_entity.set_component_enabled(id, enabled)?;
         }
         Ok(())
     }
