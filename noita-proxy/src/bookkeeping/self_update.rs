@@ -197,9 +197,16 @@ fn proxy_downloader_for(download_path: PathBuf) -> Result<Downloader, ReleasesEr
 }
 
 fn extract_and_remove_zip(zip_file: PathBuf) -> Result<(), ReleasesError> {
+    let reader = File::open(&zip_file)?;
+    let exe_path = std::env::current_exe()?;
+    let current = std::env::current_dir()?;
+    if let Some(exe_dir) = exe_path.parent() {
+        std::env::set_current_dir(exe_dir)?;
+    } else {
+        Err(eyre::eyre!("exe does not have a parent"))?
+    }
     let extract_to = Path::new("tmp.exec");
     let bin_name = proxy_bin_name();
-    let reader = File::open(&zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     info!("Extracting zip file");
     {
@@ -220,7 +227,8 @@ fn extract_and_remove_zip(zip_file: PathBuf) -> Result<(), ReleasesError> {
     self_replace::self_replace(extract_to)?;
 
     info!("Zip file extracted");
-    fs::remove_file(&zip_file).ok();
     fs::remove_file(extract_to).ok();
+    std::env::set_current_dir(current)?;
+    fs::remove_file(&zip_file).ok();
     Ok(())
 }
