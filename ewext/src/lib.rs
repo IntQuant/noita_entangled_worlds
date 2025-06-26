@@ -564,7 +564,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
                     entity_killed,
                     wait_on_kill,
                     pos,
-                    file.to_string(),
+                    file,
                     entity_responsible,
                 )?;
                 Ok(())

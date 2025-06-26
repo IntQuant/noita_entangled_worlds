@@ -26,16 +26,16 @@ use std::sync::{LazyLock, Mutex};
 mod diff_model;
 mod interest;
 
-static ENTITY_EXCLUDES: LazyLock<FxHashSet<String>> = LazyLock::new(|| {
+static ENTITY_EXCLUDES: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
     let mut hs = FxHashSet::default();
-    hs.insert("data/entities/items/pickup/perk.xml".to_string());
-    hs.insert("data/entities/items/pickup/spell_refresh.xml".to_string());
-    hs.insert("data/entities/items/pickup/heart.xml".to_string());
-    hs.insert("data/entities/items/pickup/heart_better.xml".to_string());
-    hs.insert("data/entities/items/pickup/heart_evil.xml".to_string());
-    hs.insert("data/entities/items/pickup/heart_fullhp.xml".to_string());
-    hs.insert("data/entities/items/pickup/heart_fullhp_temple.xml".to_string());
-    hs.insert("data/entities/items/pickup/perk_reroll.xml".to_string());
+    hs.insert("data/entities/items/pickup/perk.xml");
+    hs.insert("data/entities/items/pickup/spell_refresh.xml");
+    hs.insert("data/entities/items/pickup/heart.xml");
+    hs.insert("data/entities/items/pickup/heart_better.xml");
+    hs.insert("data/entities/items/pickup/heart_evil.xml");
+    hs.insert("data/entities/items/pickup/heart_fullhp.xml");
+    hs.insert("data/entities/items/pickup/heart_fullhp_temple.xml");
+    hs.insert("data/entities/items/pickup/perk_reroll.xml");
     hs
 });
 
@@ -123,7 +123,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
         || tags.contains(",polymorphed_player,")
         || tags.contains(",gold_nugget,")
         || tags.contains(",nightmare_starting_wand,")
-        || ENTITY_EXCLUDES.contains(&filename)
+        || ENTITY_EXCLUDES.contains(filename.as_ref())
         || filename.starts_with(good)
         || tags.contains(",player_unit,")
         || filename == "data/entities/items/pickup/greed_curse.xml"

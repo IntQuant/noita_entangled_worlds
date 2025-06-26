@@ -468,7 +468,7 @@ impl LocalDiffModelTracker {
                 const { ComponentTag::from_str("sunbaby_sprite") },
             )?;
             let sprite = sprite.image_file()?;
-            let num: u8 = match sprite.to_string().as_str() {
+            let num: u8 = match sprite.as_ref() {
                 "data/props_gfx/sun_small_purple.png" => 0,
                 "data/props_gfx/sun_small_red.png" => 1,
                 "data/props_gfx/sun_small_blue.png" => 2,
@@ -875,7 +875,7 @@ impl LocalDiffModel {
         let entity_kind = classify_entity(entity)?;
         let spawn_info = match entity_kind {
             EntityKind::Normal if should_not_serialize => {
-                EntitySpawnInfo::Filename(entity.filename()?)
+                EntitySpawnInfo::Filename(entity.filename()?.to_string())
             }
             _ => EntitySpawnInfo::Serialized {
                 //serialized_at: game_get_frame_num()?,

@@ -50,8 +50,8 @@ impl EntityID {
         raw::entity_get_is_alive(self).unwrap_or(false)
     }
 
-    pub fn name(self) -> eyre::Result<String> {
-        raw::entity_get_name(self).map(|s| s.to_string())
+    pub fn name(self) -> eyre::Result<Cow<'static, str>> {
+        raw::entity_get_name(self)
     }
 
     pub fn handle_poly(&self) -> eyre::Result<Option<Gid>> {
@@ -208,8 +208,8 @@ impl EntityID {
         Ok(r as f32)
     }
 
-    pub fn filename(self) -> eyre::Result<String> {
-        raw::entity_get_filename(self).map(|x| x.to_string())
+    pub fn filename(self) -> eyre::Result<Cow<'static, str>> {
+        raw::entity_get_filename(self)
     }
 
     pub fn parent(self) -> eyre::Result<EntityID> {
@@ -348,11 +348,11 @@ impl EntityID {
 
     pub fn get_game_effects(self) -> eyre::Result<Vec<(GameEffectData, EntityID)>> {
         let mut effects = Vec::new();
-        let mut name_to_n: FxHashMap<String, i32> = FxHashMap::default();
+        let mut name_to_n: FxHashMap<Cow<'static, str>, i32> = FxHashMap::default();
         for ent in self.children(None) {
             if ent.has_tag("projectile") {
                 if let Ok(data) = serialize::serialize_entity(ent) {
-                    let n = ent.filename().unwrap_or(String::new());
+                    let n = ent.filename()?;
                     let num = name_to_n.entry(n.clone()).or_insert(0);
                     *num += 1;
                     effects.push((
@@ -368,7 +368,7 @@ impl EntityID {
                     GameEffectEnum::Custom => {
                         if let Ok(file) = ent.filename() {
                             if !file.is_empty() {
-                                effects.push((GameEffectData::Custom(file), ent))
+                                effects.push((GameEffectData::Custom(file.to_string()), ent))
                             }
                         } /* else if let Ok(data) = serialize::serialize_entity(ent) {
                         let n = ent.filename().unwrap_or(String::new());
