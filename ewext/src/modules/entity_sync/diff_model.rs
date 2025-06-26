@@ -1053,10 +1053,9 @@ impl LocalDiffModel {
                 if entity_manager.has_tag(const { CachedTag::from_tag("boss_centipede") }) {
                     self.enable_later.push(entity);
                 } else if entity_manager.has_tag(const { CachedTag::from_tag("pitcheck_b") }) {
-                    entity_manager.set_components_with_tag_enabled(
-                        const { ComponentTag::from_str("disabled") },
-                        true,
-                    )?;
+                    entity_manager
+                        .entity()
+                        .set_components_with_tag_enabled("disabled".into(), true)?;
                 } else if let Some(var) =
                     entity_manager.get_var(const { VarName::from_str("active") })
                 {
@@ -2717,35 +2716,38 @@ fn sun(entity: &mut EntityManager, counter: u8) -> eyre::Result<()> {
         if counter & 1 == 1 {
             s += "water,";
             entity
-                .set_components_with_tag_enabled(const { ComponentTag::from_str("water") }, true)?;
+                .entity()
+                .set_components_with_tag_enabled("water".into(), true)?;
         }
         if counter & 2 == 2 {
             s += "fire,";
             entity
-                .set_components_with_tag_enabled(const { ComponentTag::from_str("fire") }, true)?;
-            entity.set_components_with_tag_enabled(
-                const { ComponentTag::from_str("fire_disable") },
-                false,
-            )?;
+                .entity()
+                .set_components_with_tag_enabled("fire".into(), true)?;
+            entity
+                .entity()
+                .set_components_with_tag_enabled("fire_disable".into(), false)?;
         }
         if counter & 4 == 4 {
             s += "air,";
             entity
-                .set_components_with_tag_enabled(const { ComponentTag::from_str("air") }, true)?;
+                .entity()
+                .set_components_with_tag_enabled("air".into(), true)?;
         }
         if counter & 8 == 8 {
             s += "earth,";
             entity
-                .set_components_with_tag_enabled(const { ComponentTag::from_str("earth") }, true)?;
-            entity.set_components_with_tag_enabled(
-                const { ComponentTag::from_str("earth_disable") },
-                false,
-            )?;
+                .entity()
+                .set_components_with_tag_enabled("earth".into(), true)?;
+            entity
+                .entity()
+                .set_components_with_tag_enabled("earth_disable".into(), false)?;
         }
         if counter & 16 == 16 {
             s += "poop,";
             entity
-                .set_components_with_tag_enabled(const { ComponentTag::from_str("poop") }, true)?;
+                .entity()
+                .set_components_with_tag_enabled("poop".into(), true)?;
         }
         essences.set_value_string(s.into())?;
         let n = (counter & (32 + 64 + 128)) / 32;

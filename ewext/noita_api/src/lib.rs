@@ -1151,13 +1151,6 @@ pub enum ComponentTag {
     EnabledAtStart,
     ShopCost,
     Character,
-    Water,
-    Fire,
-    FireDisable,
-    Air,
-    Earth,
-    EarthDisable,
-    Poop,
     EwDesLua,
     None,
 }
@@ -1172,13 +1165,6 @@ impl ComponentTag {
             b"enabled_at_start" => Self::EnabledAtStart,
             b"shop_cost" => Self::ShopCost,
             b"character" => Self::Character,
-            b"water" => Self::Water,
-            b"fire" => Self::Fire,
-            b"fire_disable" => Self::FireDisable,
-            b"air" => Self::Air,
-            b"earth" => Self::Earth,
-            b"earth_disable" => Self::EarthDisable,
-            b"poop" => Self::Poop,
             b"ew_des_lua" => Self::EwDesLua,
             _ => unreachable!(),
         }
@@ -1193,19 +1179,12 @@ impl ComponentTag {
             Self::EnabledAtStart => "enabled_at_start",
             Self::ShopCost => "shop_cost",
             Self::Character => "character",
-            Self::Water => "water",
-            Self::Fire => "fire",
-            Self::FireDisable => "fire_disable",
-            Self::Air => "air",
-            Self::Earth => "earth",
-            Self::EarthDisable => "earth_disable",
-            Self::Poop => "poop",
             Self::EwDesLua => "ew_des_lua",
             Self::None => "",
         }
     }
 }
-//const COMP_TAG_LEN: usize = 16;
+//const COMP_TAG_LEN: usize = 9;
 struct ComponentData {
     id: ComponentID,
     enabled: bool,
@@ -1260,13 +1239,6 @@ impl ComponentData {
             ComponentTag::EnabledAtStart,
             ComponentTag::ShopCost,
             ComponentTag::Character,
-            ComponentTag::Water,
-            ComponentTag::Fire,
-            ComponentTag::FireDisable,
-            ComponentTag::Air,
-            ComponentTag::Earth,
-            ComponentTag::EarthDisable,
-            ComponentTag::Poop,
             ComponentTag::EwDesLua
         );
         ComponentData {
@@ -1612,7 +1584,6 @@ impl EntityManager {
             }
         }
         if some {
-            //TODO since this does not require C some may be false when a tag exists on a non cached component
             self.current_entity
                 .set_components_with_tag_enabled(tag.to_str().into(), enabled)?
         }
