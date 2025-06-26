@@ -178,6 +178,16 @@ fn proxy_bin_name() -> &'static str {
     }
 }
 
+fn steam_lib_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "steam_api64.dll"
+    } else if cfg!(target_os = "macos") {
+        "libsteam_api.dylib"
+    } else {
+        "libsteam_api.so"
+    }
+}
+
 fn proxy_downloader_for(download_path: PathBuf) -> Result<Downloader, ReleasesError> {
     let client = Client::builder().timeout(None).build()?;
     get_latest_release(&client)
@@ -192,9 +202,20 @@ fn extract_and_remove_zip(zip_file: PathBuf) -> Result<(), ReleasesError> {
     let reader = File::open(&zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     info!("Extracting zip file");
-    let mut src = zip.by_name(bin_name)?;
-    let mut dst = File::create(extract_to)?;
-    io::copy(&mut src, &mut dst)?;
+    {
+        let mut src = zip.by_name(bin_name)?;
+        let mut dst = File::create(extract_to)?;
+        io::copy(&mut src, &mut dst)?;
+    }
+    let lib_name = steam_lib_name();
+    let extract_lib_to = Path::new("tmp.lib");
+    {
+        let mut src = zip.by_name(lib_name)?;
+        let mut dst = File::create(extract_lib_to)?;
+        io::copy(&mut src, &mut dst)?;
+        fs::rename(lib_name, format!("{lib_name}.tmp"))?;
+        fs::rename(extract_lib_to, lib_name)?;
+    }
 
     self_replace::self_replace(extract_to)?;
 
