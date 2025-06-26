@@ -539,7 +539,7 @@ impl EntityID {
         if let Ok(Some(status)) = self.try_get_first_component::<StatusEffectDataComponent>(None) {
             for ((i, v), id) in status.stain_effects()?.enumerate().zip(TO_ID.iter()) {
                 if v >= 0.15 && current_stains & (1 << i) == 0 {
-                    raw::entity_remove_stain_status_effect(self.0.get() as i32, id.into(), None)?
+                    self.remove_stain(id)?
                 }
             }
         }
@@ -600,6 +600,9 @@ impl EntityID {
         tag: &str,
     ) -> eyre::Result<Vec<Option<EntityID>>> {
         raw::entity_get_in_radius_with_tag(x, y, r, tag.into())
+    }
+    pub fn remove_stain(self, id: &str) -> eyre::Result<()> {
+        raw::entity_remove_stain_status_effect(self.0.get() as i32, id.into(), None)
     }
 }
 impl PhysicsBodyID {
@@ -1005,8 +1008,9 @@ pub enum CachedComponent {
     ItemPickUpperComponent,
     AudioComponent,
     AbilityComponent,
+    StatusEffectDataComponent,
 }
-const COMP_LEN: usize = 31;
+const COMP_LEN: usize = 32;
 impl CachedComponent {
     const fn from_component<C: Component>() -> Self {
         match C::NAME_STR.as_bytes() {
@@ -1041,6 +1045,7 @@ impl CachedComponent {
             b"ItemPickUpperComponent" => Self::ItemPickUpperComponent,
             b"AudioComponent" => Self::AudioComponent,
             b"AbilityComponent" => Self::AbilityComponent,
+            b"StatusEffectDataComponent" => Self::StatusEffectDataComponent,
             _ => unreachable!(),
         }
     }
@@ -1077,6 +1082,7 @@ impl CachedComponent {
             "ItemPickUpperComponent" => Self::ItemPickUpperComponent,
             "AudioComponent" => Self::AudioComponent,
             "AbilityComponent" => Self::AbilityComponent,
+            "StatusEffectDataComponent" => Self::StatusEffectDataComponent,
             _ => return None,
         })
     }
@@ -1188,7 +1194,6 @@ impl ComponentTag {
 struct ComponentData {
     id: ComponentID,
     enabled: bool,
-    phys_init: bool,
     name: VarName,
     tags: Tags<u16>, //[bool; COMP_TAG_LEN],
 }
@@ -1244,7 +1249,6 @@ impl ComponentData {
         ComponentData {
             id,
             enabled,
-            phys_init: false,
             name,
             tags,
         }
@@ -1259,6 +1263,7 @@ const COMP_VEC_LEN: usize = 1;
 #[derive(Default)]
 struct EntityData {
     tags: Tags<u16>, //[bool; TAG_LEN],
+    phys_init: bool,
     components: [SmallVec<[ComponentData; COMP_VEC_LEN]>; COMP_LEN],
 }
 pub struct EntityManager {
@@ -1320,7 +1325,11 @@ impl EntityData {
                 components[com as usize].push(ComponentData::new(c, is_var))
             }
         }
-        Ok(EntityData { tags, components })
+        Ok(EntityData {
+            tags,
+            components,
+            phys_init: false,
+        })
     }
     fn has_tag(&self, tag: CachedTag) -> bool {
         self.tags.get(tag as u16)
@@ -1402,13 +1411,15 @@ impl EntityManager {
         Ok(())
     }
     pub fn check_all_phys_init(&mut self) -> eyre::Result<bool> {
+        if self.current_data.phys_init {
+            return Ok(true);
+        }
         for phys_c in self.iter_mut_all_components_of_type::<PhysicsBody2Component>() {
-            if !phys_c.phys_init && !PhysicsBody2Component::from(phys_c.id).m_initialized()? {
+            if !PhysicsBody2Component::from(phys_c.id).m_initialized()? {
                 return Ok(false);
-            } else {
-                phys_c.phys_init = true;
             }
         }
+        self.current_data.phys_init = true;
         Ok(true)
     }
     pub fn try_get_first_component<C: Component>(&self, tag: ComponentTag) -> Option<C> {
@@ -1466,7 +1477,7 @@ impl EntityManager {
                 self.current_entity.remove_component(com.id)?;
             } else {
                 self.current_data.components
-            [const { CachedComponent::from_component::<C>() as usize }].push(com);
+                    [const { CachedComponent::from_component::<C>() as usize }].push(com);
             }
         }
         Ok(is_some)
@@ -1618,6 +1629,31 @@ impl EntityManager {
                 .remove(n);
         }
         self.current_entity.remove_component(id)
+    }
+    pub fn get_current_stains(&self) -> eyre::Result<u64> {
+        let mut current = 0;
+        if let Some(status) =
+            self.try_get_first_component::<StatusEffectDataComponent>(ComponentTag::None)
+        {
+            for (i, v) in status.stain_effects()?.enumerate() {
+                if v >= 0.15 {
+                    current += 1 << i
+                }
+            }
+        }
+        Ok(current)
+    }
+    pub fn set_current_stains(&self, current_stains: u64) -> eyre::Result<()> {
+        if let Some(status) =
+            self.try_get_first_component::<StatusEffectDataComponent>(ComponentTag::None)
+        {
+            for ((i, v), id) in status.stain_effects()?.enumerate().zip(TO_ID.iter()) {
+                if v >= 0.15 && current_stains & (1 << i) == 0 {
+                    self.current_entity.remove_stain(id)?
+                }
+            }
+        }
+        Ok(())
     }
 }
 pub fn get_file<'a>(

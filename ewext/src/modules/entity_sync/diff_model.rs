@@ -515,7 +515,7 @@ impl LocalDiffModelTracker {
                     }
                 }
             } else {
-                entity.get_current_stains()?
+                entity_manager.get_current_stains()?
             };
 
         let mut any = false;
@@ -1894,7 +1894,7 @@ impl RemoteDiffModel {
                 var.set_value_int(0)?;
             }
         } else {
-            entity.set_current_stains(entity_info.current_stains)?;
+            entity_manager.set_current_stains(entity_info.current_stains)?;
         }
         if let Some(ai) = entity_manager
             .try_get_first_component_including_disabled::<AnimalAIComponent>(ComponentTag::None)
