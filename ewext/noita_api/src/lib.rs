@@ -1430,7 +1430,7 @@ impl EntityManager {
         Ok(())
     }
     pub fn check_all_phys_init(&mut self) -> eyre::Result<bool> {
-        for phys_c in self.iter_mut_all_components_of_type::<PhysicsBody2Component>()? {
+        for phys_c in self.iter_mut_all_components_of_type::<PhysicsBody2Component>() {
             if !phys_c.phys_init && !PhysicsBody2Component::from(phys_c.id).m_initialized()? {
                 return Ok(false);
             } else {
@@ -1439,39 +1439,32 @@ impl EntityManager {
         }
         Ok(true)
     }
-    pub fn try_get_first_component<C: Component>(
-        &self,
-        tag: ComponentTag,
-    ) -> eyre::Result<Option<C>> {
-        let coms = &self.current_data.components
-            [const { CachedComponent::from_component::<C>() as usize }];
-        Ok(coms
+    pub fn try_get_first_component<C: Component>(&self, tag: ComponentTag) -> Option<C> {
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
-            .map(|com| C::from(com.id)))
+            .map(|com| C::from(com.id))
     }
     pub fn try_get_first_component_including_disabled<C: Component>(
         &self,
         tag: ComponentTag,
-    ) -> eyre::Result<Option<C>> {
+    ) -> Option<C> {
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .iter()
+            .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
+            .map(|c| C::from(c.id))
+    }
+    pub fn get_first_component<C: Component>(&self, tag: ComponentTag) -> eyre::Result<C> {
         if let Some(coms) = self.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter()
-        .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
+        .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
+        .map(|com| C::from(com.id))
         {
-            Ok(Some(C::from(coms.id)))
+            Ok(coms)
         } else {
-            Ok(None)
+            Err(eyre!("no comp found"))
         }
-    }
-    pub fn get_first_component<C: Component>(&self, tag: ComponentTag) -> eyre::Result<C> {
-        let coms = &self.current_data.components
-            [const { CachedComponent::from_component::<C>() as usize }];
-        Ok(coms
-            .iter()
-            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
-            .map(|com| C::from(com.id))
-            .unwrap())
     }
     pub fn get_first_component_including_disabled<C: Component>(
         &self,
@@ -1509,33 +1502,27 @@ impl EntityManager {
     pub fn iter_all_components_of_type<C: Component>(
         &self,
         tag: ComponentTag,
-    ) -> eyre::Result<impl Iterator<Item = C>> {
-        Ok(
-            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-                .iter()
-                .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
-                .map(|c| C::from(c.id)),
-        )
+    ) -> impl Iterator<Item = C> {
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .iter()
+            .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
+            .map(|c| C::from(c.id))
     }
     fn iter_mut_all_components_of_type<C: Component>(
         &mut self,
-    ) -> eyre::Result<impl Iterator<Item = &mut ComponentData>> {
-        Ok(
-            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-                .iter_mut()
-                .filter(|c| c.enabled),
-        )
+    ) -> impl Iterator<Item = &mut ComponentData> {
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .iter_mut()
+            .filter(|c| c.enabled)
     }
     pub fn iter_all_components_of_type_including_disabled<C: Component>(
         &self,
         tag: ComponentTag,
-    ) -> eyre::Result<impl Iterator<Item = C>> {
-        Ok(
-            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-                .iter()
-                .filter(move |c| tag == ComponentTag::None || c.tags.get(tag as u16))
-                .map(|c| C::from(c.id)),
-        )
+    ) -> impl Iterator<Item = C> {
+        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+            .iter()
+            .filter(move |c| tag == ComponentTag::None || c.tags.get(tag as u16))
+            .map(|c| C::from(c.id))
     }
     fn iter_all_components_of_type_including_disabled_raw<C: Component>(
         &self,

@@ -565,7 +565,7 @@ impl Module for EntitySync {
                 {
                     if let Some(cost) = self
                         .entity_manager
-                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)
                     {
                         if cost.stealable()? {
                             cost.set_stealable(false)?;
@@ -576,7 +576,7 @@ impl Module for EntitySync {
                     }
                     if let Some(vel) = self
                         .entity_manager
-                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)
                     {
                         vel.set_gravity_y(0.0)?;
                         vel.set_air_friction(10.0)?;
