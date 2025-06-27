@@ -8,6 +8,7 @@ use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita::{ParticleWorldState, ntypes::Entity, pixel::NoitaPixelRun};
+use noita_api::add_lua_fn;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
     lua::{
@@ -15,7 +16,6 @@ use noita_api::{
         lua_bindings::{LUA_REGISTRYINDEX, lua_State},
     },
 };
-use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};

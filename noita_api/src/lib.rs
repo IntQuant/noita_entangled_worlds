@@ -15,6 +15,7 @@ use std::{
 };
 pub mod lua;
 pub mod serialize;
+pub use noita_api_macro::add_lua_fn;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityID(pub NonZero<isize>);

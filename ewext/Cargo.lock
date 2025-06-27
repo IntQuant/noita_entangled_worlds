@@ -102,7 +102,6 @@ dependencies = [
  "iced-x86",
  "libloading",
  "noita_api",
- "noita_api_macro",
  "rand",
  "rustc-hash",
  "shared",
