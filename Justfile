@@ -31,6 +31,9 @@ build_ext_debug:
     cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext.dll
 
 ##
+build_blob:
+    cd blob_guy && cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
+    cp blob_guy/target/i686-pc-windows-gnu/release/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
 
 run-rel: add_dylib_release
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run --release

@@ -45,6 +45,7 @@ dependencies = [
  "eyre",
  "libloading",
  "noita_api",
+ "rustc-hash",
  "smallvec",
 ]
 

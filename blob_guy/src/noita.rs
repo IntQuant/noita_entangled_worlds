@@ -1,16 +1,14 @@
 use crate::CHUNK_SIZE;
 use crate::chunk::Chunk;
-use crate::noita::pixel::NoitaPixelRun;
 use std::{ffi::c_void, mem};
 pub(crate) mod ntypes;
-pub(crate) mod pixel;
+//pub(crate) mod pixel;
 
 pub(crate) struct ParticleWorldState {
     pub(crate) _world_ptr: *mut c_void,
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
-
-    pub(crate) runner: pixel::PixelRunner<pixel::RawPixel>,
+    pub(crate) blob_guy: u16,
 }
 
 impl ParticleWorldState {
@@ -45,29 +43,21 @@ impl ParticleWorldState {
         unsafe { Some(cell.material_ptr().as_ref()?.cell_type) }
     }
 
-    pub(crate) unsafe fn encode_area(
-        &mut self,
-        start_x: i32,
-        start_y: i32,
-        end_x: i32,
-        end_y: i32,
-    ) -> Chunk {
-        // Allow compiler to generate better code.
-        assert_eq!(start_x % 128, 0);
-        assert_eq!(start_y % 128, 0);
-        assert!((end_x - start_x) <= 128);
-        assert!((end_y - start_y) <= 128);
+    pub(crate) unsafe fn encode_area(&mut self, x: i32, y: i32) -> Chunk {
+        unsafe {
+            std::hint::assert_unchecked(x % 128 == 0);
+            std::hint::assert_unchecked(y % 128 == 0);
+        }
 
         let mut is_blob = [false; CHUNK_SIZE * CHUNK_SIZE];
         let mut is_solid = [false; CHUNK_SIZE * CHUNK_SIZE];
         let mut is_liquid = [false; CHUNK_SIZE * CHUNK_SIZE];
         let mut pixels = [0; CHUNK_SIZE * CHUNK_SIZE];
-        for y in start_y..end_y {
-            for x in start_x..end_x {
-                let mut raw_pixel = pixel::RawPixel {
-                    material: 0,
-                    flags: 0,
-                };
+        for i in 0..CHUNK_SIZE {
+            let y = y + i as i32;
+            for j in 0..CHUNK_SIZE {
+                let k = i * CHUNK_SIZE + j;
+                let x = x + j as i32;
                 let cell = self.get_cell_raw(x, y);
                 if let Some(cell) = cell {
                     let cell_type = self.get_cell_type(cell).unwrap_or(ntypes::CellType::None);
@@ -76,13 +66,18 @@ impl ParticleWorldState {
                         // Nobody knows how box2d pixels work.
                         ntypes::CellType::Solid => {}
                         ntypes::CellType::Liquid => {
-                            raw_pixel.material = self.get_cell_material_id(cell);
+                            pixels[k] = self.get_cell_material_id(cell);
+                            if pixels[k] == self.blob_guy {
+                                is_blob[k] = true
+                            }
                             let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
-                            raw_pixel.flags = cell.is_static as u8;
+                            if cell.is_static {
+                                is_solid[k] = true;
+                            } else {
+                                is_liquid[k] = true;
+                            }
                         }
-                        ntypes::CellType::Gas | ntypes::CellType::Fire => {
-                            raw_pixel.material = self.get_cell_material_id(cell);
-                        }
+                        ntypes::CellType::Gas | ntypes::CellType::Fire => {}
                         // ???
                         _ => {}
                     }

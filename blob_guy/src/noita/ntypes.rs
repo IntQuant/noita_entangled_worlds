@@ -1,6 +1,6 @@
 // Type defs borrowed from NoitaPatcher.
 
-use std::ffi::{c_char, c_void};
+use std::ffi::c_char;
 
 pub(crate) const CELLDATA_SIZE: isize = 0x290;
 
@@ -12,7 +12,6 @@ pub(crate) struct StdString {
     size: usize,
     capacity: usize,
 }
-
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[expect(dead_code)]
@@ -65,19 +64,3 @@ impl Cell {
         self.material_ptr
     }
 }
-
-#[repr(C)]
-pub(crate) struct Entity {
-    _unknown0: [u8; 8],
-    _filename_index: u32,
-    // More stuff, not that relevant currently.
-}
-
-#[repr(C)]
-pub(crate) struct EntityManager {
-    _fld: c_void,
-    // Unknown
-}
-
-#[repr(C)]
-pub(crate) struct ThiscallFn(c_void);
