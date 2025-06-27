@@ -9,10 +9,11 @@ pub(crate) struct ParticleWorldState {
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
     pub(crate) blob_guy: u16,
+    pub(crate) pixel_array: *const c_void,
 }
 
 impl ParticleWorldState {
-    fn get_cell_raw(&self, x: i32, y: i32) -> Option<&ntypes::Cell> {
+    fn set_chunk(&mut self, x: i32, y: i32) -> bool {
         let x = x as isize;
         let y = y as isize;
         let chunk_index = (((((y) >> 9) - 256) & 511) * 512 + ((((x) >> 9) - 256) & 511)) * 4;
@@ -21,11 +22,17 @@ impl ParticleWorldState {
         // Deref 2/3
         let chunk = unsafe { chunk_arr.offset(chunk_index).cast::<*const c_void>().read() };
         if chunk.is_null() {
-            return None;
+            return true;
         }
         // Deref 3/3
         let pixel_array = unsafe { chunk.cast::<*const c_void>().read() };
-        let pixel = unsafe { pixel_array.offset((((y & 511) << 9) | x & 511) * 4) };
+        self.pixel_array = pixel_array;
+        false
+    }
+    fn get_cell_raw(&self, x: i32, y: i32) -> Option<&ntypes::Cell> {
+        let x = x as isize;
+        let y = y as isize;
+        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | x & 511) * 4) };
         if pixel.is_null() {
             return None;
         }
@@ -43,10 +50,13 @@ impl ParticleWorldState {
         unsafe { Some(cell.material_ptr().as_ref()?.cell_type) }
     }
 
-    pub(crate) unsafe fn encode_area(&mut self, x: i32, y: i32) -> Chunk {
+    pub(crate) unsafe fn encode_area(&mut self, x: i32, y: i32) -> Option<Chunk> {
         unsafe {
             std::hint::assert_unchecked(x % 128 == 0);
             std::hint::assert_unchecked(y % 128 == 0);
+        }
+        if self.set_chunk(x, y) {
+            return None;
         }
 
         let mut is_blob = [false; CHUNK_SIZE * CHUNK_SIZE];
@@ -59,36 +69,29 @@ impl ParticleWorldState {
                 let k = i * CHUNK_SIZE + j;
                 let x = x + j as i32;
                 let cell = self.get_cell_raw(x, y);
-                if let Some(cell) = cell {
-                    let cell_type = self.get_cell_type(cell).unwrap_or(ntypes::CellType::None);
-                    match cell_type {
-                        ntypes::CellType::None => {}
-                        // Nobody knows how box2d pixels work.
-                        ntypes::CellType::Solid => {}
-                        ntypes::CellType::Liquid => {
-                            pixels[k] = self.get_cell_material_id(cell);
-                            if pixels[k] == self.blob_guy {
-                                is_blob[k] = true
-                            }
-                            let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
-                            if cell.is_static {
-                                is_solid[k] = true;
-                            } else {
-                                is_liquid[k] = true;
-                            }
-                        }
-                        ntypes::CellType::Gas | ntypes::CellType::Fire => {}
-                        // ???
-                        _ => {}
+                if let Some(cell) = cell
+                    && let Some(cell_type) = self.get_cell_type(cell)
+                    && ntypes::CellType::Liquid == cell_type
+                {
+                    pixels[k] = self.get_cell_material_id(cell);
+                    if pixels[k] == self.blob_guy {
+                        pixels[k] = 0;
+                        is_blob[k] = true
+                    }
+                    let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
+                    if cell.is_static {
+                        is_solid[k] = true;
+                    } else {
+                        is_liquid[k] = true;
                     }
                 }
             }
         }
-        Chunk {
+        Some(Chunk {
             pixels,
             is_blob,
             is_liquid,
             is_solid,
-        }
+        })
     }
 }

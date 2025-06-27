@@ -17,8 +17,8 @@ impl Default for Chunk {
 }
 #[derive(Eq, Hash, PartialEq)]
 pub struct ChunkPos {
-    x: i32,
-    y: i32,
+    pub x: i32,
+    pub y: i32,
 }
 impl ChunkPos {
     pub fn new(x: i32, y: i32) -> Self {

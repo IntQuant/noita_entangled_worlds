@@ -1,14 +1,14 @@
 mod blob_guy;
 mod chunk;
 mod noita;
-use crate::blob_guy::{Blob, Pos};
+use crate::blob_guy::Blob;
 use crate::chunk::{Chunk, ChunkPos};
 use crate::noita::ParticleWorldState;
+use noita_api::add_lua_fn;
 use noita_api::lua::LUA;
 use noita_api::lua::LuaState;
 use noita_api::lua::lua_bindings::{LUA_REGISTRYINDEX, lua_State};
-use noita_api::{add_lua_fn, game_print};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 use std::cell::{LazyCell, RefCell};
 use std::ffi::{c_int, c_void};
@@ -20,10 +20,14 @@ struct State {
     particle_world_state: Option<ParticleWorldState>,
     blobs: SmallVec<[Blob; 64]>,
     world: FxHashMap<ChunkPos, Chunk>,
+    blob_guy: u16,
 }
 thread_local! {
     static STATE: LazyCell<RefCell<State>> = LazyCell::new(|| {
-        State::default().into()
+        State{
+            world: FxHashMap::with_capacity_and_hasher(64, FxBuildHasher),
+            ..Default::default()
+        }.into()
     });
 }
 static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
@@ -53,11 +57,14 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         let world_pointer = lua.to_integer(1);
         let chunk_map_pointer = lua.to_integer(2);
         let material_list_pointer = lua.to_integer(3);
+        let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
+        state.blob_guy = blob_guy;
         state.particle_world_state = Some(ParticleWorldState {
             _world_ptr: world_pointer as *mut c_void,
             chunk_map_ptr: chunk_map_pointer as *mut c_void,
             material_list_ptr: material_list_pointer as _,
-            blob_guy: noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16,
+            blob_guy,
+            pixel_array: Default::default(),
         });
         Ok(())
     })
@@ -65,33 +72,7 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
 fn update(_: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.try_borrow_mut()?;
-        if state.blobs.is_empty() {
-            state.blobs.push(Blob {
-                pos: Pos::new(1.0, 2.0),
-            })
-        }
-        for blob in state.blobs.iter_mut() {
-            blob.update()
-        }
-        if let Some(mut pws) = std::mem::take(&mut state.particle_world_state) {
-            for i in 0..8 {
-                let x = (i * CHUNK_SIZE) as i32 - 512;
-                for j in 0..8 {
-                    let y = (j * CHUNK_SIZE) as i32 - 512;
-                    let chunk = unsafe { pws.encode_area(x, y) };
-                    state.world.insert(ChunkPos::new(x, y), chunk);
-                }
-            }
-            game_print(
-                state
-                    .world
-                    .values()
-                    .map(|c| c.is_blob.iter().filter(|b| **b).count())
-                    .sum::<usize>()
-                    .to_string(),
-            );
-            state.particle_world_state = Some(pws)
-        }
+        state.update();
         Ok(())
     })
 }
