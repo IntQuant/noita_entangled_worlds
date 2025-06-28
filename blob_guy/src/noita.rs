@@ -29,21 +29,21 @@ impl ParticleWorldState {
         x: i32,
         y: i32,
         material: *mut c_void,
-        memory: *mut c_void,
+        _memory: *mut c_void,
     ) -> *mut ntypes::Cell {
         unsafe {
             let cell_ptr: *const c_void;
-            let v = [x, y];
             asm!(
                 "mov ecx, {world}",
-                "push {n}",
+                "push {x:e}",
+                "push {y:e}",
                 "push {material}",
-                "push {memory}",
+                "push 0",
                 "call {construct}",
                 world = in(reg) self.world_ptr,
-                n = in(reg) &v,
+                x = in(reg) x,
+                y = in(reg) y,
                 material = in(reg) material,
-                memory = in(reg) memory,
                 construct = in(reg) self.construct_ptr,
                 clobber_abi("C"),
                 out("eax") cell_ptr,
@@ -168,8 +168,6 @@ impl ParticleWorldState {
                             if let Some(cell) = self.get_cell_raw_mut(i, j) {
                                 self.remove_cell(cell, x, y);
                             }
-                            let x = x * CHUNK_SIZE as i32 + i;
-                            let y = y * CHUNK_SIZE as i32 + j;
                             let src = self.create_cell(
                                 x,
                                 y,
@@ -178,11 +176,15 @@ impl ParticleWorldState {
                                     .cast_mut(),
                                 std::ptr::null::<c_void>().cast_mut(),
                             );
-                            let cell = self.get_cell_raw_mut_nil(i, j);
-                            *cell = (*src).clone();
+                            if !src.is_null() {
+                                let cell = self.get_cell_raw_mut_nil(i, j);
+                                *cell = (*src).clone();
+                            }
                         }
                     }
                     CellType::Remove => {
+                        let x = x * CHUNK_SIZE as i32 + i;
+                        let y = y * CHUNK_SIZE as i32 + j;
                         if let Some(cell) = self.get_cell_raw_mut(i, j) {
                             self.remove_cell(cell, x, y);
                         }
