@@ -46,7 +46,7 @@ impl Display for ConnectError {
                         ),
                     ],
                 );
-                write!(f, "{}", translated)
+                write!(f, "{translated}")
             }
             ConnectError::VersionMissing => write!(f, "{}", tr("error_missing_version_field")),
             ConnectError::LobbyDoesNotExist => write!(f, "{}", tr("error_lobby_does_not_exist")),
@@ -148,10 +148,10 @@ impl Connections {
     }
     fn flush(&self) {
         for i in &self.peers {
-            if let Some(c) = i.connection() {
-                if let Err(err) = c.flush_messages() {
-                    warn!("Error while flushing a message: {err:?}")
-                }
+            if let Some(c) = i.connection()
+                && let Err(err) = c.flush_messages()
+            {
+                warn!("Error while flushing a message: {err:?}")
             }
         }
     }

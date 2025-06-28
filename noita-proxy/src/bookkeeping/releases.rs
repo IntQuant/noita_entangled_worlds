@@ -64,15 +64,12 @@ fn download_thread(
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
         .send()
-        .wrap_err_with(|| format!("Failed to download from {}", url))?;
+        .wrap_err_with(|| format!("Failed to download from {url}"))?;
     let mut buf = [0; 4096];
 
     loop {
         let len = response.read(&mut buf).wrap_err_with(|| {
-            format!(
-                "Failed to download from {}: couldn't read from response",
-                url
-            )
+            format!("Failed to download from {url}: couldn't read from response")
         })?;
         shared
             .progress
@@ -81,7 +78,7 @@ fn download_thread(
             break;
         }
         file.write_all(&buf[..len])
-            .wrap_err_with(|| format!("Failed to download from {}: couldn't write to file", url))?;
+            .wrap_err_with(|| format!("Failed to download from {url}: couldn't write to file"))?;
     }
 
     Ok(())
@@ -109,7 +106,7 @@ impl Downloader {
 
     pub fn show_progress(&self, ui: &mut Ui) {
         let (current, max) = self.progress();
-        ui.label(format!("{} out of {} bytes", current, max));
+        ui.label(format!("{current} out of {max} bytes"));
         ui.add(egui::ProgressBar::new(current as f32 / max as f32));
         ui.ctx().request_repaint_after(Duration::from_millis(200));
     }
@@ -230,12 +227,9 @@ pub fn get_release_by_tag(client: &Client, tag: Tag) -> Result<Release, Releases
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
         .send()
-        .wrap_err_with(|| format!("Failed to get release by tag from {}", url))?;
+        .wrap_err_with(|| format!("Failed to get release by tag from {url}"))?;
     let response = response.error_for_status().wrap_err_with(|| {
-        format!(
-            "Failed to get release by tag from {}: response returned an error",
-            url
-        )
+        format!("Failed to get release by tag from {url}: response returned an error")
     })?;
     Ok(response.json()?)
 }

@@ -1,8 +1,33 @@
-## Noita Entangled Worlds v1.5.5
+## Noita Entangled Worlds v1.6.0
+
+- cache entity data for entity sync improving performance alot(prob buggy, def for some mods), and alot less memory allocations
+
+- note why chunkmap is disabled
+
+- add performance log button to proxy
+
+- fix enemies respawning after restarting game
+
+- disable laser traps from entity sync
+
+- support(probably) modded biomes enemies syncing
+
+- attach to windows console if applicable to allow seeing crash reports
+
+- make spells less likely to be in walls
+
+- fix spell ban
+
+- fix orb sync duping orbs sometimes
+
+- fix player mimic poly spawning a mimic after(and prob some other bugs related)
+
+- probably break windows update, we will see next update <3
 
 ## Accepted pull requests
 
-- noita-proxy: socketaddr binding via --host by @benaryorg in #390
+
+No pull requests have been accepted in this release.
 
 ## Installation
 

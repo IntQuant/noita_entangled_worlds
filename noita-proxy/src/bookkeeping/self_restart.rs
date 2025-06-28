@@ -20,7 +20,7 @@ impl SelfRestarter {
 
     pub fn override_lobby_kind(&mut self, lobby_mode: LobbyKind) -> &mut Self {
         self.command.arg("--override-lobby-kind");
-        self.command.arg(format!("{:?}", lobby_mode));
+        self.command.arg(format!("{lobby_mode:?}"));
         self
     }
 

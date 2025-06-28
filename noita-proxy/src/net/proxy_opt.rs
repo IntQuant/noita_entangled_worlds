@@ -20,19 +20,19 @@ impl ProxyOpt for bool {
 
 impl ProxyOpt for u32 {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
-        write!(buf, "proxy_opt_num {} {}", key, self).unwrap();
+        write!(buf, "proxy_opt_num {key} {self}").unwrap();
     }
 }
 
 impl ProxyOpt for f32 {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
-        write!(buf, "proxy_opt_num {} {}", key, self).unwrap();
+        write!(buf, "proxy_opt_num {key} {self}").unwrap();
     }
 }
 
 impl ProxyOpt for &str {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
-        write!(buf, "proxy_opt {} {}", key, self).unwrap();
+        write!(buf, "proxy_opt {key} {self}").unwrap();
     }
 }
 
@@ -40,10 +40,10 @@ impl ProxyOpt for GameMode {
     fn write_opt(self, buf: &mut Vec<u8>, key: &str) {
         match self {
             GameMode::SharedHealth => {
-                write!(buf, "proxy_opt {} shared_health", key).unwrap();
+                write!(buf, "proxy_opt {key} shared_health").unwrap();
             }
             GameMode::LocalHealth(_) => {
-                write!(buf, "proxy_opt {} local_health", key).unwrap();
+                write!(buf, "proxy_opt {key} local_health").unwrap();
             }
         }
     }

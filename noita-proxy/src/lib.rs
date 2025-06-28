@@ -95,7 +95,7 @@ impl Display for GameMode {
             GameMode::LocalHealth(LocalHealthMode::PermaDeath) => "LocalPermadeath",
             GameMode::LocalHealth(LocalHealthMode::PvP) => "PvP",
         };
-        write!(f, "{}", desc)
+        write!(f, "{desc}")
     }
 }
 
@@ -1086,7 +1086,7 @@ impl ImageMap {
     ) {
         for (p, (coord, is_dead, does_exist, img)) in map {
             if !self.players.contains_key(p) {
-                let name = format!("{}", p);
+                let name = format!("{p}");
                 let size = [img.width() as usize, img.height() as usize];
                 let color_image = egui::ColorImage::from_rgba_unmultiplied(
                     size,
@@ -1200,14 +1200,14 @@ impl ImageMap {
             }
         }
         let tile_size = self.zoom * 128.0;
-        if let Some(peer) = self.centered_on {
-            if let Some((Some(pos), _, _, _)) = self.players.get(&peer) {
-                self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0)
-                    - Vec2::new(
-                        pos.x as f32 * tile_size / 128.0,
-                        (pos.y - 12) as f32 * tile_size / 128.0,
-                    )
-            }
+        if let Some(peer) = self.centered_on
+            && let Some((Some(pos), _, _, _)) = self.players.get(&peer)
+        {
+            self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0)
+                - Vec2::new(
+                    pos.x as f32 * tile_size / 128.0,
+                    (pos.y - 12) as f32 * tile_size / 128.0,
+                )
         }
         let painter = ui.painter();
         for (coord, tex) in &self.textures {
@@ -1240,15 +1240,15 @@ impl ImageMap {
                     Vec2::new(7.0 * tile_size / 128.0, 16.0 * tile_size / 128.0),
                 );
                 if *is_dead {
-                    if let Some(tex) = &self.notplayer {
-                        if let Some(id) = tex.texture_id() {
-                            painter.image(
-                                id,
-                                rect,
-                                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                                Color32::WHITE,
-                            );
-                        }
+                    if let Some(tex) = &self.notplayer
+                        && let Some(id) = tex.texture_id()
+                    {
+                        painter.image(
+                            id,
+                            rect,
+                            Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                            Color32::WHITE,
+                        );
                     }
                 } else {
                     painter.image(
@@ -1524,10 +1524,10 @@ impl App {
             None
         };
         let mut my_nickname = self.app_saved_state.nickname.clone().or(steam_nickname);
-        if let Some(n) = &my_nickname {
-            if n.trim().is_empty() {
-                my_nickname = None;
-            }
+        if let Some(n) = &my_nickname
+            && n.trim().is_empty()
+        {
+            my_nickname = None;
         }
 
         my_nickname.unwrap_or(default)
@@ -1814,7 +1814,7 @@ impl App {
                                                         let color = game_mode.color();
                                                         ui.colored_label(
                                                             color,
-                                                            tr(&format!("game_mode_{}", game_mode)),
+                                                            tr(&format!("game_mode_{game_mode}")),
                                                         );
                                                     }
                                                 },
@@ -1829,7 +1829,7 @@ impl App {
                                                 } else {
                                                     Color32::RED
                                                 };
-                                                ui.colored_label(color, format!("EW {}", version));
+                                                ui.colored_label(color, format!("EW {version}"));
                                             } else if info.is_noita_online {
                                                 ui.colored_label(
                                                     Color32::LIGHT_BLUE,
@@ -1940,7 +1940,7 @@ impl App {
                 }
             }
             Err(err) => {
-                ui.label(format!("Could not init steam networking: {}", err));
+                ui.label(format!("Could not init steam networking: {err}"));
             }
         }
     }
@@ -1963,11 +1963,11 @@ impl App {
         let addr = addr.or(addr2);
 
         ui.add_enabled_ui(addr.is_ok(), |ui| {
-            if ui.button(tr("ip_connect")).clicked() {
-                if let Ok(addr) = addr {
-                    self.set_settings();
-                    self.start_connect(addr);
-                }
+            if ui.button(tr("ip_connect")).clicked()
+                && let Ok(addr) = addr
+            {
+                self.set_settings();
+                self.start_connect(addr);
             }
         });
     }
@@ -2220,8 +2220,8 @@ impl App {
                 }
                 ui.separator();
             }
-            if let Some(game) = self.modmanager_settings.game_exe_path.parent() {
-                if let Ok(s) = fs::read_to_string(game.join("logger.txt")) {
+            if let Some(game) = self.modmanager_settings.game_exe_path.parent()
+                && let Ok(s) = fs::read_to_string(game.join("logger.txt")) {
                     let l = self.noitalog.len();
                     if l != 0 && s.len() >= self.noitalog[l - 1].len() {
                         if s.len() != self.noitalog[l - 1].len() {
@@ -2232,7 +2232,6 @@ impl App {
                         self.noitalog.push(s);
                     }
                 }
-            }
             match self.connected_menu {
                 ConnectedMenu::Normal => {
                     if netman.peer.is_steam() {
@@ -2412,11 +2411,10 @@ impl App {
                             if l > 1 {
                                 ui.add(Slider::new(&mut self.noitalog_number, 0..=l - 1));
                             }
-                            if let Some(clipboard) = self.clipboard.as_mut() {
-                                if ui.button("save to clipboard").clicked() {
+                            if let Some(clipboard) = self.clipboard.as_mut()
+                                && ui.button("save to clipboard").clicked() {
                                     let _ = clipboard.set_text(&s);
                                 }
-                            }
                         });
                         ScrollArea::vertical()
                             .auto_shrink([false; 2])
@@ -2436,11 +2434,10 @@ impl App {
                         path.parent().unwrap().join("ew_log.txt")
                     } else {
                         "ew_log.txt".into()
-                    }) {
-                        if s.len() > self.proxylog.len() {
+                    })
+                        && s.len() > self.proxylog.len() {
                             self.proxylog = s
                         }
-                    }
                     let mut s = self.proxylog.clone() + "\n";
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
@@ -2628,7 +2625,7 @@ impl eframe::App for App {
                             .connect_to(*target_lobby)
                             .restart()
                     });
-                    self.notify_error(format!("Failed to self-restart: {}", err));
+                    self.notify_error(format!("Failed to self-restart: {err}"));
                 }
                 if button_back {
                     self.state = AppState::Connect;

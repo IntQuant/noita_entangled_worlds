@@ -34,6 +34,13 @@ build_ext_debug:
 ## mod movin
 move_mod:
     cp "quant.ew" "E:/SteamLibrary/steamapps/common/Noita/mods/" -Recurse -Force
+##
+build_blob:
+    cd blob_guy && cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
+    cp blob_guy/target/i686-pc-windows-gnu/release/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
+build_blob_debug:
+    cd blob_guy && cargo build --target=i686-pc-windows-gnu
+    cp blob_guy/target/i686-pc-windows-gnu/debug/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
 
 ##run commands
 run-rel: add_dylib_release move_mod

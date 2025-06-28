@@ -163,10 +163,9 @@ impl AudioManager {
                                     if let Ok(len) = encoder.encode_float(
                                         &resamp.process(&[&extra[..FRAME_SIZE]], None).unwrap()[0],
                                         &mut compressed,
-                                    ) {
-                                        if len != 0 {
-                                            v.push(compressed[..len].to_vec())
-                                        }
+                                    ) && len != 0
+                                    {
+                                        v.push(compressed[..len].to_vec())
                                     }
                                     extra.drain(..FRAME_SIZE);
                                 }
@@ -254,18 +253,17 @@ impl AudioManager {
         sound_pos: (i32, i32),
         iv: f32,
     ) {
-        if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src) {
-            if let Some(stream_handle) = &self.stream_handle {
-                if let Ok(s) = Sink::try_new(&stream_handle.1) {
-                    //let (pitch_control, dsp) = make_dsp();
-                    e.insert(PlayerInfo {
-                        sink: s,
-                        //tracker: VelocityTracker::default(),
-                        //pitch_control,
-                        //dsp,
-                    });
-                }
-            }
+        if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src)
+            && let Some(stream_handle) = &self.stream_handle
+            && let Ok(s) = Sink::try_new(&stream_handle.1)
+        {
+            //let (pitch_control, dsp) = make_dsp();
+            e.insert(PlayerInfo {
+                sink: s,
+                //tracker: VelocityTracker::default(),
+                //pitch_control,
+                //dsp,
+            });
         }
         self.per_player.entry(src).and_modify(|player_info| {
             /*player_info
@@ -294,10 +292,10 @@ impl AudioManager {
                 let mut dec: Vec<f32> = Vec::new();
                 for data in data {
                     let mut out = vec![0f32; FRAME_SIZE];
-                    if let Ok(len) = self.decoder.decode_float(&data, &mut out, false) {
-                        if len != 0 {
-                            dec.extend(&out[..len])
-                        }
+                    if let Ok(len) = self.decoder.decode_float(&data, &mut out, false)
+                        && len != 0
+                    {
+                        dec.extend(&out[..len])
                     }
                 }
                 if !dec.is_empty() {

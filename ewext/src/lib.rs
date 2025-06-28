@@ -8,6 +8,7 @@ use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita::{ParticleWorldState, ntypes::Entity, pixel::NoitaPixelRun};
+use noita_api::add_lua_fn;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
     lua::{
@@ -15,7 +16,6 @@ use noita_api::{
         lua_bindings::{LUA_REGISTRYINDEX, lua_State},
     },
 };
-use noita_api_macro::add_lua_fn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
@@ -170,7 +170,7 @@ pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
             out("eax") entity,
         );
         if entity.is_null() {
-            bail!("Entity {} not found", entity_id);
+            bail!("Entity {entity_id} not found");
         }
         entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
     }
@@ -229,10 +229,10 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::Ready { .. } => bail!("Unexpected Ready message"),
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
-                if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    if let Err(e) = entity_sync.handle_proxytodes(proxy_to_des) {
-                        let _ = print_error(e);
-                    }
+                if let Some(entity_sync) = &mut state.modules.entity_sync
+                    && let Err(e) = entity_sync.handle_proxytodes(proxy_to_des)
+                {
+                    let _ = print_error(e);
                 }
             })?,
             NoitaInbound::RemoteMessage {
@@ -379,39 +379,36 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     let start = Instant::now();
     let iters = 10000;
     for _ in 0..iters {
-        let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
-            .ok_or_eyre("Entity not found")?;
-        noita_api::raw::entity_set_transform(player, 0.0, Some(0.0), None, None, None)?;
+        let player = EntityID::get_closest_with_tag(0.0, 0.0, "player_unit")?;
+        player.set_position(0.0, 0.0, None)?;
     }
     let elapsed = start.elapsed();
 
-    noita_api::raw::game_print(
-        format!(
-            "Took {}us to test, {}ns per call",
-            elapsed.as_micros(),
-            elapsed.as_nanos() / iters
-        )
-        .into(),
-    )?;
+    noita_api::game_print(format!(
+        "Took {}us to test, {}ns per call",
+        elapsed.as_micros(),
+        elapsed.as_nanos() / iters
+    ));
 
     Ok(())
 }
 
 fn test_fn(_lua: LuaState) -> eyre::Result<()> {
-    let player = noita_api::raw::entity_get_closest_with_tag(0.0, 0.0, "player_unit".into())?
-        .ok_or_eyre("Entity not found")?;
+    let player = EntityID::get_closest_with_tag(0.0, 0.0, "player_unit")?;
     let damage_model: DamageModelComponent = player.get_first_component(None)?;
     let hp = damage_model.hp()?;
     damage_model.set_hp(hp - 1.0)?;
 
-    let (x, y, _, _, _) = noita_api::raw::entity_get_transform(player)?;
+    let (x, y) = player.position()?;
 
-    noita_api::raw::game_print(
-        format!("Component: {:?}, Hp: {}", damage_model.0, hp * 25.0,).into(),
-    )?;
+    noita_api::game_print(format!(
+        "Component: {:?}, Hp: {}",
+        damage_model.0,
+        hp * 25.0,
+    ));
 
-    let entities = noita_api::raw::entity_get_in_radius_with_tag(x, y, 300.0, "enemy".into())?;
-    noita_api::raw::game_print(format!("{:?}", entities).into())?;
+    let entities = EntityID::get_in_radius_with_tag(x, y, 300.0, "enemy")?;
+    noita_api::game_print(format!("{entities:?}"));
 
     // noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
 
@@ -441,7 +438,7 @@ fn __gc(_lua: LuaState) {
 pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     let lua = LuaState::current()?;
     lua.get_global(c"EwextPrintError");
-    lua.push_string(&format!("{:?}\n{}", error, Backtrace::force_capture()));
+    lua.push_string(&format!("{error:?}\n{}", Backtrace::force_capture()));
     lua.call(1, 0i32)
         .wrap_err("Failed to call EwextPrintError")?;
     Ok(())
@@ -457,7 +454,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
     if let Err(_e) = KEEP_SELF_LOADED.as_ref() {
         #[cfg(debug_assertions)]
-        println!("Got an error while loading self: {}", _e);
+        println!("Got an error while loading self: {_e}");
     }
     #[cfg(debug_assertions)]
     println!(

@@ -128,7 +128,7 @@ impl SelfUpdateManager {
                         None => {}
                     }
                 }
-                Some(Err(err)) => self.state = State::ReleasesError2(format!("{:?}", err)),
+                Some(Err(err)) => self.state = State::ReleasesError2(format!("{err:?}")),
                 None => {
                     ui.label(tr("selfupdate_receiving_rel_info"));
                     ui.spinner();
@@ -140,7 +140,7 @@ impl SelfUpdateManager {
                     let _ = SelfRestarter::new().and_then(|mut r| r.restart());
                 }
                 Some(Err(err)) => {
-                    ui.label(format!("Could not update proxy: {}", err));
+                    ui.label(format!("Could not update proxy: {err}"));
                 }
                 None => {
                     ctx.request_repaint();
@@ -149,10 +149,10 @@ impl SelfUpdateManager {
                 }
             },
             State::ReleasesError(err) => {
-                ui.label(format!("Encountered an error: {:?}", err));
+                ui.label(format!("Encountered an error: {err:?}"));
             }
             State::ReleasesError2(err) => {
-                ui.label(format!("Encountered an error:\n{}", err));
+                ui.label(format!("Encountered an error:\n{err}"));
             }
         }
     }
@@ -178,6 +178,16 @@ fn proxy_bin_name() -> &'static str {
     }
 }
 
+fn steam_lib_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "steam_api64.dll"
+    } else if cfg!(target_os = "macos") {
+        "libsteam_api.dylib"
+    } else {
+        "libsteam_api.so"
+    }
+}
+
 fn proxy_downloader_for(download_path: PathBuf) -> Result<Downloader, ReleasesError> {
     let client = Client::builder().timeout(None).build()?;
     get_latest_release(&client)
@@ -187,19 +197,38 @@ fn proxy_downloader_for(download_path: PathBuf) -> Result<Downloader, ReleasesEr
 }
 
 fn extract_and_remove_zip(zip_file: PathBuf) -> Result<(), ReleasesError> {
+    let reader = File::open(&zip_file)?;
+    let exe_path = std::env::current_exe()?;
+    let current = std::env::current_dir()?;
+    if let Some(exe_dir) = exe_path.parent() {
+        std::env::set_current_dir(exe_dir)?;
+    } else {
+        Err(eyre::eyre!("exe does not have a parent"))?
+    }
     let extract_to = Path::new("tmp.exec");
     let bin_name = proxy_bin_name();
-    let reader = File::open(&zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     info!("Extracting zip file");
-    let mut src = zip.by_name(bin_name)?;
-    let mut dst = File::create(extract_to)?;
-    io::copy(&mut src, &mut dst)?;
+    {
+        let mut src = zip.by_name(bin_name)?;
+        let mut dst = File::create(extract_to)?;
+        io::copy(&mut src, &mut dst)?;
+    }
+    let lib_name = steam_lib_name();
+    let extract_lib_to = Path::new("tmp.lib");
+    {
+        let mut src = zip.by_name(lib_name)?;
+        let mut dst = File::create(extract_lib_to)?;
+        io::copy(&mut src, &mut dst)?;
+        fs::rename(lib_name, format!("{lib_name}.tmp"))?;
+        fs::rename(extract_lib_to, lib_name)?;
+    }
 
     self_replace::self_replace(extract_to)?;
 
     info!("Zip file extracted");
-    fs::remove_file(&zip_file).ok();
     fs::remove_file(extract_to).ok();
+    std::env::set_current_dir(current)?;
+    fs::remove_file(&zip_file).ok();
     Ok(())
 }

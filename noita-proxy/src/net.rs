@@ -50,7 +50,7 @@ pub mod world;
 pub(crate) fn ws_encode_proxy(key: &'static str, value: impl Display) -> NoitaInbound {
     let mut buf = Vec::new();
     buf.push(2);
-    write!(buf, "{} {}", key, value).unwrap();
+    write!(buf, "{key} {value}").unwrap();
     NoitaInbound::RawMessage(buf)
 }
 
@@ -91,13 +91,13 @@ pub(crate) struct NetInnerState {
 
 impl NetInnerState {
     pub(crate) fn try_ms_write(&mut self, data: &NoitaInbound) {
-        if let Some(ws) = &mut self.ms {
-            if let Err(err) = ws.write(data) {
-                error!("Error occured while sending to websocket: {}", err);
-                self.ms = None;
-                self.had_a_disconnect = true;
-            };
-        }
+        if let Some(ws) = &mut self.ms
+            && let Err(err) = ws.write(data)
+        {
+            error!("Error occured while sending to websocket: {}", err);
+            self.ms = None;
+            self.had_a_disconnect = true;
+        };
     }
     pub(crate) fn try_ws_write_option(&mut self, key: &str, value: impl ProxyOpt) {
         let mut buf = Vec::new();
@@ -430,12 +430,12 @@ impl NetManager {
         );
 
         while self.continue_running.load(Ordering::Relaxed) {
-            if let Some(k) = kind {
-                if let Some(n) = self.peer.lobby_id() {
-                    let c = crate::lobby_code::LobbyCode { kind: k, code: n };
-                    info!("Lobby ID: {}", c.serialize());
-                    kind = None
-                }
+            if let Some(k) = kind
+                && let Some(n) = self.peer.lobby_id()
+            {
+                let c = crate::lobby_code::LobbyCode { kind: k, code: n };
+                info!("Lobby ID: {}", c.serialize());
+                kind = None
             }
             if self.end_run.load(Ordering::Relaxed) {
                 for id in self.peer.iter_peer_ids() {
@@ -461,10 +461,10 @@ impl NetManager {
                     }
                 }
             }
-            if let Some(ws) = &mut state.ms {
-                if let Err(err) = ws.flush() {
-                    warn!("Websocket flush not ok: {err}");
-                }
+            if let Some(ws) = &mut state.ms
+                && let Err(err) = ws.flush()
+            {
+                warn!("Websocket flush not ok: {err}");
             }
             let mut to_kick = self.kick_list.lock().unwrap();
             let mut dont_kick = self.dont_kick.lock().unwrap();
@@ -810,19 +810,19 @@ impl NetManager {
                     .lock()
                     .unwrap()
                     .insert(src, get_player_skin(player_image.clone(), rgb));
-                if let Some(id) = pong {
-                    if id != self.peer.my_id() {
-                        self.send(
-                            id,
-                            &NetMsg::PlayerColor(
-                                self.init_settings.player_png_desc,
-                                self.is_host(),
-                                None,
-                                self.init_settings.my_nickname.clone(),
-                            ),
-                            Reliability::Reliable,
-                        );
-                    }
+                if let Some(id) = pong
+                    && id != self.peer.my_id()
+                {
+                    self.send(
+                        id,
+                        &NetMsg::PlayerColor(
+                            self.init_settings.player_png_desc,
+                            self.is_host(),
+                            None,
+                            self.init_settings.my_nickname.clone(),
+                        ),
+                        Reliability::Reliable,
+                    );
                 }
             }
             NetMsg::Kick => self.back_out.store(true, Ordering::Relaxed),
@@ -891,10 +891,10 @@ impl NetManager {
                 }
             }
             NetMsg::RespondFlagNormal(flag, new) => {
-                state.try_ms_write(&ws_encode_proxy("normal_flag", format!("{} {}", flag, new)));
+                state.try_ms_write(&ws_encode_proxy("normal_flag", format!("{flag} {new}")));
             }
             NetMsg::RespondFlagSlow(ent, new) => {
-                state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{} {}", ent, new)));
+                state.try_ms_write(&ws_encode_proxy("slow_flag", format!("{ent} {new}")));
             }
             NetMsg::RespondFlagMoon(x, y, b) => {
                 state.try_ms_write(&ws_encode_proxy(

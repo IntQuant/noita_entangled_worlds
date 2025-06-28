@@ -94,7 +94,7 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 
 [[package]]
 name = "ewext"
-version = "1.5.2"
+version = "1.6.0"
 dependencies = [
  "backtrace",
  "bimap",
@@ -102,7 +102,6 @@ dependencies = [
  "iced-x86",
  "libloading",
  "noita_api",
- "noita_api_macro",
  "rand",
  "rustc-hash",
  "shared",
@@ -208,7 +207,7 @@ dependencies = [
 
 [[package]]
 name = "noita_api"
-version = "0.1.0"
+version = "1.6.0"
 dependencies = [
  "base64",
  "eyre",

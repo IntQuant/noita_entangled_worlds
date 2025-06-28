@@ -9,7 +9,6 @@ use bimap::BiHashMap;
 use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
-use noita_api::raw::game_get_frame_num;
 use noita_api::serialize::serialize_entity;
 use noita_api::{
     CachedTag, ComponentTag, DamageModelComponent, DamageType, EntityID, EntityManager,
@@ -176,10 +175,11 @@ impl EntitySync {
     }
     pub(crate) fn spawn_once(
         &mut self,
-        ctx: &mut super::ModuleCtx,
+        ctx: &mut ModuleCtx,
         frame_num: usize,
+        x: f64,
+        y: f64,
     ) -> eyre::Result<()> {
-        let (x, y) = noita_api::raw::game_get_camera_pos()?;
         let len = self.spawn_once.len();
         if len > 0 {
             let batch_size = (len / 20).max(1);
@@ -270,7 +270,7 @@ impl EntitySync {
                             }
                             shared::SpawnOnce::BrokenWand => {
                                 let ent = EntityID::create(None)?;
-                                ent.set_position(x as f32, y as f32, None)?;
+                                ent.set_position(x, y, None)?;
                                 ent.add_tag("broken_wand")?;
                                 ent.add_lua_init_component::<LuaComponent>(
                                     "data/scripts/buildings/forge_item_convert.lua",
@@ -516,7 +516,7 @@ impl EntitySync {
 }
 
 impl Module for EntitySync {
-    fn on_world_init(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+    fn on_world_init(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         send_remotedes(ctx.net, true, Destination::Broadcast, RemoteDes::Reset)?;
         Ok(())
     }
@@ -565,18 +565,16 @@ impl Module for EntitySync {
                 {
                     if let Some(cost) = self
                         .entity_manager
-                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)?
+                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)
+                        && cost.stealable()?
                     {
-                        if cost.stealable()? {
-                            cost.set_stealable(false)?;
-                            self.entity_manager.get_var_or_default(
-                                const { VarName::from_str("ew_was_stealable") },
-                            )?;
-                        }
+                        cost.set_stealable(false)?;
+                        self.entity_manager
+                            .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
                     }
                     if let Some(vel) = self
                         .entity_manager
-                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)?
+                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)
                     {
                         vel.set_gravity_y(0.0)?;
                         vel.set_air_friction(10.0)?;
@@ -603,12 +601,14 @@ impl Module for EntitySync {
         Ok(())
     }
 
-    fn on_world_update(&mut self, ctx: &mut super::ModuleCtx) -> eyre::Result<()> {
+    fn on_world_update(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         let start = std::time::Instant::now();
-        let (x, y) = noita_api::raw::game_get_camera_pos()?;
+        self.entity_manager.init_pos()?;
+        self.entity_manager.init_frame_num()?;
+        let (x, y) = self.entity_manager.camera_pos();
         let pos = WorldPos::from_f64(x, y);
         self.interest_tracker.set_center(x, y);
-        let frame_num = game_get_frame_num()? as usize;
+        let frame_num = self.entity_manager.frame_num();
         if frame_num < 10 {
             return Ok(());
         }
@@ -704,15 +704,14 @@ impl Module for EntitySync {
                     let data = proj
                         .drain(..)
                         .map(|(ent, mut proj)| {
-                            if ent.is_alive() {
-                                if let Ok(Some(vel)) = ent
+                            if ent.is_alive()
+                                && let Ok(Some(vel)) = ent
                                     .try_get_first_component_including_disabled::<VelocityComponent>(
                                         None,
                                     )
                                 {
                                     proj.vel = vel.m_velocity().ok()
                                 }
-                            }
                             proj
                         })
                         .collect();
@@ -809,7 +808,7 @@ impl Module for EntitySync {
                 }
             }
         }
-        if let Err(s) = self.spawn_once(ctx, frame_num) {
+        if let Err(s) = self.spawn_once(ctx, frame_num as usize, x, y) {
             crate::print_error(s)?;
         }
 
@@ -821,21 +820,21 @@ impl Module for EntitySync {
                 },
             ))?;
         }
-        let pos_data = self.local_diff_model.get_pos_data(frame_num);
+        let pos_data = self.local_diff_model.get_pos_data(frame_num as usize);
         if !pos_data.is_empty() {
             ctx.net
                 .send(&NoitaOutbound::DesToProxy(UpdatePositions(pos_data)))?;
         }
         if self.log_performance {
             times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
-            noita_api::print(format!("{:?}", times));
+            noita_api::print(format!("{times:?}"));
         }
         Ok(())
     }
 
     fn on_projectile_fired(
         &mut self,
-        _ctx: &mut super::ModuleCtx,
+        _ctx: &mut ModuleCtx,
         shooter: Option<EntityID>,
         projectile: Option<EntityID>,
         _initial_rng: i32,
