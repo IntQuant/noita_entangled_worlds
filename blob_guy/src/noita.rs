@@ -11,34 +11,25 @@ pub(crate) struct ParticleWorldState {
     pub(crate) material_list_ptr: *const c_void,
     pub(crate) blob_guy: u16,
     pub(crate) pixel_array: *const c_void,
-    pub(crate) construct_ptr: ConstructCellFn,
-    pub(crate) remove_ptr: RemoveCellFn,
+    pub(crate) construct_ptr: *mut c_void,
+    pub(crate) remove_ptr: *mut c_void,
 }
-pub type ConstructCellFn = unsafe extern "C" fn(
-    grid_world: *mut c_void,
-    x: i32,
-    y: i32,
-    material: *mut c_void,
-    memory: *mut c_void,
-) -> *mut c_void;
-pub type RemoveCellFn =
-    unsafe extern "C" fn(grid_world: *mut c_void, cell: *mut ntypes::Cell, x: i32, y: i32) -> bool;
 impl ParticleWorldState {
     fn create_cell(
         &mut self,
         x: i32,
         y: i32,
-        material: *mut c_void,
-        _memory: *mut c_void,
+        material: *const c_void,
+        _memory: *const c_void,
     ) -> *mut ntypes::Cell {
         unsafe {
-            let cell_ptr: *const c_void;
+            let cell_ptr: *mut ntypes::Cell;
             asm!(
                 "mov ecx, {world}",
-                "push {x:e}",
-                "push {y:e}",
-                "push {material}",
                 "push 0",
+                "push {material}",
+                "push {y:e}",
+                "push {x:e}",
                 "call {construct}",
                 world = in(reg) self.world_ptr,
                 x = in(reg) x,
@@ -48,22 +39,23 @@ impl ParticleWorldState {
                 clobber_abi("C"),
                 out("eax") cell_ptr,
             );
-            cell_ptr as *mut ntypes::Cell
+            cell_ptr
         }
     }
     fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: i32, y: i32) {
         unsafe {
             asm!(
                 "mov ecx, {world}",
-                "push {cell}",
-                "push {x:e}",
+                "push 0",
                 "push {y:e}",
-                "call {construct}",
+                "push {x:e}",
+                "push {cell}",
+                "call {remove}",
                 world = in(reg) self.world_ptr,
                 cell = in(reg) cell,
                 x = in(reg) x,
                 y = in(reg) y,
-                construct = in(reg) self.remove_ptr,
+                remove = in(reg) self.remove_ptr,
                 clobber_abi("C"),
             );
         };
@@ -168,16 +160,15 @@ impl ParticleWorldState {
                             if let Some(cell) = self.get_cell_raw_mut(i, j) {
                                 self.remove_cell(cell, x, y);
                             }
-                            let src = self.create_cell(
-                                x,
-                                y,
-                                self.material_list_ptr
-                                    .offset(ntypes::CELLDATA_SIZE * self.blob_guy as isize)
-                                    .cast_mut(),
-                                std::ptr::null::<c_void>().cast_mut(),
-                            );
+                            let blob_ptr = self
+                                .material_list_ptr
+                                .offset(ntypes::CELLDATA_SIZE * self.blob_guy as isize);
+                            let src = self.create_cell(x, y, blob_ptr, std::ptr::null::<c_void>());
                             if !src.is_null() {
                                 let cell = self.get_cell_raw_mut_nil(i, j);
+                                let liquid: &mut ntypes::LiquidCell =
+                                    &mut *(cell as *mut ntypes::LiquidCell);
+                                liquid.is_static = false;
                                 *cell = (*src).clone();
                             }
                         }

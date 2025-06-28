@@ -13,14 +13,14 @@ impl Pos {
         ChunkPos::new(self.x as i32, self.y as i32)
     }
     pub fn to_chunk_inner(&self) -> usize {
-        self.y.rem_euclid(CHUNK_SIZE as f64) as usize * CHUNK_SIZE
-            + self.x.rem_euclid(CHUNK_SIZE as f64) as usize
+        self.x.rem_euclid(CHUNK_SIZE as f64) as usize * CHUNK_SIZE
+            + self.y.rem_euclid(CHUNK_SIZE as f64) as usize
     }
 }
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(16.0, -128.0))
+            self.blobs.push(Blob::new(0.0, 0.0))
         }
         if let Some(pws) = self.particle_world_state.as_mut() {
             'upper: for blob in self.blobs.iter_mut() {
@@ -49,7 +49,7 @@ impl State {
         Ok(())
     }
 }
-const SIZE: usize = 9;
+const SIZE: usize = 8;
 pub struct Blob {
     pub pos: Pos,
     pixels: [Pos; SIZE * SIZE],
@@ -66,15 +66,20 @@ impl Blob {
                 last = c;
             }
             let n = p.to_chunk_inner();
-            map[k][n] = CellType::Blob
+
+            map[k][n] = if matches!(map[k][n], CellType::Remove) {
+                CellType::Ignore
+            } else {
+                CellType::Blob
+            }
         }
     }
     pub fn new(x: f64, y: f64) -> Self {
         Blob {
             pos: Pos::new(x, y),
             pixels: std::array::from_fn(|i| {
-                let a = (i / SIZE) as f64 - SIZE as f64 / 2.0;
-                let b = (i % SIZE) as f64 - SIZE as f64 / 2.0;
+                let a = (i / SIZE) as f64 - SIZE as f64 / 2.0 + 0.5;
+                let b = (i % SIZE) as f64 - SIZE as f64 / 2.0 + 0.5;
                 Pos::new(x + a, y + b)
             }),
         }

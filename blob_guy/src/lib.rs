@@ -63,16 +63,8 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
             material_list_ptr: material_list_pointer as _,
             blob_guy,
             pixel_array: Default::default(),
-            construct_ptr: unsafe {
-                std::mem::transmute::<*mut c_void, noita::ConstructCellFn>(
-                    construct_cell_pointer as *mut c_void,
-                )
-            },
-            remove_ptr: unsafe {
-                std::mem::transmute::<*mut c_void, noita::RemoveCellFn>(
-                    remove_cell_pointer as *mut c_void,
-                )
-            },
+            construct_ptr: construct_cell_pointer as *mut c_void,
+            remove_ptr: remove_cell_pointer as *mut c_void,
         };
         state.particle_world_state = Some(pws);
         Ok(())

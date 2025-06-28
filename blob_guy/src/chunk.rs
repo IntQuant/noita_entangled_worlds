@@ -9,6 +9,7 @@ pub enum CellType {
     Liquid,
     Blob,
     Remove,
+    Ignore,
 }
 impl Default for Chunk {
     fn default() -> Self {
