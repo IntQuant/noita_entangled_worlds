@@ -1,8 +1,5 @@
-use crate::chunk::{Chunk, ChunkPos};
+use crate::chunk::{CellType, Chunk, ChunkPos};
 use crate::{CHUNK_SIZE, State};
-use noita_api::{game_print, print};
-use rustc_hash::FxHashMap;
-use std::collections::hash_map::Entry;
 #[derive(Default, Debug)]
 pub struct Pos {
     x: f64,
@@ -21,36 +18,35 @@ impl Pos {
     }
 }
 impl State {
-    pub fn update(&mut self) {
+    pub fn update(&mut self) -> eyre::Result<()> {
+        if self.blobs.is_empty() {
+            self.blobs.push(Blob::new(16.0, -128.0))
+        }
         if let Some(pws) = self.particle_world_state.as_mut() {
-            self.world.clear();
-            'upper: for blob in &self.blobs {
+            'upper: for blob in self.blobs.iter_mut() {
                 let c = blob.pos.to_chunk();
-                for x in c.x - 1..=c.x + 1 {
-                    for y in c.y - 1..=c.y + 1 {
-                        let c = ChunkPos { x, y };
-                        match self.world.entry(c) {
-                            Entry::Occupied(_) => {}
-                            Entry::Vacant(c) => {
-                                let chunk = unsafe { pws.encode_area(x, y) };
-                                match chunk {
-                                    Some(v) => {
-                                        c.insert(v);
-                                    }
-                                    None => continue 'upper,
-                                }
-                            }
+                let mut k = 0;
+                for x in -1..=1 {
+                    for y in -1..=1 {
+                        if unsafe { !pws.encode_area(c.x + x, c.y + y, &mut self.world[k]) } {
+                            continue 'upper;
                         }
+                        k += 1;
+                    }
+                }
+                blob.update(&mut self.world);
+                let mut k = 0;
+                for x in -1..=1 {
+                    for y in -1..=1 {
+                        if unsafe { !pws.decode_area(c.x + x, c.y + y, &self.world[k]) } {
+                            continue 'upper;
+                        }
+                        k += 1;
                     }
                 }
             }
         }
-        if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(16.0, -128.0))
-        }
-        for blob in self.blobs.iter_mut() {
-            blob.update(&mut self.world, self.blob_guy)
-        }
+        Ok(())
     }
 }
 const SIZE: usize = 9;
@@ -59,20 +55,18 @@ pub struct Blob {
     pixels: [Pos; SIZE * SIZE],
 }
 impl Blob {
-    pub fn update(&mut self, map: &mut FxHashMap<ChunkPos, Chunk>, blob_guy: u16) {
-        game_print(self.pos.x.to_string());
-        game_print(self.pos.y.to_string());
-        print(format!("{:?}", self.pixels));
+    pub fn update(&mut self, map: &mut [Chunk; 9]) {
         let mut last = ChunkPos::new(i32::MAX, i32::MAX);
-        let mut chunk = Chunk::default();
+        let mut k = 0;
+        let start = self.pos.to_chunk();
         for p in &self.pixels {
             let c = p.to_chunk();
             if c != last {
-                chunk = map.remove(&c).unwrap_or_default();
+                k = ((c.x - start.x + 1) * 3 + c.y - start.y + 1) as usize;
                 last = c;
             }
-            let k = p.to_chunk_inner();
-            chunk.pixels[k] = blob_guy
+            let n = p.to_chunk_inner();
+            map[k][n] = CellType::Blob
         }
     }
     pub fn new(x: f64, y: f64) -> Self {

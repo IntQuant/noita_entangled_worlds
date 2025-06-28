@@ -1,18 +1,29 @@
 use crate::CHUNK_SIZE;
-pub struct Chunk {
-    pub pixels: [u16; CHUNK_SIZE * CHUNK_SIZE],
-    pub is_blob: [bool; CHUNK_SIZE * CHUNK_SIZE],
-    pub is_liquid: [bool; CHUNK_SIZE * CHUNK_SIZE],
-    pub is_solid: [bool; CHUNK_SIZE * CHUNK_SIZE],
+use std::ops::{Index, IndexMut};
+pub struct Chunk(pub [CellType; CHUNK_SIZE * CHUNK_SIZE]);
+#[derive(Default, Copy, Clone)]
+pub enum CellType {
+    #[default]
+    Unknown,
+    Solid,
+    Liquid,
+    Blob,
+    Remove,
 }
 impl Default for Chunk {
     fn default() -> Self {
-        Self {
-            pixels: [0; CHUNK_SIZE * CHUNK_SIZE],
-            is_blob: [false; CHUNK_SIZE * CHUNK_SIZE],
-            is_liquid: [false; CHUNK_SIZE * CHUNK_SIZE],
-            is_solid: [false; CHUNK_SIZE * CHUNK_SIZE],
-        }
+        Self([CellType::Unknown; CHUNK_SIZE * CHUNK_SIZE])
+    }
+}
+impl Index<usize> for Chunk {
+    type Output = CellType;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+impl IndexMut<usize> for Chunk {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
     }
 }
 #[derive(Eq, Hash, PartialEq)]

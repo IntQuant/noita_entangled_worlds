@@ -15,7 +15,7 @@ pub(crate) struct StdString {
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[expect(dead_code)]
-pub(crate) enum CellType {
+pub enum CellType {
     None = 0,
     Liquid = 1,
     Gas = 2,
@@ -38,14 +38,15 @@ pub(crate) struct CellData {
 pub(crate) struct CellVTable {}
 
 #[repr(C)]
+#[derive(Clone)]
 pub(crate) struct Cell {
-    pub(crate) vtable: *const CellVTable,
+    pub vtable: *const CellVTable,
 
     hp: i32,
     unknown1: [u8; 8],
     is_burning: bool,
     unknown2: [u8; 3],
-    material_ptr: *const CellData,
+    pub material_ptr: *const CellData,
 }
 
 #[repr(C)]

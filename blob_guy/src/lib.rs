@@ -2,32 +2,28 @@ mod blob_guy;
 mod chunk;
 mod noita;
 use crate::blob_guy::Blob;
-use crate::chunk::{Chunk, ChunkPos};
+use crate::chunk::Chunk;
 use crate::noita::ParticleWorldState;
 use noita_api::add_lua_fn;
 use noita_api::lua::LUA;
 use noita_api::lua::LuaState;
 use noita_api::lua::lua_bindings::{LUA_REGISTRYINDEX, lua_State};
-use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 use std::cell::{LazyCell, RefCell};
 use std::ffi::{c_int, c_void};
 use std::hint::black_box;
 use std::sync::LazyLock;
-const CHUNK_SIZE: usize = 128;
+const CHUNK_SIZE: usize = 64;
 #[derive(Default)]
 struct State {
     particle_world_state: Option<ParticleWorldState>,
-    blobs: SmallVec<[Blob; 64]>,
-    world: FxHashMap<ChunkPos, Chunk>,
+    blobs: SmallVec<[Blob; 8]>,
+    world: [Chunk; 9],
     blob_guy: u16,
 }
 thread_local! {
     static STATE: LazyCell<RefCell<State>> = LazyCell::new(|| {
-        State{
-            world: FxHashMap::with_capacity_and_hasher(64, FxBuildHasher),
-            ..Default::default()
-        }.into()
+        Default::default()
     });
 }
 static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
@@ -57,22 +53,34 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         let world_pointer = lua.to_integer(1);
         let chunk_map_pointer = lua.to_integer(2);
         let material_list_pointer = lua.to_integer(3);
+        let construct_cell_pointer = lua.to_integer(4);
+        let remove_cell_pointer = lua.to_integer(5);
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
-        state.particle_world_state = Some(ParticleWorldState {
-            _world_ptr: world_pointer as *mut c_void,
+        let pws = ParticleWorldState {
+            world_ptr: world_pointer as *mut c_void,
             chunk_map_ptr: chunk_map_pointer as *mut c_void,
             material_list_ptr: material_list_pointer as _,
             blob_guy,
             pixel_array: Default::default(),
-        });
+            construct_ptr: unsafe {
+                std::mem::transmute::<*mut c_void, noita::ConstructCellFn>(
+                    construct_cell_pointer as *mut c_void,
+                )
+            },
+            remove_ptr: unsafe {
+                std::mem::transmute::<*mut c_void, noita::RemoveCellFn>(
+                    remove_cell_pointer as *mut c_void,
+                )
+            },
+        };
+        state.particle_world_state = Some(pws);
         Ok(())
     })
 }
 fn update(_: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.try_borrow_mut()?;
-        state.update();
-        Ok(())
+        state.update()
     })
 }
