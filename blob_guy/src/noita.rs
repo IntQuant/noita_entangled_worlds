@@ -33,16 +33,15 @@ impl ParticleWorldState {
     ) -> *mut ntypes::Cell {
         unsafe {
             let cell_ptr: *const c_void;
+            let v = [x, y];
             asm!(
                 "mov ecx, {world}",
-                "push {x:e}",
-                "push {y:e}",
-                "push [{material}]",
-                "push [{memory}]",
-                "call [{construct}]",
+                "push {n}",
+                "push {material}",
+                "push {memory}",
+                "call {construct}",
                 world = in(reg) self.world_ptr,
-                x = in(reg) x,
-                y = in(reg) y,
+                n = in(reg) &v,
                 material = in(reg) material,
                 memory = in(reg) memory,
                 construct = in(reg) self.construct_ptr,
@@ -56,10 +55,10 @@ impl ParticleWorldState {
         unsafe {
             asm!(
                 "mov ecx, {world}",
-                "push [{cell}]",
+                "push {cell}",
                 "push {x:e}",
                 "push {y:e}",
-                "call [{construct}]",
+                "call {construct}",
                 world = in(reg) self.world_ptr,
                 cell = in(reg) cell,
                 x = in(reg) x,
