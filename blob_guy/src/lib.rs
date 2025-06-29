@@ -52,7 +52,7 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         let world_ptr = lua.to_integer(1) as *mut c_void;
-        let chunk_map_ptr = lua.to_integer(2) as *mut c_void;
+        let chunk_map_ptr = unsafe { (lua.to_integer(2) as *mut c_void).offset(8) };
         let material_list_ptr = lua.to_integer(3) as *const c_void;
         let construct_ptr = lua.to_integer(4) as *mut c_void;
         let remove_ptr = lua.to_integer(5) as *mut c_void;

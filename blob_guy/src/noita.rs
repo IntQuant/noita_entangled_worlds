@@ -20,8 +20,8 @@ pub(crate) struct ParticleWorldState {
 impl ParticleWorldState {
     fn create_cell(
         &mut self,
-        x: i32,
-        y: i32,
+        x: isize,
+        y: isize,
         material: *const c_void,
         _memory: *const c_void,
     ) -> *mut ntypes::Cell {
@@ -46,7 +46,7 @@ impl ParticleWorldState {
             cell_ptr
         }
     }
-    fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: i32, y: i32) {
+    fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: isize, y: isize) {
         //let _ = remove_cell(self.world_ptr, cell, x, y);
         unsafe {
             asm!(
@@ -65,15 +65,13 @@ impl ParticleWorldState {
             );
         };
     }
-    fn set_chunk(&mut self, x: i32, y: i32) -> bool {
-        let x = x as isize;
-        let y = y as isize;
+    fn set_chunk(&mut self, x: isize, y: isize) -> bool {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         self.shift_x = CHUNK_SIZE as isize * x.rem_euclid(SCALE);
         self.shift_y = CHUNK_SIZE as isize * y.rem_euclid(SCALE);
         let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
         // Deref 1/3
-        let chunk_arr = unsafe { self.chunk_map_ptr.offset(8).cast::<*const c_void>().read() };
+        let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };
         // Deref 2/3
         let chunk = unsafe { chunk_arr.offset(chunk_index).cast::<*const c_void>().read() };
         if chunk.is_null() {
@@ -84,9 +82,9 @@ impl ParticleWorldState {
         self.pixel_array = pixel_array;
         false
     }
-    fn get_cell_raw(&self, x: i32, y: i32) -> Option<&ntypes::Cell> {
-        let x = x as isize + self.shift_x;
-        let y = y as isize + self.shift_y;
+    fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
+        let x = x + self.shift_x;
+        let y = y + self.shift_y;
         let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
         if pixel.is_null() {
             return None;
@@ -94,9 +92,9 @@ impl ParticleWorldState {
 
         unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
     }
-    fn get_cell_raw_mut_nil(&mut self, x: i32, y: i32) -> *mut *mut ntypes::Cell {
-        let x = x as isize + self.shift_x;
-        let y = y as isize + self.shift_y;
+    fn get_cell_raw_mut_nil(&mut self, x: isize, y: isize) -> *mut *mut ntypes::Cell {
+        let x = x + self.shift_x;
+        let y = y + self.shift_y;
         let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
         pixel as *mut *mut ntypes::Cell
     }
@@ -110,12 +108,12 @@ impl ParticleWorldState {
         unsafe { Some(cell.material_ptr().as_ref()?.cell_type) }
     }
 
-    pub(crate) unsafe fn encode_area(&mut self, x: i32, y: i32, chunk: &mut Chunk) -> bool {
+    pub(crate) unsafe fn encode_area(&mut self, x: isize, y: isize, chunk: &mut Chunk) -> bool {
         if self.set_chunk(x, y) {
             return false;
         }
-        for (k, (i, j)) in (0..CHUNK_SIZE as i32)
-            .flat_map(|i| (0..CHUNK_SIZE as i32).map(move |j| (i, j)))
+        for (k, (i, j)) in (0..CHUNK_SIZE as isize)
+            .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .enumerate()
         {
             let cell = self.get_cell_raw(i, j);
@@ -137,14 +135,14 @@ impl ParticleWorldState {
         }
         true
     }
-    pub(crate) unsafe fn decode_area(&mut self, x: i32, y: i32, chunk: &Chunk) {
+    pub(crate) unsafe fn decode_area(&mut self, x: isize, y: isize, chunk: &Chunk) {
         if self.set_chunk(x, y) {
             return;
         }
-        let x = x * CHUNK_SIZE as i32;
-        let y = y * CHUNK_SIZE as i32;
-        for (k, (i, j)) in (0..CHUNK_SIZE as i32)
-            .flat_map(|i| (0..CHUNK_SIZE as i32).map(move |j| (i, j)))
+        let x = x * CHUNK_SIZE as isize;
+        let y = y * CHUNK_SIZE as isize;
+        for (k, (i, j)) in (0..CHUNK_SIZE as isize)
+            .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .enumerate()
         {
             match chunk[k] {

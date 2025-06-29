@@ -10,14 +10,14 @@ impl Pos {
         Self { x, y }
     }
     pub fn to_chunk(self) -> ChunkPos {
-        ChunkPos::new(self.x as i32, self.y as i32)
+        ChunkPos::new(self.x as isize, self.y as isize)
     }
     pub fn to_chunk_inner(self) -> usize {
         self.x.rem_euclid(CHUNK_SIZE as f64) as usize * CHUNK_SIZE
             + self.y.rem_euclid(CHUNK_SIZE as f64) as usize
     }
 }
-const OFFSET: i32 = CHUNK_AMOUNT as i32 / 2;
+const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
@@ -58,14 +58,14 @@ pub struct Blob {
 }
 impl Blob {
     pub fn update(&mut self, map: &mut [Chunk; 9]) {
-        let mut last = ChunkPos::new(i32::MAX, i32::MAX);
+        let mut last = ChunkPos::new(isize::MAX, isize::MAX);
         let mut k = 0;
         let start = self.pos.to_chunk();
         for p in self.pixels.iter_mut() {
             //p.y += 1.0;
             let c = p.to_chunk();
             if c != last {
-                k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as i32 + c.y - start.y + OFFSET)
+                k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + c.y - start.y + OFFSET)
                     as usize;
                 last = c;
             }

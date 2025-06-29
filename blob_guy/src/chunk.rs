@@ -30,14 +30,14 @@ impl IndexMut<usize> for Chunk {
 }
 #[derive(Eq, Hash, PartialEq, Debug, Clone, Copy)]
 pub struct ChunkPos {
-    pub x: i32,
-    pub y: i32,
+    pub x: isize,
+    pub y: isize,
 }
 impl ChunkPos {
-    pub fn new(x: i32, y: i32) -> Self {
+    pub fn new(x: isize, y: isize) -> Self {
         Self {
-            x: x.div_euclid(CHUNK_SIZE as i32),
-            y: y.div_euclid(CHUNK_SIZE as i32),
+            x: x.div_euclid(CHUNK_SIZE as isize),
+            y: y.div_euclid(CHUNK_SIZE as isize),
         }
     }
 }
