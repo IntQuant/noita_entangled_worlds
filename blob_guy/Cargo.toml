@@ -20,4 +20,3 @@ noita_api = {path = "../noita_api"}
 eyre = "0.6.12"
 libloading = "0.8.8"
 smallvec = "1.15.1"
-rustc-hash = "2.1.1"

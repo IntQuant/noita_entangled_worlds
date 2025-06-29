@@ -16,7 +16,7 @@ use std::sync::LazyLock;
 const CHUNK_SIZE: usize = 64;
 #[derive(Default)]
 struct State {
-    particle_world_state: Option<ParticleWorldState>,
+    particle_world_state: ParticleWorldState,
     blobs: SmallVec<[Blob; 8]>,
     world: [Chunk; 9],
     blob_guy: u16,
@@ -50,23 +50,26 @@ pub unsafe extern "C" fn luaopen_blob_guy(lua: *mut lua_State) -> c_int {
 fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
-        let world_pointer = lua.to_integer(1);
-        let chunk_map_pointer = lua.to_integer(2);
-        let material_list_pointer = lua.to_integer(3);
-        let construct_cell_pointer = lua.to_integer(4);
-        let remove_cell_pointer = lua.to_integer(5);
+        let world_ptr = lua.to_integer(1) as *mut c_void;
+        let chunk_map_ptr = lua.to_integer(2) as *mut c_void;
+        let material_list_ptr = lua.to_integer(3) as *const c_void;
+        let construct_ptr = lua.to_integer(4) as *mut c_void;
+        let remove_ptr = lua.to_integer(5) as *mut c_void;
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
         let pws = ParticleWorldState {
-            world_ptr: world_pointer as *mut c_void,
-            chunk_map_ptr: chunk_map_pointer as *mut c_void,
-            material_list_ptr: material_list_pointer as _,
+            world_ptr,
+            chunk_map_ptr,
+            material_list_ptr,
             blob_guy,
+            blob_ptr: unsafe {
+                material_list_ptr.offset(noita::ntypes::CELLDATA_SIZE * blob_guy as isize)
+            },
             pixel_array: Default::default(),
-            construct_ptr: construct_cell_pointer as *mut c_void,
-            remove_ptr: remove_cell_pointer as *mut c_void,
+            construct_ptr,
+            remove_ptr,
         };
-        state.particle_world_state = Some(pws);
+        state.particle_world_state = pws;
         Ok(())
     })
 }

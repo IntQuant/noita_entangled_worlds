@@ -1,5 +1,6 @@
 use crate::CHUNK_SIZE;
 use std::ops::{Index, IndexMut};
+#[derive(Debug)]
 pub struct Chunk(pub [CellType; CHUNK_SIZE * CHUNK_SIZE]);
 #[derive(Default, Copy, Clone, Debug)]
 pub enum CellType {
@@ -27,7 +28,7 @@ impl IndexMut<usize> for Chunk {
         &mut self.0[index]
     }
 }
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, Hash, PartialEq, Debug, Clone, Copy)]
 pub struct ChunkPos {
     pub x: i32,
     pub y: i32,

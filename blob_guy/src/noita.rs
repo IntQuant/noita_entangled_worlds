@@ -4,12 +4,13 @@ use std::arch::asm;
 use std::{ffi::c_void, mem};
 pub(crate) mod ntypes;
 //pub(crate) mod pixel;
-
+#[derive(Default)]
 pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *mut c_void,
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
     pub(crate) blob_guy: u16,
+    pub(crate) blob_ptr: *const c_void,
     pub(crate) pixel_array: *const c_void,
     pub(crate) construct_ptr: *mut c_void,
     pub(crate) remove_ptr: *mut c_void,
@@ -65,7 +66,8 @@ impl ParticleWorldState {
     fn set_chunk(&mut self, x: i32, y: i32) -> bool {
         let x = x as isize;
         let y = y as isize;
-        let chunk_index = (((((y >> 3) - 256) & 511) << 9) | (((x >> 3) - 256) & 511)) * 4;
+        const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
+        let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
         // Deref 1/3
         let chunk_arr = unsafe { self.chunk_map_ptr.offset(8).cast::<*const c_void>().read() };
         // Deref 2/3
@@ -131,9 +133,9 @@ impl ParticleWorldState {
         }
         true
     }
-    pub(crate) unsafe fn decode_area(&mut self, x: i32, y: i32, chunk: &Chunk) -> bool {
+    pub(crate) unsafe fn decode_area(&mut self, x: i32, y: i32, chunk: &Chunk) {
         if self.set_chunk(x, y) {
-            return false;
+            return;
         }
         for i in 0..CHUNK_SIZE as i32 {
             for j in 0..CHUNK_SIZE as i32 {
@@ -146,14 +148,12 @@ impl ParticleWorldState {
                             if !(*cell).is_null() {
                                 self.remove_cell(*cell, x, y);
                             }
-                            let blob_ptr = self
-                                .material_list_ptr
-                                .offset(ntypes::CELLDATA_SIZE * self.blob_guy as isize);
-                            let src = self.create_cell(x, y, blob_ptr, std::ptr::null::<c_void>());
+                            let src =
+                                self.create_cell(x, y, self.blob_ptr, std::ptr::null::<c_void>());
                             if !src.is_null() {
                                 let liquid: &mut ntypes::LiquidCell =
                                     &mut *(src as *mut ntypes::LiquidCell);
-                                liquid.is_static = false;
+                                liquid.is_static = true;
                                 *cell = src;
                             }
                         }
@@ -172,6 +172,5 @@ impl ParticleWorldState {
                 }
             }
         }
-        true
     }
 }

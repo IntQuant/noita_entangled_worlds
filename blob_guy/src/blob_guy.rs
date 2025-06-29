@@ -1,6 +1,6 @@
 use crate::chunk::{CellType, Chunk, ChunkPos};
 use crate::{CHUNK_SIZE, State};
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Pos {
     x: f64,
     y: f64,
@@ -9,10 +9,10 @@ impl Pos {
     pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
-    pub fn to_chunk(&self) -> ChunkPos {
+    pub fn to_chunk(self) -> ChunkPos {
         ChunkPos::new(self.x as i32, self.y as i32)
     }
-    pub fn to_chunk_inner(&self) -> usize {
+    pub fn to_chunk_inner(self) -> usize {
         self.x.rem_euclid(CHUNK_SIZE as f64) as usize * CHUNK_SIZE
             + self.y.rem_euclid(CHUNK_SIZE as f64) as usize
     }
@@ -20,36 +20,37 @@ impl Pos {
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(0.0, -64.0))
+            self.blobs.push(Blob::new(128.0 + 32.0, -128.0 - 32.0))
         }
-        if let Some(pws) = self.particle_world_state.as_mut() {
-            'upper: for blob in self.blobs.iter_mut() {
-                let c = blob.pos.to_chunk();
-                let mut k = 0;
-                for x in -1..=1 {
-                    for y in -1..=1 {
-                        if unsafe { !pws.encode_area(c.x + x, c.y + y, &mut self.world[k]) } {
-                            continue 'upper;
-                        }
-                        k += 1;
-                    }
+        'upper: for blob in self.blobs.iter_mut() {
+            let c = blob.pos.to_chunk();
+            for (k, (x, y)) in (-1..=1)
+                .flat_map(|i| (-1..=1).map(move |j| (i, j)))
+                .enumerate()
+            {
+                if unsafe {
+                    !self
+                        .particle_world_state
+                        .encode_area(c.x + x, c.y + y, &mut self.world[k])
+                } {
+                    continue 'upper;
                 }
-                blob.update(&mut self.world);
-                let mut k = 0;
-                for x in -1..=1 {
-                    for y in -1..=1 {
-                        if unsafe { !pws.decode_area(c.x + x, c.y + y, &self.world[k]) } {
-                            continue 'upper;
-                        }
-                        k += 1;
-                    }
+            }
+            blob.update(&mut self.world);
+            for (k, (x, y)) in (-1..=1)
+                .flat_map(|i| (-1..=1).map(move |j| (i, j)))
+                .enumerate()
+            {
+                unsafe {
+                    self.particle_world_state
+                        .decode_area(c.x + x, c.y + y, &self.world[k]);
                 }
             }
         }
         Ok(())
     }
 }
-const SIZE: usize = 8;
+const SIZE: usize = 2;
 pub struct Blob {
     pub pos: Pos,
     pixels: [Pos; SIZE * SIZE],

@@ -1,8 +1,9 @@
 <Materials>
   <CellData
+    _parent="water_static"
     name="blob_guy"
     ui_name="blob guy"
-    wang_color="aaffaaaa"
-    >
+    wang_color="AAFFAAAA"
+  >
   </CellData>
 </Materials>
