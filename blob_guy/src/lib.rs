@@ -13,12 +13,13 @@ use std::cell::{LazyCell, RefCell};
 use std::ffi::{c_int, c_void};
 use std::hint::black_box;
 use std::sync::LazyLock;
-const CHUNK_SIZE: usize = 64;
+const CHUNK_SIZE: usize = 32;
+const CHUNK_AMOUNT: usize = 3;
 #[derive(Default)]
 struct State {
     particle_world_state: ParticleWorldState,
     blobs: SmallVec<[Blob; 8]>,
-    world: [Chunk; 9],
+    world: [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT],
     blob_guy: u16,
 }
 thread_local! {
@@ -68,6 +69,8 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
             pixel_array: Default::default(),
             construct_ptr,
             remove_ptr,
+            shift_x: 0,
+            shift_y: 0,
         };
         state.particle_world_state = pws;
         Ok(())

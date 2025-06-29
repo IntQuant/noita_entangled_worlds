@@ -1,5 +1,5 @@
 use crate::chunk::{CellType, Chunk, ChunkPos};
-use crate::{CHUNK_SIZE, State};
+use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Pos {
     x: f64,
@@ -17,15 +17,16 @@ impl Pos {
             + self.y.rem_euclid(CHUNK_SIZE as f64) as usize
     }
 }
+const OFFSET: i32 = CHUNK_AMOUNT as i32 / 2;
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(128.0 + 32.0, -128.0 - 32.0))
+            self.blobs.push(Blob::new(128.0 + 16.0, -128.0 - 16.0));
         }
         'upper: for blob in self.blobs.iter_mut() {
             let c = blob.pos.to_chunk();
-            for (k, (x, y)) in (-1..=1)
-                .flat_map(|i| (-1..=1).map(move |j| (i, j)))
+            for (k, (x, y)) in (-OFFSET..=OFFSET)
+                .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
                 .enumerate()
             {
                 if unsafe {
@@ -37,8 +38,8 @@ impl State {
                 }
             }
             blob.update(&mut self.world);
-            for (k, (x, y)) in (-1..=1)
-                .flat_map(|i| (-1..=1).map(move |j| (i, j)))
+            for (k, (x, y)) in (-OFFSET..=OFFSET)
+                .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
                 .enumerate()
             {
                 unsafe {
@@ -50,7 +51,7 @@ impl State {
         Ok(())
     }
 }
-const SIZE: usize = 2;
+const SIZE: usize = 8;
 pub struct Blob {
     pub pos: Pos,
     pixels: [Pos; SIZE * SIZE],
@@ -60,10 +61,12 @@ impl Blob {
         let mut last = ChunkPos::new(i32::MAX, i32::MAX);
         let mut k = 0;
         let start = self.pos.to_chunk();
-        for p in &self.pixels {
+        for p in self.pixels.iter_mut() {
+            //p.y += 1.0;
             let c = p.to_chunk();
             if c != last {
-                k = ((c.x - start.x + 1) * 3 + c.y - start.y + 1) as usize;
+                k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as i32 + c.y - start.y + OFFSET)
+                    as usize;
                 last = c;
             }
             let n = p.to_chunk_inner();

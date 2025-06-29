@@ -1,7 +1,7 @@
 use crate::CHUNK_SIZE;
 use crate::chunk::{CellType, Chunk};
 use std::arch::asm;
-use std::{ffi::c_void, mem};
+use std::{ffi::c_void, mem, ptr};
 pub(crate) mod ntypes;
 //pub(crate) mod pixel;
 #[derive(Default)]
@@ -14,6 +14,8 @@ pub(crate) struct ParticleWorldState {
     pub(crate) pixel_array: *const c_void,
     pub(crate) construct_ptr: *mut c_void,
     pub(crate) remove_ptr: *mut c_void,
+    pub(crate) shift_x: isize,
+    pub(crate) shift_y: isize,
 }
 impl ParticleWorldState {
     fn create_cell(
@@ -67,6 +69,8 @@ impl ParticleWorldState {
         let x = x as isize;
         let y = y as isize;
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
+        self.shift_x = CHUNK_SIZE as isize * x.rem_euclid(SCALE);
+        self.shift_y = CHUNK_SIZE as isize * y.rem_euclid(SCALE);
         let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
         // Deref 1/3
         let chunk_arr = unsafe { self.chunk_map_ptr.offset(8).cast::<*const c_void>().read() };
@@ -81,8 +85,8 @@ impl ParticleWorldState {
         false
     }
     fn get_cell_raw(&self, x: i32, y: i32) -> Option<&ntypes::Cell> {
-        let x = x as isize;
-        let y = y as isize;
+        let x = x as isize + self.shift_x;
+        let y = y as isize + self.shift_y;
         let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
         if pixel.is_null() {
             return None;
@@ -91,8 +95,8 @@ impl ParticleWorldState {
         unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
     }
     fn get_cell_raw_mut_nil(&mut self, x: i32, y: i32) -> *mut *mut ntypes::Cell {
-        let x = x as isize;
-        let y = y as isize;
+        let x = x as isize + self.shift_x;
+        let y = y as isize + self.shift_y;
         let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
         pixel as *mut *mut ntypes::Cell
     }
@@ -110,23 +114,23 @@ impl ParticleWorldState {
         if self.set_chunk(x, y) {
             return false;
         }
-        for i in 0..CHUNK_SIZE as i32 {
-            for j in 0..CHUNK_SIZE as i32 {
-                let k = (i * CHUNK_SIZE as i32 + j) as usize;
-                let cell = self.get_cell_raw(i, j);
-                if let Some(cell) = cell
-                    && let Some(cell_type) = self.get_cell_type(cell)
-                    && ntypes::CellType::Liquid == cell_type
-                {
-                    if self.get_cell_material_id(cell) == self.blob_guy {
-                        chunk[k] = CellType::Remove
+        for (k, (i, j)) in (0..CHUNK_SIZE as i32)
+            .flat_map(|i| (0..CHUNK_SIZE as i32).map(move |j| (i, j)))
+            .enumerate()
+        {
+            let cell = self.get_cell_raw(i, j);
+            if let Some(cell) = cell
+                && let Some(cell_type) = self.get_cell_type(cell)
+                && ntypes::CellType::Liquid == cell_type
+            {
+                if self.get_cell_material_id(cell) == self.blob_guy {
+                    chunk[k] = CellType::Remove
+                } else {
+                    let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
+                    if cell.is_static {
+                        chunk[k] = CellType::Solid;
                     } else {
-                        let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
-                        if cell.is_static {
-                            chunk[k] = CellType::Solid;
-                        } else {
-                            chunk[k] = CellType::Liquid;
-                        }
+                        chunk[k] = CellType::Liquid;
                     }
                 }
             }
@@ -137,39 +141,43 @@ impl ParticleWorldState {
         if self.set_chunk(x, y) {
             return;
         }
-        for i in 0..CHUNK_SIZE as i32 {
-            for j in 0..CHUNK_SIZE as i32 {
-                match chunk[(i * CHUNK_SIZE as i32 + j) as usize] {
-                    CellType::Blob => {
-                        let x = x * CHUNK_SIZE as i32 + i;
-                        let y = y * CHUNK_SIZE as i32 + j;
-                        unsafe {
-                            let cell = self.get_cell_raw_mut_nil(i, j);
-                            if !(*cell).is_null() {
-                                self.remove_cell(*cell, x, y);
-                            }
-                            let src =
-                                self.create_cell(x, y, self.blob_ptr, std::ptr::null::<c_void>());
-                            if !src.is_null() {
-                                let liquid: &mut ntypes::LiquidCell =
-                                    &mut *(src as *mut ntypes::LiquidCell);
-                                liquid.is_static = true;
-                                *cell = src;
-                            }
+        let x = x * CHUNK_SIZE as i32;
+        let y = y * CHUNK_SIZE as i32;
+        for (k, (i, j)) in (0..CHUNK_SIZE as i32)
+            .flat_map(|i| (0..CHUNK_SIZE as i32).map(move |j| (i, j)))
+            .enumerate()
+        {
+            match chunk[k] {
+                CellType::Blob => {
+                    let x = x + i;
+                    let y = y + j;
+                    unsafe {
+                        let cell = self.get_cell_raw_mut_nil(i, j);
+                        if !(*cell).is_null() {
+                            self.remove_cell(*cell, x, y);
+                            *cell = ptr::null_mut();
+                        }
+                        let src = self.create_cell(x, y, self.blob_ptr, ptr::null::<c_void>());
+                        if !src.is_null() {
+                            let liquid: &mut ntypes::LiquidCell =
+                                &mut *(src as *mut ntypes::LiquidCell);
+                            liquid.is_static = true;
+                            *cell = src;
                         }
                     }
-                    CellType::Remove => {
-                        let x = x * CHUNK_SIZE as i32 + i;
-                        let y = y * CHUNK_SIZE as i32 + j;
-                        unsafe {
-                            let cell = self.get_cell_raw_mut_nil(i, j);
-                            if !(*cell).is_null() {
-                                self.remove_cell(*cell, x, y);
-                            }
-                        }
-                    }
-                    _ => {}
                 }
+                CellType::Remove => {
+                    let x = x + i;
+                    let y = y + j;
+                    unsafe {
+                        let cell = self.get_cell_raw_mut_nil(i, j);
+                        if !(*cell).is_null() {
+                            self.remove_cell(*cell, x, y);
+                            *cell = ptr::null_mut();
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
