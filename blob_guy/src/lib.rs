@@ -4,6 +4,7 @@ mod noita;
 use crate::blob_guy::Blob;
 use crate::chunk::Chunk;
 use crate::noita::ParticleWorldState;
+use eyre::WrapErr;
 use noita_api::add_lua_fn;
 use noita_api::lua::LUA;
 use noita_api::lua::LuaState;
@@ -69,6 +70,38 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         state.particle_world_state = Some(pws);
         Ok(())
     })
+}
+fn construct_cell(
+    grid_world: *mut c_void,
+    x: i32,
+    y: i32,
+    mat: *const c_void,
+) -> eyre::Result<*mut noita::ntypes::Cell> {
+    let lua = LuaState::current()?;
+    lua.get_global(c"construct_cell");
+    lua.push_integer(grid_world as isize);
+    lua.push_integer(x as isize);
+    lua.push_integer(y as isize);
+    lua.push_integer(mat as isize);
+    lua.call(4, 1i32).wrap_err("Failed to call construct")?;
+    let c = lua.to_integer(-1);
+    lua.pop_last_n(1);
+    Ok(c as *mut noita::ntypes::Cell)
+}
+fn remove_cell(
+    grid_world: *mut c_void,
+    cell: *mut noita::ntypes::Cell,
+    x: i32,
+    y: i32,
+) -> eyre::Result<()> {
+    let lua = LuaState::current()?;
+    lua.get_global(c"remove_cell");
+    lua.push_integer(grid_world as isize);
+    lua.push_integer(cell as isize);
+    lua.push_integer(x as isize);
+    lua.push_integer(y as isize);
+    lua.call(4, 0i32).wrap_err("Failed to call construct")?;
+    Ok(())
 }
 fn update(_: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {

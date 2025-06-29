@@ -1,5 +1,5 @@
-use crate::CHUNK_SIZE;
 use crate::chunk::{CellType, Chunk};
+use crate::{CHUNK_SIZE, construct_cell, remove_cell};
 use std::arch::asm;
 use std::{ffi::c_void, mem};
 pub(crate) mod ntypes;
@@ -22,7 +22,8 @@ impl ParticleWorldState {
         material: *const c_void,
         _memory: *const c_void,
     ) -> *mut ntypes::Cell {
-        unsafe {
+        construct_cell(self.world_ptr, x, y, material).unwrap_or_default()
+        /*unsafe {
             let cell_ptr: *mut ntypes::Cell;
             asm!(
                 "mov ecx, {world}",
@@ -40,10 +41,11 @@ impl ParticleWorldState {
                 out("eax") cell_ptr,
             );
             cell_ptr
-        }
+        }*/
     }
     fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: i32, y: i32) {
-        unsafe {
+        let _ = remove_cell(self.world_ptr, cell, x, y);
+        /*unsafe {
             asm!(
                 "mov ecx, {world}",
                 "push 0",
@@ -58,7 +60,7 @@ impl ParticleWorldState {
                 remove = in(reg) self.remove_ptr,
                 clobber_abi("C"),
             );
-        };
+        };*/
     }
     fn set_chunk(&mut self, x: i32, y: i32) -> bool {
         let x = x as isize;
@@ -89,23 +91,21 @@ impl ParticleWorldState {
     fn get_cell_raw_mut(&mut self, x: i32, y: i32) -> Option<*mut ntypes::Cell> {
         let x = x as isize;
         let y = y as isize;
-        let pixel =
-            unsafe { self.pixel_array.offset(((y << 9) | x) * 4) as *mut *const ntypes::Cell };
+        let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) as *const ntypes::Cell };
         if pixel.is_null() {
             return None;
         }
-        let cell = unsafe { *pixel as *mut ntypes::Cell };
+        let cell = pixel as *mut ntypes::Cell;
         if cell.is_null() {
             return None;
         }
         Some(cell)
     }
-    fn get_cell_raw_mut_nil(&mut self, x: i32, y: i32) -> *mut ntypes::Cell {
+    fn get_cell_raw_mut_nil(&mut self, x: i32, y: i32) -> *mut *mut ntypes::Cell {
         let x = x as isize;
         let y = y as isize;
-        let pixel =
-            unsafe { self.pixel_array.offset(((y << 9) | x) * 4) as *mut *const ntypes::Cell };
-        pixel as *mut ntypes::Cell
+        let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
+        pixel as *mut *mut ntypes::Cell
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
@@ -150,26 +150,22 @@ impl ParticleWorldState {
         }
         for i in 0..CHUNK_SIZE as i32 {
             for j in 0..CHUNK_SIZE as i32 {
-                let k = (i * CHUNK_SIZE as i32 + j) as usize;
-                let ct = chunk[k];
-                match ct {
+                match chunk[(i * CHUNK_SIZE as i32 + j) as usize] {
                     CellType::Blob => {
                         let x = x * CHUNK_SIZE as i32 + i;
                         let y = y * CHUNK_SIZE as i32 + j;
                         unsafe {
-                            if let Some(cell) = self.get_cell_raw_mut(i, j) {
-                                self.remove_cell(cell, x, y);
-                            }
+                            let cell = self.get_cell_raw_mut_nil(i, j);
+                            self.remove_cell(*cell, x, y);
                             let blob_ptr = self
                                 .material_list_ptr
                                 .offset(ntypes::CELLDATA_SIZE * self.blob_guy as isize);
                             let src = self.create_cell(x, y, blob_ptr, std::ptr::null::<c_void>());
                             if !src.is_null() {
-                                let cell = self.get_cell_raw_mut_nil(i, j);
                                 let liquid: &mut ntypes::LiquidCell =
-                                    &mut *(cell as *mut ntypes::LiquidCell);
+                                    &mut *(src as *mut ntypes::LiquidCell);
                                 liquid.is_static = false;
-                                *cell = (*src).clone();
+                                *cell = src;
                             }
                         }
                     }
