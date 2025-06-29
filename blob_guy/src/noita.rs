@@ -1,6 +1,5 @@
+use crate::CHUNK_SIZE;
 use crate::chunk::{CellType, Chunk};
-use crate::{CHUNK_SIZE, construct_cell, remove_cell};
-use noita_api::{game_print, print};
 use std::arch::asm;
 use std::{ffi::c_void, mem};
 pub(crate) mod ntypes;
@@ -72,7 +71,6 @@ impl ParticleWorldState {
         // Deref 2/3
         let chunk = unsafe { chunk_arr.offset(chunk_index).cast::<*const c_void>().read() };
         if chunk.is_null() {
-            game_print(":(");
             return true;
         }
         // Deref 3/3
@@ -89,19 +87,6 @@ impl ParticleWorldState {
         }
 
         unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
-    }
-    fn get_cell_raw_mut(&mut self, x: i32, y: i32) -> Option<*mut ntypes::Cell> {
-        let x = x as isize;
-        let y = y as isize;
-        let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) as *const ntypes::Cell };
-        if pixel.is_null() {
-            return None;
-        }
-        let cell = pixel as *mut ntypes::Cell;
-        if cell.is_null() {
-            return None;
-        }
-        Some(cell)
     }
     fn get_cell_raw_mut_nil(&mut self, x: i32, y: i32) -> *mut *mut ntypes::Cell {
         let x = x as isize;
@@ -159,15 +144,12 @@ impl ParticleWorldState {
                         unsafe {
                             let cell = self.get_cell_raw_mut_nil(i, j);
                             if !(*cell).is_null() {
-                                print(format!("{:?} {} {}", *cell, x, y));
                                 self.remove_cell(*cell, x, y);
                             }
                             let blob_ptr = self
                                 .material_list_ptr
                                 .offset(ntypes::CELLDATA_SIZE * self.blob_guy as isize);
-                            print(format!("{} {} {:?}", x, y, blob_ptr));
                             let src = self.create_cell(x, y, blob_ptr, std::ptr::null::<c_void>());
-                            game_print(format!("{src:?} {cell:?} {:?}", *cell));
                             if !src.is_null() {
                                 let liquid: &mut ntypes::LiquidCell =
                                     &mut *(src as *mut ntypes::LiquidCell);
@@ -182,8 +164,7 @@ impl ParticleWorldState {
                         unsafe {
                             let cell = self.get_cell_raw_mut_nil(i, j);
                             if !(*cell).is_null() {
-                                //print(format!("2 {:?} {} {}", *cell, x, y));
-                                //self.remove_cell(*cell, x, y);
+                                self.remove_cell(*cell, x, y);
                             }
                         }
                     }
