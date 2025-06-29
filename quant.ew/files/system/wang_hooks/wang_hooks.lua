@@ -199,7 +199,11 @@ function module.on_late_init()
         if biome_filename == nil then
             goto continue
         end
-        local biome_file = nxml.parse_file(biome_filename)
+        local ok, biome_file = pcall(nxml.parse_file, biome_filename)
+        if not ok then
+            print("Failed to parse file: "..biome_filename)
+            goto continue
+        end
         for topology in biome_file:each_of("Topology") do
             local script = topology.attr.lua_script
             if script ~= nil and not already_found[script] and not ignore[script] then
