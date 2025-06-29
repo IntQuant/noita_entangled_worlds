@@ -1,5 +1,6 @@
 use crate::chunk::{CellType, Chunk, ChunkPos};
 use crate::{CHUNK_SIZE, State};
+use noita_api::game_print;
 #[derive(Default, Debug)]
 pub struct Pos {
     x: f64,
@@ -20,7 +21,7 @@ impl Pos {
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(0.0, 0.0))
+            self.blobs.push(Blob::new(0.0, -64.0))
         }
         if let Some(pws) = self.particle_world_state.as_mut() {
             'upper: for blob in self.blobs.iter_mut() {
@@ -28,12 +29,14 @@ impl State {
                 let mut k = 0;
                 for x in -1..=1 {
                     for y in -1..=1 {
+                        game_print(format!("{} {}", c.x + x, c.y + y));
                         if unsafe { !pws.encode_area(c.x + x, c.y + y, &mut self.world[k]) } {
                             continue 'upper;
                         }
                         k += 1;
                     }
                 }
+                game_print(blob.pixels[0].x.to_string());
                 blob.update(&mut self.world);
                 let mut k = 0;
                 for x in -1..=1 {
@@ -70,6 +73,7 @@ impl Blob {
             map[k][n] = if matches!(map[k][n], CellType::Remove) {
                 CellType::Ignore
             } else {
+                game_print(format!("{} {}", k, n));
                 CellType::Blob
             }
         }

@@ -76,6 +76,7 @@ fn construct_cell(
     x: i32,
     y: i32,
     mat: *const c_void,
+    b: u16,
 ) -> eyre::Result<*mut noita::ntypes::Cell> {
     let lua = LuaState::current()?;
     lua.get_global(c"construct_cell");
@@ -83,7 +84,8 @@ fn construct_cell(
     lua.push_integer(x as isize);
     lua.push_integer(y as isize);
     lua.push_integer(mat as isize);
-    lua.call(4, 1i32).wrap_err("Failed to call construct")?;
+    lua.push_integer(b as isize);
+    lua.call(5, 1i32).wrap_err("Failed to call construct")?;
     let c = lua.to_integer(-1);
     lua.pop_last_n(1);
     Ok(c as *mut noita::ntypes::Cell)

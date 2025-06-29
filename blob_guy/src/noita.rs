@@ -1,5 +1,6 @@
 use crate::chunk::{CellType, Chunk};
 use crate::{CHUNK_SIZE, construct_cell, remove_cell};
+use noita_api::{game_print, print};
 use std::arch::asm;
 use std::{ffi::c_void, mem};
 pub(crate) mod ntypes;
@@ -22,8 +23,8 @@ impl ParticleWorldState {
         material: *const c_void,
         _memory: *const c_void,
     ) -> *mut ntypes::Cell {
-        construct_cell(self.world_ptr, x, y, material).unwrap_or_default()
-        /*unsafe {
+        //construct_cell(self.world_ptr, x, y, material, self.blob_guy).unwrap_or_default()
+        unsafe {
             let cell_ptr: *mut ntypes::Cell;
             asm!(
                 "mov ecx, {world}",
@@ -41,11 +42,11 @@ impl ParticleWorldState {
                 out("eax") cell_ptr,
             );
             cell_ptr
-        }*/
+        }
     }
     fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: i32, y: i32) {
-        let _ = remove_cell(self.world_ptr, cell, x, y);
-        /*unsafe {
+        //let _ = remove_cell(self.world_ptr, cell, x, y);
+        unsafe {
             asm!(
                 "mov ecx, {world}",
                 "push 0",
@@ -60,7 +61,7 @@ impl ParticleWorldState {
                 remove = in(reg) self.remove_ptr,
                 clobber_abi("C"),
             );
-        };*/
+        };
     }
     fn set_chunk(&mut self, x: i32, y: i32) -> bool {
         let x = x as isize;
@@ -71,6 +72,7 @@ impl ParticleWorldState {
         // Deref 2/3
         let chunk = unsafe { chunk_arr.offset(chunk_index).cast::<*const c_void>().read() };
         if chunk.is_null() {
+            game_print(":(");
             return true;
         }
         // Deref 3/3
@@ -156,11 +158,16 @@ impl ParticleWorldState {
                         let y = y * CHUNK_SIZE as i32 + j;
                         unsafe {
                             let cell = self.get_cell_raw_mut_nil(i, j);
-                            self.remove_cell(*cell, x, y);
+                            if !(*cell).is_null() {
+                                print(format!("{:?} {} {}", *cell, x, y));
+                                self.remove_cell(*cell, x, y);
+                            }
                             let blob_ptr = self
                                 .material_list_ptr
                                 .offset(ntypes::CELLDATA_SIZE * self.blob_guy as isize);
+                            print(format!("{} {} {:?}", x, y, blob_ptr));
                             let src = self.create_cell(x, y, blob_ptr, std::ptr::null::<c_void>());
+                            game_print(format!("{src:?} {cell:?} {:?}", *cell));
                             if !src.is_null() {
                                 let liquid: &mut ntypes::LiquidCell =
                                     &mut *(src as *mut ntypes::LiquidCell);
@@ -172,8 +179,12 @@ impl ParticleWorldState {
                     CellType::Remove => {
                         let x = x * CHUNK_SIZE as i32 + i;
                         let y = y * CHUNK_SIZE as i32 + j;
-                        if let Some(cell) = self.get_cell_raw_mut(i, j) {
-                            self.remove_cell(cell, x, y);
+                        unsafe {
+                            let cell = self.get_cell_raw_mut_nil(i, j);
+                            if !(*cell).is_null() {
+                                //print(format!("2 {:?} {} {}", *cell, x, y));
+                                //self.remove_cell(*cell, x, y);
+                            }
                         }
                     }
                     _ => {}
