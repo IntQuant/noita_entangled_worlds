@@ -25,7 +25,6 @@ impl ParticleWorldState {
         material: *const c_void,
         _memory: *const c_void,
     ) -> *mut ntypes::Cell {
-        //construct_cell(self.world_ptr, x, y, material, self.blob_guy).unwrap_or_default()
         unsafe {
             let cell_ptr: *mut ntypes::Cell;
             asm!(
@@ -47,7 +46,6 @@ impl ParticleWorldState {
         }
     }
     fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: isize, y: isize) {
-        //let _ = remove_cell(self.world_ptr, cell, x, y);
         unsafe {
             asm!(
                 "mov ecx, {world}",
@@ -67,8 +65,10 @@ impl ParticleWorldState {
     }
     fn set_chunk(&mut self, x: isize, y: isize) -> bool {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
-        self.shift_x = CHUNK_SIZE as isize * x.rem_euclid(SCALE);
-        self.shift_y = CHUNK_SIZE as isize * y.rem_euclid(SCALE);
+        self.shift_x =
+            CHUNK_SIZE as isize * ((x * CHUNK_SIZE as isize).rem_euclid(512) / CHUNK_SIZE as isize);
+        self.shift_y =
+            CHUNK_SIZE as isize * ((y * CHUNK_SIZE as isize).rem_euclid(512) / CHUNK_SIZE as isize);
         let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
         // Deref 1/3
         let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };
@@ -85,17 +85,17 @@ impl ParticleWorldState {
     fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
-        let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
+        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
         if pixel.is_null() {
             return None;
         }
 
         unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
     }
-    fn get_cell_raw_mut_nil(&mut self, x: isize, y: isize) -> *mut *mut ntypes::Cell {
+    fn get_cell_raw_mut(&mut self, x: isize, y: isize) -> *mut *mut ntypes::Cell {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
-        let pixel = unsafe { self.pixel_array.offset(((y << 9) | x) * 4) };
+        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
         pixel as *mut *mut ntypes::Cell
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
@@ -150,7 +150,7 @@ impl ParticleWorldState {
                     let x = x + i;
                     let y = y + j;
                     unsafe {
-                        let cell = self.get_cell_raw_mut_nil(i, j);
+                        let cell = self.get_cell_raw_mut(i, j);
                         if !(*cell).is_null() {
                             self.remove_cell(*cell, x, y);
                             *cell = ptr::null_mut();
@@ -168,7 +168,7 @@ impl ParticleWorldState {
                     let x = x + i;
                     let y = y + j;
                     unsafe {
-                        let cell = self.get_cell_raw_mut_nil(i, j);
+                        let cell = self.get_cell_raw_mut(i, j);
                         if !(*cell).is_null() {
                             self.remove_cell(*cell, x, y);
                             *cell = ptr::null_mut();

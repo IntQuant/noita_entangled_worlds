@@ -21,7 +21,8 @@ const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(128.0 + 16.0, -128.0 - 16.0));
+            self.blobs
+                .push(Blob::new(128.0 + 16.0, -(128.0 + 64.0 + 16.0)));
         }
         'upper: for blob in self.blobs.iter_mut() {
             let c = blob.pos.to_chunk();
@@ -54,14 +55,14 @@ impl State {
 const SIZE: usize = 8;
 pub struct Blob {
     pub pos: Pos,
-    pixels: [Pos; SIZE * SIZE],
+    pixels: [Option<Pos>; SIZE * SIZE],
 }
 impl Blob {
     pub fn update(&mut self, map: &mut [Chunk; 9]) {
         let mut last = ChunkPos::new(isize::MAX, isize::MAX);
         let mut k = 0;
         let start = self.pos.to_chunk();
-        for p in self.pixels.iter_mut() {
+        for p in self.pixels.iter_mut().flatten() {
             //p.y += 1.0;
             let c = p.to_chunk();
             if c != last {
@@ -84,7 +85,7 @@ impl Blob {
             pixels: std::array::from_fn(|i| {
                 let a = (i / SIZE) as f64 - SIZE as f64 / 2.0 + 0.5;
                 let b = (i % SIZE) as f64 - SIZE as f64 / 2.0 + 0.5;
-                Pos::new(x + a, y + b)
+                Some(Pos::new(x + a, y + b))
             }),
         }
     }

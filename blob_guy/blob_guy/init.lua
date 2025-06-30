@@ -7,19 +7,23 @@ local world_ffi = require("noitapatcher.nsew.world_ffi")
 local ffi = require("ffi")
 --local nxml = dofile_once("mods/blob_guy/nxml.lua")
 ModMaterialsFileAdd("mods/blob_guy/materials.xml")
-local started = false
+local started = -1
 function OnWorldPostUpdate()
-    if not started then
+    if started == -1 then
         return
     end
-    local start_time = GameGetRealWorldTimeSinceStarted()
+    if started > 0 then
+        started = started - 1
+        return
+    end
+    --local start_time = GameGetRealWorldTimeSinceStarted()
     blob_guy.update()
-    local end_time = GameGetRealWorldTimeSinceStarted()
-    local delta = (end_time - start_time) * 1000000
-    GamePrint(math.floor(delta + 0.5))
+    --local end_time = GameGetRealWorldTimeSinceStarted()
+    --local delta = (end_time - start_time) * 1000000
+    --GamePrint(math.floor(delta + 0.5))
 end
 function OnWorldInitialized()
-    started = true
+    started = 60
     local grid_world = world_ffi.get_grid_world()
     local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     grid_world = tonumber(ffi.cast("intptr_t", grid_world))
