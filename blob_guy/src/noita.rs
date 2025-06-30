@@ -65,10 +65,8 @@ impl ParticleWorldState {
     }
     fn set_chunk(&mut self, x: isize, y: isize) -> bool {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
-        self.shift_x =
-            CHUNK_SIZE as isize * ((x * CHUNK_SIZE as isize).rem_euclid(512) / CHUNK_SIZE as isize);
-        self.shift_y =
-            CHUNK_SIZE as isize * ((y * CHUNK_SIZE as isize).rem_euclid(512) / CHUNK_SIZE as isize);
+        self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
+        self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
         // Deref 1/3
         let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };

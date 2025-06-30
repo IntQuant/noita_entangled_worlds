@@ -63,7 +63,8 @@ impl Blob {
         let mut k = 0;
         let start = self.pos.to_chunk();
         for p in self.pixels.iter_mut().flatten() {
-            //p.y += 1.0;
+            p.x += 0.1;
+            p.y += 0.1;
             let c = p.to_chunk();
             if c != last {
                 k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + c.y - start.y + OFFSET)
