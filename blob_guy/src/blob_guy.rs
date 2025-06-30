@@ -10,7 +10,7 @@ impl Pos {
         Self { x, y }
     }
     pub fn to_chunk(self) -> ChunkPos {
-        ChunkPos::new(self.x as isize, self.y as isize)
+        ChunkPos::new(self.x.floor() as isize, self.y.floor() as isize)
     }
     pub fn to_chunk_inner(self) -> usize {
         self.x.rem_euclid(CHUNK_SIZE as f64) as usize * CHUNK_SIZE
@@ -62,12 +62,14 @@ impl Blob {
         let mut last = ChunkPos::new(isize::MAX, isize::MAX);
         let mut k = 0;
         let start = self.pos.to_chunk();
+        self.pos.x += 0.1;
+        self.pos.y += 0.1;
         for p in self.pixels.iter_mut().flatten() {
             p.x += 0.1;
             p.y += 0.1;
             let c = p.to_chunk();
             if c != last {
-                k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + c.y - start.y + OFFSET)
+                k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + (c.y - start.y + OFFSET))
                     as usize;
                 last = c;
             }
