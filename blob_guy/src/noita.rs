@@ -150,10 +150,6 @@ impl ParticleWorldState {
                     unsafe {
                         let cell = self.get_cell_raw_mut(i, j);
                         if !(*cell).is_null() {
-                            if matches!(self.get_cell_type(&**cell), Some(ntypes::CellType::Solid))
-                            {
-                                continue;
-                            }
                             self.remove_cell(*cell, x, y);
                             *cell = ptr::null_mut();
                         }
