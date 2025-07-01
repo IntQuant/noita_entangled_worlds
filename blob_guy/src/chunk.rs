@@ -11,6 +11,8 @@ pub enum CellType {
     Blob,
     Remove,
     Ignore,
+    Physics,
+    Other,
 }
 impl Default for Chunk {
     fn default() -> Self {

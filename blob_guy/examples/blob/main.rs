@@ -49,11 +49,11 @@ impl Data {
         self.blob.pos = Pos::new(p.x as f32, p.y as f32);
         self.blob.update(&mut self.world).unwrap();
         plot.data.drain(1..);
-        for ((_x, _y), p) in self.blob.pixels.iter() {
-            //let p1 = Vec2::new(*_x as f64, *_y as f64);
-            let p2 = Vec2::new(p.pos.x as f64, p.pos.y as f64);
-            //plot.data.push(GraphType::Point(p1));
-            plot.data.push(GraphType::Point(p2));
+        for ((_x, _y), _p) in self.blob.pixels.iter() {
+            let p1 = Vec2::new(*_x as f64 + 0.5, *_y as f64 + 0.5);
+            //let p2 = Vec2::new(_p.pos.x as f64, _p.pos.y as f64);
+            plot.data.push(GraphType::Point(p1));
+            //plot.data.push(GraphType::Point(p2));
         }
     }
 }

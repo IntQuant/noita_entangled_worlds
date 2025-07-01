@@ -20,8 +20,7 @@ const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
-            self.blobs
-                .push(Blob::new(128.0 + 16.0, -(128.0 + 64.0 + 16.0)));
+            self.blobs.push(Blob::new(256.0, -64.0 - 32.0));
         }
         'upper: for blob in self.blobs.iter_mut() {
             let c = blob.pos.to_chunk();
@@ -51,7 +50,7 @@ impl State {
         Ok(())
     }
 }
-pub const SIZE: usize = 12;
+pub const SIZE: usize = 16;
 pub struct Blob {
     pub pos: Pos,
     pub pixels: FxHashMap<(isize, isize), Pixel>,
@@ -61,6 +60,7 @@ pub struct Pixel {
     pub pos: Pos,
     velocity: Pos,
     acceleration: Pos,
+    stop: bool,
 }
 impl Pixel {
     fn new(pos: Pos) -> Self {
@@ -97,8 +97,8 @@ impl Blob {
             for p in &mut pixels_vec {
                 let dx = self.pos.x - p.pos.x;
                 let dy = self.pos.y - p.pos.y;
-                let dist = (dx * dx + dy * dy).sqrt().max(0.1);
-                let force = 10.0 / dist;
+                let dist = (dx * dx + dy * dy).sqrt().sqrt().max(0.1);
+                let force = 64.0 / dist;
                 p.acceleration.x += dx / dist * force;
                 p.acceleration.y += dy / dist * force;
             }
@@ -107,6 +107,9 @@ impl Blob {
         for ((x, y), p) in self.pixels.iter_mut() {
             p.velocity.x += p.acceleration.x / 60.0;
             p.velocity.y += p.acceleration.y / 60.0;
+            let damping = 0.98;
+            p.velocity.x *= damping;
+            p.velocity.y *= damping;
             p.pos.x += p.velocity.x / 60.0;
             p.pos.y += p.velocity.y / 60.0;
             let (nx, ny) = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
@@ -115,8 +118,17 @@ impl Blob {
             }
         }
         for (k, n) in to_change {
-            let px = self.pixels.remove(&k).unwrap();
-            self.pixels.insert(n, px);
+            if self.pixels.contains_key(&n) {
+                self.pixels.entry(k).and_modify(|p| {
+                    p.pos.x = k.0 as f32 + 0.5;
+                    p.pos.y = k.1 as f32 + 0.5;
+                    p.stop = true;
+                });
+            } else {
+                let mut px = self.pixels.remove(&k).unwrap();
+                px.stop = false;
+                self.pixels.insert(n, px);
+            }
         }
         noita_api::print(format!(
             "{{{}}}",
@@ -129,17 +141,20 @@ impl Blob {
         for (x, y) in self.pixels.keys() {
             let c = ChunkPos::new(*x, *y);
             if c != last {
-                k = ((c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + (c.y - start.y + OFFSET))
-                    as usize;
+                let new =
+                    (c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + (c.y - start.y + OFFSET);
+                if new < 0 || new as usize >= CHUNK_AMOUNT * CHUNK_AMOUNT {
+                    continue;
+                }
+                k = new as usize;
                 last = c;
             }
             let n = x.rem_euclid(CHUNK_SIZE as isize) as usize * CHUNK_SIZE
                 + y.rem_euclid(CHUNK_SIZE as isize) as usize;
 
-            map[k][n] = if matches!(map[k][n], CellType::Remove) {
-                CellType::Ignore
-            } else {
-                CellType::Blob
+            map[k][n] = match map[k][n] {
+                CellType::Unknown => CellType::Blob,
+                _ => CellType::Ignore,
             }
         }
         Ok(())

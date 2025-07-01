@@ -132,17 +132,23 @@ impl ParticleWorldState {
             let cell = self.get_cell_raw(i, j);
             if let Some(cell) = cell
                 && let Some(cell_type) = self.get_cell_type(cell)
-                && ntypes::CellType::Liquid == cell_type
             {
-                if self.get_cell_material_id(cell) == self.blob_guy {
-                    chunk[k] = CellType::Remove
-                } else {
-                    let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
-                    if cell.is_static {
-                        chunk[k] = CellType::Solid;
-                    } else {
-                        chunk[k] = CellType::Liquid;
+                match cell_type {
+                    ntypes::CellType::Liquid => {
+                        if self.get_cell_material_id(cell) == self.blob_guy {
+                            chunk[k] = CellType::Remove
+                        } else {
+                            let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
+                            if cell.is_static {
+                                chunk[k] = CellType::Solid;
+                            } else {
+                                chunk[k] = CellType::Liquid;
+                            }
+                        }
                     }
+                    ntypes::CellType::Solid => chunk[k] = CellType::Physics,
+                    ntypes::CellType::Fire | ntypes::CellType::Gas => chunk[k] = CellType::Physics,
+                    _ => {}
                 }
             }
         }
