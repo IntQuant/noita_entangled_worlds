@@ -62,6 +62,7 @@ pub struct Pixel {
     velocity: Pos,
     acceleration: Pos,
     stop: Option<usize>,
+    mutated: bool,
 }
 const DIRECTIONS: [f32; 7] = [
     0.0,
@@ -98,73 +99,38 @@ impl Blob {
             self.pos.x += dx / 100.0;
             self.pos.y += dy / 100.0;
         }
-        for (_, p) in self.pixels.iter_mut() {
-            p.acceleration.x = 0.0;
-            p.acceleration.y = 0.0;
+        for p in self.pixels.values_mut() {
+            p.mutated = false;
+            let dx = self.pos.x - p.pos.x;
+            let dy = self.pos.y - p.pos.y;
+            let dist = dy.hypot(dx).max(0.1);
+            p.acceleration.x = 512.0 * dx / dist;
+            p.acceleration.y = 512.0 * dy / dist;
         }
+        let mut keys = self.pixels.keys().cloned().collect::<Vec<(isize, isize)>>();
+        while !keys.is_empty()
+            && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
-            let mut pixels_vec: Vec<_> = self.pixels.values_mut().collect();
-            for p in &mut pixels_vec {
-                let dx = self.pos.x - p.pos.x;
-                let dy = self.pos.y - p.pos.y;
-                let dist = (dx * dx + dy * dy).sqrt().sqrt().max(0.1);
-                let force = 64.0 / dist;
-                p.acceleration.x += dx / dist * force;
-                p.acceleration.y += dy / dist * force;
+            self.run(c, p);
+        }
+        let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
+        for (a, b) in self.pixels.keys().cloned() {
+            let k = (a - 1, b);
+            boundary.entry(k).and_modify(|u| *u += 1).or_default();
+            let k = (a, b - 1);
+            boundary.entry(k).and_modify(|u| *u += 1).or_default();
+            let k = (a + 1, b);
+            boundary.entry(k).and_modify(|u| *u += 1).or_default();
+            let k = (a, b + 1);
+            boundary.entry(k).and_modify(|u| *u += 1).or_default();
+            boundary.insert((a, b), i8::MIN);
+        }
+        for (a, b) in boundary {
+            if b == 3 {
+                let far = self.far();
+                self.pixels.insert(a, far);
             }
         }
-        let mut to_change = Vec::new();
-        for ((x, y), p) in self.pixels.iter_mut() {
-            p.velocity.x += p.acceleration.x / 60.0;
-            p.velocity.y += p.acceleration.y / 60.0;
-            let damping = 0.9;
-            p.velocity.x *= damping;
-            p.velocity.y *= damping;
-            if let Some(n) = p.stop.as_mut() {
-                let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n / 2];
-                p.pos.x = p.pos.x.floor()
-                    + 0.5
-                    + t.cos() * if (*n).is_multiple_of(2) { 1.0 } else { 2.0 };
-                p.pos.y = p.pos.y.floor()
-                    + 0.5
-                    + t.sin() * if (*n).is_multiple_of(2) { 1.0 } else { 2.0 };
-                if (*n).div_ceil(2) == DIRECTIONS.len() {
-                    *n = 0;
-                } else {
-                    *n += 1;
-                }
-            } else {
-                p.pos.x += p.velocity.x / 60.0;
-                p.pos.y += p.velocity.y / 60.0;
-            }
-            let (nx, ny) = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
-            if *x != nx || *y != ny {
-                to_change.push(((*x, *y), (nx, ny)));
-            }
-        }
-        for (k, n) in to_change {
-            if self.pixels.contains_key(&n) {
-                self.pixels.entry(k).and_modify(|p| {
-                    p.pos.x = k.0 as f32 + 0.5;
-                    p.pos.y = k.1 as f32 + 0.5;
-                    if p.stop.is_none() {
-                        p.stop = Some(0);
-                    }
-                });
-            } else {
-                let mut px = self.pixels.remove(&k).unwrap();
-                px.stop = None;
-                self.pixels.insert(n, px);
-            }
-        }
-        noita_api::print(format!(
-            "{{{}}}",
-            self.pixels
-                .keys()
-                .map(|(a, b)| format!("{{{a},{b}}}"))
-                .collect::<Vec<String>>()
-                .join(",")
-        ));
         for (x, y) in self.pixels.keys() {
             let c = ChunkPos::new(*x, *y);
             if c != last {
@@ -186,6 +152,21 @@ impl Blob {
         }
         Ok(())
     }
+    pub fn far(&mut self) -> Pixel {
+        let (a, b) = (self.pos.x.floor() as isize, self.pos.y.floor() as isize);
+        let mut l = isize::MIN;
+        let mut ret = (0, 0);
+        for (c, d) in self.pixels.keys() {
+            let dx = c - a;
+            let dy = d - b;
+            let m = dx * dx + dy * dy;
+            if m > l {
+                l = m;
+                ret = (*c, *d);
+            }
+        }
+        self.pixels.remove(&ret).unwrap()
+    }
     pub fn new(x: f32, y: f32) -> Self {
         let mut pixels = FxHashMap::with_capacity_and_hasher(SIZE * SIZE, FxBuildHasher);
         for i in 0..SIZE * SIZE {
@@ -197,6 +178,83 @@ impl Blob {
         Blob {
             pos: Pos::new(x, y),
             pixels,
+        }
+    }
+    pub fn run(&mut self, c: (isize, isize), mut p: Pixel) -> bool {
+        if p.mutated {
+            self.pixels.insert(c, p);
+            return false;
+        }
+        p.mutated = true;
+        p.velocity.x += p.acceleration.x / 60.0;
+        p.velocity.y += p.acceleration.y / 60.0;
+        let damping = 0.9;
+        p.velocity.x *= damping;
+        p.velocity.y *= damping;
+        if let Some(n) = p.stop.as_mut() {
+            let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n / 2];
+            p.pos.x = p.pos.x.floor() + 0.5 + t.cos() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
+            p.pos.y = p.pos.y.floor() + 0.5 + t.sin() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
+            let mut m = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
+            let mut k = *n;
+            if self.pixels.contains_key(&m) {
+                loop {
+                    if k.div_ceil(2) == DIRECTIONS.len() {
+                        k = 0;
+                    } else {
+                        k += 1;
+                    }
+                    if k == *n {
+                        break;
+                    }
+                    let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n / 2];
+                    let x = p.pos.x.floor()
+                        + 0.5
+                        + t.cos() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
+                    let y = p.pos.y.floor()
+                        + 0.5
+                        + t.sin() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
+                    m = (x.floor() as isize, y.floor() as isize);
+                    if !self.pixels.contains_key(&m) {
+                        p.pos.x = x;
+                        p.pos.y = y;
+                        break;
+                    }
+                }
+            }
+            if n.div_ceil(2) == DIRECTIONS.len() {
+                *n = 0;
+            } else {
+                *n += 1;
+            }
+        } else {
+            p.pos.x += p.velocity.x / 60.0;
+            p.pos.y += p.velocity.y / 60.0;
+        }
+        let n = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
+        if c != n {
+            if let Some(b) = self.pixels.remove(&n) {
+                if self.run(n, b) && !self.pixels.contains_key(&n) {
+                    p.stop = None;
+                    self.pixels.insert(n, p);
+                    true
+                } else {
+                    p.pos.x = c.0 as f32 + 0.5;
+                    p.pos.y = c.1 as f32 + 0.5;
+                    if p.stop.is_none() {
+                        p.stop = Some(0)
+                    }
+                    self.pixels.insert(c, p);
+                    false
+                }
+            } else {
+                p.stop = None;
+                self.pixels.insert(n, p);
+                true
+            }
+        } else {
+            self.pixels.insert(c, p);
+            false
         }
     }
 }
