@@ -7,6 +7,10 @@ local initial_world_state_entity
 
 local module = {}
 
+local log = false
+
+local cache = false
+
 -- Used in ewext
 EwextSerialize = util.serialize_entity
 EwextDeserialize = util.deserialize_entity
@@ -29,7 +33,10 @@ function module.on_world_initialized()
     local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
     ewext.init_particle_world_state(grid_world, chunk_map, material_list)
     ewext.module_on_world_init()
-    ewext.set_log(ctx.proxy_opt.log_performance)
+    log = ModSettingGet("quant.ew.log_performance") or false
+    ewext.set_log(log)
+    cache = ModSettingGet("quant.ew.cache") or false
+    ewext.set_cache(cache)
 end
 
 local function oh_another_world_state(entity)
@@ -81,6 +88,16 @@ function module.on_draw_debug_window(imgui)
 end
 
 function module.on_world_update()
+    local temp = ModSettingGet("quant.ew.log_performance") or false
+    if temp ~= log then
+        log = temp
+        ewext.set_log(log)
+    end
+    local temp = ModSettingGet("quant.ew.cache") or false
+    if temp ~= cache then
+        cache = temp
+        ewext.set_cache(cache)
+    end
     if GameGetWorldStateEntity() ~= initial_world_state_entity then
         oh_another_world_state(GameGetWorldStateEntity())
         initial_world_state_entity = GameGetWorldStateEntity()

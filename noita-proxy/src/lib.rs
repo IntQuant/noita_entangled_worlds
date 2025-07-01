@@ -2321,12 +2321,6 @@ impl App {
                             }
                         }
                     }
-                    {
-                        let mut temp = netman.log_performance.load(Ordering::Relaxed);
-                        if ui.checkbox(&mut temp, "log performance metrics, requires noita to be restarted").changed() {
-                            netman.log_performance.store(temp, Ordering::Relaxed);
-                        }
-                    }
                 }
                 ConnectedMenu::Mods => {
                     let mods_list = netman.active_mods.lock().unwrap();

@@ -278,6 +278,27 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "log_performance",
+                    ui_name = "log performance data",
+                    ui_description = "logs performance data to your log",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "cache",
+                    ui_name = "cache entities",
+                    ui_description = "cache entity data to improve performance",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "enable_log",
+                    ui_name = "enable log",
+                    ui_description = "enabled noita log costing some performance",
+                    value_default = true,
+                    scope = MOD_SETTING_SCOPE_NEW_GAME,
+                },
+                {
                     id = "text_range",
                     ui_name = "text chat range",
                     ui_description = "range in pixels for text chat, 0 for disabled",

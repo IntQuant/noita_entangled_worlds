@@ -743,6 +743,18 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
             })?
         }
         add_lua_fn!(set_log);
+        fn set_cache(lua: LuaState) -> eyre::Result<()> {
+            ExtState::with_global(|state| {
+                state
+                    .modules
+                    .entity_sync
+                    .as_mut()
+                    .unwrap()
+                    .set_cache(lua.to_bool(1));
+                Ok(())
+            })?
+        }
+        add_lua_fn!(set_cache);
     }
     #[cfg(debug_assertions)]
     println!("Initializing ewext - Ok");

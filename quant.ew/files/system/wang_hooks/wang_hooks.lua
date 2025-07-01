@@ -201,7 +201,7 @@ function module.on_late_init()
         end
         local ok, biome_file = pcall(nxml.parse_file, biome_filename)
         if not ok then
-            print("Failed to parse file: "..biome_filename)
+            print("Failed to parse file: " .. biome_filename)
             goto continue
         end
         for topology in biome_file:each_of("Topology") do
