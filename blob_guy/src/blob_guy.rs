@@ -63,16 +63,14 @@ pub struct Pixel {
     acceleration: Pos,
     stop: Option<usize>,
 }
-const DIRECTIONS: [f32; 9] = [
+const DIRECTIONS: [f32; 7] = [
     0.0,
     PI / 4.0,
     -PI / 4.0,
     PI / 3.0,
     -PI / 3.0,
-    PI / 2.0,
-    -PI / 2.0,
-    PI / 1.5,
-    -PI / 1.5,
+    PI / 2.3,
+    -PI / 2.3,
 ];
 impl Pixel {
     fn new(pos: Pos) -> Self {
@@ -123,10 +121,14 @@ impl Blob {
             p.velocity.x *= damping;
             p.velocity.y *= damping;
             if let Some(n) = p.stop.as_mut() {
-                let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n];
-                p.pos.x = p.pos.x.floor() + 0.5 + t.cos() * 2.0;
-                p.pos.y = p.pos.y.floor() + 0.5 + t.sin() * 2.0;
-                if *n + 1 == DIRECTIONS.len() {
+                let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n / 2];
+                p.pos.x = p.pos.x.floor()
+                    + 0.5
+                    + t.cos() * if (*n).is_multiple_of(2) { 1.0 } else { 2.0 };
+                p.pos.y = p.pos.y.floor()
+                    + 0.5
+                    + t.sin() * if (*n).is_multiple_of(2) { 1.0 } else { 2.0 };
+                if (*n).div_ceil(2) == DIRECTIONS.len() {
                     *n = 0;
                 } else {
                     *n += 1;
