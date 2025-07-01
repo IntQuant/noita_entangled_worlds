@@ -2,7 +2,7 @@ use blob_guy::CHUNK_AMOUNT;
 use blob_guy::blob_guy::{Blob, Pos};
 use blob_guy::chunk::Chunk;
 use eframe::egui;
-use rupl::types::{Graph, GraphType, Name, Show, Vec2};
+use rupl::types::{Color, Graph, GraphType, Name, Show, Vec2};
 use std::array::from_fn;
 fn main() {
     eframe::run_native(
@@ -49,11 +49,22 @@ impl Data {
         self.blob.pos = Pos::new(p.x as f32, p.y as f32);
         self.blob.update(&mut self.world).unwrap();
         plot.data.drain(1..);
+        plot.main_colors.drain(1..);
         for ((_x, _y), _p) in self.blob.pixels.iter() {
             let p1 = Vec2::new(*_x as f64 + 0.5, *_y as f64 + 0.5);
             //let p2 = Vec2::new(_p.pos.x as f64, _p.pos.y as f64);
             plot.data.push(GraphType::Point(p1));
-            //plot.data.push(GraphType::Point(p2));
+            plot.main_colors.push(Color {
+                r: 170,
+                g: 170,
+                b: 255,
+            });
+            /*plot.data.push(GraphType::Point(p2));
+            plot.main_colors.push(Color {
+                r: 170,
+                g: 255,
+                b: 170,
+            })*/
         }
     }
 }
@@ -67,8 +78,8 @@ impl App {
                 show: Show::Real,
             }],
             false,
-            -16.0,
-            16.0,
+            -32.0,
+            32.0,
         );
         plot.point_size = 8.0;
         App {

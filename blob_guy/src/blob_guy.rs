@@ -3,6 +3,7 @@ use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use std::f32::consts::PI;
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Pos {
     pub x: f32,
@@ -60,8 +61,19 @@ pub struct Pixel {
     pub pos: Pos,
     velocity: Pos,
     acceleration: Pos,
-    stop: bool,
+    stop: Option<usize>,
 }
+const DIRECTIONS: [f32; 9] = [
+    0.0,
+    PI / 4.0,
+    -PI / 4.0,
+    PI / 3.0,
+    -PI / 3.0,
+    PI / 2.0,
+    -PI / 2.0,
+    PI / 1.5,
+    -PI / 1.5,
+];
 impl Pixel {
     fn new(pos: Pos) -> Self {
         Pixel {
@@ -107,11 +119,22 @@ impl Blob {
         for ((x, y), p) in self.pixels.iter_mut() {
             p.velocity.x += p.acceleration.x / 60.0;
             p.velocity.y += p.acceleration.y / 60.0;
-            let damping = 0.98;
+            let damping = 0.9;
             p.velocity.x *= damping;
             p.velocity.y *= damping;
-            p.pos.x += p.velocity.x / 60.0;
-            p.pos.y += p.velocity.y / 60.0;
+            if let Some(n) = p.stop.as_mut() {
+                let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n];
+                p.pos.x = p.pos.x.floor() + 0.5 + t.cos() * 2.0;
+                p.pos.y = p.pos.y.floor() + 0.5 + t.sin() * 2.0;
+                if *n + 1 == DIRECTIONS.len() {
+                    *n = 0;
+                } else {
+                    *n += 1;
+                }
+            } else {
+                p.pos.x += p.velocity.x / 60.0;
+                p.pos.y += p.velocity.y / 60.0;
+            }
             let (nx, ny) = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
             if *x != nx || *y != ny {
                 to_change.push(((*x, *y), (nx, ny)));
@@ -122,11 +145,13 @@ impl Blob {
                 self.pixels.entry(k).and_modify(|p| {
                     p.pos.x = k.0 as f32 + 0.5;
                     p.pos.y = k.1 as f32 + 0.5;
-                    p.stop = true;
+                    if p.stop.is_none() {
+                        p.stop = Some(0);
+                    }
                 });
             } else {
                 let mut px = self.pixels.remove(&k).unwrap();
-                px.stop = false;
+                px.stop = None;
                 self.pixels.insert(n, px);
             }
         }
