@@ -24,6 +24,7 @@ impl State {
             self.blobs.push(Blob::new(256.0, -64.0 - 32.0));
         }
         'upper: for blob in self.blobs.iter_mut() {
+            blob.update_pos()?;
             let c = blob.pos.to_chunk();
             for (k, (x, y)) in (-OFFSET..=OFFSET)
                 .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
@@ -82,10 +83,7 @@ impl Pixel {
     }
 }
 impl Blob {
-    pub fn update(&mut self, map: &mut [Chunk; 9]) -> eyre::Result<()> {
-        let mut last = ChunkPos::new(isize::MAX, isize::MAX);
-        let mut k = 0;
-        let start = self.pos.to_chunk();
+    pub fn update_pos(&mut self) -> eyre::Result<()> {
         #[cfg(target_arch = "x86")]
         {
             let player = EntityID::get_closest_with_tag(
@@ -94,11 +92,12 @@ impl Blob {
                 "player_unit",
             )?;
             let (x, y) = player.position()?;
-            let dx = x as f32 - self.pos.x;
-            let dy = y as f32 - self.pos.y;
-            self.pos.x += dx / 100.0;
-            self.pos.y += dy / 100.0;
+            self.pos.x = x as f32;
+            self.pos.y = y as f32 - 10.0;
         }
+        Ok(())
+    }
+    pub fn update(&mut self, map: &mut [Chunk; 9]) -> eyre::Result<()> {
         for p in self.pixels.values_mut() {
             p.mutated = false;
             let dx = self.pos.x - p.pos.x;
@@ -143,6 +142,9 @@ impl Blob {
                 self.pixels.insert(a, far);
             }
         }
+        let start = self.pos.to_chunk();
+        let mut last = ChunkPos::new(isize::MAX, isize::MAX);
+        let mut k = 0;
         for (x, y) in self.pixels.keys() {
             let c = ChunkPos::new(*x, *y);
             if c != last {
