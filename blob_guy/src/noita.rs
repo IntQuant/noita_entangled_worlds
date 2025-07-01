@@ -1,18 +1,22 @@
 use crate::CHUNK_SIZE;
 use crate::chunk::{CellType, Chunk};
+#[cfg(target_arch = "x86")]
 use std::arch::asm;
 use std::{ffi::c_void, mem, ptr};
 pub(crate) mod ntypes;
 //pub(crate) mod pixel;
 #[derive(Default)]
 pub(crate) struct ParticleWorldState {
+    #[cfg(target_arch = "x86")]
     pub(crate) world_ptr: *mut c_void,
     pub(crate) chunk_map_ptr: *mut c_void,
     pub(crate) material_list_ptr: *const c_void,
     pub(crate) blob_guy: u16,
     pub(crate) blob_ptr: *const c_void,
     pub(crate) pixel_array: *const c_void,
+    #[cfg(target_arch = "x86")]
     pub(crate) construct_ptr: *mut c_void,
+    #[cfg(target_arch = "x86")]
     pub(crate) remove_ptr: *mut c_void,
     pub(crate) shift_x: isize,
     pub(crate) shift_y: isize,
@@ -23,8 +27,9 @@ impl ParticleWorldState {
         x: isize,
         y: isize,
         material: *const c_void,
-        _memory: *const c_void,
+        //_memory: *const c_void,
     ) -> *mut ntypes::Cell {
+        #[cfg(target_arch = "x86")]
         unsafe {
             let cell_ptr: *mut ntypes::Cell;
             asm!(
@@ -44,8 +49,14 @@ impl ParticleWorldState {
             );
             cell_ptr
         }
+        #[cfg(target_arch = "x86_64")]
+        {
+            std::hint::black_box((x, y, material));
+            Default::default()
+        }
     }
     fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: isize, y: isize) {
+        #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
                 "mov ecx, {world}",
@@ -62,6 +73,10 @@ impl ParticleWorldState {
                 clobber_abi("C"),
             );
         };
+        #[cfg(target_arch = "x86_64")]
+        {
+            std::hint::black_box((x, y, cell));
+        }
     }
     fn set_chunk(&mut self, x: isize, y: isize) -> bool {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
@@ -153,7 +168,7 @@ impl ParticleWorldState {
                             self.remove_cell(*cell, x, y);
                             *cell = ptr::null_mut();
                         }
-                        let src = self.create_cell(x, y, self.blob_ptr, ptr::null::<c_void>());
+                        let src = self.create_cell(x, y, self.blob_ptr);
                         if !src.is_null() {
                             let liquid: &mut ntypes::LiquidCell =
                                 &mut *(src as *mut ntypes::LiquidCell);

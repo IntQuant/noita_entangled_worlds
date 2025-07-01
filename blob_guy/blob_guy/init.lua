@@ -8,7 +8,7 @@ local ffi = require("ffi")
 --local nxml = dofile_once("mods/blob_guy/nxml.lua")
 ModMaterialsFileAdd("mods/blob_guy/materials.xml")
 local started = -1
-function OnWorldPostUpdate()
+function OnWorldPreUpdate()
     if started == -1 then
         return
     end
@@ -16,11 +16,11 @@ function OnWorldPostUpdate()
         started = started - 1
         return
     end
-    --local start_time = GameGetRealWorldTimeSinceStarted()
+    local start_time = GameGetRealWorldTimeSinceStarted()
     blob_guy.update()
-    --local end_time = GameGetRealWorldTimeSinceStarted()
-    --local delta = (end_time - start_time) * 1000000
-    --GamePrint(math.floor(delta + 0.5))
+    local end_time = GameGetRealWorldTimeSinceStarted()
+    local delta = (end_time - start_time) * 1000000
+    GamePrint(math.floor(delta + 0.5))
 end
 function OnWorldInitialized()
     started = 60
