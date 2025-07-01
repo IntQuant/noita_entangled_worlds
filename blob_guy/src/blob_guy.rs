@@ -51,7 +51,7 @@ impl State {
         Ok(())
     }
 }
-pub const SIZE: usize = 16;
+pub const SIZE: usize = 24;
 pub struct Blob {
     pub pos: Pos,
     pub pixels: FxHashMap<(isize, isize), Pixel>,
@@ -125,8 +125,20 @@ impl Blob {
             boundary.entry(k).and_modify(|u| *u += 1).or_default();
             boundary.insert((a, b), i8::MIN);
         }
-        for (a, b) in boundary {
-            if b == 3 {
+        let mut boundary2: FxHashMap<(isize, isize), i8> = FxHashMap::default();
+        for ((a, b), p) in boundary {
+            boundary2.insert((a, b), p);
+            let k = (a - 1, b);
+            boundary2.entry(k).and_modify(|u| *u += 1);
+            let k = (a, b - 1);
+            boundary2.entry(k).and_modify(|u| *u += 1);
+            let k = (a + 1, b);
+            boundary2.entry(k).and_modify(|u| *u += 1);
+            let k = (a, b + 1);
+            boundary2.entry(k).and_modify(|u| *u += 1);
+        }
+        for (a, b) in boundary2 {
+            if b >= 3 {
                 let far = self.far();
                 self.pixels.insert(a, far);
             }
