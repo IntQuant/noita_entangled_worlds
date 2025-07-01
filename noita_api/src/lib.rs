@@ -1550,18 +1550,23 @@ impl EntityManager {
         tag: ComponentTag,
     ) -> impl Iterator<Item = C> {
         if self.use_cache {
-            return self.entity().iter_all_components_of_type::<C>(
-                if matches!(tag, ComponentTag::None) {
+            return self
+                .entity()
+                .iter_all_components_of_type::<C>(if matches!(tag, ComponentTag::None) {
                     None
                 } else {
                     Some(tag.to_str().into())
-                },
-            );
+                })
+                .map(|i| i.collect::<Vec<C>>())
+                .unwrap_or_default()
+                .into_iter();
         }
         self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
             .map(|c| C::from(c.id))
+            .collect::<Vec<C>>() //TODO fix collect allocation
+            .into_iter()
     }
     fn iter_mut_all_components_of_type<C: Component>(
         &mut self,
@@ -1583,12 +1588,17 @@ impl EntityManager {
                     } else {
                         Some(tag.to_str().into())
                     },
-                );
+                )
+                .map(|i| i.collect::<Vec<C>>())
+                .unwrap_or_default()
+                .into_iter();
         }
         self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .filter(move |c| tag == ComponentTag::None || c.tags.get(tag as u16))
             .map(|c| C::from(c.id))
+            .collect::<Vec<C>>() //TODO fix collect allocation
+            .into_iter()
     }
     fn iter_all_components_of_type_including_disabled_raw<C: Component>(
         &self,
