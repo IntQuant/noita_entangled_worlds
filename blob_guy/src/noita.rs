@@ -52,7 +52,7 @@ impl ParticleWorldState {
         #[cfg(target_arch = "x86_64")]
         {
             std::hint::black_box((x, y, material));
-            Default::default()
+            unreachable!()
         }
     }
     fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: isize, y: isize) {
@@ -72,10 +72,11 @@ impl ParticleWorldState {
                 remove = in(reg) self.remove_ptr,
                 clobber_abi("C"),
             );
-        };
+        }
         #[cfg(target_arch = "x86_64")]
         {
             std::hint::black_box((x, y, cell));
+            unreachable!()
         }
     }
     fn set_chunk(&mut self, x: isize, y: isize) -> bool {
