@@ -4,6 +4,8 @@ use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
 use noita_api::EntityID;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::f32::consts::PI;
+//TODO make noita.rs structs/enums correct fully
+//TODO see if path-finding crate is useful
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Pos {
     pub x: f32,
@@ -93,53 +95,67 @@ impl Blob {
             )?;
             let (x, y) = player.position()?;
             self.pos.x = x as f32;
-            self.pos.y = y as f32 - 10.0;
+            self.pos.y = y as f32 - 7.0;
         }
         Ok(())
     }
+    fn mean(&self) -> (isize, isize) {
+        let n = self
+            .pixels
+            .keys()
+            .fold((0, 0), |acc, x| (acc.0 + x.0, acc.1 + x.1));
+        (
+            n.0 / self.pixels.len() as isize,
+            n.1 / self.pixels.len() as isize,
+        )
+    }
     pub fn update(&mut self, map: &mut [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT]) -> eyre::Result<()> {
+        let mean = self.mean();
+        let theta = (mean.1 as f32 - self.pos.y).atan2(mean.0 as f32 - self.pos.x);
         for p in self.pixels.values_mut() {
             p.mutated = false;
-            let dx = self.pos.x - p.pos.x;
-            let dy = self.pos.y - p.pos.y;
-            let dist = dy.hypot(dx).max(0.1);
-            p.acceleration.x = 512.0 * dx / dist;
-            p.acceleration.y = 512.0 * dy / dist;
         }
         let mut keys = self.pixels.keys().cloned().collect::<Vec<(isize, isize)>>();
         while !keys.is_empty()
             && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
-            self.run(c, p);
+            self.run(c, p, theta);
         }
-        let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
-        for (a, b) in self.pixels.keys().cloned() {
-            let k = (a - 1, b);
-            boundary.entry(k).and_modify(|u| *u += 1).or_default();
-            let k = (a, b - 1);
-            boundary.entry(k).and_modify(|u| *u += 1).or_default();
-            let k = (a + 1, b);
-            boundary.entry(k).and_modify(|u| *u += 1).or_default();
-            let k = (a, b + 1);
-            boundary.entry(k).and_modify(|u| *u += 1).or_default();
-            boundary.insert((a, b), i8::MIN);
-        }
-        let mut boundary2: FxHashMap<(isize, isize), i8> = FxHashMap::default();
-        for ((a, b), p) in boundary {
-            boundary2.insert((a, b), p);
-            let k = (a - 1, b);
-            boundary2.entry(k).and_modify(|u| *u += 1);
-            let k = (a, b - 1);
-            boundary2.entry(k).and_modify(|u| *u += 1);
-            let k = (a + 1, b);
-            boundary2.entry(k).and_modify(|u| *u += 1);
-            let k = (a, b + 1);
-            boundary2.entry(k).and_modify(|u| *u += 1);
-        }
-        for (a, b) in boundary2 {
-            if b >= 3 {
-                let far = self.far();
-                self.pixels.insert(a, far);
+        for _ in 0..5 {
+            let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
+            for (a, b) in self.pixels.keys().cloned() {
+                let k = (a - 1, b);
+                boundary.entry(k).and_modify(|u| *u += 1).or_default();
+                let k = (a, b - 1);
+                boundary.entry(k).and_modify(|u| *u += 1).or_default();
+                let k = (a + 1, b);
+                boundary.entry(k).and_modify(|u| *u += 1).or_default();
+                let k = (a, b + 1);
+                boundary.entry(k).and_modify(|u| *u += 1).or_default();
+                boundary.insert((a, b), i8::MIN);
+            }
+            let mut boundary2: FxHashMap<(isize, isize), i8> = FxHashMap::default();
+            for ((a, b), p) in boundary {
+                boundary2.insert((a, b), p);
+                let k = (a - 1, b);
+                boundary2.entry(k).and_modify(|u| *u += 1);
+                let k = (a, b - 1);
+                boundary2.entry(k).and_modify(|u| *u += 1);
+                let k = (a + 1, b);
+                boundary2.entry(k).and_modify(|u| *u += 1);
+                let k = (a, b + 1);
+                boundary2.entry(k).and_modify(|u| *u += 1);
+            }
+            let mut is_some = false;
+            for (a, b) in boundary2 {
+                if b >= 3 {
+                    let far = self.far();
+                    self.pixels.insert(a, far);
+                    is_some = true
+                }
+            }
+            if !is_some {
+                break;
             }
         }
         let start = self.pos.to_chunk();
@@ -194,14 +210,21 @@ impl Blob {
             pixels,
         }
     }
-    pub fn run(&mut self, c: (isize, isize), mut p: Pixel) -> bool {
+    pub fn run(&mut self, c: (isize, isize), mut p: Pixel, theta: f32) -> bool {
         if p.mutated {
             self.pixels.insert(c, p);
             return false;
         }
         p.mutated = true;
-        p.velocity.x += p.acceleration.x / 60.0;
-        p.velocity.y += p.acceleration.y / 60.0;
+        let dx = self.pos.x - p.pos.x;
+        let dy = self.pos.y - p.pos.y;
+        let dist = dy.hypot(dx).max(0.1);
+        let phi = (3.0 * (dy.atan2(dx) - theta).abs() / PI + 1.0).min(3.0);
+        let mag = 512.0 * phi;
+        let ax = mag * dx / dist;
+        let ay = mag * dy / dist;
+        p.velocity.x += ax / 60.0;
+        p.velocity.y += ay / 60.0;
         let damping = 0.9;
         p.velocity.x *= damping;
         p.velocity.y *= damping;
@@ -248,7 +271,7 @@ impl Blob {
         let n = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
         if c != n {
             if let Some(b) = self.pixels.remove(&n) {
-                if self.run(n, b) && !self.pixels.contains_key(&n) {
+                if self.run(n, b, theta) && !self.pixels.contains_key(&n) {
                     p.stop = None;
                     self.pixels.insert(n, p);
                     true

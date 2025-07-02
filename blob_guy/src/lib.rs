@@ -13,7 +13,7 @@ use std::cell::{LazyCell, RefCell};
 use std::ffi::{c_int, c_void};
 use std::hint::black_box;
 use std::sync::LazyLock;
-pub const CHUNK_SIZE: usize = 64;
+pub const CHUNK_SIZE: usize = 128;
 pub const CHUNK_AMOUNT: usize = 3;
 #[derive(Default)]
 struct State {
