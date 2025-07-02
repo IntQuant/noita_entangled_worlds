@@ -28,26 +28,46 @@ impl State {
         'upper: for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
             let c = blob.pos.to_chunk();
-            for (k, (x, y)) in (-OFFSET..=OFFSET)
+            for ((x, y), chunk) in (-OFFSET..=OFFSET)
                 .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
-                .enumerate()
+                .zip(self.world.iter_mut())
             {
                 if unsafe {
                     !self
                         .particle_world_state
-                        .encode_area(c.x + x, c.y + y, &mut self.world[k])
+                        .encode_area(c.x + x, c.y + y, chunk)
                 } {
                     continue 'upper;
                 }
             }
+            if noita_api::raw::input_is_mouse_button_just_down(1)? {
+                let (x, y) = noita_api::raw::debug_get_mouse_world()?;
+                let pos = Pos {
+                    x: x as f32,
+                    y: y as f32,
+                }
+                .to_chunk();
+                self.particle_world_state.set_chunk(pos.x, pos.y);
+                if let Some(cell) = self.particle_world_state.get_cell_raw(
+                    (x.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+                    (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+                ) {
+                    noita_api::print(format!("{cell:?}"));
+                    noita_api::print(format!("{:?}", unsafe { (*cell.material_ptr).clone() }));
+                } else {
+                    noita_api::print("mat nil");
+                }
+            }
             blob.update(&mut self.world)?;
-            for (k, (x, y)) in (-OFFSET..=OFFSET)
+            for ((x, y), chunk) in (-OFFSET..=OFFSET)
                 .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
-                .enumerate()
+                .zip(self.world.iter())
             {
-                unsafe {
-                    self.particle_world_state
-                        .decode_area(c.x + x, c.y + y, &self.world[k]);
+                if chunk.modified {
+                    unsafe {
+                        self.particle_world_state
+                            .decode_area(c.x + x, c.y + y, chunk);
+                    }
                 }
             }
         }
@@ -176,7 +196,10 @@ impl Blob {
                 + y.rem_euclid(CHUNK_SIZE as isize) as usize;
 
             map[k][n] = match map[k][n] {
-                CellType::Unknown => CellType::Blob,
+                CellType::Unknown => {
+                    map[k].modified = true;
+                    CellType::Blob
+                }
                 _ => CellType::Ignore,
             }
         }

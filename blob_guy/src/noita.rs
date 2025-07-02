@@ -79,7 +79,7 @@ impl ParticleWorldState {
             unreachable!()
         }
     }
-    fn set_chunk(&mut self, x: isize, y: isize) -> bool {
+    pub fn set_chunk(&mut self, x: isize, y: isize) -> bool {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
@@ -96,7 +96,7 @@ impl ParticleWorldState {
         self.pixel_array = pixel_array;
         false
     }
-    fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
+    pub fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
         let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
@@ -126,17 +126,18 @@ impl ParticleWorldState {
         if self.set_chunk(x, y) {
             return false;
         }
+        let mut modified = false;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            let cell = self.get_cell_raw(i, j);
-            *pixel = if let Some(cell) = cell
+            *pixel = if let Some(cell) = self.get_cell_raw(i, j)
                 && let Some(cell_type) = self.get_cell_type(cell)
             {
                 match cell_type {
                     ntypes::CellType::Liquid => {
                         if self.get_cell_material_id(cell) == self.blob_guy {
+                            modified = true;
                             CellType::Remove
                         } else {
                             let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
@@ -155,6 +156,7 @@ impl ParticleWorldState {
                 CellType::Unknown
             }
         }
+        chunk.modified = modified;
         true
     }
     pub(crate) unsafe fn decode_area(&mut self, x: isize, y: isize, chunk: &Chunk) {

@@ -5,8 +5,9 @@ use std::ffi::{c_char, c_void};
 pub(crate) const CELLDATA_SIZE: isize = 0x290;
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
+use std::fmt::Debug;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Colour {
     r: u8,
     g: u8,
@@ -15,7 +16,7 @@ pub struct Colour {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct StdString {
     buffer: *const i8,
     sso_buffer: [i8; 12],
@@ -42,11 +43,11 @@ pub(crate) struct CellData {
     id_2: isize,
     pub(crate) cell_type: CellType,
     platform_type: isize,
-    wang_color: usize, //TODO Colour?
+    wang_color: Colour,
     gfx_glow: isize,
-    gfx_glow_color: usize,
+    gfx_glow_color: Colour,
     unknown1: [c_char; 24],
-    default_primary_colour: usize,
+    default_primary_colour: Colour,
     unknown2: [c_char; 36],
     cell_holes_in_texture: bool,
     stainable: bool,
@@ -92,7 +93,7 @@ pub(crate) struct CellData {
     liquid_gravity: f32,
     liquid_viscosity: isize,
     liquid_stains: isize,
-    liquid_stains_custom_color: usize,
+    liquid_stains_custom_color: Colour,
     liquid_sprite_stain_shaken_drop_chance: f32,
     liquid_sprite_stain_ignited_drop_chance: f32,
     liquid_sprite_stains_check_offset: i8,
@@ -404,7 +405,7 @@ pub(crate) struct LiquidCell {
     unknown3: c_char,
     unknown4: [u8; 3],
     colour: Colour,
-    not_colour: usize,
+    not_colour: Colour,
 }
 
 impl Cell {
