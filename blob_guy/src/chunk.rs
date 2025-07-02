@@ -1,5 +1,6 @@
 use crate::CHUNK_SIZE;
 use std::ops::{Index, IndexMut};
+use std::slice::{Iter, IterMut};
 #[derive(Debug)]
 pub struct Chunk(pub [CellType; CHUNK_SIZE * CHUNK_SIZE]);
 #[derive(Default, Copy, Clone, Debug)]
@@ -28,6 +29,14 @@ impl Index<usize> for Chunk {
 impl IndexMut<usize> for Chunk {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
+    }
+}
+impl Chunk {
+    pub fn iter_mut(&mut self) -> IterMut<'_, CellType> {
+        self.0.iter_mut()
+    }
+    pub fn iter(&self) -> Iter<'_, CellType> {
+        self.0.iter()
     }
 }
 #[derive(Eq, Hash, PartialEq, Debug, Clone, Copy)]

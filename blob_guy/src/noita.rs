@@ -125,31 +125,33 @@ impl ParticleWorldState {
         if self.set_chunk(x, y) {
             return false;
         }
-        for (k, (i, j)) in (0..CHUNK_SIZE as isize)
+        for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
-            .enumerate()
+            .zip(chunk.iter_mut())
         {
             let cell = self.get_cell_raw(i, j);
-            if let Some(cell) = cell
+            *pixel = if let Some(cell) = cell
                 && let Some(cell_type) = self.get_cell_type(cell)
             {
                 match cell_type {
                     ntypes::CellType::Liquid => {
                         if self.get_cell_material_id(cell) == self.blob_guy {
-                            chunk[k] = CellType::Remove
+                            CellType::Remove
                         } else {
                             let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
                             if cell.is_static {
-                                chunk[k] = CellType::Solid;
+                                CellType::Solid
                             } else {
-                                chunk[k] = CellType::Liquid;
+                                CellType::Liquid
                             }
                         }
                     }
-                    ntypes::CellType::Solid => chunk[k] = CellType::Physics,
-                    ntypes::CellType::Fire | ntypes::CellType::Gas => chunk[k] = CellType::Physics,
-                    _ => {}
+                    ntypes::CellType::Solid => CellType::Physics,
+                    ntypes::CellType::Fire | ntypes::CellType::Gas => CellType::Other,
+                    _ => CellType::Unknown,
                 }
+            } else {
+                CellType::Unknown
             }
         }
         true
@@ -160,11 +162,11 @@ impl ParticleWorldState {
         }
         let x = x * CHUNK_SIZE as isize;
         let y = y * CHUNK_SIZE as isize;
-        for (k, (i, j)) in (0..CHUNK_SIZE as isize)
+        for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
-            .enumerate()
+            .zip(chunk.iter())
         {
-            match chunk[k] {
+            match pixel {
                 CellType::Blob => {
                     let x = x + i;
                     let y = y + j;

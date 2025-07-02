@@ -97,7 +97,7 @@ impl Blob {
         }
         Ok(())
     }
-    pub fn update(&mut self, map: &mut [Chunk; 9]) -> eyre::Result<()> {
+    pub fn update(&mut self, map: &mut [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT]) -> eyre::Result<()> {
         for p in self.pixels.values_mut() {
             p.mutated = false;
             let dx = self.pos.x - p.pos.x;
