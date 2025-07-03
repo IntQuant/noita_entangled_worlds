@@ -7,7 +7,6 @@ use std::ffi::{c_char, c_void};
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Index;
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct Colour {
@@ -32,44 +31,29 @@ impl Debug for CellDataPtr {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
 }
-impl CellPtr {
-    pub fn is_null(&self) -> bool {
-        self.0.is_null()
-    }
-    pub fn as_ref(&self) -> Option<&Cell> {
-        unsafe { self.0.as_ref() }
-    }
-}
-impl CellDataPtr {
-    pub fn as_ref(&self) -> Option<&CellData> {
-        unsafe { self.0.as_ref() }
-    }
-}
-impl<'a> Index<usize> for ChunkArray<'a> {
-    type Output = CellArrayPtr;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
+impl ChunkArray {
+    pub fn index(&self, index: isize) -> CellArrayPtr {
+        unsafe { self.0.offset(index).read() }
     }
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub(crate) struct CellPtr(pub *const Cell);
+
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub(crate) struct CellDataPtr(pub *const CellData);
 
 #[repr(C)]
-pub(crate) struct CellArrayPtr(pub *mut [CellPtr; 512 * 512]);
+pub(crate) struct CellArrayPtr(pub *mut CellPtr);
 
 #[derive(Debug)]
 #[repr(C)]
-pub(crate) struct ChunkArray<'a>(pub &'a [CellArrayPtr; 512 * 512]);
+pub(crate) struct ChunkArray(pub *mut CellArrayPtr);
 
 #[repr(C)]
-pub struct ChunkMap<'a> {
+pub struct ChunkMap {
     unknown: [isize; 2],
-    pub cell_array: *const ChunkArray<'a>,
+    pub cell_array: ChunkArray,
     unknown2: [isize; 8],
 }
 
@@ -81,7 +65,7 @@ pub struct GridWorldVtable {
 }
 #[allow(dead_code)]
 impl GridWorldVtable {
-    pub fn get_chunk_map(&self) -> *const ChunkMap<'_> {
+    pub fn get_chunk_map(&self) -> *const ChunkMap {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: *const ChunkMap;
@@ -101,11 +85,11 @@ impl GridWorldVtable {
     }
 }
 #[repr(C)]
-pub struct GridWorld<'a> {
+pub struct GridWorld {
     vtable: *const GridWorldVtable,
     unknown: [isize; 318],
     world_update_count: isize,
-    pub chunk_map: ChunkMap<'a>,
+    pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
     m_thread_impl: *const c_void,
 }
@@ -527,7 +511,7 @@ pub(crate) struct LiquidCell {
 }
 
 impl Cell {
-    pub(crate) fn material_ptr(&self) -> CellDataPtr {
-        self.material_ptr
+    pub(crate) fn material_ptr(&self) -> &CellDataPtr {
+        &self.material_ptr
     }
 }

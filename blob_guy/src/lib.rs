@@ -67,7 +67,7 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         state.blob_guy = blob_guy;
         let pws = ParticleWorldState {
             world_ptr,
-            chunk_arr: unsafe { ptr.chunk_map.cell_array.read() },
+            chunk_arr: ntypes::ChunkArray(ptr.chunk_map.cell_array.0),
             material_list,
             blob_guy,
             pixel_array: Default::default(),

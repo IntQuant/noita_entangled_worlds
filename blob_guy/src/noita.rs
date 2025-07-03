@@ -9,11 +9,11 @@ pub(crate) mod ntypes;
 //pub(crate) mod pixel;
 #[derive(Debug)]
 pub(crate) struct ParticleWorldState<'a> {
-    pub(crate) world_ptr: *const ntypes::GridWorld<'a>,
-    pub(crate) chunk_arr: ntypes::ChunkArray<'a>,
+    pub(crate) world_ptr: *const ntypes::GridWorld,
+    pub(crate) chunk_arr: ntypes::ChunkArray,
     pub(crate) material_list: &'a [ntypes::CellData],
     pub(crate) blob_guy: u16,
-    pub(crate) pixel_array: usize,
+    pub(crate) pixel_array: &'a mut [ntypes::CellPtr],
     pub(crate) construct_ptr: *const c_void,
     pub(crate) remove_ptr: *const c_void,
     pub(crate) shift_x: isize,
@@ -25,23 +25,22 @@ impl<'a> ParticleWorldState<'a> {
         self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
-        if self.chunk_arr[chunk_index as usize].0.is_null() {
+        let array = self.chunk_arr.index(chunk_index);
+        if array.0.is_null() {
             return Err(eyre!(format!("cant find chunk index {}", chunk_index)));
         }
-        self.pixel_array = chunk_index as usize;
+        self.pixel_array = unsafe { std::slice::from_raw_parts_mut(array.0, 512 * 512) };
         Ok(())
     }
     pub fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
         let index = ((y & 511) << 9) | (x & 511);
-        let pixel = &unsafe { self.chunk_arr[self.pixel_array].0.as_ref()? }[index as usize];
-        if pixel.is_null() {
-            noita_api::print("b");
+        let pixel = &self.pixel_array[index as usize];
+        if pixel.0.is_null() {
             return None;
         }
-
-        pixel.as_ref()
+        unsafe { pixel.0.as_ref() }
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
@@ -50,7 +49,7 @@ impl<'a> ParticleWorldState<'a> {
     }
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
-        Some(cell.material_ptr().as_ref()?.cell_type)
+        Some(unsafe { cell.material_ptr().0.as_ref()? }.cell_type)
     }
 
     pub(crate) unsafe fn encode_area(
@@ -111,8 +110,7 @@ impl<'a> ParticleWorldState<'a> {
                     let x = x + self.shift_x;
                     let y = y + self.shift_y;
                     let index = ((y & 511) << 9) | (x & 511);
-                    let array = self.chunk_arr[self.pixel_array].0.as_mut().unwrap();
-                    &mut array[index as usize]
+                    &mut self.pixel_array[index as usize]
                 }};
             }
             match pixel {
@@ -121,7 +119,7 @@ impl<'a> ParticleWorldState<'a> {
                     let y = y + j;
                     unsafe {
                         let cell = get_cell_raw_mut!(i, j);
-                        if !(*cell).is_null() {
+                        if !cell.0.is_null() {
                             remove_cell(self.world_ptr, self.remove_ptr, cell.0, x, y);
                             cell.0 = ptr::null_mut();
                         }
@@ -143,12 +141,10 @@ impl<'a> ParticleWorldState<'a> {
                 CellType::Remove => {
                     let x = x + i;
                     let y = y + j;
-                    unsafe {
-                        let cell = get_cell_raw_mut!(i, j);
-                        if !(*cell).is_null() {
-                            remove_cell(self.world_ptr, self.remove_ptr, cell.0, x, y);
-                            cell.0 = ptr::null_mut();
-                        }
+                    let cell = get_cell_raw_mut!(i, j);
+                    if !cell.0.is_null() {
+                        remove_cell(self.world_ptr, self.remove_ptr, cell.0, x, y);
+                        cell.0 = ptr::null_mut();
                     }
                 }
                 _ => {}
