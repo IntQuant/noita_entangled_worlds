@@ -53,7 +53,7 @@ impl State {
                     (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
                 ) {
                     noita_api::print(format!("{cell:?}"));
-                    noita_api::print(format!("{:?}", unsafe { (*cell.material_ptr).clone() }));
+                    noita_api::print(format!("{:?}", unsafe { cell.material_ptr.as_ref() }));
                 } else {
                     noita_api::print("mat nil");
                 }

@@ -16,7 +16,6 @@ pub struct Colour {
 }
 
 #[repr(C)]
-#[derive(Clone, Debug)]
 pub(crate) struct StdString {
     buffer: *const i8,
     sso_buffer: [i8; 12],
@@ -35,7 +34,7 @@ pub enum CellType {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct CellData {
     name: StdString,
     ui_name: StdString,
@@ -150,6 +149,7 @@ pub(crate) struct CellData {
     show_in_creative_mode: bool,
     is_just_particle_fx: bool,
     padding9: [c_char; 2],
+    grid_cosmetic_particle_config: *const c_void,
 }
 
 #[repr(C)]
@@ -283,7 +283,6 @@ impl CellVTable {
         }
     }
     pub fn get_material(&self, cell: *const c_void) -> *const CellData {
-        //TODO ask why c_void
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: *const CellData;
@@ -304,11 +303,10 @@ impl CellVTable {
         }
     }
     pub fn get_position(&self, cell: *const c_void) -> *const Position {
-        //TODO ask about probable mistake
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: *const Position;
-            asm!(
+            asm!( //TODO may need push 0
                 "mov ecx, {cell}",
                 "call {fn}",
                 cell = in(reg) cell,
