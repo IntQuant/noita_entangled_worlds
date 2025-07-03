@@ -25,8 +25,7 @@ impl<'a> ParticleWorldState<'a> {
         self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
-        let chunk = &self.chunk_arr[chunk_index as usize];
-        if chunk.0.is_null() {
+        if self.chunk_arr[chunk_index as usize].0.is_null() {
             return Err(eyre!(format!("cant find chunk index {}", chunk_index)));
         }
         self.pixel_array = chunk_index as usize;
