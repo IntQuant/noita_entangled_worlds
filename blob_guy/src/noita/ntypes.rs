@@ -2,13 +2,12 @@
 
 use std::ffi::{c_char, c_void};
 
-#[cfg(target_arch = "x86")]
-pub(crate) const CELLDATA_SIZE: isize = 0x290;
-#[cfg(target_arch = "x86")]
-const _: () = assert!(CELLDATA_SIZE == size_of::<CellData>() as isize);
+//pub(crate) const CELLDATA_SIZE: isize = 0x290;
+//const _: () = assert!(CELLDATA_SIZE == size_of::<CellData>() as isize);
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops::Index;
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct Colour {
@@ -18,6 +17,100 @@ pub struct Colour {
     a: u8,
 }
 
+impl Debug for CellArrayPtr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", unsafe { self.0.as_ref() })
+    }
+}
+impl Debug for CellPtr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", unsafe { self.0.as_ref() })
+    }
+}
+impl Debug for CellDataPtr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", unsafe { self.0.as_ref() })
+    }
+}
+impl CellPtr {
+    pub fn is_null(&self) -> bool {
+        self.0.is_null()
+    }
+    pub fn as_ref(&self) -> Option<&Cell> {
+        unsafe { self.0.as_ref() }
+    }
+}
+impl CellDataPtr {
+    pub fn as_ref(&self) -> Option<&CellData> {
+        unsafe { self.0.as_ref() }
+    }
+}
+impl<'a> Index<usize> for ChunkArray<'a> {
+    type Output = CellArrayPtr;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub(crate) struct CellPtr(pub *const Cell);
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub(crate) struct CellDataPtr(pub *const CellData);
+
+#[repr(C)]
+pub(crate) struct CellArrayPtr(pub *mut [CellPtr; 512 * 512]);
+
+#[derive(Debug)]
+#[repr(C)]
+pub(crate) struct ChunkArray<'a>(pub &'a [CellArrayPtr; 512 * 512]);
+
+#[repr(C)]
+pub struct ChunkMap<'a> {
+    unknown: [isize; 2],
+    pub cell_array: *const ChunkArray<'a>,
+    unknown2: [isize; 8],
+}
+
+#[repr(C)]
+pub struct GridWorldVtable {
+    unknown: [*const c_void; 3],
+    get_chunk_map: *const c_void,
+    unknown2: [*const c_void; 30],
+}
+#[allow(dead_code)]
+impl GridWorldVtable {
+    pub fn get_chunk_map(&self) -> *const ChunkMap<'_> {
+        #[cfg(target_arch = "x86")]
+        unsafe {
+            let ret: *const ChunkMap;
+            asm!(
+                "mov ecx, 0",
+                "call {fn}",
+                out("eax") ret,
+                fn = in(reg) self.get_chunk_map,
+                clobber_abi("C"),
+            );
+            ret
+        }
+        #[cfg(target_arch = "x86_64")]
+        {
+            unreachable!()
+        }
+    }
+}
+#[repr(C)]
+pub struct GridWorld<'a> {
+    vtable: *const GridWorldVtable,
+    unknown: [isize; 318],
+    world_update_count: isize,
+    pub chunk_map: ChunkMap<'a>,
+    unknown2: [isize; 41],
+    m_thread_impl: *const c_void,
+}
+
+#[repr(C)]
 union Buffer {
     buffer: *const u8,
     sso_buffer: [u8; 16],
@@ -231,13 +324,13 @@ pub struct Position {
 }
 #[allow(dead_code)]
 impl CellVTable {
-    pub fn destroy(&self, cell: *const Cell) {
+    pub fn destroy(&self, cell: CellPtr) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.destroy,
                 clobber_abi("C"),
             );
@@ -248,14 +341,14 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_cell_type(&self, cell: *const Cell) -> CellType {
+    pub fn get_cell_type(&self, cell: CellPtr) -> CellType {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u32;
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.get_cell_type,
                 out("eax") ret,
                 clobber_abi("C"),
@@ -268,14 +361,14 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_color(&self, cell: *const Cell) -> Colour {
+    pub fn get_color(&self, cell: CellPtr) -> Colour {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u32;
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.get_color,
                 out("eax") ret,
                 clobber_abi("C"),
@@ -288,7 +381,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn set_color(&self, cell: *const Cell, color: Colour) {
+    pub fn set_color(&self, cell: CellPtr, color: Colour) {
         #[cfg(target_arch = "x86")]
         unsafe {
             let color: u32 = std::mem::transmute(color);
@@ -296,7 +389,7 @@ impl CellVTable {
                 "mov ecx, {cell}",
                 "push {color}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.set_color,
                 color = in(reg) color,
                 clobber_abi("C"),
@@ -308,19 +401,19 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_material(&self, cell: *const c_void) -> *const CellData {
+    pub fn get_material(&self, cell: CellPtr) -> CellDataPtr {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: *const CellData;
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.get_material,
                 out("eax") ret,
                 clobber_abi("C"),
             );
-            ret
+            CellDataPtr(ret)
         }
         #[cfg(target_arch = "x86_64")]
         {
@@ -328,14 +421,15 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_position(&self, cell: *const c_void) -> *const Position {
+    pub fn get_position(&self, cell: CellPtr) -> *const Position {
         #[cfg(target_arch = "x86")]
         unsafe {
-            let ret: *const Position;
-            asm!( //TODO may need push 0
+            let mut ret: *const Position;
+            asm!(
                 "mov ecx, {cell}",
+                "push 0",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.get_position,
                 out("eax") ret,
                 clobber_abi("C"),
@@ -348,20 +442,20 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn is_burning(&self, cell: *const Cell) -> bool {
+    pub fn is_burning(&self, cell: CellPtr) -> bool {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u16;
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.is_burning,
                 out("eax") ret,
                 clobber_abi("C"),
             );
             let ret: [u8; 2] = ret.to_ne_bytes();
-            std::mem::transmute(ret[0])
+            ret[0] == 1
         }
         #[cfg(target_arch = "x86_64")]
         {
@@ -369,13 +463,13 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn stop_burning(&self, cell: *const Cell) {
+    pub fn stop_burning(&self, cell: CellPtr) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.stop_burning,
                 clobber_abi("C"),
             );
@@ -386,13 +480,13 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn remove(&self, cell: *const Cell) {
+    pub fn remove(&self, cell: CellPtr) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
-                cell = in(reg) cell,
+                cell = in(reg) cell.0,
                 fn = in(reg) self.remove,
                 clobber_abi("C"),
             );
@@ -414,7 +508,7 @@ pub(crate) struct Cell {
     unknown1: [u8; 8],
     is_burning: bool,
     unknown2: [u8; 3],
-    pub material_ptr: *const CellData,
+    pub material_ptr: CellDataPtr,
 }
 
 #[repr(C)]
@@ -433,7 +527,7 @@ pub(crate) struct LiquidCell {
 }
 
 impl Cell {
-    pub(crate) fn material_ptr(&self) -> *const CellData {
+    pub(crate) fn material_ptr(&self) -> CellDataPtr {
         self.material_ptr
     }
 }

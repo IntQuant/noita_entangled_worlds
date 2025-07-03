@@ -20,36 +20,38 @@ impl Pos {
 const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl<'a> State<'a> {
     pub fn update(&mut self) -> eyre::Result<()> {
+        if noita_api::raw::input_is_mouse_button_just_down(1)? {
+            let (x, y) = noita_api::raw::debug_get_mouse_world()?;
+            let pos = Pos {
+                x: x as f32,
+                y: y as f32,
+            }
+            .to_chunk();
+            unsafe { self.particle_world_state.assume_init_mut() }.set_chunk(pos.x, pos.y)?;
+            if let Some(cell) = unsafe { self.particle_world_state.assume_init_mut() }.get_cell_raw(
+                (x.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+                (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+            ) {
+                noita_api::print(format!("{cell:?}"));
+                noita_api::print(format!("{:?}", cell.material_ptr.as_ref()));
+            } else {
+                noita_api::print("mat nil");
+            }
+        }
         if self.blobs.is_empty() {
             self.blobs.push(Blob::new(256.0, -64.0 - 32.0));
         }
-        'upper: for blob in self.blobs.iter_mut() {
+        for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
             let c = blob.pos.to_chunk();
             for ((x, y), chunk) in (c.x - OFFSET..=c.x + OFFSET)
                 .flat_map(|i| (c.y - OFFSET..=c.y + OFFSET).map(move |j| (i, j)))
                 .zip(self.world.iter_mut())
             {
-                if unsafe { !self.particle_world_state.encode_area(x, y, chunk) } {
-                    continue 'upper;
-                }
-            }
-            if noita_api::raw::input_is_mouse_button_just_down(1)? {
-                let (x, y) = noita_api::raw::debug_get_mouse_world()?;
-                let pos = Pos {
-                    x: x as f32,
-                    y: y as f32,
-                }
-                .to_chunk();
-                self.particle_world_state.set_chunk(pos.x, pos.y);
-                if let Some(cell) = self.particle_world_state.get_cell_raw(
-                    (x.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
-                    (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
-                ) {
-                    noita_api::print(format!("{cell:?}"));
-                    noita_api::print(format!("{:?}", unsafe { cell.material_ptr.as_ref() }));
-                } else {
-                    noita_api::print("mat nil");
+                unsafe {
+                    self.particle_world_state
+                        .assume_init_mut()
+                        .encode_area(x, y, chunk)?
                 }
             }
             blob.update(&mut self.world)?;
@@ -59,7 +61,9 @@ impl<'a> State<'a> {
             {
                 if chunk.modified {
                     unsafe {
-                        self.particle_world_state.decode_area(x, y, chunk);
+                        self.particle_world_state
+                            .assume_init_mut()
+                            .decode_area(x, y, chunk)?
                     }
                 }
             }

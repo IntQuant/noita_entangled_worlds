@@ -46,7 +46,7 @@ pub(crate) struct Cell {
     unknown1: [u8; 8],
     is_burning: bool,
     unknown2: [u8; 3],
-    material_ptr: *const CellData,
+    material_ptr: CellDataPtr,
 }
 
 #[repr(C)]
@@ -61,7 +61,7 @@ pub(crate) struct LiquidCell {
 }
 
 impl Cell {
-    pub(crate) fn material_ptr(&self) -> *const CellData {
+    pub(crate) fn material_ptr(&self) -> CellDataPtr {
         self.material_ptr
     }
 }
