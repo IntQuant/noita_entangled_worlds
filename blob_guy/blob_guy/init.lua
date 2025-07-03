@@ -32,5 +32,12 @@ function OnWorldInitialized()
     local world_info = np.GetWorldInfo()
     local construct_cell = tonumber(ffi.cast("intptr_t", world_info.construct_cell))
     local remove_cell = tonumber(ffi.cast("intptr_t", world_info.remove_cell))
-    blob_guy.init_particle_world_state(grid_world, chunk_map, material_list, construct_cell, remove_cell)
+    local i = 0
+    local name = CellFactory_GetName(i)
+    while name ~= "unknown" do
+        mats[name] = i
+        i = i + 1
+        name = CellFactory_GetName(i)
+    end
+    blob_guy.init_particle_world_state(grid_world, chunk_map, material_list, i, construct_cell, remove_cell)
 end

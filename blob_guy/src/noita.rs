@@ -2,31 +2,32 @@ use crate::CHUNK_SIZE;
 use crate::chunk::{CellType, Chunk};
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
-use std::{ffi::c_void, mem, ptr};
+#[cfg(target_arch = "x86")]
+use std::ffi::c_void;
+use std::{mem, ptr};
 pub(crate) mod ntypes;
 //pub(crate) mod pixel;
 #[derive(Default)]
-pub(crate) struct ParticleWorldState {
+pub(crate) struct ParticleWorldState<'a> {
     #[cfg(target_arch = "x86")]
-    pub(crate) world_ptr: *mut c_void,
-    pub(crate) chunk_map_ptr: *mut c_void,
-    pub(crate) material_list_ptr: *const c_void,
+    pub(crate) world_ptr: *const c_void,
+    pub(crate) chunk_arr: &'a [*const &'a [*const ntypes::Cell]],
+    pub(crate) material_list: &'a [ntypes::CellData],
     pub(crate) blob_guy: u16,
-    pub(crate) blob_ptr: *const c_void,
-    pub(crate) pixel_array: *const c_void,
+    pub(crate) pixel_array: usize,
     #[cfg(target_arch = "x86")]
-    pub(crate) construct_ptr: *mut c_void,
+    pub(crate) construct_ptr: *const c_void,
     #[cfg(target_arch = "x86")]
-    pub(crate) remove_ptr: *mut c_void,
+    pub(crate) remove_ptr: *const c_void,
     pub(crate) shift_x: isize,
     pub(crate) shift_y: isize,
 }
-impl ParticleWorldState {
+impl<'a> ParticleWorldState<'a> {
     fn create_cell(
         &mut self,
         x: isize,
         y: isize,
-        material: *const c_void,
+        material: &ntypes::CellData,
         //_memory: *const c_void,
     ) -> *mut ntypes::Cell {
         #[cfg(target_arch = "x86")]
@@ -42,7 +43,7 @@ impl ParticleWorldState {
                 world = in(reg) self.world_ptr,
                 x = in(reg) x,
                 y = in(reg) y,
-                material = in(reg) material,
+                material = in(reg) material as *const ntypes::CellData,
                 construct = in(reg) self.construct_ptr,
                 clobber_abi("C"),
                 out("eax") cell_ptr,
@@ -55,7 +56,7 @@ impl ParticleWorldState {
             unreachable!()
         }
     }
-    fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: isize, y: isize) {
+    fn remove_cell(&mut self, cell: *const ntypes::Cell, x: isize, y: isize) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
@@ -83,39 +84,35 @@ impl ParticleWorldState {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
-        let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
-        // Deref 1/3
-        let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };
-        // Deref 2/3
-        let chunk = unsafe { chunk_arr.offset(chunk_index).cast::<*const c_void>().read() };
+        let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
+        let chunk = self.chunk_arr[chunk_index as usize];
         if chunk.is_null() {
             return true;
         }
-        // Deref 3/3
-        let pixel_array = unsafe { chunk.cast::<*const c_void>().read() };
-        self.pixel_array = pixel_array;
+        self.pixel_array = chunk_index as usize;
         false
     }
     pub fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
-        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
+        let index = ((y & 511) << 9) | (x & 511);
+        let pixel = self.chunk_arr[self.pixel_array][index];
         if pixel.is_null() {
             return None;
         }
 
-        unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
+        unsafe { pixel.read().as_ref() }
     }
-    fn get_cell_raw_mut(&mut self, x: isize, y: isize) -> *mut *mut ntypes::Cell {
+    fn get_cell_raw_mut(&mut self, x: isize, y: isize) -> &mut *const ntypes::Cell {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
-        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
-        pixel as *mut *mut ntypes::Cell
+        let index = ((y & 511) << 9) | (x & 511);
+        &mut self.chunk_arr[self.pixel_array][index as usize]
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
-        let offset = unsafe { mat_ptr.cast::<c_void>().offset_from(self.material_list_ptr) };
-        (offset / ntypes::CELLDATA_SIZE) as u16
+        let offset = unsafe { mat_ptr.offset_from(self.material_list.as_ptr()) };
+        offset as u16
     }
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
@@ -179,10 +176,11 @@ impl ParticleWorldState {
                             self.remove_cell(*cell, x, y);
                             *cell = ptr::null_mut();
                         }
-                        let src = self.create_cell(x, y, self.blob_ptr);
+                        let src =
+                            self.create_cell(x, y, &self.material_list[self.blob_guy as usize]);
                         if !src.is_null() {
                             let liquid: &mut ntypes::LiquidCell =
-                                &mut *(src as *mut ntypes::LiquidCell);
+                                &mut *src.cast::<ntypes::LiquidCell>();
                             liquid.is_static = true;
                             *cell = src;
                         }

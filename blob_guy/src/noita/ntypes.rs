@@ -2,10 +2,13 @@
 
 use std::ffi::{c_char, c_void};
 
+#[cfg(target_arch = "x86")]
 pub(crate) const CELLDATA_SIZE: isize = 0x290;
 #[cfg(target_arch = "x86")]
+const _: () = assert!(CELLDATA_SIZE == size_of::<CellData>() as isize);
+#[cfg(target_arch = "x86")]
 use std::arch::asm;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct Colour {
@@ -15,12 +18,35 @@ pub struct Colour {
     a: u8,
 }
 
+union Buffer {
+    buffer: *const u8,
+    sso_buffer: [u8; 16],
+}
+
 #[repr(C)]
 pub(crate) struct StdString {
-    buffer: *const i8,
-    sso_buffer: [i8; 12],
+    buffer: Buffer,
     size: usize,
     capacity: usize,
+}
+impl Display for StdString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let slice: &[u8] = unsafe {
+            if self.capacity <= 16 {
+                &self.buffer.sso_buffer[0..self.size]
+            } else {
+                std::slice::from_raw_parts(self.buffer.buffer, self.size)
+            }
+        };
+        let actual_len = slice.iter().position(|&b| b == 0).unwrap_or(slice.len());
+        let string = str::from_utf8(&slice[..actual_len]).unwrap_or("UTF8_ERR");
+        write!(f, "{string}")
+    }
+}
+impl Debug for StdString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "StdString(\"{self}\")")
+    }
 }
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]

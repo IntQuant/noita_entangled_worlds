@@ -4,8 +4,6 @@ use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
 use noita_api::EntityID;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::f32::consts::PI;
-//TODO make noita.rs structs/enums correct fully
-//TODO see if path-finding crate is useful
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Pos {
     pub x: f32,
@@ -20,7 +18,7 @@ impl Pos {
     }
 }
 const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
-impl State {
+impl<'a> State<'a> {
     pub fn update(&mut self) -> eyre::Result<()> {
         if self.blobs.is_empty() {
             self.blobs.push(Blob::new(256.0, -64.0 - 32.0));
@@ -28,15 +26,11 @@ impl State {
         'upper: for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
             let c = blob.pos.to_chunk();
-            for ((x, y), chunk) in (-OFFSET..=OFFSET)
-                .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
+            for ((x, y), chunk) in (c.x - OFFSET..=c.x + OFFSET)
+                .flat_map(|i| (c.y - OFFSET..=c.y + OFFSET).map(move |j| (i, j)))
                 .zip(self.world.iter_mut())
             {
-                if unsafe {
-                    !self
-                        .particle_world_state
-                        .encode_area(c.x + x, c.y + y, chunk)
-                } {
+                if unsafe { !self.particle_world_state.encode_area(x, y, chunk) } {
                     continue 'upper;
                 }
             }
@@ -59,14 +53,13 @@ impl State {
                 }
             }
             blob.update(&mut self.world)?;
-            for ((x, y), chunk) in (-OFFSET..=OFFSET)
-                .flat_map(|i| (-OFFSET..=OFFSET).map(move |j| (i, j)))
+            for ((x, y), chunk) in (c.x - OFFSET..=c.x + OFFSET)
+                .flat_map(|i| (c.y - OFFSET..=c.y + OFFSET).map(move |j| (i, j)))
                 .zip(self.world.iter())
             {
                 if chunk.modified {
                     unsafe {
-                        self.particle_world_state
-                            .decode_area(c.x + x, c.y + y, chunk);
+                        self.particle_world_state.decode_area(x, y, chunk);
                     }
                 }
             }
