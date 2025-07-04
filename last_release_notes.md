@@ -1,28 +1,14 @@
-## Noita Entangled Worlds v1.6.0
+## Noita Entangled Worlds v1.6.1
 
-- cache entity data for entity sync improving performance alot(prob buggy, def for some mods), and alot less memory allocations
+- maybe fix apotheosis enemies
 
-- note why chunkmap is disabled
+- disable entity caching by default, added option in the in game mod settings
 
-- add performance log button to proxy
+- allow disabling noita log
 
-- fix enemies respawning after restarting game
+- move performance metrics option to noita game mod settings
 
-- disable laser traps from entity sync
-
-- support(probably) modded biomes enemies syncing
-
-- attach to windows console if applicable to allow seeing crash reports
-
-- make spells less likely to be in walls
-
-- fix spell ban
-
-- fix orb sync duping orbs sometimes
-
-- fix player mimic poly spawning a mimic after(and prob some other bugs related)
-
-- probably break windows update, we will see next update <3
+- no testing so yell in discord if major issue :>
 
 ## Accepted pull requests
 
