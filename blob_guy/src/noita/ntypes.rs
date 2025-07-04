@@ -31,11 +31,6 @@ impl Debug for CellDataPtr {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
 }
-impl ChunkArray {
-    pub fn index(&self, index: isize) -> CellArrayPtr {
-        unsafe { self.0.offset(index).read() }
-    }
-}
 
 #[repr(C)]
 pub(crate) struct CellPtr(pub *const Cell);
@@ -139,7 +134,7 @@ pub enum CellType {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct CellData {
-    name: StdString,
+    pub name: StdString,
     ui_name: StdString,
     material_type: isize,
     id_2: isize,

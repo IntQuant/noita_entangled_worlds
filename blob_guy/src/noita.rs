@@ -8,43 +8,54 @@ use std::{mem, ptr};
 pub(crate) mod ntypes;
 //pub(crate) mod pixel;
 #[derive(Debug)]
-pub(crate) struct ParticleWorldState<'a> {
+pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *const ntypes::GridWorld,
-    pub(crate) chunk_arr: ntypes::ChunkArray,
-    pub(crate) material_list: &'a [ntypes::CellData],
+    pub(crate) chunk_map_ptr: *const c_void,
+    pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_guy: u16,
-    pub(crate) pixel_array: &'a mut [ntypes::CellPtr],
+    pub(crate) blob_ptr: *const ntypes::CellData,
+    pub(crate) pixel_array: *const c_void,
     pub(crate) construct_ptr: *const c_void,
     pub(crate) remove_ptr: *const c_void,
     pub(crate) shift_x: isize,
     pub(crate) shift_y: isize,
 }
-impl<'a> ParticleWorldState<'a> {
+impl ParticleWorldState {
     pub fn set_chunk(&mut self, x: isize, y: isize) -> eyre::Result<()> {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
-        let array = self.chunk_arr.index(chunk_index);
-        if array.0.is_null() {
-            return Err(eyre!(format!("cant find chunk index {}", chunk_index)));
+        // Deref 1/3
+        let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };
+        // Deref 2/3
+        let chunk = unsafe {
+            chunk_arr
+                .offset(chunk_index * 4)
+                .cast::<*const c_void>()
+                .read()
+        };
+        if chunk.is_null() {
+            return Err(eyre!("could not find chunk {}", chunk_index));
         }
-        self.pixel_array = unsafe { std::slice::from_raw_parts_mut(array.0, 512 * 512) };
+        // Deref 3/3
+        let pixel_array = unsafe { chunk.cast::<*const c_void>().read() };
+        self.pixel_array = pixel_array;
         Ok(())
     }
     pub fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
         let x = x + self.shift_x;
         let y = y + self.shift_y;
         let index = ((y & 511) << 9) | (x & 511);
-        let pixel = &self.pixel_array[index as usize];
-        if pixel.0.is_null() {
+        let pixel = unsafe { self.pixel_array.offset(index * 4) };
+        if pixel.is_null() {
             return None;
         }
-        unsafe { pixel.0.as_ref() }
+        unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
-        let offset = unsafe { mat_ptr.0.offset_from(self.material_list.as_ptr()) };
+        let offset = unsafe { mat_ptr.0.offset_from(self.material_list_ptr) };
         offset as u16
     }
 
@@ -110,41 +121,41 @@ impl<'a> ParticleWorldState<'a> {
                     let x = x + self.shift_x;
                     let y = y + self.shift_y;
                     let index = ((y & 511) << 9) | (x & 511);
-                    &mut self.pixel_array[index as usize]
+                    let pixel = unsafe { self.pixel_array.offset(index * 4) };
+                    pixel as *mut *mut ntypes::Cell
                 }};
             }
             match pixel {
                 CellType::Blob => {
+                    noita_api::game_print("a");
                     let x = x + i;
                     let y = y + j;
+                    let cell = get_cell_raw_mut!(i, j);
                     unsafe {
-                        let cell = get_cell_raw_mut!(i, j);
-                        if !cell.0.is_null() {
-                            remove_cell(self.world_ptr, self.remove_ptr, cell.0, x, y);
-                            cell.0 = ptr::null_mut();
+                        if !(*cell).is_null() {
+                            remove_cell(self.world_ptr, self.remove_ptr, *cell, x, y);
+                            *cell = ptr::null_mut();
                         }
-                        let src = create_cell(
-                            self.world_ptr,
-                            self.construct_ptr,
-                            x,
-                            y,
-                            &self.material_list[self.blob_guy as usize],
-                        );
+                        let src =
+                            create_cell(self.world_ptr, self.construct_ptr, x, y, self.blob_ptr);
                         if !src.is_null() {
                             let liquid: &mut ntypes::LiquidCell =
                                 &mut *src.cast::<ntypes::LiquidCell>();
                             liquid.is_static = true;
-                            cell.0 = src;
+                            *cell = src;
                         }
                     }
                 }
                 CellType::Remove => {
+                    noita_api::game_print("b");
                     let x = x + i;
                     let y = y + j;
                     let cell = get_cell_raw_mut!(i, j);
-                    if !cell.0.is_null() {
-                        remove_cell(self.world_ptr, self.remove_ptr, cell.0, x, y);
-                        cell.0 = ptr::null_mut();
+                    unsafe {
+                        if !(*cell).is_null() {
+                            remove_cell(self.world_ptr, self.remove_ptr, *cell, x, y);
+                            *cell = ptr::null_mut();
+                        }
                     }
                 }
                 _ => {}
@@ -158,7 +169,7 @@ fn create_cell(
     construct_ptr: *const c_void,
     x: isize,
     y: isize,
-    material: &ntypes::CellData,
+    material: *const ntypes::CellData,
     //_memory: *const c_void,
 ) -> *mut ntypes::Cell {
     #[cfg(target_arch = "x86")]
@@ -174,7 +185,7 @@ fn create_cell(
             world = in(reg) world_ptr,
             x = in(reg) x,
             y = in(reg) y,
-            material = in(reg) material as *const ntypes::CellData,
+            material = in(reg) material,
             construct = in(reg) construct_ptr,
             clobber_abi("C"),
             out("eax") cell_ptr,

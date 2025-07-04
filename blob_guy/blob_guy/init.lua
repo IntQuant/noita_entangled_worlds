@@ -25,16 +25,12 @@ end
 function OnWorldInitialized()
     started = 60
     local grid_world = world_ffi.get_grid_world()
+    local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
     grid_world = tonumber(ffi.cast("intptr_t", grid_world))
+    chunk_map = tonumber(ffi.cast("intptr_t", chunk_map))
     local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
     local world_info = np.GetWorldInfo()
     local construct_cell = tonumber(ffi.cast("intptr_t", world_info.construct_cell))
     local remove_cell = tonumber(ffi.cast("intptr_t", world_info.remove_cell))
-    local i = 0
-    local name = CellFactory_GetName(i)
-    while name ~= "unknown" do
-        i = i + 1
-        name = CellFactory_GetName(i)
-    end
-    blob_guy.init_particle_world_state(grid_world, material_list, i, construct_cell, remove_cell)
+    blob_guy.init_particle_world_state(grid_world, chunk_map, material_list, construct_cell, remove_cell)
 end

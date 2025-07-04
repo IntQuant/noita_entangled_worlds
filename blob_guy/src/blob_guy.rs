@@ -18,7 +18,7 @@ impl Pos {
     }
 }
 const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
-impl<'a> State<'a> {
+impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
         if noita_api::raw::input_is_mouse_button_just_down(1)? {
             let (x, y) = noita_api::raw::debug_get_mouse_world()?;
