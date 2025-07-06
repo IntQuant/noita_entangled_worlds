@@ -1079,7 +1079,6 @@ impl LocalDiffModel {
                 && let Some(damage) = entity_manager
                     .try_get_first_component::<DamageModelComponent>(ComponentTag::None)
             {
-                noita_api::print(format!("a {:?} {:?}", entity, damage.0));
                 if entity_data.hp > damage.max_hp_cap()? as f32 {
                     damage.set_max_hp_cap(entity_data.hp as f64)?;
                 }
@@ -1785,7 +1784,6 @@ impl RemoteDiffModel {
         if let Some(damage) =
             entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
         {
-            noita_api::print(format!("b {:?} {:?}", entity, damage.0));
             if entity_info.hp > damage.max_hp()? as f32 {
                 damage.set_max_hp(entity_info.hp as f64)?
             }
@@ -2681,7 +2679,6 @@ fn mom(entity: &mut EntityManager, counter: u8, cost: Option<i32>) -> eyre::Resu
                         ent.kill()
                     } else if let Ok(damage) = ent.get_first_component::<DamageModelComponent>(None)
                     {
-                        noita_api::print(format!("c {:?} {:?}", entity.entity(), damage.0));
                         damage.set_wait_for_kill_flag_on_death(true)?;
                         damage.set_hp(damage.max_hp()?)?;
                     }
