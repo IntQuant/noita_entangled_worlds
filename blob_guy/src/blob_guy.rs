@@ -27,21 +27,22 @@ impl State {
                 y: y as f32,
             }
             .to_chunk();
-            unsafe { self.particle_world_state.assume_init_mut() }.set_chunk(pos.x, pos.y)?;
-            if let Some(cell) = unsafe { self.particle_world_state.assume_init_mut() }.get_cell_raw(
-                (x.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
-                (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
-            ) {
-                noita_api::print(format!("{cell:?}"));
-                noita_api::print(format!("{:?}", unsafe { cell.material_ptr.0.as_ref() }));
-            } else {
-                noita_api::print("mat nil");
+            if self.particle_world_state.set_chunk(pos.x, pos.y).is_ok() {
+                if let Some(cell) = self.particle_world_state.get_cell_raw(
+                    (x.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+                    (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+                ) {
+                    noita_api::print(format!("{cell:?}"));
+                    noita_api::print(format!("{:?}", unsafe { cell.material_ptr.as_ref() }));
+                } else {
+                    noita_api::print("mat nil");
+                }
             }
         }
         if self.blobs.is_empty() {
             self.blobs.push(Blob::new(256.0, -64.0 - 32.0));
         }
-        for blob in self.blobs.iter_mut() {
+        'upper: for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
             let c = blob.pos.to_chunk();
             for ((x, y), chunk) in (c.x - OFFSET..=c.x + OFFSET)
@@ -49,9 +50,9 @@ impl State {
                 .zip(self.world.iter_mut())
             {
                 unsafe {
-                    self.particle_world_state
-                        .assume_init_mut()
-                        .encode_area(x, y, chunk)?
+                    if self.particle_world_state.encode_area(x, y, chunk).is_err() {
+                        continue 'upper;
+                    }
                 }
             }
             blob.update(&mut self.world)?;
@@ -61,9 +62,9 @@ impl State {
             {
                 if chunk.modified {
                     unsafe {
-                        self.particle_world_state
-                            .assume_init_mut()
-                            .decode_area(x, y, chunk)?
+                        if self.particle_world_state.decode_area(x, y, chunk).is_err() {
+                            continue 'upper;
+                        }
                     }
                 }
             }

@@ -743,6 +743,20 @@ pub fn print(value: impl AsRef<str>) {
     let _ = raw::print(value.as_ref());
 }
 
+#[macro_export]
+macro_rules! game_print {
+    ($($arg:tt)*) => {
+        $crate::game_print(format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {
+        $crate::print(format!($($arg)*))
+    };
+}
+
 pub mod raw {
     use eyre::Context;
     use eyre::eyre;
