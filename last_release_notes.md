@@ -1,14 +1,7 @@
-## Noita Entangled Worlds v1.6.1
+## Noita Entangled Worlds v1.6.2
 
-- maybe fix apotheosis enemies
+- remove the ton of debug prints i forgot about to prob help performance
 
-- disable entity caching by default, added option in the in game mod settings
-
-- allow disabling noita log
-
-- move performance metrics option to noita game mod settings
-
-- no testing so yell in discord if major issue :>
 
 ## Accepted pull requests
 
