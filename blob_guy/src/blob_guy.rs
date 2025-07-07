@@ -63,20 +63,13 @@ impl State {
                 continue 'upper;
             }
             blob.update(&mut self.world)?;
-            for ((x, y), chunk) in (c.x..c.x + CHUNK_AMOUNT as isize)
-                .flat_map(|i| (c.y..c.y + CHUNK_AMOUNT as isize).map(move |j| (i, j)))
-                .zip(self.world.iter())
-            {
-                unsafe {
-                    if self
-                        .particle_world_state
-                        .decode_area(x - OFFSET, y - OFFSET, chunk)
-                        .is_err()
-                    {
-                        continue 'upper;
-                    }
-                }
-            }
+            self.world.iter().enumerate().for_each(|(i, chunk)| unsafe {
+                let x = i as isize / CHUNK_AMOUNT as isize + c.x;
+                let y = i as isize % CHUNK_AMOUNT as isize + c.y;
+                let _ = self
+                    .particle_world_state
+                    .decode_area(x - OFFSET, y - OFFSET, chunk);
+            });
         }
         Ok(())
     }
