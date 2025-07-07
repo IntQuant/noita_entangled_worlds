@@ -8,7 +8,7 @@ pub(crate) mod ntypes;
 #[derive(Default)]
 pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *const ntypes::GridWorld,
-    pub(crate) chunk_map_ptr: *const c_void,
+    pub(crate) chunk_map_ptr: *const *const *mut *const ntypes::Cell,
     pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_guy: u16,
     pub(crate) blob_ptr: *const ntypes::CellData,
@@ -85,23 +85,12 @@ impl ParticleWorldState {
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
-        // Deref 1/3
-        let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };
-        // Deref 2/3
-        let chunk = unsafe {
-            chunk_arr
-                .offset(chunk_index * 4)
-                .cast::<*const c_void>()
-                .read()
-        };
+        let chunk = unsafe { self.chunk_map_ptr.offset(chunk_index).read() };
         if chunk.is_null() {
             return Err(());
         }
-        // Deref 3/3
-        let pixel_array_ptr = unsafe { chunk.cast::<*const c_void>().read() };
-        let pixel_array = unsafe {
-            std::slice::from_raw_parts_mut(pixel_array_ptr as *mut *const ntypes::Cell, 512 * 512)
-        };
+        let pixel_array_ptr = unsafe { chunk.read() };
+        let pixel_array = unsafe { std::slice::from_raw_parts_mut(pixel_array_ptr, 512 * 512) };
         Ok((shift_x, shift_y, pixel_array))
     }
     pub fn get_cell_raw(
@@ -129,11 +118,7 @@ impl ParticleWorldState {
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
-        let offset = unsafe {
-            mat_ptr
-                .cast::<ntypes::CellData>()
-                .offset_from(self.material_list_ptr)
-        };
+        let offset = unsafe { mat_ptr.offset_from(self.material_list_ptr) };
         offset as u16
     }
 
@@ -203,7 +188,9 @@ impl ParticleWorldState {
                     }
                     let src = self.create_cell(world_x, world_y, self.blob_ptr);
                     if !src.is_null() {
-                        if let Some(liquid) = unsafe { (src as *mut ntypes::LiquidCell).as_mut() } {
+                        if let Some(liquid) =
+                            unsafe { src.cast::<ntypes::LiquidCell>().cast_mut().as_mut() }
+                        {
                             liquid.is_static = true;
                         }
                         *cell = src;
