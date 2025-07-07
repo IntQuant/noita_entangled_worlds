@@ -8,7 +8,7 @@ pub(crate) mod ntypes;
 #[derive(Default)]
 pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *const ntypes::GridWorld,
-    pub(crate) chunk_map_ptr: *const *const *mut *const ntypes::Cell,
+    pub(crate) chunk_map: &'static [*const *mut *const ntypes::Cell],
     pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_guy: u16,
     pub(crate) blob_ptr: *const ntypes::CellData,
@@ -85,7 +85,7 @@ impl ParticleWorldState {
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
-        let chunk = unsafe { self.chunk_map_ptr.offset(chunk_index).read() };
+        let chunk = self.chunk_map[chunk_index as usize];
         if chunk.is_null() {
             return Err(());
         }
