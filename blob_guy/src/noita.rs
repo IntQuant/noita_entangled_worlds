@@ -8,7 +8,7 @@ pub(crate) mod ntypes;
 #[derive(Default)]
 pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *const ntypes::GridWorld,
-    pub(crate) chunk_map: &'static [*const *mut *const ntypes::Cell],
+    pub(crate) chunk_map: &'static [*const &'static mut [*const ntypes::Cell; 512 * 512]],
     //pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_ptr: *const ntypes::CellData,
     pub(crate) construct_ptr: *const c_void,
@@ -79,7 +79,7 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-    ) -> Result<(isize, isize, &mut [*const ntypes::Cell]), ()> {
+    ) -> Result<(isize, isize, &mut [*const ntypes::Cell; 512 * 512]), ()> {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
@@ -88,17 +88,16 @@ impl ParticleWorldState {
         if chunk.is_null() {
             return Err(());
         }
-        let pixel_array_ptr = unsafe { chunk.read() };
-        let pixel_array = unsafe { std::slice::from_raw_parts_mut(pixel_array_ptr, 512 * 512) };
+        let pixel_array = unsafe { chunk.read() };
         Ok((shift_x, shift_y, pixel_array))
     }
     pub fn get_cell_raw(
         &self,
         x: isize,
         y: isize,
-        pixel_array: &mut [*const ntypes::Cell],
+        pixel_array: &mut [*const ntypes::Cell; 512 * 512],
     ) -> Option<&ntypes::Cell> {
-        let index = ((y & 511) << 9) | (x & 511);
+        let index = (y << 9) | x;
         let pixel = pixel_array[index as usize];
         if pixel.is_null() {
             return None;
@@ -110,10 +109,10 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-        pixel_array: &'a mut [*const ntypes::Cell],
+        pixel_array: &'a mut [*const ntypes::Cell; 512 * 512],
     ) -> &'a mut *const ntypes::Cell {
-        let index = ((y & 511) << 9) | (x & 511);
-        pixel_array.get_mut(index as usize).unwrap()
+        let index = (y << 9) | x;
+        &mut pixel_array[index as usize]
     }
     /*fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
