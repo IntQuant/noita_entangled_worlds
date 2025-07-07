@@ -9,7 +9,7 @@ use noita_api::lua::LUA;
 use noita_api::lua::LuaState;
 use noita_api::lua::lua_bindings::{LUA_REGISTRYINDEX, lua_State};
 use smallvec::SmallVec;
-use std::cell::{LazyCell, RefCell};
+use std::cell::RefCell;
 use std::ffi::{c_int, c_void};
 pub const CHUNK_SIZE: usize = 128;
 pub const CHUNK_AMOUNT: usize = 3;
@@ -21,9 +21,7 @@ struct State {
     blob_guy: u16,
 }
 thread_local! {
-    static STATE: LazyCell<RefCell<State>> = LazyCell::new(|| {
-        Default::default()
-    });
+    static STATE: RefCell<State> = Default::default();
 }
 /// # Safety
 ///
