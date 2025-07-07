@@ -2,6 +2,7 @@ use crate::chunk::{CellType, Chunk, ChunkPos};
 use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::f32::consts::PI;
 #[derive(Default, Debug, Clone, Copy)]
@@ -46,27 +47,33 @@ impl State {
         'upper: for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
             let c = blob.pos.to_chunk();
-            for ((x, y), chunk) in (c.x - OFFSET..=c.x + OFFSET)
-                .flat_map(|i| (c.y - OFFSET..=c.y + OFFSET).map(move |j| (i, j)))
-                .zip(self.world.iter_mut())
+            if self
+                .world
+                .par_iter_mut()
+                .enumerate()
+                .try_for_each(|(i, chunk)| unsafe {
+                    let x = i as isize / CHUNK_AMOUNT as isize + c.x;
+                    let y = i as isize % CHUNK_AMOUNT as isize + c.y;
+                    self.particle_world_state
+                        .encode_area(x - OFFSET, y - OFFSET, chunk)
+                })
+                .is_err()
             {
-                unsafe {
-                    if self.particle_world_state.encode_area(x, y, chunk).is_err() {
-                        blob.update(&mut [])?;
-                        continue 'upper;
-                    }
-                }
+                blob.update(&mut [])?;
+                continue 'upper;
             }
             blob.update(&mut self.world)?;
-            for ((x, y), chunk) in (c.x - OFFSET..=c.x + OFFSET)
-                .flat_map(|i| (c.y - OFFSET..=c.y + OFFSET).map(move |j| (i, j)))
+            for ((x, y), chunk) in (c.x..c.x + CHUNK_AMOUNT as isize)
+                .flat_map(|i| (c.y..c.y + CHUNK_AMOUNT as isize).map(move |j| (i, j)))
                 .zip(self.world.iter())
             {
-                if chunk.modified {
-                    unsafe {
-                        if self.particle_world_state.decode_area(x, y, chunk).is_err() {
-                            continue 'upper;
-                        }
+                unsafe {
+                    if self
+                        .particle_world_state
+                        .decode_area(x - OFFSET, y - OFFSET, chunk)
+                        .is_err()
+                    {
+                        continue 'upper;
                     }
                 }
             }

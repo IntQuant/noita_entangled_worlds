@@ -18,6 +18,8 @@ pub(crate) struct ParticleWorldState {
     #[cfg(target_arch = "x86")]
     pub(crate) remove_ptr: *const c_void,
 }
+unsafe impl Sync for ParticleWorldState {}
+unsafe impl Send for ParticleWorldState {}
 impl ParticleWorldState {
     fn create_cell(
         &self,
@@ -172,6 +174,9 @@ impl ParticleWorldState {
         Ok(())
     }
     pub(crate) unsafe fn decode_area(&self, x: isize, y: isize, chunk: &Chunk) -> Result<(), ()> {
+        if !chunk.modified {
+            return Ok(());
+        }
         let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
         let x = x * CHUNK_SIZE as isize;
         let y = y * CHUNK_SIZE as isize;
@@ -202,7 +207,7 @@ impl ParticleWorldState {
                     let world_x = x + i;
                     let world_y = y + j;
                     unsafe {
-                        std::thread::sleep(std::time::Duration::from_nanos(1));
+                        std::thread::sleep(std::time::Duration::from_nanos(0));
                         let cell = self.get_cell_raw_mut(shift_x + i, shift_y + j, pixel_array);
                         if !(*cell).is_null() {
                             self.remove_cell(*cell, world_x, world_y);
