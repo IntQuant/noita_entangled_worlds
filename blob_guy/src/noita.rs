@@ -27,10 +27,10 @@ impl ParticleWorldState {
         y: isize,
         material: *const c_void,
         //_memory: *const c_void,
-    ) -> *mut ntypes::Cell {
+    ) -> *const ntypes::Cell {
         #[cfg(target_arch = "x86")]
         unsafe {
-            let cell_ptr: *mut ntypes::Cell;
+            let cell_ptr: *const ntypes::Cell;
             asm!(
                 "mov ecx, {world}",
                 "push 0",
@@ -54,7 +54,7 @@ impl ParticleWorldState {
             unreachable!()
         }
     }
-    fn remove_cell(&self, cell: *mut ntypes::Cell, x: isize, y: isize) {
+    fn remove_cell(&self, cell: *const ntypes::Cell, x: isize, y: isize) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
@@ -118,10 +118,10 @@ impl ParticleWorldState {
         x: isize,
         y: isize,
         pixel_array: *const c_void,
-    ) -> *mut *mut ntypes::Cell {
+    ) -> *mut *const ntypes::Cell {
         let index = ((y & 511) << 9) | (x & 511);
         let pixel = unsafe { pixel_array.offset(index * 4) };
-        pixel as *mut *mut ntypes::Cell
+        pixel as *mut *const ntypes::Cell
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
