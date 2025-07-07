@@ -10,9 +10,9 @@ pub(crate) struct ParticleWorldState {
     #[cfg(target_arch = "x86")]
     pub(crate) world_ptr: *const c_void,
     pub(crate) chunk_map_ptr: *const c_void,
-    pub(crate) material_list_ptr: *const c_void,
+    pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_guy: u16,
-    pub(crate) blob_ptr: *const c_void,
+    pub(crate) blob_ptr: *const ntypes::CellData,
     #[cfg(target_arch = "x86")]
     pub(crate) construct_ptr: *const c_void,
     #[cfg(target_arch = "x86")]
@@ -25,7 +25,7 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-        material: *const c_void,
+        material: *const ntypes::CellData,
         //_memory: *const c_void,
     ) -> *const ntypes::Cell {
         #[cfg(target_arch = "x86")]
@@ -132,8 +132,12 @@ impl ParticleWorldState {
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
-        let offset = unsafe { mat_ptr.cast::<c_void>().offset_from(self.material_list_ptr) };
-        (offset / size_of::<ntypes::CellData>() as isize) as u16
+        let offset = unsafe {
+            mat_ptr
+                .cast::<ntypes::CellData>()
+                .offset_from(self.material_list_ptr)
+        };
+        offset as u16
     }
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {

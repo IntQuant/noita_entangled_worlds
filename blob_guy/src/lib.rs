@@ -54,7 +54,7 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         #[cfg(target_arch = "x86")]
         let world_ptr = lua.to_integer(1) as *const c_void;
         let chunk_map_ptr = unsafe { (lua.to_integer(2) as *const c_void).offset(8) };
-        let material_list_ptr = lua.to_integer(3) as *const c_void;
+        let material_list_ptr = lua.to_integer(3) as *const noita::ntypes::CellData;
         #[cfg(target_arch = "x86")]
         let construct_ptr = lua.to_integer(4) as *const c_void;
         #[cfg(target_arch = "x86")]
@@ -67,10 +67,7 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
             chunk_map_ptr,
             material_list_ptr,
             blob_guy,
-            blob_ptr: unsafe {
-                material_list_ptr
-                    .offset(size_of::<noita::ntypes::CellData>() as isize * blob_guy as isize)
-            },
+            blob_ptr: unsafe { material_list_ptr.offset(blob_guy as isize) },
             #[cfg(target_arch = "x86")]
             construct_ptr,
             #[cfg(target_arch = "x86")]
