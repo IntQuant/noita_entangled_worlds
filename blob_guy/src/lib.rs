@@ -11,8 +11,6 @@ use noita_api::lua::lua_bindings::{LUA_REGISTRYINDEX, lua_State};
 use smallvec::SmallVec;
 use std::cell::{LazyCell, RefCell};
 use std::ffi::{c_int, c_void};
-use std::hint::black_box;
-use std::sync::LazyLock;
 pub const CHUNK_SIZE: usize = 128;
 pub const CHUNK_AMOUNT: usize = 3;
 #[derive(Default)]
@@ -27,14 +25,11 @@ thread_local! {
         Default::default()
     });
 }
-static KEEP_SELF_LOADED: LazyLock<Result<libloading::Library, libloading::Error>> =
-    LazyLock::new(|| unsafe { libloading::Library::new("blob_guy.dll") });
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn luaopen_blob_guy(lua: *mut lua_State) -> c_int {
-    let _ = black_box(KEEP_SELF_LOADED.as_ref());
     unsafe {
         LUA.lua_createtable(lua, 0, 0);
         LUA.lua_createtable(lua, 0, 0);
