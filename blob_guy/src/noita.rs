@@ -9,8 +9,7 @@ pub(crate) mod ntypes;
 pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *const ntypes::GridWorld,
     pub(crate) chunk_map: &'static [*const *mut *const ntypes::Cell],
-    pub(crate) material_list_ptr: *const ntypes::CellData,
-    pub(crate) blob_guy: u16,
+    //pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_ptr: *const ntypes::CellData,
     pub(crate) construct_ptr: *const c_void,
     pub(crate) remove_ptr: *const c_void,
@@ -116,11 +115,11 @@ impl ParticleWorldState {
         let index = ((y & 511) << 9) | (x & 511);
         pixel_array.get_mut(index as usize).unwrap()
     }
-    fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
+    /*fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
         let offset = unsafe { mat_ptr.offset_from(self.material_list_ptr) };
         offset as u16
-    }
+    }*/
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
         unsafe { Some(cell.material_ptr().as_ref()?.cell_type) }
@@ -143,7 +142,7 @@ impl ParticleWorldState {
             {
                 match cell_type {
                     ntypes::CellType::Liquid => {
-                        if self.get_cell_material_id(cell) == self.blob_guy {
+                        if cell.material_ptr == self.blob_ptr {
                             modified = true;
                             CellType::Remove
                         } else {

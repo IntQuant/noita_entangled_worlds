@@ -62,8 +62,6 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         let pws = ParticleWorldState {
             world_ptr,
             chunk_map,
-            material_list_ptr,
-            blob_guy,
             blob_ptr: unsafe { material_list_ptr.offset(blob_guy as isize) },
             construct_ptr,
             remove_ptr,
