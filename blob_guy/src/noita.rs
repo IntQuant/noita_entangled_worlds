@@ -13,17 +13,14 @@ pub(crate) struct ParticleWorldState {
     pub(crate) material_list_ptr: *const c_void,
     pub(crate) blob_guy: u16,
     pub(crate) blob_ptr: *const c_void,
-    pub(crate) pixel_array: *const c_void,
     #[cfg(target_arch = "x86")]
     pub(crate) construct_ptr: *const c_void,
     #[cfg(target_arch = "x86")]
     pub(crate) remove_ptr: *const c_void,
-    pub(crate) shift_x: isize,
-    pub(crate) shift_y: isize,
 }
 impl ParticleWorldState {
     fn create_cell(
-        &mut self,
+        &self,
         x: isize,
         y: isize,
         material: *const c_void,
@@ -55,7 +52,7 @@ impl ParticleWorldState {
             unreachable!()
         }
     }
-    fn remove_cell(&mut self, cell: *mut ntypes::Cell, x: isize, y: isize) {
+    fn remove_cell(&self, cell: *mut ntypes::Cell, x: isize, y: isize) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
@@ -79,37 +76,49 @@ impl ParticleWorldState {
             unreachable!()
         }
     }
-    pub fn set_chunk(&mut self, x: isize, y: isize) -> Result<(), ()> {
+    pub fn set_chunk(&self, x: isize, y: isize) -> Result<(isize, isize, *const c_void), ()> {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
-        self.shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
-        self.shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
-        let chunk_index = (((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511)) * 4;
+        let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
+        let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
+        let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
         // Deref 1/3
         let chunk_arr = unsafe { self.chunk_map_ptr.cast::<*const c_void>().read() };
         // Deref 2/3
-        let chunk = unsafe { chunk_arr.offset(chunk_index).cast::<*const c_void>().read() };
+        let chunk = unsafe {
+            chunk_arr
+                .offset(chunk_index * 4)
+                .cast::<*const c_void>()
+                .read()
+        };
         if chunk.is_null() {
             return Err(());
         }
         // Deref 3/3
         let pixel_array = unsafe { chunk.cast::<*const c_void>().read() };
-        self.pixel_array = pixel_array;
-        Ok(())
+        Ok((shift_x, shift_y, pixel_array))
     }
-    pub fn get_cell_raw(&self, x: isize, y: isize) -> Option<&ntypes::Cell> {
-        let x = x + self.shift_x;
-        let y = y + self.shift_y;
-        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
+    pub fn get_cell_raw(
+        &self,
+        x: isize,
+        y: isize,
+        pixel_array: *const c_void,
+    ) -> Option<&ntypes::Cell> {
+        let index = ((y & 511) << 9) | (x & 511);
+        let pixel = unsafe { pixel_array.offset(index * 4) };
         if pixel.is_null() {
             return None;
         }
 
         unsafe { pixel.cast::<*const ntypes::Cell>().read().as_ref() }
     }
-    fn get_cell_raw_mut(&mut self, x: isize, y: isize) -> *mut *mut ntypes::Cell {
-        let x = x + self.shift_x;
-        let y = y + self.shift_y;
-        let pixel = unsafe { self.pixel_array.offset((((y & 511) << 9) | (x & 511)) * 4) };
+    fn get_cell_raw_mut(
+        &self,
+        x: isize,
+        y: isize,
+        pixel_array: *const c_void,
+    ) -> *mut *mut ntypes::Cell {
+        let index = ((y & 511) << 9) | (x & 511);
+        let pixel = unsafe { pixel_array.offset(index * 4) };
         pixel as *mut *mut ntypes::Cell
     }
     fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
@@ -123,18 +132,18 @@ impl ParticleWorldState {
     }
 
     pub(crate) unsafe fn encode_area(
-        &mut self,
+        &self,
         x: isize,
         y: isize,
         chunk: &mut Chunk,
     ) -> Result<(), ()> {
-        self.set_chunk(x, y)?;
+        let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
         let mut modified = false;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *pixel = if let Some(cell) = self.get_cell_raw(i, j)
+            *pixel = if let Some(cell) = self.get_cell_raw(shift_x + i, shift_y + j, pixel_array)
                 && let Some(cell_type) = self.get_cell_type(cell)
             {
                 match cell_type {
@@ -162,13 +171,8 @@ impl ParticleWorldState {
         chunk.modified = modified;
         Ok(())
     }
-    pub(crate) unsafe fn decode_area(
-        &mut self,
-        x: isize,
-        y: isize,
-        chunk: &Chunk,
-    ) -> Result<(), ()> {
-        self.set_chunk(x, y)?;
+    pub(crate) unsafe fn decode_area(&self, x: isize, y: isize, chunk: &Chunk) -> Result<(), ()> {
+        let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
         let x = x * CHUNK_SIZE as isize;
         let y = y * CHUNK_SIZE as isize;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
@@ -177,15 +181,15 @@ impl ParticleWorldState {
         {
             match pixel {
                 CellType::Blob => {
-                    let x = x + i;
-                    let y = y + j;
+                    let world_x = x + i;
+                    let world_y = y + j;
                     unsafe {
-                        let cell = self.get_cell_raw_mut(i, j);
+                        let cell = self.get_cell_raw_mut(shift_x + i, shift_y + j, pixel_array);
                         if !(*cell).is_null() {
-                            self.remove_cell(*cell, x, y);
+                            self.remove_cell(*cell, world_x, world_y);
                             *cell = ptr::null_mut();
                         }
-                        let src = self.create_cell(x, y, self.blob_ptr);
+                        let src = self.create_cell(world_x, world_y, self.blob_ptr);
                         if !src.is_null() {
                             let liquid: &mut ntypes::LiquidCell =
                                 &mut *(src as *mut ntypes::LiquidCell);
@@ -195,12 +199,13 @@ impl ParticleWorldState {
                     }
                 }
                 CellType::Remove => {
-                    let x = x + i;
-                    let y = y + j;
+                    let world_x = x + i;
+                    let world_y = y + j;
                     unsafe {
-                        let cell = self.get_cell_raw_mut(i, j);
+                        std::thread::sleep(std::time::Duration::from_nanos(1));
+                        let cell = self.get_cell_raw_mut(shift_x + i, shift_y + j, pixel_array);
                         if !(*cell).is_null() {
-                            self.remove_cell(*cell, x, y);
+                            self.remove_cell(*cell, world_x, world_y);
                             *cell = ptr::null_mut();
                         }
                     }

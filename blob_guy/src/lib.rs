@@ -71,13 +71,10 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
                 material_list_ptr
                     .offset(size_of::<noita::ntypes::CellData>() as isize * blob_guy as isize)
             },
-            pixel_array: Default::default(),
             #[cfg(target_arch = "x86")]
             construct_ptr,
             #[cfg(target_arch = "x86")]
             remove_ptr,
-            shift_x: 0,
-            shift_y: 0,
         };
         state.particle_world_state = pws;
         Ok(())

@@ -27,10 +27,11 @@ impl State {
                 y: y as f32,
             }
             .to_chunk();
-            if self.particle_world_state.set_chunk(pos.x, pos.y).is_ok() {
+            if let Ok((_, _, pixel_array)) = self.particle_world_state.set_chunk(pos.x, pos.y) {
                 if let Some(cell) = self.particle_world_state.get_cell_raw(
-                    (x.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
-                    (y.floor() as isize).rem_euclid(CHUNK_SIZE as isize),
+                    (x.floor() as isize).rem_euclid(512),
+                    (y.floor() as isize).rem_euclid(512),
+                    pixel_array,
                 ) {
                     noita_api::print(format!("{cell:?}"));
                     noita_api::print(format!("{:?}", unsafe { cell.material_ptr.as_ref() }));
@@ -51,6 +52,7 @@ impl State {
             {
                 unsafe {
                     if self.particle_world_state.encode_area(x, y, chunk).is_err() {
+                        blob.update(&mut [])?;
                         continue 'upper;
                     }
                 }
@@ -127,7 +129,7 @@ impl Blob {
             n.1 / self.pixels.len() as isize,
         )
     }
-    pub fn update(&mut self, map: &mut [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT]) -> eyre::Result<()> {
+    pub fn update(&mut self, map: &mut [Chunk]) -> eyre::Result<()> {
         let mean = self.mean();
         let theta = (mean.1 as f32 - self.pos.y).atan2(mean.0 as f32 - self.pos.x);
         for p in self.pixels.values_mut() {
