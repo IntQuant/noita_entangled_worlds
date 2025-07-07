@@ -51,26 +51,20 @@ pub unsafe extern "C" fn luaopen_blob_guy(lua: *mut lua_State) -> c_int {
 fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
-        #[cfg(target_arch = "x86")]
-        let world_ptr = lua.to_integer(1) as *const c_void;
+        let world_ptr = lua.to_integer(1) as *const noita::ntypes::GridWorld;
         let chunk_map_ptr = unsafe { (lua.to_integer(2) as *const c_void).offset(8) };
         let material_list_ptr = lua.to_integer(3) as *const noita::ntypes::CellData;
-        #[cfg(target_arch = "x86")]
         let construct_ptr = lua.to_integer(4) as *const c_void;
-        #[cfg(target_arch = "x86")]
         let remove_ptr = lua.to_integer(5) as *const c_void;
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
         let pws = ParticleWorldState {
-            #[cfg(target_arch = "x86")]
             world_ptr,
             chunk_map_ptr,
             material_list_ptr,
             blob_guy,
             blob_ptr: unsafe { material_list_ptr.offset(blob_guy as isize) },
-            #[cfg(target_arch = "x86")]
             construct_ptr,
-            #[cfg(target_arch = "x86")]
             remove_ptr,
         };
         state.particle_world_state = pws;

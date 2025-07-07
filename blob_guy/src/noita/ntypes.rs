@@ -17,7 +17,7 @@ pub struct Colour {
     a: u8,
 }
 
-/*impl Debug for CellArrayPtr {
+impl Debug for CellArrayPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
@@ -27,17 +27,17 @@ impl Debug for CellPtr {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
 }
-impl Debug for CellDataPtr {
+/*impl Debug for CellDataPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
 }
 
 #[repr(C)]
-pub(crate) struct CellPtr(pub *const Cell);
+pub(crate) struct CellDataPtr(pub *const CellData);*/
 
 #[repr(C)]
-pub(crate) struct CellDataPtr(pub *const CellData);
+pub(crate) struct CellPtr(pub *const Cell);
 
 #[repr(C)]
 pub(crate) struct CellArrayPtr(pub *mut CellPtr);
@@ -87,7 +87,7 @@ pub struct GridWorld {
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
     m_thread_impl: *const c_void,
-}*/
+}
 
 #[repr(C)]
 union Buffer {

@@ -7,15 +7,12 @@ pub(crate) mod ntypes;
 //pub(crate) mod pixel;
 #[derive(Default)]
 pub(crate) struct ParticleWorldState {
-    #[cfg(target_arch = "x86")]
-    pub(crate) world_ptr: *const c_void,
+    pub(crate) world_ptr: *const ntypes::GridWorld,
     pub(crate) chunk_map_ptr: *const c_void,
     pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_guy: u16,
     pub(crate) blob_ptr: *const ntypes::CellData,
-    #[cfg(target_arch = "x86")]
     pub(crate) construct_ptr: *const c_void,
-    #[cfg(target_arch = "x86")]
     pub(crate) remove_ptr: *const c_void,
 }
 unsafe impl Sync for ParticleWorldState {}
@@ -50,7 +47,7 @@ impl ParticleWorldState {
         }
         #[cfg(target_arch = "x86_64")]
         {
-            std::hint::black_box((x, y, material));
+            std::hint::black_box((x, y, material, self.world_ptr, self.construct_ptr));
             unreachable!()
         }
     }
@@ -74,7 +71,7 @@ impl ParticleWorldState {
         }
         #[cfg(target_arch = "x86_64")]
         {
-            std::hint::black_box((x, y, cell));
+            std::hint::black_box((x, y, cell, self.world_ptr, self.remove_ptr));
             unreachable!()
         }
     }
