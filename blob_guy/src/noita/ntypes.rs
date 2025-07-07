@@ -17,7 +17,7 @@ pub struct Colour {
     a: u8,
 }
 
-impl Debug for CellArrayPtr {
+/*impl Debug for CellArrayPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
@@ -27,14 +27,14 @@ impl Debug for CellPtr {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
 }
-/*impl Debug for CellDataPtr {
+impl Debug for CellDataPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", unsafe { self.0.as_ref() })
     }
 }
 
 #[repr(C)]
-pub(crate) struct CellDataPtr(pub *const CellData);*/
+pub(crate) struct CellDataPtr(pub *const CellData);
 
 #[repr(C)]
 pub(crate) struct CellPtr(pub *const Cell);
@@ -43,12 +43,12 @@ pub(crate) struct CellPtr(pub *const Cell);
 pub(crate) struct CellArrayPtr(pub *mut CellPtr);
 #[derive(Debug)]
 #[repr(C)]
-pub(crate) struct ChunkArray(pub *mut CellArrayPtr);
+pub(crate) struct ChunkArray(pub *mut CellArrayPtr);*/
 
 #[repr(C)]
 pub struct ChunkMap {
     unknown: [isize; 2],
-    pub cell_array: ChunkArray,
+    pub cell_array: *const *const *mut *const Cell,
     unknown2: [isize; 8],
 }
 
