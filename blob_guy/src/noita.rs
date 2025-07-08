@@ -3,19 +3,20 @@ use crate::chunk::{CellType, Chunk};
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
 use std::{ffi::c_void, mem, ptr};
-pub(crate) mod ntypes;
-//pub(crate) mod pixel;
+pub mod ntypes;
 #[derive(Default)]
-pub(crate) struct ParticleWorldState {
-    pub(crate) world_ptr: *const ntypes::GridWorld,
-    pub(crate) chunk_map: &'static [*mut &'static mut [*const ntypes::Cell; 512 * 512]],
-    //pub(crate) material_list_ptr: *const ntypes::CellData,
-    pub(crate) blob_ptr: *const ntypes::CellData,
-    pub(crate) construct_ptr: *const c_void,
-    pub(crate) remove_ptr: *const c_void,
+pub struct ParticleWorldState {
+    pub world_ptr: *const ntypes::GridWorld,
+    pub chunk_map: &'static [*mut &'static mut [*const ntypes::Cell; 512 * 512]],
+    pub material_list_ptr: *const ntypes::CellData,
+    pub material_list: &'static [ntypes::CellData],
+    pub blob_ptr: *const ntypes::CellData,
+    pub construct_ptr: *const c_void,
+    pub remove_ptr: *const c_void,
 }
 unsafe impl Sync for ParticleWorldState {}
 unsafe impl Send for ParticleWorldState {}
+#[allow(clippy::result_unit_err)]
 impl ParticleWorldState {
     fn create_cell(
         &self,
@@ -111,31 +112,25 @@ impl ParticleWorldState {
 
         unsafe { pixel.as_ref() }
     }
-    /*fn get_cell_raw_mut<'a>(
+    pub fn get_cell_raw_mut<'a>(
         &self,
         x: isize,
         y: isize,
-        pixel_array:&'a mut &'a mut [*const ntypes::Cell; 512 * 512],
+        pixel_array: &'a mut &'a mut [*const ntypes::Cell; 512 * 512],
     ) -> &'a mut *const ntypes::Cell {
         let index = (y << 9) | x;
         &mut pixel_array[index as usize]
     }
-    fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
-        let mat_ptr = cell.material_ptr();
-        let offset = unsafe { mat_ptr.offset_from(self.material_list_ptr) };
+    pub fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
+        let offset = unsafe { cell.material_ptr.offset_from(self.material_list_ptr) };
         offset as u16
-    }*/
+    }
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
         unsafe { Some(cell.material_ptr.as_ref()?.cell_type) }
     }
-
-    pub(crate) unsafe fn encode_area(
-        &self,
-        x: isize,
-        y: isize,
-        chunk: &mut Chunk,
-    ) -> Result<(), ()> {
+    ///# Safety
+    pub unsafe fn encode_area(&self, x: isize, y: isize, chunk: &mut Chunk) -> Result<(), ()> {
         let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
         let pixel_array = unsafe { pixel_array.as_mut() }.unwrap();
         let mut modified = false;
@@ -173,7 +168,8 @@ impl ParticleWorldState {
         chunk.modified = modified;
         Ok(())
     }
-    pub(crate) unsafe fn decode_area(&self, x: isize, y: isize, chunk: &Chunk) -> Result<(), ()> {
+    ///# Safety
+    pub unsafe fn decode_area(&self, x: isize, y: isize, chunk: &Chunk) -> Result<(), ()> {
         if !chunk.modified {
             return Ok(());
         }
@@ -222,5 +218,19 @@ impl ParticleWorldState {
             }
         }
         Ok(())
+    }
+    ///# Safety
+    pub unsafe fn clone_chunks(&self) -> Vec<(usize, usize, [Option<ntypes::Cell>; 512 * 512])> {
+        self.chunk_map
+            .iter()
+            .enumerate()
+            .filter_map(|(i, c)| {
+                unsafe { c.as_ref() }.map(|c| {
+                    let x = i % 512;
+                    let y = i / 512;
+                    (x, y, c.map(|p| unsafe { p.as_ref() }.cloned()))
+                })
+            })
+            .collect::<Vec<_>>()
     }
 }

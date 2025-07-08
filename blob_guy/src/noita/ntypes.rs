@@ -17,34 +17,6 @@ pub struct Colour {
     a: u8,
 }
 
-/*impl Debug for CellArrayPtr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", unsafe { self.0.as_ref() })
-    }
-}
-impl Debug for CellPtr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", unsafe { self.0.as_ref() })
-    }
-}
-impl Debug for CellDataPtr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", unsafe { self.0.as_ref() })
-    }
-}
-
-#[repr(C)]
-pub(crate) struct CellDataPtr(pub *const CellData);
-
-#[repr(C)]
-pub(crate) struct CellPtr(pub *const Cell);
-
-#[repr(C)]
-pub(crate) struct CellArrayPtr(pub *mut CellPtr);
-#[derive(Debug)]
-#[repr(C)]
-pub(crate) struct ChunkArray(pub *mut CellArrayPtr);*/
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct ChunkMap {
@@ -125,7 +97,6 @@ impl Debug for StdString {
 }
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-#[expect(dead_code)]
 pub enum CellType {
     None = 0,
     Liquid = 1,
@@ -483,7 +454,7 @@ impl CellVTable {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cell {
     pub vtable: *const CellVTable,
 

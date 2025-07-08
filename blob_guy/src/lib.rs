@@ -48,14 +48,19 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
         let chunk_map_ptr = unsafe { world_ptr.as_ref().unwrap() }.chunk_map.cell_array;
         let chunk_map = unsafe { std::slice::from_raw_parts(chunk_map_ptr, 512 * 512) };
         let material_list_ptr = lua.to_integer(2) as *const noita::ntypes::CellData;
-        let construct_ptr = lua.to_integer(3) as *const c_void;
-        let remove_ptr = lua.to_integer(4) as *const c_void;
+        let mat_len = lua.to_integer(3);
+        let material_list =
+            unsafe { std::slice::from_raw_parts(material_list_ptr, mat_len as usize) };
+        let construct_ptr = lua.to_integer(4) as *const c_void;
+        let remove_ptr = lua.to_integer(5) as *const c_void;
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
         let pws = ParticleWorldState {
             world_ptr,
             chunk_map,
             blob_ptr: unsafe { material_list_ptr.offset(blob_guy as isize) },
+            material_list_ptr,
+            material_list,
             construct_ptr,
             remove_ptr,
         };

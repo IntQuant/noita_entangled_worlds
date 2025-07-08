@@ -42,7 +42,7 @@ impl State {
             }
         }
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(256.0, -64.0 - 32.0));
+            self.blobs.push(Blob::new(256.0, -(64.0 + 32.0)));
         }
         'upper: for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
