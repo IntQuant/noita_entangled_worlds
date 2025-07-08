@@ -492,7 +492,7 @@ pub struct Cell {
 unsafe impl Sync for Cell {}
 unsafe impl Send for Cell {}
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Debug, Copy)]
 pub enum FullCell {
     Cell(Cell),
     LiquidCell(LiquidCell),
@@ -501,14 +501,12 @@ pub enum FullCell {
 }
 impl From<Cell> for FullCell {
     fn from(value: Cell) -> Self {
-        if let Some(mat) = unsafe { value.material_ptr.as_ref() } {
-            if mat.cell_type == CellType::Liquid {
-                FullCell::LiquidCell(*unsafe { value.get_liquid() })
-            } else {
-                FullCell::Cell(value)
-            }
+        if let Some(mat) = unsafe { value.material_ptr.as_ref() }
+            && mat.cell_type == CellType::Liquid
+        {
+            FullCell::LiquidCell(*unsafe { value.get_liquid() })
         } else {
-            FullCell::None
+            FullCell::Cell(value)
         }
     }
 }

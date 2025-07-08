@@ -213,14 +213,14 @@ impl ParticleWorldState {
     }
     ///# Safety
     #[allow(clippy::type_complexity)]
-    pub unsafe fn clone_chunks(&self) -> Vec<((usize, usize), Vec<ntypes::FullCell>)> {
+    pub unsafe fn clone_chunks(&self) -> Vec<((isize, isize), Vec<ntypes::FullCell>)> {
         self.chunk_map
             .into_par_iter()
             .enumerate()
             .filter_map(|(i, c)| {
                 unsafe { c.0.as_ref() }.map(|c| {
-                    let x = i % 512;
-                    let y = i / 512;
+                    let x = i as isize % 512 - 216;
+                    let y = i as isize / 512 - 216;
                     (
                         (x, y),
                         c.iter()
@@ -234,7 +234,7 @@ impl ParticleWorldState {
                     )
                 })
             })
-            .collect::<Vec<((usize, usize), Vec<ntypes::FullCell>)>>()
+            .collect::<Vec<((isize, isize), Vec<ntypes::FullCell>)>>()
     }
     ///# Safety
     pub unsafe fn debug_mouse_pos(&self) -> eyre::Result<()> {
@@ -250,12 +250,8 @@ impl ParticleWorldState {
                 (y.floor() as isize).rem_euclid(512),
                 unsafe { pixel_array.as_mut() }.unwrap(),
             ) {
-                let cell_type = self.get_cell_type(cell);
-                if cell_type == Some(ntypes::CellType::Liquid) {
-                    noita_api::print!("{:?}", unsafe { cell.get_liquid() });
-                } else {
-                    noita_api::print!("{cell:?}");
-                }
+                let full = ntypes::FullCell::from(*cell);
+                noita_api::print!("{full:?}");
                 noita_api::print!("{:?}", unsafe { cell.material_ptr.as_ref() });
             } else {
                 noita_api::print!("mat nil");
