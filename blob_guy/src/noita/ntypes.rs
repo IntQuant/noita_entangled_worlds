@@ -10,11 +10,11 @@ use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Colour {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
+pub struct Color {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
 }
 
 #[derive(Default, Clone, Copy)]
@@ -165,11 +165,11 @@ pub struct CellData {
     pub id_2: isize,
     pub cell_type: CellType,
     pub platform_type: isize,
-    pub wang_color: Colour,
+    pub wang_color: Color,
     pub gfx_glow: isize,
-    pub gfx_glow_color: Colour,
+    pub gfx_glow_color: Color,
     unknown1: [isize; 6],
-    pub default_primary_colour: Colour,
+    pub default_primary_color: Color,
     unknown2: [isize; 9],
     pub cell_holes_in_texture: bool,
     pub stainable: bool,
@@ -215,7 +215,7 @@ pub struct CellData {
     pub liquid_gravity: f32,
     pub liquid_viscosity: isize,
     pub liquid_stains: isize,
-    pub liquid_stains_custom_color: Colour,
+    pub liquid_stains_custom_color: Color,
     pub liquid_sprite_stain_shaken_drop_chance: f32,
     pub liquid_sprite_stain_ignited_drop_chance: f32,
     pub liquid_sprite_stains_check_offset: i8,
@@ -283,11 +283,11 @@ impl Default for CellData {
             id_2: -1,
             cell_type: CellType::Liquid,
             platform_type: -1,
-            wang_color: Colour::default(),
+            wang_color: Color::default(),
             gfx_glow: 0,
-            gfx_glow_color: Colour::default(),
+            gfx_glow_color: Color::default(),
             unknown1: [0, 0, 0, 0, 0, 15],
-            default_primary_colour: Colour::default(),
+            default_primary_color: Color::default(),
             unknown2: [0, 0, 0, 0, 0, 0, 0, 0, 0],
             cell_holes_in_texture: false,
             stainable: true,
@@ -333,7 +333,7 @@ impl Default for CellData {
             liquid_gravity: 0.5,
             liquid_viscosity: 50,
             liquid_stains: 0,
-            liquid_stains_custom_color: Colour::default(),
+            liquid_stains_custom_color: Color::default(),
             liquid_sprite_stain_shaken_drop_chance: 1.0,
             liquid_sprite_stain_ignited_drop_chance: 10.0,
             liquid_sprite_stains_check_offset: 0,
@@ -488,7 +488,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_color(&self, cell: *const Cell) -> Colour {
+    pub fn get_color(&self, cell: *const Cell) -> Color {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u32;
@@ -508,7 +508,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn set_color(&self, cell: *const Cell, color: Colour) {
+    pub fn set_color(&self, cell: *const Cell, color: Color) {
         #[cfg(target_arch = "x86")]
         unsafe {
             let color: u32 = std::mem::transmute(color);
@@ -686,6 +686,6 @@ pub struct LiquidCell {
     pub is_static: bool,
     unknown3: u8,
     unknown4: [u8; 3],
-    pub colour: Colour,
-    pub not_colour: Colour,
+    pub color: Color,
+    pub not_color: Color,
 }
