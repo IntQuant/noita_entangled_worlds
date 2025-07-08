@@ -250,12 +250,11 @@ impl ParticleWorldState {
                 (y.floor() as isize).rem_euclid(512),
                 unsafe { pixel_array.as_mut() }.unwrap(),
             ) {
-                noita_api::print!("{cell:?}");
                 let cell_type = self.get_cell_type(cell);
                 if cell_type == Some(ntypes::CellType::Liquid) {
                     noita_api::print!("{:?}", unsafe { cell.get_liquid() });
                 } else {
-                    noita_api::print!("{:?}", cell_type);
+                    noita_api::print!("{cell:?}");
                 }
                 noita_api::print!("{:?}", unsafe { cell.material_ptr.as_ref() });
             } else {
