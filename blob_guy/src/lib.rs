@@ -45,8 +45,7 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         let world_ptr = lua.to_integer(1) as *const noita::ntypes::GridWorld;
-        let chunk_map_ptr = unsafe { world_ptr.as_ref().unwrap() }.chunk_map.cell_array;
-        let chunk_map = unsafe { std::slice::from_raw_parts(chunk_map_ptr, 512 * 512) };
+        let chunk_map = unsafe { world_ptr.as_ref().unwrap() }.chunk_map.cell_array;
         let material_list_ptr = lua.to_integer(2) as *const noita::ntypes::CellData;
         let mat_len = lua.to_integer(3);
         let material_list =

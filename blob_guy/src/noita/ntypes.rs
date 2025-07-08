@@ -17,11 +17,21 @@ pub struct Colour {
     a: u8,
 }
 
+#[derive(Default, Clone, Copy)]
+pub struct ChunkPtr(pub *mut &'static mut [CellPtr; 512 * 512]);
+impl Debug for ChunkPtr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", unsafe { self.0.as_ref() })
+    }
+}
+unsafe impl Sync for ChunkPtr {}
+unsafe impl Send for ChunkPtr {}
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct ChunkMap {
     unknown: [isize; 2],
-    pub cell_array: *const *mut &'static mut [*const Cell; 512 * 512],
+    pub cell_array: &'static [ChunkPtr; 512 * 512],
     unknown2: [isize; 8],
 }
 
@@ -454,7 +464,7 @@ impl CellVTable {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Cell {
     pub vtable: *const CellVTable,
 
@@ -464,6 +474,17 @@ pub struct Cell {
     unknown2: [u8; 3],
     pub material_ptr: *const CellData,
 }
+unsafe impl Sync for Cell {}
+unsafe impl Send for Cell {}
+
+pub struct CellPtr(pub *const Cell);
+impl Debug for CellPtr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", unsafe { self.0.as_ref() })
+    }
+}
+unsafe impl Sync for CellPtr {}
+unsafe impl Send for CellPtr {}
 
 #[repr(C)]
 #[derive(Debug)]

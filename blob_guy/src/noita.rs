@@ -1,18 +1,31 @@
 use crate::CHUNK_SIZE;
 use crate::chunk::{CellType, Chunk};
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
 use std::{ffi::c_void, mem, ptr};
 pub mod ntypes;
-#[derive(Default)]
 pub struct ParticleWorldState {
     pub world_ptr: *const ntypes::GridWorld,
-    pub chunk_map: &'static [*mut &'static mut [*const ntypes::Cell; 512 * 512]],
+    pub chunk_map: &'static [ntypes::ChunkPtr; 512 * 512],
     pub material_list_ptr: *const ntypes::CellData,
     pub material_list: &'static [ntypes::CellData],
     pub blob_ptr: *const ntypes::CellData,
     pub construct_ptr: *const c_void,
     pub remove_ptr: *const c_void,
+}
+impl Default for ParticleWorldState {
+    fn default() -> Self {
+        Self {
+            world_ptr: Default::default(),
+            chunk_map: &[ntypes::ChunkPtr(ptr::null_mut()); 512 * 512],
+            material_list_ptr: Default::default(),
+            material_list: Default::default(),
+            blob_ptr: Default::default(),
+            construct_ptr: Default::default(),
+            remove_ptr: Default::default(),
+        }
+    }
 }
 unsafe impl Sync for ParticleWorldState {}
 unsafe impl Send for ParticleWorldState {}
@@ -80,19 +93,12 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-    ) -> Result<
-        (
-            isize,
-            isize,
-            *mut &'static mut [*const ntypes::Cell; 512 * 512],
-        ),
-        (),
-    > {
+    ) -> Result<(isize, isize, *mut &'static mut [ntypes::CellPtr; 512 * 512]), ()> {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         let chunk_index = ((((y >> SCALE) - 256) & 511) << 9) | (((x >> SCALE) - 256) & 511);
-        let chunk = self.chunk_map[chunk_index as usize];
+        let chunk = self.chunk_map[chunk_index as usize].0;
         if chunk.is_null() {
             return Err(());
         }
@@ -102,10 +108,10 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-        pixel_array: &&mut [*const ntypes::Cell; 512 * 512],
+        pixel_array: &&mut [ntypes::CellPtr; 512 * 512],
     ) -> Option<&ntypes::Cell> {
         let index = (y << 9) | x;
-        let pixel = pixel_array[index as usize];
+        let pixel = pixel_array[index as usize].0;
         if pixel.is_null() {
             return None;
         }
@@ -116,10 +122,10 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-        pixel_array: &'a mut &'a mut [*const ntypes::Cell; 512 * 512],
+        pixel_array: &'a mut &'a mut [ntypes::CellPtr; 512 * 512],
     ) -> &'a mut *const ntypes::Cell {
         let index = (y << 9) | x;
-        &mut pixel_array[index as usize]
+        &mut pixel_array[index as usize].0
     }
     pub fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let offset = unsafe { cell.material_ptr.offset_from(self.material_list_ptr) };
@@ -180,7 +186,7 @@ impl ParticleWorldState {
         macro_rules! get_cell {
             ($x:expr, $y:expr, $pixel_array:expr) => {{
                 let index = ($y << 9) | $x;
-                &mut $pixel_array[index as usize]
+                &mut $pixel_array[index as usize].0
             }};
         }
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
@@ -220,17 +226,21 @@ impl ParticleWorldState {
         Ok(())
     }
     ///# Safety
-    pub unsafe fn clone_chunks(&self) -> Vec<(usize, usize, [Option<ntypes::Cell>; 512 * 512])> {
+    #[allow(clippy::type_complexity)]
+    pub unsafe fn clone_chunks(&self) -> Vec<((usize, usize), Vec<Option<ntypes::Cell>>)> {
         self.chunk_map
-            .iter()
+            .into_par_iter()
             .enumerate()
             .filter_map(|(i, c)| {
-                unsafe { c.as_ref() }.map(|c| {
+                unsafe { c.0.as_ref() }.map(|c| {
                     let x = i % 512;
                     let y = i / 512;
-                    (x, y, c.map(|p| unsafe { p.as_ref() }.cloned()))
+                    (
+                        (x, y),
+                        c.iter().map(|p| unsafe { p.0.as_ref() }.copied()).collect(),
+                    )
                 })
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<((usize, usize), Vec<Option<ntypes::Cell>>)>>()
     }
 }
