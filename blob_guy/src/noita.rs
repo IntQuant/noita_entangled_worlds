@@ -1,9 +1,10 @@
 use crate::CHUNK_SIZE;
+use crate::blob_guy::Pos;
 use crate::chunk::{CellType, Chunk};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
-use std::{ffi::c_void, mem, ptr};
+use std::{ffi::c_void, ptr};
 pub mod ntypes;
 pub struct ParticleWorldState {
     pub world_ptr: *const ntypes::GridWorld,
@@ -119,7 +120,7 @@ impl ParticleWorldState {
         offset as u16
     }
 
-    fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
+    pub fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
         unsafe { Some(cell.material_ptr.as_ref()?.cell_type) }
     }
     ///# Safety
@@ -140,9 +141,7 @@ impl ParticleWorldState {
                             modified = true;
                             CellType::Remove
                         } else {
-                            let cell: &ntypes::LiquidCell = unsafe {
-                                mem::transmute::<&ntypes::Cell, &ntypes::LiquidCell>(cell)
-                            };
+                            let cell: &ntypes::LiquidCell = unsafe { cell.get_liquid() };
                             if cell.is_static {
                                 CellType::Solid
                             } else {
@@ -214,7 +213,7 @@ impl ParticleWorldState {
     }
     ///# Safety
     #[allow(clippy::type_complexity)]
-    pub unsafe fn clone_chunks(&self) -> Vec<((usize, usize), Vec<Option<ntypes::Cell>>)> {
+    pub unsafe fn clone_chunks(&self) -> Vec<((usize, usize), Vec<ntypes::FullCell>)> {
         self.chunk_map
             .into_par_iter()
             .enumerate()
@@ -224,10 +223,45 @@ impl ParticleWorldState {
                     let y = i / 512;
                     (
                         (x, y),
-                        c.iter().map(|p| unsafe { p.0.as_ref() }.copied()).collect(),
+                        c.iter()
+                            .map(|p| {
+                                unsafe { p.0.as_ref() }
+                                    .copied()
+                                    .map(ntypes::FullCell::from)
+                                    .unwrap_or_default()
+                            })
+                            .collect(),
                     )
                 })
             })
-            .collect::<Vec<((usize, usize), Vec<Option<ntypes::Cell>>)>>()
+            .collect::<Vec<((usize, usize), Vec<ntypes::FullCell>)>>()
+    }
+    ///# Safety
+    pub unsafe fn debug_mouse_pos(&self) -> eyre::Result<()> {
+        let (x, y) = noita_api::raw::debug_get_mouse_world()?;
+        let pos = Pos {
+            x: x as f32,
+            y: y as f32,
+        }
+        .to_chunk();
+        if let Ok((_, _, pixel_array)) = self.set_chunk(pos.x, pos.y) {
+            if let Some(cell) = self.get_cell_raw(
+                (x.floor() as isize).rem_euclid(512),
+                (y.floor() as isize).rem_euclid(512),
+                unsafe { pixel_array.as_mut() }.unwrap(),
+            ) {
+                noita_api::print!("{cell:?}");
+                let cell_type = self.get_cell_type(cell);
+                if cell_type == Some(ntypes::CellType::Liquid) {
+                    noita_api::print!("{:?}", unsafe { cell.get_liquid() });
+                } else {
+                    noita_api::print!("{:?}", cell_type);
+                }
+                noita_api::print!("{:?}", unsafe { cell.material_ptr.as_ref() });
+            } else {
+                noita_api::print!("mat nil");
+            }
+        }
+        Ok(())
     }
 }

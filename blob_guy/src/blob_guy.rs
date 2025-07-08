@@ -26,24 +26,7 @@ impl State {
     }
     pub fn update(&mut self) -> eyre::Result<()> {
         if noita_api::raw::input_is_mouse_button_just_down(1)? {
-            let (x, y) = noita_api::raw::debug_get_mouse_world()?;
-            let pos = Pos {
-                x: x as f32,
-                y: y as f32,
-            }
-            .to_chunk();
-            if let Ok((_, _, pixel_array)) = self.particle_world_state().set_chunk(pos.x, pos.y) {
-                if let Some(cell) = self.particle_world_state().get_cell_raw(
-                    (x.floor() as isize).rem_euclid(512),
-                    (y.floor() as isize).rem_euclid(512),
-                    unsafe { pixel_array.as_mut() }.unwrap(),
-                ) {
-                    noita_api::print(format!("{cell:?}"));
-                    noita_api::print(format!("{:?}", unsafe { cell.material_ptr.as_ref() }));
-                } else {
-                    noita_api::print("mat nil");
-                }
-            }
+            unsafe { self.particle_world_state().debug_mouse_pos()? };
         }
         if self.blobs.is_empty() {
             self.blobs.push(Blob::new(256.0, -(64.0 + 32.0)));

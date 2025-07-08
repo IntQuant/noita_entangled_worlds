@@ -1,6 +1,6 @@
 // Type defs borrowed from NoitaPatcher.
 
-use std::ffi::{c_char, c_void};
+use std::ffi::c_void;
 
 //pub(crate) const CELLDATA_SIZE: isize = 0x290;
 #[cfg(target_arch = "x86")]
@@ -9,7 +9,7 @@ const _: () = assert!(0x290 == size_of::<CellData>());
 use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Colour {
     r: u8,
     g: u8,
@@ -63,6 +63,21 @@ impl GridWorldVtable {
         }
     }
 }
+
+#[repr(C)]
+#[allow(clippy::upper_case_acronyms)]
+struct AABB {
+    top_left: Position,
+    bottom_right: Position,
+}
+
+#[repr(C)]
+struct GridWorldThreaded {
+    grid_world_threaded_vtable: *const c_void,
+    unknown: [isize; 287],
+    update_region: AABB,
+}
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridWorld {
@@ -71,7 +86,7 @@ pub struct GridWorld {
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
-    m_thread_impl: *const c_void,
+    m_thread_impl: *const GridWorldThreaded,
 }
 
 #[repr(C)]
@@ -127,9 +142,9 @@ pub struct CellData {
     pub wang_color: Colour,
     pub gfx_glow: isize,
     pub gfx_glow_color: Colour,
-    unknown1: [c_char; 24],
+    unknown1: [isize; 6],
     pub default_primary_colour: Colour,
-    unknown2: [c_char; 36],
+    unknown2: [isize; 9],
     pub cell_holes_in_texture: bool,
     pub stainable: bool,
     pub burnable: bool,
@@ -141,7 +156,7 @@ pub struct CellData {
     pub generates_smoke: isize,
     pub generates_flames: isize,
     pub requires_oxygen: bool,
-    padding1: [c_char; 3],
+    padding1: [u8; 3],
     pub on_fire_convert_to_material: StdString,
     pub on_fire_convert_to_material_id: isize,
     pub on_fire_flame_material: StdString,
@@ -153,7 +168,7 @@ pub struct CellData {
     pub crackability: isize,
     pub electrical_conductivity: bool,
     pub slippery: bool,
-    padding2: [c_char; 2],
+    padding2: [u8; 2],
     pub stickyness: f32,
     pub cold_freezes_to_material: StdString,
     pub warmth_melts_to_material: StdString,
@@ -162,7 +177,7 @@ pub struct CellData {
     pub cold_freezes_chance_rev: i16,
     pub warmth_melts_chance_rev: i16,
     pub cold_freezes_to_dont_do_reverse_reaction: bool,
-    padding3: [c_char; 3],
+    padding3: [u8; 3],
     pub lifetime: isize,
     pub hp: isize,
     pub density: f32,
@@ -178,12 +193,12 @@ pub struct CellData {
     pub liquid_sprite_stain_shaken_drop_chance: f32,
     pub liquid_sprite_stain_ignited_drop_chance: f32,
     pub liquid_sprite_stains_check_offset: i8,
-    padding4: [c_char; 3],
+    padding4: [u8; 3],
     pub liquid_sprite_stains_status_threshold: f32,
     pub liquid_damping: f32,
     pub liquid_flow_speed: f32,
     pub liquid_sand_never_box2d: bool,
-    unknown7: [c_char; 3],
+    unknown7: [u8; 3],
     pub gas_speed: i8,
     pub gas_upwards_speed: i8,
     pub gas_horizontal_speed: i8,
@@ -199,7 +214,7 @@ pub struct CellData {
     pub solid_on_break_explode: bool,
     pub solid_go_through_sand: bool,
     pub solid_collide_with_self: bool,
-    padding5: [c_char; 2],
+    padding5: [u8; 2],
     pub solid_on_collision_material: StdString,
     pub solid_on_collision_material_id: isize,
     pub solid_break_to_type: StdString,
@@ -209,28 +224,28 @@ pub struct CellData {
     pub vegetation_full_lifetime_growth: isize,
     pub vegetation_sprite: StdString,
     pub vegetation_random_flip_x_scale: bool,
-    padding6: [c_char; 3],
-    unknown11: [c_char; 12],
+    padding6: [u8; 3],
+    unknown11: [isize; 3],
     pub wang_noise_percent: f32,
     pub wang_curvature: f32,
     pub wang_noise_type: isize,
-    unknown12: [c_char; 12],
+    unknown12: [isize; 3],
     pub danger_fire: bool,
     pub danger_radioactive: bool,
     pub danger_poison: bool,
     pub danger_water: bool,
-    unknown13: [c_char; 23],
+    unknown13: [u8; 23],
     pub always_ignites_damagemodel: bool,
     pub ignore_self_reaction_warning: bool,
-    padding7: [c_char; 2],
-    unknown14: [c_char; 12],
+    padding7: [u8; 2],
+    unknown14: [isize; 3],
     pub audio_size_multiplier: f32,
     pub audio_is_soft: bool,
-    padding8: [c_char; 3],
-    unknown15: [c_char; 8],
+    padding8: [u8; 3],
+    unknown15: [isize; 2],
     pub show_in_creative_mode: bool,
     pub is_just_particle_fx: bool,
-    padding9: [c_char; 2],
+    padding9: [u8; 2],
     pub grid_cosmetic_particle_config: *const c_void,
 }
 
@@ -469,13 +484,41 @@ pub struct Cell {
     pub vtable: *const CellVTable,
 
     pub hp: isize,
-    unknown1: [u8; 8],
+    unknown1: [isize; 2],
     pub is_burning: bool,
     unknown2: [u8; 3],
     pub material_ptr: *const CellData,
 }
 unsafe impl Sync for Cell {}
 unsafe impl Send for Cell {}
+
+#[derive(Default, Clone, Copy)]
+pub enum FullCell {
+    Cell(Cell),
+    LiquidCell(LiquidCell),
+    #[default]
+    None,
+}
+impl From<Cell> for FullCell {
+    fn from(value: Cell) -> Self {
+        if let Some(mat) = unsafe { value.material_ptr.as_ref() } {
+            if mat.cell_type == CellType::Liquid {
+                FullCell::LiquidCell(*unsafe { value.get_liquid() })
+            } else {
+                FullCell::Cell(value)
+            }
+        } else {
+            FullCell::None
+        }
+    }
+}
+
+impl Cell {
+    ///# Safety
+    pub unsafe fn get_liquid(&self) -> &LiquidCell {
+        unsafe { std::mem::transmute::<&Cell, &LiquidCell>(self) }
+    }
+}
 
 pub struct CellPtr(pub *const Cell);
 impl Debug for CellPtr {
@@ -487,15 +530,15 @@ unsafe impl Sync for CellPtr {}
 unsafe impl Send for CellPtr {}
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct LiquidCell {
     pub cell: Cell,
     pub x: isize,
     pub y: isize,
-    unknown1: c_char,
-    unknown2: c_char,
+    unknown1: u8,
+    unknown2: u8,
     pub is_static: bool,
-    unknown3: c_char,
+    unknown3: u8,
     unknown4: [u8; 3],
     pub colour: Colour,
     pub not_colour: Colour,
