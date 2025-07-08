@@ -127,7 +127,7 @@ impl ParticleWorldState {
     }*/
 
     fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
-        unsafe { Some(cell.material_ptr().as_ref()?.cell_type) }
+        unsafe { Some(cell.material_ptr.as_ref()?.cell_type) }
     }
 
     pub(crate) unsafe fn encode_area(
@@ -152,7 +152,9 @@ impl ParticleWorldState {
                             modified = true;
                             CellType::Remove
                         } else {
-                            let cell: &ntypes::LiquidCell = unsafe { mem::transmute(cell) };
+                            let cell: &ntypes::LiquidCell = unsafe {
+                                mem::transmute::<&ntypes::Cell, &ntypes::LiquidCell>(cell)
+                            };
                             if cell.is_static {
                                 CellType::Solid
                             } else {
@@ -180,7 +182,7 @@ impl ParticleWorldState {
         let x = x * CHUNK_SIZE as isize;
         let y = y * CHUNK_SIZE as isize;
         macro_rules! get_cell {
-            ($x:expr, $y:expr, $pixel_array: tt) => {{
+            ($x:expr, $y:expr, $pixel_array:expr) => {{
                 let index = ($y << 9) | $x;
                 &mut $pixel_array[index as usize]
             }};
