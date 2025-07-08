@@ -9,7 +9,7 @@ const _: () = assert!(0x290 == size_of::<CellData>());
 use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Colour {
     r: u8,
     g: u8,
@@ -94,12 +94,38 @@ union Buffer {
     buffer: *const u8,
     sso_buffer: [u8; 16],
 }
+impl Default for Buffer {
+    fn default() -> Self {
+        Buffer {
+            sso_buffer: [0; 16],
+        }
+    }
+}
 
 #[repr(C)]
+#[derive(Default)]
 pub struct StdString {
     buffer: Buffer,
     size: usize,
     capacity: usize,
+}
+impl From<&str> for StdString {
+    fn from(value: &str) -> Self {
+        let mut res = StdString {
+            capacity: value.len(),
+            size: value.len(),
+            ..Default::default()
+        };
+        if res.capacity > 16 {
+            let buffer = value.as_bytes().to_vec();
+            res.buffer.buffer = buffer.as_ptr();
+            std::mem::forget(buffer);
+        } else {
+            let mut iter = value.as_bytes().iter();
+            res.buffer.sso_buffer = std::array::from_fn(|_| *iter.next().unwrap())
+        }
+        res
+    }
 }
 impl Display for StdString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -247,6 +273,128 @@ pub struct CellData {
     pub is_just_particle_fx: bool,
     padding9: [u8; 2],
     pub grid_cosmetic_particle_config: *const c_void,
+}
+impl Default for CellData {
+    fn default() -> Self {
+        Self {
+            name: StdString::default(),
+            ui_name: StdString::default(),
+            material_type: -1,
+            id_2: -1,
+            cell_type: CellType::Liquid,
+            platform_type: -1,
+            wang_color: Colour::default(),
+            gfx_glow: 0,
+            gfx_glow_color: Colour::default(),
+            unknown1: [0, 0, 0, 0, 0, 15],
+            default_primary_colour: Colour::default(),
+            unknown2: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cell_holes_in_texture: false,
+            stainable: true,
+            burnable: false,
+            on_fire: false,
+            fire_hp: 0,
+            autoignition_temperature: 100,
+            minus_100_autoignition_temp: 0,
+            temperature_of_fire: 10,
+            generates_smoke: 0,
+            generates_flames: 30,
+            requires_oxygen: true,
+            padding1: [0, 0, 0],
+            on_fire_convert_to_material: StdString::default(),
+            on_fire_convert_to_material_id: -1,
+            on_fire_flame_material: StdString::from("fire"),
+            on_fire_flame_material_id: 1,
+            on_fire_smoke_material: StdString::from("smoke"),
+            on_fire_smoke_material_id: 36,
+            explosion_config: std::ptr::null(),
+            durability: 0,
+            crackability: 0,
+            electrical_conductivity: true,
+            slippery: false,
+            padding2: [0, 0],
+            stickyness: 0.0,
+            cold_freezes_to_material: StdString::default(),
+            warmth_melts_to_material: StdString::default(),
+            warmth_melts_to_material_id: 0,
+            cold_freezes_to_material_id: 0,
+            cold_freezes_chance_rev: 100,
+            warmth_melts_chance_rev: 100,
+            cold_freezes_to_dont_do_reverse_reaction: false,
+            padding3: [0, 0, 0],
+            lifetime: 0,
+            hp: 100,
+            density: 1.0,
+            liquid_sand: false,
+            liquid_slime: false,
+            liquid_static: false,
+            liquid_stains_self: false,
+            liquid_sticks_to_ceiling: 0,
+            liquid_gravity: 0.5,
+            liquid_viscosity: 50,
+            liquid_stains: 0,
+            liquid_stains_custom_color: Colour::default(),
+            liquid_sprite_stain_shaken_drop_chance: 1.0,
+            liquid_sprite_stain_ignited_drop_chance: 10.0,
+            liquid_sprite_stains_check_offset: 0,
+            padding4: [0, 0, 0],
+            liquid_sprite_stains_status_threshold: 0.01,
+            liquid_damping: 0.8,
+            liquid_flow_speed: 0.9,
+            liquid_sand_never_box2d: false,
+            unknown7: [0, 0, 0],
+            gas_speed: 50,
+            gas_upwards_speed: 100,
+            gas_horizontal_speed: 100,
+            gas_downwards_speed: 90,
+            solid_friction: 0.3,
+            solid_restitution: 0.2,
+            solid_gravity_scale: 1.0,
+            solid_static_type: 0,
+            solid_on_collision_splash_power: 1.0,
+            solid_on_collision_explode: false,
+            solid_on_sleep_convert: false,
+            solid_on_collision_convert: false,
+            solid_on_break_explode: false,
+            solid_go_through_sand: false,
+            solid_collide_with_self: true,
+            padding5: [0, 0],
+            solid_on_collision_material: StdString::default(),
+            solid_on_collision_material_id: 0,
+            solid_break_to_type: StdString::default(),
+            solid_break_to_type_id: 0,
+            convert_to_box2d_material: StdString::default(),
+            convert_to_box2d_material_id: 0,
+            vegetation_full_lifetime_growth: 10000,
+            vegetation_sprite: StdString::default(),
+            vegetation_random_flip_x_scale: false,
+            padding6: [0, 0, 0],
+            unknown11: [50, 0, 0],
+            wang_noise_percent: 1.0,
+            wang_curvature: 0.5,
+            wang_noise_type: 0,
+            unknown12: [0, 0, 0],
+            danger_fire: false,
+            danger_radioactive: false,
+            danger_poison: false,
+            danger_water: false,
+            unknown13: [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+            always_ignites_damagemodel: false,
+            ignore_self_reaction_warning: false,
+            padding7: [0, 0],
+            unknown14: [0, 0, 0],
+            audio_size_multiplier: 1.0,
+            audio_is_soft: false,
+            padding8: [0, 0, 0],
+            unknown15: [0, 0],
+            show_in_creative_mode: false,
+            is_just_particle_fx: false,
+            padding9: [0, 0],
+            grid_cosmetic_particle_config: std::ptr::null(),
+        }
+    }
 }
 
 #[repr(C)]
