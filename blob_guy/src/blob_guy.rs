@@ -100,14 +100,13 @@ impl Blob {
     pub fn update_pos(&mut self) -> eyre::Result<()> {
         #[cfg(target_arch = "x86")]
         {
-            let player = EntityID::get_closest_with_tag(
-                self.pos.x as f64,
-                self.pos.y as f64,
-                "player_unit",
-            )?;
-            let (x, y) = player.position()?;
-            self.pos.x = x as f32;
-            self.pos.y = y as f32 - 7.0;
+            if let Ok(player) =
+                EntityID::get_closest_with_tag(self.pos.x as f64, self.pos.y as f64, "player_unit")
+            {
+                let (x, y) = player.position()?;
+                self.pos.x = x as f32;
+                self.pos.y = y as f32 - 7.0;
+            }
         }
         Ok(())
     }
