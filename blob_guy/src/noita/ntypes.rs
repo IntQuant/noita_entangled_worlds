@@ -254,6 +254,7 @@ pub struct CellData {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct CellVTable {
     pub destroy: *const c_void,
     pub get_cell_type: *const c_void,
