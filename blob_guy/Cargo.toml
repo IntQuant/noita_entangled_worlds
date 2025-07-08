@@ -17,12 +17,18 @@ codegen-units=1
 opt-level = 3
 overflow-checks = true
 
+[features]
+default = ["data"]
+data = ["dep:object","dep:windows"]
+
 [dependencies]
 noita_api = {path = "../noita_api"}
 eyre = "0.6.12"
 smallvec = "1.15.1"
 rustc-hash = "2.1.1"
 rayon = "1.10.0"
+object = {version="0.37.1", optional = true}
+windows = {version="0.61.3", features = ["Win32", "Win32_System", "Win32_System_LibraryLoader"], optional = true}
 
 [dev-dependencies]
 rupl = {git = "https://github.com/bgkillas/rupl.git", default-features = false, features = ["egui"] }

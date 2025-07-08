@@ -35,14 +35,11 @@ function OnWorldInitialized()
     local grid_world = world_ffi.get_grid_world()
     grid_world = tonumber(ffi.cast("intptr_t", grid_world))
     local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
-    local world_info = np.GetWorldInfo()
-    local construct_cell = tonumber(ffi.cast("intptr_t", world_info.construct_cell))
-    local remove_cell = tonumber(ffi.cast("intptr_t", world_info.remove_cell))
     local mat_len = 0
     local name = CellFactory_GetName(mat_len)
     while name ~= "unknown" do
         mat_len = mat_len + 1
         name = CellFactory_GetName(mat_len)
     end
-    blob_guy.init_particle_world_state(grid_world, material_list, mat_len, construct_cell, remove_cell)
+    blob_guy.init_particle_world_state(grid_world, material_list, mat_len)
 end

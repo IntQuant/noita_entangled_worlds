@@ -1,5 +1,7 @@
 pub mod blob_guy;
 pub mod chunk;
+#[cfg(feature = "data")]
+pub mod init_data;
 pub mod noita;
 use crate::blob_guy::Blob;
 use crate::chunk::Chunk;
@@ -10,7 +12,7 @@ use noita_api::lua::LuaState;
 use noita_api::lua::lua_bindings::{LUA_REGISTRYINDEX, lua_State};
 use smallvec::SmallVec;
 use std::cell::RefCell;
-use std::ffi::{c_int, c_void};
+use std::ffi::c_int;
 use std::mem::MaybeUninit;
 pub const CHUNK_SIZE: usize = 128;
 pub const CHUNK_AMOUNT: usize = 3;
@@ -48,15 +50,17 @@ pub unsafe extern "C" fn luaopen_blob_guy(lua: *mut lua_State) -> c_int {
 }
 fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
-        let mut state = state.borrow_mut();
+        let mut state = state.try_borrow_mut()?;
+        #[cfg(feature = "data")]
+        let (construct_ptr, remove_ptr) = crate::init_data::get_functions()?;
+        #[cfg(not(feature = "data"))]
+        let (construct_ptr, remove_ptr): (_, _) = Default::default();
         let world_ptr = lua.to_integer(1) as *const noita::ntypes::GridWorld;
         let chunk_map = unsafe { world_ptr.as_ref().unwrap() }.chunk_map.cell_array;
         let material_list_ptr = lua.to_integer(2) as *const noita::ntypes::CellData;
         let mat_len = lua.to_integer(3);
         let material_list =
             unsafe { std::slice::from_raw_parts(material_list_ptr, mat_len as usize) };
-        let construct_ptr = lua.to_integer(4) as *const c_void;
-        let remove_ptr = lua.to_integer(5) as *const c_void;
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
         let pws = ParticleWorldState {
