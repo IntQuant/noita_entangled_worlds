@@ -4,7 +4,7 @@ use crate::chunk::{CellType, Chunk};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
-use std::{ffi::c_void, ptr};
+use std::ffi::c_void;
 pub mod ntypes;
 pub struct ParticleWorldState {
     pub world_ptr: *const ntypes::GridWorld,
@@ -186,15 +186,14 @@ impl ParticleWorldState {
                     let cell = get_cell!(shift_x + i, shift_y + j, pixel_array);
                     if !(*cell).is_null() {
                         self.remove_cell(*cell, world_x, world_y);
-                        *cell = ptr::null_mut();
                     }
                     let src = self.create_cell(world_x, world_y, self.blob_ptr);
-                    if !src.is_null() {
-                        if let Some(liquid) = unsafe { src.cast::<ntypes::LiquidCell>().as_mut() } {
-                            liquid.is_static = true;
-                        }
-                        *cell = src;
+                    if !src.is_null()
+                        && let Some(liquid) = unsafe { src.cast::<ntypes::LiquidCell>().as_mut() }
+                    {
+                        liquid.is_static = true;
                     }
+                    *cell = src;
                 }
                 CellType::Remove => {
                     let world_x = x + i;
@@ -203,7 +202,6 @@ impl ParticleWorldState {
                     let cell = get_cell!(shift_x + i, shift_y + j, pixel_array);
                     if !(*cell).is_null() {
                         self.remove_cell(*cell, world_x, world_y);
-                        *cell = ptr::null_mut();
                     }
                 }
                 _ => {}

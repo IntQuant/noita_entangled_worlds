@@ -151,7 +151,7 @@ pub struct CellData {
     pub on_fire: bool,
     pub fire_hp: isize,
     pub autoignition_temperature: isize,
-    pub _100_minus_autoignition_temp: isize,
+    pub minus_100_autoignition_temp: isize,
     pub temperature_of_fire: isize,
     pub generates_smoke: isize,
     pub generates_flames: isize,
