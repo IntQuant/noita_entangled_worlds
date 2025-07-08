@@ -23,10 +23,10 @@ impl ParticleWorldState {
         y: isize,
         material: *const ntypes::CellData,
         //_memory: *const c_void,
-    ) -> *const ntypes::Cell {
+    ) -> *mut ntypes::Cell {
         #[cfg(target_arch = "x86")]
         unsafe {
-            let cell_ptr: *const ntypes::Cell;
+            let cell_ptr: *mut ntypes::Cell;
             asm!(
                 "mov ecx, {world}",
                 "push 0",
@@ -186,9 +186,7 @@ impl ParticleWorldState {
                     }
                     let src = self.create_cell(world_x, world_y, self.blob_ptr);
                     if !src.is_null() {
-                        if let Some(liquid) =
-                            unsafe { src.cast::<ntypes::LiquidCell>().cast_mut().as_mut() }
-                        {
+                        if let Some(liquid) = unsafe { src.cast::<ntypes::LiquidCell>().as_mut() } {
                             liquid.is_static = true;
                         }
                         *cell = src;
