@@ -485,7 +485,6 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "eyre",
- "libloading",
  "noita_api",
  "rayon",
  "rupl",
