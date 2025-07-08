@@ -14,19 +14,6 @@ pub struct ParticleWorldState {
     pub construct_ptr: *const c_void,
     pub remove_ptr: *const c_void,
 }
-impl Default for ParticleWorldState {
-    fn default() -> Self {
-        Self {
-            world_ptr: Default::default(),
-            chunk_map: &[ntypes::ChunkPtr(ptr::null_mut()); 512 * 512],
-            material_list_ptr: Default::default(),
-            material_list: Default::default(),
-            blob_ptr: Default::default(),
-            construct_ptr: Default::default(),
-            remove_ptr: Default::default(),
-        }
-    }
-}
 unsafe impl Sync for ParticleWorldState {}
 unsafe impl Send for ParticleWorldState {}
 #[allow(clippy::result_unit_err)]

@@ -1,4 +1,5 @@
 use crate::chunk::{CellType, Chunk, ChunkPos};
+use crate::noita::ParticleWorldState;
 use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
@@ -20,6 +21,9 @@ impl Pos {
 }
 const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
+    pub fn particle_world_state(&self) -> &ParticleWorldState {
+        unsafe { self.particle_world_state.assume_init_ref() }
+    }
     pub fn update(&mut self) -> eyre::Result<()> {
         if noita_api::raw::input_is_mouse_button_just_down(1)? {
             let (x, y) = noita_api::raw::debug_get_mouse_world()?;
@@ -28,8 +32,8 @@ impl State {
                 y: y as f32,
             }
             .to_chunk();
-            if let Ok((_, _, pixel_array)) = self.particle_world_state.set_chunk(pos.x, pos.y) {
-                if let Some(cell) = self.particle_world_state.get_cell_raw(
+            if let Ok((_, _, pixel_array)) = self.particle_world_state().set_chunk(pos.x, pos.y) {
+                if let Some(cell) = self.particle_world_state().get_cell_raw(
                     (x.floor() as isize).rem_euclid(512),
                     (y.floor() as isize).rem_euclid(512),
                     unsafe { pixel_array.as_mut() }.unwrap(),
@@ -54,8 +58,11 @@ impl State {
                 .try_for_each(|(i, chunk)| unsafe {
                     let x = i as isize / CHUNK_AMOUNT as isize + c.x;
                     let y = i as isize % CHUNK_AMOUNT as isize + c.y;
-                    self.particle_world_state
-                        .encode_area(x - OFFSET, y - OFFSET, chunk)
+                    self.particle_world_state.assume_init_ref().encode_area(
+                        x - OFFSET,
+                        y - OFFSET,
+                        chunk,
+                    )
                 })
                 .is_err()
             {
@@ -66,9 +73,11 @@ impl State {
             self.world.iter().enumerate().for_each(|(i, chunk)| unsafe {
                 let x = i as isize / CHUNK_AMOUNT as isize + c.x;
                 let y = i as isize % CHUNK_AMOUNT as isize + c.y;
-                let _ = self
-                    .particle_world_state
-                    .decode_area(x - OFFSET, y - OFFSET, chunk);
+                let _ = self.particle_world_state.assume_init_ref().decode_area(
+                    x - OFFSET,
+                    y - OFFSET,
+                    chunk,
+                );
             });
         }
         Ok(())
