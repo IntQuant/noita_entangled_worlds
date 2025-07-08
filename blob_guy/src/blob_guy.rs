@@ -32,7 +32,7 @@ impl State {
                 if let Some(cell) = self.particle_world_state.get_cell_raw(
                     (x.floor() as isize).rem_euclid(512),
                     (y.floor() as isize).rem_euclid(512),
-                    pixel_array,
+                    unsafe { pixel_array.as_mut() }.unwrap(),
                 ) {
                     noita_api::print(format!("{cell:?}"));
                     noita_api::print(format!("{:?}", unsafe { cell.material_ptr.as_ref() }));

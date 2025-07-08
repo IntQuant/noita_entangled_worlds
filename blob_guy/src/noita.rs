@@ -8,7 +8,7 @@ pub(crate) mod ntypes;
 #[derive(Default)]
 pub(crate) struct ParticleWorldState {
     pub(crate) world_ptr: *const ntypes::GridWorld,
-    pub(crate) chunk_map: &'static [*const &'static mut [*const ntypes::Cell; 512 * 512]],
+    pub(crate) chunk_map: &'static [*mut &'static mut [*const ntypes::Cell; 512 * 512]],
     //pub(crate) material_list_ptr: *const ntypes::CellData,
     pub(crate) blob_ptr: *const ntypes::CellData,
     pub(crate) construct_ptr: *const c_void,
@@ -79,7 +79,14 @@ impl ParticleWorldState {
         &self,
         x: isize,
         y: isize,
-    ) -> Result<(isize, isize, &mut [*const ntypes::Cell; 512 * 512]), ()> {
+    ) -> Result<
+        (
+            isize,
+            isize,
+            *mut &'static mut [*const ntypes::Cell; 512 * 512],
+        ),
+        (),
+    > {
         const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
@@ -88,14 +95,13 @@ impl ParticleWorldState {
         if chunk.is_null() {
             return Err(());
         }
-        let pixel_array = unsafe { chunk.read() };
-        Ok((shift_x, shift_y, pixel_array))
+        Ok((shift_x, shift_y, chunk))
     }
     pub fn get_cell_raw(
         &self,
         x: isize,
         y: isize,
-        pixel_array: &mut [*const ntypes::Cell; 512 * 512],
+        pixel_array: &&mut [*const ntypes::Cell; 512 * 512],
     ) -> Option<&ntypes::Cell> {
         let index = (y << 9) | x;
         let pixel = pixel_array[index as usize];
@@ -105,16 +111,16 @@ impl ParticleWorldState {
 
         unsafe { pixel.as_ref() }
     }
-    fn get_cell_raw_mut<'a>(
+    /*fn get_cell_raw_mut<'a>(
         &self,
         x: isize,
         y: isize,
-        pixel_array: &'a mut [*const ntypes::Cell; 512 * 512],
+        pixel_array:&'a mut &'a mut [*const ntypes::Cell; 512 * 512],
     ) -> &'a mut *const ntypes::Cell {
         let index = (y << 9) | x;
         &mut pixel_array[index as usize]
     }
-    /*fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
+    fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let mat_ptr = cell.material_ptr();
         let offset = unsafe { mat_ptr.offset_from(self.material_list_ptr) };
         offset as u16
@@ -131,6 +137,7 @@ impl ParticleWorldState {
         chunk: &mut Chunk,
     ) -> Result<(), ()> {
         let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
+        let pixel_array = unsafe { pixel_array.as_mut() }.unwrap();
         let mut modified = false;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
@@ -169,8 +176,15 @@ impl ParticleWorldState {
             return Ok(());
         }
         let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
+        let pixel_array = unsafe { pixel_array.as_mut() }.unwrap();
         let x = x * CHUNK_SIZE as isize;
         let y = y * CHUNK_SIZE as isize;
+        macro_rules! get_cell {
+            ($x:expr, $y:expr, $pixel_array: tt) => {{
+                let index = ($y << 9) | $x;
+                &mut $pixel_array[index as usize]
+            }};
+        }
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter())
@@ -179,7 +193,7 @@ impl ParticleWorldState {
                 CellType::Blob => {
                     let world_x = x + i;
                     let world_y = y + j;
-                    let cell = self.get_cell_raw_mut(shift_x + i, shift_y + j, pixel_array);
+                    let cell = get_cell!(shift_x + i, shift_y + j, pixel_array);
                     if !(*cell).is_null() {
                         self.remove_cell(*cell, world_x, world_y);
                         *cell = ptr::null_mut();
@@ -196,7 +210,7 @@ impl ParticleWorldState {
                     let world_x = x + i;
                     let world_y = y + j;
                     std::thread::sleep(std::time::Duration::from_nanos(0));
-                    let cell = self.get_cell_raw_mut(shift_x + i, shift_y + j, pixel_array);
+                    let cell = get_cell!(shift_x + i, shift_y + j, pixel_array);
                     if !(*cell).is_null() {
                         self.remove_cell(*cell, world_x, world_y);
                         *cell = ptr::null_mut();

@@ -48,7 +48,7 @@ pub(crate) struct ChunkArray(pub *mut CellArrayPtr);*/
 #[repr(C)]
 pub struct ChunkMap {
     unknown: [isize; 2],
-    pub cell_array: *const *const &'static mut [*const Cell; 512 * 512],
+    pub cell_array: *const *mut &'static mut [*const Cell; 512 * 512],
     unknown2: [isize; 8],
 }
 
