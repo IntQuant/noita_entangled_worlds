@@ -217,8 +217,8 @@ impl ParticleWorldState {
             .enumerate()
             .filter_map(|(i, c)| {
                 unsafe { c.0.as_ref() }.map(|c| {
-                    let x = i as isize % 512 - 216;
-                    let y = i as isize / 512 - 216;
+                    let x = i as isize % 512 - 256;
+                    let y = i as isize / 512 - 256;
                     (
                         (x, y),
                         c.iter()
