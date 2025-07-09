@@ -66,12 +66,14 @@ impl GridWorldVtable {
 
 #[repr(C)]
 #[allow(clippy::upper_case_acronyms)]
+#[derive(Debug)]
 struct AABB {
     top_left: Position,
     bottom_right: Position,
 }
 
 #[repr(C)]
+#[derive(Debug)]
 struct GridWorldThreaded {
     grid_world_threaded_vtable: *const c_void,
     unknown: [isize; 287],
@@ -81,12 +83,12 @@ struct GridWorldThreaded {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridWorld {
-    pub vtable: *const GridWorldVtable,
+    pub vtable: &'static GridWorldVtable,
     unknown: [isize; 318],
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
-    m_thread_impl: *const GridWorldThreaded,
+    m_thread_impl: &'static GridWorldThreaded,
 }
 
 #[repr(C)]
@@ -692,7 +694,11 @@ pub struct LiquidCell {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct GameWorld {}
+pub struct GameWorld {
+    unknown1: [isize; 17],
+    pub grid_world: &'static GridWorld,
+    //likely more data
+}
 
 #[repr(C)]
 #[derive(Debug)]
@@ -700,6 +706,7 @@ pub struct CellFactory {
     unknown1: [isize; 5],
     pub cell_data_len: usize,
     pub cell_data_ptr: *const CellData,
+    //likely more data
 }
 
 #[repr(C)]
@@ -707,7 +714,7 @@ pub struct CellFactory {
 pub struct GameGlobal {
     pub frame_num: usize,
     unknown1: [isize; 2],
-    pub m_game_world: *const GameWorld,
+    pub m_game_world: &'static GameWorld,
     pub m_grid_world: *const c_void,
     pub m_textures: *const c_void,
     pub m_cell_factory: *const CellFactory,

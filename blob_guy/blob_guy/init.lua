@@ -32,7 +32,5 @@ function OnWorldPreUpdate()
 end
 function OnWorldInitialized()
     started = 60
-    local grid_world = world_ffi.get_grid_world()
-    grid_world = tonumber(ffi.cast("intptr_t", grid_world))
-    blob_guy.init_particle_world_state(grid_world)
+    blob_guy.init_particle_world_state()
 end
