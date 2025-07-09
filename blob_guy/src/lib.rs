@@ -1,6 +1,5 @@
 pub mod blob_guy;
 pub mod chunk;
-#[cfg(feature = "data")]
 pub mod init_data;
 pub mod noita;
 use crate::blob_guy::Blob;
@@ -51,10 +50,7 @@ pub unsafe extern "C" fn luaopen_blob_guy(lua: *mut lua_State) -> c_int {
 fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.try_borrow_mut()?;
-        #[cfg(feature = "data")]
-        let (construct_ptr, remove_ptr) = crate::init_data::get_functions()?;
-        #[cfg(not(feature = "data"))]
-        let (construct_ptr, remove_ptr): (_, _) = Default::default();
+        let (construct_ptr, remove_ptr, _) = init_data::get_functions()?;
         let world_ptr = lua.to_integer(1) as *const noita::ntypes::GridWorld;
         let chunk_map = unsafe { world_ptr.as_ref().unwrap() }.chunk_map.cell_array;
         let material_list_ptr = lua.to_integer(2) as *const noita::ntypes::CellData;
