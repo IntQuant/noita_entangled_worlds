@@ -1,11 +1,7 @@
-dofile_once("mods/quant.ew/NoitaPatcher/load.lua")
-local np = require("noitapatcher")
+ModMaterialsFileAdd("mods/blob_guy/materials.xml")
 package.cpath = package.cpath .. ";./mods/blob_guy/?.dll"
 package.path = package.path .. ";./mods/blob_guy/?.lua"
 local blob_guy = require("blob_guy")
-local world_ffi = require("noitapatcher.nsew.world_ffi")
-local ffi = require("ffi")
-ModMaterialsFileAdd("mods/blob_guy/materials.xml")
 local started = -1
 local times = 0
 local start = 10
