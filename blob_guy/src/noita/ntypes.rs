@@ -689,3 +689,28 @@ pub struct LiquidCell {
     pub color: Color,
     pub not_color: Color,
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct GameWorld {}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct CellFactory {
+    unknown1: [isize; 5],
+    pub cell_data_len: usize,
+    pub cell_data_ptr: *const CellData,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct GameGlobal {
+    pub frame_num: usize,
+    unknown1: [isize; 2],
+    pub m_game_world: *const GameWorld,
+    pub m_grid_world: *const c_void,
+    pub m_textures: *const c_void,
+    pub m_cell_factory: *const CellFactory,
+    unknown2: [isize; 11],
+    pub pause_state: isize,
+}

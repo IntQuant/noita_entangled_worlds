@@ -1,10 +1,11 @@
+use crate::noita::ntypes;
 use eyre::ContextCompat;
 use object::{Object, ObjectSection};
 use std::arch::asm;
 use std::ffi::c_void;
 use std::fs::File;
 use std::io::Read;
-pub fn get_functions() -> eyre::Result<(*const c_void, *const c_void, *const c_void)> {
+pub fn get_functions() -> eyre::Result<(*const c_void, *const c_void, *const ntypes::GameGlobal)> {
     let exe = std::env::current_exe()?;
     let mut file = File::open(exe)?;
     let mut vec = Vec::with_capacity(15460864);
@@ -30,9 +31,9 @@ pub fn get_functions() -> eyre::Result<(*const c_void, *const c_void, *const c_v
     let game_global_ptr = get_global(game_global_ptr);
     Ok((construct_ptr, remove_ptr, game_global_ptr))
 }
-fn get_global(global: *const c_void) -> *const c_void {
+fn get_global(global: *const c_void) -> *const ntypes::GameGlobal {
     unsafe {
-        let ptr: *const c_void;
+        let ptr: *const ntypes::GameGlobal;
         asm!(
             "call {global}",
             global = in(reg) global,
