@@ -53,25 +53,18 @@ fn init_particle_world_state(_: LuaState) -> eyre::Result<()> {
         let mut state = state.try_borrow_mut()?;
         let (construct_ptr, remove_ptr, global_ptr) = init_data::get_functions()?;
         let global = unsafe { global_ptr.as_ref() }.wrap_err("no global?")?;
-        let world_ptr = global.m_game_world.grid_world;
+        let world_ptr = global.m_grid_world;
         let chunk_map = world_ptr.chunk_map.cell_array;
-        let cell_factory = unsafe {
-            global
-                .m_cell_factory
-                .as_ref()
-                .wrap_err("no cell factory??")?
+        let material_list_ptr = global.m_cell_factory.cell_data_ptr;
+        let material_list = unsafe {
+            std::slice::from_raw_parts(material_list_ptr, global.m_cell_factory.cell_data_len)
         };
-        let material_list_ptr = cell_factory.cell_data_ptr;
-        let material_list =
-            unsafe { std::slice::from_raw_parts(material_list_ptr, cell_factory.cell_data_len) };
-
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
         let pws = ParticleWorldState {
             world_ptr,
             chunk_map,
             blob_ptr: unsafe { material_list_ptr.offset(blob_guy as isize) },
-            material_list_ptr,
             material_list,
             construct_ptr,
             remove_ptr,

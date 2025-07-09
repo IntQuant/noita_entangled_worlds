@@ -74,8 +74,14 @@ struct AABB {
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct GridWorldThreadedVTable {
+    //TODO find some data maybe
+}
+
+#[repr(C)]
+#[derive(Debug)]
 struct GridWorldThreaded {
-    grid_world_threaded_vtable: *const c_void,
+    grid_world_threaded_vtable: &'static GridWorldThreadedVTable,
     unknown: [isize; 287],
     update_region: AABB,
 }
@@ -160,6 +166,30 @@ pub enum CellType {
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct ExplosionConfig {
+    //TODO find some data maybe
+}
+#[allow(clippy::derivable_impls)]
+impl Default for ExplosionConfig {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct GridCosmeticParticleConfig {
+    //TODO find some data maybe
+ }
+#[allow(clippy::derivable_impls)]
+impl Default for GridCosmeticParticleConfig {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct CellData {
     pub name: StdString,
     pub ui_name: StdString,
@@ -191,7 +221,7 @@ pub struct CellData {
     pub on_fire_flame_material_id: isize,
     pub on_fire_smoke_material: StdString,
     pub on_fire_smoke_material_id: isize,
-    pub explosion_config: *const c_void,
+    pub explosion_config: *const ExplosionConfig,
     pub durability: isize,
     pub crackability: isize,
     pub electrical_conductivity: bool,
@@ -274,7 +304,7 @@ pub struct CellData {
     pub show_in_creative_mode: bool,
     pub is_just_particle_fx: bool,
     padding9: [u8; 2],
-    pub grid_cosmetic_particle_config: *const c_void,
+    pub grid_cosmetic_particle_config: *const GridCosmeticParticleConfig,
 }
 impl Default for CellData {
     fn default() -> Self {
@@ -631,13 +661,13 @@ impl CellVTable {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Cell {
-    pub vtable: *const CellVTable,
+    pub vtable: &'static CellVTable,
 
     pub hp: isize,
     unknown1: [isize; 2],
     pub is_burning: bool,
     unknown2: [u8; 3],
-    pub material_ptr: *const CellData,
+    pub material_ptr: &'static CellData,
 }
 unsafe impl Sync for Cell {}
 unsafe impl Send for Cell {}
@@ -651,9 +681,7 @@ pub enum FullCell {
 }
 impl From<Cell> for FullCell {
     fn from(value: Cell) -> Self {
-        if let Some(mat) = unsafe { value.material_ptr.as_ref() }
-            && mat.cell_type == CellType::Liquid
-        {
+        if value.material_ptr.cell_type == CellType::Liquid {
             FullCell::LiquidCell(*unsafe { value.get_liquid() })
         } else {
             FullCell::Cell(value)
@@ -711,13 +739,19 @@ pub struct CellFactory {
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct Textures {
+    //TODO find some data maybe
+}
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct GameGlobal {
     pub frame_num: usize,
     unknown1: [isize; 2],
     pub m_game_world: &'static GameWorld,
-    pub m_grid_world: *const c_void,
-    pub m_textures: *const c_void,
-    pub m_cell_factory: *const CellFactory,
+    pub m_grid_world: &'static GridWorld,
+    pub m_textures: &'static Textures,
+    pub m_cell_factory: &'static CellFactory,
     unknown2: [isize; 11],
     pub pause_state: isize,
 }

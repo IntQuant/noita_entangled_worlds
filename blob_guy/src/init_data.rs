@@ -71,12 +71,13 @@ fn get_function_start(func: *const c_void) -> eyre::Result<*const c_void> {
     loop {
         unsafe {
             if it as isize % 16 == 0
-                && (it.offset(-1).read() == 0xcc
-                    || it.offset(-1).read() == 0xc3
-                    || it.offset(-3).read() == 0xc2)
-                && (it.read() >= 0x50 && it.read() < 0x58)
-                && ((it.offset(1).read() >= 0x50 && it.offset(1).read() < 0x58)
-                    || (it.offset(1).read() == 0x8b && it.offset(2).read() == 0xec))
+                && (it.offset(-1).as_ref() == Some(&0xcc)
+                    || it.offset(-1).as_ref() == Some(&0xc3)
+                    || it.offset(-3).as_ref() == Some(&0xc2))
+                && (it.as_ref() >= Some(&0x50) && it.as_ref() < Some(&0x58))
+                && ((it.offset(1).as_ref() >= Some(&0x50) && it.offset(1).as_ref() < Some(&0x58))
+                    || (it.offset(1).as_ref() == Some(&0x8b)
+                        && it.offset(2).as_ref() == Some(&0xec)))
             {
                 return Ok(it.cast::<c_void>());
             }

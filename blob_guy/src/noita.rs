@@ -6,10 +6,10 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 use std::arch::asm;
 use std::ffi::c_void;
 pub mod ntypes;
+#[derive(Debug)]
 pub struct ParticleWorldState {
-    pub world_ptr: *const ntypes::GridWorld,
+    pub world_ptr: &'static ntypes::GridWorld,
     pub chunk_map: &'static [ntypes::ChunkPtr; 512 * 512],
-    pub material_list_ptr: *const ntypes::CellData,
     pub material_list: &'static [ntypes::CellData],
     pub blob_ptr: *const ntypes::CellData,
     pub construct_ptr: *const c_void,
@@ -116,28 +116,25 @@ impl ParticleWorldState {
         &mut pixel_array[index as usize].0
     }
     pub fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
-        let offset = unsafe { cell.material_ptr.offset_from(self.material_list_ptr) };
+        let offset = unsafe {
+            (cell.material_ptr as *const ntypes::CellData).offset_from(self.material_list.as_ptr())
+        };
         offset as u16
     }
 
-    pub fn get_cell_type(&self, cell: &ntypes::Cell) -> Option<ntypes::CellType> {
-        unsafe { Some(cell.material_ptr.as_ref()?.cell_type) }
-    }
     ///# Safety
     pub unsafe fn encode_area(&self, x: isize, y: isize, chunk: &mut Chunk) -> Result<(), ()> {
         let (shift_x, shift_y, pixel_array) = self.set_chunk(x, y)?;
-        let pixel_array = unsafe { pixel_array.as_mut() }.unwrap();
+        let pixel_array = unsafe { pixel_array.as_ref() }.unwrap();
         let mut modified = false;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *pixel = if let Some(cell) = self.get_cell_raw(shift_x + i, shift_y + j, pixel_array)
-                && let Some(cell_type) = self.get_cell_type(cell)
-            {
-                match cell_type {
+            *pixel = if let Some(cell) = self.get_cell_raw(shift_x + i, shift_y + j, pixel_array) {
+                match cell.material_ptr.cell_type {
                     ntypes::CellType::Liquid => {
-                        if cell.material_ptr == self.blob_ptr {
+                        if std::ptr::eq(cell.material_ptr, self.blob_ptr) {
                             modified = true;
                             CellType::Remove
                         } else {
@@ -246,11 +243,11 @@ impl ParticleWorldState {
             if let Some(cell) = self.get_cell_raw(
                 (x.floor() as isize).rem_euclid(512),
                 (y.floor() as isize).rem_euclid(512),
-                unsafe { pixel_array.as_mut() }.unwrap(),
+                unsafe { pixel_array.as_ref() }.unwrap(),
             ) {
                 let full = ntypes::FullCell::from(*cell);
                 noita_api::print!("{full:?}");
-                noita_api::print!("{:?}", unsafe { cell.material_ptr.as_ref() });
+                noita_api::print!("{:?}", cell.material_ptr);
             } else {
                 noita_api::print!("mat nil");
             }
