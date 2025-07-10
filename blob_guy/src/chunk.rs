@@ -1,6 +1,6 @@
 use crate::blob_guy::OFFSET;
 use crate::{CHUNK_AMOUNT, CHUNK_SIZE};
-use eyre::eyre;
+use eyre::{ContextCompat, eyre};
 use noita_api::noita::types;
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -155,8 +155,8 @@ impl ChunkOps for ParticleWorldState {
         blob: u16,
     ) -> eyre::Result<()> {
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(x, y);
-        let Some(pixel_array) = self
-            .world_ptr
+        let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
+            .wrap_err("no world")?
             .chunk_map
             .chunk_array
             .get(x >> SCALE, y >> SCALE)
@@ -207,10 +207,9 @@ impl ChunkOps for ParticleWorldState {
         if !chunk.modified {
             return Ok(());
         }
-        let ptr = self.world_ptr as *mut types::GridWorld;
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
-        let Some(pixel_array) = self
-            .world_ptr
+        let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
+            .wrap_err("no world")?
             .chunk_map
             .chunk_array
             .get_mut(cx >> SCALE, cy >> SCALE)
@@ -229,10 +228,11 @@ impl ChunkOps for ParticleWorldState {
                     let world_y = y + j;
                     if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
                         if !cell.0.is_null() {
-                            self.remove_ptr.remove_cell(ptr, cell.0, world_x, world_y);
+                            self.remove_ptr
+                                .remove_cell(self.world_ptr, cell.0, world_x, world_y);
                         }
                         let src = self.construct_ptr.create_cell(
-                            ptr,
+                            self.world_ptr,
                             world_x,
                             world_y,
                             &self.material_list[blob as usize],
@@ -247,11 +247,8 @@ impl ChunkOps for ParticleWorldState {
                     }
                 }
                 CellType::Remove => {
-                    let world_x = x + i;
-                    let world_y = y + j;
-                    std::thread::sleep(std::time::Duration::from_nanos(0));
                     if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
-                        self.remove_ptr.remove_cell(ptr, cell.0, world_x, world_y);
+                        cell.0 = std::ptr::null_mut();
                     }
                 }
                 _ => {}
