@@ -1,7 +1,9 @@
 use crate::blob_guy::OFFSET;
 use crate::{CHUNK_AMOUNT, CHUNK_SIZE};
+use eyre::eyre;
 use noita_api::noita::types;
 use noita_api::noita::world::ParticleWorldState;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};
 #[derive(Debug)]
@@ -26,6 +28,37 @@ pub enum CellType {
 pub struct Pos {
     pub x: f32,
     pub y: f32,
+}
+#[derive(Default)]
+pub struct Chunks(pub [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT]);
+impl Chunks {
+    pub fn read(
+        &mut self,
+        particle_world_state: &ParticleWorldState,
+        blob_guy: u16,
+        start: ChunkPos,
+    ) -> eyre::Result<()> {
+        self.0
+            .par_iter_mut()
+            .enumerate()
+            .try_for_each(|(i, chunk)| unsafe {
+                let x = i as isize / CHUNK_AMOUNT as isize + start.x;
+                let y = i as isize % CHUNK_AMOUNT as isize + start.y;
+                particle_world_state.encode_area(x - OFFSET, y - OFFSET, chunk, blob_guy)
+            })
+    }
+    pub fn paint(
+        &mut self,
+        particle_world_state: &mut ParticleWorldState,
+        blob_guy: u16,
+        start: ChunkPos,
+    ) {
+        self.0.iter().enumerate().for_each(|(i, chunk)| unsafe {
+            let x = i as isize / CHUNK_AMOUNT as isize + start.x;
+            let y = i as isize % CHUNK_AMOUNT as isize + start.y;
+            let _ = particle_world_state.decode_area(x - OFFSET, y - OFFSET, chunk, blob_guy);
+        });
+    }
 }
 impl Pos {
     pub fn new(x: f32, y: f32) -> Self {
@@ -93,8 +126,7 @@ impl ChunkPos {
         (self.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + (self.y - start.y + OFFSET)
     }
 }
-#[allow(clippy::result_unit_err)]
-pub trait Chunks {
+pub trait ChunkOps {
     ///# Safety
     unsafe fn encode_area(
         &self,
@@ -102,7 +134,7 @@ pub trait Chunks {
         y: isize,
         chunk: &mut Chunk,
         blob: u16,
-    ) -> Result<(), ()>;
+    ) -> eyre::Result<()>;
     ///# Safety
     unsafe fn decode_area(
         &mut self,
@@ -110,10 +142,10 @@ pub trait Chunks {
         y: isize,
         chunk: &Chunk,
         blob: u16,
-    ) -> Result<(), ()>;
+    ) -> eyre::Result<()>;
 }
 const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
-impl Chunks for ParticleWorldState {
+impl ChunkOps for ParticleWorldState {
     ///# Safety
     unsafe fn encode_area(
         &self,
@@ -121,22 +153,29 @@ impl Chunks for ParticleWorldState {
         y: isize,
         chunk: &mut Chunk,
         blob: u16,
-    ) -> Result<(), ()> {
-        let (shift_x, shift_y, pixel_array) = self.set_chunk::<CHUNK_SIZE, SCALE>(x, y)?;
-        let pixel_array = unsafe { pixel_array.as_ref() }.unwrap();
+    ) -> eyre::Result<()> {
+        let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(x, y);
+        let Some(pixel_array) = self
+            .world_ptr
+            .chunk_map
+            .chunk_array
+            .get(x >> SCALE, y >> SCALE)
+        else {
+            return Err(eyre!("chunk not loaded"));
+        };
         let mut modified = false;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *pixel = if let Some(cell) = self.get_cell_raw(shift_x + i, shift_y + j, pixel_array) {
+            *pixel = if let Some(cell) = pixel_array.get(shift_x + i, shift_y + j) {
                 match cell.material.cell_type {
                     types::CellType::Liquid => {
                         if cell.material.material_type as u16 == blob {
                             modified = true;
                             CellType::Remove
                         } else {
-                            let cell: &types::LiquidCell = unsafe { cell.get_liquid() };
+                            let cell: &types::LiquidCell = cell.get_liquid();
                             if cell.is_static {
                                 CellType::Solid
                             } else if cell.cell.material.liquid_sand {
@@ -160,24 +199,26 @@ impl Chunks for ParticleWorldState {
     ///# Safety
     unsafe fn decode_area(
         &mut self,
-        x: isize,
-        y: isize,
+        cx: isize,
+        cy: isize,
         chunk: &Chunk,
         blob: u16,
-    ) -> Result<(), ()> {
+    ) -> eyre::Result<()> {
         if !chunk.modified {
             return Ok(());
         }
-        let (shift_x, shift_y, pixel_array) = self.set_chunk::<CHUNK_SIZE, SCALE>(x, y)?;
-        let pixel_array = unsafe { pixel_array.as_mut() }.unwrap();
-        let x = x * CHUNK_SIZE as isize;
-        let y = y * CHUNK_SIZE as isize;
-        macro_rules! get_cell {
-            ($x:expr, $y:expr, $pixel_array:expr) => {{
-                let index = ($y << 9) | $x;
-                &mut $pixel_array[index as usize].0
-            }};
-        }
+        let ptr = self.world_ptr as *mut types::GridWorld;
+        let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
+        let Some(pixel_array) = self
+            .world_ptr
+            .chunk_map
+            .chunk_array
+            .get_mut(cx >> SCALE, cy >> SCALE)
+        else {
+            return Err(eyre!("chunk not loaded"));
+        };
+        let x = cx * CHUNK_SIZE as isize;
+        let y = cy * CHUNK_SIZE as isize;
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter())
@@ -186,25 +227,31 @@ impl Chunks for ParticleWorldState {
                 CellType::Blob => {
                     let world_x = x + i;
                     let world_y = y + j;
-                    let cell = get_cell!(shift_x + i, shift_y + j, pixel_array);
-                    if !(*cell).is_null() {
-                        self.remove_cell(*cell, world_x, world_y);
+                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                        if !cell.0.is_null() {
+                            self.remove_ptr.remove_cell(ptr, cell.0, world_x, world_y);
+                        }
+                        let src = self.construct_ptr.create_cell(
+                            ptr,
+                            world_x,
+                            world_y,
+                            &self.material_list[blob as usize],
+                        );
+                        if !src.is_null()
+                            && let Some(liquid) =
+                                unsafe { src.cast::<types::LiquidCell>().as_mut() }
+                        {
+                            liquid.is_static = true;
+                        }
+                        cell.0 = src;
                     }
-                    let src = self.create_cell(world_x, world_y, blob);
-                    if !src.is_null()
-                        && let Some(liquid) = unsafe { src.cast::<types::LiquidCell>().as_mut() }
-                    {
-                        liquid.is_static = true;
-                    }
-                    *cell = src;
                 }
                 CellType::Remove => {
                     let world_x = x + i;
                     let world_y = y + j;
                     std::thread::sleep(std::time::Duration::from_nanos(0));
-                    let cell = get_cell!(shift_x + i, shift_y + j, pixel_array);
-                    if !(*cell).is_null() {
-                        self.remove_cell(*cell, world_x, world_y);
+                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                        self.remove_ptr.remove_cell(ptr, cell.0, world_x, world_y);
                     }
                 }
                 _ => {}

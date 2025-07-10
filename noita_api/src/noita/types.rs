@@ -17,26 +17,137 @@ pub struct Color {
     pub a: u8,
 }
 
-#[derive(Default, Clone, Copy)]
-pub struct ChunkPtr(pub *mut &'static mut [CellPtr; 512 * 512]);
+#[repr(C)]
+pub struct ChunkPtr(pub *mut CellPtr);
 impl Debug for ChunkPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "ChunkPtr {{{:?} {:?}}}",
             self.0,
-            unsafe { self.0.as_ref() }.map(|c| c.iter().filter(|c| !c.0.is_null()).count()),
+            self.iter().filter(|c| !c.0.is_null()).count(),
         )
     }
 }
 unsafe impl Sync for ChunkPtr {}
 unsafe impl Send for ChunkPtr {}
 
+impl ChunkPtr {
+    pub fn iter(&self) -> impl Iterator<Item = &CellPtr> {
+        unsafe { std::slice::from_raw_parts(self.0, 512 * 512) }.iter()
+    }
+    pub fn get(&self, x: isize, y: isize) -> Option<&Cell> {
+        let index = (y << 9) | x;
+        unsafe { self.0.offset(index).as_ref().and_then(|c| c.0.as_ref()) }
+    }
+    pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut CellPtr> {
+        unsafe { self.get_mut_raw(x, y).as_mut() }
+    }
+    pub fn get_mut_raw(&mut self, x: isize, y: isize) -> *mut CellPtr {
+        let index = (y << 9) | x;
+        unsafe { self.0.offset(index) }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct RemovePtr(pub *const c_void);
+impl RemovePtr {
+    pub fn remove_cell(self, world: *mut GridWorld, cell: *mut Cell, x: isize, y: isize) {
+        #[cfg(target_arch = "x86")]
+        unsafe {
+            asm!(
+                "mov ecx, {world}",
+                "push 0",
+                "push {y:e}",
+                "push {x:e}",
+                "push {cell}",
+                "call {remove}",
+                world = in(reg) world,
+                cell = in(reg) cell,
+                x = in(reg) x,
+                y = in(reg) y,
+                remove = in(reg) self.0,
+                clobber_abi("C"),
+            );
+        }
+        #[cfg(target_arch = "x86_64")]
+        {
+            std::hint::black_box((x, y, cell, self.0, world));
+            unreachable!()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ConstructPtr(pub *const c_void);
+impl ConstructPtr {
+    pub fn create_cell(
+        self,
+        world: *mut GridWorld,
+        x: isize,
+        y: isize,
+        material: &CellData,
+        //_memory: *mut c_void,
+    ) -> *mut Cell {
+        #[cfg(target_arch = "x86")]
+        unsafe {
+            let cell_ptr: *mut Cell;
+            asm!(
+                "mov ecx, {world}",
+                "push 0",
+                "push {material}",
+                "push {y:e}",
+                "push {x:e}",
+                "call {construct}",
+                world = in(reg) world,
+                x = in(reg) x,
+                y = in(reg) y,
+                material = in(reg) material,
+                construct = in(reg) self.0,
+                clobber_abi("C"),
+                out("eax") cell_ptr,
+            );
+            cell_ptr
+        }
+        #[cfg(target_arch = "x86_64")]
+        {
+            std::hint::black_box((x, y, material, self.0, world));
+            unreachable!()
+        }
+    }
+}
+
 #[repr(C)]
 pub struct ChunkMap {
     unknown: [isize; 2],
-    pub cell_array: &'static mut [ChunkPtr; 512 * 512],
+    pub chunk_array: ChunkArrayPtr,
     unknown2: [isize; 8],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ChunkPtrPtr(pub *mut ChunkPtr);
+unsafe impl Sync for ChunkPtrPtr {}
+unsafe impl Send for ChunkPtrPtr {}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ChunkArrayPtr(pub *mut ChunkPtrPtr);
+unsafe impl Sync for ChunkArrayPtr {}
+unsafe impl Send for ChunkArrayPtr {}
+impl ChunkArrayPtr {
+    pub fn iter(&self) -> impl Iterator<Item = &ChunkPtrPtr> {
+        unsafe { std::slice::from_raw_parts(self.0, 512 * 512) }.iter()
+    }
+    pub fn slice(&self) -> &'static [ChunkPtrPtr] {
+        unsafe { std::slice::from_raw_parts(self.0, 512 * 512) }
+    }
+    pub fn get(&self, x: isize, y: isize) -> Option<&ChunkPtr> {
+        let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
+        unsafe { self.0.offset(index).as_ref().and_then(|c| c.0.as_ref()) }
+    }
+    pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut ChunkPtr> {
+        let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
+        unsafe { self.0.offset(index).as_mut().and_then(|c| c.0.as_mut()) }
+    }
 }
 impl Debug for ChunkMap {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -44,7 +155,7 @@ impl Debug for ChunkMap {
             f,
             "ChunkMap {{ unknown: {:?}, cell_array: {{{}}} ,unknown2: {:?} }}",
             self.unknown,
-            self.cell_array
+            self.chunk_array
                 .iter()
                 .enumerate()
                 .filter(|(_, c)| !c.0.is_null())
@@ -119,7 +230,7 @@ pub struct GridWorld {
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
-    m_thread_impl: &'static mut GridWorldThreaded,
+    m_thread_impl: *mut GridWorldThreaded,
 }
 
 #[repr(C)]
@@ -707,7 +818,7 @@ pub enum FullCell {
 impl From<&Cell> for FullCell {
     fn from(value: &Cell) -> Self {
         if value.material.cell_type == CellType::Liquid {
-            FullCell::LiquidCell(unsafe { value.get_liquid().clone() })
+            FullCell::LiquidCell(value.get_liquid().clone())
         } else {
             FullCell::Cell(value.clone())
         }
@@ -715,12 +826,12 @@ impl From<&Cell> for FullCell {
 }
 
 impl Cell {
-    ///# Safety
-    pub unsafe fn get_liquid(&self) -> &LiquidCell {
+    pub fn get_liquid(&self) -> &LiquidCell {
         unsafe { std::mem::transmute::<&Cell, &LiquidCell>(self) }
     }
 }
 
+#[repr(C)]
 pub struct CellPtr(pub *mut Cell);
 impl Debug for CellPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -760,7 +871,7 @@ pub struct LiquidCell {
 #[derive(Debug)]
 pub struct GameWorld {
     unknown1: [isize; 17],
-    pub grid_world: &'static mut GridWorld,
+    pub grid_world: *mut GridWorld,
     //likely more data
 }
 
@@ -784,10 +895,10 @@ pub struct Textures {
 pub struct GameGlobal {
     pub frame_num: usize,
     unknown1: [isize; 2],
-    pub m_game_world: &'static mut GameWorld,
-    pub m_grid_world: &'static mut GridWorld,
-    pub m_textures: &'static mut Textures,
-    pub m_cell_factory: &'static mut CellFactory,
+    pub m_game_world: *mut GameWorld,
+    pub m_grid_world: *mut GridWorld,
+    pub m_textures: *mut Textures,
+    pub m_cell_factory: *mut CellFactory,
     unknown2: [isize; 11],
     pub pause_state: isize,
 }

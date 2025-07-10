@@ -1,9 +1,8 @@
 use crate::chunk::Chunks;
-use crate::chunk::{CellType, Chunk, ChunkPos, Pos};
+use crate::chunk::{CellType, ChunkPos, Pos};
 use crate::{CHUNK_AMOUNT, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::f32::consts::PI;
 pub const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
@@ -12,48 +11,58 @@ impl State {
         if noita_api::raw::input_is_mouse_button_just_down(1)? {
             unsafe {
                 self.particle_world_state
-                    .assume_init_ref()
+                    .assume_init_mut()
                     .debug_mouse_pos()?
             };
         }
         if self.blobs.is_empty() {
-            self.blobs.push(Blob::new(256.0, -(64.0 + 32.0)));
+            self.push_new();
+            return Ok(());
         }
         'upper: for blob in self.blobs.iter_mut() {
             blob.update_pos()?;
-            let c = blob.pos.to_chunk();
+            let start = blob.pos.to_chunk();
             if self
                 .world
-                .par_iter_mut()
-                .enumerate()
-                .try_for_each(|(i, chunk)| unsafe {
-                    let x = i as isize / CHUNK_AMOUNT as isize + c.x;
-                    let y = i as isize % CHUNK_AMOUNT as isize + c.y;
-                    self.particle_world_state.assume_init_ref().encode_area(
-                        x - OFFSET,
-                        y - OFFSET,
-                        chunk,
-                        self.blob_guy,
-                    )
-                })
+                .read(
+                    unsafe { self.particle_world_state.assume_init_ref() },
+                    self.blob_guy,
+                    start,
+                )
                 .is_err()
             {
-                blob.update(&mut self.world)?;
+                blob.update(start, &mut self.world)?;
                 continue 'upper;
             }
-            blob.update(&mut self.world)?;
-            self.world.iter().enumerate().for_each(|(i, chunk)| unsafe {
-                let x = i as isize / CHUNK_AMOUNT as isize + c.x;
-                let y = i as isize % CHUNK_AMOUNT as isize + c.y;
-                let _ = self.particle_world_state.assume_init_mut().decode_area(
-                    x - OFFSET,
-                    y - OFFSET,
-                    chunk,
-                    self.blob_guy,
-                );
-            });
+            blob.update(start, &mut self.world)?;
+            self.world.paint(
+                unsafe { self.particle_world_state.assume_init_mut() },
+                self.blob_guy,
+                start,
+            );
         }
         Ok(())
+    }
+    pub fn push_new(&mut self) {
+        self.blobs.push(Blob::new(256.0, -(64.0 + 32.0)));
+        let start = self.blobs[0].pos.to_chunk();
+        if self
+            .world
+            .read(
+                unsafe { self.particle_world_state.assume_init_ref() },
+                self.blob_guy,
+                start,
+            )
+            .is_err()
+        {
+            return;
+        }
+        self.blobs[0].register_pixels(start, &mut self.world);
+        self.world.paint(
+            unsafe { self.particle_world_state.assume_init_mut() },
+            self.blob_guy,
+            start,
+        );
     }
 }
 pub const SIZE: usize = 24;
@@ -110,14 +119,13 @@ impl Blob {
             n.1 / self.pixels.len() as isize,
         )
     }
-    pub fn update(&mut self, map: &mut [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT]) -> eyre::Result<()> {
+    pub fn update(&mut self, start: ChunkPos, map: &mut Chunks) -> eyre::Result<()> {
         let mean = self.mean();
         let theta = (mean.1 as f32 - self.pos.y).atan2(mean.0 as f32 - self.pos.x);
         for p in self.pixels.values_mut() {
             p.mutated = false;
         }
         let mut keys = self.pixels.keys().cloned().collect::<Vec<(isize, isize)>>();
-        let start = self.pos.to_chunk();
         while !keys.is_empty()
             && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
@@ -160,6 +168,10 @@ impl Blob {
                 break;
             }
         }
+        self.register_pixels(start, map);
+        Ok(())
+    }
+    pub fn register_pixels(&mut self, start: ChunkPos, map: &mut Chunks) {
         let mut last = ChunkPos::new(isize::MAX, isize::MAX);
         let mut k = 0;
         for (x, y) in self.pixels.keys().copied() {
@@ -173,15 +185,14 @@ impl Blob {
                 last = c;
             }
 
-            map[k][(x, y)] = match map[k][(x, y)] {
+            map.0[k][(x, y)] = match map.0[k][(x, y)] {
                 CellType::Unknown | CellType::Liquid => {
-                    map[k].modified = true;
+                    map.0[k].modified = true;
                     CellType::Blob
                 }
                 _ => CellType::Ignore,
             }
         }
-        Ok(())
     }
     pub fn far(&mut self) -> Pixel {
         let (a, b) = (self.pos.x.floor() as isize, self.pos.y.floor() as isize);
@@ -216,7 +227,7 @@ impl Blob {
         c: (isize, isize),
         mut p: Pixel,
         theta: f32,
-        world: &[Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT],
+        world: &Chunks,
         start: ChunkPos,
     ) -> bool {
         if p.mutated {
@@ -281,7 +292,7 @@ impl Blob {
             let pos = ChunkPos::new(n.0, n.1);
             let index = pos.get_world(start);
             if index >= 0
-                && let Some(chunk) = world.get(index as usize)
+                && let Some(chunk) = world.0.get(index as usize)
                 && match chunk[n] {
                     CellType::Unknown => false,
                     CellType::Blob => false,

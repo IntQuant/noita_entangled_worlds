@@ -1,7 +1,7 @@
 pub mod blob_guy;
 pub mod chunk;
 use crate::blob_guy::Blob;
-use crate::chunk::Chunk;
+use crate::chunk::Chunks;
 use noita_api::add_lua_fn;
 use noita_api::lua::LUA;
 use noita_api::lua::LuaState;
@@ -16,7 +16,7 @@ pub const CHUNK_AMOUNT: usize = 3;
 struct State {
     particle_world_state: MaybeUninit<ParticleWorldState>,
     blobs: SmallVec<[Blob; 8]>,
-    world: [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT],
+    world: Chunks,
     blob_guy: u16,
 }
 thread_local! {

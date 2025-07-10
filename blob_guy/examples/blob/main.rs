@@ -1,9 +1,7 @@
-use blob_guy::CHUNK_AMOUNT;
-use blob_guy::blob_guy::{Blob, Pos};
-use blob_guy::chunk::Chunk;
+use blob_guy::blob_guy::Blob;
+use blob_guy::chunk::{Chunks, Pos};
 use eframe::egui;
 use rupl::types::{Color, Graph, GraphType, Name, Show, Vec2};
-use std::array::from_fn;
 fn main() {
     eframe::run_native(
         "blob",
@@ -27,14 +25,14 @@ struct App {
 
 struct Data {
     blob: Blob,
-    world: [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT],
+    world: Chunks,
 }
 
 impl Data {
     fn new() -> Self {
         Self {
             blob: Blob::new(0.0, 0.0),
-            world: from_fn(|_| Chunk::default()),
+            world: Default::default(),
         }
     }
     fn update(&mut self, plot: &mut Graph) {
@@ -47,7 +45,9 @@ impl Data {
         p.x = a.parse().unwrap();
         p.y = b.parse().unwrap();
         self.blob.pos = Pos::new(p.x as f32, p.y as f32);
-        self.blob.update(&mut self.world).unwrap();
+        self.blob
+            .update(self.blob.pos.to_chunk(), &mut self.world)
+            .unwrap();
         plot.data.drain(1..);
         plot.main_colors.drain(1..);
         for ((_x, _y), _p) in self.blob.pixels.iter() {

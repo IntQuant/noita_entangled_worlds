@@ -5,7 +5,11 @@ use std::arch::asm;
 use std::ffi::c_void;
 use std::fs::File;
 use std::io::Read;
-pub fn get_functions() -> eyre::Result<(*const c_void, *const c_void, *mut types::GameGlobal)> {
+pub fn get_functions() -> eyre::Result<(
+    types::ConstructPtr,
+    types::RemovePtr,
+    *mut types::GameGlobal,
+)> {
     let exe = std::env::current_exe()?;
     let mut file = File::open(exe)?;
     let mut vec = Vec::with_capacity(15460864);
@@ -29,7 +33,11 @@ pub fn get_functions() -> eyre::Result<(*const c_void, *const c_void, *mut types
     let ptr = unsafe { start.add(game_global) };
     let game_global_ptr = get_rela_call(ptr, offset);
     let game_global_ptr = get_global(game_global_ptr);
-    Ok((construct_ptr, remove_ptr, game_global_ptr))
+    Ok((
+        types::ConstructPtr(construct_ptr),
+        types::RemovePtr(remove_ptr),
+        game_global_ptr,
+    ))
 }
 fn get_global(global: *const c_void) -> *mut types::GameGlobal {
     unsafe {
