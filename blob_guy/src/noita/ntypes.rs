@@ -692,7 +692,7 @@ pub struct Cell {
     unknown1: [isize; 2],
     pub is_burning: bool,
     unknown2: [u8; 3],
-    pub material_ptr: &'static CellData,
+    pub material: &'static CellData,
 }
 unsafe impl Sync for Cell {}
 unsafe impl Send for Cell {}
@@ -706,7 +706,7 @@ pub enum FullCell {
 }
 impl From<Cell> for FullCell {
     fn from(value: Cell) -> Self {
-        if value.material_ptr.cell_type == CellType::Liquid {
+        if value.material.cell_type == CellType::Liquid {
             FullCell::LiquidCell(*unsafe { value.get_liquid() })
         } else {
             FullCell::Cell(value)

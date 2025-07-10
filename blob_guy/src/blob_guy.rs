@@ -66,7 +66,7 @@ impl State {
         Ok(())
     }
 }
-pub const SIZE: usize = 64;
+pub const SIZE: usize = 24;
 pub struct Blob {
     pub pos: Pos,
     pub pixels: FxHashMap<(isize, isize), Pixel>,
@@ -184,7 +184,7 @@ impl Blob {
             }
 
             map[k][(x, y)] = match map[k][(x, y)] {
-                CellType::Unknown => {
+                CellType::Unknown | CellType::Liquid => {
                     map[k].modified = true;
                     CellType::Blob
                 }
@@ -300,9 +300,13 @@ impl Blob {
                     CellType::Other => false,
                     CellType::Solid => true,
                     CellType::Liquid => true,
+                    CellType::Sand => true,
                     CellType::Physics => true,
                 }
             {
+                if matches!(chunk[n], CellType::Liquid) {
+                    self.pixels.insert(n, p);
+                }
                 p.pos.x = c.0 as f32 + 0.5;
                 p.pos.y = c.1 as f32 + 0.5;
                 if p.stop.is_none() {

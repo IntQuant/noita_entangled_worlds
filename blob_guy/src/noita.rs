@@ -117,7 +117,7 @@ impl ParticleWorldState {
     }
     pub fn get_cell_material_id(&self, cell: &ntypes::Cell) -> u16 {
         let offset = unsafe {
-            (cell.material_ptr as *const ntypes::CellData).offset_from(self.material_list.as_ptr())
+            (cell.material as *const ntypes::CellData).offset_from(self.material_list.as_ptr())
         };
         offset as u16
     }
@@ -132,15 +132,17 @@ impl ParticleWorldState {
             .zip(chunk.iter_mut())
         {
             *pixel = if let Some(cell) = self.get_cell_raw(shift_x + i, shift_y + j, pixel_array) {
-                match cell.material_ptr.cell_type {
+                match cell.material.cell_type {
                     ntypes::CellType::Liquid => {
-                        if std::ptr::eq(cell.material_ptr, self.blob_ptr) {
+                        if std::ptr::eq(cell.material, self.blob_ptr) {
                             modified = true;
                             CellType::Remove
                         } else {
                             let cell: &ntypes::LiquidCell = unsafe { cell.get_liquid() };
                             if cell.is_static {
                                 CellType::Solid
+                            } else if cell.cell.material.liquid_sand {
+                                CellType::Sand
                             } else {
                                 CellType::Liquid
                             }
@@ -247,7 +249,6 @@ impl ParticleWorldState {
             ) {
                 let full = ntypes::FullCell::from(*cell);
                 noita_api::print!("{full:?}");
-                noita_api::print!("{:?}", cell.material_ptr);
             } else {
                 noita_api::print!("mat nil");
             }

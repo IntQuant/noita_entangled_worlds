@@ -13,6 +13,7 @@ pub enum CellType {
     Unknown,
     Solid,
     Liquid,
+    Sand,
     Blob,
     Remove,
     Ignore,
