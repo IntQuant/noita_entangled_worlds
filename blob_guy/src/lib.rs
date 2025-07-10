@@ -1,15 +1,12 @@
 pub mod blob_guy;
 pub mod chunk;
-pub mod init_data;
-pub mod noita;
 use crate::blob_guy::Blob;
 use crate::chunk::Chunk;
-use crate::noita::ParticleWorldState;
-use eyre::ContextCompat;
 use noita_api::add_lua_fn;
 use noita_api::lua::LUA;
 use noita_api::lua::LuaState;
 use noita_api::lua::lua_bindings::{LUA_REGISTRYINDEX, lua_State};
+use noita_api::noita::world::ParticleWorldState;
 use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::ffi::c_int;
@@ -51,25 +48,9 @@ pub unsafe extern "C" fn luaopen_blob_guy(lua: *mut lua_State) -> c_int {
 fn init_particle_world_state(_: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
         let mut state = state.try_borrow_mut()?;
-        let (construct_ptr, remove_ptr, global_ptr) = init_data::get_functions()?;
-        let global = unsafe { global_ptr.as_ref() }.wrap_err("no global?")?;
-        let world_ptr = global.m_grid_world;
-        let chunk_map = world_ptr.chunk_map.cell_array;
-        let material_list_ptr = global.m_cell_factory.cell_data_ptr;
-        let material_list = unsafe {
-            std::slice::from_raw_parts(material_list_ptr, global.m_cell_factory.cell_data_len)
-        };
         let blob_guy = noita_api::raw::cell_factory_get_type("blob_guy".into())? as u16;
         state.blob_guy = blob_guy;
-        let pws = ParticleWorldState {
-            world_ptr,
-            chunk_map,
-            blob_ptr: unsafe { material_list_ptr.offset(blob_guy as isize) },
-            material_list,
-            construct_ptr,
-            remove_ptr,
-        };
-        state.particle_world_state = MaybeUninit::new(pws);
+        state.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
         Ok(())
     })
 }

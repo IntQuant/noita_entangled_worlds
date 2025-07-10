@@ -35,7 +35,7 @@ unsafe impl Send for ChunkPtr {}
 #[repr(C)]
 pub struct ChunkMap {
     unknown: [isize; 2],
-    pub cell_array: &'static [ChunkPtr; 512 * 512],
+    pub cell_array: &'static mut [ChunkPtr; 512 * 512],
     unknown2: [isize; 8],
 }
 impl Debug for ChunkMap {
@@ -69,10 +69,10 @@ pub struct GridWorldVtable {
 }
 #[allow(dead_code)]
 impl GridWorldVtable {
-    pub fn get_chunk_map(&self) -> *const ChunkMap {
+    pub fn get_chunk_map(&self) -> *mut ChunkMap {
         #[cfg(target_arch = "x86")]
         unsafe {
-            let ret: *const ChunkMap;
+            let ret: *mut ChunkMap;
             asm!(
                 "mov ecx, 0",
                 "call {fn}",
@@ -119,12 +119,12 @@ pub struct GridWorld {
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
-    m_thread_impl: &'static GridWorldThreaded,
+    m_thread_impl: &'static mut GridWorldThreaded,
 }
 
 #[repr(C)]
 union Buffer {
-    buffer: *const u8,
+    buffer: *mut u8,
     sso_buffer: [u8; 16],
 }
 impl Default for Buffer {
@@ -151,7 +151,7 @@ impl From<&str> for StdString {
         };
         if res.capacity > 16 {
             let buffer = value.as_bytes().to_vec();
-            res.buffer.buffer = buffer.as_ptr();
+            res.buffer.buffer = buffer.as_ptr().cast_mut();
             std::mem::forget(buffer);
         } else {
             let mut iter = value.as_bytes().iter();
@@ -508,7 +508,7 @@ pub struct Position {
 }
 #[allow(dead_code)]
 impl CellVTable {
-    pub fn destroy(&self, cell: *const Cell) {
+    pub fn destroy(&self, cell: *mut Cell) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
@@ -525,7 +525,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_cell_type(&self, cell: *const Cell) -> CellType {
+    pub fn get_cell_type(&self, cell: *mut Cell) -> CellType {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u32;
@@ -545,7 +545,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_color(&self, cell: *const Cell) -> Color {
+    pub fn get_color(&self, cell: *mut Cell) -> Color {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u32;
@@ -565,7 +565,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn set_color(&self, cell: *const Cell, color: Color) {
+    pub fn set_color(&self, cell: *mut Cell, color: Color) {
         #[cfg(target_arch = "x86")]
         unsafe {
             let color: u32 = std::mem::transmute(color);
@@ -585,10 +585,10 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_material(&self, cell: *const Cell) -> *const CellData {
+    pub fn get_material(&self, cell: *mut Cell) -> *mut CellData {
         #[cfg(target_arch = "x86")]
         unsafe {
-            let ret: *const CellData;
+            let ret: *mut CellData;
             asm!(
                 "mov ecx, {cell}",
                 "call {fn}",
@@ -605,10 +605,10 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn get_position(&self, cell: *const Cell) -> *const Position {
+    pub fn get_position(&self, cell: *mut Cell) -> *mut Position {
         #[cfg(target_arch = "x86")]
         unsafe {
-            let mut ret: *const Position;
+            let mut ret: *mut Position;
             asm!(
                 "mov ecx, {cell}",
                 "push 0",
@@ -626,7 +626,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn is_burning(&self, cell: *const Cell) -> bool {
+    pub fn is_burning(&self, cell: *mut Cell) -> bool {
         #[cfg(target_arch = "x86")]
         unsafe {
             let ret: u16;
@@ -647,7 +647,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn stop_burning(&self, cell: *const Cell) {
+    pub fn stop_burning(&self, cell: *mut Cell) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
@@ -664,7 +664,7 @@ impl CellVTable {
             unreachable!()
         }
     }
-    pub fn remove(&self, cell: *const Cell) {
+    pub fn remove(&self, cell: *mut Cell) {
         #[cfg(target_arch = "x86")]
         unsafe {
             asm!(
@@ -684,7 +684,7 @@ impl CellVTable {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Cell {
     pub vtable: &'static CellVTable,
 
@@ -697,19 +697,19 @@ pub struct Cell {
 unsafe impl Sync for Cell {}
 unsafe impl Send for Cell {}
 
-#[derive(Default, Clone, Debug, Copy)]
+#[derive(Default, Debug)]
 pub enum FullCell {
     Cell(Cell),
     LiquidCell(LiquidCell),
     #[default]
     None,
 }
-impl From<Cell> for FullCell {
-    fn from(value: Cell) -> Self {
+impl From<&Cell> for FullCell {
+    fn from(value: &Cell) -> Self {
         if value.material.cell_type == CellType::Liquid {
-            FullCell::LiquidCell(*unsafe { value.get_liquid() })
+            FullCell::LiquidCell(unsafe { value.get_liquid().clone() })
         } else {
-            FullCell::Cell(value)
+            FullCell::Cell(value.clone())
         }
     }
 }
@@ -721,7 +721,7 @@ impl Cell {
     }
 }
 
-pub struct CellPtr(pub *const Cell);
+pub struct CellPtr(pub *mut Cell);
 impl Debug for CellPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let c = unsafe { self.0.as_ref() };
@@ -742,7 +742,7 @@ unsafe impl Sync for CellPtr {}
 unsafe impl Send for CellPtr {}
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct LiquidCell {
     pub cell: Cell,
     pub x: isize,
@@ -760,7 +760,7 @@ pub struct LiquidCell {
 #[derive(Debug)]
 pub struct GameWorld {
     unknown1: [isize; 17],
-    pub grid_world: &'static GridWorld,
+    pub grid_world: &'static mut GridWorld,
     //likely more data
 }
 
@@ -784,10 +784,10 @@ pub struct Textures {
 pub struct GameGlobal {
     pub frame_num: usize,
     unknown1: [isize; 2],
-    pub m_game_world: &'static GameWorld,
-    pub m_grid_world: &'static GridWorld,
-    pub m_textures: &'static Textures,
-    pub m_cell_factory: &'static CellFactory,
+    pub m_game_world: &'static mut GameWorld,
+    pub m_grid_world: &'static mut GridWorld,
+    pub m_textures: &'static mut Textures,
+    pub m_cell_factory: &'static mut CellFactory,
     unknown2: [isize; 11],
     pub pause_state: isize,
 }

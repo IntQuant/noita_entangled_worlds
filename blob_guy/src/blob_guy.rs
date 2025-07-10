@@ -1,32 +1,20 @@
-use crate::chunk::{CellType, Chunk, ChunkPos};
-use crate::noita::ParticleWorldState;
+use crate::chunk::Chunks;
+use crate::chunk::{CellType, Chunk, ChunkPos, Pos};
 use crate::{CHUNK_AMOUNT, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::f32::consts::PI;
-#[derive(Default, Debug, Clone, Copy)]
-pub struct Pos {
-    pub x: f32,
-    pub y: f32,
-}
-impl Pos {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self { x, y }
-    }
-    pub fn to_chunk(self) -> ChunkPos {
-        ChunkPos::new(self.x.floor() as isize, self.y.floor() as isize)
-    }
-}
 pub const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
-    pub fn particle_world_state(&self) -> &ParticleWorldState {
-        unsafe { self.particle_world_state.assume_init_ref() }
-    }
     pub fn update(&mut self) -> eyre::Result<()> {
         if noita_api::raw::input_is_mouse_button_just_down(1)? {
-            unsafe { self.particle_world_state().debug_mouse_pos()? };
+            unsafe {
+                self.particle_world_state
+                    .assume_init_ref()
+                    .debug_mouse_pos()?
+            };
         }
         if self.blobs.is_empty() {
             self.blobs.push(Blob::new(256.0, -(64.0 + 32.0)));
@@ -45,6 +33,7 @@ impl State {
                         x - OFFSET,
                         y - OFFSET,
                         chunk,
+                        self.blob_guy,
                     )
                 })
                 .is_err()
@@ -56,10 +45,11 @@ impl State {
             self.world.iter().enumerate().for_each(|(i, chunk)| unsafe {
                 let x = i as isize / CHUNK_AMOUNT as isize + c.x;
                 let y = i as isize % CHUNK_AMOUNT as isize + c.y;
-                let _ = self.particle_world_state.assume_init_ref().decode_area(
+                let _ = self.particle_world_state.assume_init_mut().decode_area(
                     x - OFFSET,
                     y - OFFSET,
                     chunk,
+                    self.blob_guy,
                 );
             });
         }

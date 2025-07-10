@@ -23,7 +23,6 @@ eyre = "0.6.12"
 smallvec = "1.15.1"
 rustc-hash = "2.1.1"
 rayon = "1.10.0"
-object = "0.37.1"
 
 [dev-dependencies]
 rupl = {git = "https://github.com/bgkillas/rupl.git", default-features = false, features = ["egui"] }
