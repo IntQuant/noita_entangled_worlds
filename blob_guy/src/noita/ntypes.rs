@@ -21,18 +21,43 @@ pub struct Color {
 pub struct ChunkPtr(pub *mut &'static mut [CellPtr; 512 * 512]);
 impl Debug for ChunkPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", unsafe { self.0.as_ref() })
+        write!(
+            f,
+            "ChunkPtr {{{:?} {:?}}}",
+            self.0,
+            unsafe { self.0.as_ref() }.map(|c| c.iter().filter(|c| !c.0.is_null()).count()),
+        )
     }
 }
 unsafe impl Sync for ChunkPtr {}
 unsafe impl Send for ChunkPtr {}
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct ChunkMap {
     unknown: [isize; 2],
     pub cell_array: &'static [ChunkPtr; 512 * 512],
     unknown2: [isize; 8],
+}
+impl Debug for ChunkMap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ChunkMap {{ unknown: {:?}, cell_array: {{{}}} ,unknown2: {:?} }}",
+            self.unknown,
+            self.cell_array
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| !c.0.is_null())
+                .map(|(i, c)| {
+                    let x = i as isize % 512 - 256;
+                    let y = i as isize / 512 - 256;
+                    format!("{i}: {{ x: {x}, y: {y}, {c:?}}}",)
+                })
+                .collect::<Vec<String>>()
+                .join(", "),
+            self.unknown2
+        )
+    }
 }
 
 #[repr(C)]
@@ -180,7 +205,7 @@ impl Default for ExplosionConfig {
 #[derive(Debug)]
 pub struct GridCosmeticParticleConfig {
     //TODO find some data maybe
- }
+}
 #[allow(clippy::derivable_impls)]
 impl Default for GridCosmeticParticleConfig {
     fn default() -> Self {
@@ -699,7 +724,18 @@ impl Cell {
 pub struct CellPtr(pub *const Cell);
 impl Debug for CellPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", unsafe { self.0.as_ref() })
+        let c = unsafe { self.0.as_ref() };
+        let Some(c) = c else {
+            return write!(f, "{c:?}");
+        };
+        write!(
+            f,
+            "CellPtr{{{:?}}}",
+            format!("{c:?}")
+                .split_once("material_ptr")
+                .unwrap_or_default()
+                .0
+        )
     }
 }
 unsafe impl Sync for CellPtr {}
