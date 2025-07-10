@@ -74,7 +74,6 @@ pub struct Blob {
 pub struct Pixel {
     pub pos: Pos,
     velocity: Pos,
-    acceleration: Pos,
     stop: Option<usize>,
     mutated: bool,
 }
@@ -109,14 +108,14 @@ impl Blob {
         }
         Ok(())
     }
-    fn mean(&self) -> (isize, isize) {
+    pub fn mean(&self) -> (f64, f64) {
         let n = self
             .pixels
             .keys()
             .fold((0, 0), |acc, x| (acc.0 + x.0, acc.1 + x.1));
         (
-            n.0 / self.pixels.len() as isize,
-            n.1 / self.pixels.len() as isize,
+            n.0 as f64 / self.pixels.len() as f64,
+            n.1 as f64 / self.pixels.len() as f64,
         )
     }
     pub fn update(&mut self, start: ChunkPos, map: &mut Chunks) -> eyre::Result<()> {
@@ -131,7 +130,7 @@ impl Blob {
         {
             self.run(c, p, theta, map, start);
         }
-        for _ in 0..5 {
+        for _ in 0..3 {
             let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
             for (a, b) in self.pixels.keys().cloned() {
                 let k = (a - 1, b);
@@ -247,47 +246,47 @@ impl Blob {
         let damping = 0.9;
         p.velocity.x *= damping;
         p.velocity.y *= damping;
-        if let Some(n) = p.stop.as_mut() {
-            let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n / 2];
-            p.pos.x = p.pos.x.floor() + 0.5 + t.cos() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
-            p.pos.y = p.pos.y.floor() + 0.5 + t.sin() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
-            let mut m = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
-            let mut k = *n;
-            if self.pixels.contains_key(&m) {
+        let mut n;
+        if let Some(k) = p.stop.as_mut() {
+            let phi = p.velocity.y.atan2(p.velocity.x);
+            let t = phi + DIRECTIONS[*k / 2] + PI;
+            let (sin, cos) = t.sin_cos();
+            p.pos.x += cos * if k.is_multiple_of(2) { 1.0 } else { 1.5 };
+            p.pos.y += sin * if k.is_multiple_of(2) { 1.0 } else { 1.5 };
+            n = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
+            let mut l = *k;
+            if self.pixels.contains_key(&n) {
                 loop {
-                    if k.div_ceil(2) == DIRECTIONS.len() {
-                        k = 0;
+                    if l.div_ceil(2) == DIRECTIONS.len() {
+                        l = 0;
                     } else {
-                        k += 1;
+                        l += 1;
                     }
-                    if k == *n {
+                    if l == *k {
                         break;
                     }
-                    let t = p.acceleration.y.atan2(p.acceleration.x) + DIRECTIONS[*n / 2];
-                    let x = p.pos.x.floor()
-                        + 0.5
-                        + t.cos() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
-                    let y = p.pos.y.floor()
-                        + 0.5
-                        + t.sin() * if n.is_multiple_of(2) { 1.0 } else { 1.5 };
-                    m = (x.floor() as isize, y.floor() as isize);
-                    if !self.pixels.contains_key(&m) {
+                    let t = phi + DIRECTIONS[*k / 2] + PI;
+                    let (sin, cos) = t.sin_cos();
+                    let x = p.pos.x + cos * if k.is_multiple_of(2) { 1.0 } else { 1.5 };
+                    let y = p.pos.y + sin * if k.is_multiple_of(2) { 1.0 } else { 1.5 };
+                    n = (x.floor() as isize, y.floor() as isize);
+                    if !self.pixels.contains_key(&n) {
                         p.pos.x = x;
                         p.pos.y = y;
                         break;
                     }
                 }
             }
-            if n.div_ceil(2) == DIRECTIONS.len() {
-                *n = 0;
+            if k.div_ceil(2) == DIRECTIONS.len() {
+                *k = 0;
             } else {
-                *n += 1;
+                *k += 1;
             }
         } else {
             p.pos.x += p.velocity.x / 60.0;
             p.pos.y += p.velocity.y / 60.0;
+            n = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
         }
-        let n = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
         if c != n {
             let pos = ChunkPos::new(n.0, n.1);
             let index = pos.get_world(start);

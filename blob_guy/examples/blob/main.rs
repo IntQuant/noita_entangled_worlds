@@ -21,6 +21,7 @@ impl eframe::App for App {
 struct App {
     plot: Graph,
     data: Data,
+    frame: u8,
 }
 
 struct Data {
@@ -66,6 +67,13 @@ impl Data {
                 b: 170,
             })*/
         }
+        let (x, y) = self.blob.mean();
+        plot.data.push(GraphType::Point(Vec2 { x, y }));
+        plot.main_colors.push(Color {
+            r: 255,
+            g: 170,
+            b: 255,
+        });
     }
 }
 impl App {
@@ -85,6 +93,7 @@ impl App {
         App {
             plot,
             data: Data::new(),
+            frame: 8,
         }
     }
     fn main(&mut self, ctx: &egui::Context) {
@@ -95,7 +104,12 @@ impl App {
                 let rect = ctx.available_rect();
                 self.plot
                     .set_screen(rect.width() as f64, rect.height() as f64, true, true);
-                self.data.update(&mut self.plot);
+                if self.frame == 0 {
+                    self.data.update(&mut self.plot);
+                    self.frame = 8;
+                } else {
+                    self.frame -= 1;
+                }
                 self.plot.update(ctx, ui);
                 ctx.request_repaint();
             });
