@@ -514,7 +514,7 @@ impl ConnectionManager {
 fn default_server_config() -> ServerConfig {
     let cert = rcgen::generate_simple_self_signed(vec!["tangled".into()]).unwrap();
     let cert_der = CertificateDer::from(cert.cert);
-    let priv_key = PrivatePkcs8KeyDer::from(cert.key_pair.serialize_der());
+    let priv_key = PrivatePkcs8KeyDer::from(cert.signing_key.serialize_der());
 
     let mut config =
         ServerConfig::with_single_cert(vec![cert_der.clone()], priv_key.into()).unwrap();

@@ -1122,7 +1122,15 @@ impl ImageMap {
         }
         if self.notplayer.is_none() {
             self.notplayer = egui::include_image!("../assets/notplayer.png")
-                .load(ctx, TextureOptions::NEAREST, SizeHint::Size(7, 17))
+                .load(
+                    ctx,
+                    TextureOptions::NEAREST,
+                    SizeHint::Size {
+                        width: 7,
+                        height: 17,
+                        maintain_aspect_ratio: true,
+                    },
+                )
                 .ok();
         }
         {
@@ -1671,7 +1679,7 @@ impl App {
             let (steam_connect_rect, other_rect) = right.split_top_bottom_at_fraction(0.33);
             let (ip_connect_rect, info_rect) = other_rect.split_top_bottom_at_fraction(0.5);
 
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 UiBuilder {
                     max_rect: Some(bottom_panel.shrink(group_shrink)),
                     ..Default::default()
@@ -1688,7 +1696,7 @@ impl App {
                 },
             );
 
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 UiBuilder {
                     max_rect: Some(info_rect.shrink(group_shrink)),
                     ..Default::default()
@@ -1702,7 +1710,7 @@ impl App {
                 },
             );
 
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 UiBuilder {
                     max_rect: Some(right_b_panel.shrink(group_shrink)),
                     ..Default::default()
@@ -1716,7 +1724,7 @@ impl App {
                 },
             );
 
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 UiBuilder {
                     max_rect: Some(settings_rect.shrink(group_shrink)),
                     ..Default::default()
@@ -1745,7 +1753,7 @@ impl App {
                     });
                 },
             );
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 UiBuilder {
                     max_rect: Some(steam_connect_rect.shrink(group_shrink)),
                     ..Default::default()
@@ -1758,7 +1766,7 @@ impl App {
                     });
                 },
             );
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 UiBuilder {
                     max_rect: Some(ip_connect_rect.shrink(group_shrink)),
                     ..Default::default()

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
-#crate-type = ["rlib"]
+#crate-type = ["cdylib"]
+crate-type = ["rlib"]
 
 [profile.release]
 lto = true
@@ -15,7 +15,6 @@ split-debuginfo = "packed"
 incremental=true
 codegen-units=1
 opt-level = 3
-overflow-checks = true
 
 [dependencies]
 noita_api = {path = "../noita_api"}
@@ -26,4 +25,4 @@ rayon = "1.10.0"
 
 [dev-dependencies]
 rupl = {git = "https://github.com/bgkillas/rupl.git", default-features = false, features = ["egui"] }
-eframe = "0.31.1"
+eframe = "0.32.0"

@@ -17,11 +17,11 @@ crossbeam = "0.8.2"
 tracing = "0.1.36"
 dashmap = "6.0.1"
 quinn = "0.11.5"
-rcgen = "0.13.1"
+rcgen = "0.14.2"
 thiserror = "2.0.3"
 tokio = { version = "1.40.0", features = ["macros", "io-util", "sync"] }
 bitcode = "0.6.3"
-socket2 = "0.5.8"
+socket2 = "0.6.0"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", default-features = false, features = ["trace"]}
