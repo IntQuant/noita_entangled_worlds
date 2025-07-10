@@ -1,6 +1,6 @@
 use crate::chunk::{CellType, Chunk, ChunkPos};
 use crate::noita::ParticleWorldState;
-use crate::{CHUNK_AMOUNT, CHUNK_SIZE, State};
+use crate::{CHUNK_AMOUNT, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -19,7 +19,7 @@ impl Pos {
         ChunkPos::new(self.x.floor() as isize, self.y.floor() as isize)
     }
 }
-const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
+pub const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
     pub fn particle_world_state(&self) -> &ParticleWorldState {
         unsafe { self.particle_world_state.assume_init_ref() }
@@ -49,7 +49,7 @@ impl State {
                 })
                 .is_err()
             {
-                blob.update(&mut [])?;
+                blob.update(&mut self.world)?;
                 continue 'upper;
             }
             blob.update(&mut self.world)?;
@@ -66,7 +66,7 @@ impl State {
         Ok(())
     }
 }
-pub const SIZE: usize = 24;
+pub const SIZE: usize = 64;
 pub struct Blob {
     pub pos: Pos,
     pub pixels: FxHashMap<(isize, isize), Pixel>,
@@ -120,17 +120,18 @@ impl Blob {
             n.1 / self.pixels.len() as isize,
         )
     }
-    pub fn update(&mut self, map: &mut [Chunk]) -> eyre::Result<()> {
+    pub fn update(&mut self, map: &mut [Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT]) -> eyre::Result<()> {
         let mean = self.mean();
         let theta = (mean.1 as f32 - self.pos.y).atan2(mean.0 as f32 - self.pos.x);
         for p in self.pixels.values_mut() {
             p.mutated = false;
         }
         let mut keys = self.pixels.keys().cloned().collect::<Vec<(isize, isize)>>();
+        let start = self.pos.to_chunk();
         while !keys.is_empty()
             && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
-            self.run(c, p, theta);
+            self.run(c, p, theta, map, start);
         }
         for _ in 0..5 {
             let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
@@ -169,24 +170,20 @@ impl Blob {
                 break;
             }
         }
-        let start = self.pos.to_chunk();
         let mut last = ChunkPos::new(isize::MAX, isize::MAX);
         let mut k = 0;
-        for (x, y) in self.pixels.keys() {
-            let c = ChunkPos::new(*x, *y);
+        for (x, y) in self.pixels.keys().copied() {
+            let c = ChunkPos::new(x, y);
             if c != last {
-                let new =
-                    (c.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + (c.y - start.y + OFFSET);
+                let new = c.get_world(start);
                 if new < 0 || new as usize >= CHUNK_AMOUNT * CHUNK_AMOUNT {
                     continue;
                 }
                 k = new as usize;
                 last = c;
             }
-            let n = x.rem_euclid(CHUNK_SIZE as isize) as usize * CHUNK_SIZE
-                + y.rem_euclid(CHUNK_SIZE as isize) as usize;
 
-            map[k][n] = match map[k][n] {
+            map[k][(x, y)] = match map[k][(x, y)] {
                 CellType::Unknown => {
                     map[k].modified = true;
                     CellType::Blob
@@ -224,7 +221,14 @@ impl Blob {
             pixels,
         }
     }
-    pub fn run(&mut self, c: (isize, isize), mut p: Pixel, theta: f32) -> bool {
+    pub fn run(
+        &mut self,
+        c: (isize, isize),
+        mut p: Pixel,
+        theta: f32,
+        world: &[Chunk; CHUNK_AMOUNT * CHUNK_AMOUNT],
+        start: ChunkPos,
+    ) -> bool {
         if p.mutated {
             self.pixels.insert(c, p);
             return false;
@@ -284,8 +288,30 @@ impl Blob {
         }
         let n = (p.pos.x.floor() as isize, p.pos.y.floor() as isize);
         if c != n {
-            if let Some(b) = self.pixels.remove(&n) {
-                if self.run(n, b, theta) && !self.pixels.contains_key(&n) {
+            let pos = ChunkPos::new(n.0, n.1);
+            let index = pos.get_world(start);
+            if index >= 0
+                && let Some(chunk) = world.get(index as usize)
+                && match chunk[n] {
+                    CellType::Unknown => false,
+                    CellType::Blob => false,
+                    CellType::Remove => false,
+                    CellType::Ignore => false,
+                    CellType::Other => false,
+                    CellType::Solid => true,
+                    CellType::Liquid => true,
+                    CellType::Physics => true,
+                }
+            {
+                p.pos.x = c.0 as f32 + 0.5;
+                p.pos.y = c.1 as f32 + 0.5;
+                if p.stop.is_none() {
+                    p.stop = Some(0)
+                }
+                self.pixels.insert(c, p);
+                false
+            } else if let Some(b) = self.pixels.remove(&n) {
+                if self.run(n, b, theta, world, start) && !self.pixels.contains_key(&n) {
                     p.stop = None;
                     self.pixels.insert(n, p);
                     true

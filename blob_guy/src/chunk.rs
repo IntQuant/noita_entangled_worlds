@@ -1,4 +1,5 @@
-use crate::CHUNK_SIZE;
+use crate::blob_guy::OFFSET;
+use crate::{CHUNK_AMOUNT, CHUNK_SIZE};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};
 #[derive(Debug)]
@@ -37,6 +38,21 @@ impl IndexMut<usize> for Chunk {
         &mut self.data[index]
     }
 }
+impl Index<(isize, isize)> for Chunk {
+    type Output = CellType;
+    fn index(&self, (x, y): (isize, isize)) -> &Self::Output {
+        let n = x.rem_euclid(CHUNK_SIZE as isize) as usize * CHUNK_SIZE
+            + y.rem_euclid(CHUNK_SIZE as isize) as usize;
+        &self.data[n]
+    }
+}
+impl IndexMut<(isize, isize)> for Chunk {
+    fn index_mut(&mut self, (x, y): (isize, isize)) -> &mut Self::Output {
+        let n = x.rem_euclid(CHUNK_SIZE as isize) as usize * CHUNK_SIZE
+            + y.rem_euclid(CHUNK_SIZE as isize) as usize;
+        &mut self.data[n]
+    }
+}
 impl Chunk {
     pub fn iter_mut(&mut self) -> IterMut<'_, CellType> {
         self.data.iter_mut()
@@ -56,5 +72,8 @@ impl ChunkPos {
             x: x.div_euclid(CHUNK_SIZE as isize),
             y: y.div_euclid(CHUNK_SIZE as isize),
         }
+    }
+    pub fn get_world(self, start: Self) -> isize {
+        (self.x - start.x + OFFSET) * CHUNK_AMOUNT as isize + (self.y - start.y + OFFSET)
     }
 }
