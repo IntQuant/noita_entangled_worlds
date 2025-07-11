@@ -20,8 +20,9 @@ impl State {
             return Ok(());
         }
         'upper: for blob in self.blobs.iter_mut() {
+            let mean = blob.mean();
             blob.update_pos()?;
-            let start = blob.pos.to_chunk();
+            let start = Pos::new(mean.0, mean.1).to_chunk();
             if self
                 .world
                 .read(
@@ -31,10 +32,10 @@ impl State {
                 )
                 .is_err()
             {
-                blob.update(start, &mut self.world)?;
+                blob.update(start, &mut self.world, mean)?;
                 continue 'upper;
             }
-            blob.update(start, &mut self.world)?;
+            blob.update(start, &mut self.world, mean)?;
             self.world.paint(
                 unsafe { self.particle_world_state.assume_init_mut() },
                 self.blob_guy,
@@ -108,29 +109,43 @@ impl Blob {
         }
         Ok(())
     }
-    pub fn mean(&self) -> (f64, f64) {
+    pub fn mean(&self) -> (f32, f32) {
         let n = self
             .pixels
-            .keys()
-            .fold((0, 0), |acc, x| (acc.0 + x.0, acc.1 + x.1));
+            .values()
+            .fold((0.0, 0.0), |acc, p| (acc.0 + p.pos.x, acc.1 + p.pos.y));
         (
-            n.0 as f64 / self.pixels.len() as f64,
-            n.1 as f64 / self.pixels.len() as f64,
+            n.0 / self.pixels.len() as f32,
+            n.1 / self.pixels.len() as f32,
         )
     }
-    pub fn update(&mut self, start: ChunkPos, map: &mut Chunks) -> eyre::Result<()> {
-        let mean = self.mean();
-        let theta = (mean.1 as f32 - self.pos.y).atan2(mean.0 as f32 - self.pos.x);
+    pub fn update(
+        &mut self,
+        start: ChunkPos,
+        map: &mut Chunks,
+        mean: (f32, f32),
+    ) -> eyre::Result<()> {
+        let theta = (mean.1 - self.pos.y).atan2(mean.0 - self.pos.x);
         for p in self.pixels.values_mut() {
             p.mutated = false;
         }
+        let r = (self.pixels.len() as f32 / PI).sqrt().ceil();
         let mut keys = self.pixels.keys().cloned().collect::<Vec<(isize, isize)>>();
+        keys.sort_unstable_by(|(a, b), (x, y)| {
+            let da = self.pos.x.floor() as isize - a;
+            let db = self.pos.y.floor() as isize - b;
+            let dx = self.pos.x.floor() as isize - x;
+            let dy = self.pos.y.floor() as isize - y;
+            let r1 = da * da + db * db;
+            let r2 = dx * dx + dy * dy;
+            r2.cmp(&r1)
+        });
         while !keys.is_empty()
             && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
-            self.run(c, p, theta, map, start);
+            self.run(c, p, theta, map, start, r);
         }
-        for _ in 0..3 {
+        /*for _ in 0..3 {
             let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
             for (a, b) in self.pixels.keys().cloned() {
                 let k = (a - 1, b);
@@ -166,7 +181,7 @@ impl Blob {
             if !is_some {
                 break;
             }
-        }
+        }*/
         self.register_pixels(start, map);
         Ok(())
     }
@@ -228,6 +243,7 @@ impl Blob {
         theta: f32,
         world: &Chunks,
         start: ChunkPos,
+        r: f32,
     ) -> bool {
         if p.mutated {
             self.pixels.insert(c, p);
@@ -237,10 +253,22 @@ impl Blob {
         let dx = self.pos.x - p.pos.x;
         let dy = self.pos.y - p.pos.y;
         let dist = dy.hypot(dx).max(0.1);
-        let phi = (3.0 * (dy.atan2(dx) - theta).abs() / PI + 1.0).min(3.0);
-        let mag = 512.0 * phi;
-        let ax = mag * dx / dist;
-        let ay = mag * dy / dist;
+        let psi = dy.atan2(dx);
+        let angle = psi - theta;
+        let mag = 512.0;
+        let (ax, ay) = if dist > r {
+            let n = if psi < theta + PI {
+                psi + PI / 4.0
+            } else {
+                psi - PI / 4.0
+            };
+            let (s, c) = n.sin_cos();
+            let (dx, dy) = (dist * c, dist * s);
+            (mag * dx / dist, mag * dy / dist)
+        } else {
+            let phi = (3.0 * angle.abs() / PI + 1.0).min(3.0);
+            (phi * mag * dx / dist, phi * mag * dy / dist)
+        };
         p.velocity.x += ax / 60.0;
         p.velocity.y += ay / 60.0;
         let damping = 0.9;
@@ -249,7 +277,7 @@ impl Blob {
         let mut n;
         if let Some(k) = p.stop.as_mut() {
             let phi = p.velocity.y.atan2(p.velocity.x);
-            let t = phi + DIRECTIONS[*k / 2] + PI;
+            let t = phi + DIRECTIONS[*k / 2];
             let (sin, cos) = t.sin_cos();
             p.pos.x += cos * if k.is_multiple_of(2) { 1.0 } else { 1.5 };
             p.pos.y += sin * if k.is_multiple_of(2) { 1.0 } else { 1.5 };
@@ -315,7 +343,7 @@ impl Blob {
                 self.pixels.insert(c, p);
                 false
             } else if let Some(b) = self.pixels.remove(&n) {
-                if self.run(n, b, theta, world, start) && !self.pixels.contains_key(&n) {
+                if self.run(n, b, theta, world, start, r) && !self.pixels.contains_key(&n) {
                     p.stop = None;
                     self.pixels.insert(n, p);
                     true

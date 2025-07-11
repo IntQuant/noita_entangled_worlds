@@ -1,7 +1,8 @@
 use blob_guy::blob_guy::Blob;
 use blob_guy::chunk::{Chunks, Pos};
 use eframe::egui;
-use rupl::types::{Color, Graph, GraphType, Name, Show, Vec2};
+use rupl::types::{Color, Complex, Graph, GraphType, Name, Show, Vec2};
+use std::f64::consts::PI;
 fn main() {
     eframe::run_native(
         "blob",
@@ -47,33 +48,45 @@ impl Data {
         p.y = b.parse().unwrap();
         self.blob.pos = Pos::new(p.x as f32, p.y as f32);
         self.blob
-            .update(self.blob.pos.to_chunk(), &mut self.world)
+            .update(self.blob.pos.to_chunk(), &mut self.world, self.blob.mean())
             .unwrap();
+        let sx = p.x;
+        let sy = p.y;
         plot.data.drain(1..);
         plot.main_colors.drain(1..);
-        for ((_x, _y), _p) in self.blob.pixels.iter() {
-            let p1 = Vec2::new(*_x as f64 + 0.5, *_y as f64 + 0.5);
-            //let p2 = Vec2::new(_p.pos.x as f64, _p.pos.y as f64);
+        for (x, y) in self.blob.pixels.keys().copied() {
+            let p1 = Vec2::new(x as f64 + 0.5, y as f64 + 0.5);
             plot.data.push(GraphType::Point(p1));
             plot.main_colors.push(Color {
                 r: 170,
                 g: 170,
                 b: 255,
             });
-            /*plot.data.push(GraphType::Point(p2));
-            plot.main_colors.push(Color {
-                r: 170,
-                g: 255,
-                b: 170,
-            })*/
         }
         let (x, y) = self.blob.mean();
+        let (x, y) = (x as f64, y as f64);
         plot.data.push(GraphType::Point(Vec2 { x, y }));
         plot.main_colors.push(Color {
             r: 255,
             g: 170,
             b: 255,
         });
+        let r = (self.blob.pixels.len() as f64 / PI).sqrt().ceil();
+        let r2 = r * r;
+        let c = 512;
+        let mut values = Vec::with_capacity(2 * c + 1);
+        let mut values2 = Vec::with_capacity(2 * c + 1);
+        for i in -(c as isize)..=c as isize {
+            let x = i as f64 / c as f64 * r;
+            let y = (r2 - x * x).sqrt();
+            values.push((x + sx, Complex::Real(y + sy)));
+            values2.push((x + sx, Complex::Real(sy - y)));
+        }
+        plot.data.push(GraphType::List(vec![
+            GraphType::Coord(values),
+            GraphType::Coord(values2),
+        ]));
+        plot.main_colors.push(Color { r: 0, g: 0, b: 0 });
     }
 }
 impl App {

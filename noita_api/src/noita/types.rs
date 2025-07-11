@@ -72,9 +72,21 @@ impl RemovePtr {
         }
         #[cfg(target_arch = "x86_64")]
         {
-            std::hint::black_box((x, y, cell, self.0, world));
+            std::hint::black_box((x, y, cell, world));
             unreachable!()
         }
+    }
+    pub fn print_bytes(self) {
+        let mut start = unsafe { self.0.offset(-1).cast::<u8>() };
+        let mut bytes = String::new();
+        let end = get_function_end(self.0);
+        while start != end.cast() {
+            unsafe {
+                start = start.offset(1);
+                bytes += &format!("\\x{:x}", start.read());
+            }
+        }
+        crate::print!("{}", bytes);
     }
 }
 
@@ -111,12 +123,40 @@ impl ConstructPtr {
         }
         #[cfg(target_arch = "x86_64")]
         {
-            std::hint::black_box((x, y, material, self.0, world));
+            std::hint::black_box((x, y, material, world));
             unreachable!()
         }
     }
+    pub fn print_bytes(self) {
+        let mut start = unsafe { self.0.offset(-1).cast::<u8>() };
+        let mut bytes = String::new();
+        let end = get_function_end(self.0);
+        while start != end.cast() {
+            unsafe {
+                start = start.offset(1);
+                bytes += &format!("\\x{:x}", start.read());
+            }
+        }
+        crate::print!("{}", bytes);
+    }
 }
-
+fn get_function_end(func: *const c_void) -> *const c_void {
+    let mut it = func.cast::<u8>();
+    loop {
+        unsafe {
+            if (it.offset(-1).as_ref() >= Some(&0x58) && it.offset(-1).as_ref() < Some(&0x60))
+                && matches!(it.as_ref(), Some(&0xc3) | Some(&0xc2))
+            {
+                return if it.as_ref() == Some(&0xc3) {
+                    it.offset(1).cast::<c_void>()
+                } else {
+                    it.offset(3).cast::<c_void>()
+                };
+            }
+            it = it.offset(1)
+        }
+    }
+}
 #[repr(C)]
 pub struct ChunkMap {
     unknown: [isize; 2],
@@ -617,6 +657,53 @@ pub struct Position {
     pub x: isize,
     pub y: isize,
 }
+impl Default for CellVTable {
+    fn default() -> Self {
+        Self {
+            destroy: 0x70af20 as *const c_void,
+            get_cell_type: 0x5b01a0 as *const c_void,
+            _field01: 0x70b050 as *const c_void,
+            _field02: 0x70b060 as *const c_void,
+            _field03: 0x5b01c0 as *const c_void,
+            get_color: 0x5b01d0 as *const c_void,
+            _field04: 0x70d090 as *const c_void,
+            set_color: 0x5b01e0 as *const c_void,
+            _field05: 0x5b0200 as *const c_void,
+            _field06: 0x5b01f0 as *const c_void,
+            _field07: 0x70b070 as *const c_void,
+            _field08: 0x70b0b0 as *const c_void,
+            get_material: 0x4ac0d0 as *const c_void,
+            _field09: 0x70d0b0 as *const c_void,
+            _field10: 0x4abf60 as *const c_void,
+            _field11: 0x70d1a0 as *const c_void,
+            _field12: 0x70d1e0 as *const c_void,
+            _field13: 0x70d180 as *const c_void,
+            _field14: 0x70cb40 as *const c_void,
+            _field15: 0x70cd80 as *const c_void,
+            get_position: 0x70cdd0 as *const c_void,
+            _field16: 0x70c6e0 as *const c_void,
+            _field17: 0x5b01b0 as *const c_void,
+            _field18: 0x4abf90 as *const c_void,
+            _field19: 0x4abfa0 as *const c_void,
+            _field20: 0x70b110 as *const c_void,
+            _field21: 0x70b120 as *const c_void,
+            _field22: 0x70b160 as *const c_void,
+            _field23: 0x70f5b0 as *const c_void,
+            is_burning: 0x70f5d0 as *const c_void,
+            _field24: 0x70cdf0 as *const c_void,
+            _field25: 0x70f750 as *const c_void,
+            _field26: 0x4ac0e0 as *const c_void,
+            stop_burning: 0x70f7f0 as *const c_void,
+            _field27: 0x4ac020 as *const c_void,
+            _field28: 0x70f160 as *const c_void,
+            _field29: 0x70eaf0 as *const c_void,
+            _field30: 0x70ef90 as *const c_void,
+            _field31: 0x70f360 as *const c_void,
+            remove: 0x70af50 as *const c_void,
+            _field32: 0x70b1d0 as *const c_void,
+        }
+    }
+}
 #[allow(dead_code)]
 impl CellVTable {
     pub fn destroy(&self, cell: *mut Cell) {
@@ -865,6 +952,36 @@ pub struct LiquidCell {
     unknown4: [u8; 3],
     pub color: Color,
     pub not_color: Color,
+}
+
+impl LiquidCell {
+    pub fn blob(mat: &'static CellData, vtable: &'static CellVTable) -> Self {
+        Self {
+            cell: Cell::blob(mat, vtable),
+            x: 0,
+            y: 0,
+            unknown1: 3,
+            unknown2: 0,
+            is_static: true,
+            unknown3: 0,
+            unknown4: [0, 0, 0],
+            color: Default::default(),
+            not_color: Default::default(),
+        }
+    }
+}
+
+impl Cell {
+    fn blob(material: &'static CellData, vtable: &'static CellVTable) -> Self {
+        Self {
+            vtable,
+            hp: material.hp,
+            unknown1: [-1000, 0],
+            is_burning: false,
+            unknown2: [10, 0, 0],
+            material,
+        }
+    }
 }
 
 #[repr(C)]

@@ -7,10 +7,32 @@ pub struct ParticleWorldState {
     pub material_list: &'static [types::CellData],
     pub construct_ptr: types::ConstructPtr,
     pub remove_ptr: types::RemovePtr,
+    pub cell_vtable: Option<&'static types::CellVTable>,
 }
 unsafe impl Sync for ParticleWorldState {}
 unsafe impl Send for ParticleWorldState {}
 impl ParticleWorldState {
+    pub fn cell_vtable(&mut self) -> Option<&'static types::CellVTable> {
+        if self.cell_vtable.is_some() {
+            self.cell_vtable
+        } else if let Some(world) = unsafe { self.world_ptr.as_ref() } {
+            self.cell_vtable = world
+                .chunk_map
+                .chunk_array
+                .iter()
+                .filter(|c| !c.0.is_null())
+                .find_map(|c| {
+                    unsafe { c.0.as_ref() }.and_then(|c| {
+                        c.iter()
+                            .find(|c| !c.0.is_null())
+                            .and_then(|c| unsafe { c.0.as_ref() }.map(|c| c.vtable))
+                    })
+                });
+            self.cell_vtable
+        } else {
+            None
+        }
+    }
     pub fn get_shift<const CHUNK_SIZE: usize>(&self, x: isize, y: isize) -> (isize, isize) {
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
@@ -86,6 +108,7 @@ impl ParticleWorldState {
             material_list,
             construct_ptr,
             remove_ptr,
+            cell_vtable: None,
         })
     }
 }

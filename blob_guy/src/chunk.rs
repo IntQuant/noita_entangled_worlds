@@ -175,10 +175,10 @@ impl ChunkOps for ParticleWorldState {
                             modified = true;
                             CellType::Remove
                         } else {
-                            let cell: &types::LiquidCell = cell.get_liquid();
-                            if cell.is_static {
+                            let lcell = cell.get_liquid();
+                            if lcell.is_static {
                                 CellType::Solid
-                            } else if cell.cell.material.liquid_sand {
+                            } else if cell.material.liquid_sand {
                                 CellType::Sand
                             } else {
                                 CellType::Liquid
@@ -218,40 +218,78 @@ impl ChunkOps for ParticleWorldState {
         };
         let x = cx * CHUNK_SIZE as isize;
         let y = cy * CHUNK_SIZE as isize;
-        for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
-            .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
-            .zip(chunk.iter())
-        {
-            match pixel {
-                CellType::Blob => {
-                    let world_x = x + i;
-                    let world_y = y + j;
-                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
-                        if !cell.0.is_null() {
-                            self.remove_ptr
-                                .remove_cell(self.world_ptr, cell.0, world_x, world_y);
+        if let Some(vtable) = self.cell_vtable() {
+            noita_api::print!("{:?}", vtable);
+            for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
+                .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
+                .zip(chunk.iter())
+            {
+                match pixel {
+                    CellType::Blob => {
+                        let world_x = x + i;
+                        let world_y = y + j;
+                        if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                            let new = Box::leak(Box::new(types::LiquidCell::blob(
+                                &self.material_list[blob as usize],
+                                vtable,
+                            )));
+                            new.x = world_x;
+                            new.y = world_y;
+                            cell.0 = (new as *mut types::LiquidCell).cast();
+                            vtable.set_color(
+                                cell.0,
+                                self.material_list[blob as usize].default_primary_color,
+                            );
                         }
-                        let src = self.construct_ptr.create_cell(
-                            self.world_ptr,
-                            world_x,
-                            world_y,
-                            &self.material_list[blob as usize],
-                        );
-                        if !src.is_null()
-                            && let Some(liquid) =
-                                unsafe { src.cast::<types::LiquidCell>().as_mut() }
-                        {
-                            liquid.is_static = true;
+                    }
+                    CellType::Remove => {
+                        if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                            cell.0 = std::ptr::null_mut()
                         }
-                        cell.0 = src;
                     }
+                    _ => {}
                 }
-                CellType::Remove => {
-                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
-                        cell.0 = std::ptr::null_mut();
+            }
+        } else {
+            for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
+                .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
+                .zip(chunk.iter())
+            {
+                match pixel {
+                    CellType::Blob => {
+                        let world_x = x + i;
+                        let world_y = y + j;
+                        if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                            if !cell.0.is_null() {
+                                self.remove_ptr.remove_cell(
+                                    self.world_ptr,
+                                    cell.0,
+                                    world_x,
+                                    world_y,
+                                );
+                            }
+                            let src = self.construct_ptr.create_cell(
+                                self.world_ptr,
+                                world_x,
+                                world_y,
+                                &self.material_list[blob as usize],
+                            );
+                            if !src.is_null()
+                                && let Some(liquid) =
+                                    unsafe { src.cast::<types::LiquidCell>().as_mut() }
+                            {
+                                liquid.is_static = true;
+                            }
+                            cell.0 = src;
+                        }
                     }
+                    CellType::Remove => {
+                        if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                            cell.0 = std::ptr::null_mut();
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
         Ok(())

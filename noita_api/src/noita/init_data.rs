@@ -27,8 +27,8 @@ pub fn get_functions() -> eyre::Result<(
     let start = text.address() as *const c_void;
     let construct = find_pattern(data, construct)?;
     let remove = find_pattern(data, remove)?;
-    let construct_ptr = get_function_start(unsafe { start.add(construct) })?;
-    let remove_ptr = get_function_start(unsafe { start.add(remove) })?;
+    let construct_ptr = get_function_start(unsafe { start.add(construct) });
+    let remove_ptr = get_function_start(unsafe { start.add(remove) });
     let (game_global, offset) = find_pattern_global(data, game_global, game_global2)?;
     let ptr = unsafe { start.add(game_global) };
     let game_global_ptr = get_rela_call(ptr, offset);
@@ -74,22 +74,20 @@ fn get_rela_call(ptr: *const c_void, offset: isize) -> *const c_void {
         next_instruction.offset(offset)
     }
 }
-fn get_function_start(func: *const c_void) -> eyre::Result<*const c_void> {
+fn get_function_start(func: *const c_void) -> *const c_void {
     let mut it = func.cast::<u8>();
     loop {
         unsafe {
             if it as isize % 16 == 0
-                && (it.offset(-1).as_ref() == Some(&0xcc)
-                    || it.offset(-1).as_ref() == Some(&0xc3)
+                && (matches!(it.offset(-1).as_ref(), Some(&0xcc) | Some(&0xc3))
                     || it.offset(-3).as_ref() == Some(&0xc2))
                 && (it.as_ref() >= Some(&0x50) && it.as_ref() < Some(&0x58))
                 && ((it.offset(1).as_ref() >= Some(&0x50) && it.offset(1).as_ref() < Some(&0x58))
-                    || (it.offset(1).as_ref() == Some(&0x8b)
-                        && it.offset(2).as_ref() == Some(&0xec)))
+                    || matches!(it.offset(1).as_ref(), Some(&0x8b) | Some(&0xec)))
             {
-                return Ok(it.cast::<c_void>());
+                return it.cast::<c_void>();
             }
+            it = it.offset(-1)
         }
-        it = unsafe { it.offset(-1) }
     }
 }
