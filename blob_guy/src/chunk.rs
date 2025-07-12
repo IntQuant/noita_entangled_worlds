@@ -3,7 +3,9 @@ use crate::{CHUNK_AMOUNT, CHUNK_SIZE};
 use eyre::{ContextCompat, eyre};
 use noita_api::noita::types;
 use noita_api::noita::world::ParticleWorldState;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};
 #[derive(Debug)]
@@ -53,7 +55,7 @@ impl Chunks {
         blob_guy: u16,
         start: ChunkPos,
     ) {
-        self.0.iter().enumerate().for_each(|(i, chunk)| unsafe {
+        self.0.par_iter().enumerate().for_each(|(i, chunk)| unsafe {
             let x = i as isize / CHUNK_AMOUNT as isize + start.x;
             let y = i as isize % CHUNK_AMOUNT as isize + start.y;
             let _ = particle_world_state.decode_area(x - OFFSET, y - OFFSET, chunk, blob_guy);
@@ -136,13 +138,7 @@ pub trait ChunkOps {
         blob: u16,
     ) -> eyre::Result<()>;
     ///# Safety
-    unsafe fn decode_area(
-        &mut self,
-        x: isize,
-        y: isize,
-        chunk: &Chunk,
-        blob: u16,
-    ) -> eyre::Result<()>;
+    unsafe fn decode_area(&self, x: isize, y: isize, chunk: &Chunk, blob: u16) -> eyre::Result<()>;
 }
 pub const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
 impl ChunkOps for ParticleWorldState {
@@ -198,7 +194,7 @@ impl ChunkOps for ParticleWorldState {
     }
     ///# Safety
     unsafe fn decode_area(
-        &mut self,
+        &self,
         cx: isize,
         cy: isize,
         chunk: &Chunk,
@@ -218,6 +214,10 @@ impl ChunkOps for ParticleWorldState {
         };
         let x = cx * CHUNK_SIZE as isize;
         let y = cy * CHUNK_SIZE as isize;
+        let blob_cell = Box::new(types::LiquidCell::blob(
+            &self.material_list[blob as usize],
+            self.cell_vtable,
+        ));
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter())
@@ -227,14 +227,9 @@ impl ChunkOps for ParticleWorldState {
                     let world_x = x + i;
                     let world_y = y + j;
                     if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
-                        let new = Box::leak(Box::new(types::LiquidCell::blob(
-                            &self.material_list[blob as usize],
-                            self.cell_vtable,
-                        )));
+                        let new = Box::leak(blob_cell.clone());
                         new.x = world_x;
                         new.y = world_y;
-                        new.color = self.material_list[blob as usize].default_primary_color;
-                        new.not_color = self.material_list[blob as usize].default_primary_color;
                         cell.0 = (new as *mut types::LiquidCell).cast();
                     }
                 }

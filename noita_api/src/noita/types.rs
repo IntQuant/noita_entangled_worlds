@@ -978,8 +978,8 @@ impl LiquidCell {
             unknown4: 0,
             unknown5: 0,
             unknown6: 0,
-            color: Default::default(),
-            not_color: Default::default(),
+            color: mat.default_primary_color,
+            not_color: mat.default_primary_color,
             unknown7: 0,
             unknown8: 0,
         }
