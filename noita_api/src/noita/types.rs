@@ -220,13 +220,13 @@ impl Debug for ChunkMap {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct GridWorldVtable {
+pub struct GridWorldVTable {
     unknown: [*const c_void; 3],
     pub get_chunk_map: *const c_void,
     unknown2: [*const c_void; 30],
 }
 #[allow(dead_code)]
-impl GridWorldVtable {
+impl GridWorldVTable {
     pub fn get_chunk_map(&self) -> *mut ChunkMap {
         #[cfg(target_arch = "x86")]
         unsafe {
@@ -272,7 +272,7 @@ struct GridWorldThreaded {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridWorld {
-    pub vtable: &'static GridWorldVtable,
+    pub vtable: &'static GridWorldVTable,
     unknown: [isize; 318],
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
@@ -664,6 +664,7 @@ pub struct Position {
     pub y: isize,
 }
 impl Default for CellVTable {
+    //ptr is 0x100bb90
     fn default() -> Self {
         Self {
             destroy: 0x70af20 as *const c_void,
@@ -955,9 +956,13 @@ pub struct LiquidCell {
     unknown2: u8,
     pub is_static: bool,
     unknown3: u8,
-    unknown4: [u8; 3],
+    unknown4: isize,
+    unknown5: isize,
+    unknown6: isize,
     pub color: Color,
     pub not_color: Color,
+    unknown7: isize,
+    unknown8: isize,
 }
 
 impl LiquidCell {
@@ -970,9 +975,13 @@ impl LiquidCell {
             unknown2: 0,
             is_static: true,
             unknown3: 0,
-            unknown4: [0, 0, 0],
+            unknown4: 0,
+            unknown5: 0,
+            unknown6: 0,
             color: Default::default(),
             not_color: Default::default(),
+            unknown7: 0,
+            unknown8: 0,
         }
     }
 }
