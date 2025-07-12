@@ -1,4 +1,5 @@
 use crate::chunk::Chunks;
+use crate::chunk::SCALE;
 use crate::chunk::{CellType, ChunkPos, Pos};
 use crate::{CHUNK_AMOUNT, State};
 #[cfg(target_arch = "x86")]
@@ -23,14 +24,16 @@ impl State {
             let mean = blob.mean();
             blob.update_pos()?;
             let start = Pos::new(mean.0, mean.1).to_chunk();
-            if self
-                .world
-                .read(
-                    unsafe { self.particle_world_state.assume_init_ref() },
-                    self.blob_guy,
-                    start,
-                )
-                .is_err()
+            if !unsafe { self.particle_world_state.assume_init_ref() }
+                .exists::<SCALE>(start.x, start.y)
+                || self
+                    .world
+                    .read(
+                        unsafe { self.particle_world_state.assume_init_ref() },
+                        self.blob_guy,
+                        start,
+                    )
+                    .is_err()
             {
                 blob.update(start, &mut self.world, mean, false)?;
                 continue 'upper;
@@ -147,7 +150,7 @@ impl Blob {
         loaded: bool,
     ) -> eyre::Result<()> {
         let r = (self.pixels.len() as f32 / PI).sqrt().ceil();
-        let array = self.get_thetas(r);
+        let array = &self.get_thetas(r);
         let theta = (mean.1 - self.pos.y).atan2(mean.0 - self.pos.x);
         for p in self.pixels.values_mut() {
             p.mutated = false;
@@ -165,7 +168,7 @@ impl Blob {
         while !keys.is_empty()
             && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
-            self.run(c, p, theta, map, start, r, &array);
+            self.run(c, p, theta, map, start, array);
         }
         if !loaded {
             return Ok(());
@@ -237,21 +240,6 @@ impl Blob {
             }
         }
     }
-    pub fn far(&mut self) -> Pixel {
-        let (a, b) = (self.pos.x.floor() as isize, self.pos.y.floor() as isize);
-        let mut l = isize::MIN;
-        let mut ret = (0, 0);
-        for (c, d) in self.pixels.keys() {
-            let dx = c - a;
-            let dy = d - b;
-            let m = dx * dx + dy * dy;
-            if m > l {
-                l = m;
-                ret = (*c, *d);
-            }
-        }
-        self.pixels.remove(&ret).unwrap()
-    }
     pub fn new(x: f32, y: f32) -> Self {
         let mut pixels = FxHashMap::with_capacity_and_hasher(SIZE * SIZE, FxBuildHasher);
         for i in 0..SIZE * SIZE {
@@ -274,7 +262,6 @@ impl Blob {
         theta: f32,
         world: &Chunks,
         start: ChunkPos,
-        r: f32,
         array: &[bool; Self::THETA_COUNT],
     ) -> bool {
         if p.mutated {
@@ -288,9 +275,7 @@ impl Blob {
         let psi = dy.atan2(dx);
         let angle = psi - theta;
         let mag = 512.0;
-        let (ax, ay) = if dist > r
-            && !array[(Self::THETA_COUNT as f32 * (dy.atan2(dx) / TAU + 0.5)) as usize]
-        {
+        let (ax, ay) = if !array[(Self::THETA_COUNT as f32 * (dy.atan2(dx) / TAU + 0.5)) as usize] {
             let n = if psi < theta + PI {
                 psi + PI / 4.0
             } else {
@@ -378,7 +363,7 @@ impl Blob {
                 self.pixels.insert(c, p);
                 false
             } else if let Some(b) = self.pixels.remove(&n) {
-                if self.run(n, b, theta, world, start, r, array) && !self.pixels.contains_key(&n) {
+                if self.run(n, b, theta, world, start, array) && !self.pixels.contains_key(&n) {
                     p.stop = None;
                     self.pixels.insert(n, p);
                     true

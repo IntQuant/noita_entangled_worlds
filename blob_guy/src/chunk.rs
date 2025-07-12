@@ -144,7 +144,7 @@ pub trait ChunkOps {
         blob: u16,
     ) -> eyre::Result<()>;
 }
-const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
+pub const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
 impl ChunkOps for ParticleWorldState {
     ///# Safety
     unsafe fn encode_area(

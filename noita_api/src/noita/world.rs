@@ -44,6 +44,16 @@ impl ParticleWorldState {
         };
         offset as u16
     }
+    pub fn exists<const SCALE: isize>(&self, cx: isize, cy: isize) -> bool {
+        let Some(world) = (unsafe { self.world_ptr.as_mut() }) else {
+            return false;
+        };
+        world
+            .chunk_map
+            .chunk_array
+            .get(cx >> SCALE, cy >> SCALE)
+            .is_some()
+    }
     ///# Safety
     #[allow(clippy::type_complexity)]
     pub unsafe fn clone_chunks(&mut self) -> Vec<((isize, isize), Vec<types::FullCell>)> {
