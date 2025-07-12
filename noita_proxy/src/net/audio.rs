@@ -3,7 +3,7 @@ use crate::net::omni::OmniPeerId;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use opus::{Application, Channels, Decoder, Encoder};
 use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, OutputStreamHandle, Sink};
+use rodio::{OutputStream, OutputStreamBuilder, Sink};
 use rubato::{FftFixedIn, Resampler};
 use std::collections::HashMap;
 use std::ops::Mul;
@@ -93,7 +93,7 @@ struct PlayerInfo {
 
 pub(crate) struct AudioManager {
     per_player: HashMap<OmniPeerId, PlayerInfo>,
-    stream_handle: Option<(OutputStream, OutputStreamHandle)>,
+    stream_handle: Option<OutputStream>,
     decoder: Decoder,
     rx: Receiver<Vec<u8>>,
 }
@@ -205,30 +205,7 @@ impl AudioManager {
                 warn!("input device not found")
             }
         });
-        let stream_handle: Option<(OutputStream, OutputStreamHandle)> = {
-            let output = audio.output_device.clone();
-            if audio.disabled {
-                None
-            } else if output.is_none() {
-                host.default_output_device()
-            } else if let Some(d) = host
-                .output_devices()
-                .map(|mut d| d.find(|d| d.name().ok() == output))
-                .ok()
-                .flatten()
-            {
-                Some(d)
-            } else {
-                host.default_output_device()
-            }
-        }
-        .and_then(|device| {
-            device
-                .default_output_config()
-                .map(|config| OutputStream::try_from_device_config(&device, config).ok())
-                .ok()
-                .flatten()
-        });
+        let stream_handle: Option<OutputStream> = OutputStreamBuilder::open_default_stream().ok();
         let sink: HashMap<OmniPeerId, PlayerInfo> = Default::default();
         Self {
             decoder,
@@ -255,11 +232,10 @@ impl AudioManager {
     ) {
         if let std::collections::hash_map::Entry::Vacant(e) = self.per_player.entry(src)
             && let Some(stream_handle) = &self.stream_handle
-            && let Ok(s) = Sink::try_new(&stream_handle.1)
         {
             //let (pitch_control, dsp) = make_dsp();
             e.insert(PlayerInfo {
-                sink: s,
+                sink: Sink::connect_new(stream_handle.mixer()),
                 //tracker: VelocityTracker::default(),
                 //pitch_control,
                 //dsp,
