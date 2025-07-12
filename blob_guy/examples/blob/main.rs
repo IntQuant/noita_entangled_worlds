@@ -48,7 +48,12 @@ impl Data {
         p.y = b.parse().unwrap();
         self.blob.pos = Pos::new(p.x as f32, p.y as f32);
         self.blob
-            .update(self.blob.pos.to_chunk(), &mut self.world, self.blob.mean())
+            .update(
+                self.blob.pos.to_chunk(),
+                &mut self.world,
+                self.blob.mean(),
+                true,
+            )
             .unwrap();
         let sx = p.x;
         let sy = p.y;
@@ -87,6 +92,7 @@ impl Data {
             GraphType::Coord(values2),
         ]));
         plot.main_colors.push(Color { r: 0, g: 0, b: 0 });
+        self.blob.cull();
     }
 }
 impl App {

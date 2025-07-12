@@ -32,15 +32,16 @@ impl State {
                 )
                 .is_err()
             {
-                blob.update(start, &mut self.world, mean)?;
+                blob.update(start, &mut self.world, mean, false)?;
                 continue 'upper;
             }
-            blob.update(start, &mut self.world, mean)?;
+            blob.update(start, &mut self.world, mean, true)?;
             self.world.paint(
                 unsafe { self.particle_world_state.assume_init_mut() },
                 self.blob_guy,
                 start,
             );
+            blob.cull();
         }
         Ok(())
     }
@@ -70,6 +71,7 @@ pub const SIZE: usize = 24;
 pub struct Blob {
     pub pos: Pos,
     pub pixels: FxHashMap<(isize, isize), Pixel>,
+    pub count: usize,
 }
 #[derive(Default, Copy, Clone)]
 pub struct Pixel {
@@ -77,6 +79,7 @@ pub struct Pixel {
     velocity: Pos,
     stop: Option<usize>,
     mutated: bool,
+    temp: bool,
 }
 const DIRECTIONS: [f32; 7] = [
     0.0,
@@ -96,6 +99,9 @@ impl Pixel {
     }
 }
 impl Blob {
+    pub fn cull(&mut self) {
+        self.pixels.retain(|_, p| !p.temp);
+    }
     pub fn update_pos(&mut self) -> eyre::Result<()> {
         #[cfg(target_arch = "x86")]
         {
@@ -138,6 +144,7 @@ impl Blob {
         start: ChunkPos,
         map: &mut Chunks,
         mean: (f32, f32),
+        loaded: bool,
     ) -> eyre::Result<()> {
         let r = (self.pixels.len() as f32 / PI).sqrt().ceil();
         let array = self.get_thetas(r);
@@ -160,9 +167,12 @@ impl Blob {
         {
             self.run(c, p, theta, map, start, r, &array);
         }
-        /*for _ in 0..3 {
+        if !loaded {
+            return Ok(());
+        }
+        for _ in 0..5 {
             let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
-            for (a, b) in self.pixels.keys().cloned() {
+            for (a, b) in self.pixels.keys().copied() {
                 let k = (a - 1, b);
                 boundary.entry(k).and_modify(|u| *u += 1).or_default();
                 let k = (a, b - 1);
@@ -188,15 +198,19 @@ impl Blob {
             let mut is_some = false;
             for (a, b) in boundary2 {
                 if b >= 3 {
-                    let far = self.far();
-                    self.pixels.insert(a, far);
+                    let temp = Pixel {
+                        pos: Pos::new(a.0 as f32 + 0.5, a.1 as f32 + 0.5),
+                        temp: true,
+                        ..Default::default()
+                    };
+                    self.pixels.insert(a, temp);
                     is_some = true
                 }
             }
             if !is_some {
                 break;
             }
-        }*/
+        }
         self.register_pixels(start, map);
         Ok(())
     }
@@ -249,6 +263,7 @@ impl Blob {
         Blob {
             pos: Pos::new(x, y),
             pixels,
+            count: SIZE * SIZE,
         }
     }
     #[allow(clippy::too_many_arguments)]
@@ -353,6 +368,7 @@ impl Blob {
             {
                 if matches!(chunk[n], CellType::Liquid) {
                     self.pixels.insert(n, p);
+                    self.count += 1;
                 }
                 p.pos.x = c.0 as f32 + 0.5;
                 p.pos.y = c.1 as f32 + 0.5;
