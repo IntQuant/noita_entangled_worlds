@@ -15,7 +15,6 @@ split-debuginfo = "packed"
 incremental=true
 codegen-units=1
 opt-level = 3
-overflow-checks = true
 
 [dependencies]
 noita_api = {path = "../noita_api"}
