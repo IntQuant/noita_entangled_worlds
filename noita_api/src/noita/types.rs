@@ -2,9 +2,6 @@
 
 use std::ffi::c_void;
 
-//pub(crate) const CELLDATA_SIZE: isize = 0x290;
-#[cfg(target_arch = "x86")]
-const _: () = assert!(0x290 == size_of::<CellData>());
 #[cfg(target_arch = "x86")]
 use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
@@ -51,6 +48,11 @@ impl ChunkPtr {
 
 #[derive(Debug, Clone, Copy)]
 pub struct RemovePtr(pub *const c_void);
+impl Default for RemovePtr {
+    fn default() -> Self {
+        Self(0x71b480 as *const c_void)
+    }
+}
 impl RemovePtr {
     pub fn remove_cell(self, world: *mut GridWorld, cell: *mut Cell, x: isize, y: isize) {
         #[cfg(target_arch = "x86")]
@@ -92,6 +94,11 @@ impl RemovePtr {
 
 #[derive(Debug, Clone, Copy)]
 pub struct ConstructPtr(pub *const c_void);
+impl Default for ConstructPtr {
+    fn default() -> Self {
+        Self(0x7048c0 as *const c_void)
+    }
+}
 impl ConstructPtr {
     pub fn create_cell(
         self,
@@ -363,7 +370,6 @@ impl Default for GridCosmeticParticleConfig {
         Self {}
     }
 }
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct CellData {

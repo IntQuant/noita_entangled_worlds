@@ -4,7 +4,7 @@ use crate::{CHUNK_AMOUNT, State};
 #[cfg(target_arch = "x86")]
 use noita_api::EntityID;
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use std::f32::consts::PI;
+use std::f32::consts::{PI, TAU};
 pub const OFFSET: isize = CHUNK_AMOUNT as isize / 2;
 impl State {
     pub fn update(&mut self) -> eyre::Result<()> {
@@ -119,17 +119,32 @@ impl Blob {
             n.1 / self.pixels.len() as f32,
         )
     }
+    const THETA_COUNT: usize = 16;
+    pub fn get_thetas(&self, r: f32) -> [bool; Self::THETA_COUNT] {
+        let mut arr = [0; Self::THETA_COUNT];
+        for p in self.pixels.values() {
+            let dx = self.pos.x - p.pos.x;
+            let dy = self.pos.y - p.pos.y;
+            if dy.hypot(dx) < r {
+                let n = Self::THETA_COUNT as f32 * (dy.atan2(dx) / TAU + 0.5);
+                arr[n as usize] += 1;
+            }
+        }
+        let l = self.pixels.len().div_ceil(Self::THETA_COUNT);
+        arr.map(|n| n < l / 2)
+    }
     pub fn update(
         &mut self,
         start: ChunkPos,
         map: &mut Chunks,
         mean: (f32, f32),
     ) -> eyre::Result<()> {
+        let r = (self.pixels.len() as f32 / PI).sqrt().ceil();
+        let array = self.get_thetas(r);
         let theta = (mean.1 - self.pos.y).atan2(mean.0 - self.pos.x);
         for p in self.pixels.values_mut() {
             p.mutated = false;
         }
-        let r = (self.pixels.len() as f32 / PI).sqrt().ceil();
         let mut keys = self.pixels.keys().cloned().collect::<Vec<(isize, isize)>>();
         keys.sort_unstable_by(|(a, b), (x, y)| {
             let da = self.pos.x.floor() as isize - a;
@@ -143,7 +158,7 @@ impl Blob {
         while !keys.is_empty()
             && let Some((c, p)) = self.pixels.remove_entry(&keys.remove(0))
         {
-            self.run(c, p, theta, map, start, r);
+            self.run(c, p, theta, map, start, r, &array);
         }
         /*for _ in 0..3 {
             let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
@@ -236,6 +251,7 @@ impl Blob {
             pixels,
         }
     }
+    #[allow(clippy::too_many_arguments)]
     pub fn run(
         &mut self,
         c: (isize, isize),
@@ -244,6 +260,7 @@ impl Blob {
         world: &Chunks,
         start: ChunkPos,
         r: f32,
+        array: &[bool; Self::THETA_COUNT],
     ) -> bool {
         if p.mutated {
             self.pixels.insert(c, p);
@@ -256,7 +273,9 @@ impl Blob {
         let psi = dy.atan2(dx);
         let angle = psi - theta;
         let mag = 512.0;
-        let (ax, ay) = if dist > r {
+        let (ax, ay) = if dist > r
+            && !array[(Self::THETA_COUNT as f32 * (dy.atan2(dx) / TAU + 0.5)) as usize]
+        {
             let n = if psi < theta + PI {
                 psi + PI / 4.0
             } else {
@@ -343,7 +362,7 @@ impl Blob {
                 self.pixels.insert(c, p);
                 false
             } else if let Some(b) = self.pixels.remove(&n) {
-                if self.run(n, b, theta, world, start, r) && !self.pixels.contains_key(&n) {
+                if self.run(n, b, theta, world, start, r, array) && !self.pixels.contains_key(&n) {
                     p.stop = None;
                     self.pixels.insert(n, p);
                     true

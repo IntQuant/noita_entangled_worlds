@@ -218,7 +218,7 @@ impl ChunkOps for ParticleWorldState {
         };
         let x = cx * CHUNK_SIZE as isize;
         let y = cy * CHUNK_SIZE as isize;
-        if let Some(vtable) = self.cell_vtable() {
+        /*if let Some(vtable) = self.cell_vtable() {
             noita_api::print!("{:?}", vtable);
             for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
                 .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
@@ -250,48 +250,44 @@ impl ChunkOps for ParticleWorldState {
                     _ => {}
                 }
             }
-        } else {
-            for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
-                .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
-                .zip(chunk.iter())
-            {
-                match pixel {
-                    CellType::Blob => {
-                        let world_x = x + i;
-                        let world_y = y + j;
-                        if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
-                            if !cell.0.is_null() {
-                                self.remove_ptr.remove_cell(
-                                    self.world_ptr,
-                                    cell.0,
-                                    world_x,
-                                    world_y,
-                                );
-                            }
-                            let src = self.construct_ptr.create_cell(
-                                self.world_ptr,
-                                world_x,
-                                world_y,
-                                &self.material_list[blob as usize],
-                            );
-                            if !src.is_null()
-                                && let Some(liquid) =
-                                    unsafe { src.cast::<types::LiquidCell>().as_mut() }
-                            {
-                                liquid.is_static = true;
-                            }
-                            cell.0 = src;
+        } else {*/
+        for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
+            .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
+            .zip(chunk.iter())
+        {
+            match pixel {
+                CellType::Blob => {
+                    let world_x = x + i;
+                    let world_y = y + j;
+                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                        if !cell.0.is_null() {
+                            self.remove_ptr
+                                .remove_cell(self.world_ptr, cell.0, world_x, world_y);
                         }
-                    }
-                    CellType::Remove => {
-                        if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
-                            cell.0 = std::ptr::null_mut();
+                        let src = self.construct_ptr.create_cell(
+                            self.world_ptr,
+                            world_x,
+                            world_y,
+                            &self.material_list[blob as usize],
+                        );
+                        if !src.is_null()
+                            && let Some(liquid) =
+                                unsafe { src.cast::<types::LiquidCell>().as_mut() }
+                        {
+                            liquid.is_static = true;
                         }
+                        cell.0 = src;
                     }
-                    _ => {}
                 }
+                CellType::Remove => {
+                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                        cell.0 = std::ptr::null_mut();
+                    }
+                }
+                _ => {}
             }
         }
+        //}
         Ok(())
     }
 }
