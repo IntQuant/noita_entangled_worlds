@@ -214,10 +214,13 @@ impl ChunkOps for ParticleWorldState {
         };
         let x = cx * CHUNK_SIZE as isize;
         let y = cy * CHUNK_SIZE as isize;
-        let blob_cell = Box::new(types::LiquidCell::blob(
-            &self.material_list[blob as usize],
-            self.cell_vtable,
-        ));
+        let blob_cell = unsafe {
+            Box::new(types::LiquidCell::create(
+                &self.material_list[blob as usize],
+                self.cell_vtable,
+                self.world_ptr,
+            ))
+        };
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter())

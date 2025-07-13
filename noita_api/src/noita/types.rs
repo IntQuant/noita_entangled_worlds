@@ -2,8 +2,6 @@
 
 use std::ffi::c_void;
 
-#[cfg(target_arch = "x86")]
-use std::arch::asm;
 use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -46,124 +44,6 @@ impl ChunkPtr {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct RemovePtr(pub *const c_void);
-impl Default for RemovePtr {
-    fn default() -> Self {
-        Self(0x71b480 as *const c_void)
-    }
-}
-impl RemovePtr {
-    pub fn remove_cell(self, world: *mut GridWorld, cell: *mut Cell, x: isize, y: isize) {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            asm!(
-                "mov ecx, {world}",
-                "push 0",
-                "push {y:e}",
-                "push {x:e}",
-                "push {cell}",
-                "call {remove}",
-                world = in(reg) world,
-                cell = in(reg) cell,
-                x = in(reg) x,
-                y = in(reg) y,
-                remove = in(reg) self.0,
-                clobber_abi("C"),
-            );
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box((x, y, cell, world));
-            unreachable!()
-        }
-    }
-    pub fn print_bytes(self) {
-        let mut start = unsafe { self.0.offset(-1).cast::<u8>() };
-        let mut bytes = String::new();
-        let end = get_function_end(self.0);
-        while start != end.cast() {
-            unsafe {
-                start = start.offset(1);
-                bytes += &format!("\\x{:x}", start.read());
-            }
-        }
-        crate::print!("{}", bytes);
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ConstructPtr(pub *const c_void);
-impl Default for ConstructPtr {
-    fn default() -> Self {
-        Self(0x7048c0 as *const c_void)
-    }
-}
-impl ConstructPtr {
-    pub fn create_cell(
-        self,
-        world: *mut GridWorld,
-        x: isize,
-        y: isize,
-        material: &CellData,
-        //_memory: *mut c_void,
-    ) -> *mut Cell {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let cell_ptr: *mut Cell;
-            asm!(
-                "mov ecx, {world}",
-                "push 0",
-                "push {material}",
-                "push {y:e}",
-                "push {x:e}",
-                "call {construct}",
-                world = in(reg) world,
-                x = in(reg) x,
-                y = in(reg) y,
-                material = in(reg) material,
-                construct = in(reg) self.0,
-                clobber_abi("C"),
-                out("eax") cell_ptr,
-            );
-            cell_ptr
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box((x, y, material, world));
-            unreachable!()
-        }
-    }
-    pub fn print_bytes(self) {
-        let mut start = unsafe { self.0.offset(-1).cast::<u8>() };
-        let mut bytes = String::new();
-        let end = get_function_end(self.0);
-        while start != end.cast() {
-            unsafe {
-                start = start.offset(1);
-                bytes += &format!("\\x{:x}", start.read());
-            }
-        }
-        crate::print!("{}", bytes);
-    }
-}
-fn get_function_end(func: *const c_void) -> *const c_void {
-    let mut it = func.cast::<u8>();
-    loop {
-        unsafe {
-            if (it.offset(-1).as_ref() >= Some(&0x58) && it.offset(-1).as_ref() < Some(&0x60))
-                && matches!(it.as_ref(), Some(&0xc3) | Some(&0xc2))
-            {
-                return if it.as_ref() == Some(&0xc3) {
-                    it.offset(1).cast::<c_void>()
-                } else {
-                    it.offset(3).cast::<c_void>()
-                };
-            }
-            it = it.offset(1)
-        }
-    }
-}
 #[repr(C)]
 pub struct ChunkMap {
     unknown: [isize; 2],
@@ -221,30 +101,11 @@ impl Debug for ChunkMap {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridWorldVTable {
+    //ptr is 0x10013bc
     unknown: [*const c_void; 3],
     pub get_chunk_map: *const c_void,
-    unknown2: [*const c_void; 30],
-}
-#[allow(dead_code)]
-impl GridWorldVTable {
-    pub fn get_chunk_map(&self) -> *mut ChunkMap {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let ret: *mut ChunkMap;
-            asm!(
-                "mov ecx, 0",
-                "call {fn}",
-                out("eax") ret,
-                fn = in(reg) self.get_chunk_map,
-                clobber_abi("C"),
-            );
-            ret
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            unreachable!()
-        }
-    }
+    unknownmagic: *const c_void,
+    unknown2: [*const c_void; 29],
 }
 
 #[repr(C)]
@@ -273,7 +134,8 @@ struct GridWorldThreaded {
 #[derive(Debug)]
 pub struct GridWorld {
     pub vtable: &'static GridWorldVTable,
-    unknown: [isize; 318],
+    pub rng: isize,
+    unknown: [isize; 317],
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
@@ -352,23 +214,11 @@ pub enum CellType {
 pub struct ExplosionConfig {
     //TODO find some data maybe
 }
-#[allow(clippy::derivable_impls)]
-impl Default for ExplosionConfig {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridCosmeticParticleConfig {
     //TODO find some data maybe
-}
-#[allow(clippy::derivable_impls)]
-impl Default for GridCosmeticParticleConfig {
-    fn default() -> Self {
-        Self {}
-    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -474,7 +324,7 @@ pub struct CellData {
     pub danger_radioactive: bool,
     pub danger_poison: bool,
     pub danger_water: bool,
-    unknown13: [u8; 23],
+    unknown13: [u8; 24],
     pub always_ignites_damagemodel: bool,
     pub ignore_self_reaction_warning: bool,
     padding7: [u8; 2],
@@ -593,7 +443,7 @@ impl Default for CellData {
             danger_poison: false,
             danger_water: false,
             unknown13: [
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             ],
             always_ignites_damagemodel: false,
             ignore_self_reaction_warning: false,
@@ -612,49 +462,92 @@ impl Default for CellData {
 }
 
 #[repr(C)]
-#[derive(Debug)]
-pub struct CellVTable {
+pub struct CellVTables(pub [CellVTable; 5]);
+
+#[repr(C)]
+pub union CellVTable {
+    //ptr is 0xff2040
+    none: NoneCellVTable,
+    //ptr is 0x100bb90
+    liquid: LiquidCellVTable,
+    gas: GasCellVTable,
+    //ptr is 0xff8a6c
+    solid: SolidCellVTable,
+    fire: FireCellVTable,
+}
+
+impl Debug for CellVTable {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self as *const CellVTable)
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct SolidCellVTable {
+    unknown0: *const c_void,
+    unknown1: *const c_void,
+    unknown2: *const c_void,
+    unknown3: *const c_void,
+    unknown4: *const c_void,
+    unknown5: *const c_void,
+    unknown6: *const c_void,
+}
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct NoneCellVTable {
+    unknown: [*const c_void; 41],
+}
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct GasCellVTable {}
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct FireCellVTable {}
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct LiquidCellVTable {
     pub destroy: *const c_void,
     pub get_cell_type: *const c_void,
-    _field01: *const c_void,
-    _field02: *const c_void,
-    _field03: *const c_void,
+    unknown01: *const c_void,
+    unknown02: *const c_void,
+    unknown03: *const c_void,
     pub get_color: *const c_void,
-    _field04: *const c_void,
+    unknown04: *const c_void,
     pub set_color: *const c_void,
-    _field05: *const c_void,
-    _field06: *const c_void,
-    _field07: *const c_void,
-    _field08: *const c_void,
+    unknown05: *const c_void,
+    unknown06: *const c_void,
+    unknown07: *const c_void,
+    unknown08: *const c_void,
     pub get_material: *const c_void,
-    _field09: *const c_void,
-    _field10: *const c_void,
-    _field11: *const c_void,
-    _field12: *const c_void,
-    _field13: *const c_void,
-    _field14: *const c_void,
-    _field15: *const c_void,
+    unknown09: *const c_void,
+    unknown10: *const c_void,
+    unknown11: *const c_void,
+    unknown12: *const c_void,
+    unknown13: *const c_void,
+    unknown14: *const c_void,
+    unknown15: *const c_void,
     pub get_position: *const c_void,
-    _field16: *const c_void,
-    _field17: *const c_void,
-    _field18: *const c_void,
-    _field19: *const c_void,
-    _field20: *const c_void,
-    _field21: *const c_void,
-    _field22: *const c_void,
-    _field23: *const c_void,
+    unknown16: *const c_void,
+    unknown17: *const c_void,
+    unknown18: *const c_void,
+    unknown19: *const c_void,
+    unknown20: *const c_void,
+    unknown21: *const c_void,
+    unknown22: *const c_void,
+    unknown23: *const c_void,
     pub is_burning: *const c_void,
-    _field24: *const c_void,
-    _field25: *const c_void,
-    _field26: *const c_void,
+    unknown24: *const c_void,
+    unknown25: *const c_void,
+    unknown26: *const c_void,
     pub stop_burning: *const c_void,
-    _field27: *const c_void,
-    _field28: *const c_void,
-    _field29: *const c_void,
-    _field30: *const c_void,
-    _field31: *const c_void,
+    unknown27: *const c_void,
+    unknown28: *const c_void,
+    unknown29: *const c_void,
+    unknown30: *const c_void,
+    unknown31: *const c_void,
     pub remove: *const c_void,
-    _field32: *const c_void,
+    unknown32: *const c_void,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -663,242 +556,20 @@ pub struct Position {
     pub x: isize,
     pub y: isize,
 }
-impl Default for CellVTable {
-    //ptr is 0x100bb90
-    fn default() -> Self {
-        Self {
-            destroy: 0x70af20 as *const c_void,
-            get_cell_type: 0x5b01a0 as *const c_void,
-            _field01: 0x70b050 as *const c_void,
-            _field02: 0x70b060 as *const c_void,
-            _field03: 0x5b01c0 as *const c_void,
-            get_color: 0x5b01d0 as *const c_void,
-            _field04: 0x70d090 as *const c_void,
-            set_color: 0x5b01e0 as *const c_void,
-            _field05: 0x5b0200 as *const c_void,
-            _field06: 0x5b01f0 as *const c_void,
-            _field07: 0x70b070 as *const c_void,
-            _field08: 0x70b0b0 as *const c_void,
-            get_material: 0x4ac0d0 as *const c_void,
-            _field09: 0x70d0b0 as *const c_void,
-            _field10: 0x4abf60 as *const c_void,
-            _field11: 0x70d1a0 as *const c_void,
-            _field12: 0x70d1e0 as *const c_void,
-            _field13: 0x70d180 as *const c_void,
-            _field14: 0x70cb40 as *const c_void,
-            _field15: 0x70cd80 as *const c_void,
-            get_position: 0x70cdd0 as *const c_void,
-            _field16: 0x70c6e0 as *const c_void,
-            _field17: 0x5b01b0 as *const c_void,
-            _field18: 0x4abf90 as *const c_void,
-            _field19: 0x4abfa0 as *const c_void,
-            _field20: 0x70b110 as *const c_void,
-            _field21: 0x70b120 as *const c_void,
-            _field22: 0x70b160 as *const c_void,
-            _field23: 0x70f5b0 as *const c_void,
-            is_burning: 0x70f5d0 as *const c_void,
-            _field24: 0x70cdf0 as *const c_void,
-            _field25: 0x70f750 as *const c_void,
-            _field26: 0x4ac0e0 as *const c_void,
-            stop_burning: 0x70f7f0 as *const c_void,
-            _field27: 0x4ac020 as *const c_void,
-            _field28: 0x70f160 as *const c_void,
-            _field29: 0x70eaf0 as *const c_void,
-            _field30: 0x70ef90 as *const c_void,
-            _field31: 0x70f360 as *const c_void,
-            remove: 0x70af50 as *const c_void,
-            _field32: 0x70b1d0 as *const c_void,
-        }
-    }
-}
-#[allow(dead_code)]
-impl CellVTable {
-    pub fn destroy(&self, cell: *mut Cell) {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.destroy,
-                clobber_abi("C"),
-            );
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn get_cell_type(&self, cell: *mut Cell) -> CellType {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let ret: u32;
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.get_cell_type,
-                out("eax") ret,
-                clobber_abi("C"),
-            );
-            std::mem::transmute(ret)
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn get_color(&self, cell: *mut Cell) -> Color {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let ret: u32;
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.get_color,
-                out("eax") ret,
-                clobber_abi("C"),
-            );
-            std::mem::transmute(ret)
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn set_color(&self, cell: *mut Cell, color: Color) {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let color: u32 = std::mem::transmute(color);
-            asm!(
-                "mov ecx, {cell}",
-                "push {color}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.set_color,
-                color = in(reg) color,
-                clobber_abi("C"),
-            );
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box((cell, color));
-            unreachable!()
-        }
-    }
-    pub fn get_material(&self, cell: *mut Cell) -> *mut CellData {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let ret: *mut CellData;
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.get_material,
-                out("eax") ret,
-                clobber_abi("C"),
-            );
-            ret
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn get_position(&self, cell: *mut Cell) -> *mut Position {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let mut ret: *mut Position;
-            asm!(
-                "mov ecx, {cell}",
-                "push 0",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.get_position,
-                out("eax") ret,
-                clobber_abi("C"),
-            );
-            ret
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn is_burning(&self, cell: *mut Cell) -> bool {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            let ret: u16;
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.is_burning,
-                out("eax") ret,
-                clobber_abi("C"),
-            );
-            let ret: [u8; 2] = ret.to_ne_bytes();
-            ret[0] == 1
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn stop_burning(&self, cell: *mut Cell) {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.stop_burning,
-                clobber_abi("C"),
-            );
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-    pub fn remove(&self, cell: *mut Cell) {
-        #[cfg(target_arch = "x86")]
-        unsafe {
-            asm!(
-                "mov ecx, {cell}",
-                "call {fn}",
-                cell = in(reg) cell,
-                fn = in(reg) self.remove,
-                clobber_abi("C"),
-            );
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            std::hint::black_box(cell);
-            unreachable!()
-        }
-    }
-}
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Cell {
     pub vtable: &'static CellVTable,
 
     pub hp: isize,
     unknown1: [isize; 2],
     pub is_burning: bool,
-    unknown2: [u8; 3],
+    pub temperature_of_fire: u8,
+    unknown2: [u8; 2],
     pub material: &'static CellData,
 }
+
 unsafe impl Sync for Cell {}
 unsafe impl Send for Cell {}
 
@@ -906,15 +577,18 @@ unsafe impl Send for Cell {}
 pub enum FullCell {
     Cell(Cell),
     LiquidCell(LiquidCell),
+    GasCell(GasCell),
+    FireCell(FireCell),
     #[default]
     None,
 }
 impl From<&Cell> for FullCell {
     fn from(value: &Cell) -> Self {
-        if value.material.cell_type == CellType::Liquid {
-            FullCell::LiquidCell(value.get_liquid().clone())
-        } else {
-            FullCell::Cell(value.clone())
+        match value.material.cell_type {
+            CellType::Liquid => FullCell::LiquidCell(value.get_liquid().clone()),
+            CellType::Fire => FullCell::FireCell(value.get_fire().clone()),
+            CellType::Gas => FullCell::GasCell(value.get_gas().clone()),
+            CellType::None | CellType::Solid => FullCell::Cell(value.clone()),
         }
     }
 }
@@ -922,6 +596,12 @@ impl From<&Cell> for FullCell {
 impl Cell {
     pub fn get_liquid(&self) -> &LiquidCell {
         unsafe { std::mem::transmute::<&Cell, &LiquidCell>(self) }
+    }
+    pub fn get_fire(&self) -> &FireCell {
+        unsafe { std::mem::transmute::<&Cell, &FireCell>(self) }
+    }
+    pub fn get_gas(&self) -> &GasCell {
+        unsafe { std::mem::transmute::<&Cell, &GasCell>(self) }
     }
 }
 
@@ -948,6 +628,36 @@ unsafe impl Send for CellPtr {}
 
 #[repr(C)]
 #[derive(Debug, Clone)]
+pub struct FireCell {
+    pub cell: Cell,
+    pub x: isize,
+    pub y: isize,
+    unknown1: u8,
+    unknown2: u8,
+    unknown3: u8,
+    unknown4: u8,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct GasCell {
+    pub cell: Cell,
+    pub x: isize,
+    pub y: isize,
+    unknown1: u8,
+    unknown2: u8,
+    unknown3: u8,
+    unknown4: u8,
+    unknown5: isize,
+    unknown6: isize,
+    unknown7: isize,
+    pub color: Color,
+    pub not_color: Color,
+    lifetime: isize,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone)]
 pub struct LiquidCell {
     pub cell: Cell,
     pub x: isize,
@@ -961,39 +671,55 @@ pub struct LiquidCell {
     unknown6: isize,
     pub color: Color,
     pub not_color: Color,
-    unknown7: isize,
+    lifetime: isize,
     unknown8: isize,
 }
 
 impl LiquidCell {
-    pub fn blob(mat: &'static CellData, vtable: &'static CellVTable) -> Self {
+    /// # Safety
+    pub unsafe fn create(
+        mat: &'static CellData,
+        vtable: &'static CellVTable,
+        world: *mut GridWorld,
+    ) -> Self {
+        let lifetime = if mat.lifetime > 0
+            && let Some(world) = (unsafe { world.as_mut() })
+        {
+            let life = ((mat.lifetime as f32 * 0.3) as u64).max(1);
+            world.rng *= 0x343fd;
+            world.rng += 0x269ec3;
+            (((world.rng >> 0x10 & 0x7fff) as u64 % (life * 2 + 1)) - life) as isize
+        } else {
+            -1
+        };
         Self {
-            cell: Cell::blob(mat, vtable),
+            cell: Cell::create(mat, vtable),
             x: 0,
             y: 0,
             unknown1: 3,
             unknown2: 0,
-            is_static: true,
+            is_static: mat.liquid_static,
             unknown3: 0,
             unknown4: 0,
             unknown5: 0,
             unknown6: 0,
             color: mat.default_primary_color,
             not_color: mat.default_primary_color,
-            unknown7: 0,
+            lifetime,
             unknown8: 0,
         }
     }
 }
 
 impl Cell {
-    fn blob(material: &'static CellData, vtable: &'static CellVTable) -> Self {
+    fn create(material: &'static CellData, vtable: &'static CellVTable) -> Self {
         Self {
             vtable,
             hp: material.hp,
             unknown1: [-1000, 0],
-            is_burning: false,
-            unknown2: [10, 0, 0],
+            is_burning: material.on_fire,
+            temperature_of_fire: material.temperature_of_fire as u8,
+            unknown2: [0, 0],
             material,
         }
     }

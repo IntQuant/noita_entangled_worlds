@@ -173,47 +173,6 @@ impl Blob {
         if !loaded {
             return Ok(());
         }
-        for _ in 0..5 {
-            let mut boundary: FxHashMap<(isize, isize), i8> = FxHashMap::default();
-            for (a, b) in self.pixels.keys().copied() {
-                let k = (a - 1, b);
-                boundary.entry(k).and_modify(|u| *u += 1).or_default();
-                let k = (a, b - 1);
-                boundary.entry(k).and_modify(|u| *u += 1).or_default();
-                let k = (a + 1, b);
-                boundary.entry(k).and_modify(|u| *u += 1).or_default();
-                let k = (a, b + 1);
-                boundary.entry(k).and_modify(|u| *u += 1).or_default();
-                boundary.insert((a, b), i8::MIN);
-            }
-            let mut boundary2: FxHashMap<(isize, isize), i8> = FxHashMap::default();
-            for ((a, b), p) in boundary {
-                boundary2.insert((a, b), p);
-                let k = (a - 1, b);
-                boundary2.entry(k).and_modify(|u| *u += 1);
-                let k = (a, b - 1);
-                boundary2.entry(k).and_modify(|u| *u += 1);
-                let k = (a + 1, b);
-                boundary2.entry(k).and_modify(|u| *u += 1);
-                let k = (a, b + 1);
-                boundary2.entry(k).and_modify(|u| *u += 1);
-            }
-            let mut is_some = false;
-            for (a, b) in boundary2 {
-                if b >= 3 {
-                    let temp = Pixel {
-                        pos: Pos::new(a.0 as f32 + 0.5, a.1 as f32 + 0.5),
-                        temp: true,
-                        ..Default::default()
-                    };
-                    self.pixels.insert(a, temp);
-                    is_some = true
-                }
-            }
-            if !is_some {
-                break;
-            }
-        }
         self.register_pixels(start, map);
         Ok(())
     }

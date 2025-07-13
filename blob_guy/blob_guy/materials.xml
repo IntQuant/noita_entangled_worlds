@@ -3,7 +3,6 @@
     name="blob_guy"
     ui_name="blob guy"
     wang_color="AAFFAAAA"
-    lifetime="1"
     cell_type="liquid"
     liquid_sand="0"
     tags="[static]"

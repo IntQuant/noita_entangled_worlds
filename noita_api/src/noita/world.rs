@@ -5,8 +5,6 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 pub struct ParticleWorldState {
     pub world_ptr: *mut types::GridWorld,
     pub material_list: &'static [types::CellData],
-    pub construct_ptr: types::ConstructPtr,
-    pub remove_ptr: types::RemovePtr,
     pub cell_vtable: &'static types::CellVTable,
 }
 unsafe impl Sync for ParticleWorldState {}
@@ -84,8 +82,7 @@ impl ParticleWorldState {
         Ok(())
     }
     pub fn new() -> eyre::Result<Self> {
-        let (construct_ptr, remove_ptr, cell_vtable, global_ptr) =
-            crate::noita::init_data::get_functions()?;
+        let (cell_vtable, global_ptr) = crate::noita::init_data::get_functions()?;
         let global = unsafe { global_ptr.as_mut() }.wrap_err("no global?")?;
         let cell_factory =
             unsafe { global.m_cell_factory.as_mut() }.wrap_err("no cell factory?")?;
@@ -96,8 +93,6 @@ impl ParticleWorldState {
         Ok(ParticleWorldState {
             world_ptr,
             material_list,
-            construct_ptr,
-            remove_ptr,
             cell_vtable,
         })
     }
