@@ -4,21 +4,18 @@ use rand::{Rng, rng};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::TAU;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
-use std::{cmp, env, mem, thread};
+use std::{cmp, mem, thread};
 use tracing::{debug, info, warn};
 use wide::f32x8;
 use world_model::{
-    CHUNK_SIZE, ChunkCoord, ChunkData, ChunkDelta, WorldModel,
+    ChunkData, ChunkDelta, WorldModel,
     chunk::{Chunk, Pixel},
 };
-
-pub use world_model::encoding::NoitaWorldUpdate;
 
 use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 
@@ -29,12 +26,6 @@ use super::{
 };
 
 pub mod world_model;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum WorldUpdateKind {
-    Update(NoitaWorldUpdate),
-    End,
-}
 
 #[derive(Debug, Decode, Encode, Clone)]
 pub(crate) enum WorldNetMessage {
@@ -75,13 +66,13 @@ pub(crate) enum WorldNetMessage {
     RelinquishAuthority {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
-        world_num: i32,
+        world_num: u8,
     },
-    // Ttell how to update a chunk storage
+    // Tell how to update a chunk storage
     UpdateStorage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,
-        world_num: i32,
+        world_num: u8,
         priority: Option<u8>,
     },
     // When listening
@@ -200,7 +191,7 @@ pub(crate) struct WorldManager {
     chunk_last_update: FxHashMap<ChunkCoord, u64>,
     /// Stores last priority we used for that chunk, in case transfer fails and we'll need to request authority normally.
     last_request_priority: FxHashMap<ChunkCoord, u8>,
-    world_num: i32,
+    world_num: u8,
     pub materials: FxHashMap<u16, (u32, u32, CellType, u32)>,
     is_storage_recent: FxHashSet<ChunkCoord>,
     explosion_pointer: FxHashMap<ChunkCoord, Vec<usize>>,
@@ -330,64 +321,23 @@ impl WorldManager {
         self.chunk_storage.clone()
     }
 
-    pub(crate) fn add_update(&mut self, update: NoitaWorldUpdate) {
-        self.outbound_model
-            .apply_noita_update(&update, &mut self.is_storage_recent);
-    }
-
-    pub(crate) fn add_end(&mut self, priority: u8, pos: &[i32]) {
-        let updated_chunks = self
-            .outbound_model
-            .updated_chunks()
-            .iter()
-            .copied()
-            .collect::<Vec<_>>();
-        self.current_update += 1;
-        let chunks_to_send: Vec<Vec<(OmniPeerId, u8)>> = updated_chunks
-            .iter()
-            .map(|chunk| self.chunk_updated_locally(*chunk, priority, pos))
-            .collect();
-        let mut chunk_packet: HashMap<OmniPeerId, Vec<(ChunkDelta, u8)>> = HashMap::new();
-        for (chunk, who_sending) in updated_chunks.iter().zip(chunks_to_send.iter()) {
-            let Some(delta) = self.outbound_model.get_chunk_delta(*chunk, false) else {
-                continue;
-            };
-            for (peer, pri) in who_sending {
-                chunk_packet
-                    .entry(*peer)
-                    .or_default()
-                    .push((delta.clone(), *pri));
-            }
-        }
-        let mut emit_queue = Vec::new();
-        for (peer, chunkpacket) in chunk_packet {
-            emit_queue.push((
-                Destination::Peer(peer),
-                WorldNetMessage::ChunkPacket { chunkpacket },
-            ));
-        }
-        for (dst, msg) in emit_queue {
-            self.emit_msg(dst, msg)
-        }
-        self.outbound_model.reset_change_tracking();
-    }
-
     fn chunk_updated_locally(
         &mut self,
         chunk: ChunkCoord,
         priority: u8,
-        pos: &[i32],
+        pos: Option<(i32, i32, i32, i32, bool)>,
+        world_num: u8,
     ) -> Vec<(OmniPeerId, u8)> {
-        if pos.len() == 6 {
-            self.my_pos = (pos[0], pos[1]);
-            self.cam_pos = (pos[2], pos[3]);
-            self.is_notplayer = pos[4] == 1;
-            if self.world_num != pos[5] {
-                self.world_num = pos[5];
+        if let Some((px, py, cx, cy, is_not)) = pos {
+            self.my_pos = (px, py);
+            self.cam_pos = (cx, cy);
+            self.is_notplayer = is_not;
+            if self.world_num != world_num {
+                self.world_num = world_num;
                 self.reset();
             }
-        } else if self.world_num != pos[0] {
-            self.world_num = pos[0];
+        } else if self.world_num != world_num {
+            self.world_num = world_num;
             self.reset();
         }
         let entry = self.chunk_state.entry(chunk).or_insert_with(|| {
@@ -508,7 +458,7 @@ impl WorldManager {
         chunks_to_send
     }
 
-    pub(crate) fn update(&mut self) {
+    pub(crate) fn update(&mut self) -> Vec<NoitaWorldUpdate> {
         fn should_kill(
             my_pos: (i32, i32),
             cam_pos: (i32, i32),
@@ -638,18 +588,11 @@ impl WorldManager {
             }
             retain
         });
+        self.get_noita_updates()
     }
 
-    pub(crate) fn get_noita_updates(&mut self) -> Vec<Vec<u8>> {
-        // Sends random data to noita to check if it crashes.
-        if env::var_os("NP_WORLD_SYNC_TEST").is_some() && self.current_update % 10 == 0 {
-            let chunk_data = ChunkData::make_random();
-            self.inbound_model
-                .apply_chunk_data(ChunkCoord(0, 0), &chunk_data)
-        }
-        let updates = self.inbound_model.get_all_noita_updates();
-        self.inbound_model.reset_change_tracking();
-        updates
+    pub(crate) fn get_noita_updates(&mut self) -> Vec<NoitaWorldUpdate> {
+        self.inbound_model.get_all_noita_updates()
     }
 
     pub(crate) fn reset(&mut self) {
@@ -3137,6 +3080,7 @@ use crate::net::world::world_model::chunk::PixelFlags;
 use rand::seq::SliceRandom;
 #[cfg(test)]
 use serial_test::serial;
+use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, WorldSyncToProxy};
 #[cfg(test)]
 #[test]
 #[serial]
@@ -3405,4 +3349,53 @@ fn test_cut_perf() {
         total += timer.elapsed().as_micros();
     }
     println!("total micros: {}", total / iters);
+}
+
+impl WorldManager {
+    pub fn handle_noita_msg(&mut self, _: OmniPeerId, msg: WorldSyncToProxy) {
+        match msg {
+            WorldSyncToProxy::Updates(updates) => {
+                for update in updates {
+                    self.outbound_model
+                        .apply_noita_update(update, &mut self.is_storage_recent)
+                }
+            }
+            WorldSyncToProxy::End(pos, priority, world_num) => {
+                let updated_chunks = self
+                    .outbound_model
+                    .updated_chunks()
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>();
+                self.current_update += 1;
+                let chunks_to_send: Vec<Vec<(OmniPeerId, u8)>> = updated_chunks
+                    .iter()
+                    .map(|chunk| self.chunk_updated_locally(*chunk, priority, pos, world_num))
+                    .collect();
+                let mut chunk_packet: HashMap<OmniPeerId, Vec<(ChunkDelta, u8)>> = HashMap::new();
+                for (chunk, who_sending) in updated_chunks.iter().zip(chunks_to_send.iter()) {
+                    let Some(delta) = self.outbound_model.get_chunk_delta(*chunk, false) else {
+                        continue;
+                    };
+                    for (peer, pri) in who_sending {
+                        chunk_packet
+                            .entry(*peer)
+                            .or_default()
+                            .push((delta.clone(), *pri));
+                    }
+                }
+                let mut emit_queue = Vec::new();
+                for (peer, chunkpacket) in chunk_packet {
+                    emit_queue.push((
+                        Destination::Peer(peer),
+                        WorldNetMessage::ChunkPacket { chunkpacket },
+                    ));
+                }
+                for (dst, msg) in emit_queue {
+                    self.emit_msg(dst, msg)
+                }
+                self.outbound_model.reset_change_tracking();
+            }
+        }
+    }
 }

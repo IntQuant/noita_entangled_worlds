@@ -9,6 +9,8 @@ use crate::net::NetManager;
 
 pub(crate) mod entity_sync;
 
+pub(crate) mod world_sync;
+
 pub(crate) struct ModuleCtx<'a> {
     pub(crate) net: &'a mut NetManager,
     pub(crate) player_map: &'a mut BiHashMap<PeerId, EntityID>,

@@ -4,6 +4,7 @@ pub mod message_socket;
 
 pub mod basic_types;
 pub mod des;
+pub mod world_sync;
 
 pub use basic_types::*;
 
@@ -44,6 +45,7 @@ pub enum NoitaInbound {
         my_peer_id: PeerId,
     },
     ProxyToDes(des::ProxyToDes),
+    ProxyToWorldSync(world_sync::ProxyToWorldSync),
     RemoteMessage {
         source: PeerId,
         message: RemoteMessage,
@@ -54,6 +56,7 @@ pub enum NoitaInbound {
 pub enum NoitaOutbound {
     Raw(Vec<u8>),
     DesToProxy(des::DesToProxy),
+    WorldSyncToProxy(world_sync::WorldSyncToProxy),
     RemoteMessage {
         reliable: bool,
         destination: Destination<PeerId>,

@@ -1,12 +1,9 @@
 use std::num::NonZeroU16;
 
+use super::{ChunkData, encoding::PixelRunner};
 use bitcode::{Decode, Encode};
 use crossbeam::atomic::AtomicCell;
-
-use super::{
-    CHUNK_SIZE, ChunkData,
-    encoding::{PixelRunner, RawPixel},
-};
+use shared::world_sync::{CHUNK_SIZE, RawPixel};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
 pub enum PixelFlags {

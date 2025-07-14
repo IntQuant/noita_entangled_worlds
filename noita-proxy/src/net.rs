@@ -25,12 +25,12 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-use world::{NoitaWorldUpdate, WorldManager};
+use world::WorldManager;
 
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{ModmanagerSettings, get_mods};
+use crate::net::world::world_model::ChunkData;
 use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
-use crate::net::world::world_model::{ChunkCoord, ChunkData};
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::steam_helper::LobbyExtraData;
 use crate::{
@@ -38,6 +38,7 @@ use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
 };
 use shared::des::ProxyToDes;
+use shared::world_sync::{ChunkCoord, ProxyToWorldSync};
 use tangled::Reliability;
 use tracing::{error, info, warn};
 mod audio;
@@ -535,12 +536,10 @@ impl NetManager {
             for msg in state.world.get_emitted_msgs() {
                 self.do_message_request(msg)
             }
-            state.world.update();
-
-            let updates = state.world.get_noita_updates();
-            for update in updates {
-                state.try_ms_write(&ws_encode_proxy_bin(0, &update));
-            }
+            let updates = state.world.update();
+            state.try_ms_write(&NoitaInbound::ProxyToWorldSync(ProxyToWorldSync::Updates(
+                updates,
+            )));
 
             if state.had_a_disconnect {
                 self.broadcast(&NetMsg::NoitaDisconnected, Reliability::Reliable);
@@ -718,6 +717,10 @@ impl NetManager {
         sendm: &Sender<FxHashMap<u16, u32>>,
     ) {
         match net_msg {
+            NetMsg::ForwardWorldSyncToProxy(msg) => state.world.handle_noita_msg(src, msg),
+            NetMsg::ForwardProxyToWorldSync(msg) => {
+                state.try_ms_write(&NoitaInbound::ProxyToWorldSync(msg));
+            }
             NetMsg::AudioData(data, global, tx, ty, vol) => {
                 if !self.is_cess.load(Ordering::Relaxed) {
                     let audio = self.audio.lock().unwrap().clone();
@@ -1144,8 +1147,6 @@ impl NetManager {
                             },
                         );
                     }
-                    // Binary message to proxy
-                    3 => self.handle_bin_message_to_proxy(&raw_msg[1..], state),
                     0 => {
                         let flags = String::from_utf8_lossy(&raw_msg[1..]).into();
                         let msg = NetMsg::Flags(flags);
@@ -1163,6 +1164,19 @@ impl NetManager {
                     self.send(
                         self.peer.host_id(),
                         &NetMsg::ForwardDesToProxy(des_to_proxy),
+                        Reliability::Reliable,
+                    );
+                }
+            }
+            NoitaOutbound::WorldSyncToProxy(world_sync_msg) => {
+                if self.is_host() {
+                    state
+                        .world
+                        .handle_noita_msg(self.peer.my_id(), world_sync_msg)
+                } else {
+                    self.send(
+                        self.peer.host_id(),
+                        &NetMsg::ForwardWorldSyncToProxy(world_sync_msg),
                         Reliability::Reliable,
                     );
                 }
@@ -1432,29 +1446,6 @@ impl NetManager {
         }
     }
 
-    fn handle_bin_message_to_proxy(&self, msg: &[u8], state: &mut NetInnerState) {
-        let key = msg[0];
-        let data = &msg[1..];
-        match key {
-            // world frame
-            0 => {
-                let update = NoitaWorldUpdate::load(data);
-                state.world.add_update(update);
-            }
-            // world end
-            1 => {
-                let pos = data[1..]
-                    .split(|b| *b == b':')
-                    .map(|s| String::from_utf8_lossy(s).parse::<i32>().unwrap_or(0))
-                    .collect::<Vec<i32>>();
-                state.world.add_end(data[0], &pos);
-            }
-            key => {
-                error!("Unknown bin msg from mod: {:?}", key)
-            }
-        }
-    }
-
     fn end_run(&self, state: &mut NetInnerState) {
         self.init_settings.save_state.reset();
         {
@@ -1468,7 +1459,7 @@ impl NetManager {
                 .modmanager_settings
                 .get_progress()
                 .unwrap_or_default();
-            if settings.world_num == u16::MAX {
+            if settings.world_num == u8::MAX {
                 settings.world_num = 0
             } else {
                 settings.world_num += 1

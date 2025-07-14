@@ -3,17 +3,12 @@ use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
 use chunk::{Chunk, CompactPixel, Pixel, PixelFlags};
-use encoding::{NoitaWorldUpdate, PixelRun, PixelRunner};
+use encoding::PixelRunner;
 use rustc_hash::{FxHashMap, FxHashSet};
+use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, PixelRun};
 use tracing::info;
-
 pub(crate) mod chunk;
 pub mod encoding;
-
-pub(crate) const CHUNK_SIZE: usize = 128;
-
-#[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct ChunkCoord(pub i32, pub i32);
 
 #[derive(Default)]
 pub(crate) struct WorldModel {
@@ -38,7 +33,7 @@ pub(crate) struct ChunkDelta {
 }
 
 impl ChunkData {
-    pub(crate) fn make_random() -> Self {
+    /*pub(crate) fn make_random() -> Self {
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE {
             runner.put_pixel(
@@ -51,7 +46,7 @@ impl ChunkData {
         }
         let runs = runner.build();
         ChunkData { runs }
-    }
+    }*/
 
     #[cfg(test)]
     pub(crate) fn new(mat: u16) -> Self {
@@ -123,17 +118,17 @@ impl WorldModel {
         self.updated_chunks.insert(chunk_coord);
     }*/
 
-    fn get_pixel(&self, x: i32, y: i32) -> Pixel {
+    /*fn get_pixel(&self, x: i32, y: i32) -> Pixel {
         let (chunk_coord, offset) = Self::get_chunk_coords(x, y);
         self.chunks
             .get(&chunk_coord)
             .map(|chunk| chunk.pixel(offset))
             .unwrap_or_default()
-    }
+    }*/
 
     pub fn apply_noita_update(
         &mut self,
-        update: &NoitaWorldUpdate,
+        update: NoitaWorldUpdate,
         changed: &mut FxHashSet<ChunkCoord>,
     ) {
         fn set_pixel(pixel: Pixel, chunk: &mut Chunk, offset: usize) -> bool {
@@ -145,21 +140,23 @@ impl WorldModel {
                 false
             }
         }
-        let header = &update.header;
-        let runs = &update.runs;
         let mut x = 0;
         let mut y = 0;
-        let (mut chunk_coord, _) = Self::get_chunk_coords(header.x, header.y);
-        let mut chunk = self.chunks.entry(chunk_coord).or_default();
-        for run in runs {
+        let (start_x, start_y) = (
+            update.coord.0 * CHUNK_SIZE as i32,
+            update.coord.1 * CHUNK_SIZE as i32,
+        );
+        let mut chunk_coord = update.coord;
+        let mut chunk = self.chunks.entry(update.coord).or_default();
+        for run in update.runs {
             let flags = if run.data.flags > 0 {
                 PixelFlags::Fluid
             } else {
                 PixelFlags::Normal
             };
             for _ in 0..run.length {
-                let xs = header.x + x;
-                let ys = header.y + y;
+                let xs = start_x + x;
+                let ys = start_y + y;
                 let (new_chunk_coord, offset) = Self::get_chunk_coords(xs, ys);
                 if chunk_coord != new_chunk_coord {
                     chunk_coord = new_chunk_coord;
@@ -178,37 +175,32 @@ impl WorldModel {
                         changed.remove(&chunk_coord);
                     }
                 }
-                x += 1;
-                if x == i32::from(header.w) + 1 {
+                if x == CHUNK_SIZE as i32 {
                     x = 0;
                     y += 1;
+                } else {
+                    x += 1;
                 }
             }
         }
     }
 
-    pub fn get_noita_update(&self, x: i32, y: i32, w: u32, h: u32) -> NoitaWorldUpdate {
-        assert!(w <= 256);
-        assert!(h <= 256);
-        let mut runner = PixelRunner::new();
-        for j in 0..(h as i32) {
-            for i in 0..(w as i32) {
-                runner.put_pixel(self.get_pixel(x + i, y + j).to_raw())
-            }
-        }
-        runner.into_noita_update(x, y, (w - 1) as u8, (h - 1) as u8)
-    }
-
-    pub fn get_all_noita_updates(&self) -> Vec<Vec<u8>> {
+    pub fn get_all_noita_updates(&mut self) -> Vec<NoitaWorldUpdate> {
         let mut updates = Vec::new();
-        for chunk_coord in &self.updated_chunks {
-            let update = self.get_noita_update(
-                chunk_coord.0 * (CHUNK_SIZE as i32),
-                chunk_coord.1 * (CHUNK_SIZE as i32),
-                CHUNK_SIZE as u32,
-                CHUNK_SIZE as u32,
-            );
-            updates.push(update.save());
+        for coord in self.updated_chunks.drain() {
+            if let Some(chunk) = self.chunks.get_mut(&coord) {
+                chunk.clear_changed();
+                let mut runner = PixelRunner::new();
+                for j in 0..CHUNK_SIZE {
+                    for i in 0..CHUNK_SIZE {
+                        runner.put_pixel(chunk.pixel(i + j * CHUNK_SIZE).to_raw())
+                    }
+                }
+                updates.push(NoitaWorldUpdate {
+                    coord,
+                    runs: runner.build(),
+                });
+            }
         }
         updates
     }

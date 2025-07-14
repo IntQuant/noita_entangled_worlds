@@ -25,13 +25,8 @@ end
 
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()
-    ewext.on_world_initialized()
-    local grid_world = world_ffi.get_grid_world()
-    local chunk_map = grid_world.vtable.get_chunk_map(grid_world)
-    grid_world = tonumber(ffi.cast("intptr_t", grid_world))
-    chunk_map = tonumber(ffi.cast("intptr_t", chunk_map))
-    local material_list = tonumber(ffi.cast("intptr_t", world_ffi.get_material_ptr(0)))
-    ewext.init_particle_world_state(grid_world, chunk_map, material_list)
+    ewext.on_world_initialized(ctx.proxy_opt.world_num)
+    ewext.init_particle_world_state()
     ewext.module_on_world_init()
     log = ModSettingGet("quant.ew.log_performance") or false
     ewext.set_log(log)

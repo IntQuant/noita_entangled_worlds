@@ -2,43 +2,51 @@
 #[unsafe(no_mangle)]
 pub extern "C" fn _unwind_resume() {}
 
-use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
-use noita::{ParticleWorldState, ntypes::Entity, pixel::NoitaPixelRun};
 use noita_api::add_lua_fn;
+use noita_api::addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
+use noita_api::noita::types::Entity;
+use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
     lua::{
-        LUA, LuaGetValue, LuaState, RawString, ValuesOnStack,
+        LUA, LuaGetValue, LuaState, RawString,
         lua_bindings::{LUA_REGISTRYINDEX, lua_State},
     },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
+#[cfg(target_arch = "x86")]
+use std::arch::asm;
+use std::array::IntoIter;
 use std::backtrace::Backtrace;
+use std::mem::MaybeUninit;
 use std::{
-    arch::asm,
     borrow::Cow,
     cell::{LazyCell, RefCell},
-    ffi::{c_int, c_void},
+    ffi::c_int,
     sync::{LazyLock, Mutex, OnceLock, TryLockError},
     time::Instant,
 };
 use std::{num::NonZero, sync::MutexGuard};
-mod addr_grabber;
 mod modules;
 mod net;
-pub mod noita;
 
 thread_local! {
     static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
         #[cfg(debug_assertions)]
         println!("Initializing ExtState");
-        ExtState::default().into()
+        ExtState {
+            modules: Default::default(),
+            player_entity_map: Default::default(),
+            fps_by_player: Default::default(),
+            dont_spawn: Default::default(),
+            cam_pos: Default::default(),
+        }.into()
     });
 }
 
@@ -92,14 +100,33 @@ impl Drop for TimeTracker {
     }
 }*/
 
-#[derive(Default)]
-struct Modules {
-    entity_sync: Option<EntitySync>,
+pub struct WorldSync {
+    pub particle_world_state: MaybeUninit<ParticleWorldState>,
+    pub world_num: u8,
+}
+impl Default for WorldSync {
+    fn default() -> Self {
+        Self {
+            particle_world_state: MaybeUninit::uninit(),
+            world_num: 0,
+        }
+    }
 }
 
 #[derive(Default)]
+struct Modules {
+    entity_sync: EntitySync,
+    world: WorldSync,
+}
+
+impl Modules {
+    fn iter_mut(&mut self) -> IntoIter<&mut dyn Module, 2> {
+        let modules: [&mut dyn Module; 2] = [&mut self.entity_sync, &mut self.world];
+        modules.into_iter()
+    }
+}
+
 struct ExtState {
-    particle_world_state: Option<ParticleWorldState>,
     modules: Modules,
     player_entity_map: BiHashMap<PeerId, EntityID>,
     fps_by_player: FxHashMap<PeerId, u8>,
@@ -118,46 +145,20 @@ impl ExtState {
     }
 }
 
-fn init_particle_world_state(lua: LuaState) {
-    #[cfg(debug_assertions)]
-    println!("\nInitializing particle world state");
-    let world_pointer = lua.to_integer(1);
-    let chunk_map_pointer = lua.to_integer(2);
-    let material_list_pointer = lua.to_integer(3);
-    #[cfg(debug_assertions)]
-    println!("pws stuff: {world_pointer:?} {chunk_map_pointer:?}");
-
+fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
     STATE.with(|state| {
-        state.borrow_mut().particle_world_state = Some(ParticleWorldState {
-            _world_ptr: world_pointer as *mut c_void,
-            chunk_map_ptr: chunk_map_pointer as *mut c_void,
-            material_list_ptr: material_list_pointer as _,
-            runner: Default::default(),
-        });
-    });
-}
-
-fn encode_area(lua: LuaState) -> ValuesOnStack {
-    let lua = lua.raw();
-    let start_x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
-    let start_y = unsafe { LUA.lua_tointeger(lua, 2) } as i32;
-    let end_x = unsafe { LUA.lua_tointeger(lua, 3) } as i32;
-    let end_y = unsafe { LUA.lua_tointeger(lua, 4) } as i32;
-    let encoded_buffer = unsafe { LUA.lua_tointeger(lua, 5) } as *mut NoitaPixelRun;
-
-    STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        let pws = state.particle_world_state.as_mut().unwrap();
-        let runs = unsafe { pws.encode_area(start_x, start_y, end_x, end_y, encoded_buffer) };
-        unsafe { LUA.lua_pushinteger(lua, runs as isize) };
-    });
-    ValuesOnStack(1)
+        let world = &mut state.borrow_mut().modules.world;
+        world.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
+        world.world_num = lua.to_integer(1) as u8;
+        Ok(())
+    })
 }
 
 pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
     unsafe {
         let entity_manager = grabbed_globals().entity_manager.read();
-        let mut entity: *mut Entity;
+        let entity: *mut Entity;
+        #[cfg(target_arch = "x86")]
         asm!(
             "mov ecx, {entity_manager}",
             "push {entity_id:e}",
@@ -169,10 +170,16 @@ pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
             out("ecx") _,
             out("eax") entity,
         );
-        if entity.is_null() {
+        #[cfg(not(target_arch = "x86"))]
+        {
+            std::hint::black_box((entity_manager, grabbed_fns().get_entity));
+            entity = Default::default();
+        }
+        if let Some(entity) = entity.as_mut() {
+            entity.filename_index = 0;
+        } else {
             bail!("Entity {entity_id} not found");
         }
-        entity.cast::<c_void>().offset(0x8).cast::<u32>().write(0);
     }
     Ok(())
 }
@@ -229,9 +236,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::Ready { .. } => bail!("Unexpected Ready message"),
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
-                if let Some(entity_sync) = &mut state.modules.entity_sync
-                    && let Err(e) = entity_sync.handle_proxytodes(proxy_to_des)
-                {
+                if let Err(e) = state.modules.entity_sync.handle_proxytodes(proxy_to_des) {
                     let _ = print_error(e);
                 }
             })?,
@@ -240,20 +245,24 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
                 message: shared::RemoteMessage::RemoteDes(remote_des),
             } => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
-                if let Some(entity_sync) = &mut state.modules.entity_sync {
-                    match entity_sync.handle_remotedes(
-                        source,
-                        remote_des,
-                        netmanager,
-                        &state.player_entity_map,
-                        &mut state.dont_spawn,
-                        &mut state.cam_pos,
-                    ) {
-                        Ok(()) => {}
-                        Err(s) => {
-                            let _ = print_error(s);
-                        }
+                match state.modules.entity_sync.handle_remotedes(
+                    source,
+                    remote_des,
+                    netmanager,
+                    &state.player_entity_map,
+                    &mut state.dont_spawn,
+                    &mut state.cam_pos,
+                ) {
+                    Ok(()) => {}
+                    Err(s) => {
+                        let _ = print_error(s);
                     }
+                }
+            })?,
+            NoitaInbound::ProxyToWorldSync(msg) => ExtState::with_global(|state| {
+                let _lock = IN_MODULE_LOCK.lock().unwrap();
+                if let Err(e) = state.modules.world.handle_remote(msg) {
+                    let _ = print_error(e);
                 }
             })?,
         }
@@ -294,11 +303,11 @@ fn on_world_initialized(lua: LuaState) {
         std::thread::current().id()
     );
     grab_addrs(lua);
-
-    STATE.with(|state| {
-        let modules = &mut state.borrow_mut().modules;
-        modules.entity_sync = Some(EntitySync::default());
+    ExtState::with_global(|state| {
+        state.modules.world.particle_world_state =
+            MaybeUninit::new(ParticleWorldState::new().unwrap());
     })
+    .unwrap()
 }
 
 static IN_MODULE_LOCK: Mutex<()> = Mutex::new(());
@@ -318,8 +327,8 @@ fn with_every_module(
             camera_pos: &mut state.cam_pos,
         };
         let mut errs = Vec::new();
-        for module in state.modules.entity_sync.iter_mut() {
-            if let Err(e) = f(&mut ctx, module as &mut dyn Module) {
+        for module in state.modules.iter_mut() {
+            if let Err(e) = f(&mut ctx, module) {
                 errs.push(e);
             }
         }
@@ -424,17 +433,6 @@ fn probe(_lua: LuaState) {
     });
 }
 
-fn __gc(_lua: LuaState) {
-    #[cfg(debug_assertions)]
-    println!(
-        "ewext collected in thread {:?}",
-        std::thread::current().id()
-    );
-    NETMANAGER.lock().unwrap().take();
-    // TODO this doesn't actually work because it's a thread local
-    STATE.with(|state| state.take());
-}
-
 pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     let lua = LuaState::current()?;
     lua.get_global(c"EwextPrintError");
@@ -476,12 +474,10 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
         // Detect module unload. Adapted from NoitaPatcher.
         LUA.lua_newuserdata(lua, 0);
         LUA.lua_createtable(lua, 0, 0);
-        add_lua_fn!(__gc);
         LUA.lua_setmetatable(lua, -2);
         LUA.lua_setfield(lua, LUA_REGISTRYINDEX, c"luaclose_ewext".as_ptr());
 
         add_lua_fn!(init_particle_world_state);
-        add_lua_fn!(encode_area);
         add_lua_fn!(make_ephemerial);
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);
@@ -512,12 +508,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
                     peer_n = peer_n.overflowing_add(rng).0
                 }
                 let gid = peer_n.overflowing_mul(rng).0;
-                let entity_sync = state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
-                entity_sync.sync_projectile(
+                state.modules.entity_sync.sync_projectile(
                     EntityID(NonZero::try_from(entity)?),
                     Gid(gid),
                     peer,
@@ -529,12 +520,10 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn des_item_thrown(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let entity_sync = state
+                state
                     .modules
                     .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
-                entity_sync.cross_item_thrown(LuaGetValue::get(lua, -1)?)?;
+                    .cross_item_thrown(LuaGetValue::get(lua, -1)?)?;
                 Ok(())
             })?
         }
@@ -542,11 +531,6 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn des_death_notify(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let entity_sync = state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
                 let entity_killed = EntityID::try_from(lua.to_integer(1))
                     .wrap_err("Expected to have a valid entity_killed")?;
                 let wait_on_kill = lua.to_bool(2);
@@ -557,7 +541,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
                     .wrap_err("Expected to have a valid filepath")?;
                 let entity_responsible = EntityID::try_from(lua.to_integer(6)).ok();
                 let pos = WorldPos::from_f64(x, y);
-                entity_sync.cross_death_notify(
+                state.modules.entity_sync.cross_death_notify(
                     entity_killed,
                     wait_on_kill,
                     pos,
@@ -571,15 +555,10 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn notrack(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let entity_sync = state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
                 let entity_killed: Option<EntityID> = LuaGetValue::get(lua, -1)?;
                 let entity_killed =
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
-                entity_sync.notrack_entity(entity_killed);
+                state.modules.entity_sync.notrack_entity(entity_killed);
                 Ok(())
             })?
         }
@@ -587,15 +566,10 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn track(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                let entity_sync = state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
                 let entity_killed: Option<EntityID> = LuaGetValue::get(lua, -1)?;
                 let entity_killed =
                     entity_killed.ok_or_eyre("Expected to have a valid entity_killed")?;
-                entity_sync.track_entity(entity_killed);
+                state.modules.entity_sync.track_entity(entity_killed);
                 Ok(())
             })?
         }
@@ -630,12 +604,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
         fn find_by_gid(lua: LuaState) -> eyre::Result<Option<EntityID>> {
             ExtState::with_global(|state| {
                 let gid = lua.to_string(1)?.parse::<u64>()?;
-                let entity_sync = state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
-                Ok(entity_sync.find_by_gid(Gid(gid)))
+                Ok(state.modules.entity_sync.find_by_gid(Gid(gid)))
             })?
         }
         add_lua_fn!(find_by_gid);
@@ -649,11 +618,6 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
                 let file = lua.to_string(5)?;
                 let gid = Gid(lua.to_string(6)?.parse::<u64>()?);
                 let is_mine = lua.to_bool(7);
-                let entity_sync = state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .ok_or_eyre("No entity sync module loaded")?;
                 let mut temp = try_lock_netmanager()?;
                 let net = temp.as_mut().ok_or_eyre("Netmanager not available")?;
                 if is_mine {
@@ -669,7 +633,11 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
                             ry,
                         )),
                     })?;
-                    for (has_interest, peer) in entity_sync.iter_peers(&state.player_entity_map) {
+                    for (has_interest, peer) in state
+                        .modules
+                        .entity_sync
+                        .iter_peers(&state.player_entity_map)
+                    {
                         if has_interest {
                             net.send(&NoitaOutbound::RemoteMessage {
                                 reliable: true,
@@ -694,7 +662,7 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
                             })?;
                         }
                     }
-                } else if let Some(peer) = entity_sync.find_peer_by_gid(gid) {
+                } else if let Some(peer) = state.modules.entity_sync.find_peer_by_gid(gid) {
                     net.send(&NoitaOutbound::RemoteMessage {
                         reliable: true,
                         destination: Destination::Peer(*peer),
@@ -733,24 +701,14 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         fn set_log(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .unwrap()
-                    .set_perf(lua.to_bool(1));
+                state.modules.entity_sync.set_perf(lua.to_bool(1));
                 Ok(())
             })?
         }
         add_lua_fn!(set_log);
         fn set_cache(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
-                state
-                    .modules
-                    .entity_sync
-                    .as_mut()
-                    .unwrap()
-                    .set_cache(lua.to_bool(1));
+                state.modules.entity_sync.set_cache(lua.to_bool(1));
                 Ok(())
             })?
         }

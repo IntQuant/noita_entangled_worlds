@@ -55,13 +55,13 @@ use util::{args::Args, steam_helper::LobbyExtraData};
 mod bookkeeping;
 use crate::net::messages::NetMsg;
 use crate::net::omni::OmniPeerId;
-use crate::net::world::world_model::ChunkCoord;
 use crate::player_cosmetics::{
     display_player_skin, get_player_skin, player_path, player_select_current_color_slot,
     player_skin_display_color_picker, shift_hue,
 };
 pub use bookkeeping::{mod_manager, releases, self_update};
 use shared::WorldPos;
+use shared::world_sync::ChunkCoord;
 mod lobby_code;
 pub mod net;
 mod player_cosmetics;
@@ -126,7 +126,7 @@ pub enum LocalHealthMode {
 #[serde(default)]
 pub struct GameSettings {
     seed: u64,
-    world_num: u16,
+    world_num: u8,
     debug_mode: Option<bool>,
     use_constant_seed: bool,
     duplicate: Option<bool>,
@@ -1660,7 +1660,7 @@ impl App {
 
     fn connect_screen(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.app_saved_state.times_started % 20 == 0 {
+            if self.app_saved_state.times_started.is_multiple_of(20) {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
                     .texture_options(TextureOptions::NEAREST);
                 image.paint_at(ui, ctx.screen_rect());

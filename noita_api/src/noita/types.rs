@@ -102,10 +102,10 @@ impl Debug for ChunkMap {
 #[derive(Debug)]
 pub struct GridWorldVTable {
     //ptr is 0x10013bc
-    unknown: [*const c_void; 3],
-    pub get_chunk_map: *const c_void,
-    unknownmagic: *const c_void,
-    unknown2: [*const c_void; 29],
+    unknown: [*const ThiscallFn; 3],
+    pub get_chunk_map: *const ThiscallFn,
+    unknownmagic: *const ThiscallFn,
+    unknown2: [*const ThiscallFn; 29],
 }
 
 #[repr(C)]
@@ -473,6 +473,7 @@ pub union CellVTable {
     gas: GasCellVTable,
     //ptr is 0xff8a6c
     solid: SolidCellVTable,
+    //ptr is 0x10096e0
     fire: FireCellVTable,
 }
 
@@ -485,69 +486,73 @@ impl Debug for CellVTable {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct SolidCellVTable {
-    unknown0: *const c_void,
-    unknown1: *const c_void,
-    unknown2: *const c_void,
-    unknown3: *const c_void,
-    unknown4: *const c_void,
-    unknown5: *const c_void,
-    unknown6: *const c_void,
+    unknown0: *const ThiscallFn,
+    unknown1: *const ThiscallFn,
+    unknown2: *const ThiscallFn,
+    unknown3: *const ThiscallFn,
+    unknown4: *const ThiscallFn,
+    unknown5: *const ThiscallFn,
+    unknown6: *const ThiscallFn,
 }
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct NoneCellVTable {
-    unknown: [*const c_void; 41],
+    unknown: [*const ThiscallFn; 41],
 }
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct GasCellVTable {}
+pub struct GasCellVTable {
+    unknown: [*const ThiscallFn; 41],
+}
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct FireCellVTable {}
+pub struct FireCellVTable {
+    unknown: [*const ThiscallFn; 41],
+}
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct LiquidCellVTable {
-    pub destroy: *const c_void,
-    pub get_cell_type: *const c_void,
-    unknown01: *const c_void,
-    unknown02: *const c_void,
-    unknown03: *const c_void,
-    pub get_color: *const c_void,
-    unknown04: *const c_void,
-    pub set_color: *const c_void,
-    unknown05: *const c_void,
-    unknown06: *const c_void,
-    unknown07: *const c_void,
-    unknown08: *const c_void,
-    pub get_material: *const c_void,
-    unknown09: *const c_void,
-    unknown10: *const c_void,
-    unknown11: *const c_void,
-    unknown12: *const c_void,
-    unknown13: *const c_void,
-    unknown14: *const c_void,
-    unknown15: *const c_void,
-    pub get_position: *const c_void,
-    unknown16: *const c_void,
-    unknown17: *const c_void,
-    unknown18: *const c_void,
-    unknown19: *const c_void,
-    unknown20: *const c_void,
-    unknown21: *const c_void,
-    unknown22: *const c_void,
-    unknown23: *const c_void,
-    pub is_burning: *const c_void,
-    unknown24: *const c_void,
-    unknown25: *const c_void,
-    unknown26: *const c_void,
-    pub stop_burning: *const c_void,
-    unknown27: *const c_void,
-    unknown28: *const c_void,
-    unknown29: *const c_void,
-    unknown30: *const c_void,
-    unknown31: *const c_void,
-    pub remove: *const c_void,
-    unknown32: *const c_void,
+    pub destroy: *const ThiscallFn,
+    pub get_cell_type: *const ThiscallFn,
+    unknown01: *const ThiscallFn,
+    unknown02: *const ThiscallFn,
+    unknown03: *const ThiscallFn,
+    pub get_color: *const ThiscallFn,
+    unknown04: *const ThiscallFn,
+    pub set_color: *const ThiscallFn,
+    unknown05: *const ThiscallFn,
+    unknown06: *const ThiscallFn,
+    unknown07: *const ThiscallFn,
+    unknown08: *const ThiscallFn,
+    pub get_material: *const ThiscallFn,
+    unknown09: *const ThiscallFn,
+    unknown10: *const ThiscallFn,
+    unknown11: *const ThiscallFn,
+    unknown12: *const ThiscallFn,
+    unknown13: *const ThiscallFn,
+    unknown14: *const ThiscallFn,
+    unknown15: *const ThiscallFn,
+    pub get_position: *const ThiscallFn,
+    unknown16: *const ThiscallFn,
+    unknown17: *const ThiscallFn,
+    unknown18: *const ThiscallFn,
+    unknown19: *const ThiscallFn,
+    unknown20: *const ThiscallFn,
+    unknown21: *const ThiscallFn,
+    unknown22: *const ThiscallFn,
+    unknown23: *const ThiscallFn,
+    pub is_burning: *const ThiscallFn,
+    unknown24: *const ThiscallFn,
+    unknown25: *const ThiscallFn,
+    unknown26: *const ThiscallFn,
+    pub stop_burning: *const ThiscallFn,
+    unknown27: *const ThiscallFn,
+    unknown28: *const ThiscallFn,
+    unknown29: *const ThiscallFn,
+    unknown30: *const ThiscallFn,
+    unknown31: *const ThiscallFn,
+    pub remove: *const ThiscallFn,
+    unknown32: *const ThiscallFn,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -558,7 +563,7 @@ pub struct Position {
 }
 
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub struct Cell {
     pub vtable: &'static CellVTable,
 
@@ -585,10 +590,10 @@ pub enum FullCell {
 impl From<&Cell> for FullCell {
     fn from(value: &Cell) -> Self {
         match value.material.cell_type {
-            CellType::Liquid => FullCell::LiquidCell(value.get_liquid().clone()),
-            CellType::Fire => FullCell::FireCell(value.get_fire().clone()),
-            CellType::Gas => FullCell::GasCell(value.get_gas().clone()),
-            CellType::None | CellType::Solid => FullCell::Cell(value.clone()),
+            CellType::Liquid => FullCell::LiquidCell(*value.get_liquid()),
+            CellType::Fire => FullCell::FireCell(*value.get_fire()),
+            CellType::Gas => FullCell::GasCell(*value.get_gas()),
+            CellType::None | CellType::Solid => FullCell::Cell(*value),
         }
     }
 }
@@ -627,37 +632,99 @@ unsafe impl Sync for CellPtr {}
 unsafe impl Send for CellPtr {}
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct FireCell {
     pub cell: Cell,
     pub x: isize,
     pub y: isize,
-    unknown1: u8,
-    unknown2: u8,
-    unknown3: u8,
-    unknown4: u8,
+    pub lifetime: isize,
+    unknown: isize,
+}
+
+impl FireCell {
+    ///# Safety
+    pub unsafe fn create(
+        mat: &'static CellData,
+        vtable: &'static CellVTable,
+        world: *mut GridWorld,
+    ) -> Self {
+        let lifetime = if let Some(world) = unsafe { world.as_mut() } {
+            world.rng *= 0x343fd;
+            world.rng += 0x269ec3;
+            (world.rng >> 0x10 & 0x7fff) % 0x15
+        } else {
+            -1
+        };
+        let mut cell = Cell::create(mat, vtable);
+        cell.is_burning = true;
+        Self {
+            cell,
+            x: 0,
+            y: 0,
+            lifetime,
+            unknown: 1,
+        }
+    }
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct GasCell {
     pub cell: Cell,
+    unknown5: isize,
+    unknown6: isize,
     pub x: isize,
     pub y: isize,
     unknown1: u8,
     unknown2: u8,
     unknown3: u8,
     unknown4: u8,
-    unknown5: isize,
-    unknown6: isize,
-    unknown7: isize,
     pub color: Color,
-    pub not_color: Color,
+    unknown7: isize,
+    unknown8: isize,
     lifetime: isize,
 }
 
+impl GasCell {
+    ///# Safety
+    pub unsafe fn create(
+        mat: &'static CellData,
+        vtable: &'static CellVTable,
+        world: *mut GridWorld,
+    ) -> Self {
+        let (bool, lifetime) = if let Some(world) = unsafe { world.as_mut() } {
+            let life = ((mat.lifetime as f32 * 0.3) as u64).max(1);
+            world.rng *= 0x343fd;
+            world.rng += 0x269ec3;
+            (
+                (world.rng >> 0x10 & 0x7fff) % 0x65 < 0x32,
+                (((world.rng >> 0x10 & 0x7fff) as u64 % (life * 2 + 1)) - life) as isize,
+            )
+        } else {
+            (false, -1)
+        };
+        let mut cell = Cell::create(mat, vtable);
+        cell.is_burning = true;
+        Self {
+            cell,
+            unknown5: if bool { 1 } else { 0xff },
+            unknown6: 0,
+            x: 0,
+            y: 0,
+            unknown1: 0,
+            unknown2: 0,
+            unknown3: 0,
+            unknown4: 0,
+            unknown7: 0,
+            unknown8: 0,
+            color: mat.default_primary_color,
+            lifetime,
+        }
+    }
+}
+
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LiquidCell {
     pub cell: Cell,
     pub x: isize,
@@ -760,3 +827,16 @@ pub struct GameGlobal {
     unknown2: [isize; 11],
     pub pause_state: isize,
 }
+#[repr(C)]
+pub struct Entity {
+    _unknown0: [u8; 8],
+    pub filename_index: u32,
+    // More stuff, not that relevant currently.
+}
+#[repr(C)]
+pub struct EntityManager {
+    _fld: c_void,
+    // Unknown
+}
+#[repr(C)]
+pub struct ThiscallFn(c_void);

@@ -94,9 +94,9 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 
 [[package]]
 name = "crc32fast"
-version = "1.4.2"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
+checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
 ]
@@ -139,7 +139,6 @@ dependencies = [
  "backtrace",
  "bimap",
  "eyre",
- "iced-x86",
  "libloading",
  "noita_api",
  "rand",
@@ -261,6 +260,7 @@ version = "1.6.0"
 dependencies = [
  "base64",
  "eyre",
+ "iced-x86",
  "libloading",
  "noita_api_macro",
  "object 0.37.1",
