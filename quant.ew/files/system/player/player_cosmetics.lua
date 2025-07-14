@@ -49,6 +49,10 @@ function cos.player_color(player_entity)
     local x, y = EntityGetTransform(ctx.my_player.entity)
     local cape2 = EntityLoad(player_cape_sprite_file, x, y)
     EntityAddChild(player_entity, cape2)
+    EntityRefreshSprite(player_entity, player_sprite_component)
+    if player_sprite_component_lukki ~= nil then
+        EntityRefreshSprite(player_entity, player_sprite_component_lukki)
+    end
 end
 
 function cos.player_cosmetics(player_entity)

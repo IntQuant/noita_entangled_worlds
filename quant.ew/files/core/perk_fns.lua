@@ -73,6 +73,7 @@ local function set_lukki(entity, peer_id)
             end
             if new ~= nil then
                 ComponentSetValue(sprite, "image_file", new)
+                EntityRefreshSprite(entity, sprite)
             end
         end
     end
