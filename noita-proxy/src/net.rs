@@ -537,9 +537,11 @@ impl NetManager {
                 self.do_message_request(msg)
             }
             let updates = state.world.update();
-            state.try_ms_write(&NoitaInbound::ProxyToWorldSync(ProxyToWorldSync::Updates(
-                updates,
-            )));
+            if !updates.is_empty() {
+                state.try_ms_write(&NoitaInbound::ProxyToWorldSync(ProxyToWorldSync::Updates(
+                    updates,
+                )));
+            }
 
             if state.had_a_disconnect {
                 self.broadcast(&NetMsg::NoitaDisconnected, Reliability::Reliable);

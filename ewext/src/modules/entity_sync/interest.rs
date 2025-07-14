@@ -12,7 +12,9 @@ pub(crate) struct InterestTracker {
 
 impl InterestTracker {
     pub(crate) fn new(radius_hysteresis: f64) -> Self {
-        assert!(radius_hysteresis > 0.0);
+        unsafe {
+            std::hint::assert_unchecked(radius_hysteresis > 0.0);
+        }
         Self {
             radius_hysteresis,
             x: 0.0,
