@@ -15,14 +15,12 @@ impl Module for WorldSync {
             runs: Vec::with_capacity(16384),
         };
         let mut upd = std::array::from_fn(|_| None);
-        let time = std::time::Instant::now();
         unsafe {
             self.particle_world_state
                 .assume_init_ref()
                 .encode_world(ChunkCoord(-2, -7), &mut upd)?;
         }
         std::hint::black_box(upd);
-        noita_api::print!("{:?}", time.elapsed().as_micros());
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(vec![update]));
         ctx.net.send(&msg)?;
         Ok(())

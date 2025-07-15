@@ -1,7 +1,7 @@
-use std::{mem, os::raw::c_void, ptr, sync::OnceLock};
+use std::{os::raw::c_void, ptr, sync::OnceLock};
 
 use crate::lua::LuaState;
-use crate::noita::types::{EntityManager, ThiscallFn};
+use crate::noita::types::EntityManager;
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 static GRABBED: OnceLock<Grabbed> = OnceLock::new();
 
@@ -32,7 +32,6 @@ pub(crate) unsafe fn grab_addr_from_instruction(
 
 struct Grabbed {
     globals: GrabbedGlobals,
-    fns: GrabbedFns,
 }
 
 // This only stores pointers that are constant, so should be safe to share between threads.
@@ -44,34 +43,18 @@ pub struct GrabbedGlobals {
     pub entity_manager: *const *mut EntityManager,
 }
 
-pub struct GrabbedFns {
-    pub get_entity: *const ThiscallFn, //unsafe extern "C" fn(*const EntityManager, u32) -> *mut Entity,
-}
-
 pub fn grab_addrs(lua: LuaState) {
     lua.get_global(c"EntityGetFilename");
     let base = lua.to_cfunction(-1).unwrap() as *const c_void;
-    let get_entity = unsafe {
-        mem::transmute_copy(&grab_addr_from_instruction(
-            base,
-            0x0079782b - 0x00797570,
-            Mnemonic::Call,
-        ))
-    };
-    let entity_manager =
+    let entity_manager: *const *mut EntityManager =
         unsafe { grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov).cast() };
     lua.pop_last();
 
     GRABBED
         .set(Grabbed {
             globals: GrabbedGlobals { entity_manager },
-            fns: GrabbedFns { get_entity },
         })
         .ok();
-}
-
-pub fn grabbed_fns() -> &'static GrabbedFns {
-    &GRABBED.get().expect("to be initialized early").fns
 }
 
 pub fn grabbed_globals() -> &'static GrabbedGlobals {

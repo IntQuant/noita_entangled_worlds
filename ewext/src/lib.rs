@@ -7,8 +7,7 @@ use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita_api::add_lua_fn;
-use noita_api::addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
-use noita_api::noita::types::Entity;
+use noita_api::addr_grabber::{grab_addrs, grabbed_globals};
 use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
@@ -20,8 +19,6 @@ use noita_api::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
-#[cfg(target_arch = "x86")]
-use std::arch::asm;
 use std::array::IntoIter;
 use std::backtrace::Backtrace;
 use std::mem::MaybeUninit;
@@ -156,26 +153,12 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
 
 pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
     unsafe {
-        let entity_manager = grabbed_globals().entity_manager.read();
-        let entity: *mut Entity;
-        #[cfg(target_arch = "x86")]
-        asm!(
-            "mov ecx, {entity_manager}",
-            "push {entity_id:e}",
-            "call {get_entity}",
-            entity_manager = in(reg) entity_manager,
-            get_entity = in(reg) grabbed_fns().get_entity,
-            entity_id = in(reg) entity_id,
-            clobber_abi("C"),
-            out("ecx") _,
-            out("eax") entity,
-        );
-        #[cfg(not(target_arch = "x86"))]
+        let entity_manager = grabbed_globals().entity_manager.as_ref().unwrap();
+        if let Some(entity) = entity_manager
+            .as_ref()
+            .unwrap()
+            .get_entity_mut(entity_id as isize)
         {
-            std::hint::black_box((entity_manager, grabbed_fns().get_entity));
-            entity = Default::default();
-        }
-        if let Some(entity) = entity.as_mut() {
             entity.filename_index = 0;
         } else {
             bail!("Entity {entity_id} not found");

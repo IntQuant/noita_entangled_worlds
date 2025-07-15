@@ -918,15 +918,40 @@ pub struct GameGlobal {
     pub pause_state: isize,
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct Entity {
-    _unknown0: [u8; 8],
-    pub filename_index: u32,
+    pub id: isize,
+    pub entry: isize,
+    pub filename_index: usize,
     //TODO More stuff, not that relevant currently.
 }
+
 #[repr(C)]
+#[derive(Debug)]
 pub struct EntityManager {
-    _fld: c_void,
+    unknown: [isize; 5],
+    pub list: *mut *mut Entity,
+    pub last: usize,
+    unknown2: [isize; 120],
     //TODO Unknown
 }
+
+impl EntityManager {
+    pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
+        let len = (self.last - self.list as usize) / 4;
+        let start = unsafe { self.list.offset(id - 1) };
+        let list = unsafe { std::slice::from_raw_parts(start, len - id as usize) };
+        list.iter()
+            .find_map(|c| unsafe { c.as_ref() }.filter(|c| c.id == id))
+    }
+    pub fn get_entity_mut(&self, id: isize) -> Option<&'static mut Entity> {
+        let len = (self.last - self.list as usize) / 4;
+        let start = unsafe { self.list.offset(id - 1) };
+        let list = unsafe { std::slice::from_raw_parts(start, len - id as usize) };
+        list.iter()
+            .find_map(|c| unsafe { c.as_mut() }.filter(|c| c.id == id))
+    }
+}
+
 #[repr(C)]
 pub struct ThiscallFn(c_void);
