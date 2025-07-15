@@ -3,11 +3,9 @@ use crate::modules::{Module, ModuleCtx};
 use eyre::{ContextCompat, eyre};
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell};
 use noita_api::noita::world::ParticleWorldState;
-use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
-    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, PixelFlags, ProxyToWorldSync, RawPixel,
-    WorldSyncToProxy,
+    CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, ProxyToWorldSync, WorldSyncToProxy,
 };
 use std::ptr;
 impl Module for WorldSync {
@@ -16,29 +14,15 @@ impl Module for WorldSync {
             coord: ChunkCoord(0, 0),
             runs: Vec::with_capacity(16384),
         };
-        let upd0 = std::array::from_fn(|_| RawPixel {
-            material: 0,
-            flags: PixelFlags::Unknown,
-        });
-        let upd1 = std::array::from_fn(|_| RawPixel {
-            material: 0,
-            flags: PixelFlags::Unknown,
-        });
-        let upd2 = std::array::from_fn(|_| RawPixel {
-            material: 0,
-            flags: PixelFlags::Unknown,
-        });
-        let upd3 = std::array::from_fn(|_| RawPixel {
-            material: 0,
-            flags: PixelFlags::Unknown,
-        });
-        let mut arr = [upd0, upd1, upd2, upd3];
-        arr.par_iter_mut().try_for_each(|upd| unsafe {
+        let mut upd = std::array::from_fn(|_| None);
+        let time = std::time::Instant::now();
+        unsafe {
             self.particle_world_state
                 .assume_init_ref()
-                .encode_world(ChunkCoord(-2, -7), upd)
-        })?;
-        std::hint::black_box(arr);
+                .encode_world(ChunkCoord(-2, -7), &mut upd)?;
+        }
+        std::hint::black_box(upd);
+        noita_api::print!("{:?}", time.elapsed().as_micros());
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(vec![update]));
         ctx.net.send(&msg)?;
         Ok(())
@@ -67,7 +51,7 @@ trait WorldData {
     unsafe fn encode_world(
         &self,
         coord: ChunkCoord,
-        chunk: &mut [RawPixel; CHUNK_SIZE * CHUNK_SIZE],
+        chunk: &mut [Option<CompactPixel>; CHUNK_SIZE * CHUNK_SIZE],
     ) -> eyre::Result<()>;
     unsafe fn decode_world(&self, chunk: NoitaWorldUpdate) -> eyre::Result<()>;
 }
@@ -75,7 +59,7 @@ impl WorldData for ParticleWorldState {
     unsafe fn encode_world(
         &self,
         coord: ChunkCoord,
-        chunk: &mut [RawPixel; CHUNK_SIZE * CHUNK_SIZE],
+        chunk: &mut [Option<CompactPixel>; CHUNK_SIZE * CHUNK_SIZE],
     ) -> eyre::Result<()> {
         let (cx, cy) = (coord.0 as isize, coord.1 as isize);
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
@@ -91,7 +75,7 @@ impl WorldData for ParticleWorldState {
             .flat_map(|i| (shift_y..shift_y + CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *p = pixel_array.get_raw_pixel(i, j);
+            *p = pixel_array.get_compact_pixel(i, j);
         }
         Ok(())
     }

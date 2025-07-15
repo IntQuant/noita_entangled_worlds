@@ -23,9 +23,9 @@ pub struct NoitaWorldUpdate {
 pub enum PixelFlags {
     /// Actual material isn't known yet.
     #[default]
-    Unknown,
-    Normal,
-    Abnormal,
+    Unknown = 0,
+    Normal = 32768,
+    Abnormal = 16384,
 }
 
 #[derive(Debug, Encode, Decode, PartialEq, Eq, Clone, Copy)]

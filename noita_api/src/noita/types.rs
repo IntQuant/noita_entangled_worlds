@@ -2,7 +2,7 @@
 
 use std::ffi::c_void;
 
-use shared::world_sync::{PixelFlags, RawPixel};
+use shared::world_sync::{CompactPixel, PixelFlags, RawPixel};
 use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -71,6 +71,25 @@ impl ChunkPtr {
                 flags: PixelFlags::Normal,
             }
         }
+    }
+    #[inline]
+    pub fn get_compact_pixel(&self, x: isize, y: isize) -> Option<CompactPixel> {
+        self.get(x, y).map(|cell| {
+            CompactPixel(if cell.material.cell_type == CellType::Liquid {
+                (cell.material.material_type as u16
+                    | if cell.get_liquid().is_static == cell.material.liquid_static {
+                        PixelFlags::Normal
+                    } else {
+                        PixelFlags::Abnormal
+                    } as u16)
+                    .try_into()
+                    .unwrap()
+            } else {
+                (cell.material.material_type as u16 | PixelFlags::Normal as u16)
+                    .try_into()
+                    .unwrap()
+            })
+        })
     }
 }
 
