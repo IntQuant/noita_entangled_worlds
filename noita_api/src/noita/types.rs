@@ -924,7 +924,9 @@ pub struct Entity {
     pub entry: isize,
     pub filename_index: usize,
     pub kill_flag: isize,
-    unknown: [isize; 32],
+    unknown1: isize,
+    pub name: StdString,
+    unknown2: [isize; 28],
     pub children: *mut Child,
     //TODO More stuff, not that relevant currently.
 }
@@ -939,16 +941,18 @@ pub struct Child {
 impl Entity {
     pub fn kill(&mut self) {
         self.kill_flag = 1;
+        self.children().for_each(|e| e.kill());
+    }
+    pub fn children(&self) -> impl Iterator<Item = &'static mut Entity> {
         unsafe {
             if let Some(child) = self.children.as_ref() {
                 let len = child.end.offset_from(child.start);
-                let list = std::slice::from_raw_parts_mut(child.start, len as usize);
-                list.iter().for_each(|e| {
-                    if let Some(e) = e.as_mut() {
-                        e.kill()
-                    }
-                });
+                std::slice::from_raw_parts(child.start, len as usize)
+            } else {
+                &[]
             }
+            .iter()
+            .filter_map(|e| e.as_mut())
         }
     }
 }
