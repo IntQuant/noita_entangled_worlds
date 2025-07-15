@@ -923,35 +923,71 @@ pub struct Entity {
     pub id: isize,
     pub entry: isize,
     pub filename_index: usize,
+    pub kill_flag: isize,
+    unknown: [isize; 32],
+    pub children: *mut Child,
     //TODO More stuff, not that relevant currently.
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Child {
+    pub start: *mut *mut Entity,
+    pub end: *mut *mut Entity,
+}
+
+impl Entity {
+    pub fn kill(&mut self) {
+        self.kill_flag = 1;
+        unsafe {
+            if let Some(child) = self.children.as_ref() {
+                let len = child.end.offset_from(child.start);
+                let list = std::slice::from_raw_parts_mut(child.start, len as usize);
+                list.iter().for_each(|e| {
+                    if let Some(e) = e.as_mut() {
+                        e.kill()
+                    }
+                });
+            }
+        }
+    }
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct EntityManager {
     unknown: [isize; 5],
-    pub list: *mut *mut Entity,
-    pub last: usize,
+    pub entity_list: *mut *mut Entity,
+    pub entity_list_last: *mut *mut Entity,
     unknown2: [isize; 120],
     //TODO Unknown
 }
 
 impl EntityManager {
     pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
-        let len = (self.last - self.list as usize) / 4;
-        let start = unsafe { self.list.offset(id - 1) };
-        let list = unsafe { std::slice::from_raw_parts(start, len - id as usize) };
-        list.iter()
-            .find_map(|c| unsafe { c.as_ref() }.filter(|c| c.id == id))
+        unsafe {
+            let len = self.entity_list_last.offset_from(self.entity_list) as usize;
+            let o = std::slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
+                .iter()
+                .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
+                .unwrap_or(id);
+            let start = self.entity_list.offset(id - o);
+            let list = std::slice::from_raw_parts(start, len - (id - o) as usize);
+            list.iter().find_map(|c| c.as_ref().filter(|c| c.id == id))
+        }
     }
     pub fn get_entity_mut(&self, id: isize) -> Option<&'static mut Entity> {
-        let len = (self.last - self.list as usize) / 4;
-        let start = unsafe { self.list.offset(id - 1) };
-        let list = unsafe { std::slice::from_raw_parts(start, len - id as usize) };
-        list.iter()
-            .find_map(|c| unsafe { c.as_mut() }.filter(|c| c.id == id))
+        unsafe {
+            let len = self.entity_list_last.offset_from(self.entity_list) as usize;
+            let o = std::slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
+                .iter()
+                .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
+                .unwrap_or(id);
+            let start = self.entity_list.offset(id - o);
+            let list = std::slice::from_raw_parts(start, len - (id - o) as usize);
+            list.iter().find_map(|c| c.as_mut().filter(|c| c.id == id))
+        }
     }
 }
-
 #[repr(C)]
 pub struct ThiscallFn(c_void);
