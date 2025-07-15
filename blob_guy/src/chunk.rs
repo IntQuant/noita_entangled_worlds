@@ -203,7 +203,6 @@ impl ChunkOps for ParticleWorldState {
         if !chunk.modified {
             return Ok(());
         }
-        let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
             .wrap_err("no world")?
             .chunk_map
@@ -212,12 +211,13 @@ impl ChunkOps for ParticleWorldState {
         else {
             return Err(eyre!("chunk not loaded"));
         };
+        let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
         let x = cx * CHUNK_SIZE as isize;
         let y = cy * CHUNK_SIZE as isize;
         let blob_cell = unsafe {
             Box::new(types::LiquidCell::create(
                 &self.material_list[blob as usize],
-                self.cell_vtable,
+                self.cell_vtables.liquid(),
                 self.world_ptr,
             ))
         };

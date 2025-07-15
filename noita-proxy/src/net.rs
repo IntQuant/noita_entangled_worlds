@@ -30,7 +30,6 @@ use world::WorldManager;
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::{ModmanagerSettings, get_mods};
 use crate::net::world::world_model::ChunkData;
-use crate::net::world::world_model::chunk::{Pixel, PixelFlags};
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::steam_helper::LobbyExtraData;
 use crate::{
@@ -38,7 +37,7 @@ use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
 };
 use shared::des::ProxyToDes;
-use shared::world_sync::{ChunkCoord, ProxyToWorldSync};
+use shared::world_sync::{ChunkCoord, PixelFlags, ProxyToWorldSync, RawPixel};
 use tangled::Reliability;
 use tracing::{error, info, warn};
 mod audio;
@@ -1486,7 +1485,7 @@ pub struct ExplosionData {
     ray: u64,
     hole: bool,
     liquid: bool,
-    mat: Pixel,
+    mat: RawPixel,
     prob: u8,
 }
 impl ExplosionData {
@@ -1510,7 +1509,7 @@ impl ExplosionData {
             ray,
             hole,
             liquid,
-            mat: Pixel {
+            mat: RawPixel {
                 flags: PixelFlags::Normal,
                 material: mat,
             },

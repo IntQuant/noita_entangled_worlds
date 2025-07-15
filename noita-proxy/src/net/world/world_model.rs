@@ -2,10 +2,12 @@ use std::num::NonZeroU16;
 use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
-use chunk::{Chunk, CompactPixel, Pixel, PixelFlags};
+use chunk::Chunk;
 use encoding::PixelRunner;
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, PixelRun};
+use shared::world_sync::{
+    CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, PixelRun, RawPixel,
+};
 use tracing::info;
 pub(crate) mod chunk;
 pub mod encoding;
@@ -53,8 +55,8 @@ impl ChunkData {
         let mut runner = PixelRunner::new();
         for _ in 0..CHUNK_SIZE * CHUNK_SIZE {
             runner.put_pixel(
-                Pixel {
-                    flags: PixelFlags::Normal,
+                RawPixel {
+                    flags: shared::world_sync::PixelFlags::Normal,
                     material: mat,
                 }
                 .to_compact(),
@@ -131,7 +133,7 @@ impl WorldModel {
         update: NoitaWorldUpdate,
         changed: &mut FxHashSet<ChunkCoord>,
     ) {
-        fn set_pixel(pixel: Pixel, chunk: &mut Chunk, offset: usize) -> bool {
+        fn set_pixel(pixel: RawPixel, chunk: &mut Chunk, offset: usize) -> bool {
             let current = chunk.pixel(offset);
             if current != pixel {
                 chunk.set_pixel(offset, pixel);
@@ -149,11 +151,6 @@ impl WorldModel {
         let mut chunk_coord = update.coord;
         let mut chunk = self.chunks.entry(update.coord).or_default();
         for run in update.runs {
-            let flags = if run.data.flags > 0 {
-                PixelFlags::Fluid
-            } else {
-                PixelFlags::Normal
-            };
             for _ in 0..run.length {
                 let xs = start_x + x;
                 let ys = start_y + y;
@@ -163,9 +160,9 @@ impl WorldModel {
                     chunk = self.chunks.entry(chunk_coord).or_default();
                 }
                 if set_pixel(
-                    Pixel {
+                    RawPixel {
                         material: run.data.material,
-                        flags,
+                        flags: run.data.flags,
                     },
                     chunk,
                     offset,
@@ -193,7 +190,7 @@ impl WorldModel {
                 let mut runner = PixelRunner::new();
                 for j in 0..CHUNK_SIZE {
                     for i in 0..CHUNK_SIZE {
-                        runner.put_pixel(chunk.pixel(i + j * CHUNK_SIZE).to_raw())
+                        runner.put_pixel(chunk.pixel(i + j * CHUNK_SIZE))
                     }
                 }
                 updates.push(NoitaWorldUpdate {

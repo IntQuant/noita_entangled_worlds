@@ -5,7 +5,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 pub struct ParticleWorldState {
     pub world_ptr: *mut types::GridWorld,
     pub material_list: &'static [types::CellData],
-    pub cell_vtable: &'static types::CellVTable,
+    pub cell_vtables: types::CellVTables,
 }
 unsafe impl Sync for ParticleWorldState {}
 unsafe impl Send for ParticleWorldState {}
@@ -14,12 +14,6 @@ impl ParticleWorldState {
         let shift_x = (x * CHUNK_SIZE as isize).rem_euclid(512);
         let shift_y = (y * CHUNK_SIZE as isize).rem_euclid(512);
         (shift_x, shift_y)
-    }
-    pub fn get_cell_material_id(&self, cell: &mut types::Cell) -> u16 {
-        let offset = unsafe {
-            (cell.material as *const types::CellData).offset_from(self.material_list.as_ptr())
-        };
-        offset as u16
     }
     pub fn exists<const SCALE: isize>(&self, cx: isize, cy: isize) -> bool {
         let Some(world) = (unsafe { self.world_ptr.as_mut() }) else {
@@ -82,7 +76,7 @@ impl ParticleWorldState {
         Ok(())
     }
     pub fn new() -> eyre::Result<Self> {
-        let (cell_vtable, global_ptr) = crate::noita::init_data::get_functions()?;
+        let (cell_vtables, global_ptr) = crate::noita::init_data::get_functions()?;
         let global = unsafe { global_ptr.as_mut() }.wrap_err("no global?")?;
         let cell_factory =
             unsafe { global.m_cell_factory.as_mut() }.wrap_err("no cell factory?")?;
@@ -93,7 +87,7 @@ impl ParticleWorldState {
         Ok(ParticleWorldState {
             world_ptr,
             material_list,
-            cell_vtable,
+            cell_vtables,
         })
     }
 }

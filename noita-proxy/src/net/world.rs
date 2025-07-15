@@ -12,10 +12,7 @@ use std::time::Duration;
 use std::{cmp, mem, thread};
 use tracing::{debug, info, warn};
 use wide::f32x8;
-use world_model::{
-    ChunkData, ChunkDelta, WorldModel,
-    chunk::{Chunk, Pixel},
-};
+use world_model::{ChunkData, ChunkDelta, WorldModel, chunk::Chunk};
 
 use crate::bookkeeping::save_state::{SaveState, SaveStateEntry};
 
@@ -1185,7 +1182,7 @@ impl WorldManager {
         let start = x - radius;
         let end = x + radius;
 
-        let air_pixel = Pixel {
+        let air_pixel = RawPixel {
             flags: PixelFlags::Normal,
             material: 0,
         };
@@ -1270,7 +1267,7 @@ impl WorldManager {
         let dm2 = ((dmx.unsigned_abs() as u64 * dmx.unsigned_abs() as u64
             + dmy.unsigned_abs() as u64 * dmy.unsigned_abs() as u64) as f64)
             .recip();
-        let air_pixel = Pixel {
+        let air_pixel = RawPixel {
             flags: PixelFlags::Normal,
             material: 0,
         };
@@ -1421,7 +1418,7 @@ impl WorldManager {
             (y - r).div_euclid(CHUNK_SIZE as i32),
             (y + r).div_euclid(CHUNK_SIZE as i32),
         );
-        let air_pixel = Pixel {
+        let air_pixel = RawPixel {
             flags: PixelFlags::Normal,
             material: mat.unwrap_or(0),
         };
@@ -1727,7 +1724,7 @@ impl WorldManager {
         list: Vec<(u64, u64, Option<ChunkCoord>)>,
         hole: bool,
         liquid: bool,
-        mat: Pixel,
+        mat: RawPixel,
         prob: u8,
         r: u64,
     ) -> Vec<ExRet> {
@@ -1744,7 +1741,7 @@ impl WorldManager {
             (y - r as i32).div_euclid(CHUNK_SIZE as i32),
             (y + r as i32).div_euclid(CHUNK_SIZE as i32),
         );
-        let air_pixel = Pixel {
+        let air_pixel = RawPixel {
             flags: PixelFlags::Normal,
             material: 0,
         };
@@ -2050,7 +2047,7 @@ impl WorldManager {
             grouped.entry(key).or_default().push((a, b));
         }
         let data: Vec<(usize, Vec<(usize, u64)>)> = grouped.into_iter().collect();
-        let air_pixel = Pixel {
+        let air_pixel = RawPixel {
             flags: PixelFlags::Normal,
             material: 0,
         };
@@ -3075,12 +3072,13 @@ fn test_explosion_img_big_many() {
 }*/
 #[cfg(test)]
 use crate::net::LiquidType;
-use crate::net::world::world_model::chunk::PixelFlags;
 #[cfg(test)]
 use rand::seq::SliceRandom;
 #[cfg(test)]
 use serial_test::serial;
-use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, WorldSyncToProxy};
+use shared::world_sync::{
+    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, PixelFlags, RawPixel, WorldSyncToProxy,
+};
 #[cfg(test)]
 #[test]
 #[serial]

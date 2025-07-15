@@ -142,6 +142,7 @@ dependencies = [
  "libloading",
  "noita_api",
  "rand",
+ "rayon",
  "rustc-hash",
  "shared",
 ]

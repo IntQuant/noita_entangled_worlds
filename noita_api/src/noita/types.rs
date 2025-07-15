@@ -2,6 +2,7 @@
 
 use std::ffi::c_void;
 
+use shared::world_sync::{PixelFlags, RawPixel};
 use std::fmt::{Debug, Display, Formatter};
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -28,19 +29,48 @@ unsafe impl Sync for ChunkPtr {}
 unsafe impl Send for ChunkPtr {}
 
 impl ChunkPtr {
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &CellPtr> {
         unsafe { std::slice::from_raw_parts(self.0, 512 * 512) }.iter()
     }
+    #[inline]
     pub fn get(&self, x: isize, y: isize) -> Option<&Cell> {
         let index = (y << 9) | x;
         unsafe { self.0.offset(index).as_ref().and_then(|c| c.0.as_ref()) }
     }
+    #[inline]
     pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut CellPtr> {
         unsafe { self.get_mut_raw(x, y).as_mut() }
     }
+    #[inline]
     pub fn get_mut_raw(&mut self, x: isize, y: isize) -> *mut CellPtr {
         let index = (y << 9) | x;
         unsafe { self.0.offset(index) }
+    }
+    #[inline]
+    pub fn get_raw_pixel(&self, x: isize, y: isize) -> RawPixel {
+        if let Some(cell) = self.get(x, y) {
+            if cell.material.cell_type == CellType::Liquid {
+                RawPixel {
+                    material: cell.material.material_type as u16,
+                    flags: if cell.get_liquid().is_static == cell.material.liquid_static {
+                        PixelFlags::Normal
+                    } else {
+                        PixelFlags::Abnormal
+                    },
+                }
+            } else {
+                RawPixel {
+                    material: cell.material.material_type as u16,
+                    flags: PixelFlags::Normal,
+                }
+            }
+        } else {
+            RawPixel {
+                material: 0,
+                flags: PixelFlags::Normal,
+            }
+        }
     }
 }
 
@@ -61,16 +91,20 @@ pub struct ChunkArrayPtr(pub *mut ChunkPtrPtr);
 unsafe impl Sync for ChunkArrayPtr {}
 unsafe impl Send for ChunkArrayPtr {}
 impl ChunkArrayPtr {
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &ChunkPtrPtr> {
         unsafe { std::slice::from_raw_parts(self.0, 512 * 512) }.iter()
     }
+    #[inline]
     pub fn slice(&self) -> &'static [ChunkPtrPtr] {
         unsafe { std::slice::from_raw_parts(self.0, 512 * 512) }
     }
+    #[inline]
     pub fn get(&self, x: isize, y: isize) -> Option<&ChunkPtr> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
         unsafe { self.0.offset(index).as_ref().and_then(|c| c.0.as_ref()) }
     }
+    #[inline]
     pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut ChunkPtr> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
         unsafe { self.0.offset(index).as_mut().and_then(|c| c.0.as_mut()) }
@@ -118,14 +152,15 @@ struct AABB {
 
 #[repr(C)]
 #[derive(Debug)]
+//ptr is 0x17f83e30, seems not constant
 pub struct GridWorldThreadedVTable {
     //TODO find some data maybe
 }
 
 #[repr(C)]
 #[derive(Debug)]
-struct GridWorldThreaded {
-    grid_world_threaded_vtable: &'static GridWorldThreadedVTable,
+pub struct GridWorldThreaded {
+    pub grid_world_threaded_vtable: &'static GridWorldThreadedVTable,
     unknown: [isize; 287],
     update_region: AABB,
 }
@@ -139,7 +174,7 @@ pub struct GridWorld {
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],
-    m_thread_impl: *mut GridWorldThreaded,
+    pub m_thread_impl: *mut GridWorldThreaded,
 }
 
 #[repr(C)]
@@ -462,19 +497,40 @@ impl Default for CellData {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy)]
 pub struct CellVTables(pub [CellVTable; 5]);
 
+impl CellVTables {
+    pub fn none(&self) -> &'static NoneCellVTable {
+        unsafe { self.0[0].none }
+    }
+    pub fn liquid(&self) -> &'static LiquidCellVTable {
+        unsafe { self.0[1].liquid }
+    }
+    pub fn gas(&self) -> &'static GasCellVTable {
+        unsafe { self.0[2].gas }
+    }
+    pub fn solid(&self) -> &'static SolidCellVTable {
+        unsafe { self.0[3].solid }
+    }
+    pub fn fire(&self) -> &'static FireCellVTable {
+        unsafe { self.0[4].fire }
+    }
+}
+
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union CellVTable {
     //ptr is 0xff2040
-    none: NoneCellVTable,
+    pub none: &'static NoneCellVTable,
     //ptr is 0x100bb90
-    liquid: LiquidCellVTable,
-    gas: GasCellVTable,
+    pub liquid: &'static LiquidCellVTable,
+    //ptr is 0x1007bcc
+    pub gas: &'static GasCellVTable,
     //ptr is 0xff8a6c
-    solid: SolidCellVTable,
+    pub solid: &'static SolidCellVTable,
     //ptr is 0x10096e0
-    fire: FireCellVTable,
+    pub fire: &'static FireCellVTable,
 }
 
 impl Debug for CellVTable {
@@ -645,7 +701,7 @@ impl FireCell {
     ///# Safety
     pub unsafe fn create(
         mat: &'static CellData,
-        vtable: &'static CellVTable,
+        vtable: &'static FireCellVTable,
         world: *mut GridWorld,
     ) -> Self {
         let lifetime = if let Some(world) = unsafe { world.as_mut() } {
@@ -655,7 +711,12 @@ impl FireCell {
         } else {
             -1
         };
-        let mut cell = Cell::create(mat, vtable);
+        let mut cell = Cell::create(mat, unsafe {
+            (vtable as *const FireCellVTable)
+                .cast::<CellVTable>()
+                .as_ref()
+                .unwrap()
+        });
         cell.is_burning = true;
         Self {
             cell,
@@ -689,7 +750,7 @@ impl GasCell {
     ///# Safety
     pub unsafe fn create(
         mat: &'static CellData,
-        vtable: &'static CellVTable,
+        vtable: &'static GasCellVTable,
         world: *mut GridWorld,
     ) -> Self {
         let (bool, lifetime) = if let Some(world) = unsafe { world.as_mut() } {
@@ -703,7 +764,12 @@ impl GasCell {
         } else {
             (false, -1)
         };
-        let mut cell = Cell::create(mat, vtable);
+        let mut cell = Cell::create(mat, unsafe {
+            (vtable as *const GasCellVTable)
+                .cast::<CellVTable>()
+                .as_ref()
+                .unwrap()
+        });
         cell.is_burning = true;
         Self {
             cell,
@@ -746,7 +812,7 @@ impl LiquidCell {
     /// # Safety
     pub unsafe fn create(
         mat: &'static CellData,
-        vtable: &'static CellVTable,
+        vtable: &'static LiquidCellVTable,
         world: *mut GridWorld,
     ) -> Self {
         let lifetime = if mat.lifetime > 0
@@ -760,7 +826,12 @@ impl LiquidCell {
             -1
         };
         Self {
-            cell: Cell::create(mat, vtable),
+            cell: Cell::create(mat, unsafe {
+                (vtable as *const LiquidCellVTable)
+                    .cast::<CellVTable>()
+                    .as_ref()
+                    .unwrap()
+            }),
             x: 0,
             y: 0,
             unknown1: 3,
@@ -806,7 +877,7 @@ pub struct CellFactory {
     unknown1: [isize; 5],
     pub cell_data_len: usize,
     pub cell_data_ptr: *const CellData,
-    //likely more data
+    //TODO likely more data
 }
 
 #[repr(C)]
@@ -831,12 +902,12 @@ pub struct GameGlobal {
 pub struct Entity {
     _unknown0: [u8; 8],
     pub filename_index: u32,
-    // More stuff, not that relevant currently.
+    //TODO More stuff, not that relevant currently.
 }
 #[repr(C)]
 pub struct EntityManager {
     _fld: c_void,
-    // Unknown
+    //TODO Unknown
 }
 #[repr(C)]
 pub struct ThiscallFn(c_void);
