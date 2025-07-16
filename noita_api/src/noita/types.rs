@@ -926,9 +926,9 @@ pub struct Entity {
     pub kill_flag: isize,
     unknown1: isize,
     pub name: StdString,
-    unknown2: [isize; 28],
+    unknown2: [isize; 25],
     pub children: *mut Child,
-    //TODO More stuff, not that relevant currently.
+    unknown3: isize,
 }
 
 #[repr(C)]
@@ -962,15 +962,27 @@ impl Entity {
 pub struct EntityManager {
     unknown: [isize; 5],
     pub entity_list: *mut *mut Entity,
-    pub entity_list_last: *mut *mut Entity,
+    pub entity_list_end: *mut *mut Entity,
+    unk1: isize,
+    unk2: isize,
+    unk3: isize,
+    unk4: isize,
+    pub component_list: *mut *mut Component,
+    pub component_list_end: *mut *mut Component,
     unknown2: [isize; 120],
     //TODO Unknown
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Component {
+    //TODO unknown
 }
 
 impl EntityManager {
     pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
         unsafe {
-            let len = self.entity_list_last.offset_from(self.entity_list) as usize;
+            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
             let o = std::slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
                 .iter()
                 .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
@@ -982,7 +994,7 @@ impl EntityManager {
     }
     pub fn get_entity_mut(&self, id: isize) -> Option<&'static mut Entity> {
         unsafe {
-            let len = self.entity_list_last.offset_from(self.entity_list) as usize;
+            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
             let o = std::slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
                 .iter()
                 .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
@@ -990,6 +1002,22 @@ impl EntityManager {
             let start = self.entity_list.offset(id - o);
             let list = std::slice::from_raw_parts(start, len - (id - o) as usize);
             list.iter().find_map(|c| c.as_mut().filter(|c| c.id == id))
+        }
+    }
+    pub fn get_entities(&self) -> impl Iterator<Item = &'static Entity> {
+        unsafe {
+            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
+            std::slice::from_raw_parts(self.entity_list, len)
+                .iter()
+                .filter_map(|e| e.as_ref())
+        }
+    }
+    pub fn get_components(&self) -> impl Iterator<Item = &'static Component> {
+        unsafe {
+            let len = self.component_list_end.offset_from(self.component_list) as usize;
+            std::slice::from_raw_parts(self.component_list, len)
+                .iter()
+                .filter_map(|e| e.as_ref())
         }
     }
 }
