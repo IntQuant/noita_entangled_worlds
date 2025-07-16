@@ -3,6 +3,7 @@ use eyre::ContextCompat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 #[derive(Debug)]
 pub struct ParticleWorldState {
+    pub global_ptr: *mut types::GameGlobal,
     pub world_ptr: *mut types::GridWorld,
     pub material_list: &'static [types::CellData],
     pub cell_vtables: types::CellVTables,
@@ -85,6 +86,7 @@ impl ParticleWorldState {
             unsafe { std::slice::from_raw_parts(material_list_ptr, cell_factory.cell_data_len) };
         let world_ptr = global.m_grid_world;
         Ok(ParticleWorldState {
+            global_ptr,
             world_ptr,
             material_list,
             cell_vtables,

@@ -36,7 +36,7 @@ impl ChunkPtr {
     #[inline]
     pub fn get(&self, x: isize, y: isize) -> Option<&Cell> {
         let index = (y << 9) | x;
-        unsafe { self.0.offset(index).as_ref().and_then(|c| c.0.as_ref()) }
+        unsafe { self.0.offset(index).as_ref()?.0.as_ref() }
     }
     #[inline]
     pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut CellPtr> {
@@ -121,12 +121,12 @@ impl ChunkArrayPtr {
     #[inline]
     pub fn get(&self, x: isize, y: isize) -> Option<&ChunkPtr> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
-        unsafe { self.0.offset(index).as_ref().and_then(|c| c.0.as_ref()) }
+        unsafe { self.0.offset(index).as_ref()?.0.as_ref() }
     }
     #[inline]
     pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut ChunkPtr> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
-        unsafe { self.0.offset(index).as_mut().and_then(|c| c.0.as_mut()) }
+        unsafe { self.0.offset(index).as_mut()?.0.as_mut() }
     }
 }
 impl Debug for ChunkMap {
@@ -987,30 +987,49 @@ pub struct ComponentManager {
     pub component_list: *mut *mut Component,
 }
 impl ComponentManager {
-    //TODO should make iterator
-    pub fn get_components(&self, ent: &'static Entity) -> Vec<&'static Component> {
+    pub fn get_components(&self, ent: &'static Entity) -> ComponentIter {
         unsafe {
-            let Some(mut off) = self.entity_entry.offset(ent.entry).as_ref() else {
-                return Vec::new();
-            };
-            let mut v = Vec::new();
-            while *off != self.end {
-                let Some(com) = self
-                    .component_list
-                    .offset(*off)
-                    .as_ref()
-                    .and_then(|c| c.as_ref())
-                else {
-                    return v;
-                };
-                v.push(com);
-                if let Some(n) = self.next.offset(*off).as_ref() {
-                    off = n
-                } else {
-                    return v;
+            if let Some(off) = self.entity_entry.offset(ent.entry).as_ref() {
+                ComponentIter {
+                    component_list: self.component_list,
+                    off: *off,
+                    next: self.next,
+                    end: self.end,
+                }
+            } else {
+                ComponentIter {
+                    component_list: std::ptr::null_mut(),
+                    off: 0,
+                    next: std::ptr::null_mut(),
+                    end: 0,
                 }
             }
-            v
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ComponentIter {
+    component_list: *mut *mut Component,
+    off: isize,
+    end: isize,
+    next: *mut isize,
+}
+
+impl Iterator for ComponentIter {
+    type Item = &'static Component;
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.off == self.end {
+                return None;
+            }
+            let com = self.component_list.offset(self.off).as_ref()?.as_ref();
+            if let Some(n) = self.next.offset(self.off).as_ref() {
+                self.off = *n
+            } else {
+                self.off = self.end
+            }
+            com
         }
     }
 }
