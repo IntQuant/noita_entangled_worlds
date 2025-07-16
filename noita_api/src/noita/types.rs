@@ -967,16 +967,62 @@ pub struct EntityManager {
     unk2: isize,
     unk3: isize,
     unk4: isize,
-    pub component_list: *mut *mut Component,
-    pub component_list_end: *mut *mut Component,
+    pub component_list: *mut *mut ComponentManager,
+    pub component_list_end: *mut *mut ComponentManager,
     unknown2: [isize; 120],
     //TODO Unknown
 }
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct ComponentManager {
+    pub vtable: *const ComponentManagerVTable,
+    pub end: isize,
+    unk: [isize; 2],
+    pub entity_entry: *mut isize,
+    unk2: [isize; 8],
+    pub next: *mut isize,
+    unk3: isize,
+    unk4: isize,
+    pub component_list: *mut *mut Component,
+}
+impl ComponentManager {
+    //TODO should make iterator
+    pub fn get_components(&self, ent: &'static Entity) -> Vec<&'static Component> {
+        unsafe {
+            let Some(mut off) = self.entity_entry.offset(ent.entry).as_ref() else {
+                return Vec::new();
+            };
+            let mut v = Vec::new();
+            while *off != self.end {
+                let Some(com) = self
+                    .component_list
+                    .offset(*off)
+                    .as_ref()
+                    .and_then(|c| c.as_ref())
+                else {
+                    return v;
+                };
+                v.push(com);
+                if let Some(n) = self.next.offset(*off).as_ref() {
+                    off = n
+                } else {
+                    return v;
+                }
+            }
+            v
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
 pub struct Component {
-    //TODO unknown
+    unk: [isize; 10],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ComponentManagerVTable {
+    //TODO technically a union, or maybe ComponentManager is
 }
 
 impl EntityManager {
@@ -1012,13 +1058,20 @@ impl EntityManager {
                 .filter_map(|e| e.as_ref())
         }
     }
-    pub fn get_components(&self) -> impl Iterator<Item = &'static Component> {
+    pub fn get_component_managers(&self) -> impl Iterator<Item = &'static ComponentManager> {
         unsafe {
             let len = self.component_list_end.offset_from(self.component_list) as usize;
             std::slice::from_raw_parts(self.component_list, len)
                 .iter()
                 .filter_map(|e| e.as_ref())
         }
+    }
+    pub fn get_all_components(
+        &self,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static Component> {
+        self.get_component_managers()
+            .flat_map(move |c| c.get_components(ent))
     }
 }
 #[repr(C)]
