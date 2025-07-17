@@ -928,10 +928,7 @@ pub struct Entity {
     unknown1: isize,
     pub name: StdString,
     unknown2: isize,
-    unknown3: isize,
-    unknown4: isize,
-    unknown5: isize,
-    unknown6: isize,
+    tags: [isize; 4], //unknown size
     unknown7: isize,
     unknown8: isize,
     unknown9: isize,
@@ -953,7 +950,7 @@ pub struct Entity {
     pub scale_x: f32,
     pub scale_y: f32,
     pub children: *mut Child,
-    unknown22: isize,
+    pub parent: *mut Entity,
 }
 
 #[repr(C)]
@@ -1008,7 +1005,6 @@ pub struct EntityManager {
     unk4: isize,
     pub component_list: *mut *mut ComponentManager,
     pub component_list_end: *mut *mut ComponentManager,
-    unknown2: [isize; 120],
     //TODO Unknown
 }
 
@@ -1024,7 +1020,7 @@ pub struct ComponentManager {
     unk3: isize,
     unk4: isize,
     pub component_list: *mut *mut Component,
-    unknown2: [isize; 120],
+    //TODO Unknown
 }
 impl ComponentManager {
     pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
@@ -1123,7 +1119,10 @@ pub struct Component {
     unk1: [isize; 3],
     com_type: isize,
     id: isize,
-    unk2: [isize; 16],
+    enabled: bool,
+    unk2: [u8; 3],
+    tags: [isize; 4], //unknown size
+    unk3: [isize; 11],
 }
 #[repr(C)]
 #[derive(Debug)]
