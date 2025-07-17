@@ -909,7 +909,8 @@ pub struct Textures {
 #[derive(Debug)]
 pub struct GameGlobal {
     pub frame_num: usize,
-    unknown1: [isize; 2],
+    pub frame_num_start: usize,
+    unknown1: isize,
     pub m_game_world: *mut GameWorld,
     pub m_grid_world: *mut GridWorld,
     pub m_textures: *mut Textures,
@@ -965,9 +966,21 @@ pub struct Child {
 impl Entity {
     pub fn kill(&mut self) {
         self.kill_flag = 1;
-        self.children().for_each(|e| e.kill());
+        self.iter_children_mut().for_each(|e| e.kill());
     }
-    pub fn children(&self) -> impl Iterator<Item = &'static mut Entity> {
+    pub fn iter_children(&self) -> impl Iterator<Item = &'static Entity> {
+        unsafe {
+            if let Some(child) = self.children.as_ref() {
+                let len = child.end.offset_from(child.start);
+                std::slice::from_raw_parts(child.start, len as usize)
+            } else {
+                &[]
+            }
+            .iter()
+            .filter_map(|e| e.as_ref())
+        }
+    }
+    pub fn iter_children_mut(&mut self) -> impl Iterator<Item = &'static mut Entity> {
         unsafe {
             if let Some(child) = self.children.as_ref() {
                 let len = child.end.offset_from(child.start);
@@ -1011,11 +1024,11 @@ pub struct ComponentManager {
     pub component_list: *mut *mut Component,
 }
 impl ComponentManager {
-    pub fn get_components(&self, ent: &'static Entity) -> ComponentIter {
+    pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
         unsafe {
             if let Some(off) = self.entity_entry.offset(ent.entry).as_ref() {
                 ComponentIter {
-                    component_list: self.component_list,
+                    component_list: self.component_list as *const *const Component,
                     off: *off,
                     next: self.next,
                     end: self.end,
@@ -1030,14 +1043,33 @@ impl ComponentManager {
             }
         }
     }
+    pub fn iter_components_mut(&mut self, ent: &'static Entity) -> ComponentIterMut {
+        unsafe {
+            if let Some(off) = self.entity_entry.offset(ent.entry).as_ref() {
+                ComponentIterMut {
+                    component_list: self.component_list,
+                    off: *off,
+                    next: self.next,
+                    end: self.end,
+                }
+            } else {
+                ComponentIterMut {
+                    component_list: std::ptr::null_mut(),
+                    off: 0,
+                    next: std::ptr::null_mut(),
+                    end: 0,
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct ComponentIter {
-    component_list: *mut *mut Component,
+    component_list: *const *const Component,
     off: isize,
     end: isize,
-    next: *mut isize,
+    next: *const isize,
 }
 
 impl Iterator for ComponentIter {
@@ -1048,6 +1080,31 @@ impl Iterator for ComponentIter {
                 return None;
             }
             let com = self.component_list.offset(self.off).as_ref()?.as_ref();
+            if let Some(n) = self.next.offset(self.off).as_ref() {
+                self.off = *n
+            } else {
+                self.off = self.end
+            }
+            com
+        }
+    }
+}
+#[derive(Debug)]
+pub struct ComponentIterMut {
+    component_list: *const *mut Component,
+    off: isize,
+    end: isize,
+    next: *const isize,
+}
+
+impl Iterator for ComponentIterMut {
+    type Item = &'static mut Component;
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.off == self.end {
+                return None;
+            }
+            let com = self.component_list.offset(self.off).as_ref()?.as_mut();
             if let Some(n) = self.next.offset(self.off).as_ref() {
                 self.off = *n
             } else {
@@ -1081,7 +1138,7 @@ impl EntityManager {
             list.iter().find_map(|c| c.as_ref().filter(|c| c.id == id))
         }
     }
-    pub fn get_entity_mut(&self, id: isize) -> Option<&'static mut Entity> {
+    pub fn get_entity_mut(&mut self, id: isize) -> Option<&'static mut Entity> {
         unsafe {
             let len = self.entity_list_end.offset_from(self.entity_list) as usize;
             let o = std::slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
@@ -1093,7 +1150,7 @@ impl EntityManager {
             list.iter().find_map(|c| c.as_mut().filter(|c| c.id == id))
         }
     }
-    pub fn get_entities(&self) -> impl Iterator<Item = &'static Entity> {
+    pub fn iter_entities(&self) -> impl Iterator<Item = &'static Entity> {
         unsafe {
             let len = self.entity_list_end.offset_from(self.entity_list) as usize;
             std::slice::from_raw_parts(self.entity_list, len)
@@ -1101,7 +1158,15 @@ impl EntityManager {
                 .filter_map(|e| e.as_ref())
         }
     }
-    pub fn get_component_managers(&self) -> impl Iterator<Item = &'static ComponentManager> {
+    pub fn iter_entities_mut(&mut self) -> impl Iterator<Item = &'static mut Entity> {
+        unsafe {
+            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
+            std::slice::from_raw_parts(self.entity_list, len)
+                .iter()
+                .filter_map(|e| e.as_mut())
+        }
+    }
+    pub fn iter_component_managers(&self) -> impl Iterator<Item = &'static ComponentManager> {
         unsafe {
             let len = self.component_list_end.offset_from(self.component_list) as usize;
             std::slice::from_raw_parts(self.component_list, len)
@@ -1109,12 +1174,29 @@ impl EntityManager {
                 .filter_map(|e| e.as_ref())
         }
     }
-    pub fn get_all_components(
+    pub fn iter_component_managers_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &'static mut ComponentManager> {
+        unsafe {
+            let len = self.component_list_end.offset_from(self.component_list) as usize;
+            std::slice::from_raw_parts(self.component_list, len)
+                .iter()
+                .filter_map(|e| e.as_mut())
+        }
+    }
+    pub fn iter_all_components(
         &self,
         ent: &'static Entity,
     ) -> impl Iterator<Item = &'static Component> {
-        self.get_component_managers()
-            .flat_map(move |c| c.get_components(ent))
+        self.iter_component_managers()
+            .flat_map(move |c| c.iter_components(ent))
+    }
+    pub fn iter_all_components_mut(
+        &mut self,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static mut Component> {
+        self.iter_component_managers_mut()
+            .flat_map(move |c| c.iter_components_mut(ent))
     }
 }
 #[repr(C)]

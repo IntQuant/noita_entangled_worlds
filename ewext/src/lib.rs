@@ -155,9 +155,8 @@ pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
     unsafe {
         let entity_manager = grabbed_globals().entity_manager.as_ref().unwrap();
         if let Some(entity) = entity_manager
-            .as_ref()
-            .unwrap()
-            .get_entity_mut(entity_id as isize)
+            .as_mut()
+            .and_then(|gg| gg.get_entity_mut(entity_id as isize))
         {
             entity.filename_index = 0;
         } else {
