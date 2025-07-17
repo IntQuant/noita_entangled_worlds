@@ -929,11 +929,7 @@ pub struct Entity {
     unknown1: isize,
     pub name: StdString,
     unknown2: isize,
-    tags: [isize; 4], //unknown size
-    unknown7: isize,
-    unknown8: isize,
-    unknown9: isize,
-    unknown10: isize,
+    tags: [isize; 8],
     unknown11: isize,
     unknown12: isize,
     unknown13: isize,
@@ -1222,6 +1218,32 @@ impl Iterator for ComponentIterMut {
         }
     }
 }
+//reference stored at 0x01204b30
+#[repr(C)]
+#[derive(Debug)]
+pub struct Manager {
+    unk1: [isize; 3],
+    pub tags: TagManager,
+    //TODO unk
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct TagManager {
+    pub mgr: *mut Tag,
+    //TODO unk
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct Tag {
+    pub next: *mut Tag,
+    pub start: *mut Tag,
+    unk3: isize,
+    unk4: isize,
+    pub tag: StdString,
+    unk5: isize,
+    //TODO unk
+}
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct Component {
@@ -1230,8 +1252,8 @@ pub struct Component {
     id: isize,
     enabled: bool,
     unk2: [u8; 3],
-    tags: [isize; 4], //unknown size
-    unk3: [isize; 11],
+    tags: [isize; 8],
+    unk3: [isize; 6],
 }
 #[repr(C)]
 #[derive(Debug)]
