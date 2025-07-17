@@ -997,7 +997,9 @@ impl Entity {
 #[repr(C)]
 #[derive(Debug)]
 pub struct EntityManager {
-    unknown: [isize; 5],
+    unknown1: isize,
+    max_id: isize,
+    unknown: [isize; 3],
     pub entity_list: *mut *mut Entity,
     pub entity_list_end: *mut *mut Entity,
     unk1: isize,
@@ -1022,6 +1024,7 @@ pub struct ComponentManager {
     unk3: isize,
     unk4: isize,
     pub component_list: *mut *mut Component,
+    unknown2: [isize; 120],
 }
 impl ComponentManager {
     pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
@@ -1117,7 +1120,10 @@ impl Iterator for ComponentIterMut {
 #[repr(C)]
 #[derive(Debug)]
 pub struct Component {
-    unk: [isize; 10],
+    unk1: [isize; 3],
+    com_type: isize,
+    id: isize,
+    unk2: [isize; 16],
 }
 #[repr(C)]
 #[derive(Debug)]
