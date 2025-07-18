@@ -8,7 +8,6 @@ use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita_api::add_lua_fn;
 use noita_api::addr_grabber::{grab_addrs, grabbed_globals};
-use noita_api::noita::types::TagManager;
 use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
@@ -330,41 +329,6 @@ fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
 
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
     //let _tracker = TimeTracker::new("on_world_update");
-    if noita_api::raw::game_get_frame_num()? > 120 {
-        unsafe {
-            let gg = grabbed_globals()
-                .entity_manager
-                .as_ref()
-                .unwrap()
-                .as_ref()
-                .unwrap();
-            noita_api::print!("{:?}", gg.iter_component_managers().collect::<Vec<_>>());
-            if let Some(e) = gg
-                .iter_entities()
-                .find(|e| e.name.to_string() == "DEBUG_NAME:player")
-            {
-                noita_api::print!("{:?}", gg.iter_all_components(e).collect::<Vec<_>>())
-            }
-            let mgr = (0x01206fac as *const *const TagManager)
-                .as_ref()
-                .unwrap()
-                .as_ref()
-                .unwrap();
-            noita_api::print!("{:?}", mgr);
-            noita_api::print!("{:?}", mgr.tags.iter().collect::<Vec<_>>());
-            noita_api::print!("{:?}", mgr.tags.iter().collect::<Vec<_>>().len());
-            noita_api::print!("{:?}", mgr.tags.len);
-            let mgr = (0x01204b30 as *const *const TagManager)
-                .as_ref()
-                .unwrap()
-                .as_ref()
-                .unwrap();
-            noita_api::print!("{:?}", mgr);
-            noita_api::print!("{:?}", mgr.tags.iter().collect::<Vec<_>>());
-            noita_api::print!("{:?}", mgr.tags.iter().collect::<Vec<_>>().len());
-            noita_api::print!("{:?}", mgr.tags.len);
-        }
-    }
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 

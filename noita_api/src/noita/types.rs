@@ -45,6 +45,15 @@ impl<'a> StdString {
         let actual_len = slice.iter().position(|&b| b == 0).unwrap_or(self.size);
         str::from_utf8(&slice[..actual_len]).unwrap()
     }
+    pub fn get(&self, index: usize) -> u8 {
+        unsafe {
+            if self.capacity <= 16 {
+                self.buffer.sso_buffer[index]
+            } else {
+                self.buffer.buffer.add(index).read()
+            }
+        }
+    }
 }
 impl From<&str> for StdString {
     fn from(value: &str) -> Self {
@@ -90,17 +99,14 @@ impl PartialOrd for StdString {
 impl Eq for StdString {}
 impl Ord for StdString {
     fn cmp(&self, other: &Self) -> Ordering {
-        match self.size.cmp(&other.size) {
-            Ordering::Less => Ordering::Less,
-            Ordering::Equal => {
-                if self == other {
-                    Ordering::Equal
-                } else {
-                    Ordering::Less
-                }
+        let smallest = self.size.min(other.size);
+        for i in 0..smallest {
+            match self.get(i).cmp(&other.get(i)) {
+                Ordering::Equal => continue,
+                non_eq => return non_eq,
             }
-            Ordering::Greater => Ordering::Greater,
         }
+        self.size.cmp(&other.size)
     }
 }
 #[repr(transparent)]
@@ -140,7 +146,8 @@ pub struct StdMapNode<K, V> {
     pub parent: *const StdMapNode<K, V>,
     pub right: *const StdMapNode<K, V>,
     pub color: bool,
-    pad: [u8; 3],
+    pub end: bool,
+    unk: [u8; 2],
     pub key: K,
     pub value: V,
 }
@@ -187,7 +194,7 @@ impl<K: 'static, V: 'static> StdMap<K, V> {
         StdMapIter {
             root: self.root,
             current: unsafe { self.root.as_ref().unwrap().parent },
-            parents: Vec::with_capacity(12),
+            parents: Vec::with_capacity(8),
         }
     }
     pub fn iter_keys(&self) -> impl Iterator<Item = &'static K> {
