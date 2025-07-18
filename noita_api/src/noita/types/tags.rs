@@ -4,6 +4,6 @@ use crate::noita::types::{StdMap, StdString};
 #[derive(Debug)]
 pub struct TagManager {
     unk1: [isize; 3],
-    pub tags: StdMap<StdString, isize>,
+    pub tags: StdMap<StdString, usize>,
     //TODO unk
 }
