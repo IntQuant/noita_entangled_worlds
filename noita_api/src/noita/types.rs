@@ -14,7 +14,7 @@ pub struct Color {
     pub a: u8,
 }
 
-#[repr(C)]
+#[repr(transparent)]
 pub struct ChunkPtr(pub *mut CellPtr);
 impl Debug for ChunkPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -100,12 +100,12 @@ pub struct ChunkMap {
     pub chunk_array: ChunkArrayPtr,
     unknown2: [isize; 8],
 }
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Debug)]
 pub struct ChunkPtrPtr(pub *mut ChunkPtr);
 unsafe impl Sync for ChunkPtrPtr {}
 unsafe impl Send for ChunkPtrPtr {}
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Debug)]
 pub struct ChunkArrayPtr(pub *mut ChunkPtrPtr);
 unsafe impl Sync for ChunkArrayPtr {}
@@ -217,6 +217,28 @@ pub struct StdString {
     size: usize,
     capacity: usize,
 }
+#[repr(transparent)]
+pub struct CString(*mut u8);
+impl Display for CString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut string = String::new();
+        unsafe {
+            let mut ptr = self.0;
+            let mut c = ptr.read();
+            while c != 0 {
+                string.push(char::from(c));
+                ptr = ptr.offset(1);
+                c = ptr.read();
+            }
+        }
+        write!(f, "{string}")
+    }
+}
+impl Debug for CString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("CString").field(&self.to_string()).finish()
+    }
+}
 impl From<&str> for StdString {
     fn from(value: &str) -> Self {
         let mut res = StdString {
@@ -251,7 +273,7 @@ impl Display for StdString {
 }
 impl Debug for StdString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "StdString(\"{self}\")")
+        f.debug_tuple("StdString").field(&self.to_string()).finish()
     }
 }
 #[repr(u32)]
@@ -686,7 +708,7 @@ impl Cell {
     }
 }
 
-#[repr(C)]
+#[repr(transparent)]
 pub struct CellPtr(pub *mut Cell);
 impl Debug for CellPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -1210,47 +1232,85 @@ impl Iterator for ComponentIterMut {
         }
     }
 }
-//reference stored at 0x01204b30
+//reference stored at 0x01204b30 or 0x01206fac
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentTagManager {
+pub struct TagManager {
     unk1: [isize; 3],
-    pub tags: ComponentTagManagerStart,
+    pub tags: *mut Tag,
     //TODO unk
+}
+impl TagManager {
+    pub fn iter(&self) -> impl Iterator<Item = &'static Tag> {
+        TagIter {
+            current: unsafe { self.tags.as_ref().unwrap().up },
+            parents: Vec::new(),
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentTagManagerStart {
-    pub first: *mut ComponentTag,
-    //TODO unk
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct ComponentTag {
-    pub next: *mut ComponentTag,
-    pub start: *mut ComponentTag,
-    unk3: isize,
-    unk4: isize,
+pub struct Tag {
+    pub left: *mut Tag,
+    pub up: *mut Tag,
+    pub right: *mut Tag,
+    pub bit: bool,
+    unk: [u8; 3],
     pub tag: StdString,
-    unk5: isize,
+    pub identifier: isize,
     //TODO unk
+}
+
+pub struct TagIter {
+    current: *mut Tag,
+    parents: Vec<&'static Tag>,
+}
+
+impl Iterator for TagIter {
+    type Item = &'static Tag;
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            let cur = self.current.as_ref()?;
+            if cur.tag.to_string().is_empty() {
+                loop {
+                    let tag = self.parents.pop()?.right.as_ref()?;
+                    if !tag.tag.to_string().is_empty() {
+                        self.current = tag.left;
+                        return Some(tag);
+                    }
+                }
+            } else {
+                self.current = cur.left;
+                self.parents.push(cur);
+                Some(cur)
+            }
+        }
+    }
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct Component {
-    unk1: [isize; 3],
-    com_type: isize,
-    id: isize,
-    enabled: bool,
+    pub vtable: &'static ComponentVTable,
+    unk1: isize,
+    pub type_name: CString,
+    pub type_id: isize,
+    pub id: isize,
+    pub enabled: bool,
     unk2: [u8; 3],
-    tags: [isize; 8],
-    unk3: [isize; 6],
+    pub tags: [isize; 8],
+    unk3: [isize; 3],
+    //pub data: D,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ComponentVTable {
+    //TODO should be a union
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentManagerVTable {
-    //TODO technically a union, or maybe ComponentManager is
+    //TODO should be a union
 }
 
 impl EntityManager {
@@ -1327,5 +1387,5 @@ impl EntityManager {
             .flat_map(move |c| c.iter_components_mut(ent))
     }
 }
-#[repr(C)]
+#[repr(transparent)]
 pub struct ThiscallFn(c_void);
