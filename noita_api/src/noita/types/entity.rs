@@ -1,64 +1,58 @@
-use crate::noita::types::StdString;
 use crate::noita::types::component::{Component, ComponentManager};
+use crate::noita::types::{StdString, StdVec};
 use std::slice;
 impl EntityManager {
     pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
         unsafe {
-            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
-            let o = slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
+            let o = self
+                .entities
+                .as_ref()
                 .iter()
                 .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
                 .unwrap_or(id);
-            let start = self.entity_list.offset(id - o);
-            let list = slice::from_raw_parts(start, len - (id - o) as usize);
+            let start = self.entities.start.offset(id - o);
+            let list = slice::from_raw_parts(start, self.entities.len() - (id - o) as usize);
             list.iter().find_map(|c| c.as_ref().filter(|c| c.id == id))
         }
     }
     pub fn get_entity_mut(&mut self, id: isize) -> Option<&'static mut Entity> {
         unsafe {
-            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
-            let o = slice::from_raw_parts(self.entity_list.offset(id), len - id as usize)
+            let o = self
+                .entities
+                .as_ref()
                 .iter()
                 .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
                 .unwrap_or(id);
-            let start = self.entity_list.offset(id - o);
-            let list = slice::from_raw_parts(start, len - (id - o) as usize);
+            let start = self.entities.start.offset(id - o);
+            let list = slice::from_raw_parts(start, self.entities.len() - (id - o) as usize);
             list.iter().find_map(|c| c.as_mut().filter(|c| c.id == id))
         }
     }
     pub fn iter_entities(&self) -> impl Iterator<Item = &'static Entity> {
-        unsafe {
-            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
-            slice::from_raw_parts(self.entity_list, len)
-                .iter()
-                .filter_map(|e| e.as_ref())
-        }
+        self.entities
+            .as_ref()
+            .iter()
+            .filter_map(|c| unsafe { c.as_ref() })
     }
     pub fn iter_entities_mut(&mut self) -> impl Iterator<Item = &'static mut Entity> {
-        unsafe {
-            let len = self.entity_list_end.offset_from(self.entity_list) as usize;
-            slice::from_raw_parts(self.entity_list, len)
-                .iter()
-                .filter_map(|e| e.as_mut())
-        }
+        self.entities
+            .as_mut()
+            .iter_mut()
+            .filter_map(|c| unsafe { c.as_mut() })
     }
     pub fn iter_component_managers(&self) -> impl Iterator<Item = &'static ComponentManager> {
-        unsafe {
-            let len = self.component_list_end.offset_from(self.component_list) as usize;
-            slice::from_raw_parts(self.component_list, len)
-                .iter()
-                .filter_map(|e| e.as_ref())
-        }
+        self.component_managers
+            .as_ref()
+            .iter()
+            .filter_map(|c| unsafe { c.as_ref() })
     }
     pub fn iter_component_managers_mut(
         &mut self,
     ) -> impl Iterator<Item = &'static mut ComponentManager> {
-        unsafe {
-            let len = self.component_list_end.offset_from(self.component_list) as usize;
-            slice::from_raw_parts(self.component_list, len)
-                .iter()
-                .filter_map(|e| e.as_mut())
-        }
+        self.component_managers
+            .as_mut()
+            .iter_mut()
+            .filter_map(|c| unsafe { c.as_mut() })
     }
     pub fn iter_all_components(
         &self,
@@ -88,21 +82,14 @@ pub struct Entity {
     tags: [isize; 16],
     pub x: f32,
     pub y: f32,
-    unknown19: isize,
+    pub angle_a: f32,
     pub angle: f32,
-    unknown20: isize,
-    unknown21: isize,
+    pub rot90_a: f32,
+    pub rot90: f32,
     pub scale_x: f32,
     pub scale_y: f32,
-    pub children: *mut Child,
+    pub children: *mut StdVec<*mut Entity>,
     pub parent: *mut Entity,
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct Child {
-    pub start: *mut *mut Entity,
-    pub end: *mut *mut Entity,
 }
 
 impl Entity {
@@ -247,16 +234,13 @@ impl Iterator for DescendantIterMut {
 #[repr(C)]
 #[derive(Debug)]
 pub struct EntityManager {
-    unknown1: isize,
-    max_id: isize,
-    unknown: [isize; 3],
-    pub entity_list: *mut *mut Entity,
-    pub entity_list_end: *mut *mut Entity,
-    unk1: isize,
-    unk2: isize,
-    unk3: isize,
-    unk4: isize,
-    pub component_list: *mut *mut ComponentManager,
-    pub component_list_end: *mut *mut ComponentManager,
-    //TODO Unknown
+    pub vtable: *const EntityManagerVTable,
+    pub next_entity_id: usize,
+    pub free_ids: StdVec<usize>,
+    pub entities: StdVec<*mut Entity>,
+    pub entity_buckets: StdVec<StdVec<*mut Entity>>,
+    pub component_managers: StdVec<*mut ComponentManager>,
+}
+pub struct EntityManagerVTable {
+    //TODO
 }

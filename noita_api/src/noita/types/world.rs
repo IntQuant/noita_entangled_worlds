@@ -530,7 +530,11 @@ impl Cell {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GameWorld {
-    unknown1: [isize; 17],
+    pub x1: f32,
+    pub y1: f32,
+    pub x2: f32,
+    pub y2: f32,
+    unknown1: [isize; 13],
     pub grid_world: *mut GridWorld,
     //likely more data
 }
@@ -562,6 +566,9 @@ pub struct GameGlobal {
     pub m_cell_factory: *mut CellFactory,
     unknown2: [isize; 11],
     pub pause_state: isize,
+    unk: [isize; 5],
+    pub inventory_open: usize,
+    unk4: [isize; 79],
 }
 
 #[repr(C)]
@@ -749,7 +756,12 @@ pub struct GridWorldThreaded {
 pub struct GridWorld {
     pub vtable: &'static GridWorldVTable,
     pub rng: isize,
-    unknown: [isize; 317],
+    unk: [isize; 292],
+    pub cam_x: isize,
+    pub cam_y: isize,
+    pub cam_w: isize,
+    pub cam_h: isize,
+    unknown: [isize; 21],
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 41],

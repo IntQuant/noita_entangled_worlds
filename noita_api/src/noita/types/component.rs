@@ -1,5 +1,5 @@
-use crate::noita::types::CString;
 use crate::noita::types::entity::Entity;
+use crate::noita::types::{CString, StdVec};
 #[repr(C)]
 #[derive(Debug)]
 pub struct Component {
@@ -30,20 +30,18 @@ pub struct ComponentManager {
     pub vtable: *const ComponentManagerVTable,
     pub end: isize,
     unk: [isize; 2],
-    pub entity_entry: *mut isize,
-    unk2: [isize; 8],
+    pub entity_entry: StdVec<isize>,
+    unk2: [isize; 6],
     pub next: *mut isize,
-    unk3: isize,
-    unk4: isize,
-    pub component_list: *mut *mut Component,
-    //TODO Unknown
+    unk3: [isize; 2],
+    pub component_list: StdVec<*mut Component>,
 }
 impl ComponentManager {
     pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
         unsafe {
-            if let Some(off) = self.entity_entry.offset(ent.entry).as_ref() {
+            if let Some(off) = self.entity_entry.start.offset(ent.entry).as_ref() {
                 ComponentIter {
-                    component_list: self.component_list as *const *const Component,
+                    component_list: self.component_list.start as *const *const Component,
                     off: *off,
                     next: self.next,
                     end: self.end,
@@ -60,9 +58,9 @@ impl ComponentManager {
     }
     pub fn iter_components_mut(&mut self, ent: &'static Entity) -> ComponentIterMut {
         unsafe {
-            if let Some(off) = self.entity_entry.offset(ent.entry).as_ref() {
+            if let Some(off) = self.entity_entry.start.offset(ent.entry).as_ref() {
                 ComponentIterMut {
-                    component_list: self.component_list,
+                    component_list: self.component_list.start,
                     off: *off,
                     next: self.next,
                     end: self.end,

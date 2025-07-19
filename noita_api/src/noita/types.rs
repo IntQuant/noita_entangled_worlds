@@ -33,18 +33,7 @@ pub struct StdString {
     size: usize,
     capacity: usize,
 }
-impl<'a> StdString {
-    pub fn as_str(&'a self) -> &'a str {
-        let slice: &[u8] = unsafe {
-            if self.capacity <= 16 {
-                &self.buffer.sso_buffer
-            } else {
-                slice::from_raw_parts(self.buffer.buffer, self.size)
-            }
-        };
-        let actual_len = slice.iter().position(|&b| b == 0).unwrap_or(self.size);
-        str::from_utf8(&slice[..actual_len]).unwrap()
-    }
+impl StdString {
     pub fn get(&self, index: usize) -> u8 {
         unsafe {
             if self.capacity <= 16 {
@@ -55,6 +44,21 @@ impl<'a> StdString {
         }
     }
 }
+
+impl AsRef<str> for StdString {
+    fn as_ref(&self) -> &str {
+        let slice: &[u8] = unsafe {
+            if self.capacity <= 16 {
+                &self.buffer.sso_buffer
+            } else {
+                slice::from_raw_parts(self.buffer.buffer, self.size)
+            }
+        };
+        let actual_len = slice.iter().position(|&b| b == 0).unwrap_or(self.size);
+        str::from_utf8(&slice[..actual_len]).unwrap_or("UTF8_ERR")
+    }
+}
+
 impl From<&str> for StdString {
     fn from(value: &str) -> Self {
         let mut res = StdString {
@@ -74,18 +78,18 @@ impl From<&str> for StdString {
 }
 impl Display for StdString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.as_ref())
     }
 }
 impl Debug for StdString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("StdString").field(&self.as_str()).finish()
+        f.debug_tuple("StdString").field(&self.as_ref()).finish()
     }
 }
 impl PartialEq for StdString {
     fn eq(&self, other: &Self) -> bool {
         if self.size == other.size {
-            self.as_str() == other.as_str()
+            self.as_ref() == other.as_ref()
         } else {
             false
         }
@@ -132,11 +136,35 @@ impl Debug for CString {
     }
 }
 #[repr(C)]
-#[derive(Debug)]
 pub struct StdVec<T> {
     pub start: *mut T,
     pub end: *mut T,
     pub cap: *mut T,
+}
+impl<T: 'static> AsRef<[T]> for StdVec<T> {
+    fn as_ref(&self) -> &'static [T] {
+        unsafe { slice::from_raw_parts(self.start, self.len()) }
+    }
+}
+impl<T: 'static> AsMut<[T]> for StdVec<T> {
+    fn as_mut(&mut self) -> &'static mut [T] {
+        unsafe { slice::from_raw_parts_mut(self.start, self.len()) }
+    }
+}
+impl<T: Debug + 'static> Debug for StdVec<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("StdVec")
+            .field(&format!("{:?}", self.as_ref()))
+            .finish()
+    }
+}
+impl<T> StdVec<T> {
+    pub fn len(&self) -> usize {
+        unsafe { self.end.byte_offset_from_unsigned(self.start) }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.start == self.end
+    }
 }
 
 #[repr(C)]
@@ -153,10 +181,16 @@ pub struct StdMapNode<K, V> {
 }
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct StdMap<K, V> {
     pub root: *mut StdMapNode<K, V>,
     pub len: u32,
+}
+impl<K: Debug + 'static, V: Debug + 'static> Debug for StdMap<K, V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("StdMap")
+            .field(&format!("{:?}", self.iter().collect::<Vec<_>>()))
+            .finish()
+    }
 }
 
 #[derive(Debug)]
