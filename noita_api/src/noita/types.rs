@@ -59,7 +59,6 @@ impl AsRef<str> for StdString {
         str::from_utf8(&slice[..actual_len]).unwrap_or("UTF8_ERR")
     }
 }
-
 impl From<&str> for StdString {
     fn from(value: &str) -> Self {
         let mut res = StdString {
@@ -165,6 +164,12 @@ impl<T> StdVec<T> {
     }
     pub fn is_empty(&self) -> bool {
         self.start == self.end
+    }
+    pub fn get(&self, index: usize) -> Option<&T> {
+        unsafe { self.start.add(index).as_ref() }
+    }
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        unsafe { self.start.add(index).as_mut() }
     }
 }
 

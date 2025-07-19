@@ -472,3 +472,23 @@ pub struct LuaComponent {
 impl Component for LuaComponent {
     const NAME: &'static str = "LuaComponent";
 }
+#[derive(Debug)]
+#[repr(C)]
+pub struct StatusEffectDataComponent {
+    pub data: ComponentData,
+    unk: isize,
+    pub stain_effects: StdVec<f32>,
+    pub stain_effects_cooldowns: StdVec<f32>,
+    pub stain_effects_previous: StdVec<f32>,
+    pub ingestion_effects: StdVec<f32>,
+    pub ingestion_effect_causes: StdVec<f32>,
+    pub ingestion_effect_causes_many: StdVec<f32>,
+    pub last_attacking_player_frame: isize,
+    pub stain_effects_smoothed_ui: StdVec<f32>,
+    pub has_child_icons_cached: bool,
+    padding: [u8; 3],
+}
+
+impl Component for StatusEffectDataComponent {
+    const NAME: &'static str = "StatusEffectDataComponent";
+}
