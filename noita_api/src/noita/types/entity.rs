@@ -1,5 +1,5 @@
 use crate::noita::types::component::{ComponentData, ComponentManager};
-use crate::noita::types::{StdString, StdVec};
+use crate::noita::types::{StdMap, StdString, StdVec};
 use std::slice;
 impl EntityManager {
     pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
@@ -245,4 +245,13 @@ pub struct EntityManager {
 #[derive(Debug)]
 pub struct EntityManagerVTable {
     //TODO
+}
+//reference stored at 0x01204b30 (component) or 0x01206fac (entity)
+#[repr(C)]
+#[derive(Debug)]
+pub struct TagManager {
+    pub tags: StdVec<StdString>,
+    pub tag_indices: StdMap<StdString, [u8; 4]>,
+    pub max_tag_count: usize,
+    pub name: StdString,
 }

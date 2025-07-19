@@ -2,7 +2,6 @@ mod component;
 mod component_data;
 mod entity;
 mod objects;
-mod tags;
 mod world;
 pub use component::*;
 pub use component_data::*;
@@ -12,7 +11,6 @@ use std::cmp::Ordering;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
 use std::slice;
-pub use tags::*;
 pub use world::*;
 #[repr(C)]
 union Buffer {
