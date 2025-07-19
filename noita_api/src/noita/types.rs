@@ -5,6 +5,7 @@ mod objects;
 mod tags;
 mod world;
 pub use component::*;
+pub use component_data::*;
 pub use entity::*;
 pub use objects::*;
 use std::cmp::Ordering;

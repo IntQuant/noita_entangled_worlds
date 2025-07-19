@@ -81,9 +81,9 @@ impl ParticleWorldState {
         let global = unsafe { global_ptr.as_mut() }.wrap_err("no global?")?;
         let cell_factory =
             unsafe { global.m_cell_factory.as_mut() }.wrap_err("no cell factory?")?;
-        let material_list_ptr = cell_factory.cell_data_ptr;
+        let material_list_ptr = cell_factory.cell_data.start;
         let material_list =
-            unsafe { std::slice::from_raw_parts(material_list_ptr, cell_factory.cell_data_len) };
+            unsafe { std::slice::from_raw_parts(material_list_ptr, cell_factory.cell_data.len()) };
         let world_ptr = global.m_grid_world;
         Ok(ParticleWorldState {
             global_ptr,

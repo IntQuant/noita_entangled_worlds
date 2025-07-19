@@ -1,4 +1,4 @@
-use crate::noita::types::component::{Component, ComponentManager};
+use crate::noita::types::component::{ComponentData, ComponentManager};
 use crate::noita::types::{StdString, StdVec};
 use std::slice;
 impl EntityManager {
@@ -57,14 +57,14 @@ impl EntityManager {
     pub fn iter_all_components(
         &self,
         ent: &'static Entity,
-    ) -> impl Iterator<Item = &'static Component> {
+    ) -> impl Iterator<Item = &'static ComponentData> {
         self.iter_component_managers()
             .flat_map(move |c| c.iter_components(ent))
     }
     pub fn iter_all_components_mut(
         &mut self,
         ent: &'static Entity,
-    ) -> impl Iterator<Item = &'static mut Component> {
+    ) -> impl Iterator<Item = &'static mut ComponentData> {
         self.iter_component_managers_mut()
             .flat_map(move |c| c.iter_components_mut(ent))
     }
@@ -234,13 +234,15 @@ impl Iterator for DescendantIterMut {
 #[repr(C)]
 #[derive(Debug)]
 pub struct EntityManager {
-    pub vtable: *const EntityManagerVTable,
+    pub vtable: &'static EntityManagerVTable,
     pub next_entity_id: usize,
     pub free_ids: StdVec<usize>,
     pub entities: StdVec<*mut Entity>,
     pub entity_buckets: StdVec<StdVec<*mut Entity>>,
     pub component_managers: StdVec<*mut ComponentManager>,
 }
+#[repr(C)]
+#[derive(Debug)]
 pub struct EntityManagerVTable {
     //TODO
 }

@@ -2,7 +2,7 @@ use crate::noita::types::entity::Entity;
 use crate::noita::types::{CString, StdVec};
 #[repr(C)]
 #[derive(Debug)]
-pub struct Component {
+pub struct ComponentData {
     pub vtable: &'static ComponentVTable,
     unk1: isize,
     pub type_name: CString,
@@ -12,7 +12,6 @@ pub struct Component {
     unk2: [u8; 3],
     pub tags: [isize; 8],
     unk3: [isize; 3],
-    //pub data: D,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -27,21 +26,21 @@ pub struct ComponentManagerVTable {
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentManager {
-    pub vtable: *const ComponentManagerVTable,
+    pub vtable: &'static ComponentManagerVTable,
     pub end: isize,
     unk: [isize; 2],
     pub entity_entry: StdVec<isize>,
     unk2: [isize; 6],
     pub next: *mut isize,
     unk3: [isize; 2],
-    pub component_list: StdVec<*mut Component>,
+    pub component_list: StdVec<*mut ComponentData>,
 }
 impl ComponentManager {
     pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
         unsafe {
             if let Some(off) = self.entity_entry.start.offset(ent.entry).as_ref() {
                 ComponentIter {
-                    component_list: self.component_list.start as *const *const Component,
+                    component_list: self.component_list.start as *const *const ComponentData,
                     off: *off,
                     next: self.next,
                     end: self.end,
@@ -79,14 +78,14 @@ impl ComponentManager {
 
 #[derive(Debug)]
 pub struct ComponentIter {
-    component_list: *const *const Component,
+    component_list: *const *const ComponentData,
     off: isize,
     end: isize,
     next: *const isize,
 }
 
 impl Iterator for ComponentIter {
-    type Item = &'static Component;
+    type Item = &'static ComponentData;
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             if self.off == self.end {
@@ -104,14 +103,14 @@ impl Iterator for ComponentIter {
 }
 #[derive(Debug)]
 pub struct ComponentIterMut {
-    component_list: *const *mut Component,
+    component_list: *const *mut ComponentData,
     off: isize,
     end: isize,
     next: *const isize,
 }
 
 impl Iterator for ComponentIterMut {
-    type Item = &'static mut Component;
+    type Item = &'static mut ComponentData;
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             if self.off == self.end {
