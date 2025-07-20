@@ -50,6 +50,70 @@ pub struct Grabbed {
     pub platform: *const *mut Platform,
     pub global_stats: *const *mut GlobalStats,
 }
+#[allow(clippy::mut_from_ref)]
+impl Grabbed {
+    pub fn world_seed(&self) -> Option<usize> {
+        unsafe { self.world_seed.as_ref()?.as_ref().copied() }
+    }
+    pub fn new_game_count(&self) -> Option<usize> {
+        unsafe { self.new_game_count.as_ref()?.as_ref().copied() }
+    }
+    pub fn game_global(&self) -> Option<&GameGlobal> {
+        unsafe { self.game_global.as_ref()?.as_ref() }
+    }
+    pub fn entity_manager(&self) -> Option<&EntityManager> {
+        unsafe { self.entity_manager.as_ref()?.as_ref() }
+    }
+    pub fn entity_tag_manager(&self) -> Option<&TagManager> {
+        unsafe { self.entity_tag_manager.as_ref()?.as_ref() }
+    }
+    pub fn component_type_manager(&self) -> Option<&ComponentTypeManager> {
+        unsafe { self.component_type_manager.as_ref()?.as_ref() }
+    }
+    pub fn component_tag_manager(&self) -> Option<&TagManager> {
+        unsafe { self.component_tag_manager.as_ref()?.as_ref() }
+    }
+    pub fn translation_manager(&self) -> Option<&TranslationManager> {
+        unsafe { self.translation_manager.as_ref()?.as_ref() }
+    }
+    pub fn platform(&self) -> Option<&Platform> {
+        unsafe { self.platform.as_ref()?.as_ref() }
+    }
+    pub fn global_stats(&self) -> Option<&GlobalStats> {
+        unsafe { self.global_stats.as_ref()?.as_ref() }
+    }
+
+    pub fn world_seed_mut(&self) -> Option<&mut usize> {
+        unsafe { self.world_seed.as_ref()?.as_mut() }
+    }
+    pub fn new_game_count_mut(&self) -> Option<&mut usize> {
+        unsafe { self.new_game_count.as_ref()?.as_mut() }
+    }
+    pub fn game_global_mut(&self) -> Option<&mut GameGlobal> {
+        unsafe { self.game_global.as_ref()?.as_mut() }
+    }
+    pub fn entity_manager_mut(&self) -> Option<&mut EntityManager> {
+        unsafe { self.entity_manager.as_ref()?.as_mut() }
+    }
+    pub fn entity_tag_manager_mut(&self) -> Option<&mut TagManager> {
+        unsafe { self.entity_tag_manager.as_ref()?.as_mut() }
+    }
+    pub fn component_type_manager_mut(&self) -> Option<&mut ComponentTypeManager> {
+        unsafe { self.component_type_manager.as_ref()?.as_mut() }
+    }
+    pub fn component_tag_manager_mut(&self) -> Option<&mut TagManager> {
+        unsafe { self.component_tag_manager.as_ref()?.as_mut() }
+    }
+    pub fn translation_manager_mut(&self) -> Option<&mut TranslationManager> {
+        unsafe { self.translation_manager.as_ref()?.as_mut() }
+    }
+    pub fn platform_mut(&self) -> Option<&mut Platform> {
+        unsafe { self.platform.as_ref()?.as_mut() }
+    }
+    pub fn global_stats_mut(&self) -> Option<&mut GlobalStats> {
+        unsafe { self.global_stats.as_ref()?.as_mut() }
+    }
+}
 
 pub fn grab_addrs(lua: LuaState) {
     lua.get_global(c"EntityGetFilename");

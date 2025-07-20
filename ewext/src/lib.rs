@@ -152,15 +152,13 @@ fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
 }
 
 pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
-    unsafe {
-        if let Some(entity) = grabbed_globals().entity_manager.as_ref().and_then(|em| {
-            em.as_mut()
-                .and_then(|gg| gg.get_entity_mut(entity_id as isize))
-        }) {
-            entity.filename_index = 0;
-        } else {
-            bail!("Entity {entity_id} not found");
-        }
+    if let Some(entity) = grabbed_globals()
+        .entity_manager_mut()
+        .and_then(|em| em.get_entity_mut(entity_id as isize))
+    {
+        entity.filename_index = 0;
+    } else {
+        bail!("Entity {entity_id} not found");
     }
     Ok(())
 }

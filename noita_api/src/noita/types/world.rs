@@ -607,6 +607,7 @@ pub struct CellReaction {
 }
 
 #[derive(Debug)]
+#[repr(isize)]
 pub enum ReactionDir {
     None = -1,
     Top,
