@@ -1,4 +1,4 @@
-use std::{os::raw::c_void, ptr, sync::OnceLock};
+use std::{os::raw::c_void, ptr};
 
 use crate::lua::LuaState;
 use crate::noita::types::{
@@ -6,7 +6,6 @@ use crate::noita::types::{
     TranslationManager,
 };
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
-static GRABBED: OnceLock<Grabbed> = OnceLock::new();
 
 pub(crate) unsafe fn grab_addr_from_instruction(
     func: *const c_void,
@@ -34,10 +33,11 @@ pub(crate) unsafe fn grab_addr_from_instruction(
 }
 
 // This only stores pointers that are constant, so should be safe to share between threads.
-unsafe impl Sync for Grabbed {}
-unsafe impl Send for Grabbed {}
+unsafe impl Sync for Globals {}
+unsafe impl Send for Globals {}
 
-pub struct Grabbed {
+#[derive(Debug, Default)]
+pub struct Globals {
     // These 3 actually point to a pointer.
     pub world_seed: *const *mut usize,
     pub new_game_count: *const *mut usize,
@@ -51,7 +51,7 @@ pub struct Grabbed {
     pub global_stats: *const *mut GlobalStats,
 }
 #[allow(clippy::mut_from_ref)]
-impl Grabbed {
+impl Globals {
     pub fn world_seed(&self) -> Option<usize> {
         unsafe { self.world_seed.as_ref()?.as_ref().copied() }
     }
@@ -82,7 +82,6 @@ impl Grabbed {
     pub fn global_stats(&self) -> Option<&GlobalStats> {
         unsafe { self.global_stats.as_ref()?.as_ref() }
     }
-
     pub fn world_seed_mut(&self) -> Option<&mut usize> {
         unsafe { self.world_seed.as_ref()?.as_mut() }
     }
@@ -113,27 +112,23 @@ impl Grabbed {
     pub fn global_stats_mut(&self) -> Option<&mut GlobalStats> {
         unsafe { self.global_stats.as_ref()?.as_mut() }
     }
-}
-
-pub fn grab_addrs(lua: LuaState) {
-    lua.get_global(c"EntityGetFilename");
-    let base = lua.to_cfunction(-1).unwrap() as *const c_void;
-    let entity_manager: *const *mut EntityManager =
-        unsafe { grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov).cast() };
-    lua.pop_last();
-
-    let world_seed = 0x1205004 as *const *mut usize;
-    let new_game_count = 0x1205024 as *const *mut usize;
-    let global_stats = 0x1208940 as *const *mut GlobalStats;
-    let game_global = 0x122374c as *const *mut GameGlobal;
-    let entity_tag_manager = 0x1206fac as *const *mut TagManager;
-    let component_type_manager = 0x1223c88 as *const *mut ComponentTypeManager;
-    let component_tag_manager = 0x1204b30 as *const *mut TagManager;
-    let translation_manager = 0x1207c28 as *const *mut TranslationManager;
-    let platform = 0x1221bc0 as *const *mut Platform;
-
-    GRABBED
-        .set(Grabbed {
+    pub fn new(lua: LuaState) -> Self {
+        lua.get_global(c"EntityGetFilename");
+        let base = lua.to_cfunction(-1).unwrap() as *const c_void;
+        let entity_manager: *const *mut EntityManager = unsafe {
+            grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov).cast()
+        };
+        lua.pop_last();
+        let world_seed = 0x1205004 as *const *mut usize;
+        let new_game_count = 0x1205024 as *const *mut usize;
+        let global_stats = 0x1208940 as *const *mut GlobalStats;
+        let game_global = 0x122374c as *const *mut GameGlobal;
+        let entity_tag_manager = 0x1206fac as *const *mut TagManager;
+        let component_type_manager = 0x1223c88 as *const *mut ComponentTypeManager;
+        let component_tag_manager = 0x1204b30 as *const *mut TagManager;
+        let translation_manager = 0x1207c28 as *const *mut TranslationManager;
+        let platform = 0x1221bc0 as *const *mut Platform;
+        Self {
             world_seed,
             new_game_count,
             game_global,
@@ -144,10 +139,6 @@ pub fn grab_addrs(lua: LuaState) {
             translation_manager,
             platform,
             global_stats,
-        })
-        .ok();
-}
-
-pub fn grabbed_globals() -> &'static Grabbed {
-    GRABBED.get().expect("to be initialized early")
+        }
+    }
 }

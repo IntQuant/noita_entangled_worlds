@@ -25,9 +25,8 @@ end
 
 function module.on_world_initialized()
     initial_world_state_entity = GameGetWorldStateEntity()
-    ewext.on_world_initialized(ctx.proxy_opt.world_num)
-    ewext.init_particle_world_state()
     ewext.module_on_world_init()
+    ewext.set_world_num(ctx.proxy_opt.world_num)
     log = ModSettingGet("quant.ew.log_performance") or false
     ewext.set_log(log)
     cache = ModSettingGet("quant.ew.cache") or false

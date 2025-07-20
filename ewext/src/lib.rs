@@ -7,7 +7,7 @@ use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita_api::add_lua_fn;
-use noita_api::addr_grabber::{grab_addrs, grabbed_globals};
+use noita_api::addr_grabber::Globals;
 use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
@@ -24,7 +24,7 @@ use std::backtrace::Backtrace;
 use std::mem::MaybeUninit;
 use std::{
     borrow::Cow,
-    cell::{LazyCell, RefCell},
+    cell::RefCell,
     ffi::c_int,
     sync::{LazyLock, Mutex, OnceLock, TryLockError},
     time::Instant,
@@ -34,17 +34,15 @@ mod modules;
 mod net;
 
 thread_local! {
-    static STATE: LazyCell<RefCell<ExtState>> = LazyCell::new(|| {
-        #[cfg(debug_assertions)]
-        println!("Initializing ExtState");
+    static STATE: RefCell<ExtState> =
         ExtState {
             modules: Default::default(),
             player_entity_map: Default::default(),
             fps_by_player: Default::default(),
             dont_spawn: Default::default(),
             cam_pos: Default::default(),
+            globals: Globals::default(),
         }.into()
-    });
 }
 
 /// This has a mutex because noita could call us from different threads.
@@ -129,6 +127,7 @@ struct ExtState {
     fps_by_player: FxHashMap<PeerId, u8>,
     dont_spawn: FxHashSet<Gid>,
     cam_pos: FxHashMap<PeerId, WorldPos>,
+    globals: Globals,
 }
 
 impl ExtState {
@@ -142,45 +141,22 @@ impl ExtState {
     }
 }
 
-fn init_particle_world_state(lua: LuaState) -> eyre::Result<()> {
-    STATE.with(|state| {
-        let world = &mut state.borrow_mut().modules.world;
-        world.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
-        world.world_num = lua.to_integer(1) as u8;
-        Ok(())
-    })
-}
-
 pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
-    if let Some(entity) = grabbed_globals()
-        .entity_manager_mut()
-        .and_then(|em| em.get_entity_mut(entity_id as isize))
-    {
-        entity.filename_index = 0;
-    } else {
-        bail!("Entity {entity_id} not found");
-    }
-    Ok(())
+    ExtState::with_global(|state| {
+        if let Some(entity) = state
+            .globals
+            .entity_manager_mut()
+            .and_then(|em| em.get_entity_mut(entity_id as isize))
+        {
+            entity.filename_index = 0;
+        }
+    })
 }
 fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
     let entity_id = lua.to_integer(1) as u32;
     ephemerial(entity_id)?;
     Ok(())
 }
-
-/*struct InitKV {
-    key: String,
-    value: String,
-}
-
-impl From<ProxyKV> for InitKV {
-    fn from(value: ProxyKV) -> Self {
-        InitKV {
-            key: value.key,
-            value: value.value,
-        }
-    }
-}*/
 
 fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
     #[cfg(debug_assertions)]
@@ -264,29 +240,9 @@ fn netmanager_flush(_lua: LuaState) -> eyre::Result<()> {
     netmanager.flush()
 }
 
-/*impl LuaFnRet for InitKV {
-    fn do_return(self, lua: LuaState) -> c_int {
-        lua.create_table(2, 0);
-        lua.push_string(&self.key);
-        lua.rawset_table(-2, 1);
-        lua.push_string(&self.value);
-        lua.rawset_table(-2, 2);
-        1
-    }
-}*/
-
-fn on_world_initialized(lua: LuaState) {
-    #[cfg(debug_assertions)]
-    println!(
-        "ewext on_world_initialized in thread {:?}",
-        std::thread::current().id()
-    );
-    grab_addrs(lua);
-    ExtState::with_global(|state| {
-        state.modules.world.particle_world_state =
-            MaybeUninit::new(ParticleWorldState::new().unwrap());
-    })
-    .unwrap()
+fn set_world_num(lua: LuaState) -> eyre::Result<()> {
+    let world_num = lua.to_integer(1);
+    ExtState::with_global(|state| state.modules.world.world_num = world_num as u8)
 }
 
 static IN_MODULE_LOCK: Mutex<()> = Mutex::new(());
@@ -321,12 +277,12 @@ fn with_every_module(
     })?
 }
 
-fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
+fn module_on_world_init(lua: LuaState) -> eyre::Result<()> {
+    ExtState::with_global(|state| state.globals = Globals::new(lua))?;
     with_every_module(|ctx, module| module.on_world_init(ctx))
 }
 
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
-    //let _tracker = TimeTracker::new("on_world_update");
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 
@@ -456,9 +412,8 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
         LUA.lua_setmetatable(lua, -2);
         LUA.lua_setfield(lua, LUA_REGISTRYINDEX, c"luaclose_ewext".as_ptr());
 
-        add_lua_fn!(init_particle_world_state);
         add_lua_fn!(make_ephemerial);
-        add_lua_fn!(on_world_initialized);
+        add_lua_fn!(set_world_num);
         add_lua_fn!(test_fn);
         add_lua_fn!(bench_fn);
         add_lua_fn!(probe);

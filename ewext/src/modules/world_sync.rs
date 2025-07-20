@@ -7,8 +7,13 @@ use shared::NoitaOutbound;
 use shared::world_sync::{
     CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, ProxyToWorldSync, WorldSyncToProxy,
 };
+use std::mem::MaybeUninit;
 use std::ptr;
 impl Module for WorldSync {
+    fn on_world_init(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
+        self.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
+        Ok(())
+    }
     fn on_world_update(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         let update = NoitaWorldUpdate {
             coord: ChunkCoord(0, 0),
