@@ -34,15 +34,7 @@ mod modules;
 mod net;
 
 thread_local! {
-    static STATE: RefCell<ExtState> =
-        ExtState {
-            modules: Default::default(),
-            player_entity_map: Default::default(),
-            fps_by_player: Default::default(),
-            dont_spawn: Default::default(),
-            cam_pos: Default::default(),
-            globals: Globals::default(),
-        }.into()
+    static STATE: RefCell<ExtState> = Default::default()
 }
 
 /// This has a mutex because noita could call us from different threads.
@@ -67,33 +59,6 @@ pub(crate) fn my_peer_id() -> PeerId {
         .copied()
         .expect("peer id to be set by this point")
 }
-
-/*pub struct TimeTracker {
-    start: Instant,
-    message: &'static str,
-}
-
-impl TimeTracker {
-    pub fn new(message: &'static str) -> Self {
-        Self {
-            start: Instant::now(),
-            message,
-        }
-    }
-}
-
-impl Drop for TimeTracker {
-    fn drop(&mut self) {
-        /*let elapsed = self.start.elapsed();
-        if elapsed.as_millis() > 1 {
-            game_print(format!(
-                "ewext {} took longer than expected: {} us",
-                self.message,
-                elapsed.as_micros(),
-            ));
-        }*/
-    }
-}*/
 
 pub struct WorldSync {
     pub particle_world_state: MaybeUninit<ParticleWorldState>,
@@ -121,6 +86,7 @@ impl Modules {
     }
 }
 
+#[derive(Default)]
 struct ExtState {
     modules: Modules,
     player_entity_map: BiHashMap<PeerId, EntityID>,

@@ -265,3 +265,32 @@ impl<K: 'static + Ord, V: 'static> StdMap<K, V> {
 
 #[repr(transparent)]
 pub struct ThiscallFn(c_void);
+#[derive(Debug)]
+#[repr(C)]
+pub struct LensValueBool {
+    pub value: bool,
+    pub valueb: bool,
+    padding: [u8; 2],
+    pub frame: isize,
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct LensValue<T> {
+    pub value: T,
+    pub valueb: T,
+    pub frame: isize,
+}
+#[derive(Debug)]
+#[repr(C)]
+pub struct ValueRange {
+    pub min: f32,
+    pub max: f32,
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct ValueRangeInt {
+    pub min: isize,
+    pub max: isize,
+}

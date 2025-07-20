@@ -1,5 +1,5 @@
 use crate::noita::types::objects::{ExplosionConfig, GridCosmeticParticleConfig};
-use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn};
+use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
 use shared::world_sync::{CompactPixel, PixelFlags, RawPixel};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
@@ -273,12 +273,6 @@ pub struct LiquidCellVTable {
     unknown31: *const ThiscallFn,
     pub remove: *const ThiscallFn,
     unknown32: *const ThiscallFn,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct Position {
-    pub x: isize,
-    pub y: isize,
 }
 
 #[repr(C)]
@@ -800,8 +794,16 @@ pub struct GridWorldVTable {
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 pub struct AABB {
-    pub top_left: Position,
-    pub bottom_right: Position,
+    pub top_left: Vec2,
+    pub bottom_right: Vec2,
+}
+
+#[repr(C)]
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug)]
+pub struct IAABB {
+    pub top_left: Vec2i,
+    pub bottom_right: Vec2i,
 }
 
 #[repr(C)]
