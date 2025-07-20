@@ -4,7 +4,7 @@ use shared::world_sync::{CompactPixel, PixelFlags, RawPixel};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
 use std::slice;
-#[repr(u32)]
+#[repr(usize)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum CellType {
     None = 0,

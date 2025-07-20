@@ -246,7 +246,6 @@ pub struct EntityManager {
 pub struct EntityManagerVTable {
     //TODO
 }
-//reference stored at 0x01204b30 (component) or 0x01206fac (entity)
 #[repr(C)]
 #[derive(Debug)]
 pub struct TagManager {

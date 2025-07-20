@@ -1,12 +1,16 @@
 mod component;
 mod component_data;
 mod entity;
+mod misc;
 mod objects;
+mod platform;
 mod world;
 pub use component::*;
 pub use component_data::*;
 pub use entity::*;
+pub use misc::*;
 pub use objects::*;
+pub use platform::*;
 use std::cmp::Ordering;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};

@@ -1,5 +1,5 @@
 use crate::noita::types::entity::Entity;
-use crate::noita::types::{CString, StdVec};
+use crate::noita::types::{CString, StdMap, StdString, StdVec};
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
@@ -22,6 +22,12 @@ pub struct ComponentVTable {
 #[derive(Debug)]
 pub struct ComponentManagerVTable {
     //TODO should be a union
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ComponentTypeManager {
+    pub next_id: usize,
+    pub component_manager_indices: StdMap<StdString, usize>,
 }
 #[repr(C)]
 #[derive(Debug)]
