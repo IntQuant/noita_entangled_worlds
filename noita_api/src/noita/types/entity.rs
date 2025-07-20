@@ -259,3 +259,8 @@ pub struct TagManager {
 #[repr(C)]
 #[derive(Debug)]
 pub struct SpriteStainSystem {}
+#[repr(C)]
+#[derive(Debug)]
+pub enum GameEffect {
+    None = 0,
+}

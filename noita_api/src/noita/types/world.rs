@@ -834,3 +834,6 @@ pub struct GridWorld {
     unknown2: [isize; 41],
     pub m_thread_impl: *mut GridWorldThreaded,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct B2Object {}
