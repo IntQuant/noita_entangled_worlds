@@ -255,3 +255,7 @@ pub struct TagManager {
     pub max_tag_count: usize,
     pub name: StdString,
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct SpriteStainSystem {}

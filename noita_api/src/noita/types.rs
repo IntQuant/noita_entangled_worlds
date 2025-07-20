@@ -187,7 +187,7 @@ pub struct StdMapNode<K, V> {
 #[repr(C)]
 pub struct StdMap<K, V> {
     pub root: *mut StdMapNode<K, V>,
-    pub len: u32,
+    pub len: usize,
 }
 impl<K: Debug + 'static, V: Debug + 'static> Debug for StdMap<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

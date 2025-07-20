@@ -466,7 +466,7 @@ pub struct LiquidCell {
     unknown5: isize,
     unknown6: isize,
     pub color: Color,
-    pub not_color: Color,
+    pub original_color: Color,
     lifetime: isize,
     unknown8: isize,
 }
@@ -505,7 +505,7 @@ impl LiquidCell {
             unknown5: 0,
             unknown6: 0,
             color: mat.graphics.color,
-            not_color: mat.graphics.color,
+            original_color: mat.graphics.color,
             lifetime,
             unknown8: 0,
         }
@@ -529,10 +529,10 @@ impl Cell {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GameWorld {
-    pub x1: f32,
-    pub y1: f32,
-    pub x2: f32,
-    pub y2: f32,
+    pub cam_x1: f32,
+    pub cam_y1: f32,
+    pub cam_x2: f32,
+    pub cam_y2: f32,
     unknown1: [isize; 13],
     pub grid_world: *mut GridWorld,
     //likely more data
@@ -563,18 +563,18 @@ pub struct ReactionLookupTable {
     pub width: usize,
     pub height: usize,
     pub len: usize,
-    _unknown: [usize; 5],
-    storage: *const CellReactionBuf,
-    _unknown2: usize,
-    _unknown3: usize,
+    unknown: [usize; 5],
+    pub storage: *const CellReactionBuf,
+    unknown2: usize,
+    unknown3: usize,
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct CellReactionBuf {
-    base: *const CellReaction,
-    _unknown: usize, // only ever saw this equal to len
-    len: usize,
+    pub base: *const CellReaction,
+    pub len: usize,
+    pub cap: usize,
 }
 
 #[repr(C)]
