@@ -109,11 +109,7 @@ impl ExtState {
 
 pub fn ephemerial(entity_id: isize) -> eyre::Result<()> {
     ExtState::with_global(|state| {
-        if let Some(entity) = state
-            .globals
-            .entity_manager_mut()
-            .and_then(|em| em.get_entity_mut(entity_id))
-        {
+        if let Some(entity) = state.globals.entity_manager_mut().get_entity_mut(entity_id) {
             entity.filename_index = 0;
         }
     })

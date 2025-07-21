@@ -84,109 +84,121 @@ pub struct Globals {
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
-    pub fn world_seed(&self) -> Option<usize> {
-        unsafe { self.world_seed.as_ref().copied() }
+    pub fn world_seed(&self) -> usize {
+        unsafe { self.world_seed.as_ref().copied().unwrap() }
     }
-    pub fn new_game_count(&self) -> Option<usize> {
-        unsafe { self.new_game_count.as_ref().copied() }
+    pub fn new_game_count(&self) -> usize {
+        unsafe { self.new_game_count.as_ref().copied().unwrap() }
     }
-    pub fn game_global(&self) -> Option<&'static GameGlobal> {
-        unsafe { self.game_global.as_ref()?.as_ref() }
+    pub fn game_global(&self) -> &'static GameGlobal {
+        unsafe { self.game_global.as_ref().unwrap().as_ref().unwrap() }
     }
-    pub fn entity_manager(&self) -> Option<&'static EntityManager> {
-        unsafe { self.entity_manager.as_ref()?.as_ref() }
+    pub fn entity_manager(&self) -> &'static EntityManager {
+        unsafe { self.entity_manager.as_ref().unwrap().as_ref().unwrap() }
     }
-    pub fn entity_tag_manager(&self) -> Option<&'static TagManager<u16>> {
-        unsafe { self.entity_tag_manager.as_ref()?.as_ref() }
+    pub fn entity_tag_manager(&self) -> &'static TagManager<u16> {
+        unsafe { self.entity_tag_manager.as_ref().unwrap().as_ref().unwrap() }
     }
-    pub fn component_type_manager(&self) -> Option<&'static ComponentTypeManager> {
-        unsafe { self.component_type_manager.as_ref() }
+    pub fn component_type_manager(&self) -> &'static ComponentTypeManager {
+        unsafe { self.component_type_manager.as_ref().unwrap() }
     }
-    pub fn component_tag_manager(&self) -> Option<&'static TagManager<u8>> {
-        unsafe { self.component_tag_manager.as_ref()?.as_ref() }
+    pub fn component_tag_manager(&self) -> &'static TagManager<u8> {
+        unsafe {
+            self.component_tag_manager
+                .as_ref()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+        }
     }
-    pub fn translation_manager(&self) -> Option<&'static TranslationManager> {
-        unsafe { self.translation_manager.as_ref() }
+    pub fn translation_manager(&self) -> &'static TranslationManager {
+        unsafe { self.translation_manager.as_ref().unwrap() }
     }
-    pub fn platform(&self) -> Option<&'static Platform> {
-        unsafe { self.platform.as_ref() }
+    pub fn platform(&self) -> &'static Platform {
+        unsafe { self.platform.as_ref().unwrap() }
     }
-    pub fn global_stats(&self) -> Option<&'static GlobalStats> {
-        unsafe { self.global_stats.as_ref() }
+    pub fn global_stats(&self) -> &'static GlobalStats {
+        unsafe { self.global_stats.as_ref().unwrap() }
     }
-    pub fn filenames(&self) -> Option<&'static StdVec<StdString>> {
-        unsafe { self.filenames.as_ref() }
+    pub fn filenames(&self) -> &'static StdVec<StdString> {
+        unsafe { self.filenames.as_ref().unwrap() }
     }
-    pub fn wand_pickup(&self) -> Option<&'static Inventory> {
-        unsafe { self.wand_pickup.as_ref() }
+    pub fn wand_pickup(&self) -> &'static Inventory {
+        unsafe { self.wand_pickup.as_ref().unwrap() }
     }
-    pub fn world_seed_mut(&self) -> Option<&'static mut usize> {
-        unsafe { self.world_seed.as_mut() }
+    pub fn world_seed_mut(&self) -> &'static mut usize {
+        unsafe { self.world_seed.as_mut().unwrap() }
     }
-    pub fn new_game_count_mut(&self) -> Option<&'static mut usize> {
-        unsafe { self.new_game_count.as_mut() }
+    pub fn new_game_count_mut(&self) -> &'static mut usize {
+        unsafe { self.new_game_count.as_mut().unwrap() }
     }
-    pub fn game_global_mut(&self) -> Option<&'static mut GameGlobal> {
-        unsafe { self.game_global.as_ref()?.as_mut() }
+    pub fn game_global_mut(&self) -> &'static mut GameGlobal {
+        unsafe { self.game_global.as_ref().unwrap().as_mut().unwrap() }
     }
-    pub fn entity_manager_mut(&self) -> Option<&'static mut EntityManager> {
-        unsafe { self.entity_manager.as_ref()?.as_mut() }
+    pub fn entity_manager_mut(&self) -> &'static mut EntityManager {
+        unsafe { self.entity_manager.as_ref().unwrap().as_mut().unwrap() }
     }
-    pub fn entity_tag_manager_mut(&self) -> Option<&'static mut TagManager<u16>> {
-        unsafe { self.entity_tag_manager.as_ref()?.as_mut() }
+    pub fn entity_tag_manager_mut(&self) -> &'static mut TagManager<u16> {
+        unsafe { self.entity_tag_manager.as_ref().unwrap().as_mut().unwrap() }
     }
-    pub fn component_type_manager_mut(&self) -> Option<&'static mut ComponentTypeManager> {
-        unsafe { self.component_type_manager.as_mut() }
+    pub fn component_type_manager_mut(&self) -> &'static mut ComponentTypeManager {
+        unsafe { self.component_type_manager.as_mut().unwrap() }
     }
-    pub fn component_tag_manager_mut(&self) -> Option<&'static mut TagManager<u8>> {
-        unsafe { self.component_tag_manager.as_ref()?.as_mut() }
+    pub fn component_tag_manager_mut(&self) -> &'static mut TagManager<u8> {
+        unsafe {
+            self.component_tag_manager
+                .as_ref()
+                .unwrap()
+                .as_mut()
+                .unwrap()
+        }
     }
-    pub fn translation_manager_mut(&self) -> Option<&'static mut TranslationManager> {
-        unsafe { self.translation_manager.as_mut() }
+    pub fn translation_manager_mut(&self) -> &'static mut TranslationManager {
+        unsafe { self.translation_manager.as_mut().unwrap() }
     }
-    pub fn platform_mut(&self) -> Option<&'static mut Platform> {
-        unsafe { self.platform.as_mut() }
+    pub fn platform_mut(&self) -> &'static mut Platform {
+        unsafe { self.platform.as_mut().unwrap() }
     }
-    pub fn global_stats_mut(&self) -> Option<&'static mut GlobalStats> {
-        unsafe { self.global_stats.as_mut() }
+    pub fn global_stats_mut(&self) -> &'static mut GlobalStats {
+        unsafe { self.global_stats.as_mut().unwrap() }
     }
-    pub fn filenames_mut(&self) -> Option<&'static mut StdVec<StdString>> {
-        unsafe { self.filenames.as_mut() }
+    pub fn filenames_mut(&self) -> &'static mut StdVec<StdString> {
+        unsafe { self.filenames.as_mut().unwrap() }
     }
-    pub fn wand_pickup_mut(&self) -> Option<&'static mut Inventory> {
-        unsafe { self.wand_pickup.as_mut() }
+    pub fn wand_pickup_mut(&self) -> &'static mut Inventory {
+        unsafe { self.wand_pickup.as_mut().unwrap() }
     }
-    pub fn as_ref(&self) -> Option<GlobalsRef> {
-        Some(GlobalsRef {
-            world_seed: self.world_seed()?,
-            new_game_count: self.new_game_count()?,
-            game_global: self.game_global()?,
-            entity_manager: self.entity_manager()?,
-            entity_tag_manager: self.entity_tag_manager()?,
-            component_type_manager: self.component_type_manager()?,
-            component_tag_manager: self.component_tag_manager()?,
-            translation_manager: self.translation_manager()?,
-            platform: self.platform()?,
-            global_stats: self.global_stats()?,
-            filenames: self.filenames()?,
-            wand_pickup: self.wand_pickup()?,
-        })
+    pub fn as_ref(&self) -> GlobalsRef {
+        GlobalsRef {
+            world_seed: self.world_seed(),
+            new_game_count: self.new_game_count(),
+            game_global: self.game_global(),
+            entity_manager: self.entity_manager(),
+            entity_tag_manager: self.entity_tag_manager(),
+            component_type_manager: self.component_type_manager(),
+            component_tag_manager: self.component_tag_manager(),
+            translation_manager: self.translation_manager(),
+            platform: self.platform(),
+            global_stats: self.global_stats(),
+            filenames: self.filenames(),
+            wand_pickup: self.wand_pickup(),
+        }
     }
-    pub fn as_mut(&self) -> Option<GlobalsMut> {
-        Some(GlobalsMut {
-            world_seed: self.world_seed_mut()?,
-            new_game_count: self.new_game_count_mut()?,
-            game_global: self.game_global_mut()?,
-            entity_manager: self.entity_manager_mut()?,
-            entity_tag_manager: self.entity_tag_manager_mut()?,
-            component_type_manager: self.component_type_manager_mut()?,
-            component_tag_manager: self.component_tag_manager_mut()?,
-            translation_manager: self.translation_manager_mut()?,
-            platform: self.platform_mut()?,
-            global_stats: self.global_stats_mut()?,
-            filenames: self.filenames_mut()?,
-            wand_pickup: self.wand_pickup_mut()?,
-        })
+    pub fn as_mut(&self) -> GlobalsMut {
+        GlobalsMut {
+            world_seed: self.world_seed_mut(),
+            new_game_count: self.new_game_count_mut(),
+            game_global: self.game_global_mut(),
+            entity_manager: self.entity_manager_mut(),
+            entity_tag_manager: self.entity_tag_manager_mut(),
+            component_type_manager: self.component_type_manager_mut(),
+            component_tag_manager: self.component_tag_manager_mut(),
+            translation_manager: self.translation_manager_mut(),
+            platform: self.platform_mut(),
+            global_stats: self.global_stats_mut(),
+            filenames: self.filenames_mut(),
+            wand_pickup: self.wand_pickup_mut(),
+        }
     }
     pub fn new(lua: LuaState) -> Self {
         lua.get_global(c"EntityGetFilename");
