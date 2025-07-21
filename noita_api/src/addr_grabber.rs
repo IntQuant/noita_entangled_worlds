@@ -74,9 +74,9 @@ pub struct Globals {
     pub entity_tag_manager: *const *mut TagManager<u16>,
     pub component_type_manager: *mut ComponentTypeManager,
     pub component_tag_manager: *const *mut TagManager<u8>,
-    pub translation_manager: *const *mut TranslationManager,
-    pub platform: *const *mut Platform,
-    pub global_stats: *const *mut GlobalStats,
+    pub translation_manager: *mut TranslationManager,
+    pub platform: *mut Platform,
+    pub global_stats: *mut GlobalStats,
     pub filenames: *mut StdVec<StdString>,
 }
 #[allow(clippy::mut_from_ref)]
@@ -103,13 +103,13 @@ impl Globals {
         unsafe { self.component_tag_manager.as_ref()?.as_ref() }
     }
     pub fn translation_manager(&self) -> Option<&'static TranslationManager> {
-        unsafe { self.translation_manager.as_ref()?.as_ref() }
+        unsafe { self.translation_manager.as_ref() }
     }
     pub fn platform(&self) -> Option<&'static Platform> {
-        unsafe { self.platform.as_ref()?.as_ref() }
+        unsafe { self.platform.as_ref() }
     }
     pub fn global_stats(&self) -> Option<&'static GlobalStats> {
-        unsafe { self.global_stats.as_ref()?.as_ref() }
+        unsafe { self.global_stats.as_ref() }
     }
     pub fn filenames(&self) -> Option<&'static StdVec<StdString>> {
         unsafe { self.filenames.as_ref() }
@@ -136,13 +136,13 @@ impl Globals {
         unsafe { self.component_tag_manager.as_ref()?.as_mut() }
     }
     pub fn translation_manager_mut(&self) -> Option<&'static mut TranslationManager> {
-        unsafe { self.translation_manager.as_ref()?.as_mut() }
+        unsafe { self.translation_manager.as_mut() }
     }
     pub fn platform_mut(&self) -> Option<&'static mut Platform> {
-        unsafe { self.platform.as_ref()?.as_mut() }
+        unsafe { self.platform.as_mut() }
     }
     pub fn global_stats_mut(&self) -> Option<&'static mut GlobalStats> {
-        unsafe { self.global_stats.as_ref()?.as_mut() }
+        unsafe { self.global_stats.as_mut() }
     }
     pub fn filenames_mut(&self) -> Option<&'static mut StdVec<StdString>> {
         unsafe { self.filenames.as_mut() }
@@ -186,13 +186,13 @@ impl Globals {
         lua.pop_last();
         let world_seed = 0x1205004 as *mut usize;
         let new_game_count = 0x1205024 as *mut usize;
-        let global_stats = 0x1208940 as *const *mut GlobalStats;
+        let global_stats = 0x1208940 as *mut GlobalStats;
         let game_global = 0x122374c as *const *mut GameGlobal;
         let entity_tag_manager = 0x1206fac as *const *mut TagManager<u16>;
         let component_type_manager = 0x1223c88 as *mut ComponentTypeManager;
         let component_tag_manager = 0x1204b30 as *const *mut TagManager<u8>;
-        let translation_manager = 0x1207c28 as *const *mut TranslationManager;
-        let platform = 0x1221bc0 as *const *mut Platform;
+        let translation_manager = 0x1207c28 as *mut TranslationManager;
+        let platform = 0x1221bc0 as *mut Platform;
         let filenames = 0x1207bd4 as *mut StdVec<StdString>;
         Self {
             world_seed,

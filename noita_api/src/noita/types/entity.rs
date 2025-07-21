@@ -167,7 +167,7 @@ impl BitSet<8> {
 pub struct Entity {
     pub id: isize,
     pub entry: isize,
-    pub filename_index: usize, //TODO
+    pub filename_index: usize,
     pub kill_flag: isize,
     unknown1: isize,
     pub name: StdString,

@@ -203,13 +203,13 @@ pub enum FullscreenMode {
 pub struct GraphicsSettings {
     pub window_w: usize,
     pub window_h: usize,
-    pub fullscreen: usize,
+    pub fullscreen: FullscreenMode,
     pub caption: StdString,
     pub icon_bmp: StdString,
     pub textures_resize_to_power_of_two: bool,
     pub textures_fix_alpha_channel: bool,
     padding1: [u8; 2],
-    pub vsync: usize,
+    pub vsync: VsyncMode,
     pub current_display: usize,
     pub external_graphics_context: *const c_void,
 }
