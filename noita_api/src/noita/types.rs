@@ -11,10 +11,11 @@ pub use entity::*;
 pub use misc::*;
 pub use objects::*;
 pub use platform::*;
+use std::alloc::Layout;
 use std::cmp::Ordering;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
-use std::slice;
+use std::{alloc, ptr, slice};
 pub use world::*;
 #[repr(C)]
 union Buffer {
@@ -159,6 +160,9 @@ impl<T: Debug> Debug for StdVec<T> {
     }
 }
 impl<T> StdVec<T> {
+    pub fn capacity(&self) -> usize {
+        unsafe { self.cap.offset_from_unsigned(self.start) }
+    }
     pub fn len(&self) -> usize {
         unsafe { self.end.offset_from_unsigned(self.start) }
     }
@@ -170,6 +174,64 @@ impl<T> StdVec<T> {
     }
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         unsafe { self.start.add(index).as_mut() }
+    }
+    fn alloc(&mut self, n: usize) {
+        if self.cap >= unsafe { self.end.add(n) } {
+            let old_len = self.len();
+            let old_cap = self.capacity();
+            let new_cap = if old_cap == 0 { 4 } else { old_cap * 2 }; //TODO deal with n > 1
+            let layout = Layout::array::<T>(new_cap).unwrap();
+            let new_ptr = unsafe { alloc::alloc(layout) } as *mut T;
+            if old_len > 0 {
+                unsafe {
+                    ptr::copy_nonoverlapping(self.start, new_ptr, old_len);
+                }
+                let old_layout = Layout::array::<T>(old_cap).unwrap();
+                unsafe {
+                    alloc::dealloc(self.start as *mut u8, old_layout);
+                }
+            }
+            self.start = new_ptr;
+            self.end = unsafe { new_ptr.add(old_len) };
+            self.cap = unsafe { new_ptr.add(new_cap) };
+        }
+    }
+    pub fn push(&mut self, value: T) {
+        self.alloc(1);
+        unsafe {
+            self.end.write(value);
+            self.end = self.end.add(1);
+        }
+    }
+    pub fn pop(&mut self) -> Option<T> {
+        if self.start == self.end {
+            return None;
+        }
+        unsafe {
+            self.end = self.end.sub(1);
+            let ret = self.end.read();
+            Some(ret)
+        }
+    }
+    pub fn insert(&mut self, index: usize, value: T) {
+        self.alloc(1);
+        for i in (index..self.len()).rev() {
+            unsafe { self.start.add(i + 1).write(self.start.add(i).read()) }
+        }
+        unsafe {
+            self.end = self.end.add(1);
+            self.start.add(index).write(value);
+        }
+    }
+    pub fn remove(&mut self, index: usize) -> T {
+        unsafe {
+            let ret = self.start.add(index).read();
+            for i in index..self.len() - 1 {
+                self.start.add(i).write(self.start.add(i + 1).read())
+            }
+            self.end = self.end.sub(1);
+            ret
+        }
     }
 }
 

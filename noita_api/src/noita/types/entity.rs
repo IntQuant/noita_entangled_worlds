@@ -127,11 +127,13 @@ impl EntityManager {
 #[derive(Debug)]
 pub struct BitSet<const N: usize>([isize; N]);
 impl BitSet<16> {
+    #[inline]
     pub fn get(&self, n: u16) -> bool {
         let out_index = n / 32;
         let in_index = n % 32;
         self.0[out_index as usize] & (1 << in_index) != 0
     }
+    #[inline]
     pub fn set(&mut self, n: u16, value: bool) {
         let out_index = n / 32;
         let in_index = n % 32;
@@ -143,11 +145,13 @@ impl BitSet<16> {
     }
 }
 impl BitSet<8> {
+    #[inline]
     pub fn get(&self, n: u8) -> bool {
         let out_index = n / 32;
         let in_index = n % 32;
         self.0[out_index as usize] & (1 << in_index) != 0
     }
+    #[inline]
     pub fn set(&mut self, n: u8, value: bool) {
         let out_index = n / 32;
         let in_index = n % 32;
@@ -163,7 +167,7 @@ impl BitSet<8> {
 pub struct Entity {
     pub id: isize,
     pub entry: isize,
-    pub filename_index: usize,
+    pub filename_index: usize, //TODO
     pub kill_flag: isize,
     unknown1: isize,
     pub name: StdString,
@@ -258,15 +262,43 @@ impl Entity {
             false
         }
     }
-    pub fn add_tag(&'static mut self, tag_manager: &TagManager<u16>, tag: &StdString) {
-        if let Some(n) = tag_manager.tag_indices.get(tag) {
-            self.tags.set(*n, true)
+    pub fn add_tag(
+        &'static mut self,
+        tag_manager: &TagManager<u16>,
+        entity_manager: &mut EntityManager,
+        tag: &StdString,
+    ) {
+        if let Some(n) = tag_manager.tag_indices.get(tag).copied()
+            && !self.tags.get(n)
+        {
+            entity_manager
+                .entity_buckets
+                .get_mut(n as usize)
+                .unwrap()
+                .push(self);
+            self.tags.set(n, true)
         }
         //TODO add tag if does not exist
     }
-    pub fn remove_tag(&'static mut self, tag_manager: &TagManager<u16>, tag: &StdString) {
-        if let Some(n) = tag_manager.tag_indices.get(tag) {
-            self.tags.set(*n, false)
+    pub fn remove_tag(
+        &'static mut self,
+        tag_manager: &TagManager<u16>,
+        entity_manager: &mut EntityManager,
+        tag: &StdString,
+    ) {
+        if let Some(n) = tag_manager.tag_indices.get(tag).copied()
+            && self.tags.get(n)
+        {
+            let v = entity_manager.entity_buckets.get_mut(n as usize).unwrap();
+            let Some(i) = v
+                .as_ref()
+                .iter()
+                .position(|c| unsafe { c.as_ref() }.map(|c| c.id) == Some(self.id))
+            else {
+                unreachable!()
+            };
+            v.remove(i);
+            self.tags.set(n, false)
         }
     }
 }
