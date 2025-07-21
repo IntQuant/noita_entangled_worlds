@@ -166,7 +166,7 @@ local function build_settings()
                 },
                 {
                     id = "text",
-                    ui_name = "text",
+                    ui_name = "open chat",
                     ui_description = "hi",
                     value_default = "40",
                     ui_fn = ui_get_input,
@@ -175,9 +175,9 @@ local function build_settings()
                 },
                 {
                     id = "stoptext",
-                    ui_name = "stop text",
+                    ui_name = "close chat",
                     ui_description = "bye",
-                    value_default = "76",
+                    value_default = "277",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
@@ -198,7 +198,7 @@ local function build_settings()
             settings = {
                 {
                     id = "notext",
-                    ui_name = "no text",
+                    ui_name = "disable chat",
                     ui_description = ":c",
                     value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
@@ -226,6 +226,20 @@ local function build_settings()
                     value_default = 255,
                     value_min = 0,
                     value_max = 255,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "texthistory",
+                    ui_name = "save chat",
+                    ui_description = "saves and loads chat history when you restart game",
+                    value_default = true,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
+                    id = "clearhistory",
+                    ui_name = "clear saved chat",
+                    ui_description = "enable and reload world to once delete file AppData/Roaming/Noita Proxy/data/ew_chat.txt",
+                    value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
