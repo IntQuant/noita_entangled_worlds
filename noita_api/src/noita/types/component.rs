@@ -1,5 +1,5 @@
 use crate::noita::types::entity::Entity;
-use crate::noita::types::{CString, StdMap, StdString, StdVec};
+use crate::noita::types::{BitSet, CString, StdMap, StdString, StdVec, TagManager};
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
@@ -10,8 +10,28 @@ pub struct ComponentData {
     pub id: isize,
     pub enabled: bool,
     unk2: [u8; 3],
-    pub tags: [isize; 8],
+    pub tags: BitSet<8>,
     unk3: [isize; 3],
+}
+impl ComponentData {
+    pub fn has_tag(&'static self, tag_manager: &TagManager<u8>, tag: &StdString) -> bool {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.tags.get(*n)
+        } else {
+            false
+        }
+    }
+    pub fn add_tag(&'static mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.tags.set(*n, true)
+        }
+        //TODO
+    }
+    pub fn remove_tag(&'static mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.tags.set(*n, false)
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]

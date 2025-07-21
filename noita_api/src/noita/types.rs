@@ -206,7 +206,7 @@ pub struct StdMapIter<K, V> {
     pub parents: Vec<*const StdMapNode<K, V>>,
 }
 
-impl<K, V> Iterator for StdMapIter<K, V> {
+impl<K: 'static, V: 'static> Iterator for StdMapIter<K, V> {
     type Item = (&'static K, &'static V);
     fn next(&mut self) -> Option<Self::Item> {
         if self.current == self.root {

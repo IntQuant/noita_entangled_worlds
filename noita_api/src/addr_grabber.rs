@@ -42,9 +42,9 @@ pub struct GlobalsRef {
     pub new_game_count: usize,
     pub game_global: &'static GameGlobal,
     pub entity_manager: &'static EntityManager,
-    pub entity_tag_manager: &'static TagManager,
+    pub entity_tag_manager: &'static TagManager<u16>,
     pub component_type_manager: &'static ComponentTypeManager,
-    pub component_tag_manager: &'static TagManager,
+    pub component_tag_manager: &'static TagManager<u8>,
     pub translation_manager: &'static TranslationManager,
     pub platform: &'static Platform,
     pub global_stats: &'static GlobalStats,
@@ -55,9 +55,9 @@ pub struct GlobalsMut {
     pub new_game_count: &'static mut usize,
     pub game_global: &'static mut GameGlobal,
     pub entity_manager: &'static mut EntityManager,
-    pub entity_tag_manager: &'static mut TagManager,
+    pub entity_tag_manager: &'static mut TagManager<u16>,
     pub component_type_manager: &'static mut ComponentTypeManager,
-    pub component_tag_manager: &'static mut TagManager,
+    pub component_tag_manager: &'static mut TagManager<u8>,
     pub translation_manager: &'static mut TranslationManager,
     pub platform: &'static mut Platform,
     pub global_stats: &'static mut GlobalStats,
@@ -69,9 +69,9 @@ pub struct Globals {
     pub new_game_count: *mut usize,
     pub game_global: *const *mut GameGlobal,
     pub entity_manager: *const *mut EntityManager,
-    pub entity_tag_manager: *const *mut TagManager,
+    pub entity_tag_manager: *const *mut TagManager<u16>,
     pub component_type_manager: *mut ComponentTypeManager,
-    pub component_tag_manager: *const *mut TagManager,
+    pub component_tag_manager: *const *mut TagManager<u8>,
     pub translation_manager: *const *mut TranslationManager,
     pub platform: *const *mut Platform,
     pub global_stats: *const *mut GlobalStats,
@@ -90,13 +90,13 @@ impl Globals {
     pub fn entity_manager(&self) -> Option<&'static EntityManager> {
         unsafe { self.entity_manager.as_ref()?.as_ref() }
     }
-    pub fn entity_tag_manager(&self) -> Option<&'static TagManager> {
+    pub fn entity_tag_manager(&self) -> Option<&'static TagManager<u16>> {
         unsafe { self.entity_tag_manager.as_ref()?.as_ref() }
     }
     pub fn component_type_manager(&self) -> Option<&'static ComponentTypeManager> {
         unsafe { self.component_type_manager.as_ref() }
     }
-    pub fn component_tag_manager(&self) -> Option<&'static TagManager> {
+    pub fn component_tag_manager(&self) -> Option<&'static TagManager<u8>> {
         unsafe { self.component_tag_manager.as_ref()?.as_ref() }
     }
     pub fn translation_manager(&self) -> Option<&'static TranslationManager> {
@@ -120,13 +120,13 @@ impl Globals {
     pub fn entity_manager_mut(&self) -> Option<&'static mut EntityManager> {
         unsafe { self.entity_manager.as_ref()?.as_mut() }
     }
-    pub fn entity_tag_manager_mut(&self) -> Option<&'static mut TagManager> {
+    pub fn entity_tag_manager_mut(&self) -> Option<&'static mut TagManager<u16>> {
         unsafe { self.entity_tag_manager.as_ref()?.as_mut() }
     }
     pub fn component_type_manager_mut(&self) -> Option<&'static mut ComponentTypeManager> {
         unsafe { self.component_type_manager.as_mut() }
     }
-    pub fn component_tag_manager_mut(&self) -> Option<&'static mut TagManager> {
+    pub fn component_tag_manager_mut(&self) -> Option<&'static mut TagManager<u8>> {
         unsafe { self.component_tag_manager.as_ref()?.as_mut() }
     }
     pub fn translation_manager_mut(&self) -> Option<&'static mut TranslationManager> {
@@ -177,9 +177,9 @@ impl Globals {
         let new_game_count = 0x1205024 as *mut usize;
         let global_stats = 0x1208940 as *const *mut GlobalStats;
         let game_global = 0x122374c as *const *mut GameGlobal;
-        let entity_tag_manager = 0x1206fac as *const *mut TagManager;
+        let entity_tag_manager = 0x1206fac as *const *mut TagManager<u16>;
         let component_type_manager = 0x1223c88 as *mut ComponentTypeManager;
-        let component_tag_manager = 0x1204b30 as *const *mut TagManager;
+        let component_tag_manager = 0x1204b30 as *const *mut TagManager<u8>;
         let translation_manager = 0x1207c28 as *const *mut TranslationManager;
         let platform = 0x1221bc0 as *const *mut Platform;
         Self {

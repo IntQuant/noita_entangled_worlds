@@ -1,12 +1,30 @@
 use crate::noita::types::component::{ComponentData, ComponentManager};
-use crate::noita::types::{StdMap, StdString, StdVec};
+use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
 use std::slice;
 impl EntityManager {
+    pub fn get_entity_with_tag(
+        &self,
+        tag_manager: &TagManager<u16>,
+        tag: &StdString,
+    ) -> Option<&'static Entity> {
+        unsafe {
+            let n = *tag_manager.tag_indices.get(tag)?;
+            self.entity_buckets.get(n as usize)?.get(0)?.as_ref()
+        }
+    }
+    pub fn get_entity_with_tag_mut(
+        &mut self,
+        tag_manager: &TagManager<u16>,
+        tag: &StdString,
+    ) -> Option<&'static mut Entity> {
+        unsafe {
+            let n = *tag_manager.tag_indices.get(tag)?;
+            self.entity_buckets.get_mut(n as usize)?.get(0)?.as_mut()
+        }
+    }
     pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
         unsafe {
-            let o = self
-                .entities
-                .as_ref()
+            let o = self.entities.as_ref()[id as usize..]
                 .iter()
                 .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
                 .unwrap_or(id);
@@ -17,15 +35,51 @@ impl EntityManager {
     }
     pub fn get_entity_mut(&mut self, id: isize) -> Option<&'static mut Entity> {
         unsafe {
-            let o = self
-                .entities
-                .as_ref()
+            let o = self.entities.as_ref()[id as usize..]
                 .iter()
                 .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
                 .unwrap_or(id);
             let start = self.entities.start.offset(id - o);
             let list = slice::from_raw_parts(start, self.entities.len() - (id - o) as usize);
             list.iter().find_map(|c| c.as_mut().filter(|c| c.id == id))
+        }
+    }
+    pub fn iter_entities_with_tag(
+        &self,
+        tag_manager: &TagManager<u16>,
+        tag: &StdString,
+    ) -> impl Iterator<Item = &'static Entity> {
+        unsafe {
+            if let Some(n) = tag_manager.tag_indices.get(tag).copied() {
+                if let Some(v) = self.entity_buckets.get(n as usize) {
+                    v.as_ref()
+                } else {
+                    &[]
+                }
+            } else {
+                &[]
+            }
+            .iter()
+            .filter_map(|e| e.as_ref())
+        }
+    }
+    pub fn iter_entities_with_tag_mut(
+        &mut self,
+        tag_manager: &TagManager<u16>,
+        tag: &StdString,
+    ) -> impl Iterator<Item = &'static mut Entity> {
+        unsafe {
+            if let Some(n) = tag_manager.tag_indices.get(tag).copied() {
+                if let Some(v) = self.entity_buckets.get_mut(n as usize) {
+                    v.as_mut()
+                } else {
+                    &mut []
+                }
+            } else {
+                &mut []
+            }
+            .iter_mut()
+            .filter_map(|e| e.as_mut())
         }
     }
     pub fn iter_entities(&self) -> impl Iterator<Item = &'static Entity> {
@@ -71,6 +125,41 @@ impl EntityManager {
 }
 #[repr(C)]
 #[derive(Debug)]
+pub struct BitSet<const N: usize>([isize; N]);
+impl BitSet<16> {
+    pub fn get(&self, n: u16) -> bool {
+        let out_index = n / 32;
+        let in_index = n % 32;
+        self.0[out_index as usize] & (1 << in_index) != 0
+    }
+    pub fn set(&mut self, n: u16, value: bool) {
+        let out_index = n / 32;
+        let in_index = n % 32;
+        if value {
+            self.0[out_index as usize] |= 1 << in_index
+        } else {
+            self.0[out_index as usize] &= !(1 << in_index)
+        }
+    }
+}
+impl BitSet<8> {
+    pub fn get(&self, n: u8) -> bool {
+        let out_index = n / 32;
+        let in_index = n % 32;
+        self.0[out_index as usize] & (1 << in_index) != 0
+    }
+    pub fn set(&mut self, n: u8, value: bool) {
+        let out_index = n / 32;
+        let in_index = n % 32;
+        if value {
+            self.0[out_index as usize] |= 1 << in_index
+        } else {
+            self.0[out_index as usize] &= !(1 << in_index)
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
 pub struct Entity {
     pub id: isize,
     pub entry: isize,
@@ -79,17 +168,18 @@ pub struct Entity {
     unknown1: isize,
     pub name: StdString,
     unknown2: isize,
-    tags: [isize; 16],
-    pub x: f32,
-    pub y: f32,
-    pub angle_a: f32,
-    pub angle: f32,
-    pub rot90_a: f32,
-    pub rot90: f32,
-    pub scale_x: f32,
-    pub scale_y: f32,
+    pub tags: BitSet<16>,
+    pub transform: Transform,
     pub children: *mut StdVec<*mut Entity>,
     pub parent: *mut Entity,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct Transform {
+    pub pos: Vec2,
+    pub angle: Vec2,
+    pub rot90: Vec2,
+    pub scale: Vec2,
 }
 
 impl Entity {
@@ -159,6 +249,24 @@ impl Entity {
             self
         } else {
             self.iter_ancestors_mut().last().unwrap()
+        }
+    }
+    pub fn has_tag(&'static self, tag_manager: &TagManager<u16>, tag: &StdString) -> bool {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.tags.get(*n)
+        } else {
+            false
+        }
+    }
+    pub fn add_tag(&'static mut self, tag_manager: &TagManager<u16>, tag: &StdString) {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.tags.set(*n, true)
+        }
+        //TODO add tag if does not exist
+    }
+    pub fn remove_tag(&'static mut self, tag_manager: &TagManager<u16>, tag: &StdString) {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.tags.set(*n, false)
         }
     }
 }
@@ -248,9 +356,9 @@ pub struct EntityManagerVTable {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct TagManager {
+pub struct TagManager<T: 'static> {
     pub tags: StdVec<StdString>,
-    pub tag_indices: StdMap<StdString, [u8; 4]>,
+    pub tag_indices: StdMap<StdString, T>,
     pub max_tag_count: usize,
     pub name: StdString,
 }
