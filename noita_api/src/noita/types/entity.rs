@@ -403,3 +403,23 @@ pub struct SpriteStainSystem {}
 pub enum GameEffect {
     None = 0,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct Inventory {
+    unk1: isize,
+    unk2: isize,
+    unk3: isize,
+    held_item: isize,
+    unk5: isize,
+    unk6: isize,
+    unk7: isize,
+    item_near: isize,
+    unk9: isize,
+    unk10: isize,
+    unk11: isize,
+    unk12: isize,
+    unk13: isize,
+    wand_pickup: *mut Entity,
+    unk15: isize,
+    unk16: isize,
+}
