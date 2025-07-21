@@ -177,7 +177,7 @@ local function build_settings()
                     id = "stoptext",
                     ui_name = "close chat",
                     ui_description = "bye",
-                    value_default = "277",
+                    value_default = "73",
                     ui_fn = ui_get_input,
                     is_waiting_for_input = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
