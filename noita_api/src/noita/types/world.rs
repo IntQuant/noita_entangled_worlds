@@ -1,4 +1,4 @@
-use crate::noita::types::objects::{ExplosionConfig, GridCosmeticParticleConfig};
+use crate::noita::types::objects::{ConfigExplosion, ConfigGridCosmeticParticle};
 use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
 use shared::world_sync::{CompactPixel, PixelFlags, RawPixel};
 use std::ffi::c_void;
@@ -63,7 +63,7 @@ pub struct CellData {
     pub on_fire_flame_material_id: isize,
     pub on_fire_smoke_material: StdString,
     pub on_fire_smoke_material_id: isize,
-    pub explosion_config: *const ExplosionConfig,
+    pub explosion_config: *const ConfigExplosion,
     pub durability: isize,
     pub crackability: isize,
     pub electrical_conductivity: bool,
@@ -158,7 +158,7 @@ pub struct CellData {
     pub show_in_creative_mode: bool,
     pub is_just_particle_fx: bool,
     padding10: [u8; 2],
-    pub grid_cosmetic_particle_config: *const GridCosmeticParticleConfig,
+    pub grid_cosmetic_particle_config: *const ConfigGridCosmeticParticle,
 }
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -596,7 +596,7 @@ pub struct CellReaction {
     padding3: [u8; 2],
     pub entity_file_idx: usize,
     pub direction: ReactionDir,
-    pub explosion_config: *const ExplosionConfig,
+    pub explosion_config: *const ConfigExplosion,
     pub audio_fx_volume_1: f32,
 }
 
