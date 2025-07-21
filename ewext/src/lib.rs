@@ -107,19 +107,19 @@ impl ExtState {
     }
 }
 
-pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
+pub fn ephemerial(entity_id: isize) -> eyre::Result<()> {
     ExtState::with_global(|state| {
         if let Some(entity) = state
             .globals
             .entity_manager_mut()
-            .and_then(|em| em.get_entity_mut(entity_id as isize))
+            .and_then(|em| em.get_entity_mut(entity_id))
         {
             entity.filename_index = 0;
         }
     })
 }
 fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
-    let entity_id = lua.to_integer(1) as u32;
+    let entity_id = lua.to_integer(1);
     ephemerial(entity_id)?;
     Ok(())
 }

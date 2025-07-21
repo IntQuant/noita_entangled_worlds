@@ -68,7 +68,7 @@ pub struct AppConfig {
 #[derive(Debug)]
 #[repr(C)]
 pub struct WizardAppConfig {
-    pub p: AppConfig,
+    pub parent: AppConfig,
     pub has_been_started_before: bool,
     pub audio_fmod: bool,
     padding1: [u8; 2],
@@ -182,7 +182,7 @@ pub struct ControlsConfig {
     pub gamepad_analog_sticks_threshold: f32,
     pub gamepad_analog_buttons_threshold: f32,
 }
-#[repr(usize)]
+#[repr(C)]
 #[derive(Debug)]
 pub enum VsyncMode {
     Off,
@@ -190,7 +190,7 @@ pub enum VsyncMode {
     Adaptive,
 }
 
-#[repr(usize)]
+#[repr(C)]
 #[derive(Debug)]
 pub enum FullscreenMode {
     Windowed,
@@ -203,13 +203,13 @@ pub enum FullscreenMode {
 pub struct GraphicsSettings {
     pub window_w: usize,
     pub window_h: usize,
-    pub fullscreen: FullscreenMode,
+    pub fullscreen: usize,
     pub caption: StdString,
     pub icon_bmp: StdString,
     pub textures_resize_to_power_of_two: bool,
     pub textures_fix_alpha_channel: bool,
     padding1: [u8; 2],
-    pub vsync: VsyncMode,
+    pub vsync: usize,
     pub current_display: usize,
     pub external_graphics_context: *const c_void,
 }

@@ -19,11 +19,12 @@ pub struct GlobalStats {
     pub global: GameStats,
     pub prev_best: GameStats,
 }
+#[derive(Debug)]
 pub struct GameStatsVTable {}
 #[derive(Debug)]
 #[repr(C)]
 pub struct GameStats {
-    pub vftable: &'static GameStats,
+    pub vftable: &'static GameStatsVTable,
     pub dead: bool,
     padding1: [u8; 3],
     pub death_count: usize,

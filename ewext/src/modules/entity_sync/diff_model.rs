@@ -2397,7 +2397,7 @@ pub fn init_remote_entity(
             .try_get_first_component_including_disabled::<PhysicsBody2Component>(ComponentTag::None)
             .is_none()
     {
-        ephemerial(entity.0.get() as u32)?
+        ephemerial(entity.0.get())?
     }
 
     Ok(())

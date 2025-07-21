@@ -143,26 +143,24 @@ pub struct StdVec<T> {
     pub end: *mut T,
     pub cap: *mut T,
 }
-impl<T: 'static> AsRef<[T]> for StdVec<T> {
-    fn as_ref(&self) -> &'static [T] {
+impl<T> AsRef<[T]> for StdVec<T> {
+    fn as_ref(&self) -> &[T] {
         unsafe { slice::from_raw_parts(self.start, self.len()) }
     }
 }
-impl<T: 'static> AsMut<[T]> for StdVec<T> {
-    fn as_mut(&mut self) -> &'static mut [T] {
+impl<T> AsMut<[T]> for StdVec<T> {
+    fn as_mut(&mut self) -> &mut [T] {
         unsafe { slice::from_raw_parts_mut(self.start, self.len()) }
     }
 }
-impl<T: Debug + 'static> Debug for StdVec<T> {
+impl<T: Debug> Debug for StdVec<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("StdVec")
-            .field(&format!("{:?}", self.as_ref()))
-            .finish()
+        f.debug_tuple("StdVec").field(&self.as_ref()).finish()
     }
 }
 impl<T> StdVec<T> {
     pub fn len(&self) -> usize {
-        unsafe { self.end.byte_offset_from_unsigned(self.start) }
+        unsafe { self.end.offset_from_unsigned(self.start) }
     }
     pub fn is_empty(&self) -> bool {
         self.start == self.end
@@ -196,7 +194,7 @@ pub struct StdMap<K, V> {
 impl<K: Debug + 'static, V: Debug + 'static> Debug for StdMap<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("StdMap")
-            .field(&format!("{:?}", self.iter().collect::<Vec<_>>()))
+            .field(&self.iter().collect::<Vec<_>>())
             .finish()
     }
 }
@@ -208,7 +206,7 @@ pub struct StdMapIter<K, V> {
     pub parents: Vec<*const StdMapNode<K, V>>,
 }
 
-impl<K: 'static, V: 'static> Iterator for StdMapIter<K, V> {
+impl<K, V> Iterator for StdMapIter<K, V> {
     type Item = (&'static K, &'static V);
     fn next(&mut self) -> Option<Self::Item> {
         if self.current == self.root {

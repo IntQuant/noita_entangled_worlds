@@ -36,15 +36,41 @@ pub(crate) unsafe fn grab_addr_from_instruction(
 unsafe impl Sync for Globals {}
 unsafe impl Send for Globals {}
 
+#[derive(Debug)]
+pub struct GlobalsRef {
+    pub world_seed: usize,
+    pub new_game_count: usize,
+    pub game_global: &'static GameGlobal,
+    pub entity_manager: &'static EntityManager,
+    pub entity_tag_manager: &'static TagManager,
+    pub component_type_manager: &'static ComponentTypeManager,
+    pub component_tag_manager: &'static TagManager,
+    pub translation_manager: &'static TranslationManager,
+    pub platform: &'static Platform,
+    pub global_stats: &'static GlobalStats,
+}
+#[derive(Debug)]
+pub struct GlobalsMut {
+    pub world_seed: &'static mut usize,
+    pub new_game_count: &'static mut usize,
+    pub game_global: &'static mut GameGlobal,
+    pub entity_manager: &'static mut EntityManager,
+    pub entity_tag_manager: &'static mut TagManager,
+    pub component_type_manager: &'static mut ComponentTypeManager,
+    pub component_tag_manager: &'static mut TagManager,
+    pub translation_manager: &'static mut TranslationManager,
+    pub platform: &'static mut Platform,
+    pub global_stats: &'static mut GlobalStats,
+}
+
 #[derive(Debug, Default)]
 pub struct Globals {
-    // These 3 actually point to a pointer.
-    pub world_seed: *const *mut usize,
-    pub new_game_count: *const *mut usize,
+    pub world_seed: *mut usize,
+    pub new_game_count: *mut usize,
     pub game_global: *const *mut GameGlobal,
     pub entity_manager: *const *mut EntityManager,
     pub entity_tag_manager: *const *mut TagManager,
-    pub component_type_manager: *const *mut ComponentTypeManager,
+    pub component_type_manager: *mut ComponentTypeManager,
     pub component_tag_manager: *const *mut TagManager,
     pub translation_manager: *const *mut TranslationManager,
     pub platform: *const *mut Platform,
@@ -53,64 +79,92 @@ pub struct Globals {
 #[allow(clippy::mut_from_ref)]
 impl Globals {
     pub fn world_seed(&self) -> Option<usize> {
-        unsafe { self.world_seed.as_ref()?.as_ref().copied() }
+        unsafe { self.world_seed.as_ref().copied() }
     }
     pub fn new_game_count(&self) -> Option<usize> {
-        unsafe { self.new_game_count.as_ref()?.as_ref().copied() }
+        unsafe { self.new_game_count.as_ref().copied() }
     }
-    pub fn game_global(&self) -> Option<&GameGlobal> {
+    pub fn game_global(&self) -> Option<&'static GameGlobal> {
         unsafe { self.game_global.as_ref()?.as_ref() }
     }
-    pub fn entity_manager(&self) -> Option<&EntityManager> {
+    pub fn entity_manager(&self) -> Option<&'static EntityManager> {
         unsafe { self.entity_manager.as_ref()?.as_ref() }
     }
-    pub fn entity_tag_manager(&self) -> Option<&TagManager> {
+    pub fn entity_tag_manager(&self) -> Option<&'static TagManager> {
         unsafe { self.entity_tag_manager.as_ref()?.as_ref() }
     }
-    pub fn component_type_manager(&self) -> Option<&ComponentTypeManager> {
-        unsafe { self.component_type_manager.as_ref()?.as_ref() }
+    pub fn component_type_manager(&self) -> Option<&'static ComponentTypeManager> {
+        unsafe { self.component_type_manager.as_ref() }
     }
-    pub fn component_tag_manager(&self) -> Option<&TagManager> {
+    pub fn component_tag_manager(&self) -> Option<&'static TagManager> {
         unsafe { self.component_tag_manager.as_ref()?.as_ref() }
     }
-    pub fn translation_manager(&self) -> Option<&TranslationManager> {
+    pub fn translation_manager(&self) -> Option<&'static TranslationManager> {
         unsafe { self.translation_manager.as_ref()?.as_ref() }
     }
-    pub fn platform(&self) -> Option<&Platform> {
+    pub fn platform(&self) -> Option<&'static Platform> {
         unsafe { self.platform.as_ref()?.as_ref() }
     }
-    pub fn global_stats(&self) -> Option<&GlobalStats> {
+    pub fn global_stats(&self) -> Option<&'static GlobalStats> {
         unsafe { self.global_stats.as_ref()?.as_ref() }
     }
-    pub fn world_seed_mut(&self) -> Option<&mut usize> {
-        unsafe { self.world_seed.as_ref()?.as_mut() }
+    pub fn world_seed_mut(&self) -> Option<&'static mut usize> {
+        unsafe { self.world_seed.as_mut() }
     }
-    pub fn new_game_count_mut(&self) -> Option<&mut usize> {
-        unsafe { self.new_game_count.as_ref()?.as_mut() }
+    pub fn new_game_count_mut(&self) -> Option<&'static mut usize> {
+        unsafe { self.new_game_count.as_mut() }
     }
-    pub fn game_global_mut(&self) -> Option<&mut GameGlobal> {
+    pub fn game_global_mut(&self) -> Option<&'static mut GameGlobal> {
         unsafe { self.game_global.as_ref()?.as_mut() }
     }
-    pub fn entity_manager_mut(&self) -> Option<&mut EntityManager> {
+    pub fn entity_manager_mut(&self) -> Option<&'static mut EntityManager> {
         unsafe { self.entity_manager.as_ref()?.as_mut() }
     }
-    pub fn entity_tag_manager_mut(&self) -> Option<&mut TagManager> {
+    pub fn entity_tag_manager_mut(&self) -> Option<&'static mut TagManager> {
         unsafe { self.entity_tag_manager.as_ref()?.as_mut() }
     }
-    pub fn component_type_manager_mut(&self) -> Option<&mut ComponentTypeManager> {
-        unsafe { self.component_type_manager.as_ref()?.as_mut() }
+    pub fn component_type_manager_mut(&self) -> Option<&'static mut ComponentTypeManager> {
+        unsafe { self.component_type_manager.as_mut() }
     }
-    pub fn component_tag_manager_mut(&self) -> Option<&mut TagManager> {
+    pub fn component_tag_manager_mut(&self) -> Option<&'static mut TagManager> {
         unsafe { self.component_tag_manager.as_ref()?.as_mut() }
     }
-    pub fn translation_manager_mut(&self) -> Option<&mut TranslationManager> {
+    pub fn translation_manager_mut(&self) -> Option<&'static mut TranslationManager> {
         unsafe { self.translation_manager.as_ref()?.as_mut() }
     }
-    pub fn platform_mut(&self) -> Option<&mut Platform> {
+    pub fn platform_mut(&self) -> Option<&'static mut Platform> {
         unsafe { self.platform.as_ref()?.as_mut() }
     }
-    pub fn global_stats_mut(&self) -> Option<&mut GlobalStats> {
+    pub fn global_stats_mut(&self) -> Option<&'static mut GlobalStats> {
         unsafe { self.global_stats.as_ref()?.as_mut() }
+    }
+    pub fn as_ref(&self) -> Option<GlobalsRef> {
+        Some(GlobalsRef {
+            world_seed: self.world_seed()?,
+            new_game_count: self.new_game_count()?,
+            game_global: self.game_global()?,
+            entity_manager: self.entity_manager()?,
+            entity_tag_manager: self.entity_tag_manager()?,
+            component_type_manager: self.component_type_manager()?,
+            component_tag_manager: self.component_tag_manager()?,
+            translation_manager: self.translation_manager()?,
+            platform: self.platform()?,
+            global_stats: self.global_stats()?,
+        })
+    }
+    pub fn as_mut(&self) -> Option<GlobalsMut> {
+        Some(GlobalsMut {
+            world_seed: self.world_seed_mut()?,
+            new_game_count: self.new_game_count_mut()?,
+            game_global: self.game_global_mut()?,
+            entity_manager: self.entity_manager_mut()?,
+            entity_tag_manager: self.entity_tag_manager_mut()?,
+            component_type_manager: self.component_type_manager_mut()?,
+            component_tag_manager: self.component_tag_manager_mut()?,
+            translation_manager: self.translation_manager_mut()?,
+            platform: self.platform_mut()?,
+            global_stats: self.global_stats_mut()?,
+        })
     }
     pub fn new(lua: LuaState) -> Self {
         lua.get_global(c"EntityGetFilename");
@@ -119,12 +173,12 @@ impl Globals {
             grab_addr_from_instruction(base, 0x00797821 - 0x00797570, Mnemonic::Mov).cast()
         };
         lua.pop_last();
-        let world_seed = 0x1205004 as *const *mut usize;
-        let new_game_count = 0x1205024 as *const *mut usize;
+        let world_seed = 0x1205004 as *mut usize;
+        let new_game_count = 0x1205024 as *mut usize;
         let global_stats = 0x1208940 as *const *mut GlobalStats;
         let game_global = 0x122374c as *const *mut GameGlobal;
         let entity_tag_manager = 0x1206fac as *const *mut TagManager;
-        let component_type_manager = 0x1223c88 as *const *mut ComponentTypeManager;
+        let component_type_manager = 0x1223c88 as *mut ComponentTypeManager;
         let component_tag_manager = 0x1204b30 as *const *mut TagManager;
         let translation_manager = 0x1207c28 as *const *mut TranslationManager;
         let platform = 0x1221bc0 as *const *mut Platform;
