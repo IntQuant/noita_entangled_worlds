@@ -492,7 +492,7 @@ function module.on_world_update()
     end
 
     if
-        ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 277)))
+        ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 73)))
         or ctx.is_paused
         or ctx.is_wand_pickup
     then
