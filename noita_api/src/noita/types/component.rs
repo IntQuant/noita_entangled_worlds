@@ -11,7 +11,7 @@ pub struct ComponentData {
     pub enabled: bool,
     unk2: [u8; 3],
     pub tags: BitSet<8>,
-    unk3: [isize; 3],
+    unk3: [isize; 4],
 }
 impl ComponentData {
     pub fn has_tag(&'static self, tag_manager: &TagManager<u8>, tag: &StdString) -> bool {

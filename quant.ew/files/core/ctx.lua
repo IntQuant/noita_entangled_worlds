@@ -32,8 +32,7 @@ ctx.init = function()
 end
 
 local function is_measure_perf_enabled()
-    -- return ctx.proxy_opt.debug
-    return ctx.proxy_opt.log_performance
+    return ModSettingGet("quant.ew.log_performance")
 end
 
 function ctx.finish()
