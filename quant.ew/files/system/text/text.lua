@@ -24,19 +24,9 @@ local in_camera_ref
 local appdata = os.getenv("APPDATA")
 local chatHistoryFileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
 
-local function fileExist(path)
-    local file = io.open(path, "r")
-    if file then
-        file:close()
-        return true
-    end
-    return false
-end
-
-if not fileExist(chatHistoryFileName) then
-    ModTextFileSetContent(appdata .. "/Noita Proxy/data/dummy.txt", "") -- will create both folders i guess
-    os.remove(appdata .. "/Noita Proxy/data/dummy.txt")
-end
+-- create path to chat history file with 2 cmd jumpscares
+os.execute('mkdir "' .. appdata .. '\\Noita Proxy" 2>nul')
+os.execute('mkdir "' .. appdata .. '\\Noita Proxy\\data" 2>nul')
 
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
