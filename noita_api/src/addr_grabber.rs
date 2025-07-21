@@ -2,8 +2,8 @@ use std::{os::raw::c_void, ptr};
 
 use crate::lua::LuaState;
 use crate::noita::types::{
-    ComponentTypeManager, EntityManager, GameGlobal, GlobalStats, Platform, TagManager,
-    TranslationManager,
+    ComponentTypeManager, EntityManager, GameGlobal, GlobalStats, Platform, StdString, StdVec,
+    TagManager, TranslationManager,
 };
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 
@@ -48,6 +48,7 @@ pub struct GlobalsRef {
     pub translation_manager: &'static TranslationManager,
     pub platform: &'static Platform,
     pub global_stats: &'static GlobalStats,
+    pub filenames: &'static StdVec<StdString>,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -61,6 +62,7 @@ pub struct GlobalsMut {
     pub translation_manager: &'static mut TranslationManager,
     pub platform: &'static mut Platform,
     pub global_stats: &'static mut GlobalStats,
+    pub filenames: &'static mut StdVec<StdString>,
 }
 
 #[derive(Debug, Default)]
@@ -75,6 +77,7 @@ pub struct Globals {
     pub translation_manager: *const *mut TranslationManager,
     pub platform: *const *mut Platform,
     pub global_stats: *const *mut GlobalStats,
+    pub filenames: *mut StdVec<StdString>,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -108,6 +111,9 @@ impl Globals {
     pub fn global_stats(&self) -> Option<&'static GlobalStats> {
         unsafe { self.global_stats.as_ref()?.as_ref() }
     }
+    pub fn filenames(&self) -> Option<&'static StdVec<StdString>> {
+        unsafe { self.filenames.as_ref() }
+    }
     pub fn world_seed_mut(&self) -> Option<&'static mut usize> {
         unsafe { self.world_seed.as_mut() }
     }
@@ -138,6 +144,9 @@ impl Globals {
     pub fn global_stats_mut(&self) -> Option<&'static mut GlobalStats> {
         unsafe { self.global_stats.as_ref()?.as_mut() }
     }
+    pub fn filenames_mut(&self) -> Option<&'static mut StdVec<StdString>> {
+        unsafe { self.filenames.as_mut() }
+    }
     pub fn as_ref(&self) -> Option<GlobalsRef> {
         Some(GlobalsRef {
             world_seed: self.world_seed()?,
@@ -150,6 +159,7 @@ impl Globals {
             translation_manager: self.translation_manager()?,
             platform: self.platform()?,
             global_stats: self.global_stats()?,
+            filenames: self.filenames()?,
         })
     }
     pub fn as_mut(&self) -> Option<GlobalsMut> {
@@ -164,6 +174,7 @@ impl Globals {
             translation_manager: self.translation_manager_mut()?,
             platform: self.platform_mut()?,
             global_stats: self.global_stats_mut()?,
+            filenames: self.filenames_mut()?,
         })
     }
     pub fn new(lua: LuaState) -> Self {
@@ -182,6 +193,7 @@ impl Globals {
         let component_tag_manager = 0x1204b30 as *const *mut TagManager<u8>;
         let translation_manager = 0x1207c28 as *const *mut TranslationManager;
         let platform = 0x1221bc0 as *const *mut Platform;
+        let filenames = 0x1207bd4 as *mut StdVec<StdString>;
         Self {
             world_seed,
             new_game_count,
@@ -193,6 +205,7 @@ impl Globals {
             translation_manager,
             platform,
             global_stats,
+            filenames,
         }
     }
 }
