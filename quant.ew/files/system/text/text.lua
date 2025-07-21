@@ -22,6 +22,21 @@ local maxLines = 8
 local in_camera_ref
 
 local appdata = os.getenv("APPDATA")
+local chatHistoryFileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
+
+local function fileExist(path)
+    local file = io.open(path, "r")
+    if file then
+        file:close()
+        return true
+    end
+    return false
+end
+
+if not fileExist(chatHistoryFileName) then
+    ModTextFileSetContent(appdata .. "/Noita Proxy/data/dummy.txt", "") -- will create both folders i guess
+    os.remove(appdata .. "/Noita Proxy/data/dummy.txt")
+end
 
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
@@ -81,9 +96,9 @@ local function wrapText(msg, maxWidth, senderWidth)
     return wrappedLines
 end
 
-local function getFileLineCount(fileName)
+local function getFileLineCount(chatHistoryFileName)
     local lineCount = 0
-    local file = io.open(fileName, "r")
+    local file = io.open(chatHistoryFileName, "r")
 
     if file then
         for _ in file:lines() do
@@ -95,8 +110,8 @@ local function getFileLineCount(fileName)
     return lineCount
 end
 
-local function trimFile(fileName)
-    local file = io.open(fileName, "r")
+local function trimFile(chatHistoryFileName)
+    local file = io.open(chatHistoryFileName, "r")
     local lines = {}
     
     if file then
@@ -111,7 +126,7 @@ local function trimFile(fileName)
         table.remove(lines, 1)
     end
 
-    file = io.open(fileName, "w")
+    file = io.open(chatHistoryFileName, "w")
     for _, line in ipairs(lines) do
         file:write(line .. "\n")
     end
@@ -119,14 +134,13 @@ local function trimFile(fileName)
 end
 
 local function saveMessageToFile(sender, message, color, colorAlt)
-    local fileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
-    local lineCount = getFileLineCount(fileName)
+    local lineCount = getFileLineCount(chatHistoryFileName)
 
     if lineCount >= maxFileLines then
-        trimFile(fileName)
+        trimFile(chatHistoryFileName)
     end
 
-    local file = io.open(fileName, "a")
+    local file = io.open(chatHistoryFileName, "a")
     local line
     if sender == "" then
         line = string.format("[%s,%s] : %s\n", color, colorAlt, message)
@@ -137,8 +151,8 @@ local function saveMessageToFile(sender, message, color, colorAlt)
     file:close()
 end
 
-local function isFileEmpty(fileName)
-    local file = io.open(fileName, "r")
+local function isFileEmpty(chatHistoryFileName)
+    local file = io.open(chatHistoryFileName, "r")
     if not file then
         return true
     end
@@ -148,8 +162,6 @@ local function isFileEmpty(fileName)
     
     return firstLine == nil
 end
-
-local chatHistoryFileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
 
 local function copyPresetChatHistory()
     local presetFileName = "mods/quant.ew/files/system/text/chat_preset.txt"
@@ -167,12 +179,11 @@ local function copyPresetChatHistory()
 end
 
 local function loadChatHistory()
-    local fileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
-    if isFileEmpty(fileName) then
+    if isFileEmpty(chatHistoryFileName) then
         copyPresetChatHistory()
     end
 
-    local file = io.open(fileName, "r")
+    local file = io.open(chatHistoryFileName, "r")
     local lines = {}
     local maxLinesToLoad = 128
 
@@ -215,12 +226,10 @@ if ModSettingGet("quant.ew.clearhistory") then
     chatMessages = {}
     os.remove(chatHistoryFileName)
     ModSettingSetNextValue("quant.ew.clearhistory", "false", false)
-    GamePrint ("cleared")
 end
 
 if not ModSettingGet("quant.ew.texthistory") and chatHistoryFile then
     os.remove(chatHistoryFileName)
-    GamePrint (chatHistoryFile)
 end
 
 local function saveMessage(sender, message, color, colorAlt)
@@ -287,15 +296,15 @@ local function renderChat()
             for _, line in ipairs(wrappedMessage) do
                 if not senderRendered and msg.sender ~= "" then
                     local senderR, senderG, senderB = getColorComponents(msg.color)
-                    local lighten_senderR, lighten_senderG, lighten_senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold) -- local lighten_???????????
-                    GuiColorSetForNextWidget(gui, lighten_senderR / 255, lighten_senderG / 255, lighten_senderB / 255, 1) -- lighten_???????????
+                    local lighten_senderR, lighten_senderG, lighten_senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
+                    GuiColorSetForNextWidget(gui, lighten_senderR / 255, lighten_senderG / 255, lighten_senderB / 255, 1)
                     GuiText(gui, 128, startY, string.format("%s: ", msg.sender))
                     senderRendered = true
                 end
 
                 local textR, textG, textB = getColorComponents(msg.colorAlt)
-                local lighten_textR, lighten_textG, lighten_textB = lightenColor(textR, textG, textB, minaAltColorThreshold) -- local lighten_???????????
-                GuiColorSetForNextWidget(gui, lighten_textR / 255, lighten_textG / 255, lighten_textB / 255, 1) -- lighten_???????????
+                local lighten_textR, lighten_textG, lighten_textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
+                GuiColorSetForNextWidget(gui, lighten_textR / 255, lighten_textG / 255, lighten_textB / 255, 1)
                 GuiText(gui, senderRendered and (128 + senderWidth) or 128, startY, line)
                 startY = startY + lineHeight
             end
