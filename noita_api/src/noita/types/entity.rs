@@ -2,25 +2,75 @@ use crate::noita::types::component::{ComponentData, ComponentManager};
 use crate::noita::types::{Component, ComponentTypeManager, StdMap, StdString, StdVec, Vec2};
 use std::{mem, slice};
 impl EntityManager {
+    pub fn set_all_components(&mut self, ent: &mut Entity, enabled: bool) {
+        self.iter_component_managers_mut().for_each(|c| {
+            c.iter_components_mut(ent.entry)
+                .for_each(|c| c.enabled = enabled)
+        })
+    }
+    pub fn set_components<C: Component>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &mut Entity,
+        enabled: bool,
+    ) {
+        component_type_manager
+            .get_mut::<C>(self)
+            .iter_components_mut(ent.entry)
+            .for_each(|c| c.enabled = enabled)
+    }
+    pub fn set_all_components_with_tag(
+        &mut self,
+        tag_manager: &TagManager<u8>,
+        ent: &mut Entity,
+        tag: &StdString,
+        enabled: bool,
+    ) {
+        self.iter_component_managers_mut().for_each(|c| {
+            c.iter_components_mut(ent.entry)
+                .filter(|c| c.tags.has_tag(tag_manager, tag))
+                .for_each(|c| c.enabled = enabled)
+        })
+    }
+    pub fn set_components_with_tag<C: Component>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        tag_manager: &TagManager<u8>,
+        ent: &mut Entity,
+        tag: &StdString,
+        enabled: bool,
+    ) {
+        component_type_manager
+            .get_mut::<C>(self)
+            .iter_components_mut(ent.entry)
+            .filter(|c| c.tags.has_tag(tag_manager, tag))
+            .for_each(|c| c.enabled = enabled)
+    }
     pub fn get_entity_with_tag(
         &self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
-    ) -> Option<&'static Entity> {
-        unsafe {
-            let n = *tag_manager.tag_indices.get(tag)?;
-            self.entity_buckets.get(n as usize)?.get(0)?.as_ref()
-        }
+    ) -> impl Iterator<Item = &'static Entity> {
+        let n = *tag_manager.tag_indices.get(tag).unwrap();
+        self.entity_buckets
+            .get(n as usize)
+            .unwrap()
+            .as_ref()
+            .iter()
+            .filter_map(|e| unsafe { e.as_ref() })
     }
     pub fn get_entity_with_tag_mut(
         &mut self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
-    ) -> Option<&'static mut Entity> {
-        unsafe {
-            let n = *tag_manager.tag_indices.get(tag)?;
-            self.entity_buckets.get_mut(n as usize)?.get(0)?.as_mut()
-        }
+    ) -> impl Iterator<Item = &'static mut Entity> {
+        let n = *tag_manager.tag_indices.get(tag).unwrap();
+        self.entity_buckets
+            .get_mut(n as usize)
+            .unwrap()
+            .as_mut()
+            .iter_mut()
+            .filter_map(|e| unsafe { e.as_mut() })
     }
     pub fn get_entity(&self, id: usize) -> Option<&'static Entity> {
         self.entities
@@ -99,7 +149,7 @@ impl EntityManager {
     pub fn iter_components<C: Component + 'static>(
         &self,
         component_type_manager: &ComponentTypeManager,
-        ent: &'static Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static C> {
         let index = component_type_manager
             .component_manager_indices
@@ -109,125 +159,132 @@ impl EntityManager {
         let mgr = self.component_managers.get(index).unwrap();
         unsafe { mgr.as_ref() }
             .unwrap()
-            .iter_components(ent)
+            .iter_components(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn iter_components_mut<C: Component + 'static>(
         &mut self,
         component_type_manager: &mut ComponentTypeManager,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
-            .iter_components_mut(ent)
+            .iter_components_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn iter_enabled_components<C: Component + 'static>(
         &self,
         component_type_manager: &ComponentTypeManager,
-        ent: &'static Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static C> {
         component_type_manager
             .get::<C>(self)
-            .iter_enabled_components(ent)
+            .iter_enabled_components(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn iter_enabled_components_mut<C: Component + 'static>(
         &mut self,
         component_type_manager: &mut ComponentTypeManager,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
-            .iter_enabled_components_mut(ent)
+            .iter_enabled_components_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn iter_disabled_components<C: Component + 'static>(
         &self,
         component_type_manager: &ComponentTypeManager,
-        ent: &'static Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static C> {
         component_type_manager
             .get::<C>(self)
-            .iter_disabled_components(ent)
+            .iter_disabled_components(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn iter_disabled_components_mut<C: Component + 'static>(
         &mut self,
         component_type_manager: &mut ComponentTypeManager,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
-            .iter_disabled_components_mut(ent)
+            .iter_disabled_components_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn get_first_component<C: Component + 'static>(
         &self,
         component_type_manager: &ComponentTypeManager,
-        ent: &'static Entity,
+        entry: usize,
     ) -> Option<&'static C> {
         component_type_manager
             .get::<C>(self)
-            .get_first(ent)
+            .get_first(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn get_first_component_mut<C: Component + 'static>(
         &mut self,
         component_type_manager: &mut ComponentTypeManager,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> Option<&'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
-            .get_first_mut(ent)
+            .get_first_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn get_first_enabled_component<C: Component + 'static>(
         &self,
         component_type_manager: &ComponentTypeManager,
-        ent: &'static Entity,
+        entry: usize,
     ) -> Option<&'static C> {
         component_type_manager
             .get::<C>(self)
-            .get_first_enabled(ent)
+            .get_first_enabled(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn get_first_enabled_component_mut<C: Component + 'static>(
         &mut self,
         component_type_manager: &mut ComponentTypeManager,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> Option<&'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
-            .get_first_enabled_mut(ent)
+            .get_first_enabled_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn get_first_disabled_component<C: Component + 'static>(
         &self,
         component_type_manager: &ComponentTypeManager,
-        ent: &'static Entity,
+        entry: usize,
     ) -> Option<&'static C> {
         component_type_manager
             .get::<C>(self)
-            .get_first_disabled(ent)
+            .get_first_disabled(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn get_first_disabled_component_mut<C: Component + 'static>(
         &mut self,
         component_type_manager: &mut ComponentTypeManager,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> Option<&'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
-            .get_first_disabled_mut(ent)
+            .get_first_disabled_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
     pub fn iter_all_components(
         &self,
-        ent: &'static Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static ComponentData> {
         self.iter_component_managers()
-            .flat_map(move |c| c.iter_components(ent))
+            .flat_map(move |c| c.iter_components(entry))
+    }
+    pub fn iter_all_components_mut(
+        &mut self,
+        entry: usize,
+    ) -> impl Iterator<Item = &'static mut ComponentData> {
+        self.iter_component_managers_mut()
+            .flat_map(move |c| c.iter_components_mut(entry))
     }
     pub fn get_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
         self.entities
@@ -344,15 +401,13 @@ impl EntityManager {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct BitSet<const N: usize>([isize; N]);
+pub struct BitSet<const N: usize>(pub [isize; N]);
 impl BitSet<16> {
-    #[inline]
     pub fn get(&self, n: u16) -> bool {
         let out_index = n / 32;
         let in_index = n % 32;
         self.0[out_index as usize] & (1 << in_index) != 0
     }
-    #[inline]
     pub fn set(&mut self, n: u16, value: bool) {
         let out_index = n / 32;
         let in_index = n % 32;
@@ -369,30 +424,21 @@ impl BitSet<16> {
         }
         n as usize
     }
-}
-impl BitSet<8> {
-    #[inline]
-    pub fn get(&self, n: u8) -> bool {
-        let out_index = n / 32;
-        let in_index = n % 32;
-        self.0[out_index as usize] & (1 << in_index) != 0
-    }
-    #[inline]
-    pub fn set(&mut self, n: u8, value: bool) {
-        let out_index = n / 32;
-        let in_index = n % 32;
-        if value {
-            self.0[out_index as usize] |= 1 << in_index
+    pub fn has_tag(&'static self, tag_manager: &TagManager<u16>, tag: &StdString) -> bool {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.get(*n)
         } else {
-            self.0[out_index as usize] &= !(1 << in_index)
+            false
         }
     }
-    pub fn count(&self) -> usize {
-        let mut n = 0;
-        for s in self.0 {
-            n += s.count_ones()
-        }
-        n as usize
+    pub fn get_tags(
+        &'static self,
+        tag_manager: &TagManager<u16>,
+    ) -> impl Iterator<Item = &'static StdString> {
+        tag_manager
+            .tag_indices
+            .iter()
+            .filter_map(|(a, b)| if self.get(*b) { Some(a) } else { None })
     }
 }
 #[repr(C)]
@@ -495,13 +541,6 @@ impl Entity {
             self.iter_ancestors_mut().last().unwrap()
         }
     }
-    pub fn has_tag(&'static self, tag_manager: &TagManager<u16>, tag: &StdString) -> bool {
-        if let Some(n) = tag_manager.tag_indices.get(tag) {
-            self.tags.get(*n)
-        } else {
-            false
-        }
-    }
     pub fn add_tag(
         &'static mut self,
         tag_manager: &TagManager<u16>,
@@ -540,15 +579,6 @@ impl Entity {
             v.remove(i);
             self.tags.set(n, false)
         }
-    }
-    pub fn get_tags(
-        &'static self,
-        tag_manager: &TagManager<u16>,
-    ) -> impl Iterator<Item = &'static StdString> {
-        tag_manager
-            .tag_indices
-            .iter()
-            .filter_map(|(a, b)| if self.tags.get(*b) { Some(a) } else { None })
     }
 }
 

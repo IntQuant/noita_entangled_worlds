@@ -1,4 +1,3 @@
-use crate::noita::types::entity::Entity;
 use crate::noita::types::{
     BitSet, CString, Component, EntityManager, StdMap, StdString, StdVec, TagManager,
 };
@@ -14,35 +13,6 @@ pub struct ComponentData {
     unk2: [u8; 3],
     pub tags: BitSet<8>,
     unk3: [isize; 4],
-}
-impl ComponentData {
-    pub fn has_tag(&'static self, tag_manager: &TagManager<u8>, tag: &StdString) -> bool {
-        if let Some(n) = tag_manager.tag_indices.get(tag) {
-            self.tags.get(*n)
-        } else {
-            false
-        }
-    }
-    pub fn add_tag(&'static mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
-        if let Some(n) = tag_manager.tag_indices.get(tag) {
-            self.tags.set(*n, true)
-        }
-        //TODO
-    }
-    pub fn remove_tag(&'static mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
-        if let Some(n) = tag_manager.tag_indices.get(tag) {
-            self.tags.set(*n, false)
-        }
-    }
-    pub fn get_tags(
-        &'static self,
-        tag_manager: &TagManager<u8>,
-    ) -> impl Iterator<Item = &'static StdString> {
-        tag_manager
-            .tag_indices
-            .iter()
-            .filter_map(|(a, b)| if self.tags.get(*b) { Some(a) } else { None })
-    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -96,8 +66,8 @@ pub struct ComponentManager {
     pub component_list: StdVec<*mut ComponentData>,
 }
 impl ComponentManager {
-    pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
-        if let Some(off) = self.entity_entry.get(ent.entry) {
+    pub fn iter_components(&self, entry: usize) -> ComponentIter {
+        if let Some(off) = self.entity_entry.get(entry) {
             ComponentIter {
                 component_list: self.component_list.copy(),
                 off: *off,
@@ -117,8 +87,8 @@ impl ComponentManager {
             }
         }
     }
-    pub fn iter_components_mut(&mut self, ent: &'static mut Entity) -> ComponentIterMut {
-        if let Some(off) = self.entity_entry.get(ent.entry) {
+    pub fn iter_components_mut(&mut self, entry: usize) -> ComponentIterMut {
+        if let Some(off) = self.entity_entry.get(entry) {
             ComponentIterMut {
                 component_list: self.component_list.copy(),
                 off: *off,
@@ -137,57 +107,66 @@ impl ComponentManager {
                 end: 0,
             }
         }
+    }
+    pub fn iter_components_with_tag(
+        &self,
+        tag_manager: &TagManager<u8>,
+        entry: usize,
+        tag: &StdString,
+    ) -> impl Iterator<Item = &'static ComponentData> {
+        self.iter_components(entry)
+            .filter(|c| c.tags.has_tag(tag_manager, tag))
+    }
+    pub fn iter_components_with_tag_mut(
+        &mut self,
+        tag_manager: &TagManager<u8>,
+        entry: usize,
+        tag: &StdString,
+    ) -> impl Iterator<Item = &'static mut ComponentData> {
+        self.iter_components_mut(entry)
+            .filter(|c| c.tags.has_tag(tag_manager, tag))
     }
     pub fn iter_enabled_components(
         &self,
-        ent: &'static Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static ComponentData> {
-        self.iter_components(ent).filter(|c| c.enabled)
+        self.iter_components(entry).filter(|c| c.enabled)
     }
     pub fn iter_disabled_components(
         &self,
-        ent: &'static Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static ComponentData> {
-        self.iter_components(ent).filter(|c| !c.enabled)
+        self.iter_components(entry).filter(|c| !c.enabled)
     }
     pub fn iter_enabled_components_mut(
         &mut self,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static mut ComponentData> {
-        self.iter_components_mut(ent).filter(|c| c.enabled)
+        self.iter_components_mut(entry).filter(|c| c.enabled)
     }
     pub fn iter_disabled_components_mut(
         &mut self,
-        ent: &'static mut Entity,
+        entry: usize,
     ) -> impl Iterator<Item = &'static mut ComponentData> {
-        self.iter_components_mut(ent).filter(|c| !c.enabled)
+        self.iter_components_mut(entry).filter(|c| !c.enabled)
     }
-    pub fn get_first(&self, ent: &'static Entity) -> Option<&'static ComponentData> {
-        self.iter_components(ent).next()
+    pub fn get_first(&self, entry: usize) -> Option<&'static ComponentData> {
+        self.iter_components(entry).next()
     }
-    pub fn get_first_mut(
-        &mut self,
-        ent: &'static mut Entity,
-    ) -> Option<&'static mut ComponentData> {
-        self.iter_components_mut(ent).next()
+    pub fn get_first_mut(&mut self, entry: usize) -> Option<&'static mut ComponentData> {
+        self.iter_components_mut(entry).next()
     }
-    pub fn get_first_enabled(&self, ent: &'static Entity) -> Option<&'static ComponentData> {
-        self.iter_enabled_components(ent).next()
+    pub fn get_first_enabled(&self, entry: usize) -> Option<&'static ComponentData> {
+        self.iter_enabled_components(entry).next()
     }
-    pub fn get_first_disabled(&self, ent: &'static Entity) -> Option<&'static ComponentData> {
-        self.iter_disabled_components(ent).next()
+    pub fn get_first_disabled(&self, entry: usize) -> Option<&'static ComponentData> {
+        self.iter_disabled_components(entry).next()
     }
-    pub fn get_first_enabled_mut(
-        &mut self,
-        ent: &'static mut Entity,
-    ) -> Option<&'static mut ComponentData> {
-        self.iter_enabled_components_mut(ent).next()
+    pub fn get_first_enabled_mut(&mut self, entry: usize) -> Option<&'static mut ComponentData> {
+        self.iter_enabled_components_mut(entry).next()
     }
-    pub fn get_first_disabled_mut(
-        &mut self,
-        ent: &'static mut Entity,
-    ) -> Option<&'static mut ComponentData> {
-        self.iter_disabled_components_mut(ent).next()
+    pub fn get_first_disabled_mut(&mut self, entry: usize) -> Option<&'static mut ComponentData> {
+        self.iter_disabled_components_mut(entry).next()
     }
 }
 
@@ -231,5 +210,55 @@ impl Iterator for ComponentIterMut {
             self.off = self.next.add(self.off).read();
             com
         }
+    }
+}
+impl BitSet<8> {
+    pub fn get(&self, n: u8) -> bool {
+        let out_index = n / 32;
+        let in_index = n % 32;
+        self.0[out_index as usize] & (1 << in_index) != 0
+    }
+    pub fn set(&mut self, n: u8, value: bool) {
+        let out_index = n / 32;
+        let in_index = n % 32;
+        if value {
+            self.0[out_index as usize] |= 1 << in_index
+        } else {
+            self.0[out_index as usize] &= !(1 << in_index)
+        }
+    }
+    pub fn count(&self) -> usize {
+        let mut n = 0;
+        for s in self.0 {
+            n += s.count_ones()
+        }
+        n as usize
+    }
+    pub fn has_tag(&self, tag_manager: &TagManager<u8>, tag: &StdString) -> bool {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.get(*n)
+        } else {
+            false
+        }
+    }
+    pub fn add_tag(&mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.set(*n, true)
+        }
+        //TODO
+    }
+    pub fn remove_tag(&mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
+        if let Some(n) = tag_manager.tag_indices.get(tag) {
+            self.set(*n, false)
+        }
+    }
+    pub fn get_tags(
+        &self,
+        tag_manager: &TagManager<u8>,
+    ) -> impl Iterator<Item = &'static StdString> {
+        tag_manager
+            .tag_indices
+            .iter()
+            .filter_map(|(a, b)| if self.get(*b) { Some(a) } else { None })
     }
 }
