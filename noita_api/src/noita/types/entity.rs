@@ -1,6 +1,6 @@
 use crate::noita::types::component::{ComponentData, ComponentManager};
-use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
-use std::slice;
+use crate::noita::types::{Component, ComponentTypeManager, StdMap, StdString, StdVec, Vec2};
+use std::{mem, slice};
 impl EntityManager {
     pub fn get_entity_with_tag(
         &self,
@@ -96,19 +96,138 @@ impl EntityManager {
             .iter_mut()
             .filter_map(|c| unsafe { c.as_mut() })
     }
+    pub fn iter_components<C: Component + 'static>(
+        &self,
+        component_type_manager: &ComponentTypeManager,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static C> {
+        let index = component_type_manager
+            .component_manager_indices
+            .get(&C::NAME.into())
+            .copied()
+            .unwrap();
+        let mgr = self.component_managers.get(index).unwrap();
+        unsafe { mgr.as_ref() }
+            .unwrap()
+            .iter_components(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn iter_components_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &'static mut Entity,
+    ) -> impl Iterator<Item = &'static mut C> {
+        component_type_manager
+            .get_mut::<C>(self)
+            .iter_components_mut(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn iter_enabled_components<C: Component + 'static>(
+        &self,
+        component_type_manager: &ComponentTypeManager,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static C> {
+        component_type_manager
+            .get::<C>(self)
+            .iter_enabled_components(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn iter_enabled_components_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &'static mut Entity,
+    ) -> impl Iterator<Item = &'static mut C> {
+        component_type_manager
+            .get_mut::<C>(self)
+            .iter_enabled_components_mut(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn iter_disabled_components<C: Component + 'static>(
+        &self,
+        component_type_manager: &ComponentTypeManager,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static C> {
+        component_type_manager
+            .get::<C>(self)
+            .iter_disabled_components(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn iter_disabled_components_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &'static mut Entity,
+    ) -> impl Iterator<Item = &'static mut C> {
+        component_type_manager
+            .get_mut::<C>(self)
+            .iter_disabled_components_mut(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn get_first_component<C: Component + 'static>(
+        &self,
+        component_type_manager: &ComponentTypeManager,
+        ent: &'static Entity,
+    ) -> Option<&'static C> {
+        component_type_manager
+            .get::<C>(self)
+            .get_first(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn get_first_component_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &'static mut Entity,
+    ) -> Option<&'static mut C> {
+        component_type_manager
+            .get_mut::<C>(self)
+            .get_first_mut(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn get_first_enabled_component<C: Component + 'static>(
+        &self,
+        component_type_manager: &ComponentTypeManager,
+        ent: &'static Entity,
+    ) -> Option<&'static C> {
+        component_type_manager
+            .get::<C>(self)
+            .get_first_enabled(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn get_first_enabled_component_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &'static mut Entity,
+    ) -> Option<&'static mut C> {
+        component_type_manager
+            .get_mut::<C>(self)
+            .get_first_enabled_mut(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn get_first_disabled_component<C: Component + 'static>(
+        &self,
+        component_type_manager: &ComponentTypeManager,
+        ent: &'static Entity,
+    ) -> Option<&'static C> {
+        component_type_manager
+            .get::<C>(self)
+            .get_first_disabled(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn get_first_disabled_component_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &mut ComponentTypeManager,
+        ent: &'static mut Entity,
+    ) -> Option<&'static mut C> {
+        component_type_manager
+            .get_mut::<C>(self)
+            .get_first_disabled_mut(ent)
+            .map(|c| unsafe { mem::transmute(c) })
+    }
     pub fn iter_all_components(
         &self,
         ent: &'static Entity,
     ) -> impl Iterator<Item = &'static ComponentData> {
         self.iter_component_managers()
             .flat_map(move |c| c.iter_components(ent))
-    }
-    pub fn iter_all_components_mut(
-        &mut self,
-        ent: &'static Entity,
-    ) -> impl Iterator<Item = &'static mut ComponentData> {
-        self.iter_component_managers_mut()
-            .flat_map(move |c| c.iter_components_mut(ent))
     }
     pub fn get_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
         self.entities

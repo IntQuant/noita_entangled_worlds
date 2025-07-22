@@ -1,5 +1,7 @@
 use crate::noita::types::entity::Entity;
-use crate::noita::types::{BitSet, CString, StdMap, StdString, StdVec, TagManager};
+use crate::noita::types::{
+    BitSet, CString, Component, EntityManager, StdMap, StdString, StdVec, TagManager,
+};
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
@@ -32,6 +34,15 @@ impl ComponentData {
             self.tags.set(*n, false)
         }
     }
+    pub fn get_tags(
+        &'static self,
+        tag_manager: &TagManager<u8>,
+    ) -> impl Iterator<Item = &'static StdString> {
+        tag_manager
+            .tag_indices
+            .iter()
+            .filter_map(|(a, b)| if self.tags.get(*b) { Some(a) } else { None })
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -48,6 +59,29 @@ pub struct ComponentManagerVTable {
 pub struct ComponentTypeManager {
     pub next_id: usize,
     pub component_manager_indices: StdMap<StdString, usize>,
+}
+impl ComponentTypeManager {
+    pub fn get<C: Component>(&self, entity_manager: &EntityManager) -> &ComponentManager {
+        let index = self
+            .component_manager_indices
+            .get(&C::NAME.into())
+            .copied()
+            .unwrap();
+        let mgr = entity_manager.component_managers.get(index).unwrap();
+        unsafe { mgr.as_ref() }.unwrap()
+    }
+    pub fn get_mut<C: Component>(
+        &mut self,
+        entity_manager: &mut EntityManager,
+    ) -> &mut ComponentManager {
+        let index = self
+            .component_manager_indices
+            .get(&C::NAME.into())
+            .copied()
+            .unwrap();
+        let mgr = entity_manager.component_managers.get(index).unwrap();
+        unsafe { mgr.as_mut() }.unwrap()
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -83,7 +117,7 @@ impl ComponentManager {
             }
         }
     }
-    pub fn iter_components_mut(&mut self, ent: &'static Entity) -> ComponentIterMut {
+    pub fn iter_components_mut(&mut self, ent: &'static mut Entity) -> ComponentIterMut {
         if let Some(off) = self.entity_entry.get(ent.entry) {
             ComponentIterMut {
                 component_list: self.component_list.copy(),
@@ -103,6 +137,57 @@ impl ComponentManager {
                 end: 0,
             }
         }
+    }
+    pub fn iter_enabled_components(
+        &self,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static ComponentData> {
+        self.iter_components(ent).filter(|c| c.enabled)
+    }
+    pub fn iter_disabled_components(
+        &self,
+        ent: &'static Entity,
+    ) -> impl Iterator<Item = &'static ComponentData> {
+        self.iter_components(ent).filter(|c| !c.enabled)
+    }
+    pub fn iter_enabled_components_mut(
+        &mut self,
+        ent: &'static mut Entity,
+    ) -> impl Iterator<Item = &'static mut ComponentData> {
+        self.iter_components_mut(ent).filter(|c| c.enabled)
+    }
+    pub fn iter_disabled_components_mut(
+        &mut self,
+        ent: &'static mut Entity,
+    ) -> impl Iterator<Item = &'static mut ComponentData> {
+        self.iter_components_mut(ent).filter(|c| !c.enabled)
+    }
+    pub fn get_first(&self, ent: &'static Entity) -> Option<&'static ComponentData> {
+        self.iter_components(ent).next()
+    }
+    pub fn get_first_mut(
+        &mut self,
+        ent: &'static mut Entity,
+    ) -> Option<&'static mut ComponentData> {
+        self.iter_components_mut(ent).next()
+    }
+    pub fn get_first_enabled(&self, ent: &'static Entity) -> Option<&'static ComponentData> {
+        self.iter_enabled_components(ent).next()
+    }
+    pub fn get_first_disabled(&self, ent: &'static Entity) -> Option<&'static ComponentData> {
+        self.iter_disabled_components(ent).next()
+    }
+    pub fn get_first_enabled_mut(
+        &mut self,
+        ent: &'static mut Entity,
+    ) -> Option<&'static mut ComponentData> {
+        self.iter_enabled_components_mut(ent).next()
+    }
+    pub fn get_first_disabled_mut(
+        &mut self,
+        ent: &'static mut Entity,
+    ) -> Option<&'static mut ComponentData> {
+        self.iter_disabled_components_mut(ent).next()
     }
 }
 

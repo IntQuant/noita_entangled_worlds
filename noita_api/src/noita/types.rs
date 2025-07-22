@@ -65,9 +65,9 @@ impl AsRef<str> for StdString {
 impl From<&str> for StdString {
     fn from(value: &str) -> Self {
         let mut res = StdString {
+            buffer: Default::default(),
             capacity: value.len(),
             size: value.len(),
-            ..Default::default()
         };
         if res.capacity > 16 {
             let buffer = Box::leak(Box::new(value));
