@@ -1,5 +1,6 @@
 use crate::noita::types::component::{ComponentData, ComponentManager};
 use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
+use std::cmp::Ordering;
 use std::slice;
 impl EntityManager {
     pub fn get_entity_with_tag(
@@ -22,27 +23,39 @@ impl EntityManager {
             self.entity_buckets.get_mut(n as usize)?.get(0)?.as_mut()
         }
     }
-    pub fn get_entity(&self, id: isize) -> Option<&'static Entity> {
-        unsafe {
-            let o = self.entities.as_ref()[id as usize..]
-                .iter()
-                .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
-                .unwrap_or(id);
-            let start = self.entities.start.offset(id - o);
-            let list = slice::from_raw_parts(start, self.entities.len() - (id - o) as usize);
-            list.iter().find_map(|c| c.as_ref().filter(|c| c.id == id))
+    pub fn get_entity(&self, id: usize) -> Option<&'static Entity> {
+        for ent in self
+            .entities
+            .as_ref()
+            .iter()
+            .filter_map(|c| unsafe { c.as_ref() })
+        {
+            match ent.id.cmp(&id) {
+                Ordering::Less => {}
+                Ordering::Equal => return Some(ent),
+                Ordering::Greater => {
+                    return None;
+                }
+            }
         }
+        None
     }
-    pub fn get_entity_mut(&mut self, id: isize) -> Option<&'static mut Entity> {
-        unsafe {
-            let o = self.entities.as_ref()[id as usize..]
-                .iter()
-                .find_map(|c| c.as_ref().map(|c| c.id - c.entry))
-                .unwrap_or(id);
-            let start = self.entities.start.offset(id - o);
-            let list = slice::from_raw_parts(start, self.entities.len() - (id - o) as usize);
-            list.iter().find_map(|c| c.as_mut().filter(|c| c.id == id))
+    pub fn get_entity_mut(&mut self, id: usize) -> Option<&'static mut Entity> {
+        for ent in self
+            .entities
+            .as_ref()
+            .iter()
+            .filter_map(|c| unsafe { c.as_mut() })
+        {
+            match ent.id.cmp(&id) {
+                Ordering::Less => {}
+                Ordering::Equal => return Some(ent),
+                Ordering::Greater => {
+                    return None;
+                }
+            }
         }
+        None
     }
     pub fn iter_entities_with_tag(
         &self,
@@ -165,8 +178,8 @@ impl BitSet<8> {
 #[repr(C)]
 #[derive(Debug)]
 pub struct Entity {
-    pub id: isize,
-    pub entry: isize,
+    pub id: usize,
+    pub entry: usize,
     pub filename_index: usize,
     pub kill_flag: isize,
     unknown1: isize,
@@ -409,7 +422,7 @@ pub struct Inventory {
     unk1: isize,
     unk2: isize,
     unk3: isize,
-    pub held_item_id: isize,
+    pub held_item_id: usize,
     unk5: isize,
     unk6: isize,
     unk7b1: bool,

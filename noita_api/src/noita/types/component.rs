@@ -53,50 +53,54 @@ pub struct ComponentTypeManager {
 #[derive(Debug)]
 pub struct ComponentManager {
     pub vtable: &'static ComponentManagerVTable,
-    pub end: isize,
+    pub end: usize,
     unk: [isize; 2],
-    pub entity_entry: StdVec<isize>,
+    pub entity_entry: StdVec<usize>,
     unk2: [isize; 6],
-    pub next: *mut isize,
+    pub next: *mut usize,
     unk3: [isize; 2],
     pub component_list: StdVec<*mut ComponentData>,
 }
 impl ComponentManager {
     pub fn iter_components(&self, ent: &'static Entity) -> ComponentIter {
-        unsafe {
-            if let Some(off) = self.entity_entry.start.offset(ent.entry).as_ref() {
-                ComponentIter {
-                    component_list: self.component_list.start as *const *const ComponentData,
-                    off: *off,
-                    next: self.next,
-                    end: self.end,
-                }
-            } else {
-                ComponentIter {
-                    component_list: std::ptr::null_mut(),
-                    off: 0,
-                    next: std::ptr::null_mut(),
-                    end: 0,
-                }
+        if let Some(off) = self.entity_entry.get(ent.entry) {
+            ComponentIter {
+                component_list: self.component_list.copy(),
+                off: *off,
+                next: self.next,
+                end: self.end,
+            }
+        } else {
+            ComponentIter {
+                component_list: StdVec {
+                    start: std::ptr::null_mut(),
+                    end: std::ptr::null_mut(),
+                    cap: std::ptr::null_mut(),
+                },
+                off: 0,
+                next: std::ptr::null_mut(),
+                end: 0,
             }
         }
     }
     pub fn iter_components_mut(&mut self, ent: &'static Entity) -> ComponentIterMut {
-        unsafe {
-            if let Some(off) = self.entity_entry.start.offset(ent.entry).as_ref() {
-                ComponentIterMut {
-                    component_list: self.component_list.start,
-                    off: *off,
-                    next: self.next,
-                    end: self.end,
-                }
-            } else {
-                ComponentIterMut {
-                    component_list: std::ptr::null_mut(),
-                    off: 0,
-                    next: std::ptr::null_mut(),
-                    end: 0,
-                }
+        if let Some(off) = self.entity_entry.get(ent.entry) {
+            ComponentIterMut {
+                component_list: self.component_list.copy(),
+                off: *off,
+                next: self.next,
+                end: self.end,
+            }
+        } else {
+            ComponentIterMut {
+                component_list: StdVec {
+                    start: std::ptr::null_mut(),
+                    end: std::ptr::null_mut(),
+                    cap: std::ptr::null_mut(),
+                },
+                off: 0,
+                next: std::ptr::null_mut(),
+                end: 0,
             }
         }
     }
@@ -104,10 +108,10 @@ impl ComponentManager {
 
 #[derive(Debug)]
 pub struct ComponentIter {
-    component_list: *const *const ComponentData,
-    off: isize,
-    end: isize,
-    next: *const isize,
+    component_list: StdVec<*mut ComponentData>,
+    off: usize,
+    end: usize,
+    next: *const usize,
 }
 
 impl Iterator for ComponentIter {
@@ -117,22 +121,18 @@ impl Iterator for ComponentIter {
             if self.off == self.end {
                 return None;
             }
-            let com = self.component_list.offset(self.off).as_ref()?.as_ref();
-            if let Some(n) = self.next.offset(self.off).as_ref() {
-                self.off = *n
-            } else {
-                self.off = self.end
-            }
+            let com = self.component_list.get(self.off)?.as_ref();
+            self.off = self.next.add(self.off).read();
             com
         }
     }
 }
 #[derive(Debug)]
 pub struct ComponentIterMut {
-    component_list: *const *mut ComponentData,
-    off: isize,
-    end: isize,
-    next: *const isize,
+    component_list: StdVec<*mut ComponentData>,
+    off: usize,
+    end: usize,
+    next: *const usize,
 }
 
 impl Iterator for ComponentIterMut {
@@ -142,12 +142,8 @@ impl Iterator for ComponentIterMut {
             if self.off == self.end {
                 return None;
             }
-            let com = self.component_list.offset(self.off).as_ref()?.as_mut();
-            if let Some(n) = self.next.offset(self.off).as_ref() {
-                self.off = *n
-            } else {
-                self.off = self.end
-            }
+            let com = self.component_list.get(self.off)?.as_mut();
+            self.off = self.next.add(self.off).read();
             com
         }
     }

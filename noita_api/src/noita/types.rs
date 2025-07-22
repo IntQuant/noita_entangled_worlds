@@ -160,6 +160,13 @@ impl<T: Debug> Debug for StdVec<T> {
     }
 }
 impl<T> StdVec<T> {
+    pub fn copy(&self) -> Self {
+        Self {
+            start: self.start,
+            end: self.end,
+            cap: self.cap,
+        }
+    }
     pub fn capacity(&self) -> usize {
         unsafe { self.cap.offset_from_unsigned(self.start) }
     }
@@ -170,10 +177,20 @@ impl<T> StdVec<T> {
         self.start == self.end
     }
     pub fn get(&self, index: usize) -> Option<&T> {
-        unsafe { self.start.add(index).as_ref() }
+        let ptr = unsafe { self.start.add(index) };
+        if self.end > ptr {
+            unsafe { ptr.as_ref() }
+        } else {
+            None
+        }
     }
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        unsafe { self.start.add(index).as_mut() }
+        let ptr = unsafe { self.start.add(index) };
+        if self.end > ptr {
+            unsafe { ptr.as_mut() }
+        } else {
+            None
+        }
     }
     fn alloc(&mut self, n: usize) {
         if self.cap >= unsafe { self.end.add(n) } {
