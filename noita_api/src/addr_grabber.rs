@@ -49,7 +49,7 @@ pub struct GlobalsRef {
     pub platform: &'static Platform,
     pub global_stats: &'static GlobalStats,
     pub filenames: &'static StdVec<StdString>,
-    pub wand_pickup: &'static Inventory,
+    pub inventory: &'static Inventory,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -64,7 +64,7 @@ pub struct GlobalsMut {
     pub platform: &'static mut Platform,
     pub global_stats: &'static mut GlobalStats,
     pub filenames: &'static mut StdVec<StdString>,
-    pub wand_pickup: &'static mut Inventory,
+    pub inventory: &'static mut Inventory,
 }
 
 #[derive(Debug, Default)]
@@ -80,7 +80,7 @@ pub struct Globals {
     pub platform: *mut Platform,
     pub global_stats: *mut GlobalStats,
     pub filenames: *mut StdVec<StdString>,
-    pub wand_pickup: *mut Inventory,
+    pub inventory: *mut Inventory,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -123,8 +123,8 @@ impl Globals {
     pub fn filenames(&self) -> &'static StdVec<StdString> {
         unsafe { self.filenames.as_ref().unwrap() }
     }
-    pub fn wand_pickup(&self) -> &'static Inventory {
-        unsafe { self.wand_pickup.as_ref().unwrap() }
+    pub fn inventory(&self) -> &'static Inventory {
+        unsafe { self.inventory.as_ref().unwrap() }
     }
     pub fn world_seed_mut(&self) -> &'static mut usize {
         unsafe { self.world_seed.as_mut().unwrap() }
@@ -165,8 +165,8 @@ impl Globals {
     pub fn filenames_mut(&self) -> &'static mut StdVec<StdString> {
         unsafe { self.filenames.as_mut().unwrap() }
     }
-    pub fn wand_pickup_mut(&self) -> &'static mut Inventory {
-        unsafe { self.wand_pickup.as_mut().unwrap() }
+    pub fn inventory_mut(&self) -> &'static mut Inventory {
+        unsafe { self.inventory.as_mut().unwrap() }
     }
     pub fn as_ref(&self) -> GlobalsRef {
         GlobalsRef {
@@ -181,7 +181,7 @@ impl Globals {
             platform: self.platform(),
             global_stats: self.global_stats(),
             filenames: self.filenames(),
-            wand_pickup: self.wand_pickup(),
+            inventory: self.inventory(),
         }
     }
     pub fn as_mut(&self) -> GlobalsMut {
@@ -197,7 +197,7 @@ impl Globals {
             platform: self.platform_mut(),
             global_stats: self.global_stats_mut(),
             filenames: self.filenames_mut(),
-            wand_pickup: self.wand_pickup_mut(),
+            inventory: self.inventory_mut(),
         }
     }
     pub fn new(lua: LuaState) -> Self {
@@ -217,7 +217,7 @@ impl Globals {
         let translation_manager = 0x1207c28 as *mut TranslationManager;
         let platform = 0x1221bc0 as *mut Platform;
         let filenames = 0x1207bd4 as *mut StdVec<StdString>;
-        let wand_pickup = 0x12224f0 as *mut Inventory;
+        let inventory = 0x12224f0 as *mut Inventory;
         Self {
             world_seed,
             new_game_count,
@@ -230,7 +230,7 @@ impl Globals {
             platform,
             global_stats,
             filenames,
-            wand_pickup,
+            inventory,
         }
     }
 }

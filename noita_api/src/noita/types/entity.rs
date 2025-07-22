@@ -1,6 +1,5 @@
 use crate::noita::types::component::{ComponentData, ComponentManager};
 use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
-use std::cmp::Ordering;
 use std::slice;
 impl EntityManager {
     pub fn get_entity_with_tag(
@@ -24,38 +23,18 @@ impl EntityManager {
         }
     }
     pub fn get_entity(&self, id: usize) -> Option<&'static Entity> {
-        for ent in self
-            .entities
+        self.entities
             .as_ref()
             .iter()
             .filter_map(|c| unsafe { c.as_ref() })
-        {
-            match ent.id.cmp(&id) {
-                Ordering::Less => {}
-                Ordering::Equal => return Some(ent),
-                Ordering::Greater => {
-                    return None;
-                }
-            }
-        }
-        None
+            .find(|ent| ent.id == id)
     }
     pub fn get_entity_mut(&mut self, id: usize) -> Option<&'static mut Entity> {
-        for ent in self
-            .entities
-            .as_ref()
-            .iter()
+        self.entities
+            .as_mut()
+            .iter_mut()
             .filter_map(|c| unsafe { c.as_mut() })
-        {
-            match ent.id.cmp(&id) {
-                Ordering::Less => {}
-                Ordering::Equal => return Some(ent),
-                Ordering::Greater => {
-                    return None;
-                }
-            }
-        }
-        None
+            .find(|ent| ent.id == id)
     }
     pub fn iter_entities_with_tag(
         &self,
@@ -63,12 +42,10 @@ impl EntityManager {
         tag: &StdString,
     ) -> impl Iterator<Item = &'static Entity> {
         unsafe {
-            if let Some(n) = tag_manager.tag_indices.get(tag).copied() {
-                if let Some(v) = self.entity_buckets.get(n as usize) {
-                    v.as_ref()
-                } else {
-                    &[]
-                }
+            if let Some(n) = tag_manager.tag_indices.get(tag).copied()
+                && let Some(v) = self.entity_buckets.get(n as usize)
+            {
+                v.as_ref()
             } else {
                 &[]
             }
@@ -82,12 +59,10 @@ impl EntityManager {
         tag: &StdString,
     ) -> impl Iterator<Item = &'static mut Entity> {
         unsafe {
-            if let Some(n) = tag_manager.tag_indices.get(tag).copied() {
-                if let Some(v) = self.entity_buckets.get_mut(n as usize) {
-                    v.as_mut()
-                } else {
-                    &mut []
-                }
+            if let Some(n) = tag_manager.tag_indices.get(tag).copied()
+                && let Some(v) = self.entity_buckets.get_mut(n as usize)
+            {
+                v.as_mut()
             } else {
                 &mut []
             }
@@ -135,6 +110,118 @@ impl EntityManager {
         self.iter_component_managers_mut()
             .flat_map(move |c| c.iter_components_mut(ent))
     }
+    pub fn get_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
+        self.entities
+            .as_ref()
+            .iter()
+            .filter_map(|e| unsafe { e.as_ref() })
+            .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
+    }
+    pub fn get_in_radius_with_tag(
+        &self,
+        tag_manager: &TagManager<u16>,
+        pos: Vec2,
+        radius: f32,
+        tag: &StdString,
+    ) -> impl Iterator<Item = &'static Entity> {
+        if let Some(tag) = tag_manager.tag_indices.get(tag).copied()
+            && let Some(ents) = self.entity_buckets.get(tag as usize)
+        {
+            ents.as_ref()
+        } else {
+            &[]
+        }
+        .iter()
+        .filter_map(|e| unsafe { e.as_ref() })
+        .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
+    }
+    pub fn get_in_radius_mut(
+        &mut self,
+        pos: Vec2,
+        radius: f32,
+    ) -> impl Iterator<Item = &'static mut Entity> {
+        self.entities
+            .as_mut()
+            .iter_mut()
+            .filter_map(|e| unsafe { e.as_mut() })
+            .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
+    }
+    pub fn get_in_radius_with_tag_mut(
+        &mut self,
+        tag_manager: &TagManager<u16>,
+        pos: Vec2,
+        radius: f32,
+        tag: &StdString,
+    ) -> impl Iterator<Item = &'static mut Entity> {
+        if let Some(tag) = tag_manager.tag_indices.get(tag).copied()
+            && let Some(ents) = self.entity_buckets.get_mut(tag as usize)
+        {
+            ents.as_mut()
+        } else {
+            &mut []
+        }
+        .iter_mut()
+        .filter_map(|e| unsafe { e.as_mut() })
+        .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
+    }
+    pub fn get_with_name(&self, name: StdString) -> Option<&'static Entity> {
+        self.entities.as_ref().iter().find_map(|e| {
+            unsafe { e.as_ref() }.and_then(|e| if e.name == name { Some(e) } else { None })
+        })
+    }
+    pub fn get_closest(&self, pos: Vec2) -> Option<&'static Entity> {
+        self.entities
+            .as_ref()
+            .iter()
+            .filter_map(|e| unsafe { e.as_ref().map(|e| (pos.abs2(&e.transform.pos), e)) })
+            .min_by(|(a, _), (b, _)| a.total_cmp(b))
+            .map(|(_, e)| e)
+    }
+    pub fn get_closest_with_tag(
+        &self,
+        tag_manager: &TagManager<u16>,
+        pos: Vec2,
+        tag: &StdString,
+    ) -> Option<&'static Entity> {
+        tag_manager.tag_indices.get(tag).copied().and_then(|tag| {
+            self.entity_buckets.get(tag as usize).and_then(|b| {
+                b.as_ref()
+                    .iter()
+                    .filter_map(|e| unsafe { e.as_ref().map(|e| (pos.abs2(&e.transform.pos), e)) })
+                    .min_by(|(a, _), (b, _)| a.total_cmp(b))
+                    .map(|(_, e)| e)
+            })
+        })
+    }
+    pub fn get_with_name_mut(&mut self, name: StdString) -> Option<&'static mut Entity> {
+        self.entities.as_mut().iter_mut().find_map(|e| {
+            unsafe { e.as_mut() }.and_then(|e| if e.name == name { Some(e) } else { None })
+        })
+    }
+    pub fn get_closest_mut(&mut self, pos: Vec2) -> Option<&'static mut Entity> {
+        self.entities
+            .as_mut()
+            .iter_mut()
+            .filter_map(|e| unsafe { e.as_mut().map(|e| (pos.abs2(&e.transform.pos), e)) })
+            .min_by(|(a, _), (b, _)| a.total_cmp(b))
+            .map(|(_, e)| e)
+    }
+    pub fn get_closest_with_tag_mut(
+        &mut self,
+        tag_manager: &TagManager<u16>,
+        pos: Vec2,
+        tag: &StdString,
+    ) -> Option<&'static mut Entity> {
+        tag_manager.tag_indices.get(tag).copied().and_then(|tag| {
+            self.entity_buckets.get_mut(tag as usize).and_then(|b| {
+                b.as_mut()
+                    .iter_mut()
+                    .filter_map(|e| unsafe { e.as_mut().map(|e| (pos.abs2(&e.transform.pos), e)) })
+                    .min_by(|(a, _), (b, _)| a.total_cmp(b))
+                    .map(|(_, e)| e)
+            })
+        })
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -156,6 +243,13 @@ impl BitSet<16> {
             self.0[out_index as usize] &= !(1 << in_index)
         }
     }
+    pub fn count(&self) -> usize {
+        let mut n = 0;
+        for s in self.0 {
+            n += s.count_ones()
+        }
+        n as usize
+    }
 }
 impl BitSet<8> {
     #[inline]
@@ -173,6 +267,13 @@ impl BitSet<8> {
         } else {
             self.0[out_index as usize] &= !(1 << in_index)
         }
+    }
+    pub fn count(&self) -> usize {
+        let mut n = 0;
+        for s in self.0 {
+            n += s.count_ones()
+        }
+        n as usize
     }
 }
 #[repr(C)]
@@ -203,6 +304,13 @@ impl Entity {
     pub fn kill(&mut self) {
         self.kill_flag = 1;
         self.iter_children_mut().for_each(|e| e.kill());
+    }
+    pub fn kill_safe(&mut self, inventory: &mut Inventory) {
+        if inventory.wand_pickup == self {
+            inventory.wand_pickup = std::ptr::null_mut();
+            inventory.pickup_state = 0;
+        }
+        self.kill();
     }
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = &'static Entity> {
         unsafe {
@@ -313,6 +421,15 @@ impl Entity {
             v.remove(i);
             self.tags.set(n, false)
         }
+    }
+    pub fn get_tags(
+        &'static self,
+        tag_manager: &TagManager<u16>,
+    ) -> impl Iterator<Item = &'static StdString> {
+        tag_manager
+            .tag_indices
+            .iter()
+            .filter_map(|(a, b)| if self.tags.get(*b) { Some(a) } else { None })
     }
 }
 
