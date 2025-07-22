@@ -34,7 +34,7 @@ impl ComponentTypeManager {
     pub fn get<C: Component>(&self, entity_manager: &EntityManager) -> &ComponentManager {
         let index = self
             .component_manager_indices
-            .get(&C::NAME.into())
+            .get(C::STD_NAME)
             .copied()
             .unwrap();
         let mgr = entity_manager.component_managers.get(index).unwrap();
@@ -46,7 +46,7 @@ impl ComponentTypeManager {
     ) -> &mut ComponentManager {
         let index = self
             .component_manager_indices
-            .get(&C::NAME.into())
+            .get(C::STD_NAME)
             .copied()
             .unwrap();
         let mgr = entity_manager.component_managers.get(index).unwrap();

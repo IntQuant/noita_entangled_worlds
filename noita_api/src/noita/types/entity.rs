@@ -153,7 +153,7 @@ impl EntityManager {
     ) -> impl Iterator<Item = &'static C> {
         let index = component_type_manager
             .component_manager_indices
-            .get(&C::NAME.into())
+            .get(C::STD_NAME)
             .copied()
             .unwrap();
         let mgr = self.component_managers.get(index).unwrap();

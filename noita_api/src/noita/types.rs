@@ -79,6 +79,41 @@ impl From<&str> for StdString {
         res
     }
 }
+impl StdString {
+    const fn from_str(value: &'static str) -> Self {
+        let mut res = StdString {
+            buffer: Buffer {
+                sso_buffer: [0; 16],
+            },
+            capacity: value.len(),
+            size: value.len(),
+        };
+        if res.capacity > 16 {
+            res.buffer.buffer = value.as_ptr();
+        } else {
+            let iter = value.as_bytes();
+            res.buffer.sso_buffer = [
+                if 0 < res.size { iter[0] } else { 0 },
+                if 1 < res.size { iter[1] } else { 0 },
+                if 2 < res.size { iter[2] } else { 0 },
+                if 3 < res.size { iter[3] } else { 0 },
+                if 4 < res.size { iter[4] } else { 0 },
+                if 5 < res.size { iter[5] } else { 0 },
+                if 6 < res.size { iter[6] } else { 0 },
+                if 7 < res.size { iter[7] } else { 0 },
+                if 8 < res.size { iter[8] } else { 0 },
+                if 9 < res.size { iter[9] } else { 0 },
+                if 10 < res.size { iter[10] } else { 0 },
+                if 11 < res.size { iter[11] } else { 0 },
+                if 12 < res.size { iter[12] } else { 0 },
+                if 13 < res.size { iter[13] } else { 0 },
+                if 14 < res.size { iter[14] } else { 0 },
+                if 15 < res.size { iter[15] } else { 0 },
+            ]
+        }
+        res
+    }
+}
 impl Display for StdString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_ref())

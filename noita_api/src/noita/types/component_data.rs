@@ -1,6 +1,7 @@
 use crate::noita::types::*;
 pub trait Component {
     const NAME: &'static str;
+    const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
 }
 impl Component for SetLightAlphaFromVelocityComponent {
     const NAME: &'static str = "SetLightAlphaFromVelocityComponent";
