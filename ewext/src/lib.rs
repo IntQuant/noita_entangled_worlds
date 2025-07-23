@@ -370,6 +370,16 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
         // Detect module unload. Adapted from NoitaPatcher.
         LUA.lua_newuserdata(lua, 0);
         LUA.lua_createtable(lua, 0, 0);
+        fn __gc(_lua: LuaState) {
+            #[cfg(debug_assertions)]
+            println!(
+                "ewext collected in thread {:?}",
+                std::thread::current().id()
+            );
+            NETMANAGER.lock().unwrap().take();
+            STATE.take();
+        }
+        add_lua_fn!(__gc);
         LUA.lua_setmetatable(lua, -2);
         LUA.lua_setfield(lua, LUA_REGISTRYINDEX, c"luaclose_ewext".as_ptr());
 
