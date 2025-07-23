@@ -1,5 +1,4 @@
 use crate::chunk::Chunks;
-use crate::chunk::SCALE;
 use crate::chunk::{CellType, ChunkPos, Pos};
 use crate::{CHUNK_AMOUNT, State};
 #[cfg(target_arch = "x86")]
@@ -24,16 +23,14 @@ impl State {
             let mean = blob.mean();
             blob.update_pos()?;
             let start = Pos::new(mean.0, mean.1).to_chunk();
-            if !unsafe { self.particle_world_state.assume_init_ref() }
-                .exists::<SCALE>(start.x, start.y)
-                || self
-                    .world
-                    .read(
-                        unsafe { self.particle_world_state.assume_init_ref() },
-                        self.blob_guy,
-                        start,
-                    )
-                    .is_err()
+            if self
+                .world
+                .read(
+                    unsafe { self.particle_world_state.assume_init_ref() },
+                    self.blob_guy,
+                    start,
+                )
+                .is_err()
             {
                 blob.update(start, &mut self.world, mean, false)?;
                 continue 'upper;

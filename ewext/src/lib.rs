@@ -10,7 +10,7 @@ use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
 use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
-    DamageModelComponent, EntityID, VariableStorageComponent,
+    EntityID, VariableStorageComponent,
     lua::{
         LUA, LuaGetValue, LuaState, RawString,
         lua_bindings::{LUA_REGISTRYINDEX, lua_State},
@@ -27,7 +27,6 @@ use std::{
     cell::RefCell,
     ffi::c_int,
     sync::{LazyLock, Mutex, OnceLock, TryLockError},
-    time::Instant,
 };
 use std::{num::NonZero, sync::MutexGuard};
 mod modules;
@@ -281,7 +280,7 @@ fn module_on_projectile_fired(lua: LuaState) -> eyre::Result<()> {
     })
 }
 
-fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
+/*fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     let start = Instant::now();
     let iters = 10000;
     for _ in 0..iters {
@@ -297,9 +296,9 @@ fn bench_fn(_lua: LuaState) -> eyre::Result<()> {
     ));
 
     Ok(())
-}
+}*/
 
-fn test_fn(_lua: LuaState) -> eyre::Result<()> {
+/*fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     let player = EntityID::get_closest_with_tag(0.0, 0.0, "player_unit")?;
     let damage_model: DamageModelComponent = player.get_first_component(None)?;
     let hp = damage_model.hp()?;
@@ -319,16 +318,16 @@ fn test_fn(_lua: LuaState) -> eyre::Result<()> {
     // noita::api::raw::entity_set_transform(player, 0.0, 0.0, 0.0, 1.0, 1.0)?;
 
     Ok(())
-}
+}*/
 
-fn probe(_lua: LuaState) {
+/*fn probe(_lua: LuaState) {
     backtrace::trace(|frame| {
         let _ip = frame.ip() as usize;
         #[cfg(debug_assertions)]
         println!("Probe: 0x{_ip:x}");
         false
     });
-}
+}*/
 
 pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     let lua = LuaState::current()?;
@@ -376,9 +375,9 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         add_lua_fn!(make_ephemerial);
         add_lua_fn!(set_world_num);
-        add_lua_fn!(test_fn);
-        add_lua_fn!(bench_fn);
-        add_lua_fn!(probe);
+        //add_lua_fn!(test_fn);
+        //add_lua_fn!(bench_fn);
+        //add_lua_fn!(probe);
 
         add_lua_fn!(netmanager_connect);
         add_lua_fn!(netmanager_recv);

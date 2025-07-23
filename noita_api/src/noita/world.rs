@@ -1,7 +1,6 @@
 use crate::noita::types;
 use crate::noita::types::StdVec;
 use eyre::ContextCompat;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 #[derive(Debug)]
 pub struct ParticleWorldState {
     pub world_ptr: *mut types::GridWorld,
@@ -20,11 +19,7 @@ impl ParticleWorldState {
         let Some(world) = (unsafe { self.world_ptr.as_mut() }) else {
             return false;
         };
-        world
-            .chunk_map
-            .chunk_array
-            .get(cx >> SCALE, cy >> SCALE)
-            .is_some()
+        world.chunk_map.get(cx >> SCALE, cy >> SCALE).is_some()
     }
     ///# Safety
     #[allow(clippy::type_complexity)]
@@ -35,11 +30,10 @@ impl ParticleWorldState {
         world
             .chunk_map
             .chunk_array
-            .slice()
-            .par_iter()
+            .iter()
             .enumerate()
             .filter_map(|(i, c)| {
-                unsafe { c.0.as_ref() }.map(|c| {
+                unsafe { c.as_ref() }.map(|c| {
                     let x = i as isize % 512 - 256;
                     let y = i as isize / 512 - 256;
                     (
@@ -47,7 +41,7 @@ impl ParticleWorldState {
                         c.data
                             .iter()
                             .map(|p| {
-                                unsafe { p.0.as_ref() }
+                                unsafe { p.as_ref() }
                                     .map(types::FullCell::from)
                                     .unwrap_or_default()
                             })
@@ -65,10 +59,9 @@ impl ParticleWorldState {
         if let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
             .wrap_err("no world")?
             .chunk_map
-            .chunk_array
             .get_mut(x.div_euclid(512), y.div_euclid(512))
         {
-            if let Some(cell) = pixel_array.data.get(x.rem_euclid(512), y.rem_euclid(512)) {
+            if let Some(cell) = pixel_array.get(x.rem_euclid(512), y.rem_euclid(512)) {
                 let full = types::FullCell::from(cell);
                 crate::print!("{full:?}");
             } else {

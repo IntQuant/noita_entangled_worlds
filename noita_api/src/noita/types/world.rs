@@ -318,12 +318,6 @@ impl Cell {
     }
 }
 
-#[repr(transparent)]
-#[derive(Debug)]
-pub struct CellPtr(pub *mut Cell);
-unsafe impl Sync for CellPtr {}
-unsafe impl Send for CellPtr {}
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct FireCell {
@@ -641,30 +635,20 @@ pub struct Color {
     pub a: u8,
 }
 
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct CellArray(pub *mut CellPtr);
-unsafe impl Sync for CellArray {}
-unsafe impl Send for CellArray {}
-
-impl CellArray {
-    #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &CellPtr> {
-        unsafe { slice::from_raw_parts(self.0, 512 * 512) }.iter()
-    }
+impl Chunk {
     #[inline]
     pub fn get(&self, x: isize, y: isize) -> Option<&Cell> {
         let index = (y << 9) | x;
-        unsafe { self.0.offset(index).as_ref()?.0.as_ref() }
+        unsafe { self.data[index.cast_unsigned()].as_ref() }
     }
     #[inline]
-    pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut CellPtr> {
+    pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut Cell> {
         unsafe { self.get_mut_raw(x, y).as_mut() }
     }
     #[inline]
-    pub fn get_mut_raw(&mut self, x: isize, y: isize) -> *mut CellPtr {
+    pub fn get_mut_raw(&mut self, x: isize, y: isize) -> &mut *mut Cell {
         let index = (y << 9) | x;
-        unsafe { self.0.offset(index) }
+        &mut self.data[index.cast_unsigned()]
     }
     #[inline]
     pub fn get_raw_pixel(&self, x: isize, y: isize) -> RawPixel {
@@ -713,53 +697,72 @@ impl CellArray {
 }
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct ChunkMap {
     pub len: usize,
     unknown: isize,
-    pub chunk_array: ChunkArrayPtr,
+    pub chunk_array: &'static mut [*mut Chunk; 512 * 512],
     pub chunk_count: usize,
     pub min_chunk: Vec2i,
     pub max_chunk: Vec2i,
     pub min_pixel: Vec2i,
     pub max_pixel: Vec2i,
 }
+impl Debug for ChunkMap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChunkMap")
+            .field("len", &self.len)
+            .field("unknown", &self.unknown)
+            .field(
+                "chunk_array",
+                &self
+                    .chunk_array
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, a)| unsafe {
+                        a.as_ref().map(|a| (i % 512 - 256, i / 512 - 256, a))
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .field("chunk_count", &self.chunk_count)
+            .field("min_chunk", &self.min_chunk)
+            .field("max_chunk", &self.max_chunk)
+            .field("min_pixel", &self.min_pixel)
+            .field("max_pixel", &self.max_pixel)
+            .finish()
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
 pub struct Chunk {
-    pub data: CellArray,
-    //thought it might make sense if more data but seems like garbage
+    pub data: &'static mut [*mut Cell; 512 * 512],
+}
+impl Debug for Chunk {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Chunk")
+            .field(
+                &self
+                    .data
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, a)| {
+                        unsafe { a.as_ref() }.map(|a| (i % 512, i / 512, a.material.material_type))
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .finish()
+    }
 }
 unsafe impl Sync for Chunk {}
 unsafe impl Send for Chunk {}
-#[repr(transparent)]
-#[derive(Debug)]
-pub struct ChunkPtr(pub *mut Chunk);
-unsafe impl Sync for ChunkPtr {}
-unsafe impl Send for ChunkPtr {}
-#[repr(transparent)]
-#[derive(Debug)]
-pub struct ChunkArrayPtr(pub *mut ChunkPtr);
-unsafe impl Sync for ChunkArrayPtr {}
-unsafe impl Send for ChunkArrayPtr {}
-impl ChunkArrayPtr {
-    #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &ChunkPtr> {
-        self.slice().iter()
-    }
-    #[inline]
-    pub fn slice(&self) -> &'static [ChunkPtr] {
-        unsafe { slice::from_raw_parts(self.0, 512 * 512) }
-    }
+impl ChunkMap {
     #[inline]
     pub fn get(&self, x: isize, y: isize) -> Option<&Chunk> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
-        unsafe { self.0.offset(index).as_ref()?.0.as_ref() }
+        unsafe { self.chunk_array[index.cast_unsigned()].as_ref() }
     }
     #[inline]
     pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut Chunk> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
-        unsafe { self.0.offset(index).as_mut()?.0.as_mut() }
+        unsafe { self.chunk_array[index.cast_unsigned()].as_mut() }
     }
 }
 

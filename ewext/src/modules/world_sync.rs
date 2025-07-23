@@ -68,7 +68,6 @@ impl WorldData for ParticleWorldState {
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
             .wrap_err("no world")?
             .chunk_map
-            .chunk_array
             .get(cx >> SCALE, cy >> SCALE)
         else {
             return Err(eyre!("chunk not loaded"));
@@ -78,7 +77,7 @@ impl WorldData for ParticleWorldState {
             .flat_map(|i| (shift_y..shift_y + CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *p = pixel_array.data.get_compact_pixel(i, j);
+            *p = pixel_array.get_compact_pixel(i, j);
         }
         Ok(())
     }
@@ -88,7 +87,6 @@ impl WorldData for ParticleWorldState {
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
             .wrap_err("no world")?
             .chunk_map
-            .chunk_array
             .get_mut(cx >> SCALE, cy >> SCALE)
         else {
             return Err(eyre!("chunk not loaded"));
@@ -100,50 +98,49 @@ impl WorldData for ParticleWorldState {
         let mut y = 0;
         for run in chunk.runs {
             for _ in 0..run.length {
-                if let Some(cell) = pixel_array.data.get_mut(shift_x + x, shift_y + y) {
-                    let xs = start_x + x;
-                    let ys = start_y + y;
-                    let mat = &self
-                        .material_list
-                        .get_static(run.data.material as usize)
-                        .unwrap();
-                    match mat.cell_type {
-                        CellType::None => {
-                            cell.0 = ptr::null_mut();
-                        }
-                        CellType::Liquid => {
-                            let liquid = Box::leak(Box::new(unsafe {
-                                LiquidCell::create(mat, self.cell_vtables.liquid(), self.world_ptr)
-                            }));
-                            liquid.x = xs;
-                            liquid.y = ys;
-                            cell.0 = (liquid as *mut LiquidCell).cast();
-                        }
-                        CellType::Gas => {
-                            let gas = Box::leak(Box::new(unsafe {
-                                GasCell::create(mat, self.cell_vtables.gas(), self.world_ptr)
-                            }));
-                            gas.x = xs;
-                            gas.y = ys;
-                            cell.0 = (gas as *mut GasCell).cast();
-                        }
-                        CellType::Solid => {}
-                        CellType::Fire => {
-                            let fire = Box::leak(Box::new(unsafe {
-                                FireCell::create(mat, self.cell_vtables.fire(), self.world_ptr)
-                            }));
-                            fire.x = xs;
-                            fire.y = ys;
-                            cell.0 = (fire as *mut FireCell).cast();
-                        }
+                let cell = pixel_array.get_mut_raw(shift_x + x, shift_y + y);
+                let xs = start_x + x;
+                let ys = start_y + y;
+                let mat = &self
+                    .material_list
+                    .get_static(run.data.material as usize)
+                    .unwrap();
+                match mat.cell_type {
+                    CellType::None => {
+                        *cell = ptr::null_mut();
+                    }
+                    CellType::Liquid => {
+                        let liquid = Box::leak(Box::new(unsafe {
+                            LiquidCell::create(mat, self.cell_vtables.liquid(), self.world_ptr)
+                        }));
+                        liquid.x = xs;
+                        liquid.y = ys;
+                        *cell = (liquid as *mut LiquidCell).cast();
+                    }
+                    CellType::Gas => {
+                        let gas = Box::leak(Box::new(unsafe {
+                            GasCell::create(mat, self.cell_vtables.gas(), self.world_ptr)
+                        }));
+                        gas.x = xs;
+                        gas.y = ys;
+                        *cell = (gas as *mut GasCell).cast();
+                    }
+                    CellType::Solid => {}
+                    CellType::Fire => {
+                        let fire = Box::leak(Box::new(unsafe {
+                            FireCell::create(mat, self.cell_vtables.fire(), self.world_ptr)
+                        }));
+                        fire.x = xs;
+                        fire.y = ys;
+                        *cell = (fire as *mut FireCell).cast();
                     }
                 }
-                if x == CHUNK_SIZE as isize {
-                    x = 0;
-                    y += 1;
-                } else {
-                    x += 1;
-                }
+            }
+            if x == CHUNK_SIZE as isize {
+                x = 0;
+                y += 1;
+            } else {
+                x += 1;
             }
         }
         Ok(())
