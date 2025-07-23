@@ -216,7 +216,7 @@ impl ChunkOps for ParticleWorldState {
         let y = cy * CHUNK_SIZE as isize;
         let blob_cell = unsafe {
             Box::new(types::LiquidCell::create(
-                &self.material_list[blob as usize],
+                self.material_list.get_static(blob as usize).unwrap(),
                 self.cell_vtables.liquid(),
                 self.world_ptr,
             ))

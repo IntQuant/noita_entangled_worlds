@@ -103,7 +103,10 @@ impl WorldData for ParticleWorldState {
                 if let Some(cell) = pixel_array.get_mut(shift_x + x, shift_y + y) {
                     let xs = start_x + x;
                     let ys = start_y + y;
-                    let mat = &self.material_list[run.data.material as usize];
+                    let mat = &self
+                        .material_list
+                        .get_static(run.data.material as usize)
+                        .unwrap();
                     match mat.cell_type {
                         CellType::None => {
                             cell.0 = ptr::null_mut();

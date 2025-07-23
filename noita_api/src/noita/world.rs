@@ -1,11 +1,11 @@
 use crate::noita::types;
+use crate::noita::types::StdVec;
 use eyre::ContextCompat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 #[derive(Debug)]
 pub struct ParticleWorldState {
-    pub global_ptr: *mut types::GameGlobal,
     pub world_ptr: *mut types::GridWorld,
-    pub material_list: &'static [types::CellData],
+    pub material_list: StdVec<types::CellData>,
     pub cell_vtables: types::CellVTables,
 }
 unsafe impl Sync for ParticleWorldState {}
@@ -79,16 +79,9 @@ impl ParticleWorldState {
     pub fn new() -> eyre::Result<Self> {
         let (cell_vtables, global_ptr) = crate::noita::init_data::get_functions()?;
         let global = unsafe { global_ptr.as_mut() }.wrap_err("no global?")?;
-        let cell_factory =
-            unsafe { global.m_cell_factory.as_mut() }.wrap_err("no cell factory?")?;
-        let material_list_ptr = cell_factory.cell_data.start;
-        let material_list =
-            unsafe { std::slice::from_raw_parts(material_list_ptr, cell_factory.cell_data.len()) };
-        let world_ptr = global.m_grid_world;
         Ok(ParticleWorldState {
-            global_ptr,
-            world_ptr,
-            material_list,
+            world_ptr: global.m_grid_world,
+            material_list: global.m_cell_factory.cell_data.copy(),
             cell_vtables,
         })
     }

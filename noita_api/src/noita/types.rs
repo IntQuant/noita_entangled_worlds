@@ -15,6 +15,7 @@ use std::alloc::Layout;
 use std::cmp::Ordering;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops::Index;
 use std::{alloc, ptr, slice};
 pub use world::*;
 #[repr(C)]
@@ -179,6 +180,12 @@ pub struct StdVec<T> {
     pub end: *mut T,
     pub cap: *mut T,
 }
+impl<T> Index<usize> for StdVec<T> {
+    type Output = T;
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
 impl<T> AsRef<[T]> for StdVec<T> {
     fn as_ref(&self) -> &[T] {
         unsafe { slice::from_raw_parts(self.start, self.len()) }
@@ -211,6 +218,14 @@ impl<T> StdVec<T> {
     pub fn is_empty(&self) -> bool {
         self.start == self.end
     }
+    pub fn get_static(&self, index: usize) -> Option<&'static T> {
+        let ptr = unsafe { self.start.add(index) };
+        if self.end > ptr {
+            unsafe { ptr.as_ref() }
+        } else {
+            None
+        }
+    }
     pub fn get(&self, index: usize) -> Option<&T> {
         let ptr = unsafe { self.start.add(index) };
         if self.end > ptr {
@@ -233,14 +248,14 @@ impl<T> StdVec<T> {
             let old_cap = self.capacity();
             let new_cap = if old_cap == 0 { 4 } else { old_cap * 2 }; //TODO deal with n > 1
             let layout = Layout::array::<T>(new_cap).unwrap();
-            let new_ptr = unsafe { alloc::alloc(layout) } as *mut T;
+            let new_ptr = unsafe { alloc::alloc(layout) }.cast();
             if old_len > 0 {
                 unsafe {
                     ptr::copy_nonoverlapping(self.start, new_ptr, old_len);
                 }
                 let old_layout = Layout::array::<T>(old_cap).unwrap();
                 unsafe {
-                    alloc::dealloc(self.start as *mut u8, old_layout);
+                    alloc::dealloc(self.start.cast(), old_layout);
                 }
             }
             self.start = new_ptr;
@@ -290,9 +305,9 @@ impl<T> StdVec<T> {
 #[repr(C)]
 #[derive(Debug)]
 pub struct StdMapNode<K, V> {
-    pub left: *const StdMapNode<K, V>,
-    pub parent: *const StdMapNode<K, V>,
-    pub right: *const StdMapNode<K, V>,
+    pub left: *mut StdMapNode<K, V>,
+    pub parent: *mut StdMapNode<K, V>,
+    pub right: *mut StdMapNode<K, V>,
     pub color: bool,
     pub end: bool,
     unk: [u8; 2],
@@ -315,7 +330,7 @@ impl<K: Debug + 'static, V: Debug + 'static> Debug for StdMap<K, V> {
 
 #[derive(Debug)]
 pub struct StdMapIter<K, V> {
-    pub root: *const StdMapNode<K, V>,
+    pub root: *mut StdMapNode<K, V>,
     pub current: *const StdMapNode<K, V>,
     pub parents: Vec<*const StdMapNode<K, V>>,
 }
