@@ -99,14 +99,18 @@ pub struct Mods {
 }
 #[derive(Debug)]
 #[repr(C)]
+pub struct ModVTable {}
+#[derive(Debug)]
+#[repr(C)]
 pub struct Mod {
     unk: [usize; 14],
-    player_spawn: LuaFunc,
+    pub lua_data: &'static ModLua,
+    pub vtable: &'static ModVTable,
     unk2: [usize; 8],
 }
 #[derive(Debug)]
 #[repr(C)]
-pub struct LuaFunc {
+pub struct ModLua {
     unk: [usize; 14],
-    lua_ptr: *const LuaState,
+    pub lua_state: *const LuaState,
 }

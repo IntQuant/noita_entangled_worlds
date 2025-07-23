@@ -44,7 +44,8 @@ impl ParticleWorldState {
                     let y = i as isize / 512 - 256;
                     (
                         (x, y),
-                        c.iter()
+                        c.data
+                            .iter()
                             .map(|p| {
                                 unsafe { p.0.as_ref() }
                                     .map(types::FullCell::from)
@@ -67,7 +68,7 @@ impl ParticleWorldState {
             .chunk_array
             .get_mut(x.div_euclid(512), y.div_euclid(512))
         {
-            if let Some(cell) = pixel_array.get(x.rem_euclid(512), y.rem_euclid(512)) {
+            if let Some(cell) = pixel_array.data.get(x.rem_euclid(512), y.rem_euclid(512)) {
                 let full = types::FullCell::from(cell);
                 crate::print!("{full:?}");
             } else {

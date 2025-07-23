@@ -3,9 +3,8 @@ use crate::modules::{Module, ModuleCtx};
 use eyre::{ContextCompat, eyre};
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell};
 use noita_api::noita::world::ParticleWorldState;
-use shared::NoitaOutbound;
 use shared::world_sync::{
-    CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, ProxyToWorldSync, WorldSyncToProxy,
+    CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, ProxyToWorldSync,
 };
 use std::mem::MaybeUninit;
 use std::ptr;
@@ -14,8 +13,8 @@ impl Module for WorldSync {
         self.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
         Ok(())
     }
-    fn on_world_update(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
-        let update = NoitaWorldUpdate {
+    fn on_world_update(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
+        /*let update = NoitaWorldUpdate {
             coord: ChunkCoord(0, 0),
             runs: Vec::with_capacity(16384),
         };
@@ -27,7 +26,7 @@ impl Module for WorldSync {
         }
         std::hint::black_box(upd);
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(vec![update]));
-        ctx.net.send(&msg)?;
+        ctx.net.send(&msg)?;*/
         Ok(())
     }
 }
@@ -50,6 +49,7 @@ impl WorldSync {
     }
 }
 pub const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
+#[allow(unused)]
 trait WorldData {
     unsafe fn encode_world(
         &self,
@@ -78,7 +78,7 @@ impl WorldData for ParticleWorldState {
             .flat_map(|i| (shift_y..shift_y + CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *p = pixel_array.get_compact_pixel(i, j);
+            *p = pixel_array.data.get_compact_pixel(i, j);
         }
         Ok(())
     }
@@ -100,7 +100,7 @@ impl WorldData for ParticleWorldState {
         let mut y = 0;
         for run in chunk.runs {
             for _ in 0..run.length {
-                if let Some(cell) = pixel_array.get_mut(shift_x + x, shift_y + y) {
+                if let Some(cell) = pixel_array.data.get_mut(shift_x + x, shift_y + y) {
                     let xs = start_x + x;
                     let ys = start_y + y;
                     let mat = &self

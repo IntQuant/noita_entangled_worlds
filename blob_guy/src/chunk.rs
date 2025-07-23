@@ -164,7 +164,7 @@ impl ChunkOps for ParticleWorldState {
             .flat_map(|i| (0..CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *pixel = if let Some(cell) = pixel_array.get(shift_x + i, shift_y + j) {
+            *pixel = if let Some(cell) = pixel_array.data.get(shift_x + i, shift_y + j) {
                 match cell.material.cell_type {
                     types::CellType::Liquid => {
                         if cell.material.material_type as u16 == blob {
@@ -229,7 +229,7 @@ impl ChunkOps for ParticleWorldState {
                 CellType::Blob => {
                     let world_x = x + i;
                     let world_y = y + j;
-                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                    if let Some(cell) = pixel_array.data.get_mut(shift_x + i, shift_y + j) {
                         let new = Box::leak(blob_cell.clone());
                         new.x = world_x;
                         new.y = world_y;
@@ -237,7 +237,7 @@ impl ChunkOps for ParticleWorldState {
                     }
                 }
                 CellType::Remove => {
-                    if let Some(cell) = pixel_array.get_mut(shift_x + i, shift_y + j) {
+                    if let Some(cell) = pixel_array.data.get_mut(shift_x + i, shift_y + j) {
                         cell.0 = std::ptr::null_mut()
                     }
                 }

@@ -28,6 +28,7 @@ pub struct CellGraphics {
     unknown: [isize; 6],
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct StatusEffect {
     pub id: isize,
     pub duration: f32,
@@ -318,23 +319,8 @@ impl Cell {
 }
 
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct CellPtr(pub *mut Cell);
-impl Debug for CellPtr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let c = unsafe { self.0.as_ref() };
-        let Some(c) = c else {
-            return write!(f, "{c:?}");
-        };
-        write!(
-            f,
-            "CellPtr{{{:?}}}",
-            format!("{c:?}")
-                .split_once("material_ptr")
-                .unwrap_or_default()
-                .0
-        )
-    }
-}
 unsafe impl Sync for CellPtr {}
 unsafe impl Send for CellPtr {}
 
@@ -517,32 +503,37 @@ impl Cell {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GameWorld {
-    pub cam_x1: f32,
-    pub cam_y1: f32,
-    pub cam_x2: f32,
-    pub cam_y2: f32,
+    pub cam1: Vec2,
+    pub cam2: Vec2,
     unknown1: [isize; 13],
     pub grid_world: &'static mut GridWorld,
     //likely more data
 }
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct CellFactory {
     unknown1: isize,
-    pub material_ids: StdVec<StdString>,
-    pub material_id_indices: StdMap<StdString, usize>,
+    pub material_names: StdVec<StdString>,
+    pub material_ids: StdMap<StdString, usize>,
     pub cell_data: StdVec<CellData>,
     pub material_count: usize,
     unknown2: isize,
     pub reaction_lookup: ReactionLookupTable,
     pub fast_reaction_lookup: ReactionLookupTable,
     pub req_reactions: StdVec<CellReactionBuf>,
-    pub materials_by_tag: StdMap<StdString, StdVec<*const CellData>>,
-    unknown3: StdVec<*const StdVec<*const c_void>>,
-    pub fire_cell_data: *const CellData,
+    pub materials_by_tag: StdMap<StdString, StdVec<&'static CellData>>,
+    unknown3: StdVec<*mut StdVec<*mut c_void>>,
+    pub fire_cell_data: &'static CellData,
     unknown4: [usize; 4],
     pub fire_material_id: usize,
+}
+
+impl Debug for CellFactory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("CellFactory")
+            .field(&"too large to debug")
+            .finish()
+    }
 }
 
 #[repr(C)]
@@ -552,15 +543,29 @@ pub struct ReactionLookupTable {
     pub height: usize,
     pub len: usize,
     unknown: [usize; 5],
-    pub storage: *const CellReactionBuf,
-    unknown2: usize,
+    pub storage: *mut CellReactionBuf,
+    unk_len: usize,
     unknown3: usize,
+}
+
+impl AsRef<[CellReactionBuf]> for ReactionLookupTable {
+    fn as_ref(&self) -> &'static [CellReactionBuf] {
+        unsafe { slice::from_raw_parts(self.storage, self.len) }
+    }
+}
+
+impl ReactionLookupTable {
+    pub fn iter(&self) -> impl Iterator<Item = &'static [CellReaction]> {
+        self.as_ref()
+            .iter()
+            .map(|b| unsafe { slice::from_raw_parts(b.base, b.len) })
+    }
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct CellReactionBuf {
-    pub base: *const CellReaction,
+    pub base: *mut CellReaction,
     pub len: usize,
     pub cap: usize,
 }
@@ -636,22 +641,13 @@ pub struct Color {
     pub a: u8,
 }
 
+#[derive(Debug)]
 #[repr(transparent)]
-pub struct ChunkPtr(pub *mut CellPtr);
-impl Debug for ChunkPtr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "ChunkPtr {{{:?} {:?}}}",
-            self.0,
-            self.iter().filter(|c| !c.0.is_null()).count(),
-        )
-    }
-}
-unsafe impl Sync for ChunkPtr {}
-unsafe impl Send for ChunkPtr {}
+pub struct CellArray(pub *mut CellPtr);
+unsafe impl Sync for CellArray {}
+unsafe impl Send for CellArray {}
 
-impl ChunkPtr {
+impl CellArray {
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &CellPtr> {
         unsafe { slice::from_raw_parts(self.0, 512 * 512) }.iter()
@@ -717,60 +713,53 @@ impl ChunkPtr {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct ChunkMap {
-    unknown: [isize; 2],
+    pub len: usize,
+    unknown: isize,
     pub chunk_array: ChunkArrayPtr,
-    unknown2: [isize; 8],
+    pub chunk_count: usize,
+    pub min_chunk: Vec2i,
+    pub max_chunk: Vec2i,
+    pub min_pixel: Vec2i,
+    pub max_pixel: Vec2i,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct Chunk {
+    pub data: CellArray,
+    //thought it might make sense if more data but seems like garbage
+}
+unsafe impl Sync for Chunk {}
+unsafe impl Send for Chunk {}
 #[repr(transparent)]
 #[derive(Debug)]
-pub struct ChunkPtrPtr(pub *mut ChunkPtr);
-unsafe impl Sync for ChunkPtrPtr {}
-unsafe impl Send for ChunkPtrPtr {}
+pub struct ChunkPtr(pub *mut Chunk);
+unsafe impl Sync for ChunkPtr {}
+unsafe impl Send for ChunkPtr {}
 #[repr(transparent)]
 #[derive(Debug)]
-pub struct ChunkArrayPtr(pub *mut ChunkPtrPtr);
+pub struct ChunkArrayPtr(pub *mut ChunkPtr);
 unsafe impl Sync for ChunkArrayPtr {}
 unsafe impl Send for ChunkArrayPtr {}
 impl ChunkArrayPtr {
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &ChunkPtrPtr> {
-        unsafe { slice::from_raw_parts(self.0, 512 * 512) }.iter()
+    pub fn iter(&self) -> impl Iterator<Item = &ChunkPtr> {
+        self.slice().iter()
     }
     #[inline]
-    pub fn slice(&self) -> &'static [ChunkPtrPtr] {
+    pub fn slice(&self) -> &'static [ChunkPtr] {
         unsafe { slice::from_raw_parts(self.0, 512 * 512) }
     }
     #[inline]
-    pub fn get(&self, x: isize, y: isize) -> Option<&ChunkPtr> {
+    pub fn get(&self, x: isize, y: isize) -> Option<&Chunk> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
         unsafe { self.0.offset(index).as_ref()?.0.as_ref() }
     }
     #[inline]
-    pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut ChunkPtr> {
+    pub fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut Chunk> {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
         unsafe { self.0.offset(index).as_mut()?.0.as_mut() }
-    }
-}
-impl Debug for ChunkMap {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "ChunkMap {{ unknown: {:?}, cell_array: {{{}}} ,unknown2: {:?} }}",
-            self.unknown,
-            self.chunk_array
-                .iter()
-                .enumerate()
-                .filter(|(_, c)| !c.0.is_null())
-                .map(|(i, c)| {
-                    let x = i as isize % 512 - 256;
-                    let y = i as isize / 512 - 256;
-                    format!("{i}: {{ x: {x}, y: {y}, {c:?}}}",)
-                })
-                .collect::<Vec<String>>()
-                .join(", "),
-            self.unknown2
-        )
     }
 }
 
@@ -821,14 +810,12 @@ pub struct GridWorld {
     pub vtable: &'static GridWorldVTable,
     pub rng: isize,
     unk: [isize; 292],
-    pub cam_x: isize,
-    pub cam_y: isize,
-    pub cam_w: isize,
-    pub cam_h: isize,
+    pub cam_pos: Vec2i,
+    pub cam_dimen: Vec2i,
     unknown: [isize; 21],
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
-    unknown2: [isize; 41],
+    unknown2: [isize; 40],
     pub m_thread_impl: &'static mut GridWorldThreaded,
 }
 #[repr(C)]
