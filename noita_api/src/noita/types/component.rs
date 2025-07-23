@@ -5,14 +5,14 @@ use crate::noita::types::{
 #[derive(Debug)]
 pub struct ComponentData {
     pub vtable: &'static ComponentVTable,
-    unk1: isize,
+    pub local_id: usize,
     pub type_name: CString,
-    pub type_id: isize,
-    pub id: isize,
+    pub type_id: usize,
+    pub id: usize,
     pub enabled: bool,
     unk2: [u8; 3],
     pub tags: BitSet<8>,
-    unk3: [isize; 4],
+    unk3: [usize; 4],
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -60,9 +60,9 @@ pub struct ComponentManager {
     pub end: usize,
     unk: [isize; 2],
     pub entity_entry: StdVec<usize>,
-    unk2: [isize; 6],
-    pub next: *mut usize,
-    unk3: [isize; 2],
+    unk2: StdVec<usize>,
+    pub prev: StdVec<usize>,
+    pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
 }
 impl ComponentManager {
@@ -71,18 +71,14 @@ impl ComponentManager {
             ComponentIter {
                 component_list: self.component_list.copy(),
                 off: *off,
-                next: self.next,
+                next: self.next.copy(),
                 end: self.end,
             }
         } else {
             ComponentIter {
-                component_list: StdVec {
-                    start: std::ptr::null_mut(),
-                    end: std::ptr::null_mut(),
-                    cap: std::ptr::null_mut(),
-                },
+                component_list: StdVec::null(),
                 off: 0,
-                next: std::ptr::null_mut(),
+                next: StdVec::null(),
                 end: 0,
             }
         }
@@ -92,18 +88,14 @@ impl ComponentManager {
             ComponentIterMut {
                 component_list: self.component_list.copy(),
                 off: *off,
-                next: self.next,
+                next: self.next.copy(),
                 end: self.end,
             }
         } else {
             ComponentIterMut {
-                component_list: StdVec {
-                    start: std::ptr::null_mut(),
-                    end: std::ptr::null_mut(),
-                    cap: std::ptr::null_mut(),
-                },
+                component_list: StdVec::null(),
                 off: 0,
-                next: std::ptr::null_mut(),
+                next: StdVec::null(),
                 end: 0,
             }
         }
@@ -175,7 +167,7 @@ pub struct ComponentIter {
     component_list: StdVec<*mut ComponentData>,
     off: usize,
     end: usize,
-    next: *const usize,
+    next: StdVec<usize>,
 }
 
 impl Iterator for ComponentIter {
@@ -186,7 +178,7 @@ impl Iterator for ComponentIter {
                 return None;
             }
             let com = self.component_list.get(self.off)?.as_ref();
-            self.off = self.next.add(self.off).read();
+            self.off = *self.next.get(self.off)?;
             com
         }
     }
@@ -196,7 +188,7 @@ pub struct ComponentIterMut {
     component_list: StdVec<*mut ComponentData>,
     off: usize,
     end: usize,
-    next: *const usize,
+    next: StdVec<usize>,
 }
 
 impl Iterator for ComponentIterMut {
@@ -207,7 +199,7 @@ impl Iterator for ComponentIterMut {
                 return None;
             }
             let com = self.component_list.get(self.off)?.as_mut();
-            self.off = self.next.add(self.off).read();
+            self.off = *self.next.get(self.off)?;
             com
         }
     }

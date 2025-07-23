@@ -81,7 +81,7 @@ impl From<&str> for StdString {
     }
 }
 impl StdString {
-    const fn from_str(value: &'static str) -> Self {
+    pub const fn from_str(value: &'static str) -> Self {
         let mut res = StdString {
             buffer: Buffer {
                 sso_buffer: [0; 16],
@@ -202,6 +202,13 @@ impl<T: Debug> Debug for StdVec<T> {
     }
 }
 impl<T> StdVec<T> {
+    pub fn null() -> Self {
+        Self {
+            start: ptr::null_mut(),
+            end: ptr::null_mut(),
+            cap: ptr::null_mut(),
+        }
+    }
     pub fn copy(&self) -> Self {
         Self {
             start: self.start,

@@ -46,7 +46,7 @@ impl EntityManager {
             .filter(|c| c.tags.has_tag(tag_manager, tag))
             .for_each(|c| c.enabled = enabled)
     }
-    pub fn get_entity_with_tag(
+    pub fn get_entities_with_tag(
         &self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
@@ -59,7 +59,7 @@ impl EntityManager {
             .iter()
             .filter_map(|e| unsafe { e.as_ref() })
     }
-    pub fn get_entity_with_tag_mut(
+    pub fn get_entities_with_tag_mut(
         &mut self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
@@ -286,14 +286,14 @@ impl EntityManager {
         self.iter_component_managers_mut()
             .flat_map(move |c| c.iter_components_mut(entry))
     }
-    pub fn get_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
+    pub fn iter_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
         self.entities
             .as_ref()
             .iter()
             .filter_map(|e| unsafe { e.as_ref() })
             .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
     }
-    pub fn get_in_radius_with_tag(
+    pub fn iter_in_radius_with_tag(
         &self,
         tag_manager: &TagManager<u16>,
         pos: Vec2,
@@ -311,7 +311,7 @@ impl EntityManager {
         .filter_map(|e| unsafe { e.as_ref() })
         .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
     }
-    pub fn get_in_radius_mut(
+    pub fn iter_in_radius_mut(
         &mut self,
         pos: Vec2,
         radius: f32,
@@ -322,7 +322,7 @@ impl EntityManager {
             .filter_map(|e| unsafe { e.as_mut() })
             .filter(move |e| pos.abs2(&e.transform.pos) < radius * radius)
     }
-    pub fn get_in_radius_with_tag_mut(
+    pub fn iter_in_radius_with_tag_mut(
         &mut self,
         tag_manager: &TagManager<u16>,
         pos: Vec2,
@@ -447,7 +447,7 @@ pub struct Entity {
     pub id: usize,
     pub entry: usize,
     pub filename_index: usize,
-    pub kill_flag: isize,
+    pub kill_flag: usize,
     unknown1: isize,
     pub name: StdString,
     unknown2: isize,
@@ -695,13 +695,13 @@ pub struct Inventory {
     unk7b2: bool,
     unk7b3: bool,
     padding: u8,
-    pub item_near: isize,
+    pub item_near: usize,
     unk9b1: bool,
     unk9b2: bool,
     unk9b3: bool,
     padding2: u8,
     unk10: [*mut isize; 3],
-    pub pickup_state: isize,
+    pub pickup_state: usize,
     pub wand_pickup: *mut Entity,
     unk14: isize,
     unk15: [*mut [isize; 18]; 3],
