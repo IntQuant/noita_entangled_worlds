@@ -153,7 +153,7 @@ impl Ord for StdString {
     }
 }
 #[repr(transparent)]
-pub struct CString(*mut u8);
+pub struct CString(pub *const u8);
 impl Display for CString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut string = String::new();

@@ -1,3 +1,4 @@
+use crate::lua::LuaState;
 use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
 #[derive(Debug)]
 pub struct GlobalStatsVTable {}
@@ -90,4 +91,22 @@ pub struct Language {
     pub ui_action_info_offset2: f32,
     pub ui_configurecontrols_offset2: f32,
     pub strings: StdVec<StdString>,
+}
+#[derive(Debug)]
+#[repr(C)]
+pub struct Mods {
+    pub list: StdVec<Mod>,
+}
+#[derive(Debug)]
+#[repr(C)]
+pub struct Mod {
+    unk: [usize; 14],
+    player_spawn: LuaFunc,
+    unk2: [usize; 8],
+}
+#[derive(Debug)]
+#[repr(C)]
+pub struct LuaFunc {
+    unk: [usize; 14],
+    lua_ptr: *const LuaState,
 }

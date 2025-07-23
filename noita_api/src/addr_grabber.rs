@@ -2,8 +2,8 @@ use std::{os::raw::c_void, ptr};
 
 use crate::lua::LuaState;
 use crate::noita::types::{
-    ComponentTypeManager, EntityManager, GameGlobal, GlobalStats, Inventory, Platform, StdString,
-    StdVec, TagManager, TranslationManager,
+    ComponentTypeManager, EntityManager, GameGlobal, GlobalStats, Inventory, Mods, Platform,
+    StdString, StdVec, TagManager, TranslationManager,
 };
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 
@@ -50,6 +50,7 @@ pub struct GlobalsRef {
     pub global_stats: &'static GlobalStats,
     pub filenames: &'static StdVec<StdString>,
     pub inventory: &'static Inventory,
+    pub mods: &'static Mods,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -65,6 +66,7 @@ pub struct GlobalsMut {
     pub global_stats: &'static mut GlobalStats,
     pub filenames: &'static mut StdVec<StdString>,
     pub inventory: &'static mut Inventory,
+    pub mods: &'static mut Mods,
 }
 
 #[derive(Debug, Default)]
@@ -81,6 +83,7 @@ pub struct Globals {
     pub global_stats: *mut GlobalStats,
     pub filenames: *mut StdVec<StdString>,
     pub inventory: *mut Inventory,
+    pub mods: *mut Mods,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -126,6 +129,9 @@ impl Globals {
     pub fn inventory(&self) -> &'static Inventory {
         unsafe { self.inventory.as_ref().unwrap() }
     }
+    pub fn mods(&self) -> &'static Mods {
+        unsafe { self.mods.as_ref().unwrap() }
+    }
     pub fn world_seed_mut(&self) -> &'static mut usize {
         unsafe { self.world_seed.as_mut().unwrap() }
     }
@@ -168,6 +174,9 @@ impl Globals {
     pub fn inventory_mut(&self) -> &'static mut Inventory {
         unsafe { self.inventory.as_mut().unwrap() }
     }
+    pub fn mods_mut(&self) -> &'static mut Mods {
+        unsafe { self.mods.as_mut().unwrap() }
+    }
     pub fn as_ref(&self) -> GlobalsRef {
         GlobalsRef {
             world_seed: self.world_seed(),
@@ -182,6 +191,7 @@ impl Globals {
             global_stats: self.global_stats(),
             filenames: self.filenames(),
             inventory: self.inventory(),
+            mods: self.mods(),
         }
     }
     pub fn as_mut(&self) -> GlobalsMut {
@@ -198,6 +208,7 @@ impl Globals {
             global_stats: self.global_stats_mut(),
             filenames: self.filenames_mut(),
             inventory: self.inventory_mut(),
+            mods: self.mods_mut(),
         }
     }
     pub fn new(lua: LuaState) -> Self {
@@ -218,6 +229,7 @@ impl Globals {
         let platform = 0x1221bc0 as *mut Platform;
         let filenames = 0x1207bd4 as *mut StdVec<StdString>;
         let inventory = 0x12224f0 as *mut Inventory;
+        let mods = 0x1207e9c as *mut Mods;
         Self {
             world_seed,
             new_game_count,
@@ -231,6 +243,7 @@ impl Globals {
             global_stats,
             filenames,
             inventory,
+            mods,
         }
     }
 }
