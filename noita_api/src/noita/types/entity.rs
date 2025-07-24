@@ -1,5 +1,7 @@
 use crate::noita::types::component::{ComponentData, ComponentManager};
-use crate::noita::types::{Component, ComponentTypeManager, StdMap, StdString, StdVec, Vec2};
+use crate::noita::types::{
+    Component, ComponentTypeManager, Inventory2Component, StdMap, StdString, StdVec, Vec2,
+};
 use std::{mem, slice};
 impl EntityManager {
     pub fn set_all_components(&mut self, ent: &mut Entity, enabled: bool) {
@@ -690,7 +692,7 @@ pub struct Inventory {
     pub inventory_full: *mut Entity,
     pub held_item_id: usize,
     pub switch_item_id: isize,
-    unk6: isize,
+    pub inventory_component: *mut Inventory2Component,
     unk7b1: bool,
     pub item_placed: bool,
     unk7b3: bool,
