@@ -1,5 +1,5 @@
 use crate::noita::types::{
-    BitSet, CString, Component, EntityManager, StdMap, StdString, StdVec, TagManager,
+    BitSet, CString, Component, Entity, EntityManager, StdMap, StdString, StdVec, TagManager,
 };
 #[repr(C)]
 #[derive(Debug)]
@@ -60,7 +60,7 @@ pub struct ComponentManager {
     pub end: usize,
     unk: [isize; 2],
     pub entity_entry: StdVec<usize>,
-    unk2: StdVec<usize>,
+    pub entities: StdVec<*mut Entity>,
     pub prev: StdVec<usize>,
     pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
