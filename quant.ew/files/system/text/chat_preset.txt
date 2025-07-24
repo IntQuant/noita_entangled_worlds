@@ -1,5 +1,6 @@
 [4522239,4522237] neocortex: chat history will now be saved at AppData/Roaming/Noita Proxy/data/ew_chat.txt
 [4522239,4522237] : and is disablable in in-game options
+[4522239,4522237] neocortex: don't freak out if you see 2 cmd blinks - they are cheking for file path existance
 [4522239,4522237] neocortex: chat is scrollable by mousewhell or up/down arrow keys
 [4522239,4522237] neocortex: chat supports ctrl + arrow keys/backspace/delete
-[4522239,4522237] neocortex: this messages wont appear again unless you delete your chat history file
+[4522239,4522237] neocortex: this messages won't appear again unless you delete your chat history file

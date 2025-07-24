@@ -24,9 +24,20 @@ local in_camera_ref
 local appdata = os.getenv("APPDATA")
 local chatHistoryFileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
 
+local function fileExist(path)
+    local file = io.open(path, "r")
+    if file then
+        file:close()
+        return true
+    end
+    return false
+end
+
 -- create path to chat history file with 2 cmd jumpscares
-os.execute('mkdir "' .. appdata .. '\\Noita Proxy" 2>nul')
-os.execute('mkdir "' .. appdata .. '\\Noita Proxy\\data" 2>nul')
+if (not fileExist(chatHistoryFileName)) and ModSettingGet("quant.ew.texthistory") then
+    os.execute('mkdir "' .. appdata .. '\\Noita Proxy" 2>nul')
+    os.execute('mkdir "' .. appdata .. '\\Noita Proxy\\data" 2>nul')
+end
 
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
@@ -86,7 +97,7 @@ local function wrapText(msg, maxWidth, senderWidth)
     return wrappedLines
 end
 
-local function getFileLineCount(chatHistoryFileName)
+local function getFileLineCount(fileName)
     local lineCount = 0
     local file = io.open(chatHistoryFileName, "r")
 
@@ -100,7 +111,7 @@ local function getFileLineCount(chatHistoryFileName)
     return lineCount
 end
 
-local function trimFile(chatHistoryFileName)
+local function trimFile(fileName)
     local file = io.open(chatHistoryFileName, "r")
     local lines = {}
     
@@ -141,7 +152,7 @@ local function saveMessageToFile(sender, message, color, colorAlt)
     file:close()
 end
 
-local function isFileEmpty(chatHistoryFileName)
+local function isFileEmpty(fileName)
     local file = io.open(chatHistoryFileName, "r")
     if not file then
         return true
@@ -157,14 +168,14 @@ local function copyPresetChatHistory()
     local presetFileName = "mods/quant.ew/files/system/text/chat_preset.txt"
 
     local presetFile = io.open(presetFileName, "r")
-    chatHistoryFile = io.open(chatHistoryFileName, "a")
+    local file = io.open(chatHistoryFileName, "a")
 
-    if presetFile and chatHistoryFile then
+    if presetFile and file then
         for line in presetFile:lines() do
-            chatHistoryFile:write(line .. "\n")
+            file:write(line .. "\n")
         end
         presetFile:close()
-        chatHistoryFile:close()
+        file:close()
     end
 end
 
@@ -212,13 +223,13 @@ local function loadChatHistory()
     currentMessageIndex = math.max(1, #chatMessages - visibleLines + 1)
 end
 
-if ModSettingGet("quant.ew.clearhistory") then
+if ModSettingGet("quant.ew.clearhistory") == true then
     chatMessages = {}
     os.remove(chatHistoryFileName)
     ModSettingSetNextValue("quant.ew.clearhistory", "false", false)
 end
 
-if not ModSettingGet("quant.ew.texthistory") and chatHistoryFile then
+if not ModSettingGet("quant.ew.texthistory") and fileExist(chatHistoryFileName) then
     os.remove(chatHistoryFileName)
 end
 
@@ -235,7 +246,7 @@ local function saveMessage(sender, message, color, colorAlt)
         if isFirstLine then
             table.insert(chatMessages, { sender = sender, message = line, color = color, colorAlt = colorAlt })
             if ModSettingGet("quant.ew.texthistory") then
-                saveMessageToFile("", line, color, colorAlt)
+                saveMessageToFile(sender, line, color, colorAlt)
             end
             isFirstLine = false
         else
@@ -286,15 +297,15 @@ local function renderChat()
             for _, line in ipairs(wrappedMessage) do
                 if not senderRendered and msg.sender ~= "" then
                     local senderR, senderG, senderB = getColorComponents(msg.color)
-                    local lighten_senderR, lighten_senderG, lighten_senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
-                    GuiColorSetForNextWidget(gui, lighten_senderR / 255, lighten_senderG / 255, lighten_senderB / 255, 1)
+                    local senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
+                    GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
                     GuiText(gui, 128, startY, string.format("%s: ", msg.sender))
                     senderRendered = true
                 end
 
                 local textR, textG, textB = getColorComponents(msg.colorAlt)
-                local lighten_textR, lighten_textG, lighten_textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                GuiColorSetForNextWidget(gui, lighten_textR / 255, lighten_textG / 255, lighten_textB / 255, 1)
+                local textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
+                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
                 GuiText(gui, senderRendered and (128 + senderWidth) or 128, startY, line)
                 startY = startY + lineHeight
             end
@@ -444,17 +455,19 @@ local function utf8_prev(str, pos)
     pos = pos - 1
     while pos > 1 do
         local c = str:byte(pos)
-        if c and (c < 0x80 or c >= 0xC0) then
+        if not c then
+            break
+        end
+        if c < 0x80 or c >= 0xC0 then
             return pos
         end
         pos = pos - 1
     end
-    return 1
+    return pos
 end
 
 function module.on_world_update()
-
-
+    
     if #chatMessages == 0 and ModSettingGet("quant.ew.texthistory") then
         loadChatHistory()
     end
@@ -515,16 +528,16 @@ function module.on_world_update()
         end
 
         if InputIsKeyJustDown(42) and cursorPos - 1 >= 0 then -- backspace
-            text = string.sub(text, 1, utf8_prev(text, cursorPos + 1) - 1) .. string.sub(text, cursorPos + 1)
-            cursorPos = utf8_prev(text, cursorPos + 1) - 1
-            if cursorPos < 0 then cursorPos = 0 end
+            local dummy = utf8_prev(text, cursorPos + 1)
+            text = string.sub(text, 1, dummy - 1) .. string.sub(text, cursorPos + 1)
+            cursorPos = dummy - 1
             counterB = 10
         elseif InputIsKeyDown(42) and cursorPos - 1 >= 0 then
             counterB = counterB + 1
             if counterB == 3 then
-                text = string.sub(text, 1, utf8_prev(text, cursorPos + 1) - 1) .. string.sub(text, cursorPos + 1)
-                cursorPos = utf8_prev(text, cursorPos + 1) - 1
-                if cursorPos < 0 then cursorPos = 0 end
+                local dummy = utf8_prev(text, cursorPos + 1)
+                text = string.sub(text, 1, dummy - 1) .. string.sub(text, cursorPos + 1)
+                cursorPos = dummy - 1
                 counterB = 0
             elseif counterB == 30 then -- delay for deleting only 1 character
                 counterB = 0
