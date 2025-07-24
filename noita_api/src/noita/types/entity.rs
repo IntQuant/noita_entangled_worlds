@@ -274,6 +274,14 @@ impl EntityManager {
             .get_first_disabled_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
+    pub fn iter_every_component(&self) -> impl Iterator<Item = &'static ComponentData> {
+        self.iter_component_buffers()
+            .flat_map(move |c| c.iter_every_component())
+    }
+    pub fn iter_every_component_mut(&mut self) -> impl Iterator<Item = &'static mut ComponentData> {
+        self.iter_component_buffers_mut()
+            .flat_map(move |c| c.iter_every_component_mut())
+    }
     pub fn iter_all_components(
         &self,
         entry: usize,
@@ -449,7 +457,8 @@ pub struct Entity {
     pub id: usize,
     pub entry: usize,
     pub filename_index: usize,
-    pub kill_flag: usize,
+    pub kill_flag: bool,
+    padding: [u8; 3],
     unknown1: isize,
     pub name: StdString,
     unknown2: isize,
@@ -469,7 +478,7 @@ pub struct Transform {
 
 impl Entity {
     pub fn kill(&mut self) {
-        self.kill_flag = 1;
+        self.kill_flag = true;
         self.iter_children_mut().for_each(|e| e.kill());
     }
     pub fn kill_safe(&mut self, inventory: &mut Inventory) {

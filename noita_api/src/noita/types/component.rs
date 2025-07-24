@@ -101,6 +101,18 @@ impl ComponentBuffer {
             }
         }
     }
+    pub fn iter_every_component(&self) -> impl Iterator<Item = &'static ComponentData> {
+        self.component_list
+            .as_ref()
+            .iter()
+            .filter_map(|c| unsafe { c.as_ref() })
+    }
+    pub fn iter_every_component_mut(&mut self) -> impl Iterator<Item = &'static mut ComponentData> {
+        self.component_list
+            .as_mut()
+            .iter_mut()
+            .filter_map(|c| unsafe { c.as_mut() })
+    }
     pub fn iter_components_with_tag(
         &self,
         tag_manager: &TagManager<u8>,
