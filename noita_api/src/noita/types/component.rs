@@ -28,34 +28,34 @@ pub struct ComponentManagerVTable {
 #[derive(Debug)]
 pub struct ComponentTypeManager {
     pub next_id: usize,
-    pub component_manager_indices: StdMap<StdString, usize>,
+    pub component_buffer_indices: StdMap<StdString, usize>,
 }
 impl ComponentTypeManager {
-    pub fn get<C: Component>(&self, entity_manager: &EntityManager) -> &ComponentManager {
+    pub fn get<C: Component>(&self, entity_manager: &EntityManager) -> &ComponentBuffer {
         let index = self
-            .component_manager_indices
+            .component_buffer_indices
             .get(C::STD_NAME)
             .copied()
             .unwrap();
-        let mgr = entity_manager.component_managers.get(index).unwrap();
+        let mgr = entity_manager.component_buffers.get(index).unwrap();
         unsafe { mgr.as_ref() }.unwrap()
     }
     pub fn get_mut<C: Component>(
         &mut self,
         entity_manager: &mut EntityManager,
-    ) -> &mut ComponentManager {
+    ) -> &mut ComponentBuffer {
         let index = self
-            .component_manager_indices
+            .component_buffer_indices
             .get(C::STD_NAME)
             .copied()
             .unwrap();
-        let mgr = entity_manager.component_managers.get(index).unwrap();
+        let mgr = entity_manager.component_buffers.get(index).unwrap();
         unsafe { mgr.as_mut() }.unwrap()
     }
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentManager {
+pub struct ComponentBuffer {
     pub vtable: &'static ComponentManagerVTable,
     pub end: usize,
     unk: [isize; 2],
@@ -65,7 +65,7 @@ pub struct ComponentManager {
     pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
 }
-impl ComponentManager {
+impl ComponentBuffer {
     pub fn iter_components(&self, entry: usize) -> ComponentIter {
         if let Some(off) = self.entity_entry.get(entry) {
             ComponentIter {

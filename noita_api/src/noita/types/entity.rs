@@ -1,11 +1,11 @@
-use crate::noita::types::component::{ComponentData, ComponentManager};
+use crate::noita::types::component::{ComponentBuffer, ComponentData};
 use crate::noita::types::{
     Component, ComponentTypeManager, Inventory2Component, StdMap, StdString, StdVec, Vec2,
 };
 use std::{mem, slice};
 impl EntityManager {
     pub fn set_all_components(&mut self, ent: &mut Entity, enabled: bool) {
-        self.iter_component_managers_mut().for_each(|c| {
+        self.iter_component_buffers_mut().for_each(|c| {
             c.iter_components_mut(ent.entry)
                 .for_each(|c| c.enabled = enabled)
         })
@@ -28,7 +28,7 @@ impl EntityManager {
         tag: &StdString,
         enabled: bool,
     ) {
-        self.iter_component_managers_mut().for_each(|c| {
+        self.iter_component_buffers_mut().for_each(|c| {
             c.iter_components_mut(ent.entry)
                 .filter(|c| c.tags.has_tag(tag_manager, tag))
                 .for_each(|c| c.enabled = enabled)
@@ -134,16 +134,16 @@ impl EntityManager {
             .iter_mut()
             .filter_map(|c| unsafe { c.as_mut() })
     }
-    pub fn iter_component_managers(&self) -> impl Iterator<Item = &'static ComponentManager> {
-        self.component_managers
+    pub fn iter_component_buffers(&self) -> impl Iterator<Item = &'static ComponentBuffer> {
+        self.component_buffers
             .as_ref()
             .iter()
             .filter_map(|c| unsafe { c.as_ref() })
     }
-    pub fn iter_component_managers_mut(
+    pub fn iter_component_buffers_mut(
         &mut self,
-    ) -> impl Iterator<Item = &'static mut ComponentManager> {
-        self.component_managers
+    ) -> impl Iterator<Item = &'static mut ComponentBuffer> {
+        self.component_buffers
             .as_mut()
             .iter_mut()
             .filter_map(|c| unsafe { c.as_mut() })
@@ -154,11 +154,11 @@ impl EntityManager {
         entry: usize,
     ) -> impl Iterator<Item = &'static C> {
         let index = component_type_manager
-            .component_manager_indices
+            .component_buffer_indices
             .get(C::STD_NAME)
             .copied()
             .unwrap();
-        let mgr = self.component_managers.get(index).unwrap();
+        let mgr = self.component_buffers.get(index).unwrap();
         unsafe { mgr.as_ref() }
             .unwrap()
             .iter_components(entry)
@@ -278,14 +278,14 @@ impl EntityManager {
         &self,
         entry: usize,
     ) -> impl Iterator<Item = &'static ComponentData> {
-        self.iter_component_managers()
+        self.iter_component_buffers()
             .flat_map(move |c| c.iter_components(entry))
     }
     pub fn iter_all_components_mut(
         &mut self,
         entry: usize,
     ) -> impl Iterator<Item = &'static mut ComponentData> {
-        self.iter_component_managers_mut()
+        self.iter_component_buffers_mut()
             .flat_map(move |c| c.iter_components_mut(entry))
     }
     pub fn iter_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
@@ -660,7 +660,7 @@ pub struct EntityManager {
     pub free_ids: StdVec<usize>,
     pub entities: StdVec<*mut Entity>,
     pub entity_buckets: StdVec<StdVec<*mut Entity>>,
-    pub component_managers: StdVec<*mut ComponentManager>,
+    pub component_buffers: StdVec<*mut ComponentBuffer>,
 }
 #[repr(C)]
 #[derive(Debug)]
