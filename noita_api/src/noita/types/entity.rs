@@ -545,7 +545,7 @@ impl Entity {
     }
     pub fn add_tag(
         &'static mut self,
-        tag_manager: &TagManager<u16>,
+        tag_manager: &mut TagManager<u16>,
         entity_manager: &mut EntityManager,
         tag: &StdString,
     ) {

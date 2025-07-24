@@ -497,8 +497,7 @@ impl Cell {
 #[repr(C)]
 #[derive(Debug)]
 pub struct GameWorld {
-    pub cam1: Vec2,
-    pub cam2: Vec2,
+    pub cam: AABB,
     unknown1: [isize; 13],
     pub grid_world: &'static mut GridWorld,
     //likely more data
@@ -712,7 +711,7 @@ impl Debug for ChunkMap {
         f.debug_struct("ChunkMap")
             .field("len", &self.len)
             .field("unknown", &self.unknown)
-            .field(
+            /*.field(
                 "chunk_array",
                 &self
                     .chunk_array
@@ -722,7 +721,7 @@ impl Debug for ChunkMap {
                         a.as_ref().map(|a| (i % 512 - 256, i / 512 - 256, a))
                     })
                     .collect::<Vec<_>>(),
-            )
+            )*/
             .field("chunk_count", &self.chunk_count)
             .field("min_chunk", &self.min_chunk)
             .field("max_chunk", &self.max_chunk)
@@ -815,7 +814,13 @@ pub struct GridWorld {
     unk: [isize; 292],
     pub cam_pos: Vec2i,
     pub cam_dimen: Vec2i,
-    unknown: [isize; 21],
+    unknown: [isize; 6],
+    unk_cam: IAABB,
+    unk2_cam: IAABB,
+    unkown3: isize,
+    pub cam: IAABB,
+    unkown2: isize,
+    unk_counter: isize,
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     unknown2: [isize; 40],

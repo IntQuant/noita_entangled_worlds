@@ -12,7 +12,8 @@ pub struct ComponentData {
     pub enabled: bool,
     unk2: [u8; 3],
     pub tags: BitSet<8>,
-    unk3: [usize; 4],
+    unk3: StdVec<usize>,
+    unk4: usize,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -233,7 +234,7 @@ impl BitSet<8> {
             false
         }
     }
-    pub fn add_tag(&mut self, tag_manager: &TagManager<u8>, tag: &StdString) {
+    pub fn add_tag(&mut self, tag_manager: &mut TagManager<u8>, tag: &StdString) {
         if let Some(n) = tag_manager.tag_indices.get(tag) {
             self.set(*n, true)
         }

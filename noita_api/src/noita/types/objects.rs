@@ -304,6 +304,9 @@ pub struct Vec2 {
     pub y: f32,
 }
 impl Vec2 {
+    pub fn splat(v: f32) -> Self {
+        Self { x: v, y: v }
+    }
     pub fn abs(&self, other: &Vec2) -> f32 {
         (self.y - other.y).hypot(self.x - other.x)
     }
