@@ -264,12 +264,18 @@ local function saveMessage(sender, message, color, colorAlt)
     currentMessageIndex = math.max(1, #chatMessages - visibleLines + 1)
 end
 
-local function lightenColor(r, g, b, threshold)
-    local function brighten(c)
-        return c < threshold and threshold or c
+local function adjustColorToThreshold(r, g, b, threshold)
+    local function adjust(c)
+        if c < threshold then
+            return c + (threshold - c) * 0.5
+        elseif c > threshold then
+            return c - (c - threshold) * 0.5
+        else
+            return c
+        end
     end
 
-    return brighten(r), brighten(g), brighten(b)
+    return math.floor(adjust(r)), math.floor(adjust(g)), math.floor(adjust(b))
 end
 
 local function renderChat()
@@ -297,14 +303,14 @@ local function renderChat()
             for _, line in ipairs(wrappedMessage) do
                 if not senderRendered and msg.sender ~= "" then
                     local senderR, senderG, senderB = getColorComponents(msg.color)
-                    local senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
+                    local senderR, senderG, senderB = adjustColorToThreshold(senderR, senderG, senderB, minaColorThreshold)
                     GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
                     GuiText(gui, 128, startY, string.format("%s: ", msg.sender))
                     senderRendered = true
                 end
 
                 local textR, textG, textB = getColorComponents(msg.colorAlt)
-                local textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
+                local textR, textG, textB = adjustColorToThreshold(textR, textG, textB, minaAltColorThreshold)
                 GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
                 GuiText(gui, senderRendered and (128 + senderWidth) or 128, startY, line)
                 startY = startY + lineHeight
