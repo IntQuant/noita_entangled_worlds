@@ -174,6 +174,25 @@ impl Debug for CString {
         f.debug_tuple("CString").field(&self.to_string()).finish()
     }
 }
+#[repr(transparent)]
+pub struct CStr<const N: usize>(pub [u8; N]);
+impl<const N: usize> Display for CStr<N> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut string = String::new();
+        for c in self.0 {
+            if c == 0 {
+                break;
+            }
+            string.push(char::from(c));
+        }
+        write!(f, "{string}")
+    }
+}
+impl<const N: usize> Debug for CStr<N> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("CStr").field(&self.to_string()).finish()
+    }
+}
 #[repr(C)]
 pub struct StdVec<T> {
     pub start: *mut T,

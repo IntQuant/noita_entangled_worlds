@@ -229,7 +229,7 @@ impl Globals {
         let platform = 0x1221bc0 as *mut Platform;
         let filenames = 0x1207bd4 as *mut StdVec<StdString>;
         let inventory = 0x12224f0 as *mut Inventory;
-        let mods = 0x1207e9c as *mut Mods;
+        let mods = 0x1207e90 as *mut Mods;
         Self {
             world_seed,
             new_game_count,

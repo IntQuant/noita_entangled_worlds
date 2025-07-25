@@ -1,5 +1,5 @@
 use crate::lua::LuaState;
-use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
+use crate::noita::types::{CStr, StdMap, StdString, StdVec, Vec2};
 #[derive(Debug)]
 pub struct GlobalStatsVTable {}
 #[derive(Debug)]
@@ -95,6 +95,7 @@ pub struct Language {
 #[derive(Debug)]
 #[repr(C)]
 pub struct Mods {
+    pub names: StdVec<CStr<0x28>>,
     pub list: StdVec<Mod>,
 }
 #[derive(Debug)]
