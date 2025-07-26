@@ -179,7 +179,7 @@ local function copyPresetChatHistory()
     end
 end
 
-function loadChatHistory()
+local function loadChatHistory()
     if isFileEmpty(chatHistoryFileName) then
         copyPresetChatHistory()
     end
@@ -233,7 +233,7 @@ if not ModSettingGet("quant.ew.texthistory") and fileExist(chatHistoryFileName) 
     os.remove(chatHistoryFileName)
 end
 
-function saveMessage(sender, message, color, colorAlt)
+local function saveMessage(sender, message, color, colorAlt)
     local senderWidth = sender ~= "" and GuiGetTextDimensions(gui, string.format("%s: ", sender)) or 0
     local wrappedMessage = wrapText(message or "", pixelWidth, senderWidth)
 
