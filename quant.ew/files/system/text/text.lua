@@ -11,7 +11,7 @@ local RPressed = false
 local unread_messages_counter = 0
 
 local chatMessages = {}
-local maxVisibleLines = 128
+local maxVisibleLines = 1024
 local maxFileLines = 2048
 local lineHeight = 10
 local visibleLines = 15
@@ -309,8 +309,13 @@ local function renderChat()
                     senderRendered = true
                 end
 
-                local textR, textG, textB = getColorComponents(msg.colorAlt)
-                local textR, textG, textB = adjustColorToThreshold(textR, textG, textB, minaAltColorThreshold)
+                local textR, textG, textB
+                if msg.message == "---------------------------- Skill Issue ----------------------------" then
+                    textR, textG, textB = 255, 0, 0
+                else
+                    textR, textG, textB = getColorComponents(msg.colorAlt)
+                    textR, textG, textB = adjustColorToThreshold(textR, textG, textB, minaAltColorThreshold)
+                end
                 GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
                 GuiText(gui, senderRendered and (128 + senderWidth) or 128, startY, line)
                 startY = startY + lineHeight
@@ -473,7 +478,12 @@ local function utf8_prev(str, pos)
 end
 
 function module.on_world_update()
-    
+
+    if skillIssue == true then
+        saveMessage("", "---------------------------- Skill Issue ----------------------------", 012345, 678910)
+        skillIssue = false
+    end
+
     if #chatMessages == 0 and ModSettingGet("quant.ew.texthistory") then
         loadChatHistory()
     end
