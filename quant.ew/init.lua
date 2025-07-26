@@ -91,7 +91,7 @@ local function load_modules()
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/weather_sync.lua")
     ctx.load_system("polymorph")
 
-    ctx.load_system("world_sync")
+    -- ctx.load_system("world_sync")
 
     -- ctx.load_system("spawn_hooks")
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/proxy_info.lua")
@@ -383,10 +383,8 @@ function OnPausedChanged(paused, is_wand_pickup)
     end
 end
 
-skillIssue = false
-
 function OnWorldInitialized() -- This is called once the game world is initialized. Doesn't ensure any world chunks actually exist. Use OnPlayerSpawned to ensure the chunks around player have been loaded or created.
-        skillIssue = false
+    skillIssue = false
     if ctx.is_host then
         GameAddFlagRun("ew_flag_this_is_host")
     else
