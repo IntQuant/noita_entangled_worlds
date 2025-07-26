@@ -614,7 +614,10 @@ function module.on_world_update_host()
             end
         end
         if not any_player_alive then
-            gameover_frame_check = 0
+            if skillIssue == true then
+                gameover_frame_check = 0
+            end
+            skillIssue = true
         elseif gameover_frame_check + 60 <= GameGetFrameNum() then
             gameover_primed = true
         end

@@ -384,6 +384,7 @@ function OnPausedChanged(paused, is_wand_pickup)
 end
 
 function OnWorldInitialized() -- This is called once the game world is initialized. Doesn't ensure any world chunks actually exist. Use OnPlayerSpawned to ensure the chunks around player have been loaded or created.
+    skillIssue = false
     if ctx.is_host then
         GameAddFlagRun("ew_flag_this_is_host")
     else
