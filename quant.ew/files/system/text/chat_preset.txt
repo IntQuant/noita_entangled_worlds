@@ -3,5 +3,4 @@
 [4522239,4522237] neocortex: don't freak out if you see 2 cmd blinks - they are cheking for file path existance
 [4522239,4522237] neocortex: chat is scrollable by mousewhell or up/down arrow keys
 [4522239,4522237] neocortex: chat supports ctrl + arrow keys/backspace/delete
-[4522239,4522237] neocortex: "skill issue" message means that you died and acts as a separator in-between runs
-[4522239,4522237] neocortex: this explanations won't appear again unless you delete your chat history file
+[4522239,4522237] neocortex: this messages won't appear again unless you delete your chat history file
