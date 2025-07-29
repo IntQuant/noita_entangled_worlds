@@ -98,12 +98,9 @@ function module.on_world_update_host()
         end
         rpc.update_shared_health(hp, max_hp)
         if hp <= 0 and not ctx.run_ended then
-            if skillIssue == true then
-                local message = module.last_damage_message
-                do_game_over(message)
-                rpc.trigger_game_over(message)
-            end
-            skillIssue = true
+            local message = module.last_damage_message
+            do_game_over(message)
+            rpc.trigger_game_over(message)
         end
     end
 end
