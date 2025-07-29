@@ -479,11 +479,6 @@ end
 
 function module.on_world_update()
 
-    if skillIssue == true then
-        saveMessage("", "---------------------------- Skill Issue ----------------------------", 012345, 678910)
-        skillIssue = false
-    end
-
     if #chatMessages == 0 and ModSettingGet("quant.ew.texthistory") then
         loadChatHistory()
     end
