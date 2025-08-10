@@ -298,7 +298,7 @@ pub struct ConfigGunActionInfo {
     pub projectile_file: StdString,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
@@ -317,19 +317,19 @@ impl Vec2 {
     }
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Vec2i {
     pub x: isize,
     pub y: isize,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ValueRange {
     pub min: f32,
     pub max: f32,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ValueRangeInt {
     pub min: isize,
     pub max: isize,

@@ -4,6 +4,32 @@ use crate::noita::types::{
 };
 use std::{mem, slice};
 impl EntityManager {
+    pub fn create_new(&mut self) -> &'static mut Entity {
+        self.max_entity_id += 1;
+        let ent = Entity {
+            id: self.max_entity_id,
+            entry: 0,
+            filename_index: 0,
+            kill_flag: false,
+            padding: [0; 3],
+            unknown1: 0,
+            name: StdString::default(),
+            unknown2: 0,
+            tags: BitSet::default(),
+            transform: Transform::default(),
+            children: std::ptr::null_mut(),
+            parent: std::ptr::null_mut(),
+        };
+        let ent = Box::leak(Box::new(ent));
+        if let Some(entry) = self.free_ids.pop() {
+            ent.entry = entry;
+            self.entities[entry] = ent;
+        } else {
+            ent.entry = self.entities.len();
+            self.entities.push(ent);
+        }
+        ent
+    }
     pub fn set_all_components(&mut self, ent: &mut Entity, enabled: bool) {
         self.iter_component_buffers_mut().for_each(|c| {
             c.iter_components_mut(ent.entry)
@@ -451,6 +477,11 @@ impl BitSet<16> {
             .filter_map(|(a, b)| if self.get(*b) { Some(a) } else { None })
     }
 }
+impl<const N: usize> Default for BitSet<N> {
+    fn default() -> Self {
+        Self([0; N])
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct Entity {
@@ -468,7 +499,7 @@ pub struct Entity {
     pub parent: *mut Entity,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Transform {
     pub pos: Vec2,
     pub angle: Vec2,
@@ -665,7 +696,7 @@ impl Iterator for DescendantIterMut {
 #[derive(Debug)]
 pub struct EntityManager {
     pub vtable: &'static EntityManagerVTable,
-    pub next_entity_id: usize,
+    pub max_entity_id: usize,
     pub free_ids: StdVec<usize>,
     pub entities: StdVec<*mut Entity>,
     pub entity_buckets: StdVec<StdVec<*mut Entity>>,

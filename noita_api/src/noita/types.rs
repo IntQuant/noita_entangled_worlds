@@ -15,7 +15,7 @@ use std::alloc::Layout;
 use std::cmp::Ordering;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 use std::{alloc, ptr, slice};
 pub use world::*;
 #[repr(C)]
@@ -205,6 +205,11 @@ impl<T> Index<usize> for StdVec<T> {
         self.get(index).unwrap()
     }
 }
+impl<T> IndexMut<usize> for StdVec<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        self.get_mut(index).unwrap()
+    }
+}
 impl<T> AsRef<[T]> for StdVec<T> {
     fn as_ref(&self) -> &[T] {
         unsafe { slice::from_raw_parts(self.start, self.len()) }
@@ -269,7 +274,7 @@ impl<T> StdVec<T> {
         }
     }
     fn alloc(&mut self, n: usize) {
-        if self.cap >= unsafe { self.end.add(n) } {
+        if self.cap < unsafe { self.end.add(n) } {
             let old_len = self.len();
             let old_cap = self.capacity();
             let new_cap = if old_cap == 0 { 4 } else { old_cap * 2 }; //TODO deal with n > 1
