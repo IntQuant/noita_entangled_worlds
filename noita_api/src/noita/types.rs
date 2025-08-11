@@ -311,6 +311,12 @@ impl<T> StdVec<T> {
             Some(ret)
         }
     }
+    pub fn last(&self) -> Option<&T> {
+        unsafe { self.end.as_ref() }
+    }
+    pub fn last_mut(&mut self) -> Option<&mut T> {
+        unsafe { self.end.as_mut() }
+    }
     pub fn insert(&mut self, index: usize, value: T) {
         self.alloc(1);
         for i in (index..self.len()).rev() {
@@ -423,7 +429,7 @@ impl<K: 'static + Ord, V: 'static> StdMap<K, V> {
 
 #[repr(transparent)]
 pub struct ThiscallFn(c_void);
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LensValueBool {
     pub value: bool,
@@ -432,21 +438,21 @@ pub struct LensValueBool {
     pub frame: isize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LensValue<T> {
     pub value: T,
     pub valueb: T,
     pub frame: isize,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ValueRange {
     pub min: f32,
     pub max: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ValueRangeInt {
     pub min: isize,

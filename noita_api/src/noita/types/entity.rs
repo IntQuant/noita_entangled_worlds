@@ -4,7 +4,7 @@ use crate::noita::types::{
 };
 use std::{mem, slice};
 impl EntityManager {
-    pub fn create_new(&mut self) -> &'static mut Entity {
+    pub fn create(&mut self) -> &'static mut Entity {
         self.max_entity_id += 1;
         let ent = Entity {
             id: self.max_entity_id,
@@ -239,6 +239,30 @@ impl EntityManager {
             .get_mut::<C>(self)
             .iter_disabled_components_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
+    }
+    pub fn create_component<C: Component + 'static>(
+        &mut self,
+        entry: usize,
+        component_type_manager: &'static mut ComponentTypeManager,
+    ) -> &'static mut C {
+        let id = component_type_manager.next_id;
+        component_type_manager.next_id += 1;
+        let buffer = self.get_component_buffer_mut::<C>(component_type_manager);
+        buffer.create::<C>(entry, id)
+    }
+    pub fn get_component_buffer<C: Component + 'static>(
+        &self,
+        component_type_manager: &'static ComponentTypeManager,
+    ) -> &'static ComponentBuffer {
+        //TODO this needs to deal with when it does not exist
+        component_type_manager.get::<C>(self)
+    }
+    pub fn get_component_buffer_mut<C: Component + 'static>(
+        &mut self,
+        component_type_manager: &'static mut ComponentTypeManager,
+    ) -> &'static mut ComponentBuffer {
+        //TODO this needs to deal with when it does not exist
+        component_type_manager.get_mut::<C>(self)
     }
     pub fn get_first_component<C: Component + 'static>(
         &self,
@@ -720,8 +744,9 @@ pub struct TagManager<T: 'static> {
 #[derive(Debug)]
 pub struct SpriteStainSystem {}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum GameEffect {
+    #[default]
     None = 0,
 }
 #[repr(C)]

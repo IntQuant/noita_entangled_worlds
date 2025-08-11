@@ -1,15 +1,22 @@
 use crate::noita::types::*;
 pub trait Component {
+    fn default(base: ComponentData) -> Self;
     const NAME: &'static str;
     const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
 }
 impl Component for SetLightAlphaFromVelocityComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SetLightAlphaFromVelocityComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SetLightAlphaFromVelocityComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub max_velocity: f32,
     pub m_prev_position: Vec2,
     field3_0x54: u8,
@@ -18,12 +25,18 @@ pub struct SetLightAlphaFromVelocityComponent {
     field6_0x57: u8,
 }
 impl Component for ItemAIKnowledgeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemAIKnowledgeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemAIKnowledgeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub is_ranged_weapon: bool,
     pub is_throwable_weapon: bool,
     pub is_melee_weapon: bool,
@@ -39,21 +52,33 @@ pub struct ItemAIKnowledgeComponent {
     pub ranged_min_distance: f32,
 }
 impl Component for DroneLauncherComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DroneLauncherComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DroneLauncherComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub drone_entity_file: StdString,
 }
 impl Component for CharacterPlatformingComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CharacterPlatformingComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CharacterPlatformingComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub velocity_min_x: LensValue<f32>,
     pub velocity_max_x: LensValue<f32>,
     pub velocity_min_y: LensValue<f32>,
@@ -123,12 +148,18 @@ pub struct CharacterPlatformingComponent {
     pub m_look_override_direction: isize,
 }
 impl Component for ItemPickUpperComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemPickUpperComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemPickUpperComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub is_in_npc: bool,
     pub pick_up_any_item_buggy: bool,
     pub is_immune_to_kicks: bool,
@@ -145,32 +176,50 @@ pub struct ItemPickUpperComponent {
     field14_0x5f: u8,
 }
 impl Component for DebugLogMessagesComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DebugLogMessagesComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DebugLogMessagesComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub temp_tempy: f32,
     pub temp_temp_temp: f32,
 }
 impl Component for ItemRechargeNearGroundComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemRechargeNearGroundComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemRechargeNearGroundComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub temp_tempy: f32,
     pub temp_temp_temp: f32,
 }
 impl Component for GodInfoComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GodInfoComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GodInfoComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub mana_current: f32,
     pub mana_max: f32,
     field3_0x50: u8,
@@ -180,12 +229,18 @@ pub struct GodInfoComponent {
     pub god_entity: *mut Entity,
 }
 impl Component for Inventory2Component {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "Inventory2Component";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct Inventory2Component {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub quick_inventory_slots: isize,
     pub full_inventory_slots_x: isize,
     pub full_inventory_slots_y: isize,
@@ -204,12 +259,18 @@ pub struct Inventory2Component {
     pub m_smoothed_item_angle_vec: Vec2,
 }
 impl Component for HomingComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "HomingComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct HomingComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub target_tag: StdString,
     pub target_who_shot: bool,
     field3_0x61: u8,
@@ -230,12 +291,18 @@ pub struct HomingComponent {
     field18_0x7f: u8,
 }
 impl Component for AudioLoopComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AudioLoopComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AudioLoopComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -277,12 +344,18 @@ pub struct AudioLoopComponent {
     pub m_frame_created: isize,
 }
 impl Component for CutThroughWorldDoneHereComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CutThroughWorldDoneHereComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CutThroughWorldDoneHereComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub id_of_done_cut: usize,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -290,12 +363,18 @@ pub struct CutThroughWorldDoneHereComponent {
     field5_0x4f: u8,
 }
 impl Component for GenomeDataComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GenomeDataComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GenomeDataComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub herd_id: LensValue<isize>,
     pub is_predator: bool,
     field3_0x55: u8,
@@ -310,12 +389,18 @@ pub struct GenomeDataComponent {
     field12_0x6f: u8,
 }
 impl Component for HotspotComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "HotspotComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct HotspotComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub offset: Vec2,
     pub transform_with_scale: bool,
     field3_0x51: u8,
@@ -328,22 +413,34 @@ pub struct HotspotComponent {
     field10_0x6f: u8,
 }
 impl Component for DieIfSpeedBelowComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DieIfSpeedBelowComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DieIfSpeedBelowComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub min_speed: f32,
     pub m_min_speed_squared: f32,
 }
 impl Component for GameLogComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GameLogComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GameLogComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub report_death: bool,
     pub report_damage: bool,
     pub report_new_biomes: bool,
@@ -356,12 +453,18 @@ pub struct GameLogComponent {
     field10_0x5f: u8,
 }
 impl Component for EnergyShieldComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "EnergyShieldComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct EnergyShieldComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub damage_multiplier: f32,
     pub max_energy: f32,
@@ -376,12 +479,18 @@ pub struct EnergyShieldComponent {
     field12_0x6f: u8,
 }
 impl Component for VelocityComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "VelocityComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VelocityComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub gravity_x: f32,
     pub gravity_y: f32,
     field3_0x50: u8,
@@ -411,21 +520,33 @@ pub struct VelocityComponent {
     field27_0x8f: u8,
 }
 impl Component for CharacterStatsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CharacterStatsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CharacterStatsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub stats: CharacterStatsModifier,
 }
 impl Component for CharacterDataComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CharacterDataComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CharacterDataComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub platforming_type: isize,
     pub collision_aabb_min_x: LensValue<f32>,
     pub collision_aabb_max_x: LensValue<f32>,
@@ -490,12 +611,18 @@ pub struct CharacterDataComponent {
     field62_0x117: u8,
 }
 impl Component for CollisionTriggerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CollisionTriggerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CollisionTriggerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub width: f32,
     pub height: f32,
     pub radius: f32,
@@ -513,12 +640,18 @@ pub struct CollisionTriggerComponent {
     pub m_timer: isize,
 }
 impl Component for PhysicsBodyComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsBodyComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsBodyComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_body: *mut B2Body,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -582,12 +715,18 @@ pub struct PhysicsBodyComponent {
     field61_0xaf: u8,
 }
 impl Component for GhostComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GhostComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GhostComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub speed: f32,
     pub velocity: Vec2,
     pub new_hunt_target_check_every: isize,
@@ -607,22 +746,34 @@ pub struct GhostComponent {
     pub m_next_target_check_frame: isize,
 }
 impl Component for DrugEffectComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DrugEffectComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DrugEffectComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub drug_fx_target: ConfigDrugFx,
     pub m_drug_fx_current: ConfigDrugFx,
 }
 impl Component for VerletPhysicsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "VerletPhysicsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VerletPhysicsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub num_points: isize,
     pub num_links: isize,
     pub width: isize,
@@ -675,12 +826,18 @@ pub struct VerletPhysicsComponent {
     field50_0x2b37: u8,
 }
 impl Component for MaterialSeaSpawnerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MaterialSeaSpawnerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MaterialSeaSpawnerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub material: isize,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -700,12 +857,18 @@ pub struct MaterialSeaSpawnerComponent {
     pub frames_run: isize,
 }
 impl Component for LocationMarkerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LocationMarkerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LocationMarkerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -716,12 +879,18 @@ pub struct LocationMarkerComponent {
     field8_0x4f: u8,
 }
 impl Component for InventoryGuiComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "InventoryGuiComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct InventoryGuiComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub has_opened_inventory_edit: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -747,12 +916,18 @@ pub struct InventoryGuiComponent {
     field23_0x7f: u8,
 }
 impl Component for SpriteParticleEmitterComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SpriteParticleEmitterComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteParticleEmitterComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub sprite_file: StdString,
     pub sprite_centered: bool,
     pub sprite_random_rotation: bool,
@@ -813,12 +988,18 @@ pub struct SpriteParticleEmitterComponent {
     pub m_next_emit_frame: isize,
 }
 impl Component for LightningComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LightningComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LightningComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub config_explosion: ConfigExplosion,
     pub sprite_lightning_file: StdString,
     pub is_projectile: bool,
@@ -835,24 +1016,36 @@ pub struct LightningComponent {
     field14_0x1ef: u8,
 }
 impl Component for MagicXRayComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MagicXRayComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MagicXRayComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: isize,
     pub steps_per_frame: isize,
     pub m_step: isize,
     pub m_radius: isize,
 }
 impl Component for WalletValuableComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WalletValuableComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WalletValuableComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub money_value: isize,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -860,12 +1053,18 @@ pub struct WalletValuableComponent {
     field5_0x4f: u8,
 }
 impl Component for PhysicsAIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsAIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsAIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub target_vec_max_len: f32,
     pub force_coeff: f32,
     pub force_balancing_coeff: f32,
@@ -910,22 +1109,34 @@ pub struct PhysicsAIComponent {
     field42_0xb7: u8,
 }
 impl Component for EndingMcGuffinComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "EndingMcGuffinComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct EndingMcGuffinComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub temp_tempy: f32,
     pub temp_temp_temp: f32,
 }
 impl Component for PhysicsShapeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsShapeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsShapeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub recreate: bool,
     pub is_circle: bool,
     pub is_box: bool,
@@ -946,12 +1157,18 @@ pub struct PhysicsShapeComponent {
     pub material: isize,
 }
 impl Component for PhysicsKeepInWorldComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsKeepInWorldComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsKeepInWorldComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub check_whole_aabb: bool,
     pub predict_aabb: bool,
     pub keep_at_last_valid_pos: bool,
@@ -960,12 +1177,18 @@ pub struct PhysicsKeepInWorldComponent {
     pub m_ex_rotation: f32,
 }
 impl Component for AltarComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AltarComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AltarComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub recognized_entity_tags: StdString,
     pub good_fx_material: isize,
     pub neutral_fx_material: isize,
@@ -980,12 +1203,18 @@ pub struct AltarComponent {
     pub m_current_entity_tags: EntityTags,
 }
 impl Component for BlackHoleComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "BlackHoleComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct BlackHoleComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub particle_attractor_force: f32,
     pub damage_probability: f32,
@@ -999,12 +1228,18 @@ pub struct BlackHoleComponent {
     field11_0x5f: u8,
 }
 impl Component for GameStatsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GameStatsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GameStatsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -1046,12 +1281,18 @@ pub struct GameStatsComponent {
     field39_0x9f: u8,
 }
 impl Component for TelekinesisComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "TelekinesisComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct TelekinesisComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub min_size: usize,
     pub max_size: usize,
     pub radius: f32,
@@ -1083,12 +1324,18 @@ pub struct TelekinesisComponent {
     field29_0x8f: u8,
 }
 impl Component for InheritTransformComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "InheritTransformComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct InheritTransformComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub use_root_parent: bool,
     pub only_position: bool,
     field3_0x4a: u8,
@@ -1103,12 +1350,18 @@ pub struct InheritTransformComponent {
     pub m_update_frame: isize,
 }
 impl Component for PhysicsImageShapeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsImageShapeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsImageShapeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub is_root: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -1129,12 +1382,18 @@ pub struct PhysicsImageShapeComponent {
     pub m_body: *mut B2Body,
 }
 impl Component for ParticleEmitterComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ParticleEmitterComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ParticleEmitterComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub emitted_material_name: StdString,
     pub create_real_particles: bool,
     pub emit_real_particles: bool,
@@ -1227,12 +1486,18 @@ pub struct ParticleEmitterComponent {
     field90_0x197: u8,
 }
 impl Component for CellEaterComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CellEaterComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CellEaterComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub eat_probability: isize,
     pub ignored_material: isize,
@@ -1248,20 +1513,32 @@ pub struct CellEaterComponent {
     field13_0x7f: u8,
 }
 impl Component for HealthBarComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            //TODO    ..Default::default()
+        }
+    }
     const NAME: &'static str = "HealthBarComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct HealthBarComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
 }
 impl Component for InventoryComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "InventoryComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct InventoryComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub ui_container_type: isize,
     pub ui_container_size: Vec2i,
     pub ui_element_size: Vec2i,
@@ -1276,22 +1553,34 @@ pub struct InventoryComponent {
     field12_0xa7: u8,
 }
 impl Component for WormPlayerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WormPlayerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WormPlayerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_prev_position: Vec2,
     pub m_direction: Vec2,
 }
 impl Component for PlayerCollisionComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PlayerCollisionComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PlayerCollisionComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub getting_crushed_threshold: isize,
     pub moving_up_before_getting_crushed_threshold: isize,
     pub getting_crushed_counter: isize,
@@ -1308,12 +1597,18 @@ pub struct PlayerCollisionComponent {
     field14_0x67: u8,
 }
 impl Component for TextLogComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "TextLogComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct TextLogComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -1342,12 +1637,18 @@ pub struct TextLogComponent {
     pub m_cached_name: StdString,
 }
 impl Component for IKLimbComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "IKLimbComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IKLimbComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub length: f32,
     pub thigh_extra_lenght: f32,
     pub end_position: Vec2,
@@ -1364,12 +1665,18 @@ pub struct IKLimbComponent {
     field14_0x87: u8,
 }
 impl Component for KickComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "KickComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct KickComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub can_kick: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -1387,12 +1694,18 @@ pub struct KickComponent {
     field15_0x9f: u8,
 }
 impl Component for NullDamageComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "NullDamageComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct NullDamageComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub null_chance: f32,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -1400,12 +1713,18 @@ pub struct NullDamageComponent {
     field5_0x4f: u8,
 }
 impl Component for MaterialSuckerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MaterialSuckerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MaterialSuckerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub material_type: isize,
     pub barrel_size: isize,
     pub num_cells_sucked_per_frame: isize,
@@ -1429,12 +1748,18 @@ pub struct MaterialSuckerComponent {
     field21_0x97: u8,
 }
 impl Component for UIInfoComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "UIInfoComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct UIInfoComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -1461,12 +1786,18 @@ pub struct UIInfoComponent {
     field24_0x5f: u8,
 }
 impl Component for LuaComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LuaComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LuaComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub script_source_file: StdString,
     pub vm_type: LuaVmType,
     pub execute_on_added: bool,
@@ -1521,12 +1852,18 @@ pub struct LuaComponent {
     field52_0x2df: u8,
 }
 impl Component for StatusEffectDataComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "StatusEffectDataComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StatusEffectDataComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub stain_effects: VecFloat,
     pub stain_effect_cooldowns: VectorInt32,
     pub effects_previous: VecFloat,
@@ -1545,12 +1882,18 @@ pub struct StatusEffectDataComponent {
     field16_0xa7: u8,
 }
 impl Component for SpriteOffsetAnimatorComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SpriteOffsetAnimatorComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteOffsetAnimatorComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub x_amount: f32,
     pub x_speed: f32,
     pub y_amount: f32,
@@ -1564,12 +1907,18 @@ pub struct SpriteOffsetAnimatorComponent {
     field11_0x67: u8,
 }
 impl Component for ElectricityReceiverComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ElectricityReceiverComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ElectricityReceiverComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub offset_x: isize,
     pub offset_y: isize,
     pub radius: isize,
@@ -1585,12 +1934,18 @@ pub struct ElectricityReceiverComponent {
     field13_0x6f: u8,
 }
 impl Component for CrawlerAnimalComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CrawlerAnimalComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CrawlerAnimalComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub ray_length: f32,
     pub ray_count: isize,
     pub gravity: f32,
@@ -1645,12 +2000,18 @@ pub struct CrawlerAnimalComponent {
     pub m_movement_step_accumulator: f32,
 }
 impl Component for IngestionComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "IngestionComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IngestionComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub ingestion_size: i64,
     pub ingestion_capacity: i64,
     pub ingestion_cooldown_delay_frames: usize,
@@ -1669,12 +2030,18 @@ pub struct IngestionComponent {
     field16_0xaf: u8,
 }
 impl Component for AttachToEntityComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AttachToEntityComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AttachToEntityComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub target: isize,
     pub only_position: bool,
     field3_0x4d: u8,
@@ -1694,12 +2061,18 @@ pub struct AttachToEntityComponent {
     field17_0x97: u8,
 }
 impl Component for InteractableComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "InteractableComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct InteractableComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub ui_text: StdString,
     field3_0x64: u8,
@@ -1729,21 +2102,33 @@ pub struct InteractableComponent {
     pub exclusivity_group: isize,
 }
 impl Component for ItemActionComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemActionComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemActionComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub action_id: StdString,
 }
 impl Component for PhysicsJoisize2Component {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsJoisize2Component";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsJoisize2Component {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub joisize_id: u16,
     field2_0x4a: u8,
     field3_0x4b: u8,
@@ -1768,12 +2153,18 @@ pub struct PhysicsJoisize2Component {
     pub surface_attachment_offset_y: f32,
 }
 impl Component for LoadEntitiesComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LoadEntitiesComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LoadEntitiesComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub entity_file: StdString,
     pub count: ValueRangeInt,
     pub kill_entity: bool,
@@ -1788,20 +2179,32 @@ pub struct LoadEntitiesComponent {
     field12_0x77: u8,
 }
 impl Component for DebugFollowMouseComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            //TODO  ..Default::default()
+        }
+    }
     const NAME: &'static str = "DebugFollowMouseComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DebugFollowMouseComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
 }
 impl Component for ControllerGoombaAIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ControllerGoombaAIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ControllerGoombaAIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_changing_direction_counter: isize,
     pub auto_turn_around_enabled: bool,
     field3_0x4d: u8,
@@ -1827,20 +2230,32 @@ pub struct ControllerGoombaAIComponent {
     pub floor_detection_aabb_max_y: f32,
 }
 impl Component for ManaReloaderComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            //TODO    ..Default::default()
+        }
+    }
     const NAME: &'static str = "ManaReloaderComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ManaReloaderComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
 }
 impl Component for DamageModelComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DamageModelComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DamageModelComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -1980,12 +2395,18 @@ pub struct DamageModelComponent {
     field137_0x2df: u8,
 }
 impl Component for BossHealthBarComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "BossHealthBarComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct BossHealthBarComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     pub gui_special_final_boss: bool,
     pub in_world: bool,
@@ -2001,12 +2422,18 @@ pub struct BossHealthBarComponent {
     field13_0x57: u8,
 }
 impl Component for AudioListenerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AudioListenerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AudioListenerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -2017,12 +2444,18 @@ pub struct AudioListenerComponent {
     field8_0x4f: u8,
 }
 impl Component for ItemAlchemyComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemAlchemyComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemAlchemyComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub material_make_always_cast: isize,
     pub material_remove_shuffle: isize,
     pub material_animate_wand: isize,
@@ -2031,12 +2464,18 @@ pub struct ItemAlchemyComponent {
     pub material_sacrifice: isize,
 }
 impl Component for ShotEffectComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ShotEffectComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ShotEffectComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub condition_effect: GameEffect,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -2045,12 +2484,18 @@ pub struct ShotEffectComponent {
     pub extra_modifier: StdString,
 }
 impl Component for ProjectileComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ProjectileComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ProjectileComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub projectile_type: ProjectileType,
     pub lifetime: isize,
     pub lifetime_randomness: isize,
@@ -2185,12 +2630,18 @@ pub struct ProjectileComponent {
     field132_0x64f: u8,
 }
 impl Component for PlatformShooterPlayerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PlatformShooterPlayerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PlatformShooterPlayerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub aiming_reticle_distance_from_character: f32,
     pub camera_max_distance_from_character: f32,
     pub alcohol_drunken_speed: f32,
@@ -2249,12 +2700,18 @@ pub struct PlatformShooterPlayerComponent {
     pub m_cessation_lifetime: isize,
 }
 impl Component for ItemComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub item_name: StdString,
     pub is_stackable: bool,
     pub is_consumable: bool,
@@ -2313,12 +2770,18 @@ pub struct ItemComponent {
     field56_0x107: u8,
 }
 impl Component for AnimalAIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AnimalAIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AnimalAIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub ai_state: isize,
     pub ai_state_timer: isize,
     pub keep_state_alive_when_enabled: bool,
@@ -2485,12 +2948,18 @@ pub struct AnimalAIComponent {
     field164_0x3df: u8,
 }
 impl Component for OrbComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "OrbComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct OrbComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub orb_id: isize,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -2498,12 +2967,18 @@ pub struct OrbComponent {
     field5_0x4f: u8,
 }
 impl Component for LooseGroundComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LooseGroundComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LooseGroundComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub probability: f32,
     pub max_durability: isize,
     pub max_distance: f32,
@@ -2522,12 +2997,18 @@ pub struct LooseGroundComponent {
     field16_0x8f: u8,
 }
 impl Component for TeleportProjectileComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "TeleportProjectileComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct TeleportProjectileComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub min_distance_from_wall: f32,
     pub actionable_lifetime: isize,
     pub reset_shooter_y_vel: bool,
@@ -2537,12 +3018,18 @@ pub struct TeleportProjectileComponent {
     pub m_who_shot: isize,
 }
 impl Component for LifetimeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LifetimeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LifetimeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub creation_frame: isize,
     pub lifetime: isize,
     pub randomize_lifetime: ValueRange,
@@ -2563,12 +3050,18 @@ pub struct LifetimeComponent {
     field18_0x6f: u8,
 }
 impl Component for ElectricitySourceComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ElectricitySourceComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ElectricitySourceComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: isize,
     pub emission_interval_frames: isize,
     pub m_next_frame_emit_electricity: isize,
@@ -2578,23 +3071,35 @@ pub struct ElectricitySourceComponent {
     field7_0x57: u8,
 }
 impl Component for BiomeTrackerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "BiomeTrackerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct BiomeTrackerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub limit_to_every_n_frame: isize,
     pub unsafe_current_biome: *mut Biome,
     pub current_biome_name: StdString,
 }
 impl Component for PixelSceneComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PixelSceneComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PixelSceneComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub pixel_scene: StdString,
     pub pixel_scene_visual: StdString,
     pub pixel_scene_background: StdString,
@@ -2607,12 +3112,18 @@ pub struct PixelSceneComponent {
     field10_0x9f: u8,
 }
 impl Component for CameraBoundComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CameraBoundComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CameraBoundComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub enabled: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -2630,12 +3141,18 @@ pub struct CameraBoundComponent {
     field15_0x5f: u8,
 }
 impl Component for LiquidDisplacerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LiquidDisplacerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LiquidDisplacerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: isize,
     pub velocity_x: f32,
     pub velocity_y: f32,
@@ -2647,12 +3164,18 @@ pub struct LiquidDisplacerComponent {
     field9_0x5f: u8,
 }
 impl Component for GameEffectComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GameEffectComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GameEffectComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub effect: GameEffect,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -2698,12 +3221,18 @@ pub struct GameEffectComponent {
     field43_0xff: u8,
 }
 impl Component for WalletComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WalletComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WalletComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub money: i64,
     pub money_spent: i64,
     pub m_money_prev_frame: i64,
@@ -2717,12 +3246,18 @@ pub struct WalletComponent {
     field11_0x67: u8,
 }
 impl Component for ItemStashComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemStashComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemStashComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub throw_openable_cooldown_frames: isize,
     pub init_children: bool,
     field3_0x4d: u8,
@@ -2732,12 +3267,18 @@ pub struct ItemStashComponent {
     pub m_frame_opened: isize,
 }
 impl Component for MoveToSurfaceOnCreateComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MoveToSurfaceOnCreateComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MoveToSurfaceOnCreateComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -2752,12 +3293,18 @@ pub struct MoveToSurfaceOnCreateComponent {
     field12_0x5f: u8,
 }
 impl Component for UIIconComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "UIIconComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct UIIconComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub icon_sprite_file: StdString,
     field2_0x60: u8,
     field3_0x61: u8,
@@ -2794,12 +3341,18 @@ pub struct UIIconComponent {
     field34_0x97: u8,
 }
 impl Component for DebugSpatialVisualizerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DebugSpatialVisualizerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DebugSpatialVisualizerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub min_x: f32,
     pub min_y: f32,
     pub max_x: f32,
@@ -2811,12 +3364,18 @@ pub struct DebugSpatialVisualizerComponent {
     field9_0x5f: u8,
 }
 impl Component for HitboxComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "HitboxComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct HitboxComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     pub is_player: bool,
     pub is_enemy: bool,
@@ -2829,12 +3388,18 @@ pub struct HitboxComponent {
     pub damage_multiplier: f32,
 }
 impl Component for PathFindingComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PathFindingComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub search_depth_max_no_goal: isize,
     pub iterations_max_no_goal: isize,
     pub search_depth_max_with_goal: isize,
@@ -2909,12 +3474,18 @@ pub struct PathFindingComponent {
     field72_0x1c7: u8,
 }
 impl Component for GasBubbleComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GasBubbleComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GasBubbleComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub acceleration: f32,
     pub max_speed: f32,
     pub m_velocity: f32,
@@ -2924,22 +3495,34 @@ pub struct GasBubbleComponent {
     field7_0x57: u8,
 }
 impl Component for WormAttractorComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WormAttractorComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WormAttractorComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub direction: isize,
     pub radius: f32,
 }
 impl Component for PhysicsPickUpComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsPickUpComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsPickUpComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub transform: Transform,
     pub original_left_joisize_pos: Vec2,
     pub original_right_joisize_pos: Vec2,
@@ -2954,12 +3537,18 @@ pub struct PhysicsPickUpComponent {
     pub right_joisize: *mut B2WeldIsize,
 }
 impl Component for AIAttackComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AIAttackComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AIAttackComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub use_probability: isize,
     pub min_distance: f32,
     pub max_distance: f32,
@@ -2998,18 +3587,24 @@ pub struct AIAttackComponent {
     field36_0xcf: u8,
 }
 impl Component for LimbBossComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LimbBossComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LimbBossComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub state: isize,
     pub m_state_prev: isize,
     pub m_move_to_position_x: f32,
     pub m_move_to_position_y: f32,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct Sprite {
     field0_0x0: u8,
@@ -3018,12 +3613,18 @@ pub struct Sprite {
     field3_0x3: u8,
 }
 impl Component for LightComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LightComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LightComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub update_properties: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -3053,12 +3654,18 @@ pub struct LightComponent {
     field27_0x77: u8,
 }
 impl Component for FogOfWarRadiusComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "FogOfWarRadiusComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct FogOfWarRadiusComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -3066,12 +3673,18 @@ pub struct FogOfWarRadiusComponent {
     field5_0x4f: u8,
 }
 impl Component for PlayerStatsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PlayerStatsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PlayerStatsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub lives: isize,
     pub max_hp: f32,
     pub speed: f32,
@@ -3081,12 +3694,18 @@ pub struct PlayerStatsComponent {
     field7_0x57: u8,
 }
 impl Component for LaserEmitterComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LaserEmitterComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LaserEmitterComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub laser: ConfigLaser,
     pub is_emitting: bool,
     field3_0x7d: u8,
@@ -3096,12 +3715,18 @@ pub struct LaserEmitterComponent {
     pub laser_angle_add_rad: f32,
 }
 impl Component for VerletWeaponComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "VerletWeaponComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VerletWeaponComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub damage_radius: f32,
     pub physics_force_radius: f32,
     pub damage_min_step: f32,
@@ -3117,12 +3742,18 @@ pub struct VerletWeaponComponent {
     field13_0x6f: u8,
 }
 impl Component for ElectricChargeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ElectricChargeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ElectricChargeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub charge_time_frames: isize,
     pub fx_velocity_max: f32,
     pub electricity_emission_interval_frames: isize,
@@ -3131,12 +3762,18 @@ pub struct ElectricChargeComponent {
     pub charge: isize,
 }
 impl Component for ConsumableTeleportComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ConsumableTeleportComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConsumableTeleportComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub create_other_end: bool,
     pub is_at_home: bool,
     field3_0x4a: u8,
@@ -3155,12 +3792,18 @@ pub struct ConsumableTeleportComponent {
     field16_0x67: u8,
 }
 impl Component for IKLimbAttackerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "IKLimbAttackerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IKLimbAttackerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub leg_velocity_coeff: f32,
     pub targeting_radius: f32,
@@ -3179,23 +3822,35 @@ pub struct IKLimbAttackerComponent {
     field16_0x87: u8,
 }
 impl Component for SetStartVelocityComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SetStartVelocityComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SetStartVelocityComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub velocity: Vec2,
     pub randomize_angle: ValueRange,
     pub randomize_speed: ValueRange,
 }
 impl Component for ElectricityComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ElectricityComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ElectricityComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub energy: isize,
     pub probability_to_heat: f32,
     pub speed: isize,
@@ -3218,12 +3873,18 @@ pub struct ElectricityComponent {
     field20_0x87: u8,
 }
 impl Component for GunComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GunComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GunComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_lua_manager: *mut LuaManager,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -3231,12 +3892,18 @@ pub struct GunComponent {
     field5_0x4f: u8,
 }
 impl Component for PotionComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PotionComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PotionComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub spray_velocity_coeff: f32,
     pub spray_velocity_normalized_min: f32,
     pub body_colored: bool,
@@ -3251,12 +3918,18 @@ pub struct PotionComponent {
     pub custom_color_material: isize,
 }
 impl Component for TorchComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "TorchComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct TorchComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub probability_of_ignition_attempt: isize,
     pub suffocation_check_offset_y: f32,
     pub frames_suffocated_to_extinguish: isize,
@@ -3273,12 +3946,18 @@ pub struct TorchComponent {
     field14_0x67: u8,
 }
 impl Component for SineWaveComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SineWaveComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SineWaveComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub sinewave_freq: f32,
     pub sinewave_m: f32,
     pub lifetime: isize,
@@ -3288,12 +3967,18 @@ pub struct SineWaveComponent {
     field7_0x57: u8,
 }
 impl Component for IKLimbsAnimatorComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "IKLimbsAnimatorComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IKLimbsAnimatorComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub future_state_samples: isize,
     pub ground_attachment_ray_length_coeff: f32,
     pub leg_velocity_coeff: f32,
@@ -3320,12 +4005,18 @@ pub struct IKLimbsAnimatorComponent {
     field24_0x257: u8,
 }
 impl Component for CardinalMovementComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CardinalMovementComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CardinalMovementComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub horizontal_movement: bool,
     pub vertical_movement: bool,
     pub intercardinal_movement: bool,
@@ -3337,12 +4028,18 @@ pub struct CardinalMovementComponent {
     field9_0x57: u8,
 }
 impl Component for WormComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WormComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WormComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub speed: f32,
     pub acceleration: f32,
     pub ground_decceleration: LensValue<f32>,
@@ -3382,12 +4079,18 @@ pub struct WormComponent {
     field37_0x177: u8,
 }
 impl Component for MusicEnergyAffectorComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MusicEnergyAffectorComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MusicEnergyAffectorComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub energy_target: f32,
     pub fade_range: f32,
     pub trigger_danger_music: bool,
@@ -3402,12 +4105,18 @@ pub struct MusicEnergyAffectorComponent {
     pub energy_lerp_up_speed_multiplier: f32,
 }
 impl Component for ExplosionComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ExplosionComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ExplosionComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub trigger: ExplosionTriggerType,
     pub config_explosion: ConfigExplosion,
     pub timeout_frames: isize,
@@ -3419,12 +4128,18 @@ pub struct ExplosionComponent {
     pub m_timer_trigger_frame: isize,
 }
 impl Component for PhysicsThrowableComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsThrowableComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsThrowableComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub throw_force_coeff: f32,
     pub max_throw_speed: f32,
     pub min_torque: f32,
@@ -3451,12 +4166,18 @@ pub struct PhysicsThrowableComponent {
     field24_0x77: u8,
 }
 impl Component for NinjaRopeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "NinjaRopeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct NinjaRopeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub max_length: f32,
     pub m_length: f32,
     pub m_segments: VecNinjaRopeSegment,
@@ -3466,12 +4187,18 @@ pub struct NinjaRopeComponent {
     field7_0x5f: u8,
 }
 impl Component for WormAIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WormAIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WormAIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub speed: f32,
     pub speed_hunt: f32,
     pub direction_adjust_speed: f32,
@@ -3499,12 +4226,18 @@ pub struct WormAIComponent {
     field25_0xb7: u8,
 }
 impl Component for FlyingComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "FlyingComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct FlyingComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -3519,12 +4252,18 @@ pub struct FlyingComponent {
     field12_0x5f: u8,
 }
 impl Component for CharacterCollisionComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "CharacterCollisionComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CharacterCollisionComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub getting_crushed_threshold: isize,
     pub moving_up_before_getting_crushed_threshold: isize,
     pub getting_crushed_counter: isize,
@@ -3539,12 +4278,18 @@ pub struct CharacterCollisionComponent {
     field12_0x5f: u8,
 }
 impl Component for IKLimbWalkerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "IKLimbWalkerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IKLimbWalkerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub ground_attachment_min_spread: f32,
     pub ground_attachment_max_tries: isize,
     pub ground_attachment_max_angle: f32,
@@ -3561,12 +4306,18 @@ pub struct IKLimbWalkerComponent {
     pub m_state: isize,
 }
 impl Component for SpriteAnimatorComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SpriteAnimatorComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteAnimatorComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub target_sprite_comp_name: StdString,
     pub rotate_to_surface_normal: bool,
     field3_0x61: u8,
@@ -3577,12 +4328,18 @@ pub struct SpriteAnimatorComponent {
     pub m_send_on_finished_message_name: StdString,
 }
 impl Component for ItemChestComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemChestComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemChestComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub item_count_min: isize,
     pub item_count_max: isize,
     pub level: isize,
@@ -3600,12 +4357,18 @@ pub struct ItemChestComponent {
     field15_0xa7: u8,
 }
 impl Component for FishAIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "FishAIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct FishAIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub direction: isize,
     pub speed: f32,
     pub aabb_min: Vec2,
@@ -3619,12 +4382,18 @@ pub struct FishAIComponent {
     field11_0x77: u8,
 }
 impl Component for MaterialAreaCheckerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MaterialAreaCheckerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MaterialAreaCheckerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub update_every_x_frame: isize,
     pub look_for_failure: bool,
     field3_0x4d: u8,
@@ -3642,12 +4411,18 @@ pub struct MaterialAreaCheckerComponent {
     pub m_last_frame_checked: isize,
 }
 impl Component for DamageNearbyEntitiesComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DamageNearbyEntitiesComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DamageNearbyEntitiesComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub damage_min: f32,
     pub damage_max: f32,
@@ -3666,12 +4441,18 @@ pub struct DamageNearbyEntitiesComponent {
     field16_0xa7: u8,
 }
 impl Component for AIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub temp_temp_temp: f32,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -3679,21 +4460,33 @@ pub struct AIComponent {
     field5_0x4f: u8,
 }
 impl Component for RotateTowardsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "RotateTowardsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct RotateTowardsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub entity_with_tag: StdString,
 }
 impl Component for PhysicsBody2Component {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsBody2Component";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsBody2Component {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_body: *mut B2Body,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -3744,12 +4537,18 @@ pub struct PhysicsBody2Component {
     field48_0x9f: u8,
 }
 impl Component for PhysicsRagdollComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsRagdollComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsRagdollComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub filename: StdString,
     pub filenames: StdString,
     pub offset_x: f32,
@@ -3761,12 +4560,18 @@ pub struct PhysicsRagdollComponent {
     field9_0x87: u8,
 }
 impl Component for VerletWorldJoisizeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "VerletWorldJoisizeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VerletWorldJoisizeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub world_position: Vec2,
     pub verlet_poisize_index: isize,
     pub m_updated: bool,
@@ -3780,22 +4585,34 @@ pub struct VerletWorldJoisizeComponent {
     field11_0x5f: u8,
 }
 impl Component for PositionSeedComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PositionSeedComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PositionSeedComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub pos_x: f32,
     pub pos_y: f32,
 }
 impl Component for GameAreaEffectComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "GameAreaEffectComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct GameAreaEffectComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub collide_with_tag: StdString,
     pub frame_length: isize,
@@ -3808,12 +4625,18 @@ pub struct GameAreaEffectComponent {
     field10_0x8f: u8,
 }
 impl Component for PressurePlateComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PressurePlateComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PressurePlateComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_next_frame: isize,
     pub check_every_x_frames: isize,
     pub state: isize,
@@ -3822,12 +4645,18 @@ pub struct PressurePlateComponent {
     pub material_percent: f32,
 }
 impl Component for SpriteStainsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SpriteStainsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteStainsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub sprite_id: isize,
     pub fade_stains_towards_srite_top: bool,
     field3_0x4d: u8,
@@ -3839,12 +4668,18 @@ pub struct SpriteStainsComponent {
     pub m_state: SpriteStainsState,
 }
 impl Component for PixelSpriteComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PixelSpriteComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PixelSpriteComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub image_file: StdString,
     pub anchor_x: isize,
     pub anchor_y: isize,
@@ -3856,12 +4691,18 @@ pub struct PixelSpriteComponent {
     pub m_pixel_sprite: *mut PixelSprite,
 }
 impl Component for SimplePhysicsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SimplePhysicsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SimplePhysicsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub can_go_up: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -3873,42 +4714,66 @@ pub struct SimplePhysicsComponent {
     field9_0x57: u8,
 }
 impl Component for BookComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "BookComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct BookComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub temp_tempy: f32,
     pub temp_temp_temp: f32,
 }
 impl Component for StreamingKeepAliveComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "StreamingKeepAliveComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StreamingKeepAliveComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub temp_tempy: f32,
     pub temp_temp_temp: f32,
 }
 impl Component for PhysicsBodyCollisionDamageComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsBodyCollisionDamageComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsBodyCollisionDamageComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub speed_threshold: f32,
     pub damage_multiplier: f32,
 }
 impl Component for FogOfWarRemoverComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "FogOfWarRemoverComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct FogOfWarRemoverComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     field2_0x4c: u8,
     field3_0x4d: u8,
@@ -3916,12 +4781,18 @@ pub struct FogOfWarRemoverComponent {
     field5_0x4f: u8,
 }
 impl Component for VariableStorageComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "VariableStorageComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VariableStorageComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -3959,12 +4830,18 @@ pub struct VariableStorageComponent {
     field35_0x87: u8,
 }
 impl Component for ExplodeOnDamageComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ExplodeOnDamageComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ExplodeOnDamageComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub explode_on_death_percent: f32,
     pub explode_on_damage_percent: f32,
     pub physics_body_modified_death_probability: f32,
@@ -3976,12 +4853,18 @@ pub struct ExplodeOnDamageComponent {
     field9_0x1cf: u8,
 }
 impl Component for MagicConvertMaterialComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MagicConvertMaterialComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MagicConvertMaterialComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: isize,
     pub min_radius: isize,
     pub is_circle: bool,
@@ -4023,12 +4906,18 @@ pub struct MagicConvertMaterialComponent {
     pub m_radius: isize,
 }
 impl Component for AdvancedFishAIComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AdvancedFishAIComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AdvancedFishAIComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub move_check_range_min: f32,
     pub move_check_range_max: f32,
     pub flock: bool,
@@ -4054,12 +4943,18 @@ pub struct AdvancedFishAIComponent {
     field23_0x8f: u8,
 }
 impl Component for ControlsComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ControlsComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ControlsComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub m_button_down_fire: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -4234,12 +5129,18 @@ pub struct ControlsComponent {
     field172_0x1cf: u8,
 }
 impl Component for WorldStateComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "WorldStateComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WorldStateComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub is_initialized: bool,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -4335,12 +5236,18 @@ pub struct WorldStateComponent {
     field93_0x1c7: u8,
 }
 impl Component for AudioComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AudioComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AudioComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -4379,12 +5286,18 @@ pub struct AudioComponent {
     field36_0x9f: u8,
 }
 impl Component for TeleportComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "TeleportComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct TeleportComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub target: Vec2,
     pub target_x_is_absolute_position: bool,
     pub target_y_is_absolute_position: bool,
@@ -4406,22 +5319,34 @@ pub struct TeleportComponent {
     field19_0xaf: u8,
 }
 impl Component for DrugEffectModifierComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "DrugEffectModifierComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DrugEffectModifierComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub fx_add: ConfigDrugFx,
     pub fx_multiply: ConfigDrugFx,
 }
 impl Component for HitEffectComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "HitEffectComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct HitEffectComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub condition_effect: GameEffect,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -4432,12 +5357,18 @@ pub struct HitEffectComponent {
     pub value_string: StdString,
 }
 impl Component for AbilityComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AbilityComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AbilityComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub cooldown_frames: isize,
     pub entity_file: StdString,
     pub sprite_file: StdString,
@@ -4516,12 +5447,18 @@ pub struct AbilityComponent {
     field76_0x3bf: u8,
 }
 impl Component for PhysicsJoisizeComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsJoisizeComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsJoisizeComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub nail_to_wall: bool,
     pub grid_joisize: bool,
     pub breakable: bool,
@@ -4545,12 +5482,18 @@ pub struct PhysicsJoisizeComponent {
     pub m_joisize: *mut B2Isize,
 }
 impl Component for ItemCostComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ItemCostComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ItemCostComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -4570,12 +5513,18 @@ pub struct ItemCostComponent {
     pub m_ex_cost: i64,
 }
 impl Component for PhysicsJoisize2MutatorComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PhysicsJoisize2MutatorComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PhysicsJoisize2MutatorComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub joisize_id: u16,
     pub destroy: bool,
     field3_0x4b: u8,
@@ -4590,12 +5539,18 @@ pub struct PhysicsJoisize2MutatorComponent {
     pub m_previous_motor_max_torque: f32,
 }
 impl Component for AreaDamageComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "AreaDamageComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AreaDamageComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub aabb_min: Vec2,
     pub aabb_max: Vec2,
     pub circle_radius: f32,
@@ -4611,12 +5566,18 @@ pub struct AreaDamageComponent {
     field13_0x9f: u8,
 }
 impl Component for SpriteComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "SpriteComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub image_file: StdString,
     pub ui_is_parent: bool,
     pub is_text_sprite: bool,
@@ -4677,12 +5638,18 @@ pub struct SpriteComponent {
     pub m_render_list_handle: isize,
 }
 impl Component for MaterialInventoryComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "MaterialInventoryComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MaterialInventoryComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub drop_as_item: bool,
     pub on_death_spill: bool,
     pub leak_gently: bool,
@@ -4723,12 +5690,18 @@ pub struct MaterialInventoryComponent {
     field38_0xa7: u8,
 }
 impl Component for ArcComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "ArcComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ArcComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     field1_0x48: u8,
     field2_0x49: u8,
     field3_0x4a: u8,
@@ -4738,24 +5711,36 @@ pub struct ArcComponent {
     pub m_arc_target: isize,
 }
 impl Component for LevitationComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "LevitationComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LevitationComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub radius: f32,
     pub entity_force: f32,
     pub box2d_force: f32,
     pub effect_lifetime_frames: isize,
 }
 impl Component for PathFindingGridMarkerComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "PathFindingGridMarkerComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingGridMarkerComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub marker_work_flag: isize,
     pub marker_offset_x: f32,
     pub marker_offset_y: f32,
@@ -4763,12 +5748,18 @@ pub struct PathFindingGridMarkerComponent {
     pub m_node: PathFindingNodeHandle,
 }
 impl Component for BossDragonComponent {
+    fn default(base: ComponentData) -> Self {
+        Self {
+            base,
+            ..Default::default()
+        }
+    }
     const NAME: &'static str = "BossDragonComponent";
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct BossDragonComponent {
-    pub inherited_fields: ComponentData,
+    pub base: ComponentData,
     pub speed: f32,
     pub speed_hunt: f32,
     pub acceleration: f32,

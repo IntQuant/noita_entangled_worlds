@@ -15,6 +15,22 @@ pub struct ComponentData {
     unk3: StdVec<usize>,
     unk4: usize,
 }
+impl Default for ComponentData {
+    fn default() -> Self {
+        Self {
+            vtable: &ComponentVTable {},
+            local_id: 0,
+            type_name: CString(std::ptr::null()),
+            type_id: 0,
+            id: 0,
+            enabled: false,
+            unk2: [0; 3],
+            tags: Default::default(),
+            unk3: StdVec::null(),
+            unk4: 0,
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentVTable {
@@ -67,6 +83,52 @@ pub struct ComponentBuffer {
     pub component_list: StdVec<*mut ComponentData>,
 }
 impl ComponentBuffer {
+    pub fn create<C: Component>(&mut self, entry: usize, id: usize) -> &'static mut C {
+        let com = C::default(ComponentData {
+            vtable: self
+                .component_list
+                .as_ref()
+                .iter()
+                .find_map(|a| unsafe { a.as_ref().map(|a| a.vtable) })
+                .unwrap(),
+            local_id: 0,
+            type_name: self
+                .component_list
+                .as_ref()
+                .iter()
+                .find_map(|a| unsafe { a.as_ref().map(|a| CString(a.type_name.0)) })
+                .unwrap(),
+            type_id: 0,
+            id,
+            enabled: false,
+            unk2: [0; 3],
+            tags: Default::default(),
+            unk3: StdVec::null(),
+            unk4: 0,
+        });
+        let com = Box::leak(Box::new(com));
+        let index = self.component_list.len();
+        self.component_list
+            .push(com as *mut C as *mut ComponentData);
+        while self.entity_entry.len() <= entry {
+            self.entity_entry.push(self.end)
+        }
+        let mut off = entry;
+        while let Some(next) = self.next.get(off).copied()
+            && next != self.end
+        {
+            off = next
+        }
+        while self.next.len() <= off {
+            self.next.push(self.end)
+        }
+        while self.prev.len() <= index {
+            self.prev.push(self.end)
+        }
+        self.next[off] = index;
+        self.prev[index] = off;
+        unsafe { std::mem::transmute(self.component_list.last_mut().unwrap()) }
+    }
     pub fn iter_components(&self, entry: usize) -> ComponentIter {
         if let Some(off) = self.entity_entry.get(entry) {
             ComponentIter {

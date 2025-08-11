@@ -1,6 +1,6 @@
 use crate::noita::types::{AABB, Color, Entity, StdString, StdVec};
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConfigExplosionVTable {}
 
 #[repr(C)]
@@ -89,9 +89,14 @@ pub struct ConfigExplosion {
     pub impl_position: Vec2,
     pub impl_delay_frame: isize,
 }
+impl Default for ConfigExplosion {
+    fn default() -> Self {
+        todo!()
+    }
+}
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConfigDamageCriticalVTable {}
 
 #[repr(C)]
@@ -103,9 +108,14 @@ pub struct ConfigDamageCritical {
     pub m_succeeded: bool,
     padding1: [u8; 3],
 }
+impl Default for ConfigDamageCritical {
+    fn default() -> Self {
+        todo!()
+    }
+}
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConfigGridCosmeticParticleVTable {}
 
 #[repr(C)]
@@ -131,7 +141,12 @@ pub struct ConfigGridCosmeticParticle {
     pub fade_based_on_lifetime: bool,
     padding1: [u8; 2],
 }
-#[derive(Debug)]
+impl Default for ConfigGridCosmeticParticle {
+    fn default() -> Self {
+        todo!()
+    }
+}
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigDamagesByTypeVTable {}
 
@@ -155,7 +170,12 @@ pub struct ConfigDamagesByType {
     pub curse: f32,
     pub holy: f32,
 }
-#[derive(Debug)]
+impl Default for ConfigDamagesByType {
+    fn default() -> Self {
+        todo!()
+    }
+}
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigPendingPortalVTable {}
 #[derive(Debug)]
@@ -171,7 +191,12 @@ pub struct ConfigPendingPortal {
     pub target_biome_name: StdString,
     pub entity: *mut Entity,
 }
-#[derive(Debug)]
+impl Default for ConfigPendingPortal {
+    fn default() -> Self {
+        todo!()
+    }
+}
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigNpcPartyVTable {}
 
@@ -187,8 +212,13 @@ pub struct ConfigNpcParty {
     pub member_entities: StdVec<usize>,
     pub member_files: StdVec<StdString>,
 }
+impl Default for ConfigNpcParty {
+    fn default() -> Self {
+        todo!()
+    }
+}
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigCutThroughWorldVTable {}
 
@@ -203,7 +233,12 @@ pub struct ConfigCutThroughWorld {
     pub edge_darkening_width: isize,
     pub global_id: usize,
 }
-#[derive(Debug)]
+impl Default for ConfigCutThroughWorld {
+    fn default() -> Self {
+        todo!()
+    }
+}
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigGunVTable {}
 
@@ -217,8 +252,13 @@ pub struct ConfigGun {
     pub reload_time: isize,
     pub deck_capacity: isize,
 }
+impl Default for ConfigGun {
+    fn default() -> Self {
+        todo!()
+    }
+}
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigGunActionInfoVTable {}
 
@@ -297,6 +337,12 @@ pub struct ConfigGunActionInfo {
     pub sound_loop_tag: StdString,
     pub projectile_file: StdString,
 }
+impl Default for ConfigGunActionInfo {
+    fn default() -> Self {
+        todo!()
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Default)]
 pub struct Vec2 {
@@ -334,7 +380,7 @@ pub struct ValueRangeInt {
     pub min: isize,
     pub max: isize,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigDrugFx {
     field0_0x0: u8,
@@ -366,7 +412,7 @@ pub struct ConfigDrugFx {
     field26_0x1a: u8,
     field27_0x1b: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct B2Body {
     field0_0x0: u8,
@@ -374,7 +420,7 @@ pub struct B2Body {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct B2Vec2 {
     field0_0x0: u8,
@@ -394,7 +440,7 @@ pub struct B2Vec2 {
     field14_0xe: u8,
     field15_0xf: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct B2WeldIsize {
     field0_0x0: u8,
@@ -402,7 +448,7 @@ pub struct B2WeldIsize {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VectorJumpParams {
     field0_0x0: u8,
@@ -418,7 +464,7 @@ pub struct VectorJumpParams {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VectorInt {
     field0_0x0: u8,
@@ -434,7 +480,7 @@ pub struct VectorInt {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct B2Isize {
     field0_0x0: u8,
@@ -442,7 +488,7 @@ pub struct B2Isize {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AudioSourceHandle {
     field0_0x0: u8,
@@ -450,7 +496,7 @@ pub struct AudioSourceHandle {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecVisited {
     field0_0x0: u8,
@@ -466,7 +512,7 @@ pub struct VecVisited {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct CharacterStatsModifier {
     field0_0x0: u8,
@@ -582,7 +628,7 @@ pub struct CharacterStatsModifier {
     field110_0x6e: u8,
     field111_0x6f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VerletLinkArrayInline {
     field0_0x0: u8,
@@ -4426,7 +4472,7 @@ pub struct VerletLinkArrayInline {
     field3838_0xefe: u8,
     field3839_0xeff: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct FloatArrayInline {
     field0_0x0: u8,
@@ -5070,7 +5116,7 @@ pub struct FloatArrayInline {
     field638_0x27e: u8,
     field639_0x27f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct UisizeArrayInline {
     field0_0x0: u8,
@@ -5714,7 +5760,7 @@ pub struct UisizeArrayInline {
     field638_0x27e: u8,
     field639_0x27f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct Vec2ArrayInline {
     field0_0x0: u8,
@@ -6998,7 +7044,7 @@ pub struct Vec2ArrayInline {
     field1278_0x4fe: u8,
     field1279_0x4ff: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ImGuiContext {
     field0_0x0: u8,
@@ -7006,7 +7052,7 @@ pub struct ImGuiContext {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct EntityTags {
     field0_0x0: u8,
@@ -7074,7 +7120,7 @@ pub struct EntityTags {
     field62_0x3e: u8,
     field63_0x3f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ParticleEmitterCustomStyle {
     field0_0x0: u8,
@@ -7082,7 +7128,7 @@ pub struct ParticleEmitterCustomStyle {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecMaterials {
     field0_0x0: u8,
@@ -7098,7 +7144,7 @@ pub struct VecMaterials {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecInventoryItem {
     field0_0x0: u8,
@@ -7114,7 +7160,7 @@ pub struct VecInventoryItem {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct InvenentoryUpdateListener {
     field0_0x0: u8,
@@ -7122,7 +7168,7 @@ pub struct InvenentoryUpdateListener {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MapValue {
     field0_0x0: u8,
@@ -7134,7 +7180,7 @@ pub struct MapValue {
     field6_0x6: u8,
     field7_0x7: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LuaVmType {
     field0_0x0: u8,
@@ -7142,7 +7188,7 @@ pub struct LuaVmType {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct LuaManager {
     field0_0x0: u8,
@@ -7150,7 +7196,7 @@ pub struct LuaManager {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecFloat {
     field0_0x0: u8,
@@ -7166,7 +7212,7 @@ pub struct VecFloat {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VectorInt32 {
     field0_0x0: u8,
@@ -7182,7 +7228,7 @@ pub struct VectorInt32 {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StdSetIsize32 {
     field0_0x0: u8,
@@ -7194,7 +7240,7 @@ pub struct StdSetIsize32 {
     field6_0x6: u8,
     field7_0x7: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StdVecFloat {
     field0_0x0: u8,
@@ -7210,7 +7256,7 @@ pub struct StdVecFloat {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct EntityTypeID {
     field0_0x0: u8,
@@ -7218,7 +7264,7 @@ pub struct EntityTypeID {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct RagdollFx {
     field0_0x0: u8,
@@ -7226,7 +7272,7 @@ pub struct RagdollFx {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StdVecInt {
     field0_0x0: u8,
@@ -7242,7 +7288,7 @@ pub struct StdVecInt {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StatusEffectType {
     field0_0x0: u8,
@@ -7250,7 +7296,7 @@ pub struct StatusEffectType {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecInt {
     field0_0x0: u8,
@@ -7266,7 +7312,7 @@ pub struct VecInt {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct InventoryKind {
     field0_0x0: u8,
@@ -7274,7 +7320,7 @@ pub struct InventoryKind {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct RtsUnitGoal {
     field0_0x0: u8,
@@ -7314,7 +7360,7 @@ pub struct RtsUnitGoal {
     field34_0x22: u8,
     field35_0x23: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct AIStateStack {
     field0_0x0: u8,
@@ -7330,7 +7376,7 @@ pub struct AIStateStack {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct Biome {
     field0_0x0: u8,
@@ -7338,7 +7384,7 @@ pub struct Biome {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct UString {
     field0_0x0: u8,
@@ -7366,7 +7412,7 @@ pub struct UString {
     field22_0x16: u8,
     field23_0x17: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingNodeHandle {
     field0_0x0: u8,
@@ -7378,7 +7424,7 @@ pub struct PathFindingNodeHandle {
     field6_0x6: u8,
     field7_0x7: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingResultNode {
     field0_0x0: u8,
@@ -7402,7 +7448,7 @@ pub struct PathFindingResultNode {
     field18_0x12: u8,
     field19_0x13: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingComponentState {
     field0_0x0: u8,
@@ -7410,7 +7456,7 @@ pub struct PathFindingComponentState {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MsgQueuePathFindingResult {
     field0_0x0: u8,
@@ -7418,7 +7464,7 @@ pub struct MsgQueuePathFindingResult {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VectorPathnode {
     field0_0x0: u8,
@@ -7434,7 +7480,7 @@ pub struct VectorPathnode {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingInput {
     field0_0x0: u8,
@@ -7598,7 +7644,7 @@ pub struct PathFindingInput {
     field158_0x9e: u8,
     field159_0x9f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PathFindingLogic {
     field0_0x0: u8,
@@ -7606,7 +7652,7 @@ pub struct PathFindingLogic {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ConfigLaser {
     field0_0x0: u8,
@@ -7662,7 +7708,7 @@ pub struct ConfigLaser {
     field50_0x32: u8,
     field51_0x33: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IKLimbAttackerState {
     field0_0x0: u8,
@@ -7670,7 +7716,7 @@ pub struct IKLimbAttackerState {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct IKLimbStateVec {
     field0_0x0: u8,
@@ -8154,7 +8200,7 @@ pub struct IKLimbStateVec {
     field478_0x1de: u8,
     field479_0x1df: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct WormPartPositions {
     field0_0x0: u8,
@@ -8318,7 +8364,7 @@ pub struct WormPartPositions {
     field158_0x9e: u8,
     field159_0x9f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ExplosionTriggerType {
     field0_0x0: u8,
@@ -8326,7 +8372,7 @@ pub struct ExplosionTriggerType {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecNinjaRopeSegment {
     field0_0x0: u8,
@@ -8342,7 +8388,7 @@ pub struct VecNinjaRopeSegment {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ComponentTags {
     field0_0x0: u8,
@@ -8378,7 +8424,7 @@ pub struct ComponentTags {
     field30_0x1e: u8,
     field31_0x1f: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct StackAnimationState {
     field0_0x0: u8,
@@ -8394,7 +8440,7 @@ pub struct StackAnimationState {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct DamageTypes {
     field0_0x0: u8,
@@ -8402,7 +8448,7 @@ pub struct DamageTypes {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecPtrB2Body {
     field0_0x0: u8,
@@ -8410,7 +8456,7 @@ pub struct VecPtrB2Body {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecStr {
     field0_0x0: u8,
@@ -8426,7 +8472,7 @@ pub struct VecStr {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteStainsState {
     field0_0x0: u8,
@@ -8434,7 +8480,7 @@ pub struct SpriteStainsState {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VirtualTextureHandle {
     field0_0x0: u8,
@@ -8442,7 +8488,7 @@ pub struct VirtualTextureHandle {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteStains {
     field0_0x0: u8,
@@ -8450,7 +8496,7 @@ pub struct SpriteStains {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct PixelSprite {
     field0_0x0: u8,
@@ -8458,7 +8504,7 @@ pub struct PixelSprite {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VectorString {
     field0_0x0: u8,
@@ -8474,7 +8520,7 @@ pub struct VectorString {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecCutThroughWorld {
     field0_0x0: u8,
@@ -8490,7 +8536,7 @@ pub struct VecCutThroughWorld {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct MapStringString {
     field0_0x0: u8,
@@ -8502,7 +8548,7 @@ pub struct MapStringString {
     field6_0x6: u8,
     field7_0x7: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecNpcParty {
     field0_0x0: u8,
@@ -8518,7 +8564,7 @@ pub struct VecNpcParty {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecPendingPortal {
     field0_0x0: u8,
@@ -8534,7 +8580,7 @@ pub struct VecPendingPortal {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct TeleportComponentState {
     field0_0x0: u8,
@@ -8542,7 +8588,7 @@ pub struct TeleportComponentState {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct HitEffect {
     field0_0x0: u8,
@@ -8550,7 +8596,7 @@ pub struct HitEffect {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct SpriteRenderList {
     field0_0x0: u8,
@@ -8558,7 +8604,7 @@ pub struct SpriteRenderList {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VecDouble {
     field0_0x0: u8,
@@ -8574,7 +8620,7 @@ pub struct VecDouble {
     field10_0xa: u8,
     field11_0xb: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct VerletSprite {
     field0_0x0: u8,
@@ -8582,7 +8628,7 @@ pub struct VerletSprite {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ParticleEmitterAnimation {
     field0_0x0: u8,
@@ -8590,7 +8636,7 @@ pub struct ParticleEmitterAnimation {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ProjectileType {
     field0_0x0: u8,
@@ -8598,7 +8644,7 @@ pub struct ProjectileType {
     field2_0x2: u8,
     field3_0x3: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct ProjectileTriggers {
     field0_0x0: u8,
