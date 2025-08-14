@@ -108,8 +108,7 @@ impl ComponentBuffer {
         });
         let com = Box::leak(Box::new(com));
         let index = self.component_list.len();
-        self.component_list
-            .push(com as *mut C as *mut ComponentData);
+        self.component_list.push((com as *mut C).cast());
         while self.entity_entry.len() <= entry {
             self.entity_entry.push(self.end)
         }
@@ -119,6 +118,7 @@ impl ComponentBuffer {
         {
             off = next
         }
+        self.entity_entry[entry] = off;
         while self.next.len() <= off {
             self.next.push(self.end)
         }
