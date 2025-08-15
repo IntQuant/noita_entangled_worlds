@@ -51,6 +51,7 @@ pub struct GlobalsRef {
     pub filenames: &'static StdVec<StdString>,
     pub inventory: &'static Inventory,
     pub mods: &'static Mods,
+    pub max_component: &'static usize,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -67,6 +68,7 @@ pub struct GlobalsMut {
     pub filenames: &'static mut StdVec<StdString>,
     pub inventory: &'static mut Inventory,
     pub mods: &'static mut Mods,
+    pub max_component: &'static mut usize,
 }
 
 #[derive(Debug, Default)]
@@ -84,6 +86,7 @@ pub struct Globals {
     pub filenames: *mut StdVec<StdString>,
     pub inventory: *mut Inventory,
     pub mods: *mut Mods,
+    pub max_component: *mut usize,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -132,6 +135,9 @@ impl Globals {
     pub fn mods(&self) -> &'static Mods {
         unsafe { self.mods.as_ref().unwrap() }
     }
+    pub fn max_component(&self) -> &'static usize {
+        unsafe { self.max_component.as_ref().unwrap() }
+    }
     pub fn world_seed_mut(&self) -> &'static mut usize {
         unsafe { self.world_seed.as_mut().unwrap() }
     }
@@ -177,6 +183,9 @@ impl Globals {
     pub fn mods_mut(&self) -> &'static mut Mods {
         unsafe { self.mods.as_mut().unwrap() }
     }
+    pub fn max_component_mut(&self) -> &'static mut usize {
+        unsafe { self.max_component.as_mut().unwrap() }
+    }
     pub fn as_ref(&self) -> GlobalsRef {
         GlobalsRef {
             world_seed: self.world_seed(),
@@ -192,6 +201,7 @@ impl Globals {
             filenames: self.filenames(),
             inventory: self.inventory(),
             mods: self.mods(),
+            max_component: self.max_component(),
         }
     }
     pub fn as_mut(&self) -> GlobalsMut {
@@ -209,6 +219,7 @@ impl Globals {
             filenames: self.filenames_mut(),
             inventory: self.inventory_mut(),
             mods: self.mods_mut(),
+            max_component: self.max_component_mut(),
         }
     }
     pub fn new(lua: LuaState) -> Self {
@@ -230,6 +241,7 @@ impl Globals {
         let filenames = 0x1207bd4 as *mut StdVec<StdString>;
         let inventory = 0x12224f0 as *mut Inventory;
         let mods = 0x1207e90 as *mut Mods;
+        let max_component = 0x1152ff0 as *mut usize;
         Self {
             world_seed,
             new_game_count,
@@ -244,6 +256,7 @@ impl Globals {
             filenames,
             inventory,
             mods,
+            max_component,
         }
     }
 }

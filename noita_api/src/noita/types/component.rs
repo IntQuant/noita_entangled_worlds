@@ -1,6 +1,7 @@
 use crate::noita::types::{
     BitSet, CString, Component, Entity, EntityManager, StdMap, StdString, StdVec, TagManager,
 };
+use std::ptr;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
@@ -83,7 +84,12 @@ pub struct ComponentBuffer {
     pub component_list: StdVec<*mut ComponentData>,
 }
 impl ComponentBuffer {
-    pub fn create<C: Component>(&mut self, entry: usize, id: usize) -> &'static mut C {
+    pub fn create<C: Component>(
+        &mut self,
+        entity: &mut Entity,
+        id: usize,
+        type_id: usize,
+    ) -> &'static mut C {
         let com = C::default(ComponentData {
             vtable: self
                 .component_list
@@ -91,14 +97,14 @@ impl ComponentBuffer {
                 .iter()
                 .find_map(|a| unsafe { a.as_ref().map(|a| a.vtable) })
                 .unwrap(),
-            local_id: 0,
+            local_id: self.component_list.len(),
             type_name: self
                 .component_list
                 .as_ref()
                 .iter()
                 .find_map(|a| unsafe { a.as_ref().map(|a| CString(a.type_name.0)) })
                 .unwrap(),
-            type_id: 0,
+            type_id,
             id,
             enabled: false,
             unk2: [0; 3],
@@ -109,16 +115,31 @@ impl ComponentBuffer {
         let com = Box::leak(Box::new(com));
         let index = self.component_list.len();
         self.component_list.push((com as *mut C).cast());
-        while self.entity_entry.len() <= entry {
+        if self.entities.len() > index {
+            self.entities[index] = entity;
+        } else {
+            while self.entities.len() < index {
+                self.entities.push(ptr::null_mut())
+            }
+            self.entities.push(entity);
+        }
+        while self.entity_entry.len() <= entity.entry {
             self.entity_entry.push(self.end)
         }
-        let mut off = entry;
-        while let Some(next) = self.next.get(off).copied()
-            && next != self.end
+        let mut off;
+        if let Some(e) = self.entity_entry.get(entity.entry).copied()
+            && e != self.end
         {
-            off = next
+            off = e;
+            while let Some(next) = self.next.get(off).copied()
+                && next != self.end
+            {
+                off = next;
+            }
+        } else {
+            off = self.next.len();
+            self.entity_entry[entity.entry] = off;
         }
-        self.entity_entry[entry] = off;
         while self.next.len() <= off {
             self.next.push(self.end)
         }
@@ -135,6 +156,7 @@ impl ComponentBuffer {
                 component_list: self.component_list.copy(),
                 off: *off,
                 next: self.next.copy(),
+                prev: self.prev.copy(),
                 end: self.end,
             }
         } else {
@@ -142,6 +164,7 @@ impl ComponentBuffer {
                 component_list: StdVec::null(),
                 off: 0,
                 next: StdVec::null(),
+                prev: StdVec::null(),
                 end: 0,
             }
         }
@@ -152,6 +175,7 @@ impl ComponentBuffer {
                 component_list: self.component_list.copy(),
                 off: *off,
                 next: self.next.copy(),
+                prev: self.prev.copy(),
                 end: self.end,
             }
         } else {
@@ -159,6 +183,7 @@ impl ComponentBuffer {
                 component_list: StdVec::null(),
                 off: 0,
                 next: StdVec::null(),
+                prev: StdVec::null(),
                 end: 0,
             }
         }
@@ -243,6 +268,7 @@ pub struct ComponentIter {
     off: usize,
     end: usize,
     next: StdVec<usize>,
+    prev: StdVec<usize>,
 }
 
 impl Iterator for ComponentIter {
@@ -258,12 +284,26 @@ impl Iterator for ComponentIter {
         }
     }
 }
+
+impl DoubleEndedIterator for ComponentIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.off == self.end {
+                return None;
+            }
+            let com = self.component_list.get(self.off)?.as_ref();
+            self.off = *self.prev.get(self.off)?;
+            com
+        }
+    }
+}
 #[derive(Debug)]
 pub struct ComponentIterMut {
     component_list: StdVec<*mut ComponentData>,
     off: usize,
     end: usize,
     next: StdVec<usize>,
+    prev: StdVec<usize>,
 }
 
 impl Iterator for ComponentIterMut {
@@ -275,6 +315,18 @@ impl Iterator for ComponentIterMut {
             }
             let com = self.component_list.get(self.off)?.as_mut();
             self.off = *self.next.get(self.off)?;
+            com
+        }
+    }
+}
+impl DoubleEndedIterator for ComponentIterMut {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.off == self.end {
+                return None;
+            }
+            let com = self.component_list.get(self.off)?.as_mut();
+            self.off = *self.prev.get(self.off)?;
             com
         }
     }

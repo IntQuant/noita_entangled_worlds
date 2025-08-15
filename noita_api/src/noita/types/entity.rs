@@ -176,8 +176,8 @@ impl EntityManager {
     }
     pub fn iter_components<C: Component + 'static>(
         &self,
-        component_type_manager: &ComponentTypeManager,
         entry: usize,
+        component_type_manager: &ComponentTypeManager,
     ) -> impl Iterator<Item = &'static C> {
         let index = component_type_manager
             .component_buffer_indices
@@ -192,8 +192,8 @@ impl EntityManager {
     }
     pub fn iter_components_mut<C: Component + 'static>(
         &mut self,
-        component_type_manager: &mut ComponentTypeManager,
         entry: usize,
+        component_type_manager: &mut ComponentTypeManager,
     ) -> impl Iterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
@@ -202,8 +202,8 @@ impl EntityManager {
     }
     pub fn iter_enabled_components<C: Component + 'static>(
         &self,
-        component_type_manager: &ComponentTypeManager,
         entry: usize,
+        component_type_manager: &ComponentTypeManager,
     ) -> impl Iterator<Item = &'static C> {
         component_type_manager
             .get::<C>(self)
@@ -212,8 +212,8 @@ impl EntityManager {
     }
     pub fn iter_enabled_components_mut<C: Component + 'static>(
         &mut self,
-        component_type_manager: &mut ComponentTypeManager,
         entry: usize,
+        component_type_manager: &mut ComponentTypeManager,
     ) -> impl Iterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
@@ -222,8 +222,8 @@ impl EntityManager {
     }
     pub fn iter_disabled_components<C: Component + 'static>(
         &self,
-        component_type_manager: &ComponentTypeManager,
         entry: usize,
+        component_type_manager: &ComponentTypeManager,
     ) -> impl Iterator<Item = &'static C> {
         component_type_manager
             .get::<C>(self)
@@ -232,8 +232,8 @@ impl EntityManager {
     }
     pub fn iter_disabled_components_mut<C: Component + 'static>(
         &mut self,
-        component_type_manager: &mut ComponentTypeManager,
         entry: usize,
+        component_type_manager: &mut ComponentTypeManager,
     ) -> impl Iterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
@@ -242,32 +242,40 @@ impl EntityManager {
     }
     pub fn create_component<C: Component + 'static>(
         &mut self,
-        entry: usize,
-        component_type_manager: &'static mut ComponentTypeManager,
-    ) -> &'static mut C {
-        let id = component_type_manager.next_id;
-        component_type_manager.next_id += 1;
-        let buffer = self.get_component_buffer_mut::<C>(component_type_manager);
-        buffer.create::<C>(entry, id)
+        entity: &mut Entity,
+        max_component: &mut usize,
+        component_type_manager: &mut ComponentTypeManager,
+    ) -> &mut C {
+        let index = component_type_manager
+            .component_buffer_indices
+            .get(C::STD_NAME)
+            .copied()
+            .unwrap();
+        let mgr = self.component_buffers.get(index).unwrap();
+        let com = unsafe { mgr.as_mut() }
+            .unwrap()
+            .create::<C>(entity, *max_component, index);
+        *max_component += 1;
+        com
     }
-    pub fn get_component_buffer<C: Component + 'static>(
+    pub fn get_component_buffer<'a, C: Component + 'static>(
         &self,
-        component_type_manager: &'static ComponentTypeManager,
-    ) -> &'static ComponentBuffer {
+        component_type_manager: &'a ComponentTypeManager,
+    ) -> &'a ComponentBuffer {
         //TODO this needs to deal with when it does not exist
         component_type_manager.get::<C>(self)
     }
-    pub fn get_component_buffer_mut<C: Component + 'static>(
+    pub fn get_component_buffer_mut<'a, C: Component + 'static>(
         &mut self,
-        component_type_manager: &'static mut ComponentTypeManager,
-    ) -> &'static mut ComponentBuffer {
+        component_type_manager: &'a mut ComponentTypeManager,
+    ) -> &'a mut ComponentBuffer {
         //TODO this needs to deal with when it does not exist
         component_type_manager.get_mut::<C>(self)
     }
     pub fn get_first_component<C: Component + 'static>(
         &self,
-        component_type_manager: &ComponentTypeManager,
         entry: usize,
+        component_type_manager: &ComponentTypeManager,
     ) -> Option<&'static C> {
         component_type_manager
             .get::<C>(self)
@@ -276,8 +284,8 @@ impl EntityManager {
     }
     pub fn get_first_component_mut<C: Component + 'static>(
         &mut self,
-        component_type_manager: &mut ComponentTypeManager,
         entry: usize,
+        component_type_manager: &mut ComponentTypeManager,
     ) -> Option<&'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
@@ -286,8 +294,8 @@ impl EntityManager {
     }
     pub fn get_first_enabled_component<C: Component + 'static>(
         &self,
-        component_type_manager: &ComponentTypeManager,
         entry: usize,
+        component_type_manager: &ComponentTypeManager,
     ) -> Option<&'static C> {
         component_type_manager
             .get::<C>(self)
@@ -296,8 +304,8 @@ impl EntityManager {
     }
     pub fn get_first_enabled_component_mut<C: Component + 'static>(
         &mut self,
-        component_type_manager: &mut ComponentTypeManager,
         entry: usize,
+        component_type_manager: &mut ComponentTypeManager,
     ) -> Option<&'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
@@ -306,8 +314,8 @@ impl EntityManager {
     }
     pub fn get_first_disabled_component<C: Component + 'static>(
         &self,
-        component_type_manager: &ComponentTypeManager,
         entry: usize,
+        component_type_manager: &ComponentTypeManager,
     ) -> Option<&'static C> {
         component_type_manager
             .get::<C>(self)
@@ -316,8 +324,8 @@ impl EntityManager {
     }
     pub fn get_first_disabled_component_mut<C: Component + 'static>(
         &mut self,
-        component_type_manager: &mut ComponentTypeManager,
         entry: usize,
+        component_type_manager: &mut ComponentTypeManager,
     ) -> Option<&'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
@@ -355,10 +363,10 @@ impl EntityManager {
     }
     pub fn iter_in_radius_with_tag(
         &self,
-        tag_manager: &TagManager<u16>,
         pos: Vec2,
         radius: f32,
         tag: &StdString,
+        tag_manager: &TagManager<u16>,
     ) -> impl Iterator<Item = &'static Entity> {
         if let Some(tag) = tag_manager.tag_indices.get(tag).copied()
             && let Some(ents) = self.entity_buckets.get(tag as usize)
@@ -384,10 +392,10 @@ impl EntityManager {
     }
     pub fn iter_in_radius_with_tag_mut(
         &mut self,
-        tag_manager: &TagManager<u16>,
         pos: Vec2,
         radius: f32,
         tag: &StdString,
+        tag_manager: &TagManager<u16>,
     ) -> impl Iterator<Item = &'static mut Entity> {
         if let Some(tag) = tag_manager.tag_indices.get(tag).copied()
             && let Some(ents) = self.entity_buckets.get_mut(tag as usize)
@@ -415,9 +423,9 @@ impl EntityManager {
     }
     pub fn get_closest_with_tag(
         &self,
-        tag_manager: &TagManager<u16>,
         pos: Vec2,
         tag: &StdString,
+        tag_manager: &TagManager<u16>,
     ) -> Option<&'static Entity> {
         tag_manager.tag_indices.get(tag).copied().and_then(|tag| {
             self.entity_buckets.get(tag as usize).and_then(|b| {
@@ -444,9 +452,9 @@ impl EntityManager {
     }
     pub fn get_closest_with_tag_mut(
         &mut self,
-        tag_manager: &TagManager<u16>,
         pos: Vec2,
         tag: &StdString,
+        tag_manager: &TagManager<u16>,
     ) -> Option<&'static mut Entity> {
         tag_manager.tag_indices.get(tag).copied().and_then(|tag| {
             self.entity_buckets.get_mut(tag as usize).and_then(|b| {
