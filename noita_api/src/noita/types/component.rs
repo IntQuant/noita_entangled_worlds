@@ -71,6 +71,19 @@ impl ComponentTypeManager {
         unsafe { mgr.as_mut() }.unwrap()
     }
 }
+#[test]
+fn test_com_create() {
+    let com_buffer = ComponentBuffer {
+        vtable: &ComponentManagerVTable {},
+        end: usize::MAX,
+        unk: [0, 0],
+        entity_entry: StdVec::new(),
+        entities: StdVec::new(),
+        prev: StdVec::new(),
+        next: StdVec::new(),
+        component_list: StdVec::new(),
+    };
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentBuffer {
@@ -90,6 +103,7 @@ impl ComponentBuffer {
         id: usize,
         type_id: usize,
     ) -> &'static mut C {
+        crate::print!("{id} {type_id} {}", entity.entry);
         let com = C::default(ComponentData {
             vtable: self
                 .component_list
@@ -114,6 +128,14 @@ impl ComponentBuffer {
         });
         let com = Box::leak(Box::new(com));
         let index = self.component_list.len();
+        crate::print!(
+            "{index} {} {} {} {} {:?}",
+            self.component_list.len(),
+            self.entities.len(),
+            self.next.len(),
+            self.prev.len(),
+            self.next
+        );
         self.component_list.push((com as *mut C).cast());
         if self.entities.len() > index {
             self.entities[index] = entity;
@@ -123,6 +145,7 @@ impl ComponentBuffer {
             }
             self.entities.push(entity);
         }
+        crate::print!("a");
         while self.entity_entry.len() <= entity.entry {
             self.entity_entry.push(self.end)
         }
@@ -131,23 +154,33 @@ impl ComponentBuffer {
             && e != self.end
         {
             off = e;
+            crate::print!("b");
             while let Some(next) = self.next.get(off).copied()
                 && next != self.end
             {
                 off = next;
             }
+            crate::print!("c");
+            while self.next.len() <= index {
+                self.next.push(self.end)
+            }
+            self.next[off] = index;
         } else {
-            off = self.next.len();
+            off = index;
             self.entity_entry[entity.entry] = off;
+            crate::print!("c");
+            while self.next.len() <= index {
+                self.next.push(self.end)
+            }
+            self.next[off] = self.end;
         }
-        while self.next.len() <= off {
-            self.next.push(self.end)
-        }
+        crate::print!("d");
         while self.prev.len() <= index {
             self.prev.push(self.end)
         }
-        self.next[off] = index;
+        crate::print!("{off}");
         self.prev[index] = off;
+        crate::print!("e");
         unsafe { std::mem::transmute(self.component_list.last_mut().unwrap()) }
     }
     pub fn iter_components(&self, entry: usize) -> ComponentIter {
@@ -188,13 +221,15 @@ impl ComponentBuffer {
             }
         }
     }
-    pub fn iter_every_component(&self) -> impl Iterator<Item = &'static ComponentData> {
+    pub fn iter_every_component(&self) -> impl DoubleEndedIterator<Item = &'static ComponentData> {
         self.component_list
             .as_ref()
             .iter()
             .filter_map(|c| unsafe { c.as_ref() })
     }
-    pub fn iter_every_component_mut(&mut self) -> impl Iterator<Item = &'static mut ComponentData> {
+    pub fn iter_every_component_mut(
+        &mut self,
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentData> {
         self.component_list
             .as_mut()
             .iter_mut()
@@ -205,7 +240,7 @@ impl ComponentBuffer {
         tag_manager: &TagManager<u8>,
         entry: usize,
         tag: &StdString,
-    ) -> impl Iterator<Item = &'static ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static ComponentData> {
         self.iter_components(entry)
             .filter(|c| c.tags.has_tag(tag_manager, tag))
     }
@@ -214,32 +249,32 @@ impl ComponentBuffer {
         tag_manager: &TagManager<u8>,
         entry: usize,
         tag: &StdString,
-    ) -> impl Iterator<Item = &'static mut ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentData> {
         self.iter_components_mut(entry)
             .filter(|c| c.tags.has_tag(tag_manager, tag))
     }
     pub fn iter_enabled_components(
         &self,
         entry: usize,
-    ) -> impl Iterator<Item = &'static ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static ComponentData> {
         self.iter_components(entry).filter(|c| c.enabled)
     }
     pub fn iter_disabled_components(
         &self,
         entry: usize,
-    ) -> impl Iterator<Item = &'static ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static ComponentData> {
         self.iter_components(entry).filter(|c| !c.enabled)
     }
     pub fn iter_enabled_components_mut(
         &mut self,
         entry: usize,
-    ) -> impl Iterator<Item = &'static mut ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentData> {
         self.iter_components_mut(entry).filter(|c| c.enabled)
     }
     pub fn iter_disabled_components_mut(
         &mut self,
         entry: usize,
-    ) -> impl Iterator<Item = &'static mut ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentData> {
         self.iter_components_mut(entry).filter(|c| !c.enabled)
     }
     pub fn get_first(&self, entry: usize) -> Option<&'static ComponentData> {

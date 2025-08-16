@@ -51,7 +51,7 @@ impl InterestTracker {
         std::mem::take(&mut self.added_any)
     }
 
-    pub(crate) fn drain_lost_interest(&mut self) -> impl Iterator<Item = PeerId> + '_ {
+    pub(crate) fn drain_lost_interest(&mut self) -> impl DoubleEndedIterator<Item = PeerId> + '_ {
         self.lost_interest.drain(..)
     }
 

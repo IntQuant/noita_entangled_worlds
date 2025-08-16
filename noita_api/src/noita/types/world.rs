@@ -548,7 +548,7 @@ impl AsRef<[CellReactionBuf]> for ReactionLookupTable {
 }
 
 impl ReactionLookupTable {
-    pub fn iter(&self) -> impl Iterator<Item = &'static [CellReaction]> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &'static [CellReaction]> {
         self.as_ref()
             .iter()
             .map(|b| unsafe { slice::from_raw_parts(b.base, b.len) })

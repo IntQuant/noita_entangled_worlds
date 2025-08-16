@@ -225,6 +225,12 @@ impl<T: Debug> Debug for StdVec<T> {
         f.debug_tuple("StdVec").field(&self.as_ref()).finish()
     }
 }
+impl<T> Default for StdVec<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> StdVec<T> {
     pub fn null() -> Self {
         Self {
@@ -293,6 +299,14 @@ impl<T> StdVec<T> {
             self.end = unsafe { new_ptr.add(old_len) };
             self.cap = unsafe { new_ptr.add(new_cap) };
         }
+    }
+    pub fn with_capacity(n: usize) -> StdVec<T> {
+        let mut v = Self::null();
+        v.alloc(n);
+        v
+    }
+    pub fn new() -> StdVec<T> {
+        Self::with_capacity(1)
     }
     pub fn push(&mut self, value: T) {
         self.alloc(1);

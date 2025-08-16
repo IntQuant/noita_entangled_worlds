@@ -52,7 +52,11 @@ impl LuaState {
         unsafe { LUA.lua_tointeger(self.lua, index) }
     }
 
-    pub fn to_integer_array(&self, index: i32, len: usize) -> impl Iterator<Item = isize> {
+    pub fn to_integer_array(
+        &self,
+        index: i32,
+        len: usize,
+    ) -> impl DoubleEndedIterator<Item = isize> {
         (1..=len).map(move |i| unsafe {
             LUA.lua_pushinteger(self.lua, i as lua_bindings::lua_Integer);
             LUA.lua_gettable(self.lua, index);

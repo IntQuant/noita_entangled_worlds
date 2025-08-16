@@ -78,7 +78,7 @@ impl EntityManager {
         &self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
-    ) -> impl Iterator<Item = &'static Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static Entity> {
         let n = *tag_manager.tag_indices.get(tag).unwrap();
         self.entity_buckets
             .get(n as usize)
@@ -91,7 +91,7 @@ impl EntityManager {
         &mut self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
-    ) -> impl Iterator<Item = &'static mut Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut Entity> {
         let n = *tag_manager.tag_indices.get(tag).unwrap();
         self.entity_buckets
             .get_mut(n as usize)
@@ -118,7 +118,7 @@ impl EntityManager {
         &self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
-    ) -> impl Iterator<Item = &'static Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static Entity> {
         unsafe {
             if let Some(n) = tag_manager.tag_indices.get(tag).copied()
                 && let Some(v) = self.entity_buckets.get(n as usize)
@@ -135,7 +135,7 @@ impl EntityManager {
         &mut self,
         tag_manager: &TagManager<u16>,
         tag: &StdString,
-    ) -> impl Iterator<Item = &'static mut Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut Entity> {
         unsafe {
             if let Some(n) = tag_manager.tag_indices.get(tag).copied()
                 && let Some(v) = self.entity_buckets.get_mut(n as usize)
@@ -148,19 +148,21 @@ impl EntityManager {
             .filter_map(|e| e.as_mut())
         }
     }
-    pub fn iter_entities(&self) -> impl Iterator<Item = &'static Entity> {
+    pub fn iter_entities(&self) -> impl DoubleEndedIterator<Item = &'static Entity> {
         self.entities
             .as_ref()
             .iter()
             .filter_map(|c| unsafe { c.as_ref() })
     }
-    pub fn iter_entities_mut(&mut self) -> impl Iterator<Item = &'static mut Entity> {
+    pub fn iter_entities_mut(&mut self) -> impl DoubleEndedIterator<Item = &'static mut Entity> {
         self.entities
             .as_mut()
             .iter_mut()
             .filter_map(|c| unsafe { c.as_mut() })
     }
-    pub fn iter_component_buffers(&self) -> impl Iterator<Item = &'static ComponentBuffer> {
+    pub fn iter_component_buffers(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = &'static ComponentBuffer> {
         self.component_buffers
             .as_ref()
             .iter()
@@ -168,7 +170,7 @@ impl EntityManager {
     }
     pub fn iter_component_buffers_mut(
         &mut self,
-    ) -> impl Iterator<Item = &'static mut ComponentBuffer> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentBuffer> {
         self.component_buffers
             .as_mut()
             .iter_mut()
@@ -178,7 +180,7 @@ impl EntityManager {
         &self,
         entry: usize,
         component_type_manager: &ComponentTypeManager,
-    ) -> impl Iterator<Item = &'static C> {
+    ) -> impl DoubleEndedIterator<Item = &'static C> {
         let index = component_type_manager
             .component_buffer_indices
             .get(C::STD_NAME)
@@ -194,7 +196,7 @@ impl EntityManager {
         &mut self,
         entry: usize,
         component_type_manager: &mut ComponentTypeManager,
-    ) -> impl Iterator<Item = &'static mut C> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
             .iter_components_mut(entry)
@@ -204,7 +206,7 @@ impl EntityManager {
         &self,
         entry: usize,
         component_type_manager: &ComponentTypeManager,
-    ) -> impl Iterator<Item = &'static C> {
+    ) -> impl DoubleEndedIterator<Item = &'static C> {
         component_type_manager
             .get::<C>(self)
             .iter_enabled_components(entry)
@@ -214,7 +216,7 @@ impl EntityManager {
         &mut self,
         entry: usize,
         component_type_manager: &mut ComponentTypeManager,
-    ) -> impl Iterator<Item = &'static mut C> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
             .iter_enabled_components_mut(entry)
@@ -224,7 +226,7 @@ impl EntityManager {
         &self,
         entry: usize,
         component_type_manager: &ComponentTypeManager,
-    ) -> impl Iterator<Item = &'static C> {
+    ) -> impl DoubleEndedIterator<Item = &'static C> {
         component_type_manager
             .get::<C>(self)
             .iter_disabled_components(entry)
@@ -234,14 +236,15 @@ impl EntityManager {
         &mut self,
         entry: usize,
         component_type_manager: &mut ComponentTypeManager,
-    ) -> impl Iterator<Item = &'static mut C> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut C> {
         component_type_manager
             .get_mut::<C>(self)
             .iter_disabled_components_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
+    #[allow(clippy::mut_from_ref)]
     pub fn create_component<C: Component + 'static>(
-        &mut self,
+        &self,
         entity: &mut Entity,
         max_component: &mut usize,
         component_type_manager: &mut ComponentTypeManager,
@@ -332,29 +335,35 @@ impl EntityManager {
             .get_first_disabled_mut(entry)
             .map(|c| unsafe { mem::transmute(c) })
     }
-    pub fn iter_every_component(&self) -> impl Iterator<Item = &'static ComponentData> {
+    pub fn iter_every_component(&self) -> impl DoubleEndedIterator<Item = &'static ComponentData> {
         self.iter_component_buffers()
             .flat_map(move |c| c.iter_every_component())
     }
-    pub fn iter_every_component_mut(&mut self) -> impl Iterator<Item = &'static mut ComponentData> {
+    pub fn iter_every_component_mut(
+        &mut self,
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentData> {
         self.iter_component_buffers_mut()
             .flat_map(move |c| c.iter_every_component_mut())
     }
     pub fn iter_all_components(
         &self,
         entry: usize,
-    ) -> impl Iterator<Item = &'static ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static ComponentData> {
         self.iter_component_buffers()
             .flat_map(move |c| c.iter_components(entry))
     }
     pub fn iter_all_components_mut(
         &mut self,
         entry: usize,
-    ) -> impl Iterator<Item = &'static mut ComponentData> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut ComponentData> {
         self.iter_component_buffers_mut()
             .flat_map(move |c| c.iter_components_mut(entry))
     }
-    pub fn iter_in_radius(&self, pos: Vec2, radius: f32) -> impl Iterator<Item = &'static Entity> {
+    pub fn iter_in_radius(
+        &self,
+        pos: Vec2,
+        radius: f32,
+    ) -> impl DoubleEndedIterator<Item = &'static Entity> {
         self.entities
             .as_ref()
             .iter()
@@ -367,7 +376,7 @@ impl EntityManager {
         radius: f32,
         tag: &StdString,
         tag_manager: &TagManager<u16>,
-    ) -> impl Iterator<Item = &'static Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static Entity> {
         if let Some(tag) = tag_manager.tag_indices.get(tag).copied()
             && let Some(ents) = self.entity_buckets.get(tag as usize)
         {
@@ -383,7 +392,7 @@ impl EntityManager {
         &mut self,
         pos: Vec2,
         radius: f32,
-    ) -> impl Iterator<Item = &'static mut Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut Entity> {
         self.entities
             .as_mut()
             .iter_mut()
@@ -396,7 +405,7 @@ impl EntityManager {
         radius: f32,
         tag: &StdString,
         tag_manager: &TagManager<u16>,
-    ) -> impl Iterator<Item = &'static mut Entity> {
+    ) -> impl DoubleEndedIterator<Item = &'static mut Entity> {
         if let Some(tag) = tag_manager.tag_indices.get(tag).copied()
             && let Some(ents) = self.entity_buckets.get_mut(tag as usize)
         {

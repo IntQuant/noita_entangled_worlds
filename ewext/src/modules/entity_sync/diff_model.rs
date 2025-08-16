@@ -2169,11 +2169,11 @@ impl RemoteDiffModel {
         }
     }
 
-    /*pub(crate) fn drain_backtrack(&mut self) -> impl Iterator<Item = EntityID> + '_ {
+    /*pub(crate) fn drain_backtrack(&mut self) -> impl DoubleEndedIterator<Item = EntityID> + '_ {
         self.backtrack.drain(..)
     }*/
 
-    pub(crate) fn drain_grab_request(&mut self) -> impl Iterator<Item = Lid> + '_ {
+    pub(crate) fn drain_grab_request(&mut self) -> impl DoubleEndedIterator<Item = Lid> + '_ {
         self.grab_request.drain(..)
     }
 }
