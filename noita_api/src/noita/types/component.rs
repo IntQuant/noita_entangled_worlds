@@ -21,7 +21,7 @@ impl Default for ComponentData {
         Self {
             vtable: &ComponentVTable {},
             local_id: 0,
-            type_name: CString(std::ptr::null()),
+            type_name: CString(ptr::null()),
             type_id: 0,
             id: 0,
             enabled: false,
@@ -43,7 +43,7 @@ pub struct ComponentManagerVTable {
     //TODO should be a union
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ComponentTypeManager {
     pub next_id: usize,
     pub component_buffer_indices: StdMap<StdString, usize>,
@@ -73,16 +73,59 @@ impl ComponentTypeManager {
 }
 #[test]
 fn test_com_create() {
-    let com_buffer = ComponentBuffer {
-        vtable: &ComponentManagerVTable {},
-        end: usize::MAX,
-        unk: [0, 0],
-        entity_entry: StdVec::new(),
-        entities: StdVec::new(),
-        prev: StdVec::new(),
-        next: StdVec::new(),
-        component_list: StdVec::new(),
-    };
+    let mut em = EntityManager::default();
+    let cm = &mut ComponentTypeManager::default();
+    let id = &mut 0;
+    {
+        let mut com_buffer = ComponentBuffer::default();
+        let com = &mut com_buffer as *mut _;
+        em.component_buffers.push(com);
+        let mut node = crate::noita::types::StdMapNode::default();
+        node.key = StdString::from_str("WalletComponent");
+        node.value = 0usize;
+        unsafe { cm.component_buffer_indices.root.as_mut().unwrap() }.parent = &mut node as *mut _;
+    }
+    let ent = em.create();
+    {
+        em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
+        println!(
+            "{:?}",
+            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
+        );
+        em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
+        println!(
+            "{:?}",
+            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
+        );
+        em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
+        println!(
+            "{:?}",
+            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
+        );
+        em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
+        println!(
+            "{:?}",
+            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
+        );
+    }
+    let mut coms = em.iter_components::<crate::noita::types::WalletComponent>(ent.entry, cm);
+    println!(
+        "{:?}",
+        em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
+            .component_list
+    );
+    println!(
+        "{:?}",
+        em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
+            .component_list
+            .get(0)
+    );
+    println!("{:?}", coms.next());
+    println!("{:?}", coms.next());
+    println!("{:?}", coms.next());
+    println!("{:?}", coms.next());
+    println!("{:?}", coms.next());
+    println!("{:?}", coms.next());
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -96,6 +139,20 @@ pub struct ComponentBuffer {
     pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
 }
+impl Default for ComponentBuffer {
+    fn default() -> Self {
+        Self {
+            vtable: &ComponentManagerVTable {},
+            end: (-1isize).cast_unsigned(),
+            unk: [0, 0],
+            entity_entry: Default::default(),
+            entities: Default::default(),
+            prev: Default::default(),
+            next: Default::default(),
+            component_list: Default::default(),
+        }
+    }
+}
 impl ComponentBuffer {
     pub fn create<C: Component>(
         &mut self,
@@ -103,21 +160,20 @@ impl ComponentBuffer {
         id: usize,
         type_id: usize,
     ) -> &'static mut C {
-        crate::print!("{id} {type_id} {}", entity.entry);
         let com = C::default(ComponentData {
             vtable: self
                 .component_list
                 .as_ref()
                 .iter()
                 .find_map(|a| unsafe { a.as_ref().map(|a| a.vtable) })
-                .unwrap(),
+                .unwrap_or(&ComponentVTable {}),
             local_id: self.component_list.len(),
             type_name: self
                 .component_list
                 .as_ref()
                 .iter()
                 .find_map(|a| unsafe { a.as_ref().map(|a| CString(a.type_name.0)) })
-                .unwrap(),
+                .unwrap_or(CString(ptr::null_mut())),
             type_id,
             id,
             enabled: false,
@@ -128,14 +184,6 @@ impl ComponentBuffer {
         });
         let com = Box::leak(Box::new(com));
         let index = self.component_list.len();
-        crate::print!(
-            "{index} {} {} {} {} {:?}",
-            self.component_list.len(),
-            self.entities.len(),
-            self.next.len(),
-            self.prev.len(),
-            self.next
-        );
         self.component_list.push((com as *mut C).cast());
         if self.entities.len() > index {
             self.entities[index] = entity;
@@ -145,43 +193,39 @@ impl ComponentBuffer {
             }
             self.entities.push(entity);
         }
-        crate::print!("a");
         while self.entity_entry.len() <= entity.entry {
             self.entity_entry.push(self.end)
         }
         let mut off;
+        let mut last = self.end;
         if let Some(e) = self.entity_entry.get(entity.entry).copied()
             && e != self.end
         {
             off = e;
-            crate::print!("b");
-            while let Some(next) = self.next.get(off).copied()
-                && next != self.end
-            {
+            while let Some(next) = self.next.get(off).copied() {
+                last = off;
+                if next == self.end {
+                    break;
+                }
                 off = next;
             }
-            crate::print!("c");
             while self.next.len() <= index {
                 self.next.push(self.end)
             }
             self.next[off] = index;
+            while self.prev.len() <= index {
+                self.prev.push(self.end)
+            }
+            self.prev[index] = last;
         } else {
             off = index;
             self.entity_entry[entity.entry] = off;
-            crate::print!("c");
             while self.next.len() <= index {
                 self.next.push(self.end)
             }
             self.next[off] = self.end;
         }
-        crate::print!("d");
-        while self.prev.len() <= index {
-            self.prev.push(self.end)
-        }
-        crate::print!("{off}");
-        self.prev[index] = off;
-        crate::print!("e");
-        unsafe { std::mem::transmute(self.component_list.last_mut().unwrap()) }
+        com
     }
     pub fn iter_components(&self, entry: usize) -> ComponentIter {
         if let Some(off) = self.entity_entry.get(entry) {

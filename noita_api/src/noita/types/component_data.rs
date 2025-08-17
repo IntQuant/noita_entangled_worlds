@@ -1,5 +1,5 @@
 use crate::noita::types::*;
-pub trait Component {
+pub trait Component: Debug {
     fn default(base: ComponentData) -> Self;
     const NAME: &'static str;
     const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);

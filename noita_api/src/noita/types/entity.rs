@@ -76,8 +76,8 @@ impl EntityManager {
     }
     pub fn get_entities_with_tag(
         &self,
-        tag_manager: &TagManager<u16>,
         tag: &StdString,
+        tag_manager: &TagManager<u16>,
     ) -> impl DoubleEndedIterator<Item = &'static Entity> {
         let n = *tag_manager.tag_indices.get(tag).unwrap();
         self.entity_buckets
@@ -742,6 +742,18 @@ pub struct EntityManager {
     pub entities: StdVec<*mut Entity>,
     pub entity_buckets: StdVec<StdVec<*mut Entity>>,
     pub component_buffers: StdVec<*mut ComponentBuffer>,
+}
+impl Default for EntityManager {
+    fn default() -> Self {
+        Self {
+            vtable: &EntityManagerVTable {},
+            max_entity_id: 0,
+            free_ids: Default::default(),
+            entities: Default::default(),
+            entity_buckets: Default::default(),
+            component_buffers: Default::default(),
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]

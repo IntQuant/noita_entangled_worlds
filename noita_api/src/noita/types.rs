@@ -156,6 +156,9 @@ impl Ord for StdString {
 pub struct CString(pub *const u8);
 impl Display for CString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.0.is_null() {
+            return write!(f, "");
+        }
         let mut string = String::new();
         unsafe {
             let mut ptr = self.0;
@@ -212,7 +215,11 @@ impl<T> IndexMut<usize> for StdVec<T> {
 }
 impl<T> AsRef<[T]> for StdVec<T> {
     fn as_ref(&self) -> &[T] {
-        unsafe { slice::from_raw_parts(self.start, self.len()) }
+        if self.start.is_null() {
+            &[]
+        } else {
+            unsafe { slice::from_raw_parts(self.start, self.len()) }
+        }
     }
 }
 impl<T> AsMut<[T]> for StdVec<T> {
@@ -326,10 +333,10 @@ impl<T> StdVec<T> {
         }
     }
     pub fn last(&self) -> Option<&T> {
-        unsafe { self.end.as_ref() }
+        unsafe { self.end.sub(1).as_ref() }
     }
     pub fn last_mut(&mut self) -> Option<&mut T> {
-        unsafe { self.end.as_mut() }
+        unsafe { self.end.sub(1).as_mut() }
     }
     pub fn insert(&mut self, index: usize, value: T) {
         self.alloc(1);
@@ -365,11 +372,33 @@ pub struct StdMapNode<K, V> {
     pub key: K,
     pub value: V,
 }
+impl<K: Default, V: Default> Default for StdMapNode<K, V> {
+    fn default() -> Self {
+        Self {
+            left: ptr::null_mut(),
+            parent: ptr::null_mut(),
+            right: ptr::null_mut(),
+            color: false,
+            end: false,
+            unk: [0, 0],
+            key: Default::default(),
+            value: Default::default(),
+        }
+    }
+}
 
 #[repr(C)]
 pub struct StdMap<K, V> {
     pub root: *mut StdMapNode<K, V>,
     pub len: usize,
+}
+impl<K: Default, V: Default> Default for StdMap<K, V> {
+    fn default() -> Self {
+        Self {
+            root: Box::leak(Box::new(StdMapNode::default())),
+            len: 0,
+        }
+    }
 }
 impl<K: Debug + 'static, V: Debug + 'static> Debug for StdMap<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
