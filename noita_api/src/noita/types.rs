@@ -154,6 +154,33 @@ impl Ord for StdString {
 }
 #[repr(transparent)]
 pub struct CString(pub *const u8);
+impl From<&str> for CString {
+    fn from(value: &str) -> Self {
+        let value = value.to_owned() + "\0";
+        let str = Box::leak(Box::new(value));
+        CString(str.as_ptr())
+    }
+}
+impl CString {
+    pub const fn from_str(value: &'static str) -> Self {
+        CString(value.as_ptr())
+    }
+}
+#[test]
+fn test_str() {
+    let str;
+    let str2;
+    {
+        str = CString::from("test");
+        str2 = const { CString::from_str("test\0") };
+        assert_eq!(str.to_string(), "test");
+        assert_eq!(str2.to_string(), "test")
+    }
+    assert_eq!(str.to_string(), "test");
+    assert_eq!(str2.to_string(), "test");
+    assert_eq!(WalletComponent::NAME, WalletComponent::C_NAME.to_string());
+    assert_eq!(WalletComponent::NAME, WalletComponent::STD_NAME.to_string());
+}
 impl Display for CString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if self.0.is_null() {

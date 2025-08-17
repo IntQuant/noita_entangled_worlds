@@ -2,6 +2,7 @@ use crate::noita::types::*;
 pub trait Component: Debug {
     fn default(base: ComponentData) -> Self;
     const NAME: &'static str;
+    const C_NAME: CString;
     const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
 }
 impl Component for SetLightAlphaFromVelocityComponent {
@@ -12,6 +13,7 @@ impl Component for SetLightAlphaFromVelocityComponent {
         }
     }
     const NAME: &'static str = "SetLightAlphaFromVelocityComponent";
+    const C_NAME: CString = const { CString::from_str("SetLightAlphaFromVelocityComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -32,6 +34,7 @@ impl Component for ItemAIKnowledgeComponent {
         }
     }
     const NAME: &'static str = "ItemAIKnowledgeComponent";
+    const C_NAME: CString = const { CString::from_str("ItemAIKnowledgeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -59,6 +62,7 @@ impl Component for DroneLauncherComponent {
         }
     }
     const NAME: &'static str = "DroneLauncherComponent";
+    const C_NAME: CString = const { CString::from_str("DroneLauncherComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -74,6 +78,7 @@ impl Component for CharacterPlatformingComponent {
         }
     }
     const NAME: &'static str = "CharacterPlatformingComponent";
+    const C_NAME: CString = const { CString::from_str("CharacterPlatformingComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -155,6 +160,7 @@ impl Component for ItemPickUpperComponent {
         }
     }
     const NAME: &'static str = "ItemPickUpperComponent";
+    const C_NAME: CString = const { CString::from_str("ItemPickUpperComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -183,6 +189,7 @@ impl Component for DebugLogMessagesComponent {
         }
     }
     const NAME: &'static str = "DebugLogMessagesComponent";
+    const C_NAME: CString = const { CString::from_str("DebugLogMessagesComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -199,6 +206,7 @@ impl Component for ItemRechargeNearGroundComponent {
         }
     }
     const NAME: &'static str = "ItemRechargeNearGroundComponent";
+    const C_NAME: CString = const { CString::from_str("ItemRechargeNearGroundComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -215,6 +223,7 @@ impl Component for GodInfoComponent {
         }
     }
     const NAME: &'static str = "GodInfoComponent";
+    const C_NAME: CString = const { CString::from_str("GodInfoComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -236,6 +245,7 @@ impl Component for Inventory2Component {
         }
     }
     const NAME: &'static str = "Inventory2Component";
+    const C_NAME: CString = const { CString::from_str("Inventory2Component\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -266,6 +276,7 @@ impl Component for HomingComponent {
         }
     }
     const NAME: &'static str = "HomingComponent";
+    const C_NAME: CString = const { CString::from_str("HomingComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -298,6 +309,7 @@ impl Component for AudioLoopComponent {
         }
     }
     const NAME: &'static str = "AudioLoopComponent";
+    const C_NAME: CString = const { CString::from_str("AudioLoopComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -351,6 +363,7 @@ impl Component for CutThroughWorldDoneHereComponent {
         }
     }
     const NAME: &'static str = "CutThroughWorldDoneHereComponent";
+    const C_NAME: CString = const { CString::from_str("CutThroughWorldDoneHereComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -370,6 +383,7 @@ impl Component for GenomeDataComponent {
         }
     }
     const NAME: &'static str = "GenomeDataComponent";
+    const C_NAME: CString = const { CString::from_str("GenomeDataComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -396,6 +410,7 @@ impl Component for HotspotComponent {
         }
     }
     const NAME: &'static str = "HotspotComponent";
+    const C_NAME: CString = const { CString::from_str("HotspotComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -420,6 +435,7 @@ impl Component for DieIfSpeedBelowComponent {
         }
     }
     const NAME: &'static str = "DieIfSpeedBelowComponent";
+    const C_NAME: CString = const { CString::from_str("DieIfSpeedBelowComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -436,6 +452,7 @@ impl Component for GameLogComponent {
         }
     }
     const NAME: &'static str = "GameLogComponent";
+    const C_NAME: CString = const { CString::from_str("GameLogComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -460,6 +477,7 @@ impl Component for EnergyShieldComponent {
         }
     }
     const NAME: &'static str = "EnergyShieldComponent";
+    const C_NAME: CString = const { CString::from_str("EnergyShieldComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -486,6 +504,7 @@ impl Component for VelocityComponent {
         }
     }
     const NAME: &'static str = "VelocityComponent";
+    const C_NAME: CString = const { CString::from_str("VelocityComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -527,6 +546,7 @@ impl Component for CharacterStatsComponent {
         }
     }
     const NAME: &'static str = "CharacterStatsComponent";
+    const C_NAME: CString = const { CString::from_str("CharacterStatsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -542,6 +562,7 @@ impl Component for CharacterDataComponent {
         }
     }
     const NAME: &'static str = "CharacterDataComponent";
+    const C_NAME: CString = const { CString::from_str("CharacterDataComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -618,6 +639,7 @@ impl Component for CollisionTriggerComponent {
         }
     }
     const NAME: &'static str = "CollisionTriggerComponent";
+    const C_NAME: CString = const { CString::from_str("CollisionTriggerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -647,6 +669,7 @@ impl Component for PhysicsBodyComponent {
         }
     }
     const NAME: &'static str = "PhysicsBodyComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsBodyComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -722,6 +745,7 @@ impl Component for GhostComponent {
         }
     }
     const NAME: &'static str = "GhostComponent";
+    const C_NAME: CString = const { CString::from_str("GhostComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -753,6 +777,7 @@ impl Component for DrugEffectComponent {
         }
     }
     const NAME: &'static str = "DrugEffectComponent";
+    const C_NAME: CString = const { CString::from_str("DrugEffectComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -769,6 +794,7 @@ impl Component for VerletPhysicsComponent {
         }
     }
     const NAME: &'static str = "VerletPhysicsComponent";
+    const C_NAME: CString = const { CString::from_str("VerletPhysicsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -833,6 +859,7 @@ impl Component for MaterialSeaSpawnerComponent {
         }
     }
     const NAME: &'static str = "MaterialSeaSpawnerComponent";
+    const C_NAME: CString = const { CString::from_str("MaterialSeaSpawnerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -864,6 +891,7 @@ impl Component for LocationMarkerComponent {
         }
     }
     const NAME: &'static str = "LocationMarkerComponent";
+    const C_NAME: CString = const { CString::from_str("LocationMarkerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -886,6 +914,7 @@ impl Component for InventoryGuiComponent {
         }
     }
     const NAME: &'static str = "InventoryGuiComponent";
+    const C_NAME: CString = const { CString::from_str("InventoryGuiComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -923,6 +952,7 @@ impl Component for SpriteParticleEmitterComponent {
         }
     }
     const NAME: &'static str = "SpriteParticleEmitterComponent";
+    const C_NAME: CString = const { CString::from_str("SpriteParticleEmitterComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -995,6 +1025,7 @@ impl Component for LightningComponent {
         }
     }
     const NAME: &'static str = "LightningComponent";
+    const C_NAME: CString = const { CString::from_str("LightningComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1023,6 +1054,7 @@ impl Component for MagicXRayComponent {
         }
     }
     const NAME: &'static str = "MagicXRayComponent";
+    const C_NAME: CString = const { CString::from_str("MagicXRayComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1041,6 +1073,7 @@ impl Component for WalletValuableComponent {
         }
     }
     const NAME: &'static str = "WalletValuableComponent";
+    const C_NAME: CString = const { CString::from_str("WalletValuableComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1060,6 +1093,7 @@ impl Component for PhysicsAIComponent {
         }
     }
     const NAME: &'static str = "PhysicsAIComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsAIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1116,6 +1150,7 @@ impl Component for EndingMcGuffinComponent {
         }
     }
     const NAME: &'static str = "EndingMcGuffinComponent";
+    const C_NAME: CString = const { CString::from_str("EndingMcGuffinComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1132,6 +1167,7 @@ impl Component for PhysicsShapeComponent {
         }
     }
     const NAME: &'static str = "PhysicsShapeComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsShapeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1164,6 +1200,7 @@ impl Component for PhysicsKeepInWorldComponent {
         }
     }
     const NAME: &'static str = "PhysicsKeepInWorldComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsKeepInWorldComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1184,6 +1221,7 @@ impl Component for AltarComponent {
         }
     }
     const NAME: &'static str = "AltarComponent";
+    const C_NAME: CString = const { CString::from_str("AltarComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1210,6 +1248,7 @@ impl Component for BlackHoleComponent {
         }
     }
     const NAME: &'static str = "BlackHoleComponent";
+    const C_NAME: CString = const { CString::from_str("BlackHoleComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1235,6 +1274,7 @@ impl Component for GameStatsComponent {
         }
     }
     const NAME: &'static str = "GameStatsComponent";
+    const C_NAME: CString = const { CString::from_str("GameStatsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1288,6 +1328,7 @@ impl Component for TelekinesisComponent {
         }
     }
     const NAME: &'static str = "TelekinesisComponent";
+    const C_NAME: CString = const { CString::from_str("TelekinesisComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1331,6 +1372,7 @@ impl Component for InheritTransformComponent {
         }
     }
     const NAME: &'static str = "InheritTransformComponent";
+    const C_NAME: CString = const { CString::from_str("InheritTransformComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1357,6 +1399,7 @@ impl Component for PhysicsImageShapeComponent {
         }
     }
     const NAME: &'static str = "PhysicsImageShapeComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsImageShapeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1389,6 +1432,7 @@ impl Component for ParticleEmitterComponent {
         }
     }
     const NAME: &'static str = "ParticleEmitterComponent";
+    const C_NAME: CString = const { CString::from_str("ParticleEmitterComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1493,6 +1537,7 @@ impl Component for CellEaterComponent {
         }
     }
     const NAME: &'static str = "CellEaterComponent";
+    const C_NAME: CString = const { CString::from_str("CellEaterComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1520,6 +1565,7 @@ impl Component for HealthBarComponent {
         }
     }
     const NAME: &'static str = "HealthBarComponent";
+    const C_NAME: CString = const { CString::from_str("HealthBarComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1534,6 +1580,7 @@ impl Component for InventoryComponent {
         }
     }
     const NAME: &'static str = "InventoryComponent";
+    const C_NAME: CString = const { CString::from_str("InventoryComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1560,6 +1607,7 @@ impl Component for WormPlayerComponent {
         }
     }
     const NAME: &'static str = "WormPlayerComponent";
+    const C_NAME: CString = const { CString::from_str("WormPlayerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1576,6 +1624,7 @@ impl Component for PlayerCollisionComponent {
         }
     }
     const NAME: &'static str = "PlayerCollisionComponent";
+    const C_NAME: CString = const { CString::from_str("PlayerCollisionComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1604,6 +1653,7 @@ impl Component for TextLogComponent {
         }
     }
     const NAME: &'static str = "TextLogComponent";
+    const C_NAME: CString = const { CString::from_str("TextLogComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1644,6 +1694,7 @@ impl Component for IKLimbComponent {
         }
     }
     const NAME: &'static str = "IKLimbComponent";
+    const C_NAME: CString = const { CString::from_str("IKLimbComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1672,6 +1723,7 @@ impl Component for KickComponent {
         }
     }
     const NAME: &'static str = "KickComponent";
+    const C_NAME: CString = const { CString::from_str("KickComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1701,6 +1753,7 @@ impl Component for NullDamageComponent {
         }
     }
     const NAME: &'static str = "NullDamageComponent";
+    const C_NAME: CString = const { CString::from_str("NullDamageComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1720,6 +1773,7 @@ impl Component for MaterialSuckerComponent {
         }
     }
     const NAME: &'static str = "MaterialSuckerComponent";
+    const C_NAME: CString = const { CString::from_str("MaterialSuckerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1755,6 +1809,7 @@ impl Component for UIInfoComponent {
         }
     }
     const NAME: &'static str = "UIInfoComponent";
+    const C_NAME: CString = const { CString::from_str("UIInfoComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1793,6 +1848,7 @@ impl Component for LuaComponent {
         }
     }
     const NAME: &'static str = "LuaComponent";
+    const C_NAME: CString = const { CString::from_str("LuaComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1859,6 +1915,7 @@ impl Component for StatusEffectDataComponent {
         }
     }
     const NAME: &'static str = "StatusEffectDataComponent";
+    const C_NAME: CString = const { CString::from_str("StatusEffectDataComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1889,6 +1946,7 @@ impl Component for SpriteOffsetAnimatorComponent {
         }
     }
     const NAME: &'static str = "SpriteOffsetAnimatorComponent";
+    const C_NAME: CString = const { CString::from_str("SpriteOffsetAnimatorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1914,6 +1972,7 @@ impl Component for ElectricityReceiverComponent {
         }
     }
     const NAME: &'static str = "ElectricityReceiverComponent";
+    const C_NAME: CString = const { CString::from_str("ElectricityReceiverComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -1941,6 +2000,7 @@ impl Component for CrawlerAnimalComponent {
         }
     }
     const NAME: &'static str = "CrawlerAnimalComponent";
+    const C_NAME: CString = const { CString::from_str("CrawlerAnimalComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2007,6 +2067,7 @@ impl Component for IngestionComponent {
         }
     }
     const NAME: &'static str = "IngestionComponent";
+    const C_NAME: CString = const { CString::from_str("IngestionComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2037,6 +2098,7 @@ impl Component for AttachToEntityComponent {
         }
     }
     const NAME: &'static str = "AttachToEntityComponent";
+    const C_NAME: CString = const { CString::from_str("AttachToEntityComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2068,6 +2130,7 @@ impl Component for InteractableComponent {
         }
     }
     const NAME: &'static str = "InteractableComponent";
+    const C_NAME: CString = const { CString::from_str("InteractableComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2109,6 +2172,7 @@ impl Component for ItemActionComponent {
         }
     }
     const NAME: &'static str = "ItemActionComponent";
+    const C_NAME: CString = const { CString::from_str("ItemActionComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2124,6 +2188,7 @@ impl Component for PhysicsJoisize2Component {
         }
     }
     const NAME: &'static str = "PhysicsJoisize2Component";
+    const C_NAME: CString = const { CString::from_str("PhysicsJoisize2Component\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2160,6 +2225,7 @@ impl Component for LoadEntitiesComponent {
         }
     }
     const NAME: &'static str = "LoadEntitiesComponent";
+    const C_NAME: CString = const { CString::from_str("LoadEntitiesComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2186,6 +2252,7 @@ impl Component for DebugFollowMouseComponent {
         }
     }
     const NAME: &'static str = "DebugFollowMouseComponent";
+    const C_NAME: CString = const { CString::from_str("DebugFollowMouseComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2200,6 +2267,7 @@ impl Component for ControllerGoombaAIComponent {
         }
     }
     const NAME: &'static str = "ControllerGoombaAIComponent";
+    const C_NAME: CString = const { CString::from_str("ControllerGoombaAIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2237,6 +2305,7 @@ impl Component for ManaReloaderComponent {
         }
     }
     const NAME: &'static str = "ManaReloaderComponent";
+    const C_NAME: CString = const { CString::from_str("ManaReloaderComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2251,6 +2320,7 @@ impl Component for DamageModelComponent {
         }
     }
     const NAME: &'static str = "DamageModelComponent";
+    const C_NAME: CString = const { CString::from_str("DamageModelComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2402,6 +2472,7 @@ impl Component for BossHealthBarComponent {
         }
     }
     const NAME: &'static str = "BossHealthBarComponent";
+    const C_NAME: CString = const { CString::from_str("BossHealthBarComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2429,6 +2500,7 @@ impl Component for AudioListenerComponent {
         }
     }
     const NAME: &'static str = "AudioListenerComponent";
+    const C_NAME: CString = const { CString::from_str("AudioListenerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2451,6 +2523,7 @@ impl Component for ItemAlchemyComponent {
         }
     }
     const NAME: &'static str = "ItemAlchemyComponent";
+    const C_NAME: CString = const { CString::from_str("ItemAlchemyComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2471,6 +2544,7 @@ impl Component for ShotEffectComponent {
         }
     }
     const NAME: &'static str = "ShotEffectComponent";
+    const C_NAME: CString = const { CString::from_str("ShotEffectComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2491,6 +2565,7 @@ impl Component for ProjectileComponent {
         }
     }
     const NAME: &'static str = "ProjectileComponent";
+    const C_NAME: CString = const { CString::from_str("ProjectileComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2637,6 +2712,7 @@ impl Component for PlatformShooterPlayerComponent {
         }
     }
     const NAME: &'static str = "PlatformShooterPlayerComponent";
+    const C_NAME: CString = const { CString::from_str("PlatformShooterPlayerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2707,6 +2783,7 @@ impl Component for ItemComponent {
         }
     }
     const NAME: &'static str = "ItemComponent";
+    const C_NAME: CString = const { CString::from_str("ItemComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2777,6 +2854,7 @@ impl Component for AnimalAIComponent {
         }
     }
     const NAME: &'static str = "AnimalAIComponent";
+    const C_NAME: CString = const { CString::from_str("AnimalAIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2955,6 +3033,7 @@ impl Component for OrbComponent {
         }
     }
     const NAME: &'static str = "OrbComponent";
+    const C_NAME: CString = const { CString::from_str("OrbComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -2974,6 +3053,7 @@ impl Component for LooseGroundComponent {
         }
     }
     const NAME: &'static str = "LooseGroundComponent";
+    const C_NAME: CString = const { CString::from_str("LooseGroundComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3004,6 +3084,7 @@ impl Component for TeleportProjectileComponent {
         }
     }
     const NAME: &'static str = "TeleportProjectileComponent";
+    const C_NAME: CString = const { CString::from_str("TeleportProjectileComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3025,6 +3106,7 @@ impl Component for LifetimeComponent {
         }
     }
     const NAME: &'static str = "LifetimeComponent";
+    const C_NAME: CString = const { CString::from_str("LifetimeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3057,6 +3139,7 @@ impl Component for ElectricitySourceComponent {
         }
     }
     const NAME: &'static str = "ElectricitySourceComponent";
+    const C_NAME: CString = const { CString::from_str("ElectricitySourceComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3078,6 +3161,7 @@ impl Component for BiomeTrackerComponent {
         }
     }
     const NAME: &'static str = "BiomeTrackerComponent";
+    const C_NAME: CString = const { CString::from_str("BiomeTrackerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3095,6 +3179,7 @@ impl Component for PixelSceneComponent {
         }
     }
     const NAME: &'static str = "PixelSceneComponent";
+    const C_NAME: CString = const { CString::from_str("PixelSceneComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3119,6 +3204,7 @@ impl Component for CameraBoundComponent {
         }
     }
     const NAME: &'static str = "CameraBoundComponent";
+    const C_NAME: CString = const { CString::from_str("CameraBoundComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3148,6 +3234,7 @@ impl Component for LiquidDisplacerComponent {
         }
     }
     const NAME: &'static str = "LiquidDisplacerComponent";
+    const C_NAME: CString = const { CString::from_str("LiquidDisplacerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3171,6 +3258,7 @@ impl Component for GameEffectComponent {
         }
     }
     const NAME: &'static str = "GameEffectComponent";
+    const C_NAME: CString = const { CString::from_str("GameEffectComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3228,6 +3316,7 @@ impl Component for WalletComponent {
         }
     }
     const NAME: &'static str = "WalletComponent";
+    const C_NAME: CString = const { CString::from_str("WalletComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3253,6 +3342,7 @@ impl Component for ItemStashComponent {
         }
     }
     const NAME: &'static str = "ItemStashComponent";
+    const C_NAME: CString = const { CString::from_str("ItemStashComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3274,6 +3364,7 @@ impl Component for MoveToSurfaceOnCreateComponent {
         }
     }
     const NAME: &'static str = "MoveToSurfaceOnCreateComponent";
+    const C_NAME: CString = const { CString::from_str("MoveToSurfaceOnCreateComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3300,6 +3391,7 @@ impl Component for UIIconComponent {
         }
     }
     const NAME: &'static str = "UIIconComponent";
+    const C_NAME: CString = const { CString::from_str("UIIconComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3348,6 +3440,7 @@ impl Component for DebugSpatialVisualizerComponent {
         }
     }
     const NAME: &'static str = "DebugSpatialVisualizerComponent";
+    const C_NAME: CString = const { CString::from_str("DebugSpatialVisualizerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3371,6 +3464,7 @@ impl Component for HitboxComponent {
         }
     }
     const NAME: &'static str = "HitboxComponent";
+    const C_NAME: CString = const { CString::from_str("HitboxComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3395,6 +3489,7 @@ impl Component for PathFindingComponent {
         }
     }
     const NAME: &'static str = "PathFindingComponent";
+    const C_NAME: CString = const { CString::from_str("PathFindingComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3481,6 +3576,7 @@ impl Component for GasBubbleComponent {
         }
     }
     const NAME: &'static str = "GasBubbleComponent";
+    const C_NAME: CString = const { CString::from_str("GasBubbleComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3502,6 +3598,7 @@ impl Component for WormAttractorComponent {
         }
     }
     const NAME: &'static str = "WormAttractorComponent";
+    const C_NAME: CString = const { CString::from_str("WormAttractorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3518,6 +3615,7 @@ impl Component for PhysicsPickUpComponent {
         }
     }
     const NAME: &'static str = "PhysicsPickUpComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsPickUpComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3544,6 +3642,7 @@ impl Component for AIAttackComponent {
         }
     }
     const NAME: &'static str = "AIAttackComponent";
+    const C_NAME: CString = const { CString::from_str("AIAttackComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3594,6 +3693,7 @@ impl Component for LimbBossComponent {
         }
     }
     const NAME: &'static str = "LimbBossComponent";
+    const C_NAME: CString = const { CString::from_str("LimbBossComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3620,6 +3720,7 @@ impl Component for LightComponent {
         }
     }
     const NAME: &'static str = "LightComponent";
+    const C_NAME: CString = const { CString::from_str("LightComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3661,6 +3762,7 @@ impl Component for FogOfWarRadiusComponent {
         }
     }
     const NAME: &'static str = "FogOfWarRadiusComponent";
+    const C_NAME: CString = const { CString::from_str("FogOfWarRadiusComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3680,6 +3782,7 @@ impl Component for PlayerStatsComponent {
         }
     }
     const NAME: &'static str = "PlayerStatsComponent";
+    const C_NAME: CString = const { CString::from_str("PlayerStatsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3701,6 +3804,7 @@ impl Component for LaserEmitterComponent {
         }
     }
     const NAME: &'static str = "LaserEmitterComponent";
+    const C_NAME: CString = const { CString::from_str("LaserEmitterComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3722,6 +3826,7 @@ impl Component for VerletWeaponComponent {
         }
     }
     const NAME: &'static str = "VerletWeaponComponent";
+    const C_NAME: CString = const { CString::from_str("VerletWeaponComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3749,6 +3854,7 @@ impl Component for ElectricChargeComponent {
         }
     }
     const NAME: &'static str = "ElectricChargeComponent";
+    const C_NAME: CString = const { CString::from_str("ElectricChargeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3769,6 +3875,7 @@ impl Component for ConsumableTeleportComponent {
         }
     }
     const NAME: &'static str = "ConsumableTeleportComponent";
+    const C_NAME: CString = const { CString::from_str("ConsumableTeleportComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3799,6 +3906,7 @@ impl Component for IKLimbAttackerComponent {
         }
     }
     const NAME: &'static str = "IKLimbAttackerComponent";
+    const C_NAME: CString = const { CString::from_str("IKLimbAttackerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3829,6 +3937,7 @@ impl Component for SetStartVelocityComponent {
         }
     }
     const NAME: &'static str = "SetStartVelocityComponent";
+    const C_NAME: CString = const { CString::from_str("SetStartVelocityComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3846,6 +3955,7 @@ impl Component for ElectricityComponent {
         }
     }
     const NAME: &'static str = "ElectricityComponent";
+    const C_NAME: CString = const { CString::from_str("ElectricityComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3880,6 +3990,7 @@ impl Component for GunComponent {
         }
     }
     const NAME: &'static str = "GunComponent";
+    const C_NAME: CString = const { CString::from_str("GunComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3899,6 +4010,7 @@ impl Component for PotionComponent {
         }
     }
     const NAME: &'static str = "PotionComponent";
+    const C_NAME: CString = const { CString::from_str("PotionComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3925,6 +4037,7 @@ impl Component for TorchComponent {
         }
     }
     const NAME: &'static str = "TorchComponent";
+    const C_NAME: CString = const { CString::from_str("TorchComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3953,6 +4066,7 @@ impl Component for SineWaveComponent {
         }
     }
     const NAME: &'static str = "SineWaveComponent";
+    const C_NAME: CString = const { CString::from_str("SineWaveComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -3974,6 +4088,7 @@ impl Component for IKLimbsAnimatorComponent {
         }
     }
     const NAME: &'static str = "IKLimbsAnimatorComponent";
+    const C_NAME: CString = const { CString::from_str("IKLimbsAnimatorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4012,6 +4127,7 @@ impl Component for CardinalMovementComponent {
         }
     }
     const NAME: &'static str = "CardinalMovementComponent";
+    const C_NAME: CString = const { CString::from_str("CardinalMovementComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4035,6 +4151,7 @@ impl Component for WormComponent {
         }
     }
     const NAME: &'static str = "WormComponent";
+    const C_NAME: CString = const { CString::from_str("WormComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4086,6 +4203,7 @@ impl Component for MusicEnergyAffectorComponent {
         }
     }
     const NAME: &'static str = "MusicEnergyAffectorComponent";
+    const C_NAME: CString = const { CString::from_str("MusicEnergyAffectorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4112,6 +4230,7 @@ impl Component for ExplosionComponent {
         }
     }
     const NAME: &'static str = "ExplosionComponent";
+    const C_NAME: CString = const { CString::from_str("ExplosionComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4135,6 +4254,7 @@ impl Component for PhysicsThrowableComponent {
         }
     }
     const NAME: &'static str = "PhysicsThrowableComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsThrowableComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4173,6 +4293,7 @@ impl Component for NinjaRopeComponent {
         }
     }
     const NAME: &'static str = "NinjaRopeComponent";
+    const C_NAME: CString = const { CString::from_str("NinjaRopeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4194,6 +4315,7 @@ impl Component for WormAIComponent {
         }
     }
     const NAME: &'static str = "WormAIComponent";
+    const C_NAME: CString = const { CString::from_str("WormAIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4233,6 +4355,7 @@ impl Component for FlyingComponent {
         }
     }
     const NAME: &'static str = "FlyingComponent";
+    const C_NAME: CString = const { CString::from_str("FlyingComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4259,6 +4382,7 @@ impl Component for CharacterCollisionComponent {
         }
     }
     const NAME: &'static str = "CharacterCollisionComponent";
+    const C_NAME: CString = const { CString::from_str("CharacterCollisionComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4285,6 +4409,7 @@ impl Component for IKLimbWalkerComponent {
         }
     }
     const NAME: &'static str = "IKLimbWalkerComponent";
+    const C_NAME: CString = const { CString::from_str("IKLimbWalkerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4313,6 +4438,7 @@ impl Component for SpriteAnimatorComponent {
         }
     }
     const NAME: &'static str = "SpriteAnimatorComponent";
+    const C_NAME: CString = const { CString::from_str("SpriteAnimatorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4335,6 +4461,7 @@ impl Component for ItemChestComponent {
         }
     }
     const NAME: &'static str = "ItemChestComponent";
+    const C_NAME: CString = const { CString::from_str("ItemChestComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4364,6 +4491,7 @@ impl Component for FishAIComponent {
         }
     }
     const NAME: &'static str = "FishAIComponent";
+    const C_NAME: CString = const { CString::from_str("FishAIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4389,6 +4517,7 @@ impl Component for MaterialAreaCheckerComponent {
         }
     }
     const NAME: &'static str = "MaterialAreaCheckerComponent";
+    const C_NAME: CString = const { CString::from_str("MaterialAreaCheckerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4418,6 +4547,7 @@ impl Component for DamageNearbyEntitiesComponent {
         }
     }
     const NAME: &'static str = "DamageNearbyEntitiesComponent";
+    const C_NAME: CString = const { CString::from_str("DamageNearbyEntitiesComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4448,6 +4578,7 @@ impl Component for AIComponent {
         }
     }
     const NAME: &'static str = "AIComponent";
+    const C_NAME: CString = const { CString::from_str("AIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4467,6 +4598,7 @@ impl Component for RotateTowardsComponent {
         }
     }
     const NAME: &'static str = "RotateTowardsComponent";
+    const C_NAME: CString = const { CString::from_str("RotateTowardsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4482,6 +4614,7 @@ impl Component for PhysicsBody2Component {
         }
     }
     const NAME: &'static str = "PhysicsBody2Component";
+    const C_NAME: CString = const { CString::from_str("PhysicsBody2Component\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4544,6 +4677,7 @@ impl Component for PhysicsRagdollComponent {
         }
     }
     const NAME: &'static str = "PhysicsRagdollComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsRagdollComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4567,6 +4701,7 @@ impl Component for VerletWorldJoisizeComponent {
         }
     }
     const NAME: &'static str = "VerletWorldJoisizeComponent";
+    const C_NAME: CString = const { CString::from_str("VerletWorldJoisizeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4592,6 +4727,7 @@ impl Component for PositionSeedComponent {
         }
     }
     const NAME: &'static str = "PositionSeedComponent";
+    const C_NAME: CString = const { CString::from_str("PositionSeedComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4608,6 +4744,7 @@ impl Component for GameAreaEffectComponent {
         }
     }
     const NAME: &'static str = "GameAreaEffectComponent";
+    const C_NAME: CString = const { CString::from_str("GameAreaEffectComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4632,6 +4769,7 @@ impl Component for PressurePlateComponent {
         }
     }
     const NAME: &'static str = "PressurePlateComponent";
+    const C_NAME: CString = const { CString::from_str("PressurePlateComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4652,6 +4790,7 @@ impl Component for SpriteStainsComponent {
         }
     }
     const NAME: &'static str = "SpriteStainsComponent";
+    const C_NAME: CString = const { CString::from_str("SpriteStainsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4675,6 +4814,7 @@ impl Component for PixelSpriteComponent {
         }
     }
     const NAME: &'static str = "PixelSpriteComponent";
+    const C_NAME: CString = const { CString::from_str("PixelSpriteComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4698,6 +4838,7 @@ impl Component for SimplePhysicsComponent {
         }
     }
     const NAME: &'static str = "SimplePhysicsComponent";
+    const C_NAME: CString = const { CString::from_str("SimplePhysicsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4721,6 +4862,7 @@ impl Component for BookComponent {
         }
     }
     const NAME: &'static str = "BookComponent";
+    const C_NAME: CString = const { CString::from_str("BookComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4737,6 +4879,7 @@ impl Component for StreamingKeepAliveComponent {
         }
     }
     const NAME: &'static str = "StreamingKeepAliveComponent";
+    const C_NAME: CString = const { CString::from_str("StreamingKeepAliveComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4753,6 +4896,7 @@ impl Component for PhysicsBodyCollisionDamageComponent {
         }
     }
     const NAME: &'static str = "PhysicsBodyCollisionDamageComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsBodyCollisionDamageComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4769,6 +4913,7 @@ impl Component for FogOfWarRemoverComponent {
         }
     }
     const NAME: &'static str = "FogOfWarRemoverComponent";
+    const C_NAME: CString = const { CString::from_str("FogOfWarRemoverComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4788,6 +4933,7 @@ impl Component for VariableStorageComponent {
         }
     }
     const NAME: &'static str = "VariableStorageComponent";
+    const C_NAME: CString = const { CString::from_str("VariableStorageComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4837,6 +4983,7 @@ impl Component for ExplodeOnDamageComponent {
         }
     }
     const NAME: &'static str = "ExplodeOnDamageComponent";
+    const C_NAME: CString = const { CString::from_str("ExplodeOnDamageComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4860,6 +5007,7 @@ impl Component for MagicConvertMaterialComponent {
         }
     }
     const NAME: &'static str = "MagicConvertMaterialComponent";
+    const C_NAME: CString = const { CString::from_str("MagicConvertMaterialComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4913,6 +5061,7 @@ impl Component for AdvancedFishAIComponent {
         }
     }
     const NAME: &'static str = "AdvancedFishAIComponent";
+    const C_NAME: CString = const { CString::from_str("AdvancedFishAIComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -4950,6 +5099,7 @@ impl Component for ControlsComponent {
         }
     }
     const NAME: &'static str = "ControlsComponent";
+    const C_NAME: CString = const { CString::from_str("ControlsComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5136,6 +5286,7 @@ impl Component for WorldStateComponent {
         }
     }
     const NAME: &'static str = "WorldStateComponent";
+    const C_NAME: CString = const { CString::from_str("WorldStateComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5243,6 +5394,7 @@ impl Component for AudioComponent {
         }
     }
     const NAME: &'static str = "AudioComponent";
+    const C_NAME: CString = const { CString::from_str("AudioComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5293,6 +5445,7 @@ impl Component for TeleportComponent {
         }
     }
     const NAME: &'static str = "TeleportComponent";
+    const C_NAME: CString = const { CString::from_str("TeleportComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5326,6 +5479,7 @@ impl Component for DrugEffectModifierComponent {
         }
     }
     const NAME: &'static str = "DrugEffectModifierComponent";
+    const C_NAME: CString = const { CString::from_str("DrugEffectModifierComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5342,6 +5496,7 @@ impl Component for HitEffectComponent {
         }
     }
     const NAME: &'static str = "HitEffectComponent";
+    const C_NAME: CString = const { CString::from_str("HitEffectComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5364,6 +5519,7 @@ impl Component for AbilityComponent {
         }
     }
     const NAME: &'static str = "AbilityComponent";
+    const C_NAME: CString = const { CString::from_str("AbilityComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5454,6 +5610,7 @@ impl Component for PhysicsJoisizeComponent {
         }
     }
     const NAME: &'static str = "PhysicsJoisizeComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsJoisizeComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5489,6 +5646,7 @@ impl Component for ItemCostComponent {
         }
     }
     const NAME: &'static str = "ItemCostComponent";
+    const C_NAME: CString = const { CString::from_str("ItemCostComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5520,6 +5678,7 @@ impl Component for PhysicsJoisize2MutatorComponent {
         }
     }
     const NAME: &'static str = "PhysicsJoisize2MutatorComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsJoisize2MutatorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5546,6 +5705,7 @@ impl Component for AreaDamageComponent {
         }
     }
     const NAME: &'static str = "AreaDamageComponent";
+    const C_NAME: CString = const { CString::from_str("AreaDamageComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5573,6 +5733,7 @@ impl Component for SpriteComponent {
         }
     }
     const NAME: &'static str = "SpriteComponent";
+    const C_NAME: CString = const { CString::from_str("SpriteComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5645,6 +5806,7 @@ impl Component for MaterialInventoryComponent {
         }
     }
     const NAME: &'static str = "MaterialInventoryComponent";
+    const C_NAME: CString = const { CString::from_str("MaterialInventoryComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5697,6 +5859,7 @@ impl Component for ArcComponent {
         }
     }
     const NAME: &'static str = "ArcComponent";
+    const C_NAME: CString = const { CString::from_str("ArcComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5718,6 +5881,7 @@ impl Component for LevitationComponent {
         }
     }
     const NAME: &'static str = "LevitationComponent";
+    const C_NAME: CString = const { CString::from_str("LevitationComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5736,6 +5900,7 @@ impl Component for PathFindingGridMarkerComponent {
         }
     }
     const NAME: &'static str = "PathFindingGridMarkerComponent";
+    const C_NAME: CString = const { CString::from_str("PathFindingGridMarkerComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -5755,6 +5920,7 @@ impl Component for BossDragonComponent {
         }
     }
     const NAME: &'static str = "BossDragonComponent";
+    const C_NAME: CString = const { CString::from_str("BossDragonComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]

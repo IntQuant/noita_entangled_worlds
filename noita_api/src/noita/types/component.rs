@@ -168,12 +168,7 @@ impl ComponentBuffer {
                 .find_map(|a| unsafe { a.as_ref().map(|a| a.vtable) })
                 .unwrap_or(&ComponentVTable {}),
             local_id: self.component_list.len(),
-            type_name: self
-                .component_list
-                .as_ref()
-                .iter()
-                .find_map(|a| unsafe { a.as_ref().map(|a| CString(a.type_name.0)) })
-                .unwrap_or(CString(ptr::null_mut())),
+            type_name: C::C_NAME,
             type_id,
             id,
             enabled: false,
