@@ -161,12 +161,7 @@ impl ComponentBuffer {
         type_id: usize,
     ) -> &'static mut C {
         let com = C::default(ComponentData {
-            vtable: self
-                .component_list
-                .as_ref()
-                .iter()
-                .find_map(|a| unsafe { a.as_ref().map(|a| a.vtable) })
-                .unwrap_or(&ComponentVTable {}),
+            vtable: C::VTABLE,
             local_id: self.component_list.len(),
             type_name: C::C_NAME,
             type_id,

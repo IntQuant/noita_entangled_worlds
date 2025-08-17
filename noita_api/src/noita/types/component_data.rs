@@ -1,6 +1,7 @@
 use crate::noita::types::*;
 pub trait Component: Debug {
     fn default(base: ComponentData) -> Self;
+    const VTABLE: &'static ComponentVTable;
     const NAME: &'static str;
     const C_NAME: CString;
     const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
@@ -12,6 +13,8 @@ impl Component for SetLightAlphaFromVelocityComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104aaa4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SetLightAlphaFromVelocityComponent";
     const C_NAME: CString = const { CString::from_str("SetLightAlphaFromVelocityComponent\0") };
 }
@@ -33,6 +36,8 @@ impl Component for ItemAIKnowledgeComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff0da8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemAIKnowledgeComponent";
     const C_NAME: CString = const { CString::from_str("ItemAIKnowledgeComponent\0") };
 }
@@ -61,6 +66,8 @@ impl Component for DroneLauncherComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010367f8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DroneLauncherComponent";
     const C_NAME: CString = const { CString::from_str("DroneLauncherComponent\0") };
 }
@@ -77,6 +84,8 @@ impl Component for CharacterPlatformingComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042314 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CharacterPlatformingComponent";
     const C_NAME: CString = const { CString::from_str("CharacterPlatformingComponent\0") };
 }
@@ -159,6 +168,8 @@ impl Component for ItemPickUpperComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00fec90c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemPickUpperComponent";
     const C_NAME: CString = const { CString::from_str("ItemPickUpperComponent\0") };
 }
@@ -188,6 +199,8 @@ impl Component for DebugLogMessagesComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104ba8c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DebugLogMessagesComponent";
     const C_NAME: CString = const { CString::from_str("DebugLogMessagesComponent\0") };
 }
@@ -205,6 +218,8 @@ impl Component for ItemRechargeNearGroundComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010451d0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemRechargeNearGroundComponent";
     const C_NAME: CString = const { CString::from_str("ItemRechargeNearGroundComponent\0") };
 }
@@ -222,6 +237,8 @@ impl Component for GodInfoComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff942c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GodInfoComponent";
     const C_NAME: CString = const { CString::from_str("GodInfoComponent\0") };
 }
@@ -244,6 +261,8 @@ impl Component for Inventory2Component {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff2e84 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "Inventory2Component";
     const C_NAME: CString = const { CString::from_str("Inventory2Component\0") };
 }
@@ -275,6 +294,8 @@ impl Component for HomingComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102b1a8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "HomingComponent";
     const C_NAME: CString = const { CString::from_str("HomingComponent\0") };
 }
@@ -308,6 +329,8 @@ impl Component for AudioLoopComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01016b0c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AudioLoopComponent";
     const C_NAME: CString = const { CString::from_str("AudioLoopComponent\0") };
 }
@@ -362,6 +385,8 @@ impl Component for CutThroughWorldDoneHereComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff9edc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CutThroughWorldDoneHereComponent";
     const C_NAME: CString = const { CString::from_str("CutThroughWorldDoneHereComponent\0") };
 }
@@ -382,6 +407,8 @@ impl Component for GenomeDataComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0100f598 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GenomeDataComponent";
     const C_NAME: CString = const { CString::from_str("GenomeDataComponent\0") };
 }
@@ -409,6 +436,8 @@ impl Component for HotspotComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00feb158 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "HotspotComponent";
     const C_NAME: CString = const { CString::from_str("HotspotComponent\0") };
 }
@@ -434,6 +463,8 @@ impl Component for DieIfSpeedBelowComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104879c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DieIfSpeedBelowComponent";
     const C_NAME: CString = const { CString::from_str("DieIfSpeedBelowComponent\0") };
 }
@@ -451,6 +482,8 @@ impl Component for GameLogComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01047b60 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GameLogComponent";
     const C_NAME: CString = const { CString::from_str("GameLogComponent\0") };
 }
@@ -476,6 +509,8 @@ impl Component for EnergyShieldComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044de4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "EnergyShieldComponent";
     const C_NAME: CString = const { CString::from_str("EnergyShieldComponent\0") };
 }
@@ -503,6 +538,8 @@ impl Component for VelocityComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010014bc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "VelocityComponent";
     const C_NAME: CString = const { CString::from_str("VelocityComponent\0") };
 }
@@ -545,6 +582,8 @@ impl Component for CharacterStatsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01047d54 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CharacterStatsComponent";
     const C_NAME: CString = const { CString::from_str("CharacterStatsComponent\0") };
 }
@@ -561,6 +600,8 @@ impl Component for CharacterDataComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff3c88 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CharacterDataComponent";
     const C_NAME: CString = const { CString::from_str("CharacterDataComponent\0") };
 }
@@ -638,6 +679,8 @@ impl Component for CollisionTriggerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010423d0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CollisionTriggerComponent";
     const C_NAME: CString = const { CString::from_str("CollisionTriggerComponent\0") };
 }
@@ -668,6 +711,8 @@ impl Component for PhysicsBodyComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01027474 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsBodyComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsBodyComponent\0") };
 }
@@ -744,6 +789,8 @@ impl Component for GhostComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044198 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GhostComponent";
     const C_NAME: CString = const { CString::from_str("GhostComponent\0") };
 }
@@ -776,6 +823,8 @@ impl Component for DrugEffectComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01001048 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DrugEffectComponent";
     const C_NAME: CString = const { CString::from_str("DrugEffectComponent\0") };
 }
@@ -793,6 +842,8 @@ impl Component for VerletPhysicsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00fec99c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "VerletPhysicsComponent";
     const C_NAME: CString = const { CString::from_str("VerletPhysicsComponent\0") };
 }
@@ -858,6 +909,8 @@ impl Component for MaterialSeaSpawnerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044ffc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MaterialSeaSpawnerComponent";
     const C_NAME: CString = const { CString::from_str("MaterialSeaSpawnerComponent\0") };
 }
@@ -890,6 +943,8 @@ impl Component for LocationMarkerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010457a8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LocationMarkerComponent";
     const C_NAME: CString = const { CString::from_str("LocationMarkerComponent\0") };
 }
@@ -913,6 +968,8 @@ impl Component for InventoryGuiComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00fe4a84 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "InventoryGuiComponent";
     const C_NAME: CString = const { CString::from_str("InventoryGuiComponent\0") };
 }
@@ -951,6 +1008,8 @@ impl Component for SpriteParticleEmitterComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01004f24 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SpriteParticleEmitterComponent";
     const C_NAME: CString = const { CString::from_str("SpriteParticleEmitterComponent\0") };
 }
@@ -1024,6 +1083,8 @@ impl Component for LightningComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010425f4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LightningComponent";
     const C_NAME: CString = const { CString::from_str("LightningComponent\0") };
 }
@@ -1053,6 +1114,8 @@ impl Component for MagicXRayComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01045cd0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MagicXRayComponent";
     const C_NAME: CString = const { CString::from_str("MagicXRayComponent\0") };
 }
@@ -1072,6 +1135,8 @@ impl Component for WalletValuableComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01034f5c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WalletValuableComponent";
     const C_NAME: CString = const { CString::from_str("WalletValuableComponent\0") };
 }
@@ -1092,6 +1157,8 @@ impl Component for PhysicsAIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042188 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsAIComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsAIComponent\0") };
 }
@@ -1149,6 +1216,8 @@ impl Component for EndingMcGuffinComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042114 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "EndingMcGuffinComponent";
     const C_NAME: CString = const { CString::from_str("EndingMcGuffinComponent\0") };
 }
@@ -1166,6 +1235,8 @@ impl Component for PhysicsShapeComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104717c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsShapeComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsShapeComponent\0") };
 }
@@ -1199,6 +1270,8 @@ impl Component for PhysicsKeepInWorldComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104afd0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsKeepInWorldComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsKeepInWorldComponent\0") };
 }
@@ -1220,6 +1293,8 @@ impl Component for AltarComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102dd8c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AltarComponent";
     const C_NAME: CString = const { CString::from_str("AltarComponent\0") };
 }
@@ -1247,6 +1322,8 @@ impl Component for BlackHoleComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044070 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "BlackHoleComponent";
     const C_NAME: CString = const { CString::from_str("BlackHoleComponent\0") };
 }
@@ -1273,6 +1350,8 @@ impl Component for GameStatsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffc3f0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GameStatsComponent";
     const C_NAME: CString = const { CString::from_str("GameStatsComponent\0") };
 }
@@ -1327,6 +1406,8 @@ impl Component for TelekinesisComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102cef0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "TelekinesisComponent";
     const C_NAME: CString = const { CString::from_str("TelekinesisComponent\0") };
 }
@@ -1371,6 +1452,8 @@ impl Component for InheritTransformComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104185c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "InheritTransformComponent";
     const C_NAME: CString = const { CString::from_str("InheritTransformComponent\0") };
 }
@@ -1398,6 +1481,8 @@ impl Component for PhysicsImageShapeComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010449b8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsImageShapeComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsImageShapeComponent\0") };
 }
@@ -1431,6 +1516,8 @@ impl Component for ParticleEmitterComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01041b74 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ParticleEmitterComponent";
     const C_NAME: CString = const { CString::from_str("ParticleEmitterComponent\0") };
 }
@@ -1536,6 +1623,8 @@ impl Component for CellEaterComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01046d34 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CellEaterComponent";
     const C_NAME: CString = const { CString::from_str("CellEaterComponent\0") };
 }
@@ -1564,6 +1653,8 @@ impl Component for HealthBarComponent {
             //TODO    ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01041ac0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "HealthBarComponent";
     const C_NAME: CString = const { CString::from_str("HealthBarComponent\0") };
 }
@@ -1579,6 +1670,8 @@ impl Component for InventoryComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010059c4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "InventoryComponent";
     const C_NAME: CString = const { CString::from_str("InventoryComponent\0") };
 }
@@ -1606,6 +1699,8 @@ impl Component for WormPlayerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01016f5c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WormPlayerComponent";
     const C_NAME: CString = const { CString::from_str("WormPlayerComponent\0") };
 }
@@ -1623,6 +1718,8 @@ impl Component for PlayerCollisionComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010493a4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PlayerCollisionComponent";
     const C_NAME: CString = const { CString::from_str("PlayerCollisionComponent\0") };
 }
@@ -1652,6 +1749,8 @@ impl Component for TextLogComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0103ea2c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "TextLogComponent";
     const C_NAME: CString = const { CString::from_str("TextLogComponent\0") };
 }
@@ -1693,6 +1792,8 @@ impl Component for IKLimbComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044264 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "IKLimbComponent";
     const C_NAME: CString = const { CString::from_str("IKLimbComponent\0") };
 }
@@ -1703,8 +1804,8 @@ pub struct IKLimbComponent {
     pub length: f32,
     pub thigh_extra_lenght: f32,
     pub end_position: Vec2,
-    pub m_joisize_side_interpolation: f32,
-    pub m_joisize_world_pos: Vec2,
+    pub m_joint_side_interpolation: f32,
+    pub m_joint_world_pos: Vec2,
     pub m_part0_prev_pos: Vec2,
     pub m_part0_prev_rotation: f32,
     pub m_part1_prev_pos: Vec2,
@@ -1722,6 +1823,8 @@ impl Component for KickComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010446b0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "KickComponent";
     const C_NAME: CString = const { CString::from_str("KickComponent\0") };
 }
@@ -1752,6 +1855,8 @@ impl Component for NullDamageComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01049024 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "NullDamageComponent";
     const C_NAME: CString = const { CString::from_str("NullDamageComponent\0") };
 }
@@ -1772,6 +1877,8 @@ impl Component for MaterialSuckerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01030384 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MaterialSuckerComponent";
     const C_NAME: CString = const { CString::from_str("MaterialSuckerComponent\0") };
 }
@@ -1808,6 +1915,8 @@ impl Component for UIInfoComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01036778 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "UIInfoComponent";
     const C_NAME: CString = const { CString::from_str("UIInfoComponent\0") };
 }
@@ -1847,6 +1956,8 @@ impl Component for LuaComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01030a08 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LuaComponent";
     const C_NAME: CString = const { CString::from_str("LuaComponent\0") };
 }
@@ -1914,6 +2025,8 @@ impl Component for StatusEffectDataComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01016ed0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "StatusEffectDataComponent";
     const C_NAME: CString = const { CString::from_str("StatusEffectDataComponent\0") };
 }
@@ -1945,6 +2058,8 @@ impl Component for SpriteOffsetAnimatorComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0103085c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SpriteOffsetAnimatorComponent";
     const C_NAME: CString = const { CString::from_str("SpriteOffsetAnimatorComponent\0") };
 }
@@ -1971,6 +2086,8 @@ impl Component for ElectricityReceiverComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104733c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ElectricityReceiverComponent";
     const C_NAME: CString = const { CString::from_str("ElectricityReceiverComponent\0") };
 }
@@ -1999,6 +2116,8 @@ impl Component for CrawlerAnimalComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044f70 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CrawlerAnimalComponent";
     const C_NAME: CString = const { CString::from_str("CrawlerAnimalComponent\0") };
 }
@@ -2066,6 +2185,8 @@ impl Component for IngestionComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff9600 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "IngestionComponent";
     const C_NAME: CString = const { CString::from_str("IngestionComponent\0") };
 }
@@ -2097,6 +2218,8 @@ impl Component for AttachToEntityComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010377e0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AttachToEntityComponent";
     const C_NAME: CString = const { CString::from_str("AttachToEntityComponent\0") };
 }
@@ -2129,6 +2252,8 @@ impl Component for InteractableComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01049980 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "InteractableComponent";
     const C_NAME: CString = const { CString::from_str("InteractableComponent\0") };
 }
@@ -2171,6 +2296,8 @@ impl Component for ItemActionComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00fe9468 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemActionComponent";
     const C_NAME: CString = const { CString::from_str("ItemActionComponent\0") };
 }
@@ -2180,21 +2307,23 @@ pub struct ItemActionComponent {
     pub base: ComponentData,
     pub action_id: StdString,
 }
-impl Component for PhysicsJoisize2Component {
+impl Component for PhysicsJoint2Component {
     fn default(base: ComponentData) -> Self {
         Self {
             base,
             ..Default::default()
         }
     }
-    const NAME: &'static str = "PhysicsJoisize2Component";
-    const C_NAME: CString = const { CString::from_str("PhysicsJoisize2Component\0") };
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffe45c as *const ComponentVTable).as_ref().unwrap() };
+    const NAME: &'static str = "PhysicsJoint2Component";
+    const C_NAME: CString = const { CString::from_str("PhysicsJoint2Component\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct PhysicsJoisize2Component {
+pub struct PhysicsJoint2Component {
     pub base: ComponentData,
-    pub joisize_id: u16,
+    pub joint_id: u16,
     field2_0x4a: u8,
     field3_0x4b: u8,
     pub break_force: f32,
@@ -2224,6 +2353,8 @@ impl Component for LoadEntitiesComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044370 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LoadEntitiesComponent";
     const C_NAME: CString = const { CString::from_str("LoadEntitiesComponent\0") };
 }
@@ -2251,6 +2382,8 @@ impl Component for DebugFollowMouseComponent {
             //TODO  ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104bb8c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DebugFollowMouseComponent";
     const C_NAME: CString = const { CString::from_str("DebugFollowMouseComponent\0") };
 }
@@ -2266,6 +2399,8 @@ impl Component for ControllerGoombaAIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010053dc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ControllerGoombaAIComponent";
     const C_NAME: CString = const { CString::from_str("ControllerGoombaAIComponent\0") };
 }
@@ -2304,6 +2439,8 @@ impl Component for ManaReloaderComponent {
             //TODO    ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102c15c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ManaReloaderComponent";
     const C_NAME: CString = const { CString::from_str("ManaReloaderComponent\0") };
 }
@@ -2319,6 +2456,8 @@ impl Component for DamageModelComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff9784 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DamageModelComponent";
     const C_NAME: CString = const { CString::from_str("DamageModelComponent\0") };
 }
@@ -2471,6 +2610,8 @@ impl Component for BossHealthBarComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01048d44 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "BossHealthBarComponent";
     const C_NAME: CString = const { CString::from_str("BossHealthBarComponent\0") };
 }
@@ -2499,6 +2640,8 @@ impl Component for AudioListenerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01045710 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AudioListenerComponent";
     const C_NAME: CString = const { CString::from_str("AudioListenerComponent\0") };
 }
@@ -2522,6 +2665,8 @@ impl Component for ItemAlchemyComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104b1c4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemAlchemyComponent";
     const C_NAME: CString = const { CString::from_str("ItemAlchemyComponent\0") };
 }
@@ -2543,6 +2688,8 @@ impl Component for ShotEffectComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104b9cc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ShotEffectComponent";
     const C_NAME: CString = const { CString::from_str("ShotEffectComponent\0") };
 }
@@ -2564,6 +2711,8 @@ impl Component for ProjectileComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01004d68 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ProjectileComponent";
     const C_NAME: CString = const { CString::from_str("ProjectileComponent\0") };
 }
@@ -2711,6 +2860,8 @@ impl Component for PlatformShooterPlayerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff6a80 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PlatformShooterPlayerComponent";
     const C_NAME: CString = const { CString::from_str("PlatformShooterPlayerComponent\0") };
 }
@@ -2782,6 +2933,8 @@ impl Component for ItemComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00fecdc0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemComponent";
     const C_NAME: CString = const { CString::from_str("ItemComponent\0") };
 }
@@ -2853,6 +3006,8 @@ impl Component for AnimalAIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff3258 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AnimalAIComponent";
     const C_NAME: CString = const { CString::from_str("AnimalAIComponent\0") };
 }
@@ -3032,6 +3187,8 @@ impl Component for OrbComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0100a0cc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "OrbComponent";
     const C_NAME: CString = const { CString::from_str("OrbComponent\0") };
 }
@@ -3052,6 +3209,8 @@ impl Component for LooseGroundComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff710c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LooseGroundComponent";
     const C_NAME: CString = const { CString::from_str("LooseGroundComponent\0") };
 }
@@ -3083,6 +3242,8 @@ impl Component for TeleportProjectileComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01049abc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "TeleportProjectileComponent";
     const C_NAME: CString = const { CString::from_str("TeleportProjectileComponent\0") };
 }
@@ -3105,6 +3266,8 @@ impl Component for LifetimeComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff8944 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LifetimeComponent";
     const C_NAME: CString = const { CString::from_str("LifetimeComponent\0") };
 }
@@ -3138,6 +3301,8 @@ impl Component for ElectricitySourceComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010441fc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ElectricitySourceComponent";
     const C_NAME: CString = const { CString::from_str("ElectricitySourceComponent\0") };
 }
@@ -3160,6 +3325,8 @@ impl Component for BiomeTrackerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042de0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "BiomeTrackerComponent";
     const C_NAME: CString = const { CString::from_str("BiomeTrackerComponent\0") };
 }
@@ -3178,6 +3345,8 @@ impl Component for PixelSceneComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010426d0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PixelSceneComponent";
     const C_NAME: CString = const { CString::from_str("PixelSceneComponent\0") };
 }
@@ -3203,6 +3372,8 @@ impl Component for CameraBoundComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0100888c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CameraBoundComponent";
     const C_NAME: CString = const { CString::from_str("CameraBoundComponent\0") };
 }
@@ -3233,6 +3404,8 @@ impl Component for LiquidDisplacerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01037398 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LiquidDisplacerComponent";
     const C_NAME: CString = const { CString::from_str("LiquidDisplacerComponent\0") };
 }
@@ -3257,6 +3430,8 @@ impl Component for GameEffectComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00feb408 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GameEffectComponent";
     const C_NAME: CString = const { CString::from_str("GameEffectComponent\0") };
 }
@@ -3315,6 +3490,8 @@ impl Component for WalletComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104a010 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WalletComponent";
     const C_NAME: CString = const { CString::from_str("WalletComponent\0") };
 }
@@ -3341,6 +3518,8 @@ impl Component for ItemStashComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104161c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemStashComponent";
     const C_NAME: CString = const { CString::from_str("ItemStashComponent\0") };
 }
@@ -3363,6 +3542,8 @@ impl Component for MoveToSurfaceOnCreateComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01041c1c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MoveToSurfaceOnCreateComponent";
     const C_NAME: CString = const { CString::from_str("MoveToSurfaceOnCreateComponent\0") };
 }
@@ -3377,7 +3558,7 @@ pub struct MoveToSurfaceOnCreateComponent {
     pub lookup_radius: f32,
     pub offset_from_surface: f32,
     pub ray_count: isize,
-    pub verlet_min_joisize_distance: f32,
+    pub verlet_min_joint_distance: f32,
     field9_0x5c: u8,
     field10_0x5d: u8,
     field11_0x5e: u8,
@@ -3390,6 +3571,8 @@ impl Component for UIIconComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104ba34 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "UIIconComponent";
     const C_NAME: CString = const { CString::from_str("UIIconComponent\0") };
 }
@@ -3439,6 +3622,8 @@ impl Component for DebugSpatialVisualizerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044c28 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DebugSpatialVisualizerComponent";
     const C_NAME: CString = const { CString::from_str("DebugSpatialVisualizerComponent\0") };
 }
@@ -3463,6 +3648,8 @@ impl Component for HitboxComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffc49c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "HitboxComponent";
     const C_NAME: CString = const { CString::from_str("HitboxComponent\0") };
 }
@@ -3488,6 +3675,8 @@ impl Component for PathFindingComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010139ac as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PathFindingComponent";
     const C_NAME: CString = const { CString::from_str("PathFindingComponent\0") };
 }
@@ -3575,6 +3764,8 @@ impl Component for GasBubbleComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104b5e0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GasBubbleComponent";
     const C_NAME: CString = const { CString::from_str("GasBubbleComponent\0") };
 }
@@ -3597,6 +3788,8 @@ impl Component for WormAttractorComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104a3d4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WormAttractorComponent";
     const C_NAME: CString = const { CString::from_str("WormAttractorComponent\0") };
 }
@@ -3614,6 +3807,8 @@ impl Component for PhysicsPickUpComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010400c0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsPickUpComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsPickUpComponent\0") };
 }
@@ -3622,17 +3817,17 @@ impl Component for PhysicsPickUpComponent {
 pub struct PhysicsPickUpComponent {
     pub base: ComponentData,
     pub transform: Transform,
-    pub original_left_joisize_pos: Vec2,
-    pub original_right_joisize_pos: Vec2,
+    pub original_left_joint_pos: Vec2,
+    pub original_right_joint_pos: Vec2,
     pub pick_up_strength: f32,
     pub is_broken: bool,
     field6_0x7d: u8,
     field7_0x7e: u8,
     field8_0x7f: u8,
-    pub left_joisize_pos: Vec2,
-    pub right_joisize_pos: Vec2,
-    pub left_joisize: *mut B2WeldIsize,
-    pub right_joisize: *mut B2WeldIsize,
+    pub left_joint_pos: Vec2,
+    pub right_joint_pos: Vec2,
+    pub left_joint: *mut B2WeldIsize,
+    pub right_joint: *mut B2WeldIsize,
 }
 impl Component for AIAttackComponent {
     fn default(base: ComponentData) -> Self {
@@ -3641,6 +3836,8 @@ impl Component for AIAttackComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01043ba0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AIAttackComponent";
     const C_NAME: CString = const { CString::from_str("AIAttackComponent\0") };
 }
@@ -3692,6 +3889,8 @@ impl Component for LimbBossComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102efb4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LimbBossComponent";
     const C_NAME: CString = const { CString::from_str("LimbBossComponent\0") };
 }
@@ -3719,6 +3918,8 @@ impl Component for LightComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01025834 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LightComponent";
     const C_NAME: CString = const { CString::from_str("LightComponent\0") };
 }
@@ -3761,6 +3962,8 @@ impl Component for FogOfWarRadiusComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff97fc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "FogOfWarRadiusComponent";
     const C_NAME: CString = const { CString::from_str("FogOfWarRadiusComponent\0") };
 }
@@ -3781,6 +3984,8 @@ impl Component for PlayerStatsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0100d434 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PlayerStatsComponent";
     const C_NAME: CString = const { CString::from_str("PlayerStatsComponent\0") };
 }
@@ -3803,6 +4008,8 @@ impl Component for LaserEmitterComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010453f8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LaserEmitterComponent";
     const C_NAME: CString = const { CString::from_str("LaserEmitterComponent\0") };
 }
@@ -3825,6 +4032,8 @@ impl Component for VerletWeaponComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104a2d4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "VerletWeaponComponent";
     const C_NAME: CString = const { CString::from_str("VerletWeaponComponent\0") };
 }
@@ -3853,6 +4062,8 @@ impl Component for ElectricChargeComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102e4cc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ElectricChargeComponent";
     const C_NAME: CString = const { CString::from_str("ElectricChargeComponent\0") };
 }
@@ -3874,6 +4085,8 @@ impl Component for ConsumableTeleportComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042440 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ConsumableTeleportComponent";
     const C_NAME: CString = const { CString::from_str("ConsumableTeleportComponent\0") };
 }
@@ -3905,6 +4118,8 @@ impl Component for IKLimbAttackerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01039f54 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "IKLimbAttackerComponent";
     const C_NAME: CString = const { CString::from_str("IKLimbAttackerComponent\0") };
 }
@@ -3936,6 +4151,8 @@ impl Component for SetStartVelocityComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01048494 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SetStartVelocityComponent";
     const C_NAME: CString = const { CString::from_str("SetStartVelocityComponent\0") };
 }
@@ -3954,6 +4171,8 @@ impl Component for ElectricityComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102904c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ElectricityComponent";
     const C_NAME: CString = const { CString::from_str("ElectricityComponent\0") };
 }
@@ -3989,6 +4208,8 @@ impl Component for GunComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0100c1bc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GunComponent";
     const C_NAME: CString = const { CString::from_str("GunComponent\0") };
 }
@@ -4009,6 +4230,8 @@ impl Component for PotionComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01007a6c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PotionComponent";
     const C_NAME: CString = const { CString::from_str("PotionComponent\0") };
 }
@@ -4036,6 +4259,8 @@ impl Component for TorchComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0103eab4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "TorchComponent";
     const C_NAME: CString = const { CString::from_str("TorchComponent\0") };
 }
@@ -4065,6 +4290,8 @@ impl Component for SineWaveComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104ac24 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SineWaveComponent";
     const C_NAME: CString = const { CString::from_str("SineWaveComponent\0") };
 }
@@ -4087,6 +4314,8 @@ impl Component for IKLimbsAnimatorComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102ac9c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "IKLimbsAnimatorComponent";
     const C_NAME: CString = const { CString::from_str("IKLimbsAnimatorComponent\0") };
 }
@@ -4126,6 +4355,8 @@ impl Component for CardinalMovementComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102e86c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CardinalMovementComponent";
     const C_NAME: CString = const { CString::from_str("CardinalMovementComponent\0") };
 }
@@ -4150,6 +4381,8 @@ impl Component for WormComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff9570 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WormComponent";
     const C_NAME: CString = const { CString::from_str("WormComponent\0") };
 }
@@ -4202,6 +4435,8 @@ impl Component for MusicEnergyAffectorComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0101761c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MusicEnergyAffectorComponent";
     const C_NAME: CString = const { CString::from_str("MusicEnergyAffectorComponent\0") };
 }
@@ -4229,6 +4464,8 @@ impl Component for ExplosionComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01049cc0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ExplosionComponent";
     const C_NAME: CString = const { CString::from_str("ExplosionComponent\0") };
 }
@@ -4253,6 +4490,8 @@ impl Component for PhysicsThrowableComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044508 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsThrowableComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsThrowableComponent\0") };
 }
@@ -4276,7 +4515,7 @@ pub struct PhysicsThrowableComponent {
     field14_0x6d: u8,
     field15_0x6e: u8,
     field16_0x6f: u8,
-    pub m_has_joisize: bool,
+    pub m_has_joint: bool,
     field18_0x71: u8,
     field19_0x72: u8,
     field20_0x73: u8,
@@ -4292,6 +4531,8 @@ impl Component for NinjaRopeComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044bc0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "NinjaRopeComponent";
     const C_NAME: CString = const { CString::from_str("NinjaRopeComponent\0") };
 }
@@ -4314,6 +4555,8 @@ impl Component for WormAIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01004b40 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WormAIComponent";
     const C_NAME: CString = const { CString::from_str("WormAIComponent\0") };
 }
@@ -4354,6 +4597,8 @@ impl Component for FlyingComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01048508 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "FlyingComponent";
     const C_NAME: CString = const { CString::from_str("FlyingComponent\0") };
 }
@@ -4381,6 +4626,8 @@ impl Component for CharacterCollisionComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffe948 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "CharacterCollisionComponent";
     const C_NAME: CString = const { CString::from_str("CharacterCollisionComponent\0") };
 }
@@ -4408,6 +4655,8 @@ impl Component for IKLimbWalkerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102cd68 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "IKLimbWalkerComponent";
     const C_NAME: CString = const { CString::from_str("IKLimbWalkerComponent\0") };
 }
@@ -4437,6 +4686,8 @@ impl Component for SpriteAnimatorComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0100f72c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SpriteAnimatorComponent";
     const C_NAME: CString = const { CString::from_str("SpriteAnimatorComponent\0") };
 }
@@ -4460,6 +4711,8 @@ impl Component for ItemChestComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01011b9c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemChestComponent";
     const C_NAME: CString = const { CString::from_str("ItemChestComponent\0") };
 }
@@ -4490,6 +4743,8 @@ impl Component for FishAIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01048cb4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "FishAIComponent";
     const C_NAME: CString = const { CString::from_str("FishAIComponent\0") };
 }
@@ -4516,6 +4771,8 @@ impl Component for MaterialAreaCheckerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01035c28 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MaterialAreaCheckerComponent";
     const C_NAME: CString = const { CString::from_str("MaterialAreaCheckerComponent\0") };
 }
@@ -4546,6 +4803,8 @@ impl Component for DamageNearbyEntitiesComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01047f6c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DamageNearbyEntitiesComponent";
     const C_NAME: CString = const { CString::from_str("DamageNearbyEntitiesComponent\0") };
 }
@@ -4577,6 +4836,8 @@ impl Component for AIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010430e0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AIComponent";
     const C_NAME: CString = const { CString::from_str("AIComponent\0") };
 }
@@ -4597,6 +4858,8 @@ impl Component for RotateTowardsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104a944 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "RotateTowardsComponent";
     const C_NAME: CString = const { CString::from_str("RotateTowardsComponent\0") };
 }
@@ -4613,6 +4876,8 @@ impl Component for PhysicsBody2Component {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff1044 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsBody2Component";
     const C_NAME: CString = const { CString::from_str("PhysicsBody2Component\0") };
 }
@@ -4676,6 +4941,8 @@ impl Component for PhysicsRagdollComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffa100 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsRagdollComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsRagdollComponent\0") };
 }
@@ -4693,19 +4960,21 @@ pub struct PhysicsRagdollComponent {
     field8_0x86: u8,
     field9_0x87: u8,
 }
-impl Component for VerletWorldJoisizeComponent {
+impl Component for VerletWorldJointComponent {
     fn default(base: ComponentData) -> Self {
         Self {
             base,
             ..Default::default()
         }
     }
-    const NAME: &'static str = "VerletWorldJoisizeComponent";
-    const C_NAME: CString = const { CString::from_str("VerletWorldJoisizeComponent\0") };
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01041900 as *const ComponentVTable).as_ref().unwrap() };
+    const NAME: &'static str = "VerletWorldJointComponent";
+    const C_NAME: CString = const { CString::from_str("VerletWorldJointComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct VerletWorldJoisizeComponent {
+pub struct VerletWorldJointComponent {
     pub base: ComponentData,
     pub world_position: Vec2,
     pub verlet_poisize_index: isize,
@@ -4726,6 +4995,8 @@ impl Component for PositionSeedComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042f18 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PositionSeedComponent";
     const C_NAME: CString = const { CString::from_str("PositionSeedComponent\0") };
 }
@@ -4743,6 +5014,8 @@ impl Component for GameAreaEffectComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01043f44 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "GameAreaEffectComponent";
     const C_NAME: CString = const { CString::from_str("GameAreaEffectComponent\0") };
 }
@@ -4768,6 +5041,8 @@ impl Component for PressurePlateComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0103df58 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PressurePlateComponent";
     const C_NAME: CString = const { CString::from_str("PressurePlateComponent\0") };
 }
@@ -4789,6 +5064,8 @@ impl Component for SpriteStainsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff972c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SpriteStainsComponent";
     const C_NAME: CString = const { CString::from_str("SpriteStainsComponent\0") };
 }
@@ -4813,6 +5090,8 @@ impl Component for PixelSpriteComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01010d90 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PixelSpriteComponent";
     const C_NAME: CString = const { CString::from_str("PixelSpriteComponent\0") };
 }
@@ -4837,6 +5116,8 @@ impl Component for SimplePhysicsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0104ae44 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SimplePhysicsComponent";
     const C_NAME: CString = const { CString::from_str("SimplePhysicsComponent\0") };
 }
@@ -4861,6 +5142,8 @@ impl Component for BookComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x010447cc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "BookComponent";
     const C_NAME: CString = const { CString::from_str("BookComponent\0") };
 }
@@ -4878,6 +5161,8 @@ impl Component for StreamingKeepAliveComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102b308 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "StreamingKeepAliveComponent";
     const C_NAME: CString = const { CString::from_str("StreamingKeepAliveComponent\0") };
 }
@@ -4895,6 +5180,8 @@ impl Component for PhysicsBodyCollisionDamageComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01045290 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PhysicsBodyCollisionDamageComponent";
     const C_NAME: CString = const { CString::from_str("PhysicsBodyCollisionDamageComponent\0") };
 }
@@ -4912,6 +5199,8 @@ impl Component for FogOfWarRemoverComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00fed49c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "FogOfWarRemoverComponent";
     const C_NAME: CString = const { CString::from_str("FogOfWarRemoverComponent\0") };
 }
@@ -4932,6 +5221,8 @@ impl Component for VariableStorageComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01046b70 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "VariableStorageComponent";
     const C_NAME: CString = const { CString::from_str("VariableStorageComponent\0") };
 }
@@ -4982,6 +5273,8 @@ impl Component for ExplodeOnDamageComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01035ae8 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ExplodeOnDamageComponent";
     const C_NAME: CString = const { CString::from_str("ExplodeOnDamageComponent\0") };
 }
@@ -5006,6 +5299,8 @@ impl Component for MagicConvertMaterialComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00febe30 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MagicConvertMaterialComponent";
     const C_NAME: CString = const { CString::from_str("MagicConvertMaterialComponent\0") };
 }
@@ -5060,6 +5355,8 @@ impl Component for AdvancedFishAIComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01035350 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AdvancedFishAIComponent";
     const C_NAME: CString = const { CString::from_str("AdvancedFishAIComponent\0") };
 }
@@ -5098,6 +5395,8 @@ impl Component for ControlsComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff5c38 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ControlsComponent";
     const C_NAME: CString = const { CString::from_str("ControlsComponent\0") };
 }
@@ -5285,6 +5584,8 @@ impl Component for WorldStateComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff3ffc as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "WorldStateComponent";
     const C_NAME: CString = const { CString::from_str("WorldStateComponent\0") };
 }
@@ -5393,6 +5694,8 @@ impl Component for AudioComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ff995c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AudioComponent";
     const C_NAME: CString = const { CString::from_str("AudioComponent\0") };
 }
@@ -5444,6 +5747,8 @@ impl Component for TeleportComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffa960 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "TeleportComponent";
     const C_NAME: CString = const { CString::from_str("TeleportComponent\0") };
 }
@@ -5478,6 +5783,8 @@ impl Component for DrugEffectModifierComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044d7c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "DrugEffectModifierComponent";
     const C_NAME: CString = const { CString::from_str("DrugEffectModifierComponent\0") };
 }
@@ -5495,6 +5802,8 @@ impl Component for HitEffectComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01048268 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "HitEffectComponent";
     const C_NAME: CString = const { CString::from_str("HitEffectComponent\0") };
 }
@@ -5518,6 +5827,8 @@ impl Component for AbilityComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01027c68 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AbilityComponent";
     const C_NAME: CString = const { CString::from_str("AbilityComponent\0") };
 }
@@ -5602,22 +5913,24 @@ pub struct AbilityComponent {
     field75_0x3be: u8,
     field76_0x3bf: u8,
 }
-impl Component for PhysicsJoisizeComponent {
+impl Component for PhysicsJointComponent {
     fn default(base: ComponentData) -> Self {
         Self {
             base,
             ..Default::default()
         }
     }
-    const NAME: &'static str = "PhysicsJoisizeComponent";
-    const C_NAME: CString = const { CString::from_str("PhysicsJoisizeComponent\0") };
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffb40c as *const ComponentVTable).as_ref().unwrap() };
+    const NAME: &'static str = "PhysicsJointComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsJointComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct PhysicsJoisizeComponent {
+pub struct PhysicsJointComponent {
     pub base: ComponentData,
     pub nail_to_wall: bool,
-    pub grid_joisize: bool,
+    pub grid_joint: bool,
     pub breakable: bool,
     field4_0x4b: u8,
     field5_0x4c: u8,
@@ -5636,7 +5949,7 @@ pub struct PhysicsJoisizeComponent {
     field18_0x6b: u8,
     pub m_motor_speed: f32,
     pub m_max_motor_torque: f32,
-    pub m_joisize: *mut B2Isize,
+    pub m_joint: *mut B2Isize,
 }
 impl Component for ItemCostComponent {
     fn default(base: ComponentData) -> Self {
@@ -5645,6 +5958,8 @@ impl Component for ItemCostComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0103355c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ItemCostComponent";
     const C_NAME: CString = const { CString::from_str("ItemCostComponent\0") };
 }
@@ -5670,21 +5985,23 @@ pub struct ItemCostComponent {
     field16_0x57: u8,
     pub m_ex_cost: i64,
 }
-impl Component for PhysicsJoisize2MutatorComponent {
+impl Component for PhysicsJoint2MutatorComponent {
     fn default(base: ComponentData) -> Self {
         Self {
             base,
             ..Default::default()
         }
     }
-    const NAME: &'static str = "PhysicsJoisize2MutatorComponent";
-    const C_NAME: CString = const { CString::from_str("PhysicsJoisize2MutatorComponent\0") };
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01026d1c as *const ComponentVTable).as_ref().unwrap() };
+    const NAME: &'static str = "PhysicsJoint2MutatorComponent";
+    const C_NAME: CString = const { CString::from_str("PhysicsJoint2MutatorComponent\0") };
 }
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct PhysicsJoisize2MutatorComponent {
+pub struct PhysicsJoint2MutatorComponent {
     pub base: ComponentData,
-    pub joisize_id: u16,
+    pub joint_id: u16,
     pub destroy: bool,
     field3_0x4b: u8,
     pub motor_speed: f32,
@@ -5704,6 +6021,8 @@ impl Component for AreaDamageComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01045ab4 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "AreaDamageComponent";
     const C_NAME: CString = const { CString::from_str("AreaDamageComponent\0") };
 }
@@ -5732,6 +6051,8 @@ impl Component for SpriteComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x00ffec50 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "SpriteComponent";
     const C_NAME: CString = const { CString::from_str("SpriteComponent\0") };
 }
@@ -5805,6 +6126,8 @@ impl Component for MaterialInventoryComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01006848 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "MaterialInventoryComponent";
     const C_NAME: CString = const { CString::from_str("MaterialInventoryComponent\0") };
 }
@@ -5858,6 +6181,8 @@ impl Component for ArcComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01044cd0 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "ArcComponent";
     const C_NAME: CString = const { CString::from_str("ArcComponent\0") };
 }
@@ -5880,6 +6205,8 @@ impl Component for LevitationComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x0102ee48 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "LevitationComponent";
     const C_NAME: CString = const { CString::from_str("LevitationComponent\0") };
 }
@@ -5899,6 +6226,8 @@ impl Component for PathFindingGridMarkerComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01042378 as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "PathFindingGridMarkerComponent";
     const C_NAME: CString = const { CString::from_str("PathFindingGridMarkerComponent\0") };
 }
@@ -5919,6 +6248,8 @@ impl Component for BossDragonComponent {
             ..Default::default()
         }
     }
+    const VTABLE: &'static ComponentVTable =
+        unsafe { (0x01045a1c as *const ComponentVTable).as_ref().unwrap() };
     const NAME: &'static str = "BossDragonComponent";
     const C_NAME: CString = const { CString::from_str("BossDragonComponent\0") };
 }
