@@ -473,6 +473,12 @@ impl<K: 'static, V: 'static> StdMap<K, V> {
             parents: Vec::with_capacity(8),
         }
     }
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.iter().next().is_none()
+    }
     pub fn iter_keys(&self) -> impl Iterator<Item = &'static K> {
         self.iter().map(|(k, _)| k)
     }

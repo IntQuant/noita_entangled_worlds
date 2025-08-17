@@ -2,8 +2,8 @@ use std::{os::raw::c_void, ptr};
 
 use crate::lua::LuaState;
 use crate::noita::types::{
-    ComponentTypeManager, EntityManager, GameGlobal, GlobalStats, Inventory, Mods, Platform,
-    StdString, StdVec, TagManager, TranslationManager,
+    ComponentSystemManager, ComponentTypeManager, EntityManager, GameGlobal, GlobalStats,
+    Inventory, Mods, Platform, StdString, StdVec, TagManager, TranslationManager,
 };
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 
@@ -52,6 +52,7 @@ pub struct GlobalsRef {
     pub inventory: &'static Inventory,
     pub mods: &'static Mods,
     pub max_component: &'static usize,
+    pub component_manager: &'static ComponentSystemManager,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -69,6 +70,7 @@ pub struct GlobalsMut {
     pub inventory: &'static mut Inventory,
     pub mods: &'static mut Mods,
     pub max_component: &'static mut usize,
+    pub component_manager: &'static mut ComponentSystemManager,
 }
 
 #[derive(Debug, Default)]
@@ -87,6 +89,7 @@ pub struct Globals {
     pub inventory: *mut Inventory,
     pub mods: *mut Mods,
     pub max_component: *mut usize,
+    pub component_manager: *mut ComponentSystemManager,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -116,6 +119,9 @@ impl Globals {
                 .as_ref()
                 .unwrap()
         }
+    }
+    pub fn component_manager(&self) -> &'static ComponentSystemManager {
+        unsafe { self.component_manager.as_ref().unwrap() }
     }
     pub fn translation_manager(&self) -> &'static TranslationManager {
         unsafe { self.translation_manager.as_ref().unwrap() }
@@ -186,6 +192,9 @@ impl Globals {
     pub fn max_component_mut(&self) -> &'static mut usize {
         unsafe { self.max_component.as_mut().unwrap() }
     }
+    pub fn component_manager_mut(&self) -> &'static mut ComponentSystemManager {
+        unsafe { self.component_manager.as_mut().unwrap() }
+    }
     pub fn as_ref(&self) -> GlobalsRef {
         GlobalsRef {
             world_seed: self.world_seed(),
@@ -202,6 +211,7 @@ impl Globals {
             inventory: self.inventory(),
             mods: self.mods(),
             max_component: self.max_component(),
+            component_manager: self.component_manager(),
         }
     }
     pub fn as_mut(&self) -> GlobalsMut {
@@ -220,6 +230,7 @@ impl Globals {
             inventory: self.inventory_mut(),
             mods: self.mods_mut(),
             max_component: self.max_component_mut(),
+            component_manager: self.component_manager_mut(),
         }
     }
     pub fn new(lua: LuaState) -> Self {
@@ -242,6 +253,10 @@ impl Globals {
         let inventory = 0x12224f0 as *mut Inventory;
         let mods = 0x1207e90 as *mut Mods;
         let max_component = 0x1152ff0 as *mut usize;
+        let component_manager = 0x12236e8 as *mut ComponentSystemManager;
+        //1224904
+        //12242e4
+        //12249d8
         Self {
             world_seed,
             new_game_count,
@@ -257,6 +272,7 @@ impl Globals {
             inventory,
             mods,
             max_component,
+            component_manager,
         }
     }
 }

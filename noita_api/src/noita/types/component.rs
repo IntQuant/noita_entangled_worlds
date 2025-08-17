@@ -39,7 +39,7 @@ pub struct ComponentVTable {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentManagerVTable {
+pub struct ComponentBufferVTable {
     //TODO should be a union
 }
 #[repr(C)]
@@ -130,7 +130,7 @@ fn test_com_create() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentBuffer {
-    pub vtable: &'static ComponentManagerVTable,
+    pub vtable: &'static ComponentBufferVTable,
     pub end: usize,
     unk: [isize; 2],
     pub entity_entry: StdVec<usize>,
@@ -142,7 +142,7 @@ pub struct ComponentBuffer {
 impl Default for ComponentBuffer {
     fn default() -> Self {
         Self {
-            vtable: &ComponentManagerVTable {},
+            vtable: &ComponentBufferVTable {},
             end: (-1isize).cast_unsigned(),
             unk: [0, 0],
             entity_entry: Default::default(),
@@ -450,3 +450,18 @@ impl BitSet<8> {
             .filter_map(|(a, b)| if self.get(*b) { Some(a) } else { None })
     }
 }
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct ComponentSystemManager {
+    pub list: StdVec<&'static ComponentSystem>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ComponentSystem {
+    pub vtable: &'static ComponentSystemVTable,
+    pub unk: [*const usize; 2],
+    pub name: StdString,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ComponentSystemVTable {}

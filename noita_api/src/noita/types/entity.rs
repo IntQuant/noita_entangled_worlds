@@ -100,6 +100,20 @@ impl EntityManager {
             .iter_mut()
             .filter_map(|e| unsafe { e.as_mut() })
     }
+    pub fn get_entity_with_name(&self, name: StdString) -> Option<&'static Entity> {
+        self.entities
+            .as_ref()
+            .iter()
+            .filter_map(|a| unsafe { a.as_ref() })
+            .find(|e| e.name == name)
+    }
+    pub fn get_entity_with_name_mut(&mut self, name: StdString) -> Option<&'static mut Entity> {
+        self.entities
+            .as_ref()
+            .iter()
+            .filter_map(|a| unsafe { a.as_mut() })
+            .find(|e| e.name == name)
+    }
     pub fn get_entity(&self, id: usize) -> Option<&'static Entity> {
         self.entities
             .as_ref()
