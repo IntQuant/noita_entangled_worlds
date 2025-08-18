@@ -309,6 +309,12 @@ impl<T> StdVec<T> {
             cap: self.cap,
         }
     }
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.as_ref().iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.as_mut().iter_mut()
+    }
     pub fn capacity(&self) -> usize {
         unsafe { self.cap.offset_from_unsigned(self.start) }
     }

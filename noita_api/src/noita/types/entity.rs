@@ -756,6 +756,7 @@ pub struct EntityManager {
     pub entities: StdVec<*mut Entity>,
     pub entity_buckets: StdVec<StdVec<*mut Entity>>,
     pub component_buffers: StdVec<*mut ComponentBuffer>,
+    pub unk: usize,
 }
 impl Default for EntityManager {
     fn default() -> Self {
@@ -766,6 +767,7 @@ impl Default for EntityManager {
             entities: Default::default(),
             entity_buckets: Default::default(),
             component_buffers: Default::default(),
+            unk: 0,
         }
     }
 }
