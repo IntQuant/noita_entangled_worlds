@@ -88,44 +88,15 @@ fn test_com_create() {
     let ent = em.create();
     {
         em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
-        println!(
-            "{:?}",
-            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
-        );
         em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
-        println!(
-            "{:?}",
-            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
-        );
         em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
-        println!(
-            "{:?}",
-            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
-        );
         em.create_component::<crate::noita::types::WalletComponent>(ent, id, cm);
-        println!(
-            "{:?}",
-            em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
-        );
     }
     let mut coms = em.iter_components::<crate::noita::types::WalletComponent>(ent.entry, cm);
-    println!(
-        "{:?}",
-        em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
-            .component_list
-    );
-    println!(
-        "{:?}",
-        em.get_component_buffer::<crate::noita::types::WalletComponent>(cm)
-            .component_list
-            .get(0)
-    );
-    println!("{:?}", coms.next());
-    println!("{:?}", coms.next());
-    println!("{:?}", coms.next());
-    println!("{:?}", coms.next());
-    println!("{:?}", coms.next());
-    println!("{:?}", coms.next());
+    assert_eq!(coms.next().unwrap().base.local_id, 0);
+    assert_eq!(coms.next().unwrap().base.local_id, 1);
+    assert_eq!(coms.next().unwrap().base.local_id, 2);
+    assert_eq!(coms.next().unwrap().base.local_id, 3);
 }
 #[repr(C)]
 #[derive(Debug)]

@@ -181,6 +181,35 @@ fn test_str() {
     assert_eq!(WalletComponent::NAME, WalletComponent::C_NAME.to_string());
     assert_eq!(WalletComponent::NAME, WalletComponent::STD_NAME.to_string());
 }
+#[test]
+fn test_cstring() {
+    let a = CString::from_str("test");
+    let b = CString::from_str("test");
+    let c = CString::from_str("testb");
+    assert_eq!(a, b);
+    assert_ne!(a, c);
+    assert_ne!(c, a);
+}
+impl PartialEq for CString {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            let mut ptra = self.0;
+            let mut ptrb = other.0;
+            let mut a = ptra.read();
+            let mut b = ptrb.read();
+            while a != 0 {
+                if a != b {
+                    return false;
+                }
+                ptra = ptra.offset(1);
+                a = ptra.read();
+                ptrb = ptrb.offset(1);
+                b = ptrb.read();
+            }
+            b == 0
+        }
+    }
+}
 impl Display for CString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if self.0.is_null() {
