@@ -422,14 +422,19 @@ impl BitSet<8> {
     }
 }
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ComponentSystemManager {
     pub update_order: StdVec<&'static ComponentSystem>,
     pub component_updaters: StdVec<&'static ComponentUpdater>,
-    pub map: StdMap<StdString, [*const usize; 4]>,
+    pub component_vtables: StdMap<StdString, ComponentLuaVTable>,
     pub unk: [*const usize; 8],
     pub unk2: StdVec<*const usize>,
     pub unk3: [*const usize; 7],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct ComponentLuaVTable {
+    unk: [*const usize; 16],
 }
 #[repr(C)]
 #[derive(Debug)]

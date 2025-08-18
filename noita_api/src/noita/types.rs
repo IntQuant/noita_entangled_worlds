@@ -509,10 +509,10 @@ impl<K: 'static, V: 'static> StdMap<K, V> {
         }
     }
     pub fn len(&self) -> usize {
-        self.iter().count()
+        self.len
     }
     pub fn is_empty(&self) -> bool {
-        self.iter().next().is_none()
+        self.len == 0
     }
     pub fn iter_keys(&self) -> impl Iterator<Item = &'static K> {
         self.iter().map(|(k, _)| k)
