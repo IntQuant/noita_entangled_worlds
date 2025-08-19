@@ -80,10 +80,8 @@ fn test_com_create() {
         let mut com_buffer = ComponentBuffer::default();
         let com = &mut com_buffer as *mut _;
         em.component_buffers.push(com);
-        let mut node = crate::noita::types::StdMapNode::default();
-        node.key = StdString::from_str("WalletComponent");
-        node.value = 0usize;
-        unsafe { cm.component_buffer_indices.root.as_mut().unwrap() }.parent = &mut node as *mut _;
+        cm.component_buffer_indices
+            .insert(StdString::from_str("WalletComponent"), 0);
     }
     let ent = em.create();
     {

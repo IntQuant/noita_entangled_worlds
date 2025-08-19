@@ -441,7 +441,7 @@ impl<K: Default, V: Default> Default for StdMapNode<K, V> {
             parent: ptr::null_mut(),
             right: ptr::null_mut(),
             color: false,
-            end: false,
+            end: true,
             unk: [0, 0],
             key: Default::default(),
             value: Default::default(),
@@ -449,12 +449,27 @@ impl<K: Default, V: Default> Default for StdMapNode<K, V> {
     }
 }
 
+impl<K, V> StdMapNode<K, V> {
+    pub fn new(key: K, value: V) -> Self {
+        Self {
+            left: ptr::null_mut(),
+            parent: ptr::null_mut(),
+            right: ptr::null_mut(),
+            color: false,
+            end: true,
+            unk: [0, 0],
+            key,
+            value,
+        }
+    }
+}
+
 #[repr(C)]
-pub struct StdMap<K, V> {
-    pub root: *mut StdMapNode<K, V>,
+pub struct StdMap<K: 'static, V: 'static> {
+    pub root: &'static mut StdMapNode<K, V>,
     pub len: usize,
 }
-impl<K: Default, V: Default> Default for StdMap<K, V> {
+impl<K: Default + 'static, V: Default + 'static> Default for StdMap<K, V> {
     fn default() -> Self {
         Self {
             root: Box::leak(Box::new(StdMapNode::default())),
@@ -471,7 +486,7 @@ impl<K: Debug + 'static, V: Debug + 'static> Debug for StdMap<K, V> {
 }
 
 #[derive(Debug)]
-pub struct StdMapIter<K, V> {
+pub struct StdMapIter<K: 'static, V: 'static> {
     pub root: *mut StdMapNode<K, V>,
     pub current: *const StdMapNode<K, V>,
     pub parents: Vec<*const StdMapNode<K, V>>,
@@ -501,10 +516,20 @@ impl<K: 'static, V: 'static> Iterator for StdMapIter<K, V> {
 }
 
 impl<K: 'static, V: 'static> StdMap<K, V> {
-    pub fn iter(&self) -> impl Iterator<Item = (&'static K, &'static V)> {
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+        if self.is_empty() {
+            self.len += 1;
+            let node = StdMapNode::new(key, value);
+            self.root.parent = Box::leak(Box::new(node)) as *mut _;
+            None
+        } else {
+            todo!()
+        }
+    }
+    pub fn iter(&self) -> impl Iterator<Item = (&'static K, &'static V)> + '_ {
         StdMapIter {
-            root: self.root,
-            current: unsafe { self.root.as_ref().unwrap().parent },
+            root: (self.root as *const StdMapNode<K, V>).cast_mut(),
+            current: self.root.parent,
             parents: Vec::with_capacity(8),
         }
     }
@@ -523,14 +548,14 @@ impl<K: 'static, V: 'static> StdMap<K, V> {
 }
 impl<K: 'static + Ord, V: 'static> StdMap<K, V> {
     pub fn get(&self, key: &K) -> Option<&'static V> {
-        let mut node = unsafe { self.root.as_ref()?.parent.as_ref()? };
+        let mut node = unsafe { self.root.parent.as_ref()? };
         loop {
             let next = match key.cmp(&node.key) {
                 Ordering::Less => node.left,
                 Ordering::Greater => node.right,
                 Ordering::Equal => return Some(&node.value),
             };
-            if next == self.root {
+            if next == (self.root as *const StdMapNode<K, V>).cast_mut() {
                 return None;
             }
             node = unsafe { next.as_ref()? };
