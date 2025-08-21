@@ -8,6 +8,7 @@ use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
+use noita_api::noita::types::EntityManager;
 use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
     EntityID, VariableStorageComponent,
@@ -105,17 +106,17 @@ impl ExtState {
         })
     }
 }
-
-pub fn ephemerial(entity_id: usize) -> eyre::Result<()> {
-    ExtState::with_global(|state| {
-        if let Some(entity) = state.globals.entity_manager_mut().get_entity_mut(entity_id) {
-            entity.filename_index = 0;
-        }
-    })
+pub fn ephemerial(entity_id: usize, em: &mut EntityManager) {
+    if let Some(entity) = em.get_entity_mut(entity_id) {
+        entity.filename_index = 0;
+    }
 }
 fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
     let entity_id = lua.to_integer(1).cast_unsigned();
-    ephemerial(entity_id)?;
+    ephemerial(
+        entity_id,
+        ExtState::with_global(|state| state.globals.entity_manager_mut())?,
+    );
     Ok(())
 }
 
@@ -152,8 +153,15 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
             NoitaInbound::Ready { .. } => bail!("Unexpected Ready message"),
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
-                if let Err(e) = state.modules.entity_sync.handle_proxytodes(proxy_to_des) {
-                    let _ = print_error(e);
+                match state.modules.entity_sync.handle_proxytodes(proxy_to_des) {
+                    Err(e) => {
+                        let _ = print_error(e);
+                    }
+                    Ok(Some(peer)) => {
+                        state.fps_by_player.remove(&peer);
+                        state.player_entity_map.remove_by_left(&peer);
+                    }
+                    Ok(None) => {}
                 }
             })?,
             NoitaInbound::RemoteMessage {
@@ -168,6 +176,7 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
                     &state.player_entity_map,
                     &mut state.dont_spawn,
                     &mut state.cam_pos,
+                    state.globals.entity_manager_mut(),
                 ) {
                     Ok(()) => {}
                     Err(s) => {

@@ -205,6 +205,7 @@ impl EntitySync {
                                         None,
                                         *drops_gold,
                                         &mut self.entity_manager,
+                                        ctx.globals.entity_manager,
                                     )?;
                                     if let Some(damage) = entity
                                         .try_get_first_component::<DamageModelComponent>(None)?
@@ -324,7 +325,7 @@ impl EntitySync {
     pub(crate) fn handle_proxytodes(
         &mut self,
         proxy_to_des: shared::des::ProxyToDes,
-    ) -> eyre::Result<()> {
+    ) -> eyre::Result<Option<PeerId>> {
         match proxy_to_des {
             shared::des::ProxyToDes::GotAuthority(full_entity_data) => {
                 self.local_diff_model.got_authority(full_entity_data);
@@ -337,18 +338,16 @@ impl EntitySync {
                     remote.remove_entities(&mut self.entity_manager)?
                 }
                 self.interest_tracker.remove_peer(peer);
-                let _ = crate::ExtState::with_global(|state| {
-                    state.fps_by_player.remove(&peer);
-                    state.player_entity_map.remove_by_left(&peer);
-                });
+                return Ok(Some(peer));
             }
             shared::des::ProxyToDes::DeleteEntity(entity) => {
                 EntityID(entity).kill();
             }
         }
-        Ok(())
+        Ok(None)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn handle_remotedes(
         &mut self,
         source: PeerId,
@@ -357,6 +356,7 @@ impl EntitySync {
         player_entity_map: &BiHashMap<PeerId, EntityID>,
         dont_spawn: &mut FxHashSet<Gid>,
         cam_pos: &mut FxHashMap<PeerId, WorldPos>,
+        em: &mut noita_api::noita::types::EntityManager,
     ) -> eyre::Result<()> {
         match remote_des {
             RemoteDes::ChestOpen(gid, x, y, file, rx, ry) => {
@@ -448,7 +448,7 @@ impl EntitySync {
                     self.remote_models
                         .entry(source)
                         .or_insert(RemoteDiffModel::new(source))
-                        .apply_init(vec, &mut self.entity_manager),
+                        .apply_init(vec, &mut self.entity_manager, em)?,
                 );
             }
             RemoteDes::ExitedInterest => {

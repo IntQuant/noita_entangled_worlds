@@ -1528,19 +1528,26 @@ impl RemoteDiffModel {
         &mut self,
         diff: Vec<EntityInit>,
         entity_manager: &mut EntityManager,
-    ) -> Vec<EntityID> {
+        em: &mut noita_api::noita::types::EntityManager,
+    ) -> eyre::Result<Vec<EntityID>> {
         let mut dont_kill = Vec::with_capacity(self.waiting_for_lid.len());
         for info in diff {
             if let Some(ent) = self.waiting_for_lid.remove(&info.gid) {
                 self.tracked.insert(info.lid, ent);
-                let _ =
-                    init_remote_entity(ent, Some(info.lid), Some(info.gid), false, entity_manager);
+                let _ = init_remote_entity(
+                    ent,
+                    Some(info.lid),
+                    Some(info.gid),
+                    false,
+                    entity_manager,
+                    em,
+                );
                 dont_kill.push(ent);
             }
             self.lid_to_gid.insert(info.lid, info.gid);
             self.entity_infos.insert(info.lid, info.info);
         }
-        dont_kill
+        Ok(dont_kill)
     }
     pub(crate) fn apply_diff(
         &mut self,
@@ -2059,6 +2066,7 @@ impl RemoteDiffModel {
                                 self.lid_to_gid.get(lid).copied(),
                                 entity_info.drops_gold,
                                 entity_manager,
+                                ctx.globals.entity_manager,
                             )?;
                             self.tracked.insert(*lid, entity);
                         }
@@ -2187,6 +2195,7 @@ pub fn init_remote_entity(
     gid: Option<Gid>,
     drops_gold: bool,
     entity_manager: &mut EntityManager,
+    em: &mut noita_api::noita::types::EntityManager,
 ) -> eyre::Result<()> {
     if entity.has_tag("player_unit") {
         entity.kill();
@@ -2397,7 +2406,7 @@ pub fn init_remote_entity(
             .try_get_first_component_including_disabled::<PhysicsBody2Component>(ComponentTag::None)
             .is_none()
     {
-        ephemerial(entity.0.get().cast_unsigned())?
+        ephemerial(entity.0.get().cast_unsigned(), em)
     }
 
     Ok(())
