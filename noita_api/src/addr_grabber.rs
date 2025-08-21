@@ -254,9 +254,6 @@ impl Globals {
         let mods = 0x1207e90 as *mut Mods;
         let max_component = 0x1152ff0 as *mut usize;
         let component_manager = 0x12236e8 as *mut ComponentSystemManager;
-        //1224904
-        //12242e4
-        //12249d8
         Self {
             world_seed,
             new_game_count,

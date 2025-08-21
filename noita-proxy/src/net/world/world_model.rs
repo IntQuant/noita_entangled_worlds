@@ -142,41 +142,26 @@ impl WorldModel {
                 false
             }
         }
-        let mut x = 0;
-        let mut y = 0;
         let (start_x, start_y) = (
             update.coord.0 * CHUNK_SIZE as i32,
             update.coord.1 * CHUNK_SIZE as i32,
         );
         let mut chunk_coord = update.coord;
         let mut chunk = self.chunks.entry(update.coord).or_default();
-        for run in update.runs {
-            for _ in 0..run.length {
-                let xs = start_x + x;
-                let ys = start_y + y;
-                let (new_chunk_coord, offset) = Self::get_chunk_coords(xs, ys);
-                if chunk_coord != new_chunk_coord {
-                    chunk_coord = new_chunk_coord;
-                    chunk = self.chunks.entry(chunk_coord).or_default();
-                }
-                if set_pixel(
-                    RawPixel {
-                        material: run.data.material,
-                        flags: run.data.flags,
-                    },
-                    chunk,
-                    offset,
-                ) {
-                    self.updated_chunks.insert(chunk_coord);
-                    if changed.contains(&chunk_coord) {
-                        changed.remove(&chunk_coord);
-                    }
-                }
-                if x == CHUNK_SIZE as i32 {
-                    x = 0;
-                    y += 1;
-                } else {
-                    x += 1;
+        for (i, pixel) in update.pixels.into_iter().enumerate() {
+            let x = (i % CHUNK_SIZE) as i32;
+            let y = (i / CHUNK_SIZE) as i32;
+            let xs = start_x + x;
+            let ys = start_y + y;
+            let (new_chunk_coord, offset) = Self::get_chunk_coords(xs, ys);
+            if chunk_coord != new_chunk_coord {
+                chunk_coord = new_chunk_coord;
+                chunk = self.chunks.entry(chunk_coord).or_default();
+            }
+            if set_pixel(RawPixel::from_opt_compact(pixel), chunk, offset) {
+                self.updated_chunks.insert(chunk_coord);
+                if changed.contains(&chunk_coord) {
+                    changed.remove(&chunk_coord);
                 }
             }
         }
@@ -186,16 +171,9 @@ impl WorldModel {
         let mut updates = Vec::new();
         for coord in self.updated_chunks.drain() {
             if let Some(chunk) = self.chunks.get_mut(&coord) {
-                chunk.clear_changed();
-                let mut runner = PixelRunner::new();
-                for j in 0..CHUNK_SIZE {
-                    for i in 0..CHUNK_SIZE {
-                        runner.put_pixel(chunk.pixel(i + j * CHUNK_SIZE))
-                    }
-                }
                 updates.push(NoitaWorldUpdate {
                     coord,
-                    runs: runner.build(),
+                    pixels: chunk.pixels.map(CompactPixel::from_material),
                 });
             }
         }

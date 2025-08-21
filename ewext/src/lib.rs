@@ -221,6 +221,7 @@ fn with_every_module(
             fps_by_player: &mut state.fps_by_player,
             dont_spawn: &state.dont_spawn,
             camera_pos: &mut state.cam_pos,
+            globals: state.globals.as_mut(),
         };
         let mut errs = Vec::new();
         for module in state.modules.iter_mut() {

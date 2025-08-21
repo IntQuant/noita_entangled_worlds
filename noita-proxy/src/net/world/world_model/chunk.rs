@@ -2,7 +2,7 @@ use super::{ChunkData, encoding::PixelRunner};
 use shared::world_sync::{CHUNK_SIZE, CompactPixel, RawPixel};
 
 pub struct Chunk {
-    pixels: [u16; CHUNK_SQUARE],
+    pub pixels: [u16; CHUNK_SQUARE],
     changed: Changed<bool, CHUNK_SQUARE>,
     any_changed: bool,
 }

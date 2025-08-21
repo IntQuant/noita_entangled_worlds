@@ -16,7 +16,7 @@ pub struct ChunkCoord(pub i32, pub i32);
 #[derive(Debug, Encode, Decode, Clone)]
 pub struct NoitaWorldUpdate {
     pub coord: ChunkCoord,
-    pub runs: Vec<PixelRun<RawPixel>>,
+    pub pixels: [Option<CompactPixel>; CHUNK_SIZE * CHUNK_SIZE],
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
@@ -50,13 +50,9 @@ impl RawPixel {
         CompactPixel(NonZeroU16::new(raw).unwrap())
     }
     pub fn from_compact(compact: CompactPixel) -> Self {
-        let raw = u16::from(compact.0);
-        let material = (raw >> 1) - 1;
-        let flags = if raw & 1 == 1 {
-            PixelFlags::Abnormal
-        } else {
-            PixelFlags::Normal
-        };
+        let raw = compact.raw();
+        let material = compact.material();
+        let flags = compact.flags();
         if raw == CompactPixel::UNKNOWN_RAW {
             RawPixel {
                 flags: PixelFlags::Unknown,
@@ -64,6 +60,16 @@ impl RawPixel {
             }
         } else {
             RawPixel { flags, material }
+        }
+    }
+    pub fn from_opt_compact(compact: Option<CompactPixel>) -> Self {
+        if let Some(pixel) = compact {
+            Self::from_compact(pixel)
+        } else {
+            RawPixel {
+                material: 0,
+                flags: PixelFlags::Normal,
+            }
         }
     }
 }
@@ -78,8 +84,27 @@ impl CompactPixel {
     pub fn from_raw(val: u16) -> Self {
         CompactPixel(NonZeroU16::new(val).unwrap())
     }
+    pub fn from_material(val: u16) -> Option<Self> {
+        if val == 0 {
+            None
+        } else {
+            let val = (val + 1) & 2047;
+            let val = val << 1;
+            Some(CompactPixel(NonZeroU16::new(val).unwrap()))
+        }
+    }
     pub fn raw(self) -> u16 {
         u16::from(self.0)
+    }
+    pub fn material(self) -> u16 {
+        (self.raw() >> 1) - 1
+    }
+    pub fn flags(self) -> PixelFlags {
+        if self.raw() & 1 == 1 {
+            PixelFlags::Abnormal
+        } else {
+            PixelFlags::Normal
+        }
     }
 }
 
