@@ -64,6 +64,8 @@ pub struct WorldSync {
     pub particle_world_state: MaybeUninit<ParticleWorldState>,
     pub world_num: u8,
 }
+unsafe impl Sync for WorldSync {}
+unsafe impl Send for WorldSync {}
 impl Default for WorldSync {
     fn default() -> Self {
         Self {

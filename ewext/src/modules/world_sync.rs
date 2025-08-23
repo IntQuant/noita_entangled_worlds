@@ -3,6 +3,7 @@ use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell};
 use noita_api::noita::world::ParticleWorldState;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
     CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, ProxyToWorldSync, WorldSyncToProxy,
@@ -21,11 +22,14 @@ impl Module for WorldSync {
         let Some(ent) = ctx.globals.entity_manager.get_entity(ent.0.get() as usize) else {
             return Ok(());
         };
-        let mut updates = Vec::with_capacity(25);
-        for dx in 0..5 {
-            let cx = ent.transform.pos.x as i32 / CHUNK_SIZE as i32 - 2 + dx;
-            for dy in 0..5 {
-                let cy = ent.transform.pos.y as i32 / CHUNK_SIZE as i32 - 2 + dy;
+        let (x, y) = (ent.transform.pos.x, ent.transform.pos.y);
+        let updates = (0..9)
+            .into_par_iter()
+            .map(|i| {
+                let dx = i % 3;
+                let dy = i / 3;
+                let cx = x as i32 / CHUNK_SIZE as i32 - 1 + dx;
+                let cy = y as i32 / CHUNK_SIZE as i32 - 1 + dy;
                 let mut update = NoitaWorldUpdate {
                     coord: ChunkCoord(cx, cy),
                     pixels: std::array::from_fn(|_| None),
@@ -37,10 +41,12 @@ impl Module for WorldSync {
                 }
                 .is_ok()
                 {
-                    updates.push(update);
+                    Some(update)
+                } else {
+                    None
                 }
-            }
-        }
+            })
+            .collect::<Vec<_>>();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
         Ok(())
@@ -50,14 +56,12 @@ impl WorldSync {
     pub fn handle_remote(&mut self, msg: ProxyToWorldSync) -> eyre::Result<()> {
         match msg {
             ProxyToWorldSync::Updates(updates) => {
-                for chunk in updates {
-                    unsafe {
-                        let _ = self
-                            .particle_world_state
-                            .assume_init_ref()
-                            .decode_world(chunk);
-                    }
-                }
+                updates.into_par_iter().for_each(|chunk| unsafe {
+                    let _ = self
+                        .particle_world_state
+                        .assume_init_ref()
+                        .decode_world(chunk);
+                });
             }
         }
         Ok(())
