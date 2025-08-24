@@ -28,6 +28,8 @@ pub enum PixelFlags {
     Abnormal = 16384,
 }
 
+const BITS: u16 = 8191;
+
 #[derive(Debug, Encode, Decode, PartialEq, Eq, Clone, Copy)]
 pub struct RawPixel {
     pub material: u16,
@@ -41,7 +43,7 @@ impl RawPixel {
         } else {
             1
         };
-        let material = (self.material + 1) & 2047; // 11 bits for material
+        let material = self.material & BITS; // 11 bits for material
         let raw = if self.flags == PixelFlags::Unknown {
             CompactPixel::UNKNOWN_RAW
         } else {
@@ -80,7 +82,7 @@ impl RawPixel {
 pub struct CompactPixel(pub NonZeroU16);
 
 impl CompactPixel {
-    const UNKNOWN_RAW: u16 = 4095;
+    const UNKNOWN_RAW: u16 = BITS + 1;
     pub fn from_raw(val: u16) -> Self {
         CompactPixel(NonZeroU16::new(val).unwrap())
     }
@@ -88,8 +90,6 @@ impl CompactPixel {
         if val == 0 {
             None
         } else {
-            let val = (val + 1) & 2047;
-            let val = val << 1;
             Some(CompactPixel(NonZeroU16::new(val).unwrap()))
         }
     }
@@ -97,7 +97,7 @@ impl CompactPixel {
         u16::from(self.0)
     }
     pub fn material(self) -> u16 {
-        (self.raw() >> 1) - 1
+        self.raw() & BITS
     }
     pub fn flags(self) -> PixelFlags {
         if self.raw() & 1 == 1 {

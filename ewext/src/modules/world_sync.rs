@@ -23,13 +23,14 @@ impl Module for WorldSync {
             return Ok(());
         };
         let (x, y) = (ent.transform.pos.x, ent.transform.pos.y);
-        let updates = (0..9)
-            .into_par_iter()
+        let tmr = std::time::Instant::now();
+        let updates = (0..1)
+            //.into_par_iter()
             .map(|i| {
                 let dx = i % 3;
                 let dy = i / 3;
-                let cx = x as i32 / CHUNK_SIZE as i32 - 1 + dx;
-                let cy = y as i32 / CHUNK_SIZE as i32 - 1 + dy;
+                let cx = x as i32 / CHUNK_SIZE as i32 + dx;
+                let cy = y as i32 / CHUNK_SIZE as i32 + dy;
                 let mut update = NoitaWorldUpdate {
                     coord: ChunkCoord(cx, cy),
                     pixels: std::array::from_fn(|_| None),
@@ -49,6 +50,16 @@ impl Module for WorldSync {
             .collect::<Vec<_>>();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
+        let NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates)) = msg else {
+            unreachable!()
+        };
+        updates.into_iter().flatten().for_each(|chunk| unsafe {
+            let _ = self
+                .particle_world_state
+                .assume_init_ref()
+                .decode_world(chunk);
+        });
+        noita_api::game_print!("{}", tmr.elapsed().as_nanos());
         Ok(())
     }
 }
@@ -123,10 +134,9 @@ impl WorldData for ParticleWorldState {
                 *cell = ptr::null_mut();
                 continue;
             };
-            let mat = self
-                .material_list
-                .get_static(pixel.material() as usize)
-                .unwrap();
+            let Some(mat) = self.material_list.get_static(pixel.material() as usize) else {
+                return Err(eyre!("mat does not exist"));
+            };
             match mat.cell_type {
                 CellType::None => {
                     *cell = ptr::null_mut();

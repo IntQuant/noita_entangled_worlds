@@ -677,19 +677,17 @@ impl Chunk {
     #[inline]
     pub fn get_compact_pixel(&self, x: isize, y: isize) -> Option<CompactPixel> {
         self.get(x, y).map(|cell| {
+            let mat = (cell.material.material_type as u16 + 1) << 1;
             CompactPixel(if cell.material.cell_type == CellType::Liquid {
-                (cell.material.material_type as u16
-                    | if cell.get_liquid().is_static == cell.material.liquid_static {
-                        PixelFlags::Normal
-                    } else {
-                        PixelFlags::Abnormal
-                    } as u16)
+                (mat | if cell.get_liquid().is_static == cell.material.liquid_static {
+                    PixelFlags::Normal
+                } else {
+                    PixelFlags::Abnormal
+                } as u16)
                     .try_into()
                     .unwrap()
             } else {
-                (cell.material.material_type as u16 | PixelFlags::Normal as u16)
-                    .try_into()
-                    .unwrap()
+                (mat | PixelFlags::Normal as u16).try_into().unwrap()
             })
         })
     }
