@@ -1,12 +1,13 @@
 use crate::noita::types::objects::{ConfigExplosion, ConfigGridCosmeticParticle};
 use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
-use shared::world_sync::{CompactPixel, PixelFlags, RawPixel};
+use shared::world_sync::{Pixel, PixelFlags};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
 use std::slice;
 #[repr(usize)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub enum CellType {
+    #[default]
     None = 0,
     Liquid = 1,
     Gas = 2,
@@ -15,7 +16,7 @@ pub enum CellType {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CellGraphics {
     pub texture_file: StdString,
     pub color: Color,
@@ -34,7 +35,7 @@ pub struct StatusEffect {
     pub duration: f32,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CellData {
     pub name: StdString,
     pub ui_name: StdString,
@@ -212,7 +213,7 @@ pub struct SolidCellVTable {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct NoneCellVTable {
-    unknown: [*const ThiscallFn; 41],
+    pub unknown: [*const ThiscallFn; 41],
 }
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -273,7 +274,7 @@ pub struct LiquidCellVTable {
 #[repr(C)]
 #[derive(Clone, Debug, Copy)]
 pub struct Cell {
-    pub vtable: &'static CellVTable,
+    pub vtable: CellVTable,
 
     pub hp: isize,
     unknown1: [isize; 2],
@@ -342,12 +343,7 @@ impl FireCell {
         } else {
             -1
         };
-        let mut cell = Cell::create(mat, unsafe {
-            (vtable as *const FireCellVTable)
-                .cast::<CellVTable>()
-                .as_ref()
-                .unwrap()
-        });
+        let mut cell = Cell::create(mat, CellVTable { fire: vtable });
         cell.is_burning = true;
         Self {
             cell,
@@ -395,12 +391,7 @@ impl GasCell {
         } else {
             (false, -1)
         };
-        let mut cell = Cell::create(mat, unsafe {
-            (vtable as *const GasCellVTable)
-                .cast::<CellVTable>()
-                .as_ref()
-                .unwrap()
-        });
+        let mut cell = Cell::create(mat, CellVTable { gas: vtable });
         cell.is_burning = true;
         Self {
             cell,
@@ -457,12 +448,7 @@ impl LiquidCell {
             -1
         };
         Self {
-            cell: Cell::create(mat, unsafe {
-                (vtable as *const LiquidCellVTable)
-                    .cast::<CellVTable>()
-                    .as_ref()
-                    .unwrap()
-            }),
+            cell: Cell::create(mat, CellVTable { liquid: vtable }),
             x: 0,
             y: 0,
             unknown1: 3,
@@ -481,7 +467,7 @@ impl LiquidCell {
 }
 
 impl Cell {
-    fn create(material: &'static CellData, vtable: &'static CellVTable) -> Self {
+    pub fn create(material: &'static CellData, vtable: CellVTable) -> Self {
         Self {
             vtable,
             hp: material.hp,
@@ -650,53 +636,30 @@ impl Chunk {
         &mut self.data[index.cast_unsigned()]
     }
     #[inline]
-    pub fn get_raw_pixel(&self, x: isize, y: isize) -> RawPixel {
+    pub fn get_pixel(&self, x: isize, y: isize) -> Pixel {
         if let Some(cell) = self.get(x, y) {
             if cell.material.cell_type == CellType::Liquid {
-                RawPixel {
-                    material: cell.material.material_type as u16,
-                    flags: if cell.get_liquid().is_static == cell.material.liquid_static {
+                Pixel::new(
+                    cell.material.material_type as u16,
+                    if cell.get_liquid().is_static == cell.material.liquid_static {
                         PixelFlags::Normal
                     } else {
                         PixelFlags::Abnormal
                     },
-                }
+                )
             } else {
-                RawPixel {
-                    material: cell.material.material_type as u16,
-                    flags: PixelFlags::Normal,
-                }
+                Pixel::new(cell.material.material_type as u16, PixelFlags::Normal)
             }
         } else {
-            RawPixel {
-                material: 0,
-                flags: PixelFlags::Normal,
-            }
+            Pixel::new(0, PixelFlags::Normal)
         }
-    }
-    #[inline]
-    pub fn get_compact_pixel(&self, x: isize, y: isize) -> Option<CompactPixel> {
-        self.get(x, y).map(|cell| {
-            let mat = (cell.material.material_type as u16 + 1) << 1;
-            CompactPixel(if cell.material.cell_type == CellType::Liquid {
-                (mat | if cell.get_liquid().is_static == cell.material.liquid_static {
-                    PixelFlags::Normal
-                } else {
-                    PixelFlags::Abnormal
-                } as u16)
-                    .try_into()
-                    .unwrap()
-            } else {
-                (mat | PixelFlags::Normal as u16).try_into().unwrap()
-            })
-        })
     }
 }
 
 #[repr(C)]
 pub struct ChunkMap {
     pub len: usize,
-    unknown: isize,
+    pub unknown: isize,
     pub chunk_array: &'static mut [*mut Chunk; 512 * 512],
     pub chunk_count: usize,
     pub min_chunk: Vec2i,
@@ -761,16 +724,21 @@ impl ChunkMap {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
         unsafe { self.chunk_array[index.cast_unsigned()].as_mut() }
     }
+    #[inline]
+    pub fn insert(&mut self, x: isize, y: isize, chunk: Chunk) {
+        let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
+        self.chunk_array[index.cast_unsigned()] = Box::leak(Box::new(chunk))
+    }
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridWorldVTable {
     //ptr is 0x10013bc
-    unknown: [*const ThiscallFn; 3],
+    pub unknown: [*const ThiscallFn; 3],
     pub get_chunk_map: *const ThiscallFn,
-    unknownmagic: *const ThiscallFn,
-    unknown2: [*const ThiscallFn; 29],
+    pub unknownmagic: *const ThiscallFn,
+    pub unknown2: [*const ThiscallFn; 29],
 }
 
 #[repr(C)]
@@ -800,7 +768,7 @@ pub struct GridWorldThreadedVTable {
 #[derive(Debug)]
 pub struct GridWorldThreaded {
     pub grid_world_threaded_vtable: &'static GridWorldThreadedVTable,
-    unknown: [isize; 287],
+    pub unknown: [isize; 287],
     pub update_region: AABB,
 }
 
@@ -809,19 +777,19 @@ pub struct GridWorldThreaded {
 pub struct GridWorld {
     pub vtable: &'static GridWorldVTable,
     pub rng: isize,
-    unk: [isize; 292],
+    pub unk: [isize; 292],
     pub cam_pos: Vec2i,
     pub cam_dimen: Vec2i,
-    unknown: [isize; 6],
-    unk_cam: IAABB,
-    unk2_cam: IAABB,
-    unkown3: isize,
+    pub unknown: [isize; 6],
+    pub unk_cam: IAABB,
+    pub unk2_cam: IAABB,
+    pub unkown3: isize,
     pub cam: IAABB,
-    unkown2: isize,
-    unk_counter: isize,
+    pub unkown2: isize,
+    pub unk_counter: isize,
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
-    unknown2: [isize; 40],
+    pub unknown2: [isize; 40],
     pub m_thread_impl: &'static mut GridWorldThreaded,
 }
 #[repr(C)]

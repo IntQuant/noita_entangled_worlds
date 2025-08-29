@@ -1,5 +1,4 @@
 use bitcode::{Decode, Encode};
-use std::num::NonZeroU16;
 /// Stores a run of pixels.
 /// Not specific to Noita side - length is an actual length
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode)]
@@ -16,101 +15,52 @@ pub struct ChunkCoord(pub i32, pub i32);
 #[derive(Debug, Encode, Decode, Clone)]
 pub struct NoitaWorldUpdate {
     pub coord: ChunkCoord,
-    pub pixels: [Option<CompactPixel>; CHUNK_SIZE * CHUNK_SIZE],
+    pub pixels: [Pixel; CHUNK_SIZE * CHUNK_SIZE],
 }
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
 pub enum PixelFlags {
     /// Actual material isn't known yet.
+    Normal = 0,
+    Abnormal = 1,
     #[default]
-    Unknown = 0,
-    Normal = 32768,
-    Abnormal = 16384,
-}
-
-const BITS: u16 = 8191;
-
-#[derive(Debug, Encode, Decode, PartialEq, Eq, Clone, Copy)]
-pub struct RawPixel {
-    pub material: u16,
-    pub flags: PixelFlags,
-}
-
-impl RawPixel {
-    pub fn to_compact(self) -> CompactPixel {
-        let flag_bit = if self.flags == PixelFlags::Normal {
-            0
-        } else {
-            1
-        };
-        let material = self.material & BITS; // 11 bits for material
-        let raw = if self.flags == PixelFlags::Unknown {
-            CompactPixel::UNKNOWN_RAW
-        } else {
-            (material << 1) | flag_bit
-        };
-        CompactPixel(NonZeroU16::new(raw).unwrap())
-    }
-    pub fn from_compact(compact: CompactPixel) -> Self {
-        let raw = compact.raw();
-        let material = compact.material();
-        let flags = compact.flags();
-        if raw == CompactPixel::UNKNOWN_RAW {
-            RawPixel {
-                flags: PixelFlags::Unknown,
-                material: 0,
-            }
-        } else {
-            RawPixel { flags, material }
-        }
-    }
-    pub fn from_opt_compact(compact: Option<CompactPixel>) -> Self {
-        if let Some(pixel) = compact {
-            Self::from_compact(pixel)
-        } else {
-            RawPixel {
-                material: 0,
-                flags: PixelFlags::Normal,
-            }
-        }
-    }
+    Unknown = 15,
+    //may have at most * = 15
 }
 
 /// An entire pixel packed into 12 bits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, Default)]
 #[repr(transparent)]
-pub struct CompactPixel(pub NonZeroU16);
+pub struct Pixel(u16);
 
-impl CompactPixel {
-    const UNKNOWN_RAW: u16 = BITS + 1;
-    pub fn from_raw(val: u16) -> Self {
-        CompactPixel(NonZeroU16::new(val).unwrap())
-    }
-    pub fn from_material(val: u16) -> Option<Self> {
-        if val == 0 {
-            None
-        } else {
-            Some(CompactPixel(NonZeroU16::new(val).unwrap()))
-        }
-    }
-    pub fn raw(self) -> u16 {
-        u16::from(self.0)
-    }
-    pub fn material(self) -> u16 {
-        self.raw() & BITS
-    }
-    pub fn flags(self) -> PixelFlags {
-        if self.raw() & 1 == 1 {
-            PixelFlags::Abnormal
-        } else {
-            PixelFlags::Normal
-        }
-    }
+#[test]
+fn test() {
+    let p = Pixel::new(0, PixelFlags::Unknown);
+    assert_eq!(p.mat(), 0);
+    assert_eq!(p.flags(), PixelFlags::Unknown);
+    let p = Pixel::new(0, PixelFlags::Normal);
+    assert_eq!(p.mat(), 0);
+    assert_eq!(p.flags(), PixelFlags::Normal);
+    let p = Pixel::new(15, PixelFlags::Unknown);
+    assert_eq!(p.mat(), 15);
+    assert_eq!(p.flags(), PixelFlags::Unknown);
+    let p = Pixel::new(15, PixelFlags::Normal);
+    assert_eq!(p.mat(), 15);
+    assert_eq!(p.flags(), PixelFlags::Normal);
 }
 
-impl Default for CompactPixel {
-    fn default() -> Self {
-        Self(NonZeroU16::new(CompactPixel::UNKNOWN_RAW).unwrap())
+impl Pixel {
+    pub const NIL: Pixel = Pixel::new(0, PixelFlags::Abnormal);
+    //mat must be less then 13 bits
+    pub const fn new(mat: u16, flag: PixelFlags) -> Self {
+        Self(mat | ((flag as u16) << 12))
+    }
+    pub fn mat(self) -> u16 {
+        self.0 & 0x0FFF
+    }
+    pub fn flags(self) -> PixelFlags {
+        unsafe { std::mem::transmute((self.0 >> 12) as u8) }
     }
 }
 

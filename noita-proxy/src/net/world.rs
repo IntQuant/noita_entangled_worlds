@@ -1182,10 +1182,7 @@ impl WorldManager {
         let start = x - radius;
         let end = x + radius;
 
-        let air_pixel = RawPixel {
-            flags: PixelFlags::Normal,
-            material: 0,
-        };
+        let air_pixel = Pixel::default();
         let chunk_storage: Vec<(ChunkCoord, ChunkData)> = self
             .chunk_storage
             .clone()
@@ -1267,10 +1264,7 @@ impl WorldManager {
         let dm2 = ((dmx.unsigned_abs() as u64 * dmx.unsigned_abs() as u64
             + dmy.unsigned_abs() as u64 * dmy.unsigned_abs() as u64) as f64)
             .recip();
-        let air_pixel = RawPixel {
-            flags: PixelFlags::Normal,
-            material: 0,
-        };
+        let air_pixel = Pixel::default();
         let close_check = max_cx == min_cx || max_cy == min_cy;
         let iter_check = [
             (x + r, y),
@@ -1370,10 +1364,10 @@ impl WorldManager {
                         if dx * dx + dy * dy <= r {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if (no_info
-                                || chunk.pixel(px).flags == PixelFlags::Unknown
+                                || chunk.pixel(px).flags() == PixelFlags::Unknown
                                 || self
                                     .materials
-                                    .get(&chunk.pixel(px).material)
+                                    .get(&chunk.pixel(px).mat())
                                     .map(|(_, _, cell, _)| cell.can_remove(true, false))
                                     .unwrap_or(true))
                                 && (chance == 100
@@ -1418,10 +1412,7 @@ impl WorldManager {
             (y - r).div_euclid(CHUNK_SIZE as i32),
             (y + r).div_euclid(CHUNK_SIZE as i32),
         );
-        let air_pixel = RawPixel {
-            flags: PixelFlags::Normal,
-            material: mat.unwrap_or(0),
-        };
+        let air_pixel = Pixel::default();
         let (chunkx, chunky) = (
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
@@ -1475,10 +1466,10 @@ impl WorldManager {
                         if dd + dy * dy <= rs {
                             let px = icy as usize * CHUNK_SIZE + icx as usize;
                             if (no_info
-                                || chunk.pixel(px).flags == PixelFlags::Unknown
+                                || chunk.pixel(px).flags() == PixelFlags::Unknown
                                 || self
                                     .materials
-                                    .get(&chunk.pixel(px).material)
+                                    .get(&chunk.pixel(px).mat())
                                     .map(|(_, _, cell, _)| cell.can_remove(true, false))
                                     .unwrap_or(true))
                                 && (chance == 100
@@ -1581,7 +1572,7 @@ impl WorldManager {
                 let icy = y.rem_euclid(CHUNK_SIZE as i32);
                 let px = icy as usize * CHUNK_SIZE + icx as usize;
                 let pixel = working_chunk.pixel(px);
-                if let Some(stats) = self.materials.get(&pixel.material) {
+                if let Some(stats) = self.materials.get(&pixel.mat()) {
                     let h = (stats.1 as f64 * mult as f64) as u64;
                     if stats.0 > d || ray < h {
                         return (last_coord, 0, None);
@@ -1724,7 +1715,7 @@ impl WorldManager {
         list: Vec<(u64, u64, Option<ChunkCoord>)>,
         hole: bool,
         liquid: bool,
-        mat: RawPixel,
+        mat: Pixel,
         prob: u8,
         r: u64,
     ) -> Vec<ExRet> {
@@ -1741,10 +1732,7 @@ impl WorldManager {
             (y - r as i32).div_euclid(CHUNK_SIZE as i32),
             (y + r as i32).div_euclid(CHUNK_SIZE as i32),
         );
-        let air_pixel = RawPixel {
-            flags: PixelFlags::Normal,
-            material: 0,
-        };
+        let air_pixel = Pixel::default();
         let (chunkx, chunky) = (
             x.div_euclid(CHUNK_SIZE as i32),
             y.div_euclid(CHUNK_SIZE as i32),
@@ -1888,7 +1876,7 @@ impl WorldManager {
                         } {
                             if self
                                 .materials
-                                .get(&chunk.pixel(px).material)
+                                .get(&chunk.pixel(px).mat())
                                 .map(|(dur, _, cell, _)| *dur <= d && cell.can_remove(hole, liquid))
                                 .unwrap_or(true)
                             {
@@ -2047,10 +2035,7 @@ impl WorldManager {
             grouped.entry(key).or_default().push((a, b));
         }
         let data: Vec<(usize, Vec<(usize, u64)>)> = grouped.into_iter().collect();
-        let air_pixel = RawPixel {
-            flags: PixelFlags::Normal,
-            material: 0,
-        };
+        let air_pixel = Pixel::default();
         let mut chunk = Chunk::default();
         let mut chunk_delta = Chunk::default();
         self.chunk_storage.get(&coord)?.apply_to_chunk(&mut chunk);
@@ -2109,7 +2094,7 @@ impl WorldManager {
                         data.iter().any(|(i, r)| j == *i && dd <= *r)
                     }) && self
                         .materials
-                        .get(&chunk.pixel(px).material)
+                        .get(&chunk.pixel(px).mat())
                         .map(|(dur, _, cell, _)| *dur <= d && cell.can_remove(hole, liquid))
                         .unwrap_or(true)
                     {
@@ -2203,7 +2188,7 @@ impl WorldManager {
                     let icy = y.rem_euclid(CHUNK_SIZE as i32);
                     let px = icy as usize * CHUNK_SIZE + icx as usize;
                     let pixel = working_chunk.pixel(px);
-                    if let Some(stats) = self.materials.get(&pixel.material) {
+                    if let Some(stats) = self.materials.get(&pixel.mat()) {
                         let h = (stats.1 as f64 * mult as f64) as u64;
                         avg += h;
                         count2 += 1;
@@ -2303,7 +2288,7 @@ impl WorldManager {
             }
             let p = icy as usize * CHUNK_SIZE + icx as usize;
             *px = image::Luma([
-                ((working_chunk.pixel(p).material * 255) as usize / self.materials.len()) as u8
+                ((working_chunk.pixel(p).mat() * 255) as usize / self.materials.len()) as u8
             ])
         }
     }
@@ -2318,8 +2303,8 @@ fn create_image(chunk: ChunkData, materials: &FxHashMap<u16, u32>) -> RgbaImage 
         let y = i / w as usize;
         let p = y * CHUNK_SIZE + x;
         let m = working_chunk.pixel(p);
-        if m.flags != PixelFlags::Unknown
-            && let Some(c) = materials.get(&m.material)
+        if m.flags() != PixelFlags::Unknown
+            && let Some(c) = materials.get(&m.mat())
         {
             let a = (c >> 24) & 0xFFu32;
             let r = (c >> 16) & 0xFFu32;
@@ -3077,7 +3062,7 @@ use rand::seq::SliceRandom;
 #[cfg(test)]
 use serial_test::serial;
 use shared::world_sync::{
-    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, PixelFlags, RawPixel, WorldSyncToProxy,
+    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, PixelFlags, WorldSyncToProxy,
 };
 #[cfg(test)]
 #[test]

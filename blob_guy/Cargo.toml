@@ -21,8 +21,8 @@ noita_api = {path = "../noita_api"}
 eyre = "0.6.12"
 smallvec = "1.15.1"
 rustc-hash = "2.1.1"
-rayon = "1.10.0"
+rayon = "1.11.0"
 
 [dev-dependencies]
 rupl = {git = "https://github.com/bgkillas/rupl.git", default-features = false, features = ["egui"] }
-eframe = "0.32.0"
+eframe = "0.32.1"

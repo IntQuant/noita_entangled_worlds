@@ -37,7 +37,7 @@ use crate::{
     bookkeeping::save_state::{SaveState, SaveStateEntry},
 };
 use shared::des::ProxyToDes;
-use shared::world_sync::{ChunkCoord, PixelFlags, ProxyToWorldSync, RawPixel};
+use shared::world_sync::{ChunkCoord, Pixel, PixelFlags, ProxyToWorldSync};
 use tangled::Reliability;
 use tracing::{error, info, warn};
 mod audio;
@@ -1485,7 +1485,7 @@ pub struct ExplosionData {
     ray: u64,
     hole: bool,
     liquid: bool,
-    mat: RawPixel,
+    mat: Pixel,
     prob: u8,
 }
 impl ExplosionData {
@@ -1509,10 +1509,7 @@ impl ExplosionData {
             ray,
             hole,
             liquid,
-            mat: RawPixel {
-                flags: PixelFlags::Normal,
-                material: mat,
-            },
+            mat: Pixel::new(mat, PixelFlags::Normal),
             prob,
         }
     }

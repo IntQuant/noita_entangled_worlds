@@ -1,13 +1,10 @@
-use std::num::NonZeroU16;
 use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
 use chunk::Chunk;
 use encoding::PixelRunner;
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::world_sync::{
-    CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, PixelRun, RawPixel,
-};
+use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, PixelRun};
 use tracing::info;
 pub(crate) mod chunk;
 pub mod encoding;
@@ -24,14 +21,14 @@ pub(crate) struct WorldModel {
 /// Kinda close to ChunkDelta, but doesn't assume we know anything about the chunk.
 #[derive(Debug, Encode, Decode, Clone)]
 pub(crate) struct ChunkData {
-    pub runs: Vec<PixelRun<CompactPixel>>,
+    pub runs: Vec<PixelRun<Pixel>>,
 }
 
 /// Contains a diff, only pixels that were updated, for a given chunk.
 #[derive(Debug, Encode, Decode, Clone)]
 pub(crate) struct ChunkDelta {
     pub chunk_coord: ChunkCoord,
-    runs: Arc<Vec<PixelRun<Option<CompactPixel>>>>,
+    runs: Arc<Vec<PixelRun<Option<Pixel>>>>,
 }
 
 impl ChunkData {
@@ -54,26 +51,20 @@ impl ChunkData {
     pub(crate) fn new(mat: u16) -> Self {
         let mut runner = PixelRunner::new();
         for _ in 0..CHUNK_SIZE * CHUNK_SIZE {
-            runner.put_pixel(
-                RawPixel {
-                    flags: shared::world_sync::PixelFlags::Normal,
-                    material: mat,
-                }
-                .to_compact(),
-            )
+            runner.put_pixel(Pixel::new(mat, shared::world_sync::PixelFlags::Normal))
         }
         let runs = runner.build();
         ChunkData { runs }
     }
 
     pub(crate) fn apply_to_chunk(&self, chunk: &mut Chunk) {
-        let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
+        let nil = Pixel::NIL;
         let mut offset = 0;
         for run in &self.runs {
             let pixel = run.data;
             if pixel != nil {
                 for _ in 0..run.length {
-                    chunk.set_compact_pixel(offset, pixel);
+                    chunk.set_pixel(offset, pixel);
                     offset += 1;
                 }
             } else {
@@ -82,14 +73,14 @@ impl ChunkData {
         }
     }
     pub(crate) fn apply_delta(&mut self, delta: ChunkData) {
-        let nil = CompactPixel(NonZeroU16::new(4095).unwrap());
+        let nil = Pixel::NIL;
         let mut chunk = Chunk::default();
         self.apply_to_chunk(&mut chunk);
         let mut offset = 0;
         for run in delta.runs.iter() {
             if run.data != nil {
                 for _ in 0..run.length {
-                    chunk.set_compact_pixel(offset, run.data);
+                    chunk.set_pixel(offset, run.data);
                     offset += 1;
                 }
             } else {
@@ -133,7 +124,7 @@ impl WorldModel {
         update: NoitaWorldUpdate,
         changed: &mut FxHashSet<ChunkCoord>,
     ) {
-        fn set_pixel(pixel: RawPixel, chunk: &mut Chunk, offset: usize) -> bool {
+        fn set_pixel(pixel: Pixel, chunk: &mut Chunk, offset: usize) -> bool {
             let current = chunk.pixel(offset);
             if current != pixel {
                 chunk.set_pixel(offset, pixel);
@@ -158,7 +149,7 @@ impl WorldModel {
                 chunk_coord = new_chunk_coord;
                 chunk = self.chunks.entry(chunk_coord).or_default();
             }
-            if set_pixel(RawPixel::from_opt_compact(pixel), chunk, offset) {
+            if set_pixel(pixel, chunk, offset) {
                 self.updated_chunks.insert(chunk_coord);
                 if changed.contains(&chunk_coord) {
                     changed.remove(&chunk_coord);
@@ -173,7 +164,7 @@ impl WorldModel {
             if let Some(chunk) = self.chunks.get_mut(&coord) {
                 updates.push(NoitaWorldUpdate {
                     coord,
-                    pixels: chunk.pixels.map(CompactPixel::from_material),
+                    pixels: chunk.pixels,
                 });
             }
         }
@@ -187,7 +178,7 @@ impl WorldModel {
         for run in delta.runs.iter() {
             if let Some(pixel) = run.data {
                 for _ in 0..run.length {
-                    chunk.set_compact_pixel(offset, pixel);
+                    chunk.set_pixel(offset, pixel);
                     offset += 1;
                 }
             } else {
@@ -204,7 +195,7 @@ impl WorldModel {
         let chunk = self.chunks.get(&chunk_coord)?;
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE {
-            runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.compact_pixel(i)))
+            runner.put_pixel((ignore_changed || chunk.changed(i)).then(|| chunk.pixel(i)))
         }
         let runs = runner.build().into();
         Some(ChunkDelta { chunk_coord, runs })

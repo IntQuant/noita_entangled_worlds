@@ -6,7 +6,7 @@ use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
-    CHUNK_SIZE, ChunkCoord, CompactPixel, NoitaWorldUpdate, ProxyToWorldSync, WorldSyncToProxy,
+    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, ProxyToWorldSync, WorldSyncToProxy,
 };
 use std::mem::MaybeUninit;
 use std::ptr;
@@ -23,7 +23,6 @@ impl Module for WorldSync {
             return Ok(());
         };
         let (x, y) = (ent.transform.pos.x, ent.transform.pos.y);
-        let tmr = std::time::Instant::now();
         let updates = (0..1)
             //.into_par_iter()
             .map(|i| {
@@ -33,7 +32,7 @@ impl Module for WorldSync {
                 let cy = y as i32 / CHUNK_SIZE as i32 + dy;
                 let mut update = NoitaWorldUpdate {
                     coord: ChunkCoord(cx, cy),
-                    pixels: std::array::from_fn(|_| None),
+                    pixels: std::array::from_fn(|_| Pixel::default()),
                 };
                 if unsafe {
                     self.particle_world_state
@@ -50,16 +49,6 @@ impl Module for WorldSync {
             .collect::<Vec<_>>();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
-        let NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates)) = msg else {
-            unreachable!()
-        };
-        updates.into_iter().flatten().for_each(|chunk| unsafe {
-            let _ = self
-                .particle_world_state
-                .assume_init_ref()
-                .decode_world(chunk);
-        });
-        noita_api::game_print!("{}", tmr.elapsed().as_nanos());
         Ok(())
     }
 }
@@ -84,7 +73,7 @@ trait WorldData {
     unsafe fn encode_world(
         &self,
         coord: ChunkCoord,
-        chunk: &mut [Option<CompactPixel>; CHUNK_SIZE * CHUNK_SIZE],
+        chunk: &mut [Pixel; CHUNK_SIZE * CHUNK_SIZE],
     ) -> eyre::Result<()>;
     unsafe fn decode_world(&self, chunk: NoitaWorldUpdate) -> eyre::Result<()>;
 }
@@ -92,7 +81,7 @@ impl WorldData for ParticleWorldState {
     unsafe fn encode_world(
         &self,
         coord: ChunkCoord,
-        chunk: &mut [Option<CompactPixel>; CHUNK_SIZE * CHUNK_SIZE],
+        chunk: &mut [Pixel; CHUNK_SIZE * CHUNK_SIZE],
     ) -> eyre::Result<()> {
         let (cx, cy) = (coord.0 as isize, coord.1 as isize);
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
@@ -103,11 +92,11 @@ impl WorldData for ParticleWorldState {
             return Err(eyre!("chunk not loaded"));
         };
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
-        for ((i, j), p) in (shift_x..shift_x + CHUNK_SIZE as isize)
+        for ((j, i), p) in (shift_x..shift_x + CHUNK_SIZE as isize)
             .flat_map(|i| (shift_y..shift_y + CHUNK_SIZE as isize).map(move |j| (i, j)))
             .zip(chunk.iter_mut())
         {
-            *p = pixel_array.get_compact_pixel(i, j);
+            *p = pixel_array.get_pixel(i, j);
         }
         Ok(())
     }
@@ -124,17 +113,13 @@ impl WorldData for ParticleWorldState {
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
         let start_x = cx * CHUNK_SIZE as isize;
         let start_y = cy * CHUNK_SIZE as isize;
-        for (i, pixel) in chunk.pixels.iter().enumerate() {
+        for (i, pixel) in chunk.pixels.into_iter().enumerate() {
             let x = (i % CHUNK_SIZE) as isize;
             let y = (i / CHUNK_SIZE) as isize;
             let cell = pixel_array.get_mut_raw(shift_x + x, shift_y + y);
             let xs = start_x + x;
             let ys = start_y + y;
-            let Some(pixel) = pixel else {
-                *cell = ptr::null_mut();
-                continue;
-            };
-            let Some(mat) = self.material_list.get_static(pixel.material() as usize) else {
+            let Some(mat) = self.material_list.get_static(pixel.mat() as usize) else {
                 return Err(eyre!("mat does not exist"));
             };
             match mat.cell_type {
@@ -170,4 +155,148 @@ impl WorldData for ParticleWorldState {
         }
         Ok(())
     }
+}
+#[test]
+pub fn test_world() {
+    use noita_api::noita::types::{
+        Cell, CellData, CellVTable, CellVTables, Chunk, ChunkMap, GridWorld, GridWorldThreaded,
+        GridWorldThreadedVTable, GridWorldVTable, NoneCellVTable, StdVec,
+    };
+    let mut threaded = GridWorldThreaded {
+        grid_world_threaded_vtable: &GridWorldThreadedVTable {},
+        unknown: [0; 287],
+        update_region: Default::default(),
+    };
+    let mut chunks: [*mut Chunk; 512 * 512] = [ptr::null_mut(); 512 * 512];
+    let chunk_map = ChunkMap {
+        len: 0,
+        unknown: 0,
+        chunk_array: unsafe { std::mem::transmute::<&mut _, &'static mut _>(&mut chunks) },
+        chunk_count: 0,
+        min_chunk: Default::default(),
+        max_chunk: Default::default(),
+        min_pixel: Default::default(),
+        max_pixel: Default::default(),
+    };
+    let mut grid_world = GridWorld {
+        vtable: &GridWorldVTable {
+            unknown: [ptr::null(); 3],
+            get_chunk_map: ptr::null(),
+            unknownmagic: ptr::null(),
+            unknown2: [ptr::null(); 29],
+        },
+        rng: 0,
+        unk: [0; 292],
+        cam_pos: Default::default(),
+        cam_dimen: Default::default(),
+        unknown: [0; 6],
+        unk_cam: Default::default(),
+        unk2_cam: Default::default(),
+        unkown3: 0,
+        cam: Default::default(),
+        unkown2: 0,
+        unk_counter: 0,
+        world_update_count: 0,
+        chunk_map,
+        unknown2: [0; 40],
+        m_thread_impl: unsafe { std::mem::transmute::<&mut _, &'static mut _>(&mut threaded) },
+    };
+    let mut pws = ParticleWorldState {
+        world_ptr: &mut grid_world,
+        material_list: StdVec::new(),
+        cell_vtables: CellVTables(
+            [CellVTable {
+                none: &NoneCellVTable {
+                    unknown: [ptr::null(); 41],
+                },
+            }; 5],
+        ),
+    };
+    for i in 0..256 {
+        let mut celldata = CellData::default();
+        celldata.material_type = i;
+        pws.material_list.push(celldata);
+    }
+    let mut list = [0; 512 * 512];
+    {
+        let mut data: [*mut Cell; 512 * 512] = [ptr::null_mut(); 512 * 512];
+        for (i, d) in data.iter_mut().enumerate() {
+            let mut celldata = CellData::default();
+            celldata.material_type = rand::random::<u8>() as isize;
+            list[i] = celldata.material_type;
+            let cell = Cell::create(
+                Box::leak(Box::new(celldata)),
+                CellVTable {
+                    none: &NoneCellVTable {
+                        unknown: [ptr::null_mut(); 41],
+                    },
+                },
+            );
+            *d = Box::leak(Box::new(cell));
+        }
+        let chunk = Chunk {
+            data: unsafe { std::mem::transmute::<&mut _, &'static mut _>(&mut data) },
+        };
+        unsafe { pws.world_ptr.as_mut() }
+            .unwrap()
+            .chunk_map
+            .insert(0, 0, chunk);
+    }
+    {
+        let mut data: [*mut Cell; 512 * 512] = [ptr::null_mut(); 512 * 512];
+        for d in data.iter_mut() {
+            let celldata = CellData::default();
+            let cell = Cell::create(
+                Box::leak(Box::new(celldata)),
+                CellVTable {
+                    none: &NoneCellVTable {
+                        unknown: [ptr::null_mut(); 41],
+                    },
+                },
+            );
+            *d = Box::leak(Box::new(cell));
+        }
+        let chunk = Chunk {
+            data: unsafe { std::mem::transmute::<&mut _, &'static mut _>(&mut data) },
+        };
+        unsafe { pws.world_ptr.as_mut() }
+            .unwrap()
+            .chunk_map
+            .insert(1, 1, chunk);
+    }
+    let mut data = [Pixel::default(); CHUNK_SIZE * CHUNK_SIZE];
+    unsafe {
+        assert!(pws.encode_world(ChunkCoord(5, 5), &mut data).is_ok());
+    }
+    assert_eq!(
+        data[0..128].iter().map(|a| a.mat()).collect::<Vec<_>>(),
+        vec![0; 128]
+    );
+    let tmr = std::time::Instant::now();
+    unsafe {
+        assert!(pws.encode_world(ChunkCoord(0, 0), &mut data).is_ok());
+    }
+    println!("{}", tmr.elapsed().as_nanos());
+    assert_eq!(
+        data[0..128].iter().map(|a| a.mat()).collect::<Vec<_>>(),
+        list[0..128].iter().map(|a| *a as u16).collect::<Vec<_>>()
+    );
+    let tmr = std::time::Instant::now();
+    unsafe {
+        assert!(
+            pws.decode_world(NoitaWorldUpdate {
+                coord: ChunkCoord(5, 5),
+                pixels: data
+            })
+            .is_ok()
+        );
+    }
+    println!("{}", tmr.elapsed().as_nanos());
+    unsafe {
+        assert!(pws.encode_world(ChunkCoord(0, 0), &mut data).is_ok());
+    }
+    assert_eq!(
+        data[0..128].iter().map(|a| a.mat()).collect::<Vec<_>>(),
+        list[0..128].iter().map(|a| *a as u16).collect::<Vec<_>>()
+    );
 }

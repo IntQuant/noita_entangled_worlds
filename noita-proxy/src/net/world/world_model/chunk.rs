@@ -1,8 +1,8 @@
 use super::{ChunkData, encoding::PixelRunner};
-use shared::world_sync::{CHUNK_SIZE, CompactPixel, RawPixel};
+use shared::world_sync::{CHUNK_SIZE, Pixel};
 
 pub struct Chunk {
-    pub pixels: [u16; CHUNK_SQUARE],
+    pub pixels: [Pixel; CHUNK_SQUARE],
     changed: Changed<bool, CHUNK_SQUARE>,
     any_changed: bool,
 }
@@ -53,7 +53,7 @@ fn test_changed() {
 impl Default for Chunk {
     fn default() -> Self {
         Self {
-            pixels: [4095; CHUNK_SQUARE],
+            pixels: [Pixel::NIL; CHUNK_SQUARE],
             changed: Changed([false; CHUNK_SQUARE]),
             any_changed: false,
         }
@@ -62,29 +62,17 @@ impl Default for Chunk {
 
 /// Chunk of pixels. Stores pixels and tracks if they were changed.
 impl Chunk {
-    pub fn pixel(&self, offset: usize) -> RawPixel {
-        RawPixel::from_compact(CompactPixel::from_raw(self.pixels[offset]))
+    pub fn pixel(&self, offset: usize) -> Pixel {
+        self.pixels[offset]
     }
 
-    pub fn compact_pixel(&self, offset: usize) -> CompactPixel {
-        CompactPixel::from_raw(self.pixels[offset])
-    }
-
-    pub fn set_pixel(&mut self, offset: usize, pixel: RawPixel) {
-        let px = pixel.to_compact().raw();
-        if self.pixels[offset] != px {
-            self.pixels[offset] = px;
+    pub fn set_pixel(&mut self, offset: usize, pixel: Pixel) {
+        if self.pixels[offset] != pixel {
+            self.pixels[offset] = pixel;
             self.mark_changed(offset);
         }
     }
 
-    pub fn set_compact_pixel(&mut self, offset: usize, pixel: CompactPixel) {
-        let px = pixel.raw();
-        if self.pixels[offset] != px {
-            self.pixels[offset] = px;
-            self.mark_changed(offset);
-        }
-    }
     pub fn changed(&self, offset: usize) -> bool {
         self.changed.get(offset)
     }
@@ -102,7 +90,7 @@ impl Chunk {
     pub fn to_chunk_data(&self) -> ChunkData {
         let mut runner = PixelRunner::new();
         for i in 0..CHUNK_SQUARE {
-            runner.put_pixel(self.compact_pixel(i))
+            runner.put_pixel(self.pixel(i))
         }
         let runs = runner.build();
         ChunkData { runs }
