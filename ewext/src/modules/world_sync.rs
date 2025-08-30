@@ -28,8 +28,8 @@ impl Module for WorldSync {
             .filter_map(|i| {
                 let dx = i % 3;
                 let dy = i / 3;
-                let cx = x as i32 / CHUNK_SIZE as i32 - 1 + dx;
-                let cy = y as i32 / CHUNK_SIZE as i32 - 1 + dy;
+                let cx = (x as i32).div_euclid(CHUNK_SIZE as i32) - 1 + dx;
+                let cy = (y as i32).div_euclid(CHUNK_SIZE as i32) - 1 + dy;
                 let mut update = NoitaWorldUpdate {
                     coord: ChunkCoord(cx, cy),
                     pixels: std::array::from_fn(|_| Pixel::default()),
@@ -271,39 +271,48 @@ pub fn test_world() {
             .chunk_map
             .insert(1, 1, chunk);
     }
-    let mut data = [Pixel::default(); CHUNK_SIZE * CHUNK_SIZE];
+    let mut upd = NoitaWorldUpdate {
+        coord: ChunkCoord(5, 5),
+        pixels: [Pixel::default(); CHUNK_SIZE * CHUNK_SIZE],
+    };
     unsafe {
-        assert!(pws.encode_world(ChunkCoord(5, 5), &mut data).is_ok());
+        assert!(pws.encode_world(&mut upd).is_ok());
     }
     assert_eq!(
-        data[0..128].iter().map(|a| a.mat()).collect::<Vec<_>>(),
+        upd.pixels[0..128]
+            .iter()
+            .map(|a| a.mat())
+            .collect::<Vec<_>>(),
         vec![0; 128]
     );
     let tmr = std::time::Instant::now();
+    upd.coord = ChunkCoord(0, 0);
     unsafe {
-        assert!(pws.encode_world(ChunkCoord(0, 0), &mut data).is_ok());
+        assert!(pws.encode_world(&mut upd).is_ok());
     }
     println!("{}", tmr.elapsed().as_nanos());
     assert_eq!(
-        data[0..128].iter().map(|a| a.mat()).collect::<Vec<_>>(),
+        upd.pixels[0..128]
+            .iter()
+            .map(|a| a.mat())
+            .collect::<Vec<_>>(),
         list[0..128].iter().map(|a| *a as u16).collect::<Vec<_>>()
     );
     let tmr = std::time::Instant::now();
+    upd.coord = ChunkCoord(5, 5);
     unsafe {
-        assert!(
-            pws.decode_world(NoitaWorldUpdate {
-                coord: ChunkCoord(5, 5),
-                pixels: data
-            })
-            .is_ok()
-        );
+        assert!(pws.decode_world(upd.clone()).is_ok());
     }
     println!("{}", tmr.elapsed().as_nanos());
+    upd.coord = ChunkCoord(0, 0);
     unsafe {
-        assert!(pws.encode_world(ChunkCoord(0, 0), &mut data).is_ok());
+        assert!(pws.encode_world(&mut upd).is_ok());
     }
     assert_eq!(
-        data[0..128].iter().map(|a| a.mat()).collect::<Vec<_>>(),
+        upd.pixels[0..128]
+            .iter()
+            .map(|a| a.mat())
+            .collect::<Vec<_>>(),
         list[0..128].iter().map(|a| *a as u16).collect::<Vec<_>>()
     );
 }
