@@ -66,10 +66,13 @@ impl Chunk {
         self.pixels[offset]
     }
 
-    pub fn set_pixel(&mut self, offset: usize, pixel: Pixel) {
+    pub fn set_pixel(&mut self, offset: usize, pixel: Pixel) -> bool {
         if self.pixels[offset] != pixel {
             self.pixels[offset] = pixel;
             self.mark_changed(offset);
+            true
+        } else {
+            false
         }
     }
 

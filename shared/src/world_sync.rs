@@ -66,7 +66,7 @@ impl Pixel {
 
 #[derive(Debug, Encode, Decode, Clone)]
 pub enum WorldSyncToProxy {
-    Updates(Vec<Option<NoitaWorldUpdate>>),
+    Updates(Vec<NoitaWorldUpdate>),
     End(Option<(i32, i32, i32, i32, bool)>, u8, u8),
 }
 #[derive(Debug, Encode, Decode, Clone)]

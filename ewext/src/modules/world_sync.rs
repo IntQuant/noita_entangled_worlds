@@ -1,7 +1,7 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
-use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell};
+use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
@@ -23,13 +23,13 @@ impl Module for WorldSync {
             return Ok(());
         };
         let (x, y) = (ent.transform.pos.x, ent.transform.pos.y);
-        let updates = (0..1)
-            //.into_par_iter()
-            .map(|i| {
+        let updates = (0..9)
+            .into_par_iter()
+            .filter_map(|i| {
                 let dx = i % 3;
                 let dy = i / 3;
-                let cx = x as i32 / CHUNK_SIZE as i32 + dx;
-                let cy = y as i32 / CHUNK_SIZE as i32 + dy;
+                let cx = x as i32 / CHUNK_SIZE as i32 - 1 + dx;
+                let cy = y as i32 / CHUNK_SIZE as i32 - 1 + dy;
                 let mut update = NoitaWorldUpdate {
                     coord: ChunkCoord(cx, cy),
                     pixels: std::array::from_fn(|_| Pixel::default()),
@@ -37,7 +37,7 @@ impl Module for WorldSync {
                 if unsafe {
                     self.particle_world_state
                         .assume_init_ref()
-                        .encode_world(update.coord, &mut update.pixels)
+                        .encode_world(&mut update)
                 }
                 .is_ok()
                 {
@@ -48,6 +48,19 @@ impl Module for WorldSync {
             })
             .collect::<Vec<_>>();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
+        ctx.net.send(&msg)?;
+        let Vec2i { x: cx, y: cy } = ctx.globals.game_global.m_grid_world.cam_pos;
+        let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::End(
+            Some((
+                x.div_euclid(CHUNK_SIZE as f32) as i32,
+                y.div_euclid(CHUNK_SIZE as f32) as i32,
+                cx.div_euclid(CHUNK_SIZE as isize) as i32,
+                cy.div_euclid(CHUNK_SIZE as isize) as i32,
+                false,
+            )),
+            1,
+            self.world_num,
+        ));
         ctx.net.send(&msg)?;
         Ok(())
     }
@@ -70,20 +83,14 @@ impl WorldSync {
 pub const SCALE: isize = (512 / CHUNK_SIZE as isize).ilog2() as isize;
 #[allow(unused)]
 trait WorldData {
-    unsafe fn encode_world(
-        &self,
-        coord: ChunkCoord,
-        chunk: &mut [Pixel; CHUNK_SIZE * CHUNK_SIZE],
-    ) -> eyre::Result<()>;
+    unsafe fn encode_world(&self, chunk: &mut NoitaWorldUpdate) -> eyre::Result<()>;
     unsafe fn decode_world(&self, chunk: NoitaWorldUpdate) -> eyre::Result<()>;
 }
 impl WorldData for ParticleWorldState {
-    unsafe fn encode_world(
-        &self,
-        coord: ChunkCoord,
-        chunk: &mut [Pixel; CHUNK_SIZE * CHUNK_SIZE],
-    ) -> eyre::Result<()> {
-        let (cx, cy) = (coord.0 as isize, coord.1 as isize);
+    unsafe fn encode_world(&self, chunk: &mut NoitaWorldUpdate) -> eyre::Result<()> {
+        let ChunkCoord(cx, cy) = chunk.coord;
+        let (cx, cy) = (cx as isize, cy as isize);
+        let chunk = &mut chunk.pixels;
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
             .wrap_err("no world")?
             .chunk_map

@@ -3338,7 +3338,7 @@ impl WorldManager {
     pub fn handle_noita_msg(&mut self, _: OmniPeerId, msg: WorldSyncToProxy) {
         match msg {
             WorldSyncToProxy::Updates(updates) => {
-                for update in updates.into_iter().flatten() {
+                for update in updates {
                     self.outbound_model
                         .apply_noita_update(update, &mut self.is_storage_recent)
                 }

@@ -92,13 +92,10 @@ impl ChunkData {
 }
 
 impl WorldModel {
-    fn get_chunk_coords(x: i32, y: i32) -> (ChunkCoord, usize) {
-        let chunk_x = x.div_euclid(CHUNK_SIZE as i32);
-        let chunk_y = y.div_euclid(CHUNK_SIZE as i32);
+    fn get_chunk_offset(x: i32, y: i32) -> usize {
         let x = x.rem_euclid(CHUNK_SIZE as i32) as usize;
         let y = y.rem_euclid(CHUNK_SIZE as i32) as usize;
-        let offset = x + y * CHUNK_SIZE;
-        (ChunkCoord(chunk_x, chunk_y), offset)
+        x + y * CHUNK_SIZE
     }
 
     /*fn set_pixel(&mut self, x: i32, y: i32, pixel: Pixel) {
@@ -124,36 +121,21 @@ impl WorldModel {
         update: NoitaWorldUpdate,
         changed: &mut FxHashSet<ChunkCoord>,
     ) {
-        fn set_pixel(pixel: Pixel, chunk: &mut Chunk, offset: usize) -> bool {
-            let current = chunk.pixel(offset);
-            if current != pixel {
-                chunk.set_pixel(offset, pixel);
-                true
-            } else {
-                false
-            }
-        }
         let (start_x, start_y) = (
             update.coord.0 * CHUNK_SIZE as i32,
             update.coord.1 * CHUNK_SIZE as i32,
         );
-        let mut chunk_coord = update.coord;
-        let mut chunk = self.chunks.entry(update.coord).or_default();
+        let chunk_coord = update.coord;
+        let chunk = self.chunks.entry(update.coord).or_default();
         for (i, pixel) in update.pixels.into_iter().enumerate() {
             let x = (i % CHUNK_SIZE) as i32;
             let y = (i / CHUNK_SIZE) as i32;
             let xs = start_x + x;
             let ys = start_y + y;
-            let (new_chunk_coord, offset) = Self::get_chunk_coords(xs, ys);
-            if chunk_coord != new_chunk_coord {
-                chunk_coord = new_chunk_coord;
-                chunk = self.chunks.entry(chunk_coord).or_default();
-            }
-            if set_pixel(pixel, chunk, offset) {
+            let offset = Self::get_chunk_offset(xs, ys);
+            if chunk.set_pixel(offset, pixel) {
                 self.updated_chunks.insert(chunk_coord);
-                if changed.contains(&chunk_coord) {
-                    changed.remove(&chunk_coord);
-                }
+                changed.remove(&chunk_coord);
             }
         }
     }
