@@ -25,6 +25,11 @@
     in {
       overlays = import ./nix/overlays { inherit self lib rust-overlay; };
 
+      packages = lib.mapAttrs (system: pkgs: {
+        default = self.packages.${system}.noita-proxy;
+        inherit (pkgs) noita-proxy;
+      }) pkgsFor;
+
       devShells = lib.mapAttrs
         (system: pkgs: { default = pkgs.callPackage ./nix/shell.nix { }; })
         pkgsFor;
