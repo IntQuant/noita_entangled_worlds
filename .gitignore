@@ -8,3 +8,7 @@ save_state
 /quant.ew/ewext1.dll
 /blob_guy/blob_guy/blob_guy.dll
 /blob_guy/target
+
+# Nix
+/result
+/result-man
