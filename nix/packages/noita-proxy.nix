@@ -83,7 +83,7 @@ rustPlatform.buildRustPackage (finalAttrs:
     ];
 
     meta = {
-      description = "Noita Entangled Worlds proxy application.";
+      inherit (manifest.package) description;
       homepage = "https://github.com/IntQuant/noita_entangled_worlds";
       changelog =
         "https://github.com/IntQuant/noita_entangled_worlds/releases/tag/v${version}";
