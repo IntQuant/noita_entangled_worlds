@@ -4,7 +4,7 @@ resolver = "2"
 
 [package]
 name = "noita-proxy"
-description = "Noita Entangled Worlds companion app."
+description = "Noita Entangled Worlds proxy application."
 version = "1.6.2"
 edition = "2024"
 
