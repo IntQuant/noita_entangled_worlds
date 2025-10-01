@@ -1,6 +1,8 @@
-{ rust-bin, mkShell }:
+{ rust-bin, mkShell, noita-proxy }:
 mkShell {
   strictDeps = true;
+
+  inputsFrom = [ noita-proxy ];
 
   packages = [
     # Derivations in `rust-stable` provide the toolchain,
@@ -15,4 +17,10 @@ mkShell {
         extensions = [ "rustfmt" "rust-analyzer" ];
       }))
   ];
+
+  env = {
+    inherit (noita-proxy) OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_NO_VENDOR;
+
+    RUST_BACKTRACE = 1;
+  };
 }
