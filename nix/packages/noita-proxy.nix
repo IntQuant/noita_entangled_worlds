@@ -1,9 +1,10 @@
-{ sourceRoot, lib, runCommandNoCC, rustPlatform, pkg-config, cmake, patchelf
-, openssl, libjack2, alsa-lib, libopus, wayland, libxkbcommon, libGL }:
+{ sourceRoot, lib, runCommandNoCC, rustPlatform, copyDesktopItems
+, makeDesktopItem, pkg-config, cmake, patchelf, imagemagick, openssl, libjack2
+, alsa-lib, libopus, wayland, libxkbcommon, libGL }:
 
 rustPlatform.buildRustPackage (finalAttrs:
   let
-    inherit (finalAttrs) src pname version buildInputs steamworksRedist;
+    inherit (finalAttrs) src pname version meta buildInputs steamworksRedist;
     manifest = lib.importTOML "${src}/noita-proxy/Cargo.toml";
   in {
     pname = "noita-entangled-worlds-proxy";
@@ -18,7 +19,8 @@ rustPlatform.buildRustPackage (finalAttrs:
     cargoLock.lockFile = "${src}/noita-proxy/Cargo.lock";
 
     strictDeps = true;
-    nativeBuildInputs = [ pkg-config cmake patchelf ];
+    nativeBuildInputs =
+      [ copyDesktopItems pkg-config cmake patchelf imagemagick ];
 
     # TODO: Add dependencies for X11 desktop environments.
     buildInputs = [
@@ -43,6 +45,17 @@ rustPlatform.buildRustPackage (finalAttrs:
       "--skip bookkeeping::releases::test::release_assets"
     ];
 
+    # TODO: Research which icon sizes are most important. These are what I found on my system.
+    postInstall = ''
+      for size in 16 20 22 24 32 48 64 96 128 144 180 192 256 512 1024; do
+        icon_dir=$out/share/icons/hicolor/''${size}x''${size}/apps
+        mkdir -p $icon_dir
+        magick assets/icon.png \
+          -strip -filter Point -resize ''${size}x''${size} \
+          $icon_dir/noita-proxy.png
+      done
+    '';
+
     postFixup = ''
       patchelf $out/bin/noita-proxy \
         --set-rpath ${lib.makeLibraryPath buildInputs}
@@ -54,6 +67,20 @@ rustPlatform.buildRustPackage (finalAttrs:
       runCommandNoCC "${pname}-steamworks-redist" { inherit src; } ''
         install -Dm555 $src/redist/libsteam_api.so -t $out/lib
       '';
+
+    desktopItems = [
+      (makeDesktopItem {
+        name = "noita-proxy";
+        desktopName = "Noita Entangled Worlds";
+        comment = meta.description;
+        exec = "noita-proxy";
+        icon = "noita-proxy";
+        categories = [ "Game" "Utility" ];
+        keywords = [ "noita" "proxy" "server" "steam" "game" ];
+        terminal = false;
+        singleMainWindow = true;
+      })
+    ];
 
     meta = {
       description = "Noita Entangled Worlds proxy application.";
