@@ -34,7 +34,7 @@ Then, start Noita, and enable the mod.
 
 Now you're ready to start a server and have fun!
 
-### Installation MacOs (provided by @Ownezx and @Roenalt)
+### Installation on MacOS (provided by @Ownezx and @Roenalt)
 
 1. Install a GOG copy of Noita using [portingkit](https://www.portingkit.com/) by following the guide given directly on the Noita entry page on portingkit with a few specific options in the "Advance Settings" step:
    1. Set the Engine to "WS12WineKegworks10.0-battle.net"
@@ -46,6 +46,15 @@ Now you're ready to start a server and have fun!
 6. Then you can enjoy the mod as usual, by enabling it in the "Mods" menu of Noita.
 
 Note: The proxy must be launched via terminal with the command above every time you want to play multiplayer.
+
+## Installation on Linux with Lutris (provided by @merll002)
+
+1. Install the GOG version of Noita through the lutris game installer:
+   <img width="596" height="64" alt="image" src="https://github.com/user-attachments/assets/dfc2f415-1557-4716-b3e2-c62aae941344" />
+2. Navigate to the directory where the proxy was downloaded
+3. Run the proxy by typing `./start.sh`
+4. Enable the mod (refer to main installation instructions)
+5. Done!
 
 ## Connect using Steam
 
@@ -84,14 +93,14 @@ There are 11 global perks:
 [The mods listed here](https://docs.google.com/spreadsheets/d/1nMdqzrLCav_diXbNPB9RgxPcCQzDPgXdEv-klKWJyS0) have been tested by the community, it is publically editable so please add any untested mod with your findings
 
 
-## Cli connect
+## CLI connect
 
-can also connect via cli, just run `noita_proxy --lobby [steam_code/ip and port]`
+You can also connect via cli, just run `noita_proxy --lobby [steam_code/ip and port]`
 
 
-## Cli host
+## CLI host
 
-can also host via cli, just run `noita_proxy --host [steam/port]`, "--host steam" will host a steam game and "--host 5123" or any port will host via ip at that port
+You can also host via cli, just run `noita_proxy --host [steam/port]`, "--host steam" will host a steam game and "--host 5123" or any port will host via ip at that port
 
 ## Connecting via steam without steam version of game
 
