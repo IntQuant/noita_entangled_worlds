@@ -54,6 +54,9 @@ jobs:
         run: cargo build --release
         working-directory: ./noita-proxy
 
+      - name: Copy lutris start script to target
+        run: cp scripts/start-linux.sh target/start-linux.sh
+      
       - name: Create archives
         run: python scripts/ci_make_archives.py linux
 
