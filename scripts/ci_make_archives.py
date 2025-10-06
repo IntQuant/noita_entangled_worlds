@@ -22,6 +22,7 @@ elif mode == "linux":
 
     with ZipFile("target/noita-proxy-linux.zip", "w") as release:
         release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("scripts/start-lutris.sh", arcname="start-lutris.sh", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 elif mode == "macos":
     print("Writing macos release...")
