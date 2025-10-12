@@ -7,12 +7,10 @@ struct Msvcr {
 }
 
 static MSVCR: LazyLock<Msvcr> = LazyLock::new(|| unsafe {
-    println!("Loading MSVCR");
     let lib = libloading::Library::new("./msvcr120.dll").expect("library to exist");
-    let op_new = *lib.get(b"operator_new\0").expect("symbol to exist");
+    let op_new = *lib.get(b"??2@YAPAXI@Z\0").expect("symbol to exist");
     // let op_delete = *lib.get(b"operator_delete\0").expect("symbol to exist");
     // let op_delete_array = *lib.get(b"operator_delete[]\0").expect("symbol to exist");
-    println!("Load OK");
     Msvcr {
         op_new,
         // op_delete,

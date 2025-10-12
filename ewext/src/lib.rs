@@ -8,6 +8,7 @@ use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
 use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
+use noita_api::heap::raw_new;
 use noita_api::noita::types::EntityManager;
 use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
@@ -357,6 +358,7 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
 pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
     #[cfg(debug_assertions)]
     println!("Initializing ewext");
+    raw_new(1);
 
     if let Err(_e) = KEEP_SELF_LOADED.as_ref() {
         #[cfg(debug_assertions)]
