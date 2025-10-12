@@ -1,3 +1,4 @@
+use crate::heap;
 use crate::noita::types::objects::{ConfigExplosion, ConfigGridCosmeticParticle};
 use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
 use shared::world_sync::{Pixel, PixelFlags};
@@ -727,7 +728,7 @@ impl ChunkMap {
     #[inline]
     pub fn insert(&mut self, x: isize, y: isize, chunk: Chunk) {
         let index = (((y - 256) & 511) << 9) | ((x - 256) & 511);
-        self.chunk_array[index.cast_unsigned()] = Box::leak(Box::new(chunk))
+        self.chunk_array[index.cast_unsigned()] = heap::place_new(chunk)
     }
 }
 

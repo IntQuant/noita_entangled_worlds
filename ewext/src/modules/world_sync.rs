@@ -1,6 +1,7 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
+use noita_api::heap;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -134,29 +135,27 @@ impl WorldData for ParticleWorldState {
                     *cell = ptr::null_mut();
                 }
                 CellType::Liquid => {
-                    let liquid = Box::leak(Box::new(unsafe {
+                    let mut liquid = unsafe {
                         LiquidCell::create(mat, self.cell_vtables.liquid(), self.world_ptr)
-                    }));
+                    };
                     liquid.x = xs;
                     liquid.y = ys;
-                    *cell = (liquid as *mut LiquidCell).cast();
+                    *cell = heap::place_new(liquid).cast();
                 }
                 CellType::Gas => {
-                    let gas = Box::leak(Box::new(unsafe {
-                        GasCell::create(mat, self.cell_vtables.gas(), self.world_ptr)
-                    }));
+                    let mut gas =
+                        unsafe { GasCell::create(mat, self.cell_vtables.gas(), self.world_ptr) };
                     gas.x = xs;
                     gas.y = ys;
-                    *cell = (gas as *mut GasCell).cast();
+                    *cell = heap::place_new(gas).cast();
                 }
                 CellType::Solid => {}
                 CellType::Fire => {
-                    let fire = Box::leak(Box::new(unsafe {
-                        FireCell::create(mat, self.cell_vtables.fire(), self.world_ptr)
-                    }));
+                    let mut fire =
+                        unsafe { FireCell::create(mat, self.cell_vtables.fire(), self.world_ptr) };
                     fire.x = xs;
                     fire.y = ys;
-                    *cell = (fire as *mut FireCell).cast();
+                    *cell = heap::place_new(fire).cast();
                 }
             }
         }
@@ -232,14 +231,14 @@ pub fn test_world() {
             celldata.material_type = rand::random::<u8>() as isize;
             list[i] = celldata.material_type;
             let cell = Cell::create(
-                Box::leak(Box::new(celldata)),
+                heap::place_new_ref(celldata),
                 CellVTable {
                     none: &NoneCellVTable {
                         unknown: [ptr::null_mut(); 41],
                     },
                 },
             );
-            *d = Box::leak(Box::new(cell));
+            *d = heap::place_new(cell);
         }
         let chunk = Chunk {
             data: unsafe { std::mem::transmute::<&mut _, &'static mut _>(&mut data) },
@@ -254,14 +253,14 @@ pub fn test_world() {
         for d in data.iter_mut() {
             let celldata = CellData::default();
             let cell = Cell::create(
-                Box::leak(Box::new(celldata)),
+                heap::place_new_ref(celldata),
                 CellVTable {
                     none: &NoneCellVTable {
                         unknown: [ptr::null_mut(); 41],
                     },
                 },
             );
-            *d = Box::leak(Box::new(cell));
+            *d = heap::place_new_ref(cell);
         }
         let chunk = Chunk {
             data: unsafe { std::mem::transmute::<&mut _, &'static mut _>(&mut data) },

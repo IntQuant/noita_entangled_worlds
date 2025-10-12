@@ -1,3 +1,4 @@
+use crate::heap;
 use crate::noita::types::component::{ComponentBuffer, ComponentData};
 use crate::noita::types::{
     Component, ComponentTypeManager, Inventory2Component, StdMap, StdString, StdVec, Vec2,
@@ -20,7 +21,7 @@ impl EntityManager {
             children: std::ptr::null_mut(),
             parent: std::ptr::null_mut(),
         };
-        let ent = Box::leak(Box::new(ent));
+        let ent = heap::place_new_ref(ent);
         if let Some(entry) = self.free_ids.pop() {
             ent.entry = entry;
             self.entities[entry] = ent;

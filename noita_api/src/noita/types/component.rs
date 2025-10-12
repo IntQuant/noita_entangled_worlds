@@ -1,5 +1,8 @@
-use crate::noita::types::{
-    BitSet, CString, Component, Entity, EntityManager, StdMap, StdString, StdVec, TagManager,
+use crate::{
+    heap,
+    noita::types::{
+        BitSet, CString, Component, Entity, EntityManager, StdMap, StdString, StdVec, TagManager,
+    },
 };
 use std::ptr;
 #[repr(C)]
@@ -141,7 +144,7 @@ impl ComponentBuffer {
             unk3: StdVec::null(),
             unk4: 0,
         });
-        let com = Box::leak(Box::new(com));
+        let com = heap::place_new(com);
         let index = self.component_list.len();
         self.component_list.push((com as *mut C).cast());
         if self.entities.len() > index {
@@ -184,7 +187,7 @@ impl ComponentBuffer {
             }
             self.next[off] = self.end;
         }
-        com
+        unsafe { &mut *com }
     }
     pub fn iter_components(&self, entry: usize) -> ComponentIter {
         if let Some(off) = self.entity_entry.get(entry) {

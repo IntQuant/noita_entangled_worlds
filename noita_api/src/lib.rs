@@ -17,6 +17,7 @@ pub mod lua;
 pub mod serialize;
 pub use noita_api_macro::add_lua_fn;
 pub mod addr_grabber;
+pub mod heap;
 pub mod noita;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

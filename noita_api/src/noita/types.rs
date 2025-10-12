@@ -18,6 +18,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Index, IndexMut};
 use std::{alloc, ptr, slice};
 pub use world::*;
+
+use crate::heap;
 #[repr(C)]
 union Buffer {
     buffer: *const u8,
@@ -71,8 +73,8 @@ impl From<&str> for StdString {
             size: value.len(),
         };
         if res.capacity > 16 {
-            let buffer = Box::leak(Box::new(value));
-            res.buffer.buffer = buffer.as_ptr();
+            let buffer = heap::place_new(value);
+            res.buffer.buffer = buffer.cast();
         } else {
             let mut iter = value.as_bytes().iter();
             res.buffer.sso_buffer = std::array::from_fn(|_| iter.next().copied().unwrap_or(0))
@@ -157,8 +159,8 @@ pub struct CString(pub *const u8);
 impl From<&str> for CString {
     fn from(value: &str) -> Self {
         let value = value.to_owned() + "\0";
-        let str = Box::leak(Box::new(value));
-        CString(str.as_ptr())
+        let str = heap::place_new(value).cast();
+        CString(str)
     }
 }
 impl CString {
@@ -472,7 +474,7 @@ pub struct StdMap<K: 'static, V: 'static> {
 impl<K: Default + 'static, V: Default + 'static> Default for StdMap<K, V> {
     fn default() -> Self {
         Self {
-            root: Box::leak(Box::new(StdMapNode::default())),
+            root: unsafe { &mut *heap::place_new(StdMapNode::default()) },
             len: 0,
         }
     }
@@ -520,7 +522,7 @@ impl<K: 'static, V: 'static> StdMap<K, V> {
         if self.is_empty() {
             self.len += 1;
             let node = StdMapNode::new(key, value);
-            self.root.parent = Box::leak(Box::new(node)) as *mut _;
+            self.root.parent = heap::place_new(node);
             None
         } else {
             todo!()
