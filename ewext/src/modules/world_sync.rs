@@ -99,16 +99,18 @@ impl WorldData for ParticleWorldState {
         else {
             return Err(eyre!("chunk not loaded"));
         };
+        let mut chunk_iter = chunk.iter_mut();
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
-        for ((j, i), p) in (shift_x..shift_x + CHUNK_SIZE as isize)
-            .flat_map(|i| (shift_y..shift_y + CHUNK_SIZE as isize).map(move |j| (i, j)))
-            .zip(chunk.iter_mut())
-        {
-            *p = pixel_array.get_pixel(i, j);
+        for j in shift_y..shift_y + CHUNK_SIZE as isize {
+            for i in shift_x..shift_x + CHUNK_SIZE as isize {
+                *chunk_iter.next().unwrap() = pixel_array.get_pixel(i, j);
+            }
         }
+
         Ok(())
     }
     unsafe fn decode_world(&self, chunk: NoitaWorldUpdate) -> eyre::Result<()> {
+        return Ok(()); // TODO
         let chunk_coord = chunk.coord;
         let (cx, cy) = (chunk_coord.0 as isize, chunk_coord.1 as isize);
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
