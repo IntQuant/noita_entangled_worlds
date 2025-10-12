@@ -62,6 +62,10 @@ impl Pixel {
     pub fn flags(self) -> PixelFlags {
         unsafe { std::mem::transmute((self.0 >> 12) as u8) }
     }
+
+    pub fn is_air(&self) -> bool {
+        self.mat() == 0
+    }
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

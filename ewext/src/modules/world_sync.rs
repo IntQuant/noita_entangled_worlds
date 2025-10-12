@@ -1,9 +1,9 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
-use noita_api::heap;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
 use noita_api::noita::world::ParticleWorldState;
+use noita_api::{game_print, heap};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
@@ -110,7 +110,6 @@ impl WorldData for ParticleWorldState {
         Ok(())
     }
     unsafe fn decode_world(&self, chunk: NoitaWorldUpdate) -> eyre::Result<()> {
-        return Ok(()); // TODO
         let chunk_coord = chunk.coord;
         let (cx, cy) = (chunk_coord.0 as isize, chunk_coord.1 as isize);
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
@@ -129,35 +128,39 @@ impl WorldData for ParticleWorldState {
             let cell = pixel_array.get_mut_raw(shift_x + x, shift_y + y);
             let xs = start_x + x;
             let ys = start_y + y;
-            let Some(mat) = self.material_list.get_static(pixel.mat() as usize) else {
-                return Err(eyre!("mat does not exist"));
-            };
-            match mat.cell_type {
-                CellType::None => {
-                    *cell = ptr::null_mut();
-                }
-                CellType::Liquid => {
-                    let mut liquid = unsafe {
-                        LiquidCell::create(mat, self.cell_vtables.liquid(), self.world_ptr)
-                    };
-                    liquid.x = xs;
-                    liquid.y = ys;
-                    *cell = heap::place_new(liquid).cast();
-                }
-                CellType::Gas => {
-                    let mut gas =
-                        unsafe { GasCell::create(mat, self.cell_vtables.gas(), self.world_ptr) };
-                    gas.x = xs;
-                    gas.y = ys;
-                    *cell = heap::place_new(gas).cast();
-                }
-                CellType::Solid => {}
-                CellType::Fire => {
-                    let mut fire =
-                        unsafe { FireCell::create(mat, self.cell_vtables.fire(), self.world_ptr) };
-                    fire.x = xs;
-                    fire.y = ys;
-                    *cell = heap::place_new(fire).cast();
+            if pixel.is_air() {
+                *cell = ptr::null_mut();
+            } else {
+                let Some(mat) = self.material_list.get_static(pixel.mat() as usize) else {
+                    return Err(eyre!("mat does not exist"));
+                };
+                match mat.cell_type {
+                    CellType::None => {}
+                    CellType::Liquid => {
+                        let mut liquid = unsafe {
+                            LiquidCell::create(mat, self.cell_vtables.liquid(), self.world_ptr)
+                        };
+                        liquid.x = xs;
+                        liquid.y = ys;
+                        *cell = heap::place_new(liquid).cast();
+                    }
+                    CellType::Gas => {
+                        let mut gas = unsafe {
+                            GasCell::create(mat, self.cell_vtables.gas(), self.world_ptr)
+                        };
+                        gas.x = xs;
+                        gas.y = ys;
+                        *cell = heap::place_new(gas).cast();
+                    }
+                    CellType::Solid => {}
+                    CellType::Fire => {
+                        let mut fire = unsafe {
+                            FireCell::create(mat, self.cell_vtables.fire(), self.world_ptr)
+                        };
+                        fire.x = xs;
+                        fire.y = ys;
+                        *cell = heap::place_new(fire).cast();
+                    }
                 }
             }
         }
