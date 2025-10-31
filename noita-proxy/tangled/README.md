@@ -1,1 +1,0 @@
-Work-in-progress UDP networking crate.

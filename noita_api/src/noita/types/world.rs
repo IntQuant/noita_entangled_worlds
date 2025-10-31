@@ -32,7 +32,7 @@ impl TextureInfo {
         Color {
             r: unsafe { buf.offset(tex_offset * 4 + 2).read() },
             g: unsafe { buf.offset(tex_offset * 4 + 1).read() },
-            b: unsafe { buf.offset(tex_offset * 4 + 0).read() },
+            b: unsafe { buf.offset(tex_offset * 4).read() },
             a: unsafe { buf.offset(tex_offset * 4 + 3).read() },
         }
     }
@@ -516,7 +516,7 @@ impl LiquidCell {
             unknown4: 0,
             unknown5: 0,
             unknown6: 0,
-            color: color,
+            color,
             original_color: color,
             lifetime,
             unknown8: 0,

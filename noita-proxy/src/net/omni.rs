@@ -69,7 +69,7 @@ impl OmniPeerId {
 pub enum OmniNetworkEvent {
     PeerConnected(OmniPeerId),
     PeerDisconnected(OmniPeerId),
-    Message { src: OmniPeerId, data: Vec<u8> },
+    Message { src: OmniPeerId, data: Box<[u8]> },
 }
 
 impl From<tangled::NetworkEvent> for OmniNetworkEvent {
@@ -99,7 +99,7 @@ impl PeerVariant {
         reliability: Reliability,
     ) -> Result<(), tangled::NetError> {
         match self {
-            PeerVariant::Tangled(p) => p.send(peer.into(), msg, reliability),
+            PeerVariant::Tangled(p) => p.send(peer.into(), &msg, reliability),
             PeerVariant::Steam(p) => {
                 p.send_message(peer.into(), &msg, reliability)
                     .map_err(|e| match e {
@@ -127,7 +127,7 @@ impl PeerVariant {
         reliability: Reliability,
     ) -> Result<(), tangled::NetError> {
         match self {
-            PeerVariant::Tangled(p) => p.broadcast(msg, reliability),
+            PeerVariant::Tangled(p) => p.broadcast(&msg, reliability),
             PeerVariant::Steam(p) => {
                 p.broadcast_message(&msg, reliability);
                 Ok(())

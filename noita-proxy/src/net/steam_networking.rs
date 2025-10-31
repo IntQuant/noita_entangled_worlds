@@ -536,7 +536,7 @@ impl SteamPeer {
                 .expect("only steam ids are supported");
             returned_events.push(OmniNetworkEvent::Message {
                 src: steam_id.into(),
-                data: message.data().to_vec(), // TODO eliminate clone here.
+                data: message.data().into(),
             })
         }
         let mut fully_connected = self.connections.connected.lock().unwrap();

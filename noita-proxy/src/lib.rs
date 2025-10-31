@@ -11,8 +11,8 @@ use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui::load::TexturePoll;
 use eframe::egui::{
     self, Align2, Button, Color32, ComboBox, Context, DragValue, FontDefinitions, FontFamily,
-    ImageButton, InnerResponse, Key, Layout, Margin, OpenUrl, Rect, RichText, ScrollArea, Sense,
-    SizeHint, Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window, pos2,
+    InnerResponse, Key, Layout, Margin, OpenUrl, Rect, RichText, ScrollArea, Sense, SizeHint,
+    Slider, TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window, pos2,
 };
 use eframe::epaint::TextureHandle;
 use image::DynamicImage::ImageRgba8;
@@ -1357,7 +1357,7 @@ fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
     let side = ui.available_width();
     ui.add_sized(
         [side, side],
-        ImageButton::new(icon), // Somewhy it doesnt inherit style correctly
+        Button::image(icon), // Somewhy it doesnt inherit style correctly
     )
 }
 
@@ -1663,7 +1663,7 @@ impl App {
             if self.app_saved_state.times_started.is_multiple_of(20) {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
                     .texture_options(TextureOptions::NEAREST);
-                image.paint_at(ui, ctx.screen_rect());
+                image.paint_at(ui, ctx.viewport_rect());
             } else {
                 draw_bg(ui);
             }
@@ -2480,7 +2480,7 @@ fn draw_bg(ui: &mut Ui) {
     let image = egui::Image::new(egui::include_image!("../assets/noita_ew_logo_sq.webp"))
         .texture_options(TextureOptions::NEAREST);
 
-    let rect = ui.ctx().screen_rect();
+    let rect = ui.ctx().viewport_rect();
     let aspect_ratio = 1.0;
     let new_height = f32::max(rect.width() * aspect_ratio, rect.height());
     let new_width = new_height / aspect_ratio;

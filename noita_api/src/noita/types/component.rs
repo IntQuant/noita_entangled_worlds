@@ -146,7 +146,7 @@ impl ComponentBuffer {
         });
         let com = heap::place_new(com);
         let index = self.component_list.len();
-        self.component_list.push((com as *mut C).cast());
+        self.component_list.push(com.cast());
         if self.entities.len() > index {
             self.entities[index] = entity;
         } else {
