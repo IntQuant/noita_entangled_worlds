@@ -218,6 +218,8 @@ impl ChunkOps for ParticleWorldState {
                 self.material_list.get_static(blob as usize).unwrap(),
                 self.cell_vtables.liquid(),
                 self.world_ptr,
+                x,
+                y,
             ))
         };
         for ((i, j), pixel) in (0..CHUNK_SIZE as isize)

@@ -22,6 +22,8 @@ net = dofile_once("mods/quant.ew/files/core/net.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
+-- print("construct_cell", np.GetWorldInfo().construct_cell)
+
 local cos = dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")

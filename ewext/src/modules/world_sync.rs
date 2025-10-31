@@ -1,9 +1,9 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
+use noita_api::heap;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
 use noita_api::noita::world::ParticleWorldState;
-use noita_api::{game_print, heap};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
@@ -137,11 +137,15 @@ impl WorldData for ParticleWorldState {
                 match mat.cell_type {
                     CellType::None => {}
                     CellType::Liquid => {
-                        let mut liquid = unsafe {
-                            LiquidCell::create(mat, self.cell_vtables.liquid(), self.world_ptr)
+                        let liquid = unsafe {
+                            LiquidCell::create(
+                                mat,
+                                self.cell_vtables.liquid(),
+                                self.world_ptr,
+                                xs,
+                                ys,
+                            )
                         };
-                        liquid.x = xs;
-                        liquid.y = ys;
                         *cell = heap::place_new(liquid).cast();
                     }
                     CellType::Gas => {

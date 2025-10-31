@@ -18,6 +18,43 @@ pub enum CellType {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+pub struct TextureInfo {
+    width: i32,
+    height: i32,
+    unknown: i32,
+    buffer: *const u8,
+}
+
+impl TextureInfo {
+    unsafe fn color_at(&self, tx: i32, ty: i32) -> Color {
+        let tex_offset = (ty * self.width + tx) as isize;
+        let buf = self.buffer;
+        Color {
+            r: unsafe { buf.offset(tex_offset * 4 + 2).read() },
+            g: unsafe { buf.offset(tex_offset * 4 + 1).read() },
+            b: unsafe { buf.offset(tex_offset * 4 + 0).read() },
+            a: unsafe { buf.offset(tex_offset * 4 + 3).read() },
+        }
+    }
+
+    pub fn texture_color_from_world_pos(&self, x: i32, y: i32) -> Color {
+        if self.buffer.is_null() {
+            return Color::default();
+        }
+        let mut tx = x % self.width;
+        if tx < 0 {
+            tx += self.width
+        }
+        let mut ty = y % self.height;
+        if ty < 0 {
+            ty += self.height
+        }
+        unsafe { self.color_at(tx, ty) }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
 pub struct CellGraphics {
     pub texture_file: StdString,
     pub color: Color,
@@ -27,8 +64,24 @@ pub struct CellGraphics {
     pub is_grass: bool,
     pub is_grass_hashed: bool,
     pub pixel_info: *const c_void,
-    unknown: [isize; 6],
+    unknown: [isize; 5],
+    pub texture_info: Option<&'static TextureInfo>,
 }
+
+impl CellGraphics {
+    pub fn get_color_at_pos(&self, x: i32, y: i32) -> Color {
+        match self.texture_info {
+            Some(texture_info) => {
+                if self.randomize_colors {
+                    // TODO
+                }
+                texture_info.texture_color_from_world_pos(x, y)
+            }
+            None => self.color,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct StatusEffect {
@@ -437,6 +490,8 @@ impl LiquidCell {
         mat: &'static CellData,
         vtable: &'static LiquidCellVTable,
         world: *mut GridWorld,
+        x: isize,
+        y: isize,
     ) -> Self {
         let lifetime = if mat.lifetime > 0
             && let Some(world) = (unsafe { world.as_mut() })
@@ -448,10 +503,12 @@ impl LiquidCell {
         } else {
             -1
         };
+        let color = mat.graphics.get_color_at_pos(x as i32, y as i32);
+
         Self {
             cell: Cell::create(mat, CellVTable { liquid: vtable }),
-            x: 0,
-            y: 0,
+            x,
+            y,
             unknown1: 3,
             unknown2: 0,
             is_static: mat.liquid_static,
@@ -459,8 +516,8 @@ impl LiquidCell {
             unknown4: 0,
             unknown5: 0,
             unknown6: 0,
-            color: mat.graphics.color,
-            original_color: mat.graphics.color,
+            color: color,
+            original_color: color,
             lifetime,
             unknown8: 0,
         }
