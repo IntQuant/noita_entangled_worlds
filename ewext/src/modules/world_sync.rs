@@ -125,9 +125,30 @@ impl WorldData for ParticleWorldState {
         for (i, pixel) in chunk.pixels.into_iter().enumerate() {
             let x = (i % CHUNK_SIZE) as isize;
             let y = (i / CHUNK_SIZE) as isize;
+
             let cell = pixel_array.get_mut_raw(shift_x + x, shift_y + y);
+
+            if !cell.is_null() {
+                let cell = unsafe { &**cell };
+                // Don't touch box2d stuff.
+                if cell.material.cell_type == CellType::Solid {
+                    continue;
+                }
+                // No point replacing cells with themselves.
+                if cell.material.material_type == pixel.mat() as isize {
+                    continue;
+                }
+            }
+
             let xs = start_x + x;
             let ys = start_y + y;
+            // Drop first
+            if !cell.is_null() {
+                unsafe {
+                    heap::delete(cell);
+                }
+                *cell = ptr::null_mut();
+            }
             if pixel.is_air() {
                 *cell = ptr::null_mut();
             } else {
