@@ -4,7 +4,6 @@ use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
 use shared::world_sync::{Pixel, PixelFlags};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
-use std::marker::PhantomData;
 use std::slice;
 #[repr(usize)]
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
@@ -550,55 +549,13 @@ pub struct PixelScene {
     pub height: i32,
 }
 
-pub struct PixelSceneArrayIter<'a> {
-    current: *const PixelScene,
-    last: *const PixelScene,
-    _phantom: PhantomData<&'a PixelScene>,
-}
-
-impl<'a> Iterator for PixelSceneArrayIter<'a> {
-    type Item = &'a PixelScene;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let cur = self.current;
-        if self.current == self.last {
-            return None;
-        }
-        self.current = unsafe { self.current.byte_offset(0x90) };
-        unsafe { Some(&*cur) }
-    }
-}
-
-impl<'a> IntoIterator for &'a PixelSceneArray {
-    type Item = &'a PixelScene;
-
-    type IntoIter = PixelSceneArrayIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        PixelSceneArrayIter {
-            current: self.first,
-            last: self.last,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-// Likely an std::vector
-#[repr(C)]
-#[derive(Debug)]
-pub struct PixelSceneArray {
-    first: *const PixelScene,
-    last: *const PixelScene,
-    // maybe more data
-}
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct GameWorld {
     pub cam: AABB,
     unknown1: [isize; 13],
     pub grid_world: &'static mut GridWorld,
-    pub pixel_scene_array: &'static mut PixelSceneArray,
+    pub pixel_scenes: &'static mut StdVec<PixelScene>,
     //likely more data
 }
 

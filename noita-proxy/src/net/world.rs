@@ -463,6 +463,7 @@ impl WorldManager {
             chy: i32,
             is_notplayer: bool,
         ) -> bool {
+            return true;
             let (x, y) = my_pos;
             let (cx, cy) = cam_pos;
             if (x - cx).abs() > 2 || (y - cy).abs() > 2 {

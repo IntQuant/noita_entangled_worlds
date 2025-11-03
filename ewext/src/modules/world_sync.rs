@@ -1,9 +1,9 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
+use noita_api::heap;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
 use noita_api::noita::world::ParticleWorldState;
-use noita_api::{game_print, heap};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
@@ -30,13 +30,14 @@ impl Module for WorldSync {
         let ix = x as i32;
         let iy = y as i32;
         let extra_margin = (CHUNK_SIZE + CHUNK_SIZE / 2) as i32;
-        for pixel_scene in &*ctx.globals.game_global.m_game_world.pixel_scene_array {
+        for pixel_scene in ctx.globals.game_global.m_game_world.pixel_scenes.iter() {
             if pixel_scene.width * pixel_scene.height > 0 {
                 if pixel_scene.x - extra_margin <= ix
                     && ix <= pixel_scene.x + pixel_scene.width + extra_margin
                     && pixel_scene.y - extra_margin <= iy
                     && iy <= pixel_scene.y + pixel_scene.height + extra_margin
                 {
+                    noita_api::game_print("Pixel scenes are being loaded");
                     return Ok(());
                 }
             }
@@ -88,6 +89,8 @@ impl WorldSync {
     pub fn handle_remote(&mut self, msg: ProxyToWorldSync) -> eyre::Result<()> {
         match msg {
             ProxyToWorldSync::Updates(updates) => {
+                noita_api::game_print("Decode world received");
+                // TODO should check that updates don't touch the same chunk
                 updates.into_par_iter().for_each(|chunk| unsafe {
                     let _ = self
                         .particle_world_state
