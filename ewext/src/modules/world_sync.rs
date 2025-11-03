@@ -1,9 +1,9 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
-use noita_api::heap;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
 use noita_api::noita::world::ParticleWorldState;
+use noita_api::{game_print, heap};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
 use shared::world_sync::{
@@ -23,7 +23,25 @@ impl Module for WorldSync {
         let Some(ent) = ctx.globals.entity_manager.get_entity(ent.0.get() as usize) else {
             return Ok(());
         };
+
         let (x, y) = (ent.transform.pos.x, ent.transform.pos.y);
+
+        // Check is any pixel scenes are still being loaded
+        let ix = x as i32;
+        let iy = y as i32;
+        let extra_margin = (CHUNK_SIZE + CHUNK_SIZE / 2) as i32;
+        for pixel_scene in &*ctx.globals.game_global.m_game_world.pixel_scene_array {
+            if pixel_scene.width * pixel_scene.height > 0 {
+                if pixel_scene.x - extra_margin <= ix
+                    && ix <= pixel_scene.x + pixel_scene.width + extra_margin
+                    && pixel_scene.y - extra_margin <= iy
+                    && iy <= pixel_scene.y + pixel_scene.height + extra_margin
+                {
+                    return Ok(());
+                }
+            }
+        }
+
         let updates = (0..9)
             .into_par_iter()
             .filter_map(|i| {

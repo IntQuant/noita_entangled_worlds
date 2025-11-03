@@ -22,8 +22,6 @@ net = dofile_once("mods/quant.ew/files/core/net.lua")
 inventory_helper = dofile_once("mods/quant.ew/files/core/inventory_helper.lua")
 player_fns = dofile_once("mods/quant.ew/files/core/player_fns.lua")
 
--- print("construct_cell", np.GetWorldInfo().remove_cell)
-
 local cos = dofile_once("mods/quant.ew/files/system/player/player_cosmetics.lua")
 
 local perk_fns = dofile_once("mods/quant.ew/files/core/perk_fns.lua")
@@ -156,6 +154,7 @@ local function load_modules()
     if ctx.proxy_opt.pvp then
         ctx.load_system("pvp")
     end
+    -- print("world_info", np.GetWorldInfo().chunk_loaded)
 end
 
 local function load_extra_modules()
