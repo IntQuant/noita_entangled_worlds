@@ -344,7 +344,7 @@ impl Default for ConfigGunActionInfo {
 }
 
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,

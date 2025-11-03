@@ -2,7 +2,7 @@ use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
 use noita_api::heap;
-use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2i};
+use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2};
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
@@ -37,7 +37,7 @@ impl Module for WorldSync {
                     && pixel_scene.y - extra_margin <= iy
                     && iy <= pixel_scene.y + pixel_scene.height + extra_margin
                 {
-                    noita_api::game_print("Pixel scenes are being loaded");
+                    // noita_api::game_print("Pixel scenes are being loaded");
                     return Ok(());
                 }
             }
@@ -69,13 +69,13 @@ impl Module for WorldSync {
             .collect::<Vec<_>>();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
-        let Vec2i { x: cx, y: cy } = ctx.globals.game_global.m_grid_world.cam_pos;
+        let Vec2 { x: cx, y: cy } = ctx.globals.game_global.m_game_world.camera_center();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::End(
             Some((
-                x.div_euclid(CHUNK_SIZE as f32) as i32,
-                y.div_euclid(CHUNK_SIZE as f32) as i32,
-                cx.div_euclid(CHUNK_SIZE as isize) as i32,
-                cy.div_euclid(CHUNK_SIZE as isize) as i32,
+                ix.div_euclid(CHUNK_SIZE as i32) as i32,
+                iy.div_euclid(CHUNK_SIZE as i32) as i32,
+                cx.div_euclid(CHUNK_SIZE as f32) as i32,
+                cy.div_euclid(CHUNK_SIZE as f32) as i32,
                 false,
             )),
             1,
@@ -89,7 +89,6 @@ impl WorldSync {
     pub fn handle_remote(&mut self, msg: ProxyToWorldSync) -> eyre::Result<()> {
         match msg {
             ProxyToWorldSync::Updates(updates) => {
-                noita_api::game_print("Decode world received");
                 // TODO should check that updates don't touch the same chunk
                 updates.into_par_iter().for_each(|chunk| unsafe {
                     let _ = self

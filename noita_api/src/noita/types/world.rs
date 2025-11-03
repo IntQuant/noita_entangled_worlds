@@ -558,6 +558,15 @@ pub struct GameWorld {
     pub pixel_scenes: &'static mut StdVec<PixelScene>,
     //likely more data
 }
+impl GameWorld {
+    pub fn camera_center(&self) -> Vec2 {
+        let aabb = self.cam;
+        Vec2 {
+            x: aabb.top_left.x + aabb.bottom_right.x / 2.0,
+            y: aabb.top_left.y + aabb.bottom_right.y / 2.0,
+        }
+    }
+}
 
 #[repr(C)]
 pub struct CellFactory {
@@ -813,7 +822,7 @@ pub struct GridWorldVTable {
 
 #[repr(C)]
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct AABB {
     pub top_left: Vec2,
     pub bottom_right: Vec2,
