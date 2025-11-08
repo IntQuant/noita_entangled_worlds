@@ -430,7 +430,7 @@ pub struct ComponentSystemManager {
     pub component_vtables: StdMap<StdString, ComponentLuaVTable>,
     pub unk: [*const usize; 8],
     pub unk2: StdVec<*const usize>,
-    pub unk3: [*const usize; 7],
+    pub unk3: [*const usize; 6],
 }
 #[repr(C)]
 #[derive(Debug)]
