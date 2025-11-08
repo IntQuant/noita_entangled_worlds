@@ -31,15 +31,14 @@ impl Module for WorldSync {
         let iy = y as i32;
         let extra_margin = (CHUNK_SIZE + CHUNK_SIZE / 2) as i32;
         for pixel_scene in ctx.globals.game_global.m_game_world.pixel_scenes.iter() {
-            if pixel_scene.width * pixel_scene.height > 0 {
-                if pixel_scene.x - extra_margin <= ix
-                    && ix <= pixel_scene.x + pixel_scene.width + extra_margin
-                    && pixel_scene.y - extra_margin <= iy
-                    && iy <= pixel_scene.y + pixel_scene.height + extra_margin
-                {
-                    // noita_api::game_print("Pixel scenes are being loaded");
-                    return Ok(());
-                }
+            if pixel_scene.width * pixel_scene.height > 0
+                && pixel_scene.x - extra_margin <= ix
+                && ix <= pixel_scene.x + pixel_scene.width + extra_margin
+                && pixel_scene.y - extra_margin <= iy
+                && iy <= pixel_scene.y + pixel_scene.height + extra_margin
+            {
+                // noita_api::game_print("Pixel scenes are being loaded");
+                return Ok(());
             }
         }
 
@@ -72,8 +71,8 @@ impl Module for WorldSync {
         let Vec2 { x: cx, y: cy } = ctx.globals.game_global.m_game_world.camera_center();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::End(
             Some((
-                ix.div_euclid(CHUNK_SIZE as i32) as i32,
-                iy.div_euclid(CHUNK_SIZE as i32) as i32,
+                ix.div_euclid(CHUNK_SIZE as i32),
+                iy.div_euclid(CHUNK_SIZE as i32),
                 cx.div_euclid(CHUNK_SIZE as f32) as i32,
                 cy.div_euclid(CHUNK_SIZE as f32) as i32,
                 false,

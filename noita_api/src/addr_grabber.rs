@@ -1,10 +1,7 @@
 use std::{os::raw::c_void, ptr};
 
 use crate::lua::LuaState;
-use crate::noita::types::{
-    ComponentSystemManager, ComponentTypeManager, EntityManager, GameGlobal, GlobalStats,
-    Inventory, Mods, Platform, StdString, StdVec, TagManager, TranslationManager,
-};
+use crate::noita::types::{ComponentSystemManager, ComponentTypeManager, Entity, EntityManager, GameGlobal, GlobalStats, Inventory, Mods, Platform, StdString, StdVec, TagManager, TranslationManager, WorldStateComponent};
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 
 pub(crate) unsafe fn grab_addr_from_instruction(
@@ -53,6 +50,8 @@ pub struct GlobalsRef {
     pub mods: &'static Mods,
     pub max_component: &'static usize,
     pub component_manager: &'static ComponentSystemManager,
+    pub world_state: &'static Entity,
+    pub world_state_component: &'static WorldStateComponent,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -71,6 +70,8 @@ pub struct GlobalsMut {
     pub mods: &'static mut Mods,
     pub max_component: &'static mut usize,
     pub component_manager: &'static mut ComponentSystemManager,
+    pub world_state: &'static mut Entity,
+    pub world_state_component: &'static mut WorldStateComponent,
 }
 
 #[derive(Debug, Default)]
@@ -90,6 +91,8 @@ pub struct Globals {
     pub mods: *mut Mods,
     pub max_component: *mut usize,
     pub component_manager: *mut ComponentSystemManager,
+    pub world_state: *const *mut Entity,
+    pub world_state_component: *const *mut WorldStateComponent,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -159,6 +162,18 @@ impl Globals {
     pub fn entity_tag_manager_mut(&self) -> &'static mut TagManager<u16> {
         unsafe { self.entity_tag_manager.as_ref().unwrap().as_mut().unwrap() }
     }
+    pub fn world_state_mut(&self) -> &'static mut Entity {
+        unsafe { self.world_state.as_ref().unwrap().as_mut().unwrap() }
+    }
+    pub fn world_state(&self) -> &'static Entity {
+        unsafe { self.world_state.as_ref().unwrap().as_ref().unwrap() }
+    }
+    pub fn world_state_component_mut(&self) -> &'static mut WorldStateComponent {
+        unsafe { self.world_state_component.as_ref().unwrap().as_mut().unwrap() }
+    }
+    pub fn world_state_component(&self) -> &'static WorldStateComponent {
+        unsafe { self.world_state_component.as_ref().unwrap().as_ref().unwrap() }
+    }
     pub fn component_type_manager_mut(&self) -> &'static mut ComponentTypeManager {
         unsafe { self.component_type_manager.as_mut().unwrap() }
     }
@@ -212,6 +227,8 @@ impl Globals {
             mods: self.mods(),
             max_component: self.max_component(),
             component_manager: self.component_manager(),
+            world_state: self.world_state(),
+            world_state_component: self.world_state_component(),
         }
     }
     pub fn as_mut(&self) -> GlobalsMut {
@@ -231,6 +248,8 @@ impl Globals {
             mods: self.mods_mut(),
             max_component: self.max_component_mut(),
             component_manager: self.component_manager_mut(),
+            world_state: self.world_state_mut(),
+            world_state_component: self.world_state_component_mut(),
         }
     }
     pub fn new(lua: LuaState) -> Self {
@@ -254,6 +273,8 @@ impl Globals {
         let mods = 0x1207e90 as *mut Mods;
         let max_component = 0x1152ff0 as *mut usize;
         let component_manager = 0x12236e8 as *mut ComponentSystemManager;
+        let world_state = 0x01204bd0 as *const *mut Entity;
+        let world_state_component = 0x01205010 as *const *mut WorldStateComponent;
         Self {
             world_seed,
             new_game_count,
@@ -270,6 +291,8 @@ impl Globals {
             mods,
             max_component,
             component_manager,
+            world_state,
+            world_state_component
         }
     }
 }
