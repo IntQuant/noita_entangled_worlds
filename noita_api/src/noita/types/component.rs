@@ -1,3 +1,4 @@
+use crate::noita::types::EventManager;
 use crate::{
     heap,
     noita::types::{
@@ -5,7 +6,6 @@ use crate::{
     },
 };
 use std::ptr;
-use crate::noita::types::EventManager;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
@@ -158,11 +158,13 @@ pub struct ComponentBuffer {
     pub prev: StdVec<usize>,
     pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
-    unk1: [*const usize; 5],
+    unk1r: *const u64,
+    unk1: [*const usize; 4],
     unk1_vec: StdVec<*const usize>,
     unk2_vec: StdVec<*const usize>,
     unk3_vec: StdVec<*const usize>,
-    unk2: [*const usize; 8],
+    unk2r: *const u64,
+    unk2: [*const usize; 7],
     pub entity_manager: *const EntityManager,
     pub event_manager: *const EventManager,
     unk3: [*const usize; 6],
@@ -179,11 +181,13 @@ impl Default for ComponentBuffer {
             prev: Default::default(),
             next: Default::default(),
             component_list: Default::default(),
-            unk1: [ptr::null(); 5],
+            unk1r: ptr::null(),
+            unk1: [ptr::null(); 4],
             unk1_vec: StdVec::null(),
             unk2_vec: StdVec::null(),
             unk3_vec: StdVec::null(),
-            unk2: [ptr::null(); 8],
+            unk2r: ptr::null(),
+            unk2: [ptr::null(); 7],
             entity_manager: ptr::null(),
             event_manager: ptr::null(),
             unk3: [ptr::null(); 6],
