@@ -15,7 +15,7 @@ button_retry = Réessayer
 button_select_again = Sélectionner à nouveau
 button_back = Retour
 
-button_set_lang = Sélectionner une langue
+button_set_lang = Sélectionner la langue
 button_open_discord = Serveur Discord
 
 modman = Mod Manager
@@ -35,7 +35,7 @@ player_host = Hôte
 player_me = Moi
 player_player = Joueur
 
-version_latest = (dernière)
+version_latest = (à jour)
 version_check_failed = (vérification de mise à jour échoué)
 version_checking = (vérification de mise à jour)
 version_new_available = Mise à jour disponible à { $new_version }
@@ -75,14 +75,14 @@ launcher_only_when_awaiting = Peut seulement lancer le jeu dans l'état "en atte
 
 connect_settings = Options du Jeu
 connect_settings_debug = Options de Débug
-connect_settings_debug_en = Mode de Triche/Débug
+connect_settings_debug_en = Mode Triche/Débug
 connect_settings_debug_fixed_seed = Utiliser une seed fixé
 connect_settings_seed = Seed:
 connect_settings_max_players = Joueurs maximum
 connect_settings_wsv = Version de synchronisation du monde à utiliser:
-connect_settings_player_tether = Attache des joueurs activée
-connect_settings_player_tether_desc = Attache des joueurs: Téléporte les clients à l'hôte s'ils sont trop loin.
-connect_settings_player_tether_length = Taille de l'attache
+connect_settings_player_tether = Liaison des joueurs activée
+connect_settings_player_tether_desc = Liaison des joueurs: Téléporte les clients à l'hôte s'ils sont trop loin.
+connect_settings_player_tether_length = Taille de la liaison
 connect_settings_item_dedup = Dé-duplique (synchronisation) les objets spawnés par la génération du monde.
 connect_settings_enemy_hp_scale = Mise à l'échelle des Points de Vie ennemies.
 connect_settings_local = Options Locales
@@ -90,7 +90,7 @@ connect_settings_autostart = Lancer le jeu automatiquement
 
 ## Game settings
 
-Player-have-same-starting-loadout = Player have same starting loadout
+Player-have-same-starting-loadout = Les joueurs commencent avec le même équipement de départ
 connect_settings_spacewars = Autorise à utiliser le Steam network même s'ils n'ont pas le jeu sur Steam, dans le cas où vous avez la version GOG du jeu. Tous les joueurs ont besoin d'avoir cette option d'activer pour qu'elle marche, relancer votre Proxy pour qu'elle prenne effet.
 Health-per-player = Points de Vie par joueur
 Enable-friendly-fire = Activer le tir allié, permet la création d'équipe dans les paramètres du jeu
@@ -151,7 +151,7 @@ ip_wait_for_connection = Connexion à l'IP...
 
 ## Info
 
-info_stress_tests = Nous organisons des lobbies publique (ie. des tests de stress) tous les samedis à 18:00 UTC. Rejoignez notre Discord pour plus d'information.
+info_stress_tests = Nous organisons des lobbies public (ie. des tests de stress) tous les samedis à 18:00 UTC. Rejoignez notre Discord pour plus d'information.
 Info = Info
 
 ## Local settings
@@ -171,15 +171,16 @@ hide-cursors-checkbox-tooltip = Il arrive de confondre le curseur de tes amis av
 
 ## Steam connect
 
-Switch-mode-and-restart = Switch mode and restart
-Make-lobby-public = Make lobby public
+Switch-mode-and-restart = Changer de mode et relancer
+Make-lobby-public = Rendre le lobby public
+
 ## Lobby list
 
-Open-lobby-list = Open lobby list
-Only-EW-lobbies = Only EW lobbies
-Join = Join
-Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
-No-public-lobbies-at-the-moment = No public lobbies at the moment :(
-Lobby-list-pending = Lobby list pending...
-Refresh = Refresh
-Lobby-list = Lobby list
+Open-lobby-list = Ouvrir la liste des lobbies
+Only-EW-lobbies = Seulement les lobbies EW
+Join = Rejoindre
+Not-Entangled-Worlds-lobby = Pas de lobby Entangled Worlds
+No-public-lobbies-at-the-moment = Aucun lobby public pour le moment :(
+Lobby-list-pending = Liste des Lobbies en cours...
+Refresh = Rafraîchir
+Lobby-list = Liste des lobbies
