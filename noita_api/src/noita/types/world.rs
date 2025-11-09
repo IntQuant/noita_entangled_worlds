@@ -836,11 +836,19 @@ pub struct IAABB {
     pub bottom_right: Vec2i,
 }
 
+#[allow(dead_code)]
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 //ptr is 0x17f83e30, seems not constant
 pub struct GridWorldThreadedVTable {
-    //TODO find some data maybe
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
 }
 
 #[repr(C)]

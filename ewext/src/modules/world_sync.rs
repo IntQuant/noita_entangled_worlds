@@ -217,8 +217,9 @@ pub fn test_world() {
         Cell, CellData, CellVTable, CellVTables, Chunk, ChunkMap, GridWorld, GridWorldThreaded,
         GridWorldThreadedVTable, GridWorldVTable, NoneCellVTable, StdVec,
     };
+    let vtable = GridWorldThreadedVTable::default();
     let mut threaded = GridWorldThreaded {
-        grid_world_threaded_vtable: &GridWorldThreadedVTable {},
+        grid_world_threaded_vtable: unsafe { std::mem::transmute::<&_, &'static _>(&vtable) },
         unknown: [0; 287],
         update_region: Default::default(),
     };

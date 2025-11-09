@@ -1,7 +1,17 @@
 use crate::noita::types::{AABB, Color, Entity, StdString, StdVec};
+#[allow(dead_code)]
 #[repr(C)]
 #[derive(Debug, Default)]
-pub struct ConfigExplosionVTable {}
+pub struct ConfigExplosionVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[repr(C)]
 #[derive(Debug)]
@@ -95,9 +105,19 @@ impl Default for ConfigExplosion {
     }
 }
 
+#[allow(dead_code)]
 #[repr(C)]
 #[derive(Debug, Default)]
-pub struct ConfigDamageCriticalVTable {}
+pub struct ConfigDamageCriticalVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[repr(C)]
 #[derive(Debug)]
@@ -114,9 +134,19 @@ impl Default for ConfigDamageCritical {
     }
 }
 
+#[allow(dead_code)]
 #[repr(C)]
 #[derive(Debug, Default)]
-pub struct ConfigGridCosmeticParticleVTable {}
+pub struct ConfigGridCosmeticParticleVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[repr(C)]
 #[derive(Debug)]
@@ -146,9 +176,19 @@ impl Default for ConfigGridCosmeticParticle {
         todo!()
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ConfigDamagesByTypeVTable {}
+pub struct ConfigDamagesByTypeVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -175,9 +215,19 @@ impl Default for ConfigDamagesByType {
         todo!()
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ConfigPendingPortalVTable {}
+pub struct ConfigPendingPortalVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct ConfigPendingPortal {
@@ -196,10 +246,19 @@ impl Default for ConfigPendingPortal {
         todo!()
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ConfigNpcPartyVTable {}
-
+pub struct ConfigNpcPartyVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct ConfigNpcParty {
@@ -218,9 +277,19 @@ impl Default for ConfigNpcParty {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ConfigCutThroughWorldVTable {}
+pub struct ConfigCutThroughWorldVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -238,9 +307,19 @@ impl Default for ConfigCutThroughWorld {
         todo!()
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ConfigGunVTable {}
+pub struct ConfigGunVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -258,9 +337,19 @@ impl Default for ConfigGun {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ConfigGunActionInfoVTable {}
+pub struct ConfigGunActionInfoVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 
 #[derive(Debug)]
 #[repr(C)]

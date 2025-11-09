@@ -1,7 +1,18 @@
 use crate::lua::LuaState;
 use crate::noita::types::{StdMap, StdString, StdVec, Vec2};
+#[allow(dead_code)]
+#[repr(C)]
 #[derive(Debug)]
-pub struct GlobalStatsVTable {}
+pub struct GlobalStatsVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct GlobalStats {
@@ -20,8 +31,19 @@ pub struct GlobalStats {
     pub global: GameStats,
     pub prev_best: GameStats,
 }
+#[allow(dead_code)]
+#[repr(C)]
 #[derive(Debug)]
-pub struct GameStatsVTable {}
+pub struct GameStatsVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct GameStats {
@@ -56,8 +78,19 @@ pub struct GameStats {
     pub biomes_visited_with_wands: usize,
     field_0xc4: usize,
 }
+#[allow(dead_code)]
+#[repr(C)]
 #[derive(Debug)]
-pub struct TranslationManagerVTable {}
+pub struct TranslationManagerVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct TranslationManager {
@@ -110,9 +143,19 @@ pub struct Mods {
     pub names: StdVec<ModListEntry>,
     pub list: StdVec<Mod>,
 }
+#[allow(dead_code)]
 #[derive(Debug)]
 #[repr(C)]
-pub struct ModVTable {}
+pub struct ModVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct Mod {

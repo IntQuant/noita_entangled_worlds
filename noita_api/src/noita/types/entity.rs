@@ -3,7 +3,7 @@ use crate::noita::types::component::{ComponentBuffer, ComponentData};
 use crate::noita::types::{
     Component, ComponentTypeManager, Inventory2Component, StdMap, StdString, StdVec, Vec2,
 };
-use std::{mem, slice};
+use std::{mem, ptr, slice};
 impl EntityManager {
     pub fn create(&mut self) -> &'static mut Entity {
         self.max_entity_id += 1;
@@ -757,25 +757,82 @@ pub struct EntityManager {
     pub entities: StdVec<*mut Entity>,
     pub entity_buckets: StdVec<StdVec<*mut Entity>>,
     pub component_buffers: StdVec<*mut ComponentBuffer>,
-    pub unk: usize,
+    pub event_manager: &'static EventManager,
 }
 impl Default for EntityManager {
     fn default() -> Self {
         Self {
-            vtable: &EntityManagerVTable {},
+            vtable: DEF,
             max_entity_id: 0,
             free_ids: Default::default(),
             entities: Default::default(),
             entity_buckets: Default::default(),
             component_buffers: Default::default(),
-            unk: 0,
+            event_manager: DEFV,
+        }
+    }
+}
+impl EntityManagerVTable {
+    pub const fn default_const() -> Self {
+        Self {
+            unk0: ptr::null(),
+            unk1: ptr::null(),
+            unk2: ptr::null(),
+            unk3: ptr::null(),
+            unk4: ptr::null(),
+            unk5: ptr::null(),
+            unk6: ptr::null(),
+            unk7: ptr::null(),
         }
     }
 }
 #[repr(C)]
+#[derive(Debug, Default)]
+pub struct EventManagerVTable {
+    unk: *const usize,
+}
+impl EventManager {
+    pub const fn default_const() -> Self {
+        Self {
+            vtable: DEFE,
+            unk1: 0,
+            unk2: 0,
+            unk3: 0,
+            unk4: 0,
+            unk5: 0,
+        }
+    }
+}
+impl EventManagerVTable {
+    pub const fn default_const() -> Self {
+        Self { unk: ptr::null() }
+    }
+}
+const DEFV: &EventManager = &EventManager::default_const();
+const DEFE: &EventManagerVTable = &EventManagerVTable::default_const();
+const DEF: &EntityManagerVTable = &EntityManagerVTable::default_const();
+#[repr(C)]
 #[derive(Debug)]
+pub struct EventManager {
+    pub vtable: &'static EventManagerVTable,
+    pub unk1: usize,
+    pub unk2: usize,
+    pub unk3: usize,
+    pub unk4: usize,
+    pub unk5: usize,
+}
+#[allow(dead_code)]
+#[repr(C)]
+#[derive(Debug, Default)]
 pub struct EntityManagerVTable {
-    //TODO
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
 }
 #[repr(C)]
 #[derive(Debug)]

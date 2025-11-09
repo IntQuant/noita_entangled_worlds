@@ -19,10 +19,11 @@ pub struct ComponentData {
     unk3: StdVec<usize>,
     unk4: usize,
 }
+const DEF: &ComponentVTable = &ComponentVTable::default_const();
 impl Default for ComponentData {
     fn default() -> Self {
         Self {
-            vtable: &ComponentVTable {},
+            vtable: DEF,
             local_id: 0,
             type_name: CString(ptr::null()),
             type_id: 0,
@@ -35,15 +36,61 @@ impl Default for ComponentData {
         }
     }
 }
+#[allow(dead_code)]
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ComponentVTable {
     //TODO should be a union
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
 }
+impl ComponentVTable {
+    pub const fn default_const() -> Self {
+        Self {
+            unk0: ptr::null(),
+            unk1: ptr::null(),
+            unk2: ptr::null(),
+            unk3: ptr::null(),
+            unk4: ptr::null(),
+            unk5: ptr::null(),
+            unk6: ptr::null(),
+            unk7: ptr::null(),
+        }
+    }
+}
+#[allow(dead_code)]
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ComponentBufferVTable {
     //TODO should be a union
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
+impl ComponentBufferVTable {
+    pub const fn default_const() -> Self {
+        Self {
+            unk0: ptr::null(),
+            unk1: ptr::null(),
+            unk2: ptr::null(),
+            unk3: ptr::null(),
+            unk4: ptr::null(),
+            unk5: ptr::null(),
+            unk6: ptr::null(),
+            unk7: ptr::null(),
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -111,10 +158,11 @@ pub struct ComponentBuffer {
     pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
 }
+const DEFB: &ComponentBufferVTable = &ComponentBufferVTable::default_const();
 impl Default for ComponentBuffer {
     fn default() -> Self {
         Self {
-            vtable: &ComponentBufferVTable {},
+            vtable: DEFB,
             end: (-1isize).cast_unsigned(),
             unk: [0, 0],
             entity_entry: Default::default(),
@@ -444,9 +492,19 @@ pub struct ComponentUpdater {
     pub name: StdString,
     pub unk: [*const usize; 8],
 }
+#[allow(dead_code)]
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentUpdaterVTable {}
+pub struct ComponentUpdaterVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentSystem {
@@ -454,6 +512,16 @@ pub struct ComponentSystem {
     pub unk: [*const usize; 2],
     pub name: StdString,
 }
+#[allow(dead_code)]
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentSystemVTable {}
+pub struct ComponentSystemVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}

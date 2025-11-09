@@ -1,7 +1,11 @@
 use std::{os::raw::c_void, ptr};
 
 use crate::lua::LuaState;
-use crate::noita::types::{ComponentSystemManager, ComponentTypeManager, Entity, EntityManager, GameGlobal, GlobalStats, Inventory, Mods, Platform, StdString, StdVec, TagManager, TranslationManager, WorldStateComponent};
+use crate::noita::types::{
+    ComponentSystemManager, ComponentTypeManager, Entity, EntityManager, EventManager, GameGlobal,
+    GlobalStats, Inventory, Mods, Platform, StdString, StdVec, TagManager, TranslationManager,
+    WorldStateComponent,
+};
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 
 pub(crate) unsafe fn grab_addr_from_instruction(
@@ -52,6 +56,7 @@ pub struct GlobalsRef {
     pub component_manager: &'static ComponentSystemManager,
     pub world_state: &'static Entity,
     pub world_state_component: &'static WorldStateComponent,
+    pub event_manager: &'static EventManager,
 }
 #[derive(Debug)]
 pub struct GlobalsMut {
@@ -72,6 +77,7 @@ pub struct GlobalsMut {
     pub component_manager: &'static mut ComponentSystemManager,
     pub world_state: &'static mut Entity,
     pub world_state_component: &'static mut WorldStateComponent,
+    pub event_manager: &'static mut EventManager,
 }
 
 #[derive(Debug, Default)]
@@ -93,6 +99,7 @@ pub struct Globals {
     pub component_manager: *mut ComponentSystemManager,
     pub world_state: *const *mut Entity,
     pub world_state_component: *const *mut WorldStateComponent,
+    pub event_manager: *const *mut EventManager,
 }
 #[allow(clippy::mut_from_ref)]
 impl Globals {
@@ -168,11 +175,29 @@ impl Globals {
     pub fn world_state(&self) -> &'static Entity {
         unsafe { self.world_state.as_ref().unwrap().as_ref().unwrap() }
     }
+    pub fn event_manager_mut(&self) -> &'static mut EventManager {
+        unsafe { self.event_manager.as_ref().unwrap().as_mut().unwrap() }
+    }
+    pub fn event_manager(&self) -> &'static EventManager {
+        unsafe { self.event_manager.as_ref().unwrap().as_ref().unwrap() }
+    }
     pub fn world_state_component_mut(&self) -> &'static mut WorldStateComponent {
-        unsafe { self.world_state_component.as_ref().unwrap().as_mut().unwrap() }
+        unsafe {
+            self.world_state_component
+                .as_ref()
+                .unwrap()
+                .as_mut()
+                .unwrap()
+        }
     }
     pub fn world_state_component(&self) -> &'static WorldStateComponent {
-        unsafe { self.world_state_component.as_ref().unwrap().as_ref().unwrap() }
+        unsafe {
+            self.world_state_component
+                .as_ref()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+        }
     }
     pub fn component_type_manager_mut(&self) -> &'static mut ComponentTypeManager {
         unsafe { self.component_type_manager.as_mut().unwrap() }
@@ -229,6 +254,7 @@ impl Globals {
             component_manager: self.component_manager(),
             world_state: self.world_state(),
             world_state_component: self.world_state_component(),
+            event_manager: self.event_manager(),
         }
     }
     pub fn as_mut(&self) -> GlobalsMut {
@@ -250,6 +276,7 @@ impl Globals {
             component_manager: self.component_manager_mut(),
             world_state: self.world_state_mut(),
             world_state_component: self.world_state_component_mut(),
+            event_manager: self.event_manager_mut(),
         }
     }
     pub fn new(lua: LuaState) -> Self {
@@ -273,8 +300,9 @@ impl Globals {
         let mods = 0x1207e90 as *mut Mods;
         let max_component = 0x1152ff0 as *mut usize;
         let component_manager = 0x12236e8 as *mut ComponentSystemManager;
-        let world_state = 0x01204bd0 as *const *mut Entity;
-        let world_state_component = 0x01205010 as *const *mut WorldStateComponent;
+        let world_state = 0x1204bd0 as *const *mut Entity;
+        let world_state_component = 0x1205010 as *const *mut WorldStateComponent;
+        let event_manager = 0x1204b34 as *const *mut EventManager;
         Self {
             world_seed,
             new_game_count,
@@ -292,7 +320,8 @@ impl Globals {
             max_component,
             component_manager,
             world_state,
-            world_state_component
+            world_state_component,
+            event_manager,
         }
     }
 }

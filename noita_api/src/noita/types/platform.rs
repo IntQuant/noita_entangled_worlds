@@ -1,7 +1,18 @@
 use crate::noita::types::{StdString, StdVec, Vec2};
 use std::ffi::c_void;
+#[allow(dead_code)]
+#[repr(C)]
 #[derive(Debug)]
-pub struct PlatformVTable {}
+pub struct PlatformVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct Platform {
@@ -42,8 +53,19 @@ pub struct Platform {
     pub joysticks_enabled: bool,
     padding5: [u8; 3],
 }
+#[allow(dead_code)]
+#[repr(C)]
 #[derive(Debug)]
-pub struct AppConfigVTable {}
+pub struct AppConfigVTable {
+    unk0: *const usize,
+    unk1: *const usize,
+    unk2: *const usize,
+    unk3: *const usize,
+    unk4: *const usize,
+    unk5: *const usize,
+    unk6: *const usize,
+    unk7: *const usize,
+}
 #[derive(Debug)]
 #[repr(C)]
 pub struct AppConfig {
