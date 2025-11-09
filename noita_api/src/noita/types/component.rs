@@ -5,6 +5,7 @@ use crate::{
     },
 };
 use std::ptr;
+use crate::noita::types::EventManager;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
@@ -157,6 +158,14 @@ pub struct ComponentBuffer {
     pub prev: StdVec<usize>,
     pub next: StdVec<usize>,
     pub component_list: StdVec<*mut ComponentData>,
+    unk1: [*const usize; 5],
+    unk1_vec: StdVec<*const usize>,
+    unk2_vec: StdVec<*const usize>,
+    unk3_vec: StdVec<*const usize>,
+    unk2: [*const usize; 8],
+    pub entity_manager: *const EntityManager,
+    pub event_manager: *const EventManager,
+    unk3: [*const usize; 6],
 }
 const DEFB: &ComponentBufferVTable = &ComponentBufferVTable::default_const();
 impl Default for ComponentBuffer {
@@ -170,6 +179,14 @@ impl Default for ComponentBuffer {
             prev: Default::default(),
             next: Default::default(),
             component_list: Default::default(),
+            unk1: [ptr::null(); 5],
+            unk1_vec: StdVec::null(),
+            unk2_vec: StdVec::null(),
+            unk3_vec: StdVec::null(),
+            unk2: [ptr::null(); 8],
+            entity_manager: ptr::null(),
+            event_manager: ptr::null(),
+            unk3: [ptr::null(); 6],
         }
     }
 }
@@ -475,14 +492,14 @@ impl BitSet<8> {
 pub struct ComponentSystemManager {
     pub update_order: StdVec<&'static ComponentSystem>,
     pub component_updaters: StdVec<&'static ComponentUpdater>,
-    pub component_vtables: StdMap<StdString, ComponentLuaVTable>,
+    pub component_vtables: StdMap<StdString, ComponentBufferInitVTable>,
     pub unk: [*const usize; 8],
     pub unk2: StdVec<*const usize>,
     pub unk3: [*const usize; 6],
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct ComponentLuaVTable {
+pub struct ComponentBufferInitVTable {
     unk: [*const usize; 16],
 }
 #[repr(C)]

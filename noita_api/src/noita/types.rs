@@ -297,7 +297,7 @@ impl<T> Default for StdVec<T> {
 }
 
 impl<T> StdVec<T> {
-    pub fn null() -> Self {
+    pub const fn null() -> Self {
         Self {
             start: ptr::null_mut(),
             end: ptr::null_mut(),

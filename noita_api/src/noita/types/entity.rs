@@ -797,9 +797,7 @@ impl EventManager {
             vtable: DEFE,
             unk1: 0,
             unk2: 0,
-            unk3: 0,
-            unk4: 0,
-            unk5: 0,
+            functions: StdVec::null(),
         }
     }
 }
@@ -817,9 +815,13 @@ pub struct EventManager {
     pub vtable: &'static EventManagerVTable,
     pub unk1: usize,
     pub unk2: usize,
-    pub unk3: usize,
-    pub unk4: usize,
-    pub unk5: usize,
+    pub functions: StdVec<Event>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct Event {
+    unk: usize,
+    func: *const usize,
 }
 #[allow(dead_code)]
 #[repr(C)]
