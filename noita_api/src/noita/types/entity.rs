@@ -18,8 +18,8 @@ impl EntityManager {
             unknown2: 0,
             tags: BitSet::default(),
             transform: Transform::default(),
-            children: std::ptr::null_mut(),
-            parent: std::ptr::null_mut(),
+            children: ptr::null_mut(),
+            parent: ptr::null_mut(),
         };
         let ent = heap::place_new_ref(ent);
         if let Some(entry) = self.free_ids.pop() {
@@ -570,7 +570,7 @@ impl Entity {
     }
     pub fn kill_safe(&mut self, inventory: &mut Inventory) {
         if inventory.wand_pickup == self {
-            inventory.wand_pickup = std::ptr::null_mut();
+            inventory.wand_pickup = ptr::null_mut();
             inventory.pickup_state = 0;
         }
         self.kill();

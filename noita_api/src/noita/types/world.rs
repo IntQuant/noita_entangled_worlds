@@ -554,7 +554,7 @@ pub struct PixelScene {
 pub struct GameWorld {
     pub cam: AABB,
     unknown1: [isize; 13],
-    pub grid_world: &'static mut GridWorld,
+    pub grid_world: *const GridWorld,
     pub pixel_scenes: &'static mut StdVec<PixelScene>,
     //likely more data
 }
