@@ -719,6 +719,13 @@ pub struct CharacterStatsModifier {
 }
 #[derive(Debug, Default)]
 #[repr(C)]
+pub struct VerletLink {
+    unk1: usize,
+    unk2: usize,
+    unk3: usize,
+}
+#[derive(Debug, Default)]
+#[repr(C)]
 pub struct VerletLinkArrayInline {
     field0_0x0: u8,
     field1_0x1: u8,
