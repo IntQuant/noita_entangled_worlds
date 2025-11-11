@@ -255,6 +255,11 @@ impl<const N: usize> Debug for CStr<N> {
     }
 }
 #[repr(C)]
+pub struct StdSet<T> {
+    pub a: T,
+    pub b: T,
+}
+#[repr(C)]
 pub struct StdVec<T> {
     pub start: *mut T,
     pub end: *mut T,
@@ -585,14 +590,7 @@ pub struct LensValue<T> {
 }
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct ValueRange {
-    pub min: f32,
-    pub max: f32,
-}
-
-#[derive(Debug, Default)]
-#[repr(C)]
-pub struct ValueRangeInt {
-    pub min: isize,
-    pub max: isize,
+pub struct ValueRange<T> {
+    pub min: T,
+    pub max: T,
 }
