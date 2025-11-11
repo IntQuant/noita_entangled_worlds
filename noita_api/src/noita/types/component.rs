@@ -1,10 +1,16 @@
 use crate::noita::types::EventManager;
 use crate::{
     heap,
-    noita::types::{
-        BitSet, CString, Component, Entity, EntityManager, StdMap, StdString, StdVec, TagManager,
-    },
+    noita::types::{BitSet, CString, Entity, EntityManager, StdMap, StdString, StdVec, TagManager},
 };
+use std::fmt::Debug;
+pub trait Component: Debug {
+    fn default(base: ComponentData) -> Self;
+    const VTABLE: &'static ComponentVTable;
+    const NAME: &'static str;
+    const C_NAME: CString;
+    const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
+}
 use std::ptr;
 #[repr(C)]
 #[derive(Debug)]

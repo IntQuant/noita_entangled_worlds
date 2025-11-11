@@ -1,11 +1,4 @@
 use crate::noita::types::*;
-pub trait Component: Debug {
-    fn default(base: ComponentData) -> Self;
-    const VTABLE: &'static ComponentVTable;
-    const NAME: &'static str;
-    const C_NAME: CString;
-    const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
-}
 impl Component for SetLightAlphaFromVelocityComponent {
     fn default(base: ComponentData) -> Self {
         Self {

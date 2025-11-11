@@ -255,7 +255,8 @@ impl<const N: usize> Debug for CStr<N> {
     }
 }
 #[repr(C)]
-pub struct StdSet<T> {
+#[derive(Debug, Default)]
+pub struct StdSet<T: Default + Debug> {
     pub a: T,
     pub b: T,
 }
