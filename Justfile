@@ -32,7 +32,7 @@ build_ext_debug:
 
 ##
 build_blob:
-    cd blob_guy && cargo +nightly build --release --target=i686-pc-windows-gnu -Zbuild-std="panic_abort,std" -Zbuild-std-features=panic_immediate_abort
+    cd blob_guy && cargo build --release --target=i686-pc-windows-gnu
     cp blob_guy/target/i686-pc-windows-gnu/release/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
 build_blob_debug:
     cd blob_guy && cargo build --target=i686-pc-windows-gnu

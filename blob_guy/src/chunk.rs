@@ -8,6 +8,7 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
 use std::ops::{Index, IndexMut};
+use std::ptr;
 use std::slice::{Iter, IterMut};
 #[derive(Debug)]
 pub struct Chunk {
@@ -231,6 +232,12 @@ impl ChunkOps for ParticleWorldState {
                     let world_x = x + i;
                     let world_y = y + j;
                     let cell = pixel_array.get_mut_raw(shift_x + i, shift_y + j);
+                    if !cell.is_null() {
+                        unsafe {
+                            heap::delete(cell);
+                        }
+                        *cell = ptr::null_mut();
+                    }
                     let new = heap::place_new_ref(*blob_cell.clone());
                     new.x = world_x;
                     new.y = world_y;
@@ -238,7 +245,13 @@ impl ChunkOps for ParticleWorldState {
                 }
                 CellType::Remove => {
                     let cell = pixel_array.get_mut_raw(shift_x + i, shift_y + j);
-                    *cell = std::ptr::null_mut();
+                    *cell = ptr::null_mut();
+                    if !cell.is_null() {
+                        unsafe {
+                            heap::delete(cell);
+                        }
+                        *cell = ptr::null_mut();
+                    }
                 }
                 _ => {}
             }
