@@ -4,7 +4,7 @@ use crossbeam::channel;
 use dashmap::DashMap;
 use fluent_templates::fluent_bundle::FluentValue;
 use steamworks::{
-    CallbackHandle, ClientManager, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
+    CallbackHandle, LobbyChatUpdate, LobbyId, LobbyType, SteamError, SteamId,
     networking_sockets::{ListenSocket, NetPollGroup},
     networking_types::{
         ListenSocketEvent, NetConnectionRealTimeInfo, NetworkingConnectionState,
@@ -79,8 +79,8 @@ pub struct InnerState {
 
 enum ConnectionState {
     AwaitingIncoming,
-    NetConnectionPending(steamworks::networking_sockets::NetConnection<ClientManager>),
-    NetConnection(steamworks::networking_sockets::NetConnection<ClientManager>),
+    NetConnectionPending(steamworks::networking_sockets::NetConnection),
+    NetConnection(steamworks::networking_sockets::NetConnection),
 }
 impl ConnectionState {
     fn switch_to_connected(&mut self) {
@@ -89,7 +89,7 @@ impl ConnectionState {
             *self = ConnectionState::NetConnection(conn);
         }
     }
-    fn connection(&self) -> Option<&steamworks::networking_sockets::NetConnection<ClientManager>> {
+    fn connection(&self) -> Option<&steamworks::networking_sockets::NetConnection> {
         if let ConnectionState::NetConnection(conn) = self {
             Some(conn)
         } else {
@@ -120,8 +120,8 @@ struct Connections {
     client: steamworks::Client,
 
     my_id: SteamId,
-    listen_socket: ListenSocket<ClientManager>,
-    poll_group: Mutex<NetPollGroup<ClientManager>>,
+    listen_socket: Mutex<ListenSocket>,
+    poll_group: Mutex<NetPollGroup>,
 
     peers: DashMap<SteamId, ConnectionState>,
     connected: Mutex<Vec<SteamId>>,
@@ -139,7 +139,7 @@ impl Connections {
             client: client.clone(),
 
             my_id,
-            listen_socket,
+            listen_socket: listen_socket.into(),
             poll_group,
 
             peers: Default::default(),
@@ -157,7 +157,7 @@ impl Connections {
     }
 
     fn poll_listener(&self) {
-        while let Some(event) = self.listen_socket.try_receive_event() {
+        while let Some(event) = self.listen_socket.lock().unwrap().try_receive_event() {
             match event {
                 ListenSocketEvent::Connecting(event) => {
                     info!("Peer {:?} connecting", event.remote());
@@ -298,7 +298,7 @@ impl Connections {
         self.peers.remove(&id);
     }
 
-    fn recv(&self) -> Vec<steamworks::networking_types::NetworkingMessage<ClientManager>> {
+    fn recv(&self) -> Vec<steamworks::networking_types::NetworkingMessage> {
         self.poll_group.lock().unwrap().receive_messages(1024)
     }
 
