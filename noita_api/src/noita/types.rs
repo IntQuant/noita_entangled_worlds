@@ -12,12 +12,11 @@ pub use entity::*;
 pub use misc::*;
 pub use objects::*;
 pub use platform::*;
-use std::alloc::Layout;
 use std::cmp::Ordering;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Index, IndexMut};
-use std::{alloc, ptr, slice};
+use std::{ptr, slice};
 pub use vftables::*;
 pub use world::*;
 
@@ -361,17 +360,16 @@ impl<T> StdVec<T> {
     fn alloc(&mut self, n: usize) {
         if self.cap < unsafe { self.end.add(n) } {
             let old_len = self.len();
-            let old_cap = self.capacity();
-            let new_cap = if old_cap == 0 { 4 } else { old_cap * 2 }; //TODO deal with n > 1
-            let layout = Layout::array::<T>(new_cap).unwrap();
-            let new_ptr = unsafe { alloc::alloc(layout) }.cast();
+            let new_cap = (old_len + n).next_power_of_two();
+            let new_ptr = heap::raw_new(new_cap * size_of::<T>());
             if old_len > 0 {
                 unsafe {
                     ptr::copy_nonoverlapping(self.start, new_ptr, old_len);
                 }
-                let old_layout = Layout::array::<T>(old_cap).unwrap();
+            }
+            if !self.start.is_null() {
                 unsafe {
-                    alloc::dealloc(self.start.cast(), old_layout);
+                    heap::delete(self.start);
                 }
             }
             self.start = new_ptr;
@@ -385,7 +383,7 @@ impl<T> StdVec<T> {
         v
     }
     pub fn new() -> StdVec<T> {
-        Self::with_capacity(1)
+        Self::with_capacity(4)
     }
     pub fn push(&mut self, value: T) {
         self.alloc(1);
@@ -430,6 +428,35 @@ impl<T> StdVec<T> {
             ret
         }
     }
+}
+impl<T> Drop for StdVec<T> {
+    fn drop(&mut self) {
+        if !self.start.is_null() {
+            unsafe {
+                heap::delete(self.start);
+            }
+        }
+    }
+}
+#[test]
+fn test_stdvec() {
+    let mut v = StdVec::<u8>::null();
+    assert_eq!(v.capacity(), 0);
+    assert_eq!(v.len(), 0);
+    v.alloc(1);
+    assert_eq!(v.capacity(), 1);
+    assert_eq!(v.len(), 0);
+    let mut v = StdVec::<usize>::new();
+    v.push(1usize);
+    v.push(2usize);
+    v.push(3usize);
+    v.push(4usize);
+    v.push(5usize);
+    for (i, l) in std::hint::black_box(&v).iter().enumerate() {
+        assert_eq!(i, *l);
+    }
+    assert_eq!(v.capacity(), 8);
+    std::hint::black_box(v);
 }
 
 #[repr(C)]

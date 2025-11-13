@@ -1,9 +1,10 @@
+use std::os::raw::{c_uint, c_void};
 use std::sync::LazyLock;
 
 struct Msvcr {
-    op_new: unsafe extern "C" fn(n: std::os::raw::c_uint) -> *mut std::os::raw::c_void,
-    op_delete: unsafe extern "C" fn(*const std::os::raw::c_void),
-    // op_delete_array: unsafe extern "C" fn(*const std::os::raw::c_void),
+    op_new: unsafe extern "C" fn(n: c_uint) -> *mut c_void,
+    op_delete: unsafe extern "C" fn(*mut c_void),
+    // op_delete_array: unsafe extern "C" fn(*mut c_void),
 }
 
 static MSVCR: LazyLock<Msvcr> = LazyLock::new(|| unsafe {
@@ -19,16 +20,16 @@ static MSVCR: LazyLock<Msvcr> = LazyLock::new(|| unsafe {
 });
 
 /// Allocate some memory, using the same allocator noita uses.
-pub fn raw_new(size: usize) -> *mut std::os::raw::c_void {
-    let size = size as std::os::raw::c_uint;
+pub fn raw_new<T>(size: usize) -> *mut T {
+    let size = size as c_uint;
     assert!(size > 0, "Doesn't make sense to allocate memory of size 0");
-    unsafe { (MSVCR.op_new)(size) }
+    unsafe { (MSVCR.op_new)(size).cast() }
 }
 
 /// Allocates memory using noita's allocator and moves *value* to it.
 pub fn place_new<T>(value: T) -> *mut T {
     let size = size_of::<T>();
-    let place = raw_new(size) as *mut T;
+    let place = raw_new::<T>(size);
     unsafe {
         place.copy_from_nonoverlapping(&value, size);
     }
@@ -37,12 +38,12 @@ pub fn place_new<T>(value: T) -> *mut T {
 
 /// Same as place_new, but returns &'static mut
 pub fn place_new_ref<T>(value: T) -> &'static mut T {
-    unsafe { &mut *place_new(value) }
+    unsafe { place_new(value).as_mut().unwrap() }
 }
 
 /// # Safety
 ///
 /// Pointer has to be non null, allocated by noita's allocator, and not yet freed.
-pub unsafe fn delete<T>(pointer: *const T) {
+pub unsafe fn delete<T>(pointer: *mut T) {
     unsafe { (MSVCR.op_delete)(pointer.cast()) }
 }
