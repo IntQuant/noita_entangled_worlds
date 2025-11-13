@@ -4,6 +4,7 @@ mod entity;
 mod misc;
 mod objects;
 mod platform;
+mod vftables;
 mod world;
 pub use component::*;
 pub use component_data::*;
@@ -17,6 +18,7 @@ use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Index, IndexMut};
 use std::{alloc, ptr, slice};
+pub use vftables::*;
 pub use world::*;
 
 use crate::heap;

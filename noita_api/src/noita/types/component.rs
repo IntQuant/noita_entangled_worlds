@@ -1,21 +1,21 @@
-use crate::noita::types::EventManager;
+use crate::noita::types::{ComponentVFTable, EventManager, VFTable};
 use crate::{
     heap,
     noita::types::{BitSet, CString, Entity, EntityManager, StdMap, StdString, StdVec, TagManager},
 };
 use std::fmt::Debug;
+use std::ptr;
 pub trait Component: Debug {
     fn default(base: ComponentData) -> Self;
-    const VTABLE: &'static ComponentVTable;
+    const VTABLE: *const ComponentVFTable;
     const NAME: &'static str;
     const C_NAME: CString;
     const STD_NAME: &'static StdString = &StdString::from_str(Self::NAME);
 }
-use std::ptr;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ComponentData {
-    pub vtable: &'static ComponentVTable,
+    pub vtable: *const ComponentVFTable,
     pub local_id: usize,
     pub type_name: CString,
     pub type_id: usize,
@@ -26,48 +26,19 @@ pub struct ComponentData {
     unk3: StdVec<usize>,
     unk4: usize,
 }
-const DEF: &ComponentVTable = &ComponentVTable::default_const();
 impl Default for ComponentData {
     fn default() -> Self {
         Self {
-            vtable: DEF,
-            local_id: 0,
+            vtable: ComponentVFTable::VFTABLE_PTR.cast(),
+            local_id: usize::MAX,
             type_name: CString(ptr::null()),
             type_id: 0,
             id: 0,
-            enabled: false,
+            enabled: true,
             unk2: [0; 3],
-            tags: Default::default(),
+            tags: BitSet::default(),
             unk3: StdVec::null(),
             unk4: 0,
-        }
-    }
-}
-#[allow(dead_code)]
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct ComponentVTable {
-    //TODO should be a union
-    unk0: *const usize,
-    unk1: *const usize,
-    unk2: *const usize,
-    unk3: *const usize,
-    unk4: *const usize,
-    unk5: *const usize,
-    unk6: *const usize,
-    unk7: *const usize,
-}
-impl ComponentVTable {
-    pub const fn default_const() -> Self {
-        Self {
-            unk0: ptr::null(),
-            unk1: ptr::null(),
-            unk2: ptr::null(),
-            unk3: ptr::null(),
-            unk4: ptr::null(),
-            unk5: ptr::null(),
-            unk6: ptr::null(),
-            unk7: ptr::null(),
         }
     }
 }
@@ -208,16 +179,12 @@ impl ComponentBuffer {
         type_id: usize,
     ) -> &'static mut C {
         let com = C::default(ComponentData {
-            vtable: C::VTABLE,
+            vtable: unsafe { C::VTABLE.as_ref().unwrap() },
             local_id: self.component_list.len(),
             type_name: C::C_NAME,
             type_id,
             id,
-            enabled: false,
-            unk2: [0; 3],
-            tags: Default::default(),
-            unk3: StdVec::null(),
-            unk4: 0,
+            ..Default::default()
         });
         let com = heap::place_new(com);
         let index = self.component_list.len();
