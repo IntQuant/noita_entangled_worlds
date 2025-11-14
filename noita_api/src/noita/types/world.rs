@@ -436,11 +436,12 @@ impl GasCell {
     ) -> Self {
         let (bool, lifetime) = if let Some(world) = unsafe { world.as_mut() } {
             let life = ((mat.lifetime as f32 * 0.3) as u64).max(1);
-            world.rng *= 0x343fd;
-            world.rng += 0x269ec3;
+            world.rng = world.rng.wrapping_mul(0x343fd);
+            world.rng = world.rng.wrapping_add(0x269ec3);
             (
                 (world.rng >> 0x10 & 0x7fff) % 0x65 < 0x32,
-                (((world.rng >> 0x10 & 0x7fff) as u64 % (life * 2 + 1)) - life) as isize,
+                (((world.rng >> 0x10 & 0x7fff) as u64 % (life * 2 + 1)).wrapping_sub(life))
+                    as isize,
             )
         } else {
             (false, -1)
@@ -886,6 +887,6 @@ pub struct B2Object {}
 #[repr(C)]
 #[derive(Debug)]
 pub struct DeathMatch {
-    vtables: [*const usize;7],
-    unk: [*const usize;45]
+    vtables: [*const usize; 7],
+    unk: [*const usize; 45],
 }

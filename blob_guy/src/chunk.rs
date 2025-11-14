@@ -245,7 +245,6 @@ impl ChunkOps for ParticleWorldState {
                 }
                 CellType::Remove => {
                     let cell = pixel_array.get_mut_raw(shift_x + i, shift_y + j);
-                    *cell = ptr::null_mut();
                     if !cell.is_null() {
                         unsafe {
                             heap::delete(cell);
