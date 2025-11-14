@@ -166,16 +166,16 @@ impl ChunkOps for ParticleWorldState {
             .zip(chunk.iter_mut())
         {
             *pixel = if let Some(cell) = pixel_array.get(shift_x + i, shift_y + j) {
-                match cell.material.cell_type {
+                match cell.material.unwrap().cell_type {
                     types::CellType::Liquid => {
-                        if cell.material.material_type as u16 == blob {
+                        if cell.material.unwrap().material_type as u16 == blob {
                             modified = true;
                             CellType::Remove
                         } else {
                             let lcell = cell.get_liquid();
                             if lcell.is_static {
                                 CellType::Solid
-                            } else if cell.material.liquid_sand {
+                            } else if cell.material.unwrap().liquid_sand {
                                 CellType::Sand
                             } else {
                                 CellType::Liquid

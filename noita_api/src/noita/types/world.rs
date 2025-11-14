@@ -335,7 +335,7 @@ pub struct Cell {
     pub is_burning: bool,
     pub temperature_of_fire: u8,
     unknown2: [u8; 2],
-    pub material: &'static CellData,
+    pub material: Option<&'static CellData>,
 }
 
 unsafe impl Sync for Cell {}
@@ -352,7 +352,7 @@ pub enum FullCell {
 }
 impl From<&Cell> for FullCell {
     fn from(value: &Cell) -> Self {
-        match value.material.cell_type {
+        match value.material.unwrap().cell_type {
             CellType::Liquid => FullCell::LiquidCell(*value.get_liquid()),
             CellType::Fire => FullCell::FireCell(*value.get_fire()),
             CellType::Gas => FullCell::GasCell(*value.get_gas()),
@@ -391,8 +391,8 @@ impl FireCell {
         world: *mut GridWorld,
     ) -> Self {
         let lifetime = if let Some(world) = unsafe { world.as_mut() } {
-            world.rng *= 0x343fd;
-            world.rng += 0x269ec3;
+            world.rng = world.rng.wrapping_mul(0x343fd);
+            world.rng = world.rng.wrapping_add(0x269ec3);
             (world.rng >> 0x10 & 0x7fff) % 0x15
         } else {
             -1
@@ -498,9 +498,9 @@ impl LiquidCell {
             && let Some(world) = (unsafe { world.as_mut() })
         {
             let life = ((mat.lifetime as f32 * 0.3) as u64).max(1);
-            world.rng *= 0x343fd;
-            world.rng += 0x269ec3;
-            (((world.rng >> 0x10 & 0x7fff) as u64 % (life * 2 + 1)) - life) as isize
+            world.rng = world.rng.wrapping_mul(0x343fd);
+            world.rng = world.rng.wrapping_add(0x269ec3);
+            (((world.rng >> 0x10 & 0x7fff) as u64 % (life * 2 + 1)).wrapping_sub(life)) as isize
         } else {
             -1
         };
@@ -534,7 +534,7 @@ impl Cell {
             is_burning: material.on_fire,
             temperature_of_fire: material.temperature_of_fire as u8,
             unknown2: [0, 0],
-            material,
+            material: Some(material),
         }
     }
 }
@@ -718,17 +718,20 @@ impl Chunk {
     #[inline]
     pub fn get_pixel(&self, x: isize, y: isize) -> Pixel {
         if let Some(cell) = self.get(x, y) {
-            if cell.material.cell_type == CellType::Liquid {
+            if cell.material.unwrap().cell_type == CellType::Liquid {
                 Pixel::new(
-                    cell.material.material_type as u16,
-                    if cell.get_liquid().is_static == cell.material.liquid_static {
+                    cell.material.unwrap().material_type as u16,
+                    if cell.get_liquid().is_static == cell.material.unwrap().liquid_static {
                         PixelFlags::Normal
                     } else {
                         PixelFlags::Abnormal
                     },
                 )
             } else {
-                Pixel::new(cell.material.material_type as u16, PixelFlags::Normal)
+                Pixel::new(
+                    cell.material.unwrap().material_type as u16,
+                    PixelFlags::Normal,
+                )
             }
         } else {
             Pixel::new(0, PixelFlags::Normal)
@@ -784,7 +787,8 @@ impl Debug for Chunk {
                     .iter()
                     .enumerate()
                     .filter_map(|(i, a)| {
-                        unsafe { a.as_ref() }.map(|a| (i % 512, i / 512, a.material.material_type))
+                        unsafe { a.as_ref() }
+                            .map(|a| (i % 512, i / 512, a.material.unwrap().material_type))
                     })
                     .collect::<Vec<_>>(),
             )

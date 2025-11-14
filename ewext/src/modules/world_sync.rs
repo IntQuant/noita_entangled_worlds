@@ -150,11 +150,11 @@ impl WorldData for ParticleWorldState {
             if !cell.is_null() {
                 let cell = unsafe { &**cell };
                 // Don't touch box2d stuff.
-                if cell.material.cell_type == CellType::Solid {
+                if cell.material.unwrap().cell_type == CellType::Solid {
                     continue;
                 }
                 // No point replacing cells with themselves.
-                if cell.material.material_type == pixel.mat() as isize {
+                if cell.material.unwrap().material_type == pixel.mat() as isize {
                     continue;
                 }
             }
