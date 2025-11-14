@@ -27,7 +27,6 @@ pub(crate) enum NetMsg {
     PlayerColor(PlayerPngDesc, bool, Option<OmniPeerId>, String),
     RemoteMsg(shared::RemoteMessage),
     ForwardDesToProxy(shared::des::DesToProxy),
-    ForwardWorldSyncToProxy(shared::world_sync::WorldSyncToProxy),
     ForwardProxyToDes(shared::des::ProxyToDes),
     ForwardProxyToWorldSync(shared::world_sync::ProxyToWorldSync),
     NoitaDisconnected,

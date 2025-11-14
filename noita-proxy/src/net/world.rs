@@ -221,6 +221,7 @@ impl WorldManager {
         let (sendm, rxm) = mpsc::channel::<FxHashMap<u16, u32>>();
         let (tx, recv) = mpsc::channel::<(ChunkCoord, ChunkData)>();
         let (tsx, recv2) = mpsc::channel::<(ChunkCoord, ChunkData)>();
+        debug!("My peer id: {my_peer_id:?}");
         thread::spawn(move || {
             let mut mats = Default::default();
             let mut chunks = Vec::new();
@@ -465,14 +466,18 @@ impl WorldManager {
         ) -> bool {
             let (x, y) = my_pos;
             let (cx, cy) = cam_pos;
-            if (x - cx).abs() > 2 || (y - cy).abs() > 2 {
+            let result = if (x - cx).abs() > 2 || (y - cy).abs() > 2 {
                 !(chx <= x + 2 && chx >= x - 2 && chy <= y + 2 && chy >= y - 2
                     || chx <= cx + 2 && chx >= cx - 2 && chy <= cy + 2 && chy >= cy - 2)
             } else if is_notplayer {
                 !(chx <= x + 2 && chx >= x - 2 && chy <= y + 2 && chy >= y - 2)
             } else {
                 !(chx <= x + 3 && chx >= x - 3 && chy <= y + 3 && chy >= y - 3)
+            };
+            if result {
+                debug!("[should kill] {my_pos:?} {cam_pos:?} {chx} {chy} {is_notplayer} {result}");
             }
+            result
         }
         let mut emit_queue = Vec::new();
         for (&chunk, state) in self.chunk_state.iter_mut() {
@@ -497,17 +502,7 @@ impl WorldManager {
                     debug!("Requested authority for {chunk:?}")
                 }
                 // This state doesn't have much to do.
-                ChunkState::WaitingForAuthority => {
-                    if should_kill(
-                        self.my_pos,
-                        self.cam_pos,
-                        chunk.0,
-                        chunk.1,
-                        self.is_notplayer,
-                    ) {
-                        *state = ChunkState::UnloadPending;
-                    }
-                }
+                ChunkState::WaitingForAuthority => {}
                 ChunkState::Listening { authority, .. } => {
                     if should_kill(
                         self.my_pos,

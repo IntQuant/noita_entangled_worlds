@@ -718,7 +718,6 @@ impl NetManager {
         sendm: &Sender<FxHashMap<u16, u32>>,
     ) {
         match net_msg {
-            NetMsg::ForwardWorldSyncToProxy(msg) => state.world.handle_noita_msg(src, msg),
             NetMsg::ForwardProxyToWorldSync(msg) => {
                 state.try_ms_write(&NoitaInbound::ProxyToWorldSync(msg));
             }
@@ -1169,19 +1168,9 @@ impl NetManager {
                     );
                 }
             }
-            NoitaOutbound::WorldSyncToProxy(world_sync_msg) => {
-                if self.is_host() {
-                    state
-                        .world
-                        .handle_noita_msg(self.peer.my_id(), world_sync_msg)
-                } else {
-                    self.send(
-                        self.peer.host_id(),
-                        &NetMsg::ForwardWorldSyncToProxy(world_sync_msg),
-                        Reliability::Reliable,
-                    );
-                }
-            }
+            NoitaOutbound::WorldSyncToProxy(world_sync_msg) => state
+                .world
+                .handle_noita_msg(self.peer.my_id(), world_sync_msg),
             NoitaOutbound::RemoteMessage {
                 reliable,
                 destination,
