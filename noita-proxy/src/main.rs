@@ -45,17 +45,23 @@ async fn main() {
 
     let (non_blocking_writer, _guard) = tracing_appender::non_blocking(writer);
 
-    let my_subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_env_filter(
-            EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
-                .from_env_lossy(),
-        )
-        .with_writer(non_blocking_writer)
-        .with_ansi(false)
-        .finish();
-
-    tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
+    let my_subscriber = tracing_subscriber::FmtSubscriber::builder().with_env_filter(
+        EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .from_env_lossy(),
+    );
+    if cfg!(debug_assertions) {
+        let my_subscriber = my_subscriber.finish();
+        tracing::subscriber::set_global_default(my_subscriber)
+            .expect("setting tracing default failed");
+    } else {
+        let my_subscriber = my_subscriber
+            .with_writer(non_blocking_writer)
+            .with_ansi(false)
+            .finish();
+        tracing::subscriber::set_global_default(my_subscriber)
+            .expect("setting tracing default failed");
+    }
 
     panic::set_hook(Box::new(|info| {
         let mut payload = "no panic payload available".to_string();
