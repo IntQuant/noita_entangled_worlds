@@ -250,8 +250,8 @@ fn with_every_module(
     })?
 }
 
-fn module_on_world_init(lua: LuaState) -> eyre::Result<()> {
-    ExtState::with_global(|state| state.globals = Globals::new(lua))?;
+fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
+    ExtState::with_global(|state| state.globals = Globals::default())?;
     with_every_module(|ctx, module| module.on_world_init(ctx))
 }
 
