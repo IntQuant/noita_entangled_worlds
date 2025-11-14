@@ -1,8 +1,4 @@
-use crate::noita::types::{
-    ComponentSystemManager, ComponentTypeManager, Entity, EntityManager, EventManager, GameGlobal,
-    GlobalStats, Inventory, Mods, Platform, StdString, StdVec, TagManager, TranslationManager,
-    WorldStateComponent,
-};
+use crate::noita::types::*;
 // This only stores pointers that are constant, so should be safe to share between threads.
 unsafe impl Sync for Globals {}
 unsafe impl Send for Globals {}
@@ -106,5 +102,6 @@ make_globals!(
     (component_manager, 0x012236e8, false, ComponentSystemManager),
     (world_state, 0x01204bd0, true, Entity),
     (world_state_component, 0x01205010, true, WorldStateComponent),
-    (event_manager, 0x01204b34, true, EventManager)
+    (event_manager, 0x01204b34, true, EventManager),
+    (death_match, 0x01204bc0, true, DeathMatch)
 );

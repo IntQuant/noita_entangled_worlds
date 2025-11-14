@@ -882,3 +882,10 @@ pub struct GridWorld {
 #[repr(C)]
 #[derive(Debug)]
 pub struct B2Object {}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DeathMatch {
+    vtables: [*const usize;7],
+    unk: [*const usize;45]
+}
