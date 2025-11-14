@@ -41,6 +41,8 @@ else
     ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
 end
 
+util.add_cross_call("ewext_breakpoint", ewext.lua_breakpoint)
+
 util.add_cross_call("ew_per_peer_seed", function()
     return tonumber(string.sub(ctx.my_id, 8, 12), 16), tonumber(string.sub(ctx.my_id, 12), 16)
 end)

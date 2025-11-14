@@ -350,6 +350,12 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     Ok(())
 }
 
+fn lua_breakpoint(_lua: LuaState) {
+    unsafe {
+        std::arch::asm!("int 3");
+    }
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.
@@ -410,6 +416,8 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
         add_lua_fn!(module_on_world_update);
         add_lua_fn!(module_on_new_entity);
         add_lua_fn!(module_on_projectile_fired);
+
+        add_lua_fn!(lua_breakpoint);
 
         fn sync_projectile(lua: LuaState) -> eyre::Result<()> {
             ExtState::with_global(|state| {
