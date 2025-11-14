@@ -116,6 +116,7 @@ impl LocalDiffModel {
                             drops_gold: current.drops_gold,
                             is_charmed: current.is_charmed(),
                             hp: current.hp,
+                            max_hp: current.max_hp,
                             counter: current.counter,
                             phys: current.phys.clone(),
                             synced_var: current.synced_var.clone(),
@@ -154,6 +155,7 @@ impl LocalDiffModel {
                         drops_gold: current.drops_gold,
                         is_charmed: current.is_charmed(),
                         hp: current.hp,
+                        max_hp: current.max_hp,
                         counter: current.counter,
                         phys: current.phys.clone(),
                         synced_var: current.synced_var.clone(),
@@ -423,8 +425,8 @@ impl LocalDiffModelTracker {
         if let Some(damage) =
             entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
         {
-            let hp = damage.hp()?;
-            info.hp = hp as f32;
+            info.hp = damage.hp()? as f32;
+            info.max_hp = damage.max_hp()? as f32;
         }
 
         if entity_manager.check_all_phys_init()? {
@@ -749,6 +751,7 @@ impl LocalDiffModelTracker {
                     drops_gold: info.drops_gold,
                     is_charmed: info.is_charmed(),
                     hp: info.hp,
+                    max_hp: info.max_hp,
                     counter: info.counter,
                     phys: info.phys.clone(),
                     synced_var: info.synced_var.clone(),
@@ -947,6 +950,7 @@ impl LocalDiffModel {
                     vx: 0.0,
                     vy: 0.0,
                     hp: 1.0,
+                    max_hp: 1.0,
                     phys: Vec::new(),
                     cost: 0,
                     game_effects: Vec::new(),
@@ -1079,12 +1083,7 @@ impl LocalDiffModel {
                 && let Some(damage) = entity_manager
                     .try_get_first_component::<DamageModelComponent>(ComponentTag::None)
             {
-                if entity_data.hp > damage.max_hp_cap()? as f32 {
-                    damage.set_max_hp_cap(entity_data.hp as f64)?;
-                }
-                if entity_data.hp > damage.max_hp()? as f32 {
-                    damage.set_max_hp(entity_data.hp as f64)?;
-                }
+                damage.set_max_hp(entity_data.max_hp as f64)?;
                 damage.set_hp(entity_data.hp as f64)?;
             }
             if !entity_data.drops_gold {
@@ -1278,6 +1277,14 @@ impl LocalDiffModel {
                         &current.hp,
                         &mut last.hp,
                         || EntityUpdate::SetHp(current.hp),
+                        &mut self.update_buffer,
+                        &mut had_any_delta,
+                        lid,
+                    );
+                    diff(
+                        &current.max_hp,
+                        &mut last.max_hp,
+                        || EntityUpdate::SetMaxHp(current.max_hp),
                         &mut self.update_buffer,
                         &mut had_any_delta,
                         lid,
@@ -1583,6 +1590,7 @@ impl RemoteDiffModel {
                 EntityUpdate::SetRotation(r) => ent_data.r = r,
                 EntityUpdate::SetVelocity(vx, vy) => (ent_data.vx, ent_data.vy) = (vx, vy),
                 EntityUpdate::SetHp(hp) => ent_data.hp = hp,
+                EntityUpdate::SetMaxHp(max_hp) => ent_data.max_hp = max_hp,
                 EntityUpdate::SetFacingDirection(direction) => {
                     ent_data.facing_direction = direction
                 }
@@ -1791,9 +1799,8 @@ impl RemoteDiffModel {
         if let Some(damage) =
             entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
         {
-            if entity_info.hp > damage.max_hp()? as f32 {
-                damage.set_max_hp(entity_info.hp as f64)?
-            }
+            damage.set_max_hp(entity_info.max_hp as f64)?;
+
             let current_hp = damage.hp()? as f32;
             if current_hp > entity_info.hp {
                 let old = damage.object_get_value::<f64>("damage_multipliers", "curse")?;

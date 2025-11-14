@@ -38,6 +38,7 @@ pub struct FullEntityData {
     pub wand: Option<Vec<u8>>,
     //pub rotation: f32,
     pub hp: f32,
+    pub max_hp: f32,
     pub drops_gold: bool,
     pub is_charmed: bool,
     pub counter: u8,
@@ -124,6 +125,7 @@ pub struct EntityInfo {
     pub vx: f32,
     pub vy: f32,
     pub hp: f32,
+    pub max_hp: f32,
     pub phys: Vec<Option<PhysBodyInfo>>,
     pub cost: i64,
     pub game_effects: Vec<GameEffectData>,
@@ -170,6 +172,7 @@ pub enum EntityUpdate {
     SetRotation(f32),
     SetVelocity(f32, f32),
     SetHp(f32),
+    SetMaxHp(f32),
     SetPhysInfo(Vec<Option<PhysBodyInfo>>),
     // TODO...
     RemoveEntity(Lid),
