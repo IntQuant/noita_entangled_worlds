@@ -1,3 +1,4 @@
+use crate::addr_grabber::Globals;
 use crate::heap;
 use crate::heap::Ptr;
 use crate::noita::types::objects::{ConfigExplosion, ConfigGridCosmeticParticle};
@@ -5,6 +6,7 @@ use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
 use shared::world_sync::{Pixel, PixelFlags};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
+use std::ptr::null_mut;
 use std::slice;
 #[repr(usize)]
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
@@ -366,6 +368,9 @@ impl Cell {
     pub fn get_liquid(&self) -> &LiquidCell {
         unsafe { std::mem::transmute::<&Cell, &LiquidCell>(self) }
     }
+    unsafe fn get_liquid_mut(&mut self) -> &mut LiquidCell {
+        unsafe { std::mem::transmute::<&mut Cell, &mut LiquidCell>(self) }
+    }
     pub fn get_fire(&self) -> &FireCell {
         unsafe { std::mem::transmute::<&Cell, &FireCell>(self) }
     }
@@ -483,7 +488,7 @@ pub struct LiquidCell {
     pub color: Color,
     pub original_color: Color,
     lifetime: isize,
-    unknown8: isize,
+    vegetation_sprite: *mut c_void,
 }
 
 impl LiquidCell {
@@ -521,8 +526,22 @@ impl LiquidCell {
             color,
             original_color: color,
             lifetime,
-            unknown8: 0,
+            vegetation_sprite: null_mut(),
         }
+    }
+
+    fn remove_vegetation_if_it_exists(&mut self) {
+        if !self.vegetation_sprite.is_null() {
+            unsafe {
+                (Globals::default()
+                    .game_global_mut()
+                    .m_grid_world
+                    .vtable
+                    .remove_vegetation
+                    .unwrap())(self, self.vegetation_sprite)
+            }
+        }
+        self.vegetation_sprite = null_mut();
     }
 }
 
@@ -735,6 +754,19 @@ impl Chunk {
             Pixel::new(0, PixelFlags::Normal)
         }
     }
+    #[inline]
+    pub fn remove_pixel(&mut self, x: isize, y: isize) {
+        let cell = self.get_mut_raw(x, y);
+        if let Some(cell) = unsafe { cell.as_mut() } {
+            if cell.material.cell_type == CellType::Liquid {
+                let liquid_cell = unsafe { cell.get_liquid_mut() };
+                liquid_cell.remove_vegetation_if_it_exists();
+            }
+        }
+        unsafe {
+            cell.delete();
+        }
+    }
 }
 
 #[repr(C)]
@@ -816,10 +848,11 @@ impl ChunkMap {
 #[derive(Debug)]
 pub struct GridWorldVTable {
     //ptr is 0x10013bc
-    pub unknown: [*const ThiscallFn; 3],
-    pub get_chunk_map: *const ThiscallFn,
-    pub unknownmagic: *const ThiscallFn,
-    pub unknown2: [*const ThiscallFn; 29],
+    pub unknown: [*const ThiscallFn; 3],   // 0
+    pub get_chunk_map: *const ThiscallFn,  // 3
+    pub unknownmagic: *const ThiscallFn,   // 4
+    pub unknown2: [*const ThiscallFn; 30], // 5
+    pub remove_vegetation: Option<unsafe extern "stdcall" fn(*mut LiquidCell, *mut c_void)>, // 35
 }
 
 #[repr(C)]

@@ -161,9 +161,9 @@ impl WorldData for ParticleWorldState {
             let xs = start_x + x;
             let ys = start_y + y;
             // Drop first
-            unsafe {
-                cell.delete();
-            }
+            pixel_array.remove_pixel(shift_x + x, shift_y + y);
+
+            let cell = pixel_array.get_mut_raw(shift_x + x, shift_y + y);
             if pixel.is_air() {
                 *cell = Ptr::null();
             } else {
@@ -237,7 +237,8 @@ pub fn test_world() {
             unknown: [ptr::null(); 3],
             get_chunk_map: ptr::null(),
             unknownmagic: ptr::null(),
-            unknown2: [ptr::null(); 29],
+            unknown2: [ptr::null(); 30],
+            remove_vegetation: None,
         },
         rng: 0,
         unk: [0; 292],

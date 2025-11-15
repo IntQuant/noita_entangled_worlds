@@ -15,5 +15,9 @@
     "spellright.documentTypes": [
         "markdown",
         "latex"
+    ],
+    "rust-analyzer.linkedProjects": [
+        "ewext/Cargo.toml",
+        "noita-proxy/Cargo.toml",
     ]
 }

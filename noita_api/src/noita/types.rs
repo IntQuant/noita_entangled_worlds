@@ -602,6 +602,7 @@ impl<K: 'static + Ord, V: 'static> StdMap<K, V> {
 
 #[repr(transparent)]
 pub struct ThiscallFn(c_void);
+
 #[derive(Debug, Default)]
 #[repr(C)]
 pub struct LensValueBool {
