@@ -43,7 +43,7 @@ impl Chunks {
         start: ChunkPos,
     ) -> eyre::Result<()> {
         self.0
-            .par_iter_mut()
+            .iter_mut()
             .enumerate()
             .try_for_each(|(i, chunk)| unsafe {
                 let x = i as isize / CHUNK_AMOUNT as isize + start.x;
@@ -166,16 +166,16 @@ impl ChunkOps for ParticleWorldState {
             .zip(chunk.iter_mut())
         {
             *pixel = if let Some(cell) = pixel_array.get(shift_x + i, shift_y + j) {
-                match cell.material.unwrap().cell_type {
+                match cell.material.cell_type {
                     types::CellType::Liquid => {
-                        if cell.material.unwrap().material_type as u16 == blob {
+                        if cell.material.material_type as u16 == blob {
                             modified = true;
                             CellType::Remove
                         } else {
                             let lcell = cell.get_liquid();
                             if lcell.is_static {
                                 CellType::Solid
-                            } else if cell.material.unwrap().liquid_sand {
+                            } else if cell.material.liquid_sand {
                                 CellType::Sand
                             } else {
                                 CellType::Liquid

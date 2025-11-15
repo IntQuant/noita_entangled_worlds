@@ -43,7 +43,7 @@ impl Module for WorldSync {
         }
 
         let updates = (0..9)
-            .into_par_iter()
+            .into_iter()
             .filter_map(|i| {
                 let dx = i % 3;
                 let dy = i / 3;
@@ -89,7 +89,7 @@ impl WorldSync {
         match msg {
             ProxyToWorldSync::Updates(updates) => {
                 // TODO should check that updates don't touch the same chunk
-                updates.into_par_iter().for_each(|chunk| unsafe {
+                updates.into_iter().for_each(|chunk| unsafe {
                     let _ = self
                         .particle_world_state
                         .assume_init_ref()
@@ -150,11 +150,11 @@ impl WorldData for ParticleWorldState {
             if !cell.is_null() {
                 let cell = unsafe { &**cell };
                 // Don't touch box2d stuff.
-                if cell.material.unwrap().cell_type == CellType::Solid {
+                if cell.material.cell_type == CellType::Solid {
                     continue;
                 }
                 // No point replacing cells with themselves.
-                if cell.material.unwrap().material_type == pixel.mat() as isize {
+                if cell.material.material_type == pixel.mat() as isize {
                     continue;
                 }
             }

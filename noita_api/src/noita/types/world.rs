@@ -1,6 +1,6 @@
-use crate::heap;
 use crate::noita::types::objects::{ConfigExplosion, ConfigGridCosmeticParticle};
 use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
+use crate::{heap, print};
 use shared::world_sync::{Pixel, PixelFlags};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
@@ -335,7 +335,7 @@ pub struct Cell {
     pub is_burning: bool,
     pub temperature_of_fire: u8,
     unknown2: [u8; 2],
-    pub material: Option<&'static CellData>,
+    pub material: &'static CellData,
 }
 
 unsafe impl Sync for Cell {}
@@ -352,7 +352,7 @@ pub enum FullCell {
 }
 impl From<&Cell> for FullCell {
     fn from(value: &Cell) -> Self {
-        match value.material.unwrap().cell_type {
+        match value.material.cell_type {
             CellType::Liquid => FullCell::LiquidCell(*value.get_liquid()),
             CellType::Fire => FullCell::FireCell(*value.get_fire()),
             CellType::Gas => FullCell::GasCell(*value.get_gas()),
@@ -534,7 +534,7 @@ impl Cell {
             is_burning: material.on_fire,
             temperature_of_fire: material.temperature_of_fire as u8,
             unknown2: [0, 0],
-            material: Some(material),
+            material,
         }
     }
 }
@@ -718,20 +718,17 @@ impl Chunk {
     #[inline]
     pub fn get_pixel(&self, x: isize, y: isize) -> Pixel {
         if let Some(cell) = self.get(x, y) {
-            if cell.material.unwrap().cell_type == CellType::Liquid {
+            if cell.material.cell_type == CellType::Liquid {
                 Pixel::new(
-                    cell.material.unwrap().material_type as u16,
-                    if cell.get_liquid().is_static == cell.material.unwrap().liquid_static {
+                    cell.material.material_type as u16,
+                    if cell.get_liquid().is_static == cell.material.liquid_static {
                         PixelFlags::Normal
                     } else {
                         PixelFlags::Abnormal
                     },
                 )
             } else {
-                Pixel::new(
-                    cell.material.unwrap().material_type as u16,
-                    PixelFlags::Normal,
-                )
+                Pixel::new(cell.material.material_type as u16, PixelFlags::Normal)
             }
         } else {
             Pixel::new(0, PixelFlags::Normal)
@@ -787,8 +784,7 @@ impl Debug for Chunk {
                     .iter()
                     .enumerate()
                     .filter_map(|(i, a)| {
-                        unsafe { a.as_ref() }
-                            .map(|a| (i % 512, i / 512, a.material.unwrap().material_type))
+                        unsafe { a.as_ref() }.map(|a| (i % 512, i / 512, a.material.material_type))
                     })
                     .collect::<Vec<_>>(),
             )
