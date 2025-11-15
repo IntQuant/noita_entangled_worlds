@@ -42,7 +42,7 @@ impl Chunks {
         start: ChunkPos,
     ) -> eyre::Result<()> {
         self.0
-            .iter_mut()
+            .par_iter_mut()
             .enumerate()
             .try_for_each(|(i, chunk)| unsafe {
                 let x = i as isize / CHUNK_AMOUNT as isize + start.x;
