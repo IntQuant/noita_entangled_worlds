@@ -31,7 +31,7 @@ pub fn place_new<T>(value: T) -> *mut T {
     let size = size_of::<T>();
     let place = raw_new::<T>(size);
     unsafe {
-        place.copy_from_nonoverlapping(&value, size);
+        place.copy_from_nonoverlapping(&value, 1);
     }
     place
 }
