@@ -1,3 +1,4 @@
+use eyre::eyre;
 use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
 use noita_api::lua::LUA;
@@ -27,24 +28,24 @@ pub unsafe extern "C" fn luaopen_material_converter(lua: *mut lua_State) -> c_in
     1
 }
 fn convert(lua: LuaState) -> eyre::Result<()> {
-    let globals = Globals::default().game_global_mut();
+    let game_global = Globals::default().game_global_mut();
     let from_id = lua.to_integer(1);
     let to_id = lua.to_integer(2);
-    let Some(cosmetics) = globals
+    let Some(cosmetics) = game_global
         .m_cell_factory
         .cell_data
         .get(from_id as usize)
         .map(|data| data.grid_cosmetic_particle_config)
     else {
-        noita_api::print!("{from_id} is not a real material >:(");
-        return Ok(());
+        return Err(eyre!("{from_id} is not a real material >:("));
     };
+    //using a lua function in the same call as rust api is UB but idc
     convert_material_everywhere(from_id as i32, to_id as i32)?;
-    let data = globals
+    let data = game_global
         .m_cell_factory
         .cell_data
         .get_mut(from_id as usize)
-        .unwrap();
+        .expect("from_id to exist as it did before");
     data.grid_cosmetic_particle_config = cosmetics;
     Ok(())
 }
