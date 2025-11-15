@@ -89,7 +89,7 @@ impl WorldSync {
         match msg {
             ProxyToWorldSync::Updates(updates) => {
                 // TODO should check that updates don't touch the same chunk
-                updates.into_par_iter().for_each(|chunk| unsafe {
+                updates.into_iter().for_each(|chunk| unsafe {
                     let _ = self
                         .particle_world_state
                         .assume_init_ref()
