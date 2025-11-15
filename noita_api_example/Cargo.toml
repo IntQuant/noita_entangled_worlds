@@ -1,0 +1,20 @@
+[package]
+name = "noita_api_example"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+strip = true
+panic = "abort"
+split-debuginfo = "packed"
+incremental=true
+codegen-units=1
+opt-level = 3
+
+[dependencies]
+noita_api = {path = "../noita_api" }
+eyre = "0.6.12"

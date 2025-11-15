@@ -13,6 +13,10 @@ build:
     cd noita-proxy && cargo build
     cd noita-proxy && cargo build --release
 
+build_noita_api_example:
+    cd noita_api_example && cargo build --release --target=i686-pc-windows-gnu
+    cp noita_api_example/target/i686-pc-windows-gnu/release/noita_api_example.dll noita_api_example/material_converter/material_converter.dll
+
 ## ewext stuff
 build_luajit:
     mkdir target/ -p

@@ -149,7 +149,7 @@ pub struct ConfigGridCosmeticParticleVTable {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConfigGridCosmeticParticle {
     pub vftable: &'static ConfigGridCosmeticParticleVTable,
     pub m_material_id: isize,
@@ -458,13 +458,13 @@ pub struct Vec2i {
     pub y: isize,
 }
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ValueRange {
     pub min: f32,
     pub max: f32,
 }
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ValueRangeInt {
     pub min: isize,
     pub max: isize,
