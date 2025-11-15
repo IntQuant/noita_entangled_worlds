@@ -1,4 +1,6 @@
+use std::ops::{Deref, DerefMut};
 use std::os::raw::{c_uint, c_void};
+use std::ptr::null_mut;
 use std::sync::LazyLock;
 
 struct Msvcr {
@@ -41,9 +43,99 @@ pub fn place_new_ref<T>(value: T) -> &'static mut T {
     unsafe { place_new(value).as_mut().unwrap() }
 }
 
+// Too easy to misuse, leaving it crate-local cause it's still useful for e. g. StdVec
 /// # Safety
 ///
 /// Pointer has to be non null, allocated by noita's allocator, and not yet freed.
-pub unsafe fn delete<T>(pointer: *mut T) {
+pub(crate) unsafe fn delete<T>(pointer: *mut T) {
     unsafe { (MSVCR.op_delete)(pointer.cast()) }
+}
+
+/// Pointer for memory allocated by noita's allocator
+#[repr(transparent)]
+pub struct Ptr<T>(*mut T);
+
+impl<T> Clone for Ptr<T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
+impl<T> Copy for Ptr<T> {}
+
+impl<T> Deref for Ptr<T> {
+    type Target = *mut T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Ptr<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> Ptr<T> {
+    /// # Safety
+    ///
+    /// Has to be a noita pointer
+    pub unsafe fn from_raw(raw: *mut T) -> Self {
+        Self(raw)
+    }
+
+    pub fn place_new(value: T) -> Self {
+        unsafe { Self::from_raw(place_new(value)) }
+    }
+
+    pub const fn null() -> Self {
+        Self(null_mut())
+    }
+
+    /// Deallocates pointer if it isn't null, and sets internal pointer to null.
+    ///
+    /// # Safety
+    ///
+    /// Pointer has to be not yet freed.
+    pub unsafe fn delete(&mut self) {
+        if !self.0.is_null() {
+            unsafe {
+                delete(self.0);
+                self.0 = null_mut();
+            }
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.0.is_null()
+    }
+
+    pub fn cast<U>(self) -> Ptr<U> {
+        Ptr(self.0.cast())
+    }
+
+    /// # Safety
+    ///
+    /// Pointer has to be not yet freed and of correct type.
+    pub unsafe fn as_ref(&self) -> Option<&T> {
+        if self.is_null() {
+            return None;
+        }
+        Some(unsafe { &*self.0 })
+    }
+
+    /// # Safety
+    ///
+    /// Pointer has to be not yet freed and of correct type.
+    pub unsafe fn as_mut(&self) -> Option<&mut T> {
+        if self.is_null() {
+            return None;
+        }
+        Some(unsafe { &mut *self.0 })
+    }
+
+    pub fn as_raw(&self) -> *mut T {
+        self.0
+    }
 }

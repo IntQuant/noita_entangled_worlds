@@ -1,6 +1,7 @@
+use crate::heap;
+use crate::heap::Ptr;
 use crate::noita::types::objects::{ConfigExplosion, ConfigGridCosmeticParticle};
 use crate::noita::types::{StdMap, StdString, StdVec, ThiscallFn, Vec2, Vec2i};
-use crate::{heap, print};
 use shared::world_sync::{Pixel, PixelFlags};
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
@@ -711,7 +712,7 @@ impl Chunk {
         unsafe { self.get_mut_raw(x, y).as_mut() }
     }
     #[inline]
-    pub fn get_mut_raw(&mut self, x: isize, y: isize) -> &mut *mut Cell {
+    pub fn get_mut_raw(&mut self, x: isize, y: isize) -> &mut Ptr<Cell> {
         let index = (y << 9) | x;
         &mut self.data[index.cast_unsigned()]
     }
@@ -773,7 +774,7 @@ impl Debug for ChunkMap {
 }
 #[repr(C)]
 pub struct Chunk {
-    pub data: &'static mut [*mut Cell; 512 * 512],
+    pub data: &'static mut [Ptr<Cell>; 512 * 512],
 }
 impl Debug for Chunk {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

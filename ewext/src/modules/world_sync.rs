@@ -1,7 +1,7 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::{WorldSync, my_peer_id};
 use eyre::{ContextCompat, eyre};
-use noita_api::heap;
+use noita_api::heap::Ptr;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2};
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -10,7 +10,7 @@ use shared::world_sync::{
     CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, ProxyToWorldSync, WorldSyncToProxy,
 };
 use std::mem::MaybeUninit;
-use std::ptr;
+
 impl Module for WorldSync {
     fn on_world_init(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
         self.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
@@ -147,8 +147,7 @@ impl WorldData for ParticleWorldState {
 
             let cell = pixel_array.get_mut_raw(shift_x + x, shift_y + y);
 
-            if !cell.is_null() {
-                let cell = unsafe { &**cell };
+            if let Some(cell) = unsafe { cell.as_ref() } {
                 // Don't touch box2d stuff.
                 if cell.material.cell_type == CellType::Solid {
                     continue;
@@ -162,14 +161,11 @@ impl WorldData for ParticleWorldState {
             let xs = start_x + x;
             let ys = start_y + y;
             // Drop first
-            if !cell.is_null() {
-                unsafe {
-                    heap::delete(*cell);
-                }
-                *cell = ptr::null_mut();
+            unsafe {
+                cell.delete();
             }
             if pixel.is_air() {
-                *cell = ptr::null_mut();
+                *cell = Ptr::null();
             } else {
                 let Some(mat) = self.material_list.get_static(pixel.mat() as usize) else {
                     return Err(eyre!("mat does not exist"));
@@ -186,7 +182,7 @@ impl WorldData for ParticleWorldState {
                                 ys,
                             )
                         };
-                        *cell = heap::place_new(liquid).cast();
+                        *cell = Ptr::place_new(liquid).cast();
                     }
                     CellType::Gas => {
                         let mut gas = unsafe {
@@ -194,7 +190,7 @@ impl WorldData for ParticleWorldState {
                         };
                         gas.x = xs;
                         gas.y = ys;
-                        *cell = heap::place_new(gas).cast();
+                        *cell = Ptr::place_new(gas).cast();
                     }
                     CellType::Solid => {}
                     CellType::Fire => {
@@ -203,7 +199,7 @@ impl WorldData for ParticleWorldState {
                         };
                         fire.x = xs;
                         fire.y = ys;
-                        *cell = heap::place_new(fire).cast();
+                        *cell = Ptr::place_new(fire).cast();
                     }
                 }
             }
@@ -213,10 +209,12 @@ impl WorldData for ParticleWorldState {
 }
 #[test]
 pub fn test_world() {
+    use noita_api::heap::{self};
     use noita_api::noita::types::{
         Cell, CellData, CellVTable, CellVTables, Chunk, ChunkMap, GridWorld, GridWorldThreaded,
         GridWorldThreadedVTable, GridWorldVTable, NoneCellVTable, StdVec,
     };
+    use std::ptr;
     let vtable = GridWorldThreadedVTable::default();
     let mut threaded = GridWorldThreaded {
         grid_world_threaded_vtable: unsafe { std::mem::transmute::<&_, &'static _>(&vtable) },
