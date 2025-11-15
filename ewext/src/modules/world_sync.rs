@@ -43,7 +43,7 @@ impl Module for WorldSync {
         }
 
         let updates = (0..9)
-            .into_iter()
+            .into_par_iter()
             .filter_map(|i| {
                 let dx = i % 3;
                 let dy = i / 3;
@@ -89,7 +89,7 @@ impl WorldSync {
         match msg {
             ProxyToWorldSync::Updates(updates) => {
                 // TODO should check that updates don't touch the same chunk
-                updates.into_iter().for_each(|chunk| unsafe {
+                updates.into_par_iter().for_each(|chunk| unsafe {
                     let _ = self
                         .particle_world_state
                         .assume_init_ref()
