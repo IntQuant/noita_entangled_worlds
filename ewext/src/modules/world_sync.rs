@@ -164,7 +164,7 @@ impl WorldData for ParticleWorldState {
             // Drop first
             if !cell.is_null() {
                 unsafe {
-                    heap::delete(cell);
+                    heap::delete(*cell);
                 }
                 *cell = ptr::null_mut();
             }

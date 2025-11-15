@@ -234,7 +234,7 @@ impl ChunkOps for ParticleWorldState {
                     let cell = pixel_array.get_mut_raw(shift_x + i, shift_y + j);
                     if !cell.is_null() {
                         unsafe {
-                            heap::delete(cell);
+                            heap::delete(*cell);
                         }
                         *cell = ptr::null_mut();
                     }
@@ -247,7 +247,7 @@ impl ChunkOps for ParticleWorldState {
                     let cell = pixel_array.get_mut_raw(shift_x + i, shift_y + j);
                     if !cell.is_null() {
                         unsafe {
-                            heap::delete(cell);
+                            heap::delete(*cell);
                         }
                         *cell = ptr::null_mut();
                     }
