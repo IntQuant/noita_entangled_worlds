@@ -943,6 +943,7 @@ impl NetManager {
 
     fn on_ms_connection(self: &Arc<NetManager>, state: &mut NetInnerState) {
         self.init_settings.save_state.mark_game_started();
+        self.save_run_info();
         info!("New stream connected");
 
         let settings = self.settings.lock().unwrap();
@@ -1463,6 +1464,18 @@ impl NetManager {
         }
         self.resend_game_settings();
     }
+
+    fn save_run_info(&self) {
+        if self.is_host() {
+            let run_info = RunInfo {
+                seed: self.settings.lock().unwrap().seed,
+            };
+            self.init_settings.save_state.save(&run_info);
+            info!("Saved run info");
+        } else {
+            info!("Skip saving run info: not a host");
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -1543,15 +1556,7 @@ pub enum LiquidType {
 
 impl Drop for NetManager {
     fn drop(&mut self) {
-        if self.is_host() {
-            let run_info = RunInfo {
-                seed: self.settings.lock().unwrap().seed,
-            };
-            self.init_settings.save_state.save(&run_info);
-            info!("Saved run info");
-        } else {
-            info!("Skip saving run info: not a host");
-        }
+        self.save_run_info()
     }
 }
 
