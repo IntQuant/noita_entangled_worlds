@@ -103,5 +103,6 @@ make_globals!(
     (world_state, 0x01204bd0, true, Entity),
     (world_state_component, 0x01205010, true, WorldStateComponent),
     (event_manager, 0x01204b34, true, EventManager),
-    (death_match, 0x01204bc0, true, DeathMatch)
+    (death_match, 0x01204bc0, true, DeathMatch),
+    (debug_settings, 0x01207e20, false, DebugSettings)
 );
