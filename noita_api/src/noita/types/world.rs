@@ -453,7 +453,7 @@ impl GasCell {
             (false, -1)
         };
         let mut cell = Cell::create(mat, CellVTable { gas: vtable });
-        cell.is_burning = true;
+        cell.is_burning = false;
         Self {
             cell,
             unknown5: if bool { 1 } else { 0xff },
