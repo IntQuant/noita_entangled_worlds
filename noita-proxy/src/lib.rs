@@ -1549,6 +1549,7 @@ impl App {
             noita_launcher: NoitaLauncher::new(
                 &self.modmanager_settings.game_exe_path,
                 self.args.launch_cmd.as_deref(),
+                self.args.run_noita_with_gdb,
                 self.steam_state.as_mut().ok(),
             ),
         };

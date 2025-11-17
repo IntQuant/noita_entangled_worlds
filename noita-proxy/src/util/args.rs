@@ -33,6 +33,10 @@ pub struct Args {
     /// used internally.
     #[argh(option)]
     pub auto_connect_to: Option<LobbyCode>,
+
+    /// also run gdbserver when starting noita. Used for development.
+    #[argh(switch)]
+    pub run_noita_with_gdb: bool,
 }
 
 impl FromArgValue for LobbyKind {

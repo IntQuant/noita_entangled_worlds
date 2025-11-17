@@ -51,6 +51,9 @@ flamegraph: add_dylib_debug
 run: add_dylib_debug build_ext
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run
 
+run-w-gdb: add_dylib_debug build_ext
+    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --run-noita-with-gdb --launch-cmd "wine noita.exe"
+
 run2: add_dylib_debug build_ext
     cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 

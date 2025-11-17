@@ -1,6 +1,7 @@
 use crate::steam_helper::SteamState;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::mem;
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
@@ -47,6 +48,7 @@ impl NoitaLauncher {
     pub fn new(
         game_exe_path: &Path,
         start_args: Option<&str>,
+        run_with_gdb: bool,
         steam_state: Option<&mut SteamState>,
     ) -> Self {
         let game_dir_path = game_exe_path
@@ -71,7 +73,19 @@ impl NoitaLauncher {
             .and_then(shlex::split)
             .map(|v| v.into_iter().map(OsString::from).collect::<Vec<_>>())
             .and_then(|args| NoitaStartCmd::from_full_args(&args));
-        let start_args = start_args.or(default_start_args);
+        let mut start_args = start_args.or(default_start_args);
+
+        if let Some(start_args) = start_args.as_mut()
+            && run_with_gdb
+        {
+            info!("Extending start cmd to run gdbserver");
+            start_args.args.insert(
+                0,
+                mem::replace(&mut start_args.executable, "gdbserver".into()),
+            );
+            start_args.args.insert(0, "--".into());
+            start_args.args.insert(0, "localhost:4123".into());
+        }
 
         Self {
             game_dir_path,
