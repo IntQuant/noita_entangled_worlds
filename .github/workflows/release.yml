@@ -72,8 +72,8 @@ jobs:
         with:
           workspaces: noita-proxy -> target
 
-      - name: Build Macos proxy release
-        run: cargo build --release
+      - name: Update cargo packages and Build Macos proxy release
+        run: export CMAKE_POLICY_VERSION_MINIMUM=3.5 && cargo build --release
         working-directory: ./noita-proxy
 
       - name: Create archives
