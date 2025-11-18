@@ -90,6 +90,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: threeal/cmake-action@v2.1.0
+        with:
+          run-build: false
+          generator: Ninja
+          cxx-compiler: clang++
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
