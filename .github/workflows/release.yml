@@ -71,9 +71,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
-
-      - name: Build Macos proxy release
-        run: cargo build --release
+          
+      - name: Update cargo packages and Build Macos proxy release
+        run: cargo update && cargo build --release
         working-directory: ./noita-proxy
 
       - name: Create archives
