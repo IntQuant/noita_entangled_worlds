@@ -12,6 +12,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libclang-dev libasound2-dev libjack-dev
       - uses: dtolnay/rust-toolchain@stable
         with:
+          targets: i686-pc-windows-gnu
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
