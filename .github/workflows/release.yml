@@ -71,7 +71,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
-          
+
+      - name: add cmake to macos for building cargo crates
+        run: brew install cmake
       - name: Update cargo packages and Build Macos proxy release
         run: cargo update && cargo build --release
         working-directory: ./noita-proxy
@@ -90,11 +92,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: threeal/cmake-action@v2.1.0
-        with:
-          run-build: false
-          generator: Ninja
-          cxx-compiler: clang++
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: noita-proxy -> target
