@@ -16,175 +16,173 @@ button_select_again = Vuelve a seleccionar
 button_back = Atrás
 
 button_set_lang = Escoje un lenguaje
-button_open_discord = Servidor de DIscord
+button_open_discord = Servidor de Discord
 
 modman = Gestor de Mods
-modman_found_automatically = Ruta encontrada automáticamente_
+modman_found_automatically = Ruta encontrada automáticamente
 modman_use_this = Usar esta ruta
-modman_select_manually = Select manually
-modman_path_to_exe = Select path to noita.exe
-modman_invalid_path = This path is not valid
-modman_downloading = Downloading mod...
-modman_receiving_rel_info = Receiving release info...
-modman_unpacking = Unpacking mod...
-modman_installed = Mod has been installed!
-modman_will_install_to = Proxy will install the mod to:
-modman_another_path = Select a different path
+modman_select_manually = Seleccionar manualment
+modman_path_to_exe = Selecciona la direccion de noita.exe
+modman_invalid_path = Esta ruta es invalida
+modman_downloading = Descargando mod...
+modman_receiving_rel_info = Recibiendo informacion de lanzamiento...
+modman_unpacking = Desempaquetando el mod...
+modman_installed = Mod instalado correctamente!
+modman_will_install_to = El proxy instalará el mod en:
+modman_another_path = Seleccionar ruta alternativa
 
-player_host = Host
-player_me = Me
-player_player = Player
+player_host = Anfitrión
+player_me = Yo
+player_player = Jugador
 
-version_latest = (latest)
-version_check_failed = (could not check for updates)
-version_checking = (checking for updates)
-version_new_available = Update available to { $new_version }
+version_latest = (Última)
+version_check_failed = (Error al buscar actualizaciones)
+version_checking = (Buscando actualizaciones)
+version_new_available = Actualización para la versión { $new_version } disponible
 
-selfupdate = Self update
-selfupdate_confirm = Confirm update
-selfupdate_receiving_rel_info = Receiving release info...
-selfupdate_updated = Proxy updated! Restart it now.
-selfupdate_unpacking = Unpacking...
+selfupdate = Actualizar automáticamente
+selfupdate_confirm = Confirmar actualización
+selfupdate_receiving_rel_info = Receiving información de lanzamiento...
+selfupdate_updated = Proxy actualizado! Reinicialo.
+selfupdate_unpacking = Desempaquetando...
 
-noita_not_yet = Not yet ready. Please wait before starting noita.
-noita_can_connect = Awaiting Noita connection. It's time to start new game in Noita now!
-noita_connected = Local Noita instance connected.
+noita_not_yet = Aún no esta preparado. Porfavor espera antes de lanzar Noita.
+noita_can_connect = Esperando conexión con Noita. Hora de iniciar una nueva partida en noita!
+noita_connected = Instancia local de Noita conectada.
 
-netman_save_lobby = Save lobby id to clipboard
-netman_show_settings = Show settings screen
-netman_apply_settings = Apply settings to be used in the next run
-apply_default_settings = Resets settings to default
+netman_save_lobby = Copiar id de sala al portapapeles
+netman_show_settings = Mostrar menú de opciones
+netman_apply_settings = Aplicar configuración a la siguiente partida
+apply_default_settings = Restaur configuraciones predeterminadas
 
-ip_note = Note: steam networking is more reliable. Use it, if possible.
-ip_connect = Connect to IP
-ip_host = Create a server
+ip_note = Nota: la conexión mediante Steam es más fiable. Usala siempre que sea posible.
+ip_connect = Connectarse a la IP
+ip_host = Crear sala
 
-error_occured = An error occured:
-error_missing_version_field = Lobby does not have a version field. The lobby was created by an old proxy version.
-error_version_mismatch = Lobby was created by proxy with a different version: { $remote_version }. You have { $current_version } currently installed.
-error_lobby_does_not_exist = Lobby does not exist. ensure your steam networking settings above mina color picker in main menu match the hosts.
+error_occured = Ha ocurrido un error
+error_missing_version_field = Campo de versión en la sala Faltante, La sala ha sido creada con una versión más antigua del Proxy. 
+error_version_mismatch = La sala ha sido creada con una version del proxy diferente: { $remote_version }. Tu tienes la { $current_version } instalada.
+error_lobby_does_not_exist = Sala inexistente, asegurate de que tus opciones de Red Encima de la seleccion de color de Mina Son iguales a las del Anfitrión.
 
-launcher_already_started = Noita is already started.
-launcher_no_command = Can't start noita: no launch command.
-launcher_no_command_2 = Launch command can be specified with --launch-cmd <command> option.
-launcher_no_command_3 = You can put `noita-proxy --launch-cmd "%command%"` in steam's launch options to intercept whatever command steam uses to start the game.
-launcher_start_game = Start noita
-launcher_end_run = End run
-launcher_end_run_confirm = Confirm
-launcher_only_when_awaiting = Can only launch the game in "waiting for noita connection" state.
+launcher_already_started = Noita ha sido iniciado.
+launcher_no_command = No se pudo iniciar Noita: comando de inicio faltante.
+launcher_no_command_2 = Puedes especificar un comando de inicio con el argumento --launch-cmd <command>
+launcher_no_command_3 = Puedes poner `noita-proxy --launch-cmd "%command%"` en los argumentos de inicio de Noita en Steam para interceptar  el comando que Steam usa para iniciar el juego.
+launcher_start_game = Iniciar Noita
+launcher_end_run = Terminar partida
+launcher_end_run_confirm = Confirmar
+launcher_only_when_awaiting = Solo se puede lanzar el juego en el estado "waiting for noita connection".
 
-connect_settings = Game settings
-connect_settings_debug = Debug settings
-connect_settings_debug_en = Debug/cheat mode
-connect_settings_debug_fixed_seed = Use fixed seed
-connect_settings_seed = Seed:
-connect_settings_max_players = Max players
-connect_settings_wsv = World sync version to use:
-connect_settings_player_tether = Player tether enabled
-connect_settings_player_tether_desc = Player tether: Teleports clients to host if they get far enough.
-connect_settings_player_tether_length = Tether length
-connect_settings_item_dedup = Deduplicate (sync) items spawned by world generation.
-connect_settings_enemy_hp_scale = Enemy hp scale.
-connect_settings_local = Local settings
-connect_settings_autostart = Start the game automatically
+connect_settings = Opciones del juego
+connect_settings_debug = Opciones de depuración
+connect_settings_debug_en = Modo depuración/trampas
+connect_settings_debug_fixed_seed = Usar semilla fija
+connect_settings_seed = Semilla:
+connect_settings_max_players = Máximo de jugadores
+connect_settings_wsv = Version de sincronización del mundo a usar:
+connect_settings_player_tether = Habilitar correa entre jugadores
+connect_settings_player_tether_desc = Correa entre jugadores: Teletransporta a los invitados al Anfitrión si se alejan los suficiente.
+connect_settings_player_tether_length = Lonjitud de la correa
+connect_settings_item_dedup = Duplicar objetos de la generación del mundo (sincronización).
+connect_settings_enemy_hp_scale = Escalado de vida enemiga.
+connect_settings_local = Opciones locales
+connect_settings_autostart = Iniciar el juego automáticamente
 
 ## Game settings
 
-Player-have-same-starting-loadout = Players have the same starting loadout
-connect_settings_spacewars = Allow using steam networking even if you don't have the game on steam, in case you have the gog version of the game. All players need this ticked to work, restart proxy to take effect
-Health-per-player = Health per player
-Enable-friendly-fire = Enable friendly fire, allows picking teams in game settings
-Have-perk-pools-be-independent-of-each-other = Have perk pools be independent of each other
-Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Amount of chunks host has loaded at once, synced enemies and physics objects need to be loaded in by host to be rendered by clients
-local_health_desc_1 = Every player has their own health, run ends when all player are dead.
-local_health_desc_2 = There is a respawn mechanic.
-Health-percent-lost-on-reviving = Percent of Max HP lost on reviving
-global_hp_loss = Lose HP globally
-no_material_damage = No material damage
-perma_death = Perma death
-physics_damage = Physics damage
-shared_health_desc_1 = Health is shared, but scales with player count.
-shared_health_desc_2 = Percentage-based damage and full heals are adjusted.
-shared_health_desc_3 = The original mode.
-Local-health = Local health
-Local-health-alt = Local health alternate
-Local-health-perma = Local health perma death
-Shared-health = Shared health
-Game-mode = Game mode
-world-sync-is-pixel-sync-note = Note: World sync refers to the part that syncs pixels(materials) of the world. Enemies and other entities aren't affected by this.
-Higher-values-result-in-less-performance-impact = Higher values result in less performance impact.
-World-will-be-synced-every-this-many-frames = World will be synced every this many frames.
+Player-have-same-starting-loadout = Igualar equipamiento inicial
+connect_settings_spacewars = Habilitar el uso de Steam aunque no tengas el juego en Steam, por si lo tienes en gog. Todos los jugadores tienen que habilitar esta opción, reinicia el Proxy para que funcione.
+Health-per-player = Vida por jugador
+Enable-friendly-fire = Habilitar fuego amigo, habilita la elección de equipos en las opciones del juego
+Have-perk-pools-be-independent-of-each-other = Hacer que las barajas de atributos sean independientes entre ellas
+Amount-of-chunks-host-has-loaded-at-once-synced-enemies-and-physics-objects-need-to-be-loaded-in-by-host-to-be-rendered-by-clients = Cantidad de chunks el anfitrión tiene cargado a la vez, los enemigos sincronizados y los objetos con física tienen que estar cargados por el anfitrión para que los invitados los puedan renderizar
+local_health_desc_1 = Cada jugador tiene sus propios Puntos de Vida, la partida se acaba cuando todos los jugadores están muertos.
+local_health_desc_2 = Se añade una mecánica de resurrección
+Health-percent-lost-on-reviving = Porcentaje de vida perdida al revivir
+global_hp_loss = Pérdida de vida global
+no_material_damage = Deshabilitar daño por material
+perma_death = Muerte permanente
+physics_damage = Daño por física
+shared_health_desc_1 = Puntos de vida compartidos escalando con cantidad de jugadores.
+shared_health_desc_2 = Daño por porcentajes y curas completas ajustados.
+shared_health_desc_3 = El modo original.
+Local-health = Vida individual
+Local-health-alt = Vida individual alternativa
+Local-health-perma = Vida individual, muerte permanente
+Shared-health = Vida compartida
+Game-mode = Modo de juego
+world-sync-is-pixel-sync-note = Nota: Sincronización de mundo se refiere a la parte que sincroniza los pixeles del mundo. Los enemigos y otras entidades se veran inafectados.
+Higher-values-result-in-less-performance-impact = Valores mas altos pueden resultar en un impacto al rendimiento.
+World-will-be-synced-every-this-many-frames = El mundo se sincronizara cada x Frames.
 
 ## Savestate
 
-New-game = New game
-Continue = Continue
-savestate_desc = Savestate from a previous run has been detected. Do you wish to continue that run, or to start a new game (and reset the savestate)?
-An-in-progress-run-has-been-detected = An in-progress run has been detected.
+New-game = Nueva partida
+Continue = Continuar
+savestate_desc = Se ha detectado un estado de guardado de una partida anterior. Desea continuar esa partida o Iniciar una nueva (y sobreescribir el estado de guardado)?
+An-in-progress-run-has-been-detected = Se ha detectado una partida en progreso.
 
 ## Player appearance
 
-Gem = Gem
-Amulet = Amulet
-Crown = Crown
-Cape-edge-color = Cape edge color
-Cape-color = Cape color
-Forearm-color = Forearm color
-Arm-color = Arm color
-Alt-color = Alt color
-Main-color = Main color
-Reset-colors-to-default = Reset colors to default
-Shift-hue = Shift hue
+Gem = Gema
+Amulet = Amuleto
+Crown = Corona
+Cape-edge-color = Color borde capa
+Cape-color = Color capa
+Forearm-color = Color antebrazo
+Arm-color = Color brazo
+Alt-color = Color secundario
+Main-color = Color principal
+Reset-colors-to-default = Restaurar colores a predeterminados
+Shift-hue = Cambiar tono
 
 ## Connected
 
-Show-debug-info = Show debug/connection info
-hint_spectate = Use [',' or d-pad-left] and ['.' or d-pad-right] keys to spectate over other players. '/' for self
-hint_ping = [Middle mouse button or right thumb stick] spawns a ping
-Show-debug-plot = Show debug plot
-Record-everything-sent-to-noita = Record EVERYTHING sent to noita.
+Show-debug-info = Mostrar información de depuración/conexión
+hint_spectate = Usa [',' o d-pad-left] y ['.' o d-pad-right] pra espectar a otros jugadores. '/' para voler a ti
+hint_ping = [Botón medio del ratón o R3] crea un ping
+Show-debug-plot = Mostrar grafica de depuración
+Record-everything-sent-to-noita = Guardar TODO lo enviado a noita.
 
 ## IP Connect
 
-ip_could_not_connect = Could not connect
-ip_wait_for_connection = Connecting to ip...
+ip_could_not_connect = No se pudo conectar
+ip_wait_for_connection = Conectandose a la IP...
 ## Info
 
-info_stress_tests = We're doing public lobbies (a.k.a stress tests) every saturday, 18:00 UTC. Join our discord for more info.
-Info = Info
+info_stress_tests = Estamos haciendo salas publicas (osea pruebas de estrés) cada sábado a las 18:00 UTC. Únete a nuestro discord para más información.
+Info = información
 ## Local settings
 
-connect_settings_random_ports = Don't use a predetermined port. Makes things a bit more robust and allows multiple proxies to be launched on the same computer, but Noita will have to be launched through the proxy.
+connect_settings_random_ports = Usar un puerto no estandar. Puede ser más robusto y permite lanzar varios proxies en un mismo ordenador pero Noita necesitará ser lanzado mediante el proxy.
 
 ## UX settings
 
-ping-note = Ping arrow parameters
-ping-lifetime = Ping arrow lifetime in seconds.
-ping-scale = Ping arrow size.
-ping-lifetime-tooltip = This parameter changes how much frames (seconds*60, since game is supposed to run 60 fps?) ping arrow lives. Range: 0-60 seconds.
-ping-scale-tooltip = This parameter changes size of ping arrow. I dont know which units it is, but range is 0-1.5 units.
-
-hide-cursors-checkbox = Disable others' cursors
-hide-cursors-checkbox-tooltip = Sometimes you can confuse your friends' cursors with yours. In that case, you can disable them altogether with this checkbox.
+ping-note = Parámetros del ping
+ping-lifetime = Duración del ping en segundos.
+ping-scale = Tamaño del ping.
+ping-lifetime-tooltip = Este parametro cambia cuantos frames (segundos*60, porque se supone que el juego debe correr a 60fps?) el ping duroa. Rango: 0-60 segundos.
+hide-cursors-checkbox = Deshabilitar los cursores de otros jugadores
+hide-cursors-checkbox-tooltip = A veces puedes confundir otros cursores con el tuyo, si es tu caso puedes deshabilitarlos por completo con esta opción.
 ## Steam connect
 
-Switch-mode-and-restart = Switch mode and restart
-Make-lobby-public = Make lobby public
+Switch-mode-and-restart = Cambiar modo y reiniciar
+Make-lobby-public = Hacer la sala pública
 ## Lobby list
 
-Open-lobby-list = Open lobby list
-Only-EW-lobbies = Only EW lobbies
-Join = Join
-Not-Entangled-Worlds-lobby = Not Entangled Worlds lobby
-No-public-lobbies-at-the-moment = No public lobbies at the moment :(
-Lobby-list-pending = Lobby list pending...
-Refresh = Refresh
-Lobby-list = Lobby list
+Open-lobby-list = Abrir lista de salas
+Only-EW-lobbies = Solo salas de EW
+Join = Unirse
+Not-Entangled-Worlds-lobby = La sala no es de Entangled Worlds
+No-public-lobbies-at-the-moment = Actualmente no hay salas públicas :(
+Lobby-list-pending = Lista de salas pendiente...
+Refresh = Refrescar
+Lobby-list = Lista de salas
 
 ## Gamemode names
 
-game_mode_Shared = Shared health
-game_mode_LocalNormal = Local health
-game_mode_LocalPermadeath = Local health (Permadeath)
-game_mode_LocalAlternate = Local health (Alternate)
+game_mode_Shared = Vida compartida
+game_mode_LocalNormal = Vida individual
+game_mode_LocalPermadeath = Vida individual (Muerte permanente)
+game_mode_LocalAlternate = Vida individual (Alternativo)
 game_mode_PvP = PvP
