@@ -2,25 +2,25 @@ connect_steam = Conectarse con steam
 connect_steam_create = Crear sala
 connect_steam_connect = Conectarse a la sala en el portapapeles
 connect_steam_workaround_label = Conectate pegando la id de la sala en este campo: (Por si acaso estas utilizando Wayland y no te puedes conectar de normal)
-connect_steam_connect_2 = Connect to lobby in the text field
-connect_steam_connect_invalid_lobby_id = Clipboard does not contain a lobby code
+connect_steam_connect_2 = Conectarse a la sale en el campo de texto
+connect_steam_connect_invalid_lobby_id = El portapapeles no contiene un Código de sala
 
-connect_ip = Connect using ip
+connect_ip = Conectarse por ip
 
-lang_picker = Choose a language
+lang_picker = Escoje un lenguaje
 
-button_confirm = Confirm
-button_continue = Continue
-button_retry = Retry
-button_select_again = Select again
-button_back = Back
+button_confirm = Confirmar
+button_continue = Continuar
+button_retry = Reintentar
+button_select_again = Vuelve a seleccionar
+button_back = Atrás
 
-button_set_lang = Select language
-button_open_discord = Discord server
+button_set_lang = Escoje un lenguaje
+button_open_discord = Servidor de DIscord
 
-modman = Mod manager
-modman_found_automatically = Found a path automatically:
-modman_use_this = Use this one
+modman = Gestor de Mods
+modman_found_automatically = Ruta encontrada automáticamente_
+modman_use_this = Usar esta ruta
 modman_select_manually = Select manually
 modman_path_to_exe = Select path to noita.exe
 modman_invalid_path = This path is not valid
