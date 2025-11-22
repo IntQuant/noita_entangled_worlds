@@ -282,7 +282,10 @@ impl NetManager {
                         len, peer, err, msg
                     )
                 } else {
-                    warn!("Error while sending message of len {}to peer {}: {}", len, peer, err)
+                    warn!(
+                        "Error while sending message of len {} to peer {}: {}",
+                        len, peer, err
+                    )
                 }
             }
         }
