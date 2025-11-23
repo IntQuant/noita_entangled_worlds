@@ -40,7 +40,7 @@ CContainer<class_std::basic_string<char,struct_std::char_traits<char>,class_std:
 ComponentBuffer<class_InventoryGuiComponent> 00fe3b8c 196
 CVarRefBase 00fe3c28 null
 CVarRefConst<bool> 00fe3b70 60
-ISerializer 00fe4064 null
+ISerializer 00fe4064 48
 IConfigElement 00fe4468 null
 CContainer<float> 00fe4a78 8
 CVarRefDummy<class_std::vector<struct_PathFindingJumpParams,class_std::allocator<struct_PathFindingJumpParams>_>_> 00fecf00 null
@@ -197,7 +197,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_4060298dcea75e70b239bd3d70b57
 CVarRefDummy<struct_ValueRangeInt> 01026a98 60
 CVarRefDummy<class_ConfigDrugFx> 00ff1a34 60
 CCallbackImpl<24> 01011ec4 null
-GameMouseListener 01005674 null
+GameMouseListener 01005674 712
 ICellBurnable 00ff2040 64
 CharacterCollisionComponent 00ffe948 96
 ConfigDamagesByType 0100fd84 68
@@ -437,7 +437,7 @@ CContainer<class_ThreadMessageReceiver<struct_PathFindingResultMessage>_> 01011b
 ComponentBuffer<class_VelocityComponent> 01009240 196
 ComponentBuffer<class_AudioLoopComponent> 0100461c 196
 LightComponent 01025834 120
-CLiquidCell 0100bb90 null
+CLiquidCell 0100bb90 64
 ItemSystem 01042d7c null
 ItemSystem 01041f14 null
 ItemSystem 0102ae8c 168
@@ -604,7 +604,7 @@ WorldStateSystem 01041e40 160
 SimpleBase 00fe7e34 232
 SimpleBase 010104c0 232
 ReadStream 00ff8c1c null
-ConfigExplosion 00ffa2d8 null
+ConfigExplosion 00ffa2d8 416
 WormPlayerComponent 01016f5c 88
 _Func_impl<struct_std::_Callable_obj<class_<lambda_d6a89c90dd91745bda6ee48dcdfa3a33>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 010067e0 null
 CContainer<struct_types::aabb> 0102874c 20
@@ -1755,7 +1755,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_203368d2790daa68eef90aa7926c7
 _Func_base<void,class_PhysicsBody2Component*,unsigned_int> 01041f24 null
 BlackHoleSystem 0102b014 144
 BlackHoleSystem 01032024 144
-ComponentUpdator<class_CameraBoundComponent,class_CameraBoundSystem,0> 010421ec 144
+ComponentUpdator<class_CameraBoundComponent,class_CameraBoundSystem,0> 010421ec null
 ComponentUpdator<class_CameraBoundComponent,class_CameraBoundSystem,0> 01049c24 144
 TSystemAutoCreator<class_LevitationSystem> 0102a900 36
 _Func_impl<struct_std::_Callable_obj<class_<lambda_83aa5c95f8ddccfb1c93cb9df3534f92>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 01047240 null
@@ -1796,7 +1796,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_7519b0f7d46a2e1c48b84ac099d49
 _Func_impl<struct_std::_Callable_obj<class_<lambda_7a4d5a767275b7a3b2ba9c14f474f748>,0>,class_std::allocator<class_std::_Func_class<void,class_PhysicsBodyCollisionDamageComponent*,unsigned_int>_>,void,class_PhysicsBodyCollisionDamageComponent*,unsigned_int> 01048dac null
 ComponentUpdator<class_SimplePhysicsComponent,class_SimplePhysicsSystem,0> 0104a7c4 160
 ComponentUpdator<class_SimplePhysicsComponent,class_SimplePhysicsSystem,0> 010441f0 null
-ComponentUpdator<class_InteractableComponent,class_InteractableSystem,0> 0102b3dc 152
+ComponentUpdator<class_InteractableComponent,class_InteractableSystem,0> 0102b3dc null
 ComponentUpdator<class_InteractableComponent,class_InteractableSystem,0> 01036c04 152
 GhostComponent 01044198 160
 MessageListener<class_ItemCostComponent,class_Message_ItemPickUp,28> 01041db8 null
@@ -1811,7 +1811,7 @@ ComponentUpdator<class_PhysicsPickUpComponent,class_PhysicsPickUpSystem,0> 0102c
 IKLimbWalkerSystem 01048f70 144
 IKLimbWalkerSystem 010431f4 144
 TSystemAutoCreator<class_GameAreaEffectSystem> 010461bc 36
-ComponentUpdator<class_VerletWorldJointComponent,class_VerletWorldJointSystem,0> 010498ac 144
+ComponentUpdator<class_VerletWorldJointComponent,class_VerletWorldJointSystem,0> 010498ac null
 ComponentUpdator<class_VerletWorldJointComponent,class_VerletWorldJointSystem,0> 010499d8 144
 _Func_impl<struct_std::_Callable_obj<class_<lambda_b4d5de3b36f6356e343eaf0116eb75db>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 01042b58 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_5e7486147ee613b7d5e7c715c4de1062>,0>,class_std::allocator<class_std::_Func_class<void,class_ProjectileComponent*,unsigned_int>_>,void,class_ProjectileComponent*,unsigned_int> 0103fca8 null
@@ -1837,7 +1837,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_71c5d5f03f1d4345ddd55d4d00056
 _Func_base<void,class_SetLightAlphaFromVelocityComponent*,unsigned_int> 01045928 null
 ComponentUpdator<class_BlackHoleComponent,class_BlackHoleSystem,0> 01030e20 null
 ComponentUpdator<class_BlackHoleComponent,class_BlackHoleSystem,0> 010480a4 null
-ComponentUpdator<class_PixelSpriteComponent,class_PixelSpriteSystem,0> 0102aa04 144
+ComponentUpdator<class_PixelSpriteComponent,class_PixelSpriteSystem,0> 0102aa04 null
 ComponentUpdator<class_PixelSpriteComponent,class_PixelSpriteSystem,0> 01045510 144
 TSystemAutoCreator<class_CrawlerAnimalSystem> 01033674 36
 TSystemAutoCreator<class_WalletSystem> 01045ba8 36
@@ -1854,14 +1854,14 @@ _Func_base<void,class_PhysicsBodyComponent*,unsigned_int> 0102e81c null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_f95cf42f76cfdd01db5b6e327bf46449>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 010434a4 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_f839a2f08d450079b342b186db45226e>,0>,class_std::allocator<class_std::_Func_class<void,class_BlackHoleComponent*,unsigned_int>_>,void,class_BlackHoleComponent*,unsigned_int> 0102d244 null
 MessageListener<class_LuaComponent,class_Message_PortalTeleportUsed,19> 01035194 null
-ComponentUpdator<class_IKLimbAttackerComponent,class_IKLimbAttackerSystem,0> 01046c54 144
+ComponentUpdator<class_IKLimbAttackerComponent,class_IKLimbAttackerSystem,0> 01046c54 null
 ComponentUpdator<class_IKLimbAttackerComponent,class_IKLimbAttackerSystem,0> 01048418 144
 MessageListener<class_Inventory2Component,class_Message_Death,10> 0104907c null
 MessageListener<class_ItemComponent,class_Message_ThrowItem,5> 0102ae7c null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_569d57dbc8f83029291dc1a32b92fe54>,0>,class_std::allocator<class_std::_Func_class<void,class_PressurePlateComponent*,unsigned_int>_>,void,class_PressurePlateComponent*,unsigned_int> 01032e58 null
 ExplodeOnDamageComponent 01035ae8 464
 _Func_base<void,class_IKLimbWalkerComponent*> 01037cc8 null
-ComponentUpdator<class_ParticleEmitterComponent,class_ParticleEmitterSystem,0> 010434e4 160
+ComponentUpdator<class_ParticleEmitterComponent,class_ParticleEmitterSystem,0> 010434e4 null
 ComponentUpdator<class_ParticleEmitterComponent,class_ParticleEmitterSystem,0> 01045860 160
 MessageListener<class_PlatformShooterPlayerComponent,class_Message_CameraShake,34> 01048328 null
 _Func_base<void,class_MaterialInventoryComponent*,unsigned_int> 01046c24 null
@@ -1905,7 +1905,7 @@ MessageListener<class_ItemCostComponent,class_Message_ItemAllowedToPickUp,28> 01
 MessageListener<class_IngestionComponent,class_Message_ItemAboutToBeEaten,25> 0104b21c null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_20bbcca8a43d0e65f47c9559aedbb7c6>,0>,class_std::allocator<class_std::_Func_class<void,class_ArcComponent*,unsigned_int>_>,void,class_ArcComponent*,unsigned_int> 0102c0e4 null
 TSystemAutoCreator<class_MaterialSeaSpawnerSystem> 010479d0 36
-ComponentUpdator<class_GunComponent,class_GunSystem,0> 0102aa98 144
+ComponentUpdator<class_GunComponent,class_GunSystem,0> 0102aa98 null
 ComponentUpdator<class_GunComponent,class_GunSystem,0> 0103636c 144
 _Func_base<void,class_GameEffectComponent*,unsigned_int> 01047554 null
 IMessageHandler<class_Message_WandFired> 0102ec58 null
@@ -1920,7 +1920,7 @@ MaterialSeaSpawnerSystem 0103bba0 144
 ComponentUpdator<class_PhysicsBodyCollisionDamageComponent,class_PhysicsBodyCollisionDamageSystem,0> 0104ac18 null
 ComponentUpdator<class_PhysicsBodyCollisionDamageComponent,class_PhysicsBodyCollisionDamageSystem,0> 010472b4 null
 _Func_base<void,class_ElectricityComponent*,unsigned_int> 0104a3b4 null
-ComponentUpdator<class_ItemAlchemyComponent,class_ItemAlchemySystem,0> 01041fe8 144
+ComponentUpdator<class_ItemAlchemyComponent,class_ItemAlchemySystem,0> 01041fe8 null
 ComponentUpdator<class_ItemAlchemyComponent,class_ItemAlchemySystem,0> 0103130c 144
 CContainer<struct_Damage*> 01048634 8
 HomingComponent 0102b1a8 128
@@ -1928,7 +1928,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_17e05488ac4a0b0732defb2557690
 _Func_impl<struct_std::_Callable_obj<class_<lambda_d1b0433e8860daa110f96f55fbd358b5>,0>,class_std::allocator<class_std::_Func_class<void,class_TorchComponent*,unsigned_int>_>,void,class_TorchComponent*,unsigned_int> 0104b7a0 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_8fa62d3288625061aef03ef18d0e8b71>,0>,class_std::allocator<class_std::_Func_class<void,class_CameraBoundComponent*,unsigned_int>_>,void,class_CameraBoundComponent*,unsigned_int> 01047310 null
 MessageListener<class_WorldStateComponent,class_Message_PlayerDied,24> 0104640c null
-ComponentUpdator<class_SetStartVelocityComponent,class_SetStartVelocitySystem,0> 010479ec 144
+ComponentUpdator<class_SetStartVelocityComponent,class_SetStartVelocitySystem,0> 010479ec null
 ComponentUpdator<class_SetStartVelocityComponent,class_SetStartVelocitySystem,0> 0102ca28 144
 ComponentUpdator<class_PressurePlateComponent,class_PressurePlateSystem,0> 0103d714 144
 ComponentUpdator<class_PressurePlateComponent,class_PressurePlateSystem,0> 010469cc null
@@ -2001,7 +2001,7 @@ IMessageHandler<class_Message_DamageAboutToBeReceivedPost> 01042050 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_6ed8c9318735b95387a81412635a68e1>,0>,class_std::allocator<class_std::_Func_class<void,class_LevitationComponent*,unsigned_int>_>,void,class_LevitationComponent*,unsigned_int> 01049864 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_934a8c53d46246f74072dca392640cb9>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 010414c0 null
 _Func_base<void,class_AnimalAISystem&,class_Entity*,class_AnimalAIComponent*> 0104bae4 null
-ComponentUpdator<class_StatusEffectDataComponent,class_StatusEffectDataSystem,0> 01047330 144
+ComponentUpdator<class_StatusEffectDataComponent,class_StatusEffectDataSystem,0> 01047330 null
 ComponentUpdator<class_StatusEffectDataComponent,class_StatusEffectDataSystem,0> 01047394 144
 _Func_impl<struct_std::_Callable_obj<class_<lambda_458320f2d19c251c7513c198a8ea6a8f>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 0102f970 null
 _Func_base<void,class_GameAreaEffectComponent*,unsigned_int> 010357b4 null
@@ -2027,7 +2027,7 @@ MessageListener<class_LuaComponent,class_Message_AudioEventDead,19> 0103e79c nul
 ComponentBuffer<class_DrugEffectModifierComponent> 010455b4 196
 MessageListener<class_PlatformShooterPlayerComponent,class_Message_DamageReceived,34> 0104658c null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_77bcf93e2be8686585b328b86f752e93>,0>,class_std::allocator<class_std::_Func_class<void,class_DieIfSpeedBelowComponent*,unsigned_int>_>,void,class_DieIfSpeedBelowComponent*,unsigned_int> 0102aee8 null
-ItemCostSystem 0104af7c 168
+ItemCostSystem 0104af7c null
 ItemCostSystem 010434c4 null
 ItemCostSystem 01046aec 168
 ItemCostSystem 01048d34 null
@@ -2060,7 +2060,7 @@ _Func_base<void,class_LightningComponent*,unsigned_int> 0104877c null
 ComponentUpdator<class_PhysicsAIComponent,class_PhysicsAISystem,0> 01032668 null
 ComponentUpdator<class_PhysicsAIComponent,class_PhysicsAISystem,0> 01049b70 null
 ComponentBuffer<class_PhysicsBodyCollisionDamageComponent> 01045800 196
-InteractableSystem 01043988 152
+InteractableSystem 01043988 null
 InteractableSystem 010345c0 152
 TSystemAutoCreator<class_MaterialAreaCheckerSystem> 01030688 36
 ComponentUpdator<class_AltarComponent,class_AltarSystem,0> 010474d8 144
@@ -2076,7 +2076,7 @@ ComponentBuffer<class_DebugLogMessagesComponent> 01045350 196
 ComponentBuffer<class_AdvancedFishAIComponent> 010476ec 196
 TSystemAutoCreator<class_FlyingSystem> 0103cfa4 36
 Message_ItemPickUp 0102af64 null
-ComponentUpdator<class_FlyingComponent,class_FlyingSystem,0> 0102aa8c 144
+ComponentUpdator<class_FlyingComponent,class_FlyingSystem,0> 0102aa8c null
 ComponentUpdator<class_FlyingComponent,class_FlyingSystem,0> 010436e8 144
 EndingMcGuffinSystem 0103c958 144
 EndingMcGuffinSystem 0102fe3c 144
@@ -2100,7 +2100,7 @@ ItemAlchemyComponent 0104b1c4 96
 _Func_impl<struct_std::_Callable_obj<class_<lambda_bdb18417991969b3db36a7005df56dd7>,0>,class_std::allocator<class_std::_Func_class<void,class_HitboxComponent*,unsigned_int>_>,void,class_HitboxComponent*,unsigned_int> 01049408 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_37f9a39149e57f2395508ba4c2165bf2>,0>,class_std::allocator<class_std::_Func_class<void,class_CollisionTriggerComponent*,unsigned_int>_>,void,class_CollisionTriggerComponent*,unsigned_int> 01035a00 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_390b4a646af6b85fb001173c02999944>,0>,class_std::allocator<class_std::_Func_class<void,class_MagicConvertMaterialComponent*,unsigned_int>_>,void,class_MagicConvertMaterialComponent*,unsigned_int> 0104acf8 null
-PhysicsJointSystem 01048148 168
+PhysicsJointSystem 01048148 null
 PhysicsJointSystem 01048718 null
 PhysicsJointSystem 01042e38 168
 TSystemAutoCreator<class_EnergyShieldSystem> 0104ac7c 36
@@ -2108,7 +2108,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_7e7015bfe376d2487d947bbaa9350
 CContainer<class_grid::ICell*> 01049d24 8
 ComponentBuffer<class_AudioListenerComponent> 0102ab10 196
 _Func_base<void,class_GameStatsComponent*,unsigned_int> 010481cc null
-ComponentUpdator<class_VerletPhysicsComponent,class_VerletPhysicsSystem,0> 0102de5c 184
+ComponentUpdator<class_VerletPhysicsComponent,class_VerletPhysicsSystem,0> 0102de5c null
 ComponentUpdator<class_VerletPhysicsComponent,class_VerletPhysicsSystem,0> 010388cc 184
 IMessageHandler<class_Message_GameLog> 0104496c null
 TAutoDeleteArray<float> 0104af74 416
@@ -2146,7 +2146,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_7edd969b2b61b782f088daa5ed982
 TSystemAutoCreator<class_HomingSystem> 0104bc78 36
 MessageListener<class_LuaComponent,class_Message_Death,19> 010465a8 null
 TSystemAutoCreator<class_WormPlayerSystem> 010442c8 36
-ComponentUpdator<class_OrbComponent,class_OrbSystem,0> 0102de48 160
+ComponentUpdator<class_OrbComponent,class_OrbSystem,0> 0102de48 null
 ComponentUpdator<class_OrbComponent,class_OrbSystem,0> 0102e274 160
 CVarRefDummy<class_b2WeldJoint*> 0102d900 60
 TSystemAutoCreator<class_LightningSystem> 01044578 36
@@ -2176,7 +2176,7 @@ PhysicsAIComponent 01042188 184
 Message_MeleeOrDashAttack 0102ba10 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_c5122ba25433f98bcc726a2c505cd39d>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 0102b770 null
 _Func_base<void,class_FlyingComponent*,unsigned_int> 010443e8 null
-ComponentUpdator<class_PlayerCollisionComponent,class_PlayerCollisionSystem,0> 01044034 152
+ComponentUpdator<class_PlayerCollisionComponent,class_PlayerCollisionSystem,0> 01044034 null
 ComponentUpdator<class_PlayerCollisionComponent,class_PlayerCollisionSystem,0> 01048670 152
 _Func_impl<struct_std::_Callable_obj<class_<lambda_efb7ac83130d5475e939a7f09bfdd4ec>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 01047e54 null
 _Func_base<void,class_HealthBarComponent*,unsigned_int> 01041674 null
@@ -2199,7 +2199,7 @@ _Func_impl<struct_std::_Callable_obj<class_<lambda_eddd59ed0322cc7014d785082b298
 Message_DamageReceived 01047090 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_ca04749c01849236281d1d90e7f49496>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 0103bb6c null
 TSystemAutoCreator<class_BlackHoleSystem> 01030418 36
-ComponentUpdator<class_DamageModelComponent,class_DamageModelSystem,0> 01045398 160
+ComponentUpdator<class_DamageModelComponent,class_DamageModelSystem,0> 01045398 null
 ComponentUpdator<class_DamageModelComponent,class_DamageModelSystem,0> 010437e0 160
 ItemCostComponent 0103355c 96
 _Func_impl<struct_std::_Callable_obj<class_<lambda_d46ffdcec2b6af17b2583b000d81a4a8>,0>,class_std::allocator<class_std::_Func_class<void,class_Entity*>_>,void,class_Entity*> 0104b980 null
@@ -2223,10 +2223,10 @@ TSystemAutoCreator<class_AudioListenerSystem> 01046a98 36
 MoveToSurfaceOnCreateSystem 01042b78 144
 MoveToSurfaceOnCreateSystem 0103c6dc 144
 IMessageHandler<class_Message_MoveItem> 0103db38 null
-ComponentUpdator<class_WormAIComponent,class_WormAISystem,0> 01030434 144
+ComponentUpdator<class_WormAIComponent,class_WormAISystem,0> 01030434 null
 ComponentUpdator<class_WormAIComponent,class_WormAISystem,0> 01032ee8 144
 Message_KilledSomeone 01042bfc null
-ComponentUpdator<class_AreaDamageComponent,class_AreaDamageSystem,0> 01045128 144
+ComponentUpdator<class_AreaDamageComponent,class_AreaDamageSystem,0> 01045128 null
 ComponentUpdator<class_AreaDamageComponent,class_AreaDamageSystem,0> 0104af18 144
 _Func_impl<struct_std::_Callable_obj<class_<lambda_b67bd0ae4c36c84923873fd043823cc9>,0>,class_std::allocator<class_std::_Func_class<void,class_b2Body*>_>,void,class_b2Body*> 0103bd94 null
 ComponentBuffer<class_AIAttackComponent> 0103a468 196
@@ -2250,7 +2250,7 @@ _Func_base<void,class_AudioListenerComponent*,unsigned_int> 0103e0fc null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_29fbfdb0f2f8ddf3ff3328210d5e42f4>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 010354f8 null
 BossDragonComponent 01045a1c 312
 _Func_base<void,class_DroneLauncherComponent*,unsigned_int> 01041cd0 null
-ComponentUpdator<class_IKLimbsAnimatorComponent,class_IKLimbsAnimatorSystem,0> 0102b03c 160
+ComponentUpdator<class_IKLimbsAnimatorComponent,class_IKLimbsAnimatorSystem,0> 0102b03c null
 ComponentUpdator<class_IKLimbsAnimatorComponent,class_IKLimbsAnimatorSystem,0> 01049748 160
 _Func_base<bool,class_Entity*,class_Component*> 0104205c null
 ComponentUpdator<class_CharacterCollisionComponent,class_CharacterCollisionSystem,0> 01049884 null
@@ -2258,10 +2258,10 @@ ComponentUpdator<class_CharacterCollisionComponent,class_CharacterCollisionSyste
 VerletWeaponSystem 0104ae38 144
 VerletWeaponSystem 01046e94 144
 _Func_impl<struct_std::_Callable_obj<class_<lambda_e5cf0d31093f2508948e982ca8166a1d>,0>,class_std::allocator<class_std::_Func_class<void,class_DebugSpatialVisualizerComponent*,unsigned_int>_>,void,class_DebugSpatialVisualizerComponent*,unsigned_int> 0102f4e4 null
-ComponentUpdator<class_InventoryGuiComponent,class_InventoryGuiSystem,0> 01045948 160
+ComponentUpdator<class_InventoryGuiComponent,class_InventoryGuiSystem,0> 01045948 null
 ComponentUpdator<class_InventoryGuiComponent,class_InventoryGuiSystem,0> 0102aa30 160
 _Func_impl<struct_std::_Callable_obj<class_<lambda_b5c6547b31acbb36c5fa404c4dd69cde>,0>,class_std::allocator<class_std::_Func_class<void,class_LifetimeComponent*,unsigned_int>_>,void,class_LifetimeComponent*,unsigned_int> 01035fc0 null
-ComponentUpdator<class_LifetimeComponent,class_LifetimeSystem,0> 0103f2bc 144
+ComponentUpdator<class_LifetimeComponent,class_LifetimeSystem,0> 0103f2bc null
 ComponentUpdator<class_LifetimeComponent,class_LifetimeSystem,0> 01041b18 144
 IMessageHandler<class_Message_Interaction> 01044ba8 null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_d2f76df1fe74daa7f2dc5d51804b13c1>,0>,class_std::allocator<class_std::_Func_class<void,class_FishAIComponent*,unsigned_int>_>,void,class_FishAIComponent*,unsigned_int> 0102ad5c null
@@ -2272,7 +2272,7 @@ ComponentUpdator<class_ConsumableTeleportComponent,class_ConsumableTeleportSyste
 _Func_impl<struct_std::_Callable_obj<class_<lambda_0c6addf370ca12d985684e37c6624d24>,0>,class_std::allocator<class_std::_Func_class<void,class_MaterialSuckerComponent*,unsigned_int>_>,void,class_MaterialSuckerComponent*,unsigned_int> 0102af08 null
 MessageListener<class_GameEffectComponent,class_Message_Shot,9> 010466fc null
 _Func_base<void,class_grid::CellParticle*> 01045bf4 null
-ComponentUpdator<class_MaterialSuckerComponent,class_MaterialSuckerSystem,0> 01044f58 144
+ComponentUpdator<class_MaterialSuckerComponent,class_MaterialSuckerSystem,0> 01044f58 null
 ComponentUpdator<class_MaterialSuckerComponent,class_MaterialSuckerSystem,0> 0103c6e8 144
 ParticleEmitterSystem 0104b508 160
 ParticleEmitterSystem 0102d4b4 160
@@ -2284,7 +2284,7 @@ SpriteLifetime 0104670c 236
 SimplePhysicsComponent 0104ae44 88
 _Func_impl<struct_std::_Callable_obj<class_<lambda_71dd03799dd2298de9155cd662ccfae9>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 0104a6fc null
 TSystemAutoCreator<class_LaserEmitterSystem> 0102d544 36
-ComponentUpdator<class_AudioListenerComponent,class_AudioListenerSystem,0> 01045fc0 144
+ComponentUpdator<class_AudioListenerComponent,class_AudioListenerSystem,0> 01045fc0 null
 ComponentUpdator<class_AudioListenerComponent,class_AudioListenerSystem,0> 01049d50 144
 IMessageHandler<class_Message_CollisionWithCell> 0102aadc null
 _Func_impl<struct_std::_Callable_obj<class_<lambda_48980506963f821bd1a57bd4bf375889>,0>,class_std::allocator<class_std::_Func_class<void,class_PhysicsBodyComponent*,unsigned_int>_>,void,class_PhysicsBodyComponent*,unsigned_int> 01044050 null
@@ -2326,9 +2326,9 @@ GameLogSystem 0103adec null
 GameLogSystem 010467c8 null
 TSystemAutoCreator<class_DroneLauncherSystem> 01039e14 36
 _Func_base<void,class_PositionSeedComponent*,unsigned_int> 01043d54 null
-ComponentUpdator<class_PotionComponent,class_PotionSystem,0> 0104a004 160
+ComponentUpdator<class_PotionComponent,class_PotionSystem,0> 0104a004 null
 ComponentUpdator<class_PotionComponent,class_PotionSystem,0> 01033088 160
-ComponentUpdator<class_GameLogComponent,class_GameLogSystem,0> 010358d0 192
+ComponentUpdator<class_GameLogComponent,class_GameLogSystem,0> 010358d0 null
 ComponentUpdator<class_GameLogComponent,class_GameLogSystem,0> 0102b590 192
 VerletWeaponComponent 0104a2d4 112
 _Func_impl<struct_std::_Callable_obj<class_<lambda_ea99189af560b73b2897f0739bced036>,0>,class_std::allocator<class_std::_Func_class<void>_>,void> 010445cc null

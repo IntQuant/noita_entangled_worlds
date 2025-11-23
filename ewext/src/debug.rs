@@ -164,6 +164,7 @@ pub enum Elem {
     Struct(Struct, usize),
     #[allow(unused)]
     Usize(usize),
+    #[allow(unused)]
     Recursive(usize, usize),
 }
 impl Elem {
@@ -201,8 +202,8 @@ impl Elem {
             Elem::Usize(_) => {
                 //noita_api::print!("{}[{e}]{}usize", " ".repeat(n), "&".repeat(count))
             }
-            Elem::Recursive(k, e) => {
-                noita_api::print!("{}[{e}]{}recursive<{k}>", " ".repeat(n), "&".repeat(count))
+            Elem::Recursive(_, _) => {
+                //noita_api::print!("{}[{e}]{}recursive<{k}>", " ".repeat(n), "&".repeat(count))
             }
         }
     }
