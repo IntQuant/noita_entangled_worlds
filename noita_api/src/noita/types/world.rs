@@ -896,6 +896,13 @@ pub struct GridWorldThreaded {
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct GridWorldThreadImpl {
+    chunk_update_count: usize,
+    updated_grid_worlds: StdVec<GridWorldThreaded>,
+}
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct GridWorld {
     pub vtable: &'static GridWorldVTable,
     pub rng: isize,
@@ -912,7 +919,7 @@ pub struct GridWorld {
     pub world_update_count: isize,
     pub chunk_map: ChunkMap,
     pub unknown2: [isize; 40],
-    pub m_thread_impl: &'static mut GridWorldThreaded,
+    pub m_thread_impl: &'static mut GridWorldThreadImpl,
 }
 #[repr(C)]
 #[derive(Debug)]
