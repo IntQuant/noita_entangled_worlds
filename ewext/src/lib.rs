@@ -10,7 +10,6 @@ use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
 use noita_api::noita::types::EntityManager;
 use noita_api::noita::world::ParticleWorldState;
-use noita_api::raw::game_get_frame_num;
 use noita_api::{
     EntityID, VariableStorageComponent,
     lua::{
@@ -259,7 +258,8 @@ fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
-    if game_get_frame_num()? == 180 {
+    #[cfg(feature = "debug")]
+    if noita_api::raw::game_get_frame_num()? == 180 {
         ExtState::with_global(debug::check_globals)??;
     }
     with_every_module(|ctx, module| module.on_world_update(ctx))
