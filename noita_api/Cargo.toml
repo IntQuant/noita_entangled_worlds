@@ -5,13 +5,13 @@ edition = "2024"
 
 [dependencies]
 eyre = "0.6.12"
-libloading = "0.8.9"
+libloading = "0.9.0"
 noita_api_macro = {path = "noita_api_macro"}
 shared = {path = "../shared"}
 base64 = "0.22.1"
 rustc-hash = "2.1.1"
 smallvec = "1.15.1"
-object = "0.37.3"
+object = "0.38.0"
 rayon = "1.11.0"
 iced-x86 = "1.21.0"
 paste = "1.0.15"

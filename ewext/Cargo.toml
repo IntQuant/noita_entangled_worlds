@@ -28,13 +28,16 @@ opt-level = 3
 eyre = "0.6.12"
 noita_api = {path = "../noita_api"}
 shared = {path = "../shared"}
-libloading = "0.8.9"
+libloading = "0.9.0"
 rand = "0.9.2"
 rustc-hash = "2.1.1"
 bimap = "0.6.3"
 rayon = "1.11.0"
+windows = { version = "0.62.2", features = ["Win32", "Win32_System", "Win32_System_Memory"] , optional=true}
 
 [features]
+default=["debug"]
+debug=["dep:windows"]
 #enables cross-compilation on older systems (for example, when compiling on ubuntu 20.04)
 #due to unresolved bug in rust toolchain
 #https://github.com/rust-lang/rust/issues/79609

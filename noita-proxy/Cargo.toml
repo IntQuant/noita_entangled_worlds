@@ -11,9 +11,9 @@ eframe = { version= "0.33.2", features = ["glow", "default_fonts", "wayland", "x
 rfd = "0.15.4"
 egui_extras = { version = "0.33.2", features = ["all_loaders"] }
 #egui_plot = "0.29.0"
-image = { version = "0.25.8", default-features = false, features = ["png", "webp"] }
+image = { version = "0.25.9", default-features = false, features = ["png", "webp"] }
 
-wide = "0.8.2"
+wide = "0.8.3"
 rayon = "1.11.0"
 ron = "0.12.0"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }

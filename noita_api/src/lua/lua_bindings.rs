@@ -705,7 +705,7 @@ pub struct Lua51 {
 impl Lua51 {
     pub unsafe fn new<P>(path: P) -> Result<Self, libloading::Error>
     where
-        P: AsRef<std::ffi::OsStr>,
+        P: libloading::AsFilename,
     {
         unsafe {
             let library = libloading::Library::new(path)?;
