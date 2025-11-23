@@ -30,6 +30,8 @@ use std::{
     sync::{LazyLock, Mutex, OnceLock, TryLockError},
 };
 use std::{num::NonZero, sync::MutexGuard};
+#[cfg(feature = "debug")]
+mod debug;
 mod modules;
 mod net;
 
@@ -256,6 +258,10 @@ fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
 }
 
 fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
+    #[cfg(feature = "debug")]
+    if noita_api::raw::game_get_frame_num()? == 180 {
+        ExtState::with_global(debug::check_globals)??;
+    }
     with_every_module(|ctx, module| module.on_world_update(ctx))
 }
 
