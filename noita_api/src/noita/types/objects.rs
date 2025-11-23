@@ -452,7 +452,7 @@ impl Vec2 {
     }
 }
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct Vec2i {
     pub x: isize,
     pub y: isize,
