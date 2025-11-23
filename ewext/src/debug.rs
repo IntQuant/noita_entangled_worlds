@@ -217,23 +217,13 @@ impl Struct {
         }
     }
     fn print(&self, n: usize, count: usize, entry: usize) {
-        if self.fields.is_empty() {
-            noita_api::print!(
-                "{}[{entry}]{}{}<{}>",
-                " ".repeat(n),
-                "&".repeat(count),
-                self.name,
-                self.size
-            )
-        } else {
-            noita_api::print!(
-                "{}[{entry}]{}{}<{}>(",
-                " ".repeat(n),
-                "&".repeat(count),
-                self.name,
-                self.size,
-            )
-        }
+        noita_api::print!(
+            "{}[{entry}]{}{}<{}>",
+            " ".repeat(n),
+            "&".repeat(count),
+            self.name,
+            self.size
+        );
         for f in self.fields.iter() {
             f.print(n + 1, 0);
         }
