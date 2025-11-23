@@ -177,10 +177,16 @@ impl Elem {
         entry: usize,
     ) -> Self {
         let mut s = Struct::new(name, size);
-        for i in 1..size / 4 {
+        let mut i = 0;
+        while i < size / 4 {
             let len = addrs.len();
-            s.fields
-                .push(check_global(unsafe { reference.add(i) }, map, addrs, i));
+            let e = check_global(unsafe { reference.add(i) }, map, addrs, i);
+            if let Elem::Struct(_, size) = &e {
+                i += (*size).max(1);
+            } else {
+                i += 1
+            }
+            s.fields.push(e);
             while len < addrs.len() {
                 addrs.pop();
             }
@@ -200,10 +206,10 @@ impl Elem {
             Elem::Ref(r) => r.print(n, count + 1),
             Elem::Struct(s, e) => s.print(n, count, *e),
             Elem::Usize(_) => {
-                //noita_api::print!("{}[{e}]{}usize", " ".repeat(n), "&".repeat(count))
+                //noita_api::print!("{}[{e}]{}usize", "  ".repeat(n), "&".repeat(count))
             }
             Elem::Recursive(_, _) => {
-                //noita_api::print!("{}[{e}]{}recursive<{k}>", " ".repeat(n), "&".repeat(count))
+                //noita_api::print!("{}[{e}]{}recursive<{k}>", "  ".repeat(n), "&".repeat(count))
             }
         }
     }
@@ -219,7 +225,7 @@ impl Struct {
     fn print(&self, n: usize, count: usize, entry: usize) {
         noita_api::print!(
             "{}[{entry}]{}{}<{}>",
-            " ".repeat(n),
+            "  ".repeat(n),
             "&".repeat(count),
             self.name,
             self.size
