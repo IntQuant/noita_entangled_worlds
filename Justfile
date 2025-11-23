@@ -31,15 +31,17 @@ build_luajit:
 # `rustup target add i686-pc-windows-gnu` first
 build_ext:
     cd ewext && cargo build --release --target=i686-pc-windows-gnu
-    cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext1.dll
+    cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
 
 build_ext_debug:
     cd ewext && cargo build --target=i686-pc-windows-gnu
-    cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext1.dll
+    cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext.dll
 
 # # mod movin
+# # $env:RM_KEEP_MOD="1"; for 1 run without rm mod
 move_mod:
-    cp "quant.ew" "E:/SteamLibrary/steamapps/common/Noita/mods/" -Recurse -Force
+    $env:RM_KEEP_MOD ? $true : (rm -Recurse -Force -Path "E:/SteamLibrary/steamapps/common/Noita/mods/quant.ew" || $true)
+    $env:RM_KEEP_MOD ? $true : (cp "quant.ew" "E:/SteamLibrary/steamapps/common/Noita/mods/" -Recurse -Force || $true)
 
 # #run commands
 build_blob:
@@ -56,14 +58,15 @@ run-rel $NP_SKIP_MOD_CHECK="1": add_dylib_release move_mod
 flamegraph: add_dylib_debug
     cd noita-proxy && cargo flamegraph
 
-run: add_dylib_debug build_ext move_mod
+run $NP_SKIP_MOD_CHECK="1": add_dylib_debug build_ext move_mod
     cd noita-proxy && cargo run
 
 run-w-gdb $NP_SKIP_MOD_CHECK="1": add_dylib_debug build_ext
     cd noita-proxy && cargo run -- --run-noita-with-gdb
 
-run2 $NP_SKIP_MOD_CHECK="1": add_dylib_debug build_ext move_mod
-    cd noita-proxy && cargo run -- --launch-cmd "E:/SteamLibrary/steamapps/common/Noita/noita_dev.exe -gamemode 0"
+
+run2 PARAMS="" $NP_SKIP_MOD_CHECK="1": add_dylib_debug build_ext move_mod
+    cd noita-proxy && cargo run -- --launch-cmd "E:/SteamLibrary/steamapps/common/Noita/noita_dev.exe -gamemode 0" {{PARAMS}}
 
 run2-alt $NP_SKIP_MOD_CHECK="1": add_dylib_debug build_ext move_mod
     cd noita-proxy && cargo run -- --launch-cmd "'E:\Archivos Programas\x64dbg\release\x32' E:/SteamLibrary/steamapps/common/Noita/noita_dev.exe -gamemode 0"
