@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use noita_api::{
     noita::types::{GridWorld, Vec2i},
-    print,
     raw::game_create_sprite_for_x_frames,
 };
 

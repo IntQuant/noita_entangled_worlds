@@ -26,25 +26,28 @@ pub fn check_globals(_: &mut ExtState) -> eyre::Result<()> {
         name_map.insert(addr, name);
         size_map.insert(addr, size);
     }
-    let mut map = HashMap::new();
+    let mut map = Vec::new();
     for (addr, size) in size_map.into_iter() {
         let name = name_map.remove(&addr).unwrap();
-        map.insert(addr, (name, size));
+        map.push((addr, name, size));
     }
+    map.sort_by(|a, b| a.0.cmp(&b.0));
     let globals = Globals::default();
     let len = unsafe { GetProcessHeaps(&mut Vec::new()) };
     let mut heaps = vec![HANDLE::default(); len as usize];
     unsafe { GetProcessHeaps(&mut heaps) };
-    let mut heapset = HashMap::new();
+    let mut heapset = Vec::new();
     let mut entry: PROCESS_HEAP_ENTRY = PROCESS_HEAP_ENTRY::default();
+    heaps.sort_by(|a, b| a.0.cmp(&b.0));
     for heap in heaps {
         while unsafe { HeapWalk(heap, &mut entry) }.is_ok() {
-            heapset.insert(
-                entry.lpData.cast::<usize>().cast_const(),
-                entry.cbData as usize,
-            );
+            if entry.cbData != u32::MAX {
+                let ptr = entry.lpData.cast::<usize>().cast_const();
+                heapset.push((heap, ptr, unsafe { ptr.add(entry.cbData as usize) }))
+            }
         }
     }
+    heapset.sort_by(|a, b| a.1.cmp(&b.1));
     #[allow(unused)]
     let print = |addr: *const usize| {
         check_global(addr, &map, &mut Vec::new(), 0, None, &heapset).print(0, 0, None);
@@ -88,11 +91,11 @@ pub fn check_globals(_: &mut ExtState) -> eyre::Result<()> {
 }
 fn check_global(
     reference: *const usize,
-    map: &HashMap<usize, (String, usize)>,
+    map: &[(usize, String, usize)],
     addrs: &mut Vec<*const usize>,
     entry: usize,
     parent: Option<&str>,
-    heaps: &HashMap<*const usize, usize>,
+    heaps: &[(HANDLE, *const usize, *const usize)],
 ) -> Elem {
     if let Some(n) = addrs.iter().position(|n| *n == reference) {
         return Elem::Recursive(addrs.len() - n, entry);
@@ -105,7 +108,8 @@ fn check_global(
         let Some(table) = reference.as_ref() else {
             return Elem::Usize(entry);
         };
-        if let Some((name, size)) = map.get(table) {
+        if let Ok(i) = map.binary_search_by(|r| r.0.cmp(table)) {
+            let (_, name, size) = &map[i];
             if Some(name.as_ref()) == parent {
                 Elem::VFTable(entry)
             } else {
@@ -125,7 +129,7 @@ fn check_global(
                 )
             }
         } else if let Some(size) = in_range(table, heaps)
-            && ({ size == 4 || size == usize::MAX })
+            && size == 4
             && let Some(inner) = (table as *const usize)
                 .cast::<*const usize>()
                 .as_ref()
@@ -181,14 +185,15 @@ impl Elem {
             Elem::Recursive(_, e) => *e,
         }
     }
+    #[allow(clippy::too_many_arguments)]
     pub fn from_addr(
         mut reference: *const usize,
-        map: &HashMap<usize, (String, usize)>,
+        map: &[(usize, String, usize)],
         addrs: &mut Vec<*const usize>,
         name: &str,
         size: usize,
         entry: usize,
-        heaps: &HashMap<*const usize, usize>,
+        heaps: &[(HANDLE, *const usize, *const usize)],
         skip: bool,
     ) -> Self {
         let mut s = Struct::new(name, size);
@@ -212,7 +217,7 @@ impl Elem {
                 heaps,
             );
             if let Elem::Struct(_, size) = &e {
-                i += (*size).max(1);
+                i += (size / 4).max(1);
             } else {
                 i += 1
             }
@@ -223,8 +228,8 @@ impl Elem {
                     *n += 1;
                 } else {
                     let entry = last.entry();
-                    s.fields.push(Elem::Array(Box::new(e), 2, entry));
                     s.fields.pop();
+                    s.fields.push(Elem::Array(Box::new(e), 2, entry));
                 };
             } else {
                 s.fields.push(e);
@@ -248,11 +253,23 @@ impl Elem {
             Elem::Ref(r) => r.print(n, count + 1, array),
             Elem::Array(r, k, e) => r.print(n, count + 1, Some((*k, *e))),
             Elem::Struct(s, e) => s.print(n, count, *e, array),
-            Elem::Usize(_) => {
-                //noita_api::print!("{}[{e}]{}usize", "  ".repeat(n), "&".repeat(count))
+            Elem::Usize(e) => {
+                noita_api::print!(
+                    "{}[{}]{}usize{}",
+                    "  ".repeat(n),
+                    array.map(|a| a.1).unwrap_or(*e),
+                    "&".repeat(count),
+                    array.map(|a| format!("[{}]", a.0)).unwrap_or_default()
+                )
             }
-            Elem::Recursive(_, _) => {
-                //noita_api::print!("{}[{e}]{}recursive<{k}>", "  ".repeat(n), "&".repeat(count))
+            Elem::Recursive(k, e) => {
+                noita_api::print!(
+                    "{}[{}]{}recursive<{k}>{}",
+                    "  ".repeat(n),
+                    array.map(|a| a.1).unwrap_or(*e),
+                    "&".repeat(count),
+                    array.map(|a| format!("[{}]", a.0)).unwrap_or_default()
+                )
             }
             Elem::VFTable(e) => {
                 noita_api::print!(
@@ -260,7 +277,7 @@ impl Elem {
                     "  ".repeat(n),
                     array.map(|a| a.1).unwrap_or(*e),
                     "&".repeat(count),
-                    array.map(|a| format!("[{}]", a.0)).unwrap_or(String::new())
+                    array.map(|a| format!("[{}]", a.0)).unwrap_or_default()
                 )
             }
         }
@@ -282,14 +299,17 @@ impl Struct {
             "&".repeat(count),
             self.name,
             self.size,
-            array.map(|a| format!("[{}]", a.0)).unwrap_or(String::new())
+            array.map(|a| format!("[{}]", a.0)).unwrap_or_default()
         );
         for f in self.fields.iter() {
             f.print(n + 1, 0, None);
         }
     }
 }
-fn in_range(reference: *const usize, heaps: &HashMap<*const usize, usize>) -> Option<usize> {
+fn in_range(
+    reference: *const usize,
+    heaps: &[(HANDLE, *const usize, *const usize)],
+) -> Option<usize> {
     if reference.is_null() {
         return None;
     }
@@ -308,16 +328,26 @@ fn in_range(reference: *const usize, heaps: &HashMap<*const usize, usize>) -> Op
         return None;
     }
     let protect = mbi.Protect;
-    if protect == PAGE_NOACCESS || protect == PAGE_GUARD {
+    if protect.contains(PAGE_NOACCESS) || protect.contains(PAGE_GUARD) || protect.0 == 0 {
         return None;
     }
-    let region_end = (mbi.BaseAddress as usize).saturating_add(mbi.RegionSize);
-    if region_end < 4 + reference as usize {
-        return None;
-    }
-    if let Some(size) = heaps.get(&reference) {
-        Some(*size)
-    } else {
-        Some(usize::MAX)
+    match heaps.binary_search_by(|r| {
+        if reference < r.1 {
+            std::cmp::Ordering::Greater
+        } else if reference >= r.2 {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Equal
+        }
+    }) {
+        Ok(r) => {
+            let r = &heaps[r];
+            if r.1 < reference && r.2 > reference {
+                Some(unsafe { HeapSize(r.0, HEAP_FLAGS::default(), reference.cast()) })
+            } else {
+                Some(usize::MAX)
+            }
+        }
+        Err(_) => Some(usize::MAX),
     }
 }
