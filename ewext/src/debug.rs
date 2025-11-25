@@ -2,6 +2,8 @@ use crate::ExtState;
 use noita_api::addr_grabber::Globals;
 use noita_api::noita::types::*;
 use std::collections::HashMap;
+use std::ops::DerefMut;
+use windows::Win32::Foundation::HANDLE;
 use windows::Win32::System::Memory::*;
 pub fn check_globals(_: &mut ExtState) -> eyre::Result<()> {
     let vftables = include_str!("../vftables.txt");
@@ -30,9 +32,24 @@ pub fn check_globals(_: &mut ExtState) -> eyre::Result<()> {
         map.insert(addr, (name, size));
     }
     let globals = Globals::default();
+    let len = unsafe { GetProcessHeaps(&mut Vec::new()) };
+    let mut heaps = vec![HANDLE::default(); len as usize];
+    unsafe { GetProcessHeaps(&mut heaps) };
+    let mut heapset = HashMap::new();
+    let mut entry: PROCESS_HEAP_ENTRY = PROCESS_HEAP_ENTRY::default();
+    for heap in heaps {
+        while unsafe { HeapWalk(heap, &mut entry) }.is_ok() {
+            heapset.insert(
+                entry.lpData.cast::<usize>().cast_const(),
+                entry.cbData as usize,
+            );
+        }
+    }
+    #[allow(unused)]
     let print = |addr: *const usize| {
-        check_global(addr, &map, &mut Vec::new(), 0, None).print(0, 0);
+        check_global(addr, &map, &mut Vec::new(), 0, None, &heapset).print(0, 0, None);
     };
+    #[allow(unused)]
     macro_rules! maybe_ptr_get {
         (true, $name:tt) => {
             unsafe { $name.cast::<*const usize>().as_ref().copied().unwrap() }
@@ -50,8 +67,10 @@ pub fn check_globals(_: &mut ExtState) -> eyre::Result<()> {
                 stringify!($t),
                 size_of::<$t>(),
                 0,
+                &heapset,
+                false,
             )
-            .print(0, 0);
+            .print(0, 0, None);
         };
     }
     print(globals.entity_manager.cast());
@@ -65,22 +84,6 @@ pub fn check_globals(_: &mut ExtState) -> eyre::Result<()> {
     print_unk!(globals.game_global, GameGlobal, true);
     print_unk!(globals.component_manager, ComponentSystemManager, false);
     print_unk!(globals.world_state, Entity, true);
-    let ptr = globals.game_global().m_cell_factory as *const CellFactory;
-    print_unk!(ptr, CellFactory, false);
-    let ptr = globals.game_global().m_textures as *const Textures;
-    print_unk!(ptr, Textures, false);
-    let ptr = globals.game_global().m_game_world as *const GameWorld;
-    print_unk!(ptr, GameWorld, false);
-    let ptr = unsafe {
-        *(**globals.game_global)
-            .m_grid_world
-            .chunk_map
-            .chunk_array
-            .iter()
-            .find(|a| !a.is_null())
-            .unwrap()
-    } as *const Chunk;
-    print_unk!(ptr, Chunk, false);
     Ok(())
 }
 fn check_global(
@@ -89,15 +92,16 @@ fn check_global(
     addrs: &mut Vec<*const usize>,
     entry: usize,
     parent: Option<&str>,
+    heaps: &HashMap<*const usize, usize>,
 ) -> Elem {
     if let Some(n) = addrs.iter().position(|n| *n == reference) {
         return Elem::Recursive(addrs.len() - n, entry);
     }
     addrs.push(reference);
     unsafe {
-        if !in_range(reference) {
+        let Some(addr_size) = in_range(reference, heaps) else {
             return Elem::Usize(entry);
-        }
+        };
         let Some(table) = reference.as_ref() else {
             return Elem::Usize(entry);
         };
@@ -105,15 +109,33 @@ fn check_global(
             if Some(name.as_ref()) == parent {
                 Elem::VFTable(entry)
             } else {
-                Elem::from_addr(reference, map, addrs, name, *size, entry)
+                Elem::from_addr(
+                    reference,
+                    map,
+                    addrs,
+                    name,
+                    if addr_size != usize::MAX {
+                        addr_size
+                    } else {
+                        *size
+                    },
+                    entry,
+                    heaps,
+                    true,
+                )
             }
-        } else if in_range(table)
+        } else if let Some(size) = in_range(table, heaps)
+            && ({ size == 4 || size == usize::MAX })
             && let Some(inner) = (table as *const usize)
                 .cast::<*const usize>()
                 .as_ref()
                 .copied()
         {
-            Elem::Ref(Box::new(check_global(inner, map, addrs, entry, None)))
+            Elem::Ref(Box::new(check_global(
+                inner, map, addrs, entry, None, heaps,
+            )))
+        } else if addr_size != usize::MAX && parent.is_none() {
+            Elem::from_addr(reference, map, addrs, "Unk", addr_size, entry, heaps, false)
         } else {
             Elem::Usize(entry)
         }
@@ -123,31 +145,90 @@ pub enum Elem {
     Ref(Box<Elem>),
     Struct(Struct, usize),
     VFTable(usize),
+    Array(Box<Elem>, usize, usize),
     #[allow(unused)]
     Usize(usize),
     #[allow(unused)]
     Recursive(usize, usize),
 }
+impl PartialEq for Elem {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Elem::Array(r1, n1, _), Elem::Array(r2, n2, _)) => r1 == r2 && n1 == n2,
+            (Elem::Ref(r1), Elem::Ref(r2)) => r1 == r2,
+            (Elem::Struct(r1, _), Elem::Struct(r2, _)) => r1 == r2,
+            (Elem::VFTable(_), Elem::VFTable(_)) => true,
+            (Elem::Usize(_), Elem::Usize(_)) => true,
+            (Elem::Recursive(r1, _), Elem::Recursive(r2, _)) => r1 == r2,
+            _ => false,
+        }
+    }
+}
 impl Elem {
+    pub fn array_eq(&mut self, other: &Self) -> bool {
+        match self {
+            Elem::Array(e, _, _) => e.deref_mut() == other,
+            e => e == other,
+        }
+    }
+    pub fn entry(&self) -> usize {
+        match self {
+            Elem::Array(_, _, e) => *e,
+            Elem::Ref(r) => r.entry(),
+            Elem::Struct(_, e) => *e,
+            Elem::VFTable(e) => *e,
+            Elem::Usize(e) => *e,
+            Elem::Recursive(_, e) => *e,
+        }
+    }
     pub fn from_addr(
-        reference: *const usize,
+        mut reference: *const usize,
         map: &HashMap<usize, (String, usize)>,
         addrs: &mut Vec<*const usize>,
         name: &str,
         size: usize,
         entry: usize,
+        heaps: &HashMap<*const usize, usize>,
+        skip: bool,
     ) -> Self {
         let mut s = Struct::new(name, size);
+        if skip {
+            s.fields.push(Elem::VFTable(0));
+            reference = unsafe { reference.add(1) };
+        }
         let mut i = 0;
-        while i < size / 4 {
+        while i < if skip {
+            (size / 4).saturating_sub(1)
+        } else {
+            size / 4
+        } {
             let len = addrs.len();
-            let e = check_global(unsafe { reference.add(i) }, map, addrs, i, Some(name));
+            let e = check_global(
+                unsafe { reference.add(i) },
+                map,
+                addrs,
+                if skip { i + 1 } else { i },
+                Some(name),
+                heaps,
+            );
             if let Elem::Struct(_, size) = &e {
                 i += (*size).max(1);
             } else {
                 i += 1
             }
-            s.fields.push(e);
+            if let Some(last) = s.fields.last_mut()
+                && last.array_eq(&e)
+            {
+                if let Elem::Array(_, n, _) = last {
+                    *n += 1;
+                } else {
+                    let entry = last.entry();
+                    s.fields.push(Elem::Array(Box::new(e), 2, entry));
+                    s.fields.pop();
+                };
+            } else {
+                s.fields.push(e);
+            }
             while len < addrs.len() {
                 addrs.pop();
             }
@@ -155,17 +236,18 @@ impl Elem {
         Elem::Struct(s, entry)
     }
 }
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub struct Struct {
     name: String,
     size: usize,
     fields: Vec<Elem>,
 }
 impl Elem {
-    fn print(&self, n: usize, count: usize) {
+    fn print(&self, n: usize, count: usize, array: Option<(usize, usize)>) {
         match self {
-            Elem::Ref(r) => r.print(n, count + 1),
-            Elem::Struct(s, e) => s.print(n, count, *e),
+            Elem::Ref(r) => r.print(n, count + 1, array),
+            Elem::Array(r, k, e) => r.print(n, count + 1, Some((*k, *e))),
+            Elem::Struct(s, e) => s.print(n, count, *e, array),
             Elem::Usize(_) => {
                 //noita_api::print!("{}[{e}]{}usize", "  ".repeat(n), "&".repeat(count))
             }
@@ -173,7 +255,13 @@ impl Elem {
                 //noita_api::print!("{}[{e}]{}recursive<{k}>", "  ".repeat(n), "&".repeat(count))
             }
             Elem::VFTable(e) => {
-                noita_api::print!("{}[{e}]{}VFTable", "  ".repeat(n), "&".repeat(count))
+                noita_api::print!(
+                    "{}[{}]{}VFTable{}",
+                    "  ".repeat(n),
+                    array.map(|a| a.1).unwrap_or(*e),
+                    "&".repeat(count),
+                    array.map(|a| format!("[{}]", a.0)).unwrap_or(String::new())
+                )
             }
         }
     }
@@ -186,22 +274,24 @@ impl Struct {
             ..Default::default()
         }
     }
-    fn print(&self, n: usize, count: usize, entry: usize) {
+    fn print(&self, n: usize, count: usize, entry: usize, array: Option<(usize, usize)>) {
         noita_api::print!(
-            "{}[{entry}]{}{}<{}>",
+            "{}[{}]{}{}<{}>{}",
             "  ".repeat(n),
+            array.map(|a| a.1).unwrap_or(entry),
             "&".repeat(count),
             self.name,
-            self.size
+            self.size,
+            array.map(|a| format!("[{}]", a.0)).unwrap_or(String::new())
         );
         for f in self.fields.iter() {
-            f.print(n + 1, 0);
+            f.print(n + 1, 0, None);
         }
     }
 }
-fn in_range(reference: *const usize) -> bool {
+fn in_range(reference: *const usize, heaps: &HashMap<*const usize, usize>) -> Option<usize> {
     if reference.is_null() {
-        return false;
+        return None;
     }
     let mut mbi = MEMORY_BASIC_INFORMATION::default();
     if unsafe {
@@ -212,15 +302,22 @@ fn in_range(reference: *const usize) -> bool {
         )
     } == 0
     {
-        return false;
+        return None;
     }
     if mbi.State != MEM_COMMIT {
-        return false;
+        return None;
     }
     let protect = mbi.Protect;
     if protect == PAGE_NOACCESS || protect == PAGE_GUARD {
-        return false;
+        return None;
     }
-    //noita_api::print!("{:?} {:?}", reference, mbi);
-    true
+    let region_end = (mbi.BaseAddress as usize).saturating_add(mbi.RegionSize);
+    if region_end < 4 + reference as usize {
+        return None;
+    }
+    if let Some(size) = heaps.get(&reference) {
+        Some(*size)
+    } else {
+        Some(usize::MAX)
+    }
 }
