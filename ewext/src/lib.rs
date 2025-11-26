@@ -9,7 +9,6 @@ use net::NetManager;
 use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
 use noita_api::noita::types::EntityManager;
-use noita_api::noita::world::ParticleWorldState;
 use noita_api::{
     EntityID, VariableStorageComponent,
     lua::{
@@ -22,7 +21,6 @@ use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
 use std::array::IntoIter;
 use std::backtrace::Backtrace;
-use std::mem::MaybeUninit;
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -30,6 +28,8 @@ use std::{
     sync::{LazyLock, Mutex, OnceLock, TryLockError},
 };
 use std::{num::NonZero, sync::MutexGuard};
+
+use crate::modules::world_sync::WorldSync;
 #[cfg(feature = "debug")]
 mod debug;
 mod modules;
@@ -60,21 +60,6 @@ pub(crate) fn my_peer_id() -> PeerId {
         .get()
         .copied()
         .expect("peer id to be set by this point")
-}
-
-pub struct WorldSync {
-    pub particle_world_state: MaybeUninit<ParticleWorldState>,
-    pub world_num: u8,
-}
-unsafe impl Sync for WorldSync {}
-unsafe impl Send for WorldSync {}
-impl Default for WorldSync {
-    fn default() -> Self {
-        Self {
-            particle_world_state: MaybeUninit::uninit(),
-            world_num: 0,
-        }
-    }
 }
 
 #[derive(Default)]

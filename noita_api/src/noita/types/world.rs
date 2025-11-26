@@ -891,14 +891,24 @@ pub struct GridWorldThreadedVTable {
 pub struct GridWorldThreaded {
     pub grid_world_threaded_vtable: &'static GridWorldThreadedVTable,
     pub unknown: [isize; 287],
-    pub update_region: AABB,
+    pub update_region: IAABB,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct WorldUpdateParams {
+    pub update_region: IAABB,
+    unknown: isize,
+    grid_world_threaded: &'static GridWorldThreaded,
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct GridWorldThreadImpl {
-    chunk_update_count: usize,
-    updated_grid_worlds: StdVec<GridWorldThreaded>,
+    pub chunk_update_count: usize,
+    pub updated_grid_worlds: StdVec<&'static GridWorldThreaded>,
+    pub world_update_params_count: usize,
+    pub world_update_params: StdVec<WorldUpdateParams>,
 }
 
 #[repr(C)]

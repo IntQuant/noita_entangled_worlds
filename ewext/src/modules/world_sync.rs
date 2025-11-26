@@ -1,6 +1,8 @@
+use crate::modules::world_sync::change_tracker::ChangeTracker;
 use crate::modules::{Module, ModuleCtx};
-use crate::{WorldSync, my_peer_id};
+use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
+use noita_api::addr_grabber::Globals;
 use noita_api::heap::Ptr;
 use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2};
 use noita_api::noita::world::ParticleWorldState;
@@ -11,12 +13,43 @@ use shared::world_sync::{
 };
 use std::mem::MaybeUninit;
 
+mod change_tracker;
+
+pub struct WorldSync {
+    pub particle_world_state: MaybeUninit<ParticleWorldState>,
+    pub world_num: u8,
+    change_tracker: ChangeTracker,
+    initialized: bool,
+}
+
+unsafe impl Sync for WorldSync {}
+unsafe impl Send for WorldSync {}
+
+impl Default for WorldSync {
+    fn default() -> Self {
+        Self {
+            particle_world_state: MaybeUninit::uninit(),
+            world_num: 0,
+            change_tracker: ChangeTracker::new(),
+            initialized: false,
+        }
+    }
+}
+
 impl Module for WorldSync {
     fn on_world_init(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
         self.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
+        self.initialized = true;
         Ok(())
     }
     fn on_world_update(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
+        if !self.initialized {
+            return Ok(());
+        }
+
+        self.change_tracker
+            .update(Globals::default().game_global().m_grid_world);
+
         let Some(ent) = ctx.player_map.get_by_left(&my_peer_id()) else {
             return Ok(());
         };
