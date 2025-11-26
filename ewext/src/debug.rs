@@ -128,8 +128,7 @@ fn check_global(
                     true,
                 )
             }
-        } else if let Some(size) = in_range(table, heaps)
-            && size == 4
+        } else if in_range(table, heaps).is_some()
             && let Some(inner) = (table as *const usize)
                 .cast::<*const usize>()
                 .as_ref()
