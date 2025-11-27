@@ -34,6 +34,15 @@ build_ext_debug:
     cd ewext && cargo build --target=i686-pc-windows-gnu
     cp ewext/target/i686-pc-windows-gnu/debug/ewext.dll quant.ew/ewext.dll
 
+build_injector:
+    cd extra/dll_injector && cargo build --release --target=i686-pc-windows-gnu
+    if [ ! -e "$HOME/.local/share/Steam/steamapps/common/Noita/noita_back.exe" ]; then cp $HOME/.local/share/Steam/steamapps/common/Noita/noita.exe $HOME/.local/share/Steam/steamapps/common/Noita/noita_back.exe;fi
+    cp extra/dll_injector/target/i686-pc-windows-gnu/release/dll_injector.exe $HOME/.local/share/Steam/steamapps/common/Noita/noita.exe
+
+build_malloc:
+    cd extra/malloc_probe && cargo build --release --target=i686-pc-windows-gnu
+    cp extra/malloc_probe/target/i686-pc-windows-gnu/release/malloc_probe.dll $HOME/.local/share/Steam/steamapps/common/Noita
+
 ##
 build_blob:
     cd blob_guy && cargo build --release --target=i686-pc-windows-gnu
