@@ -21,18 +21,38 @@ unsafe extern "cdecl" fn operator_delete(pointer: *mut c_void) {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn dummy() {}
 
-unsafe fn make_writable(addr: usize) {
+unsafe fn make_writable(addr: *mut *const usize) {
     let mut old = PAGE_PROTECTION_FLAGS(0);
     unsafe {
-        VirtualProtect(addr as *const _, 8, PAGE_READWRITE, &mut old).unwrap();
+        VirtualProtect(addr.cast(), 8, PAGE_READWRITE, &mut old).unwrap();
+    }
+}
+
+fn write(addr: *mut *const usize, new: *const usize) {
+    unsafe {
+        make_writable(addr);
+        addr.write(new)
     }
 }
 
 #[unsafe(no_mangle)]
 pub extern "stdcall" fn DllMain(_: *const u8, _: u32, _: *const u8) -> u32 {
-    unsafe { make_writable(0x00f07500) };
-    unsafe { (0x00f07500 as *mut *const usize).write(operator_new as *const usize) };
-    unsafe { make_writable(0x00f07504) };
-    unsafe { (0x00f07504 as *mut *const usize).write(operator_delete as *const usize) };
+    /*write(
+        0x00f074f0 as *mut *const usize, //malloc
+        operator_new as *const usize,
+    );*/
+    write(
+        0x00f07500 as *mut *const usize, //operator_new
+        operator_new as *const usize,
+    );
+
+    /*write(
+        0x00f074f4 as *mut *const usize, //free
+        operator_delete as *const usize,
+    );*/
+    write(
+        0x00f07504 as *mut *const usize, //operator_delete
+        operator_delete as *const usize,
+    );
     1
 }
