@@ -36,7 +36,7 @@ rayon = "1.11.0"
 windows = { version = "0.62.2", features = ["Win32", "Win32_System", "Win32_System_Memory"] , optional=true}
 
 [features]
-default=[]
+default=["debug"]
 debug=["dep:windows"]
 #enables cross-compilation on older systems (for example, when compiling on ubuntu 20.04)
 #due to unresolved bug in rust toolchain

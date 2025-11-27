@@ -916,7 +916,9 @@ pub struct GridWorldThreadImpl {
 pub struct GridWorld {
     pub vtable: &'static GridWorldVTable,
     pub rng: isize,
-    pub unk: [isize; 292],
+    pub unk: [isize; 270],
+    pub biome_modifiers: BiomeModifiers,
+    pub unk2: [isize; 15],
     pub cam_pos: Vec2i,
     pub cam_dimen: Vec2i,
     pub unknown: [isize; 6],
@@ -931,6 +933,15 @@ pub struct GridWorld {
     pub unknown2: [isize; 40],
     pub m_thread_impl: &'static mut GridWorldThreadImpl,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct BiomeModifiers {
+    pub vftable: &'static BiomeModifiersVFTable,
+    pub unk: [usize; 6]
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct BiomeModifiersVFTable {}
 #[repr(C)]
 #[derive(Debug)]
 pub struct B2Object {}

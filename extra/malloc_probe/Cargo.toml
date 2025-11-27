@@ -18,3 +18,4 @@ codegen-units=1
 opt-level = 3
 
 [dependencies]
+windows = {version="0.62.2", features = ["Win32", "Win32_System", "Win32_System_Memory"]}

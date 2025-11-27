@@ -4,7 +4,7 @@ use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
 use noita_api::addr_grabber::Globals;
 use noita_api::heap::Ptr;
-use noita_api::noita::types::{CellType, FireCell, GasCell, LiquidCell, Vec2};
+use noita_api::noita::types::*;
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use shared::NoitaOutbound;
@@ -243,10 +243,6 @@ impl WorldData for ParticleWorldState {
 #[test]
 pub fn test_world() {
     use noita_api::heap::{self};
-    use noita_api::noita::types::{
-        Cell, CellData, CellVTable, CellVTables, Chunk, ChunkMap, GridWorld, GridWorldThreaded,
-        GridWorldThreadedVTable, GridWorldVTable, NoneCellVTable, StdVec,
-    };
     use std::ptr;
     let vtable = GridWorldThreadedVTable::default();
     let mut threaded = GridWorldThreaded {
@@ -274,7 +270,12 @@ pub fn test_world() {
             remove_vegetation: None,
         },
         rng: 0,
-        unk: [0; 292],
+        unk: [0; 270],
+        biome_modifiers: BiomeModifiers {
+            vftable: &BiomeModifiersVFTable {},
+            unk: [0; 6],
+        },
+        unk2: [0; 15],
         cam_pos: Default::default(),
         cam_dimen: Default::default(),
         unknown: [0; 6],

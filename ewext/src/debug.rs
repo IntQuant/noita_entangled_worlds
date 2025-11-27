@@ -97,6 +97,9 @@ fn check_global(
     parent: Option<&str>,
     heaps: &[(HANDLE, *const usize, *const usize)],
 ) -> Elem {
+    if addrs.len() >= 64 {
+        return Elem::Usize(entry);
+    }
     if let Some(n) = addrs.iter().position(|n| *n == reference) {
         return Elem::Recursive(addrs.len() - n, entry);
     }
@@ -128,7 +131,8 @@ fn check_global(
                     true,
                 )
             }
-        } else if in_range(table, heaps).is_some()
+        } else if let Some(size) = in_range(table, heaps)
+            && (size == 4 || size == usize::MAX)
             && let Some(inner) = (table as *const usize)
                 .cast::<*const usize>()
                 .as_ref()
