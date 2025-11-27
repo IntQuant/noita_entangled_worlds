@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 #noita_api = {path = "../../noita_api"}
+libc = "0.2.177"

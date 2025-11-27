@@ -2,6 +2,37 @@ use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
 use std::os::unix::fs::FileExt;
+use libc::{kill, SIGSTOP, pid_t};
+fn main() {
+    let map = get_map();
+    let mut args = args();
+    let Some(pid) = args.nth(1) else {
+        println!("no pid");
+        return;
+    };
+    let pid = pid.parse::<usize>().unwrap();
+    unsafe{kill(pid_t::from(pid as i32), SIGSTOP);}
+    let path = format!("/proc/{pid}/mem");
+    let mem = File::open(path).unwrap();
+    #[allow(unused)]
+    let print = |addr: u32| {
+        check_global(addr, &mem, &map, &mut Vec::new(), None).print(0, 0, 0, None);
+    };
+    #[allow(unused)]
+    let print_sized = |addr: u32| {
+        let elem = Elem::from_addr(
+            addr,
+            &mem,
+            &map,
+            &mut Vec::new(),
+            "Unk",
+            get_size(&mem, addr).unwrap() as usize,
+            false,
+        );
+        elem.print(0, 0, 0, None);
+    };
+    print_sized(read_byte(&mem, 0x0122374c).unwrap());
+}
 fn get_size(mem: &File, addr: u32) -> Option<u32> {
     if addr < 16
         || read_byte(mem, addr - 16)? != addr
@@ -61,36 +92,6 @@ fn get_map() -> HashMap<u32, (String, usize)> {
     }
     map
 }
-//use noita_api::types::*;
-fn main() {
-    let map = get_map();
-    let mut args = args();
-    let Some(pid) = args.nth(1) else {
-        2!("no pid");
-        return;
-    };
-    let pid = pid.parse::<usize>().unwrap();
-    let path = format!("/proc/{pid}/mem");
-    let mem = File::open(path).unwrap();
-    #[allow(unused)]
-    let print = |addr: u32| {
-        check_global(addr, &mem, &map, &mut Vec::new(), None).print(0, 0, 0, None);
-    };
-    #[allow(unused)]
-    let print_sized = |addr: u32| {
-        let elem = Elem::from_addr(
-            addr,
-            &mem,
-            &map,
-            &mut Vec::new(),
-            "Unk",
-            get_size(&mem, addr).unwrap() as usize,
-            false,
-        );
-        elem.print(0, 0, 0, None);
-    };
-    print_sized(read_byte(&mem, 0x0122374c).unwrap());
-}
 #[derive(Default, PartialEq, Debug)]
 pub struct Struct {
     name: String,
@@ -132,6 +133,9 @@ impl Elem {
         size: usize,
         skip: bool,
     ) -> Self {
+        if addrs.len() > 16 {
+            return Elem::Usize
+        }
         let mut s = Struct::new(name, size);
         if skip {
             s.fields.push(Elem::VFTable);
@@ -145,7 +149,7 @@ impl Elem {
         } {
             let len = addrs.len();
             let e = check_global(reference + 4 * i as u32, mem, map, addrs, Some(name));
-            i += e.size() / 4;
+            i += (e.size() / 4).max(1);
             if let Some(last) = s.fields.last_mut()
                 && last.array_eq(&e)
             {
