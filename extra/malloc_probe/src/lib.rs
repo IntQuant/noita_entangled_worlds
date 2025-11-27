@@ -4,22 +4,23 @@ use std::{
 };
 use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, PAGE_READWRITE, VirtualProtect};
 unsafe extern "cdecl" fn operator_new(size: usize) -> *mut c_void {
-    let buffer =
-        unsafe { alloc::alloc(Layout::from_size_align_unchecked(size + 4, 4)).cast::<usize>() };
-    unsafe { buffer.write(size) };
-    unsafe { buffer.offset(1).cast() }
-}
-
-unsafe extern "cdecl" fn operator_delete(pointer: *mut c_void) {
-    let ptr = unsafe { pointer.cast::<usize>().offset(-1) };
-    let size = unsafe { ptr.read() };
     unsafe {
-        alloc::dealloc(ptr.cast(), Layout::from_size_align_unchecked(size + 4, 4));
+        let buffer = alloc::alloc(Layout::from_size_align_unchecked(size + 16, 4)).cast::<usize>();
+        buffer.write(buffer.offset(4) as usize);
+        buffer.offset(1).write(1);
+        buffer.offset(2).write(usize::MAX - 1);
+        buffer.offset(3).write(size);
+        buffer.offset(4).cast()
     }
 }
 
-#[unsafe(no_mangle)]
-unsafe extern "C" fn dummy() {}
+unsafe extern "cdecl" fn operator_delete(pointer: *mut c_void) {
+    unsafe {
+        let size_ptr = pointer.cast::<usize>().offset(-1);
+        let size = size_ptr.read();
+        alloc::dealloc(pointer.offset(-4).cast(), Layout::from_size_align_unchecked(size + 16, 4));
+    }
+}
 
 unsafe fn make_writable(addr: *mut *const usize) {
     let mut old = PAGE_PROTECTION_FLAGS(0);
