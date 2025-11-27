@@ -1,8 +1,8 @@
+use libc::{SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
 use std::os::unix::fs::FileExt;
-use libc::{kill, SIGSTOP, pid_t};
 fn main() {
     let map = get_map();
     let mut args = args();
@@ -11,7 +11,9 @@ fn main() {
         return;
     };
     let pid = pid.parse::<usize>().unwrap();
-    unsafe{kill(pid_t::from(pid as i32), SIGSTOP);}
+    unsafe {
+        kill(pid_t::from(pid as i32), SIGSTOP);
+    }
     let path = format!("/proc/{pid}/mem");
     let mem = File::open(path).unwrap();
     #[allow(unused)]
@@ -24,7 +26,7 @@ fn main() {
             addr,
             &mem,
             &map,
-            &mut Vec::new(),
+            &mut vec![addr],
             "Unk",
             get_size(&mem, addr).unwrap() as usize,
             false,
@@ -98,30 +100,62 @@ pub struct Struct {
     size: usize,
     fields: Vec<Elem>,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Elem {
-    Ref(Box<Elem>),
-    Struct(Struct),
-    VFTable,
-    Array(Box<Elem>, usize),
-    #[allow(unused)]
-    Usize,
-    #[allow(unused)]
-    Recursive(usize),
+    Ref(Box<Elem>, u32),
+    Struct(Struct, u32),
+    VFTable(u32),
+    Array(Box<Elem>, Vec<u32>, usize),
+    Usize(u32),
+    Recursive(u32),
+    TooLarge(u32),
+    Failed(u32),
+}
+impl PartialEq for Elem {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Elem::Array(r1, n1, _), Elem::Array(r2, n2, _)) => r1 == r2 && n1 == n2,
+            (Elem::Ref(r1, _), Elem::Ref(r2, _)) => r1 == r2,
+            (Elem::Struct(r1, _), Elem::Struct(r2, _)) => r1 == r2,
+            (Elem::VFTable(_), Elem::VFTable(_)) => true,
+            (Elem::Usize(_), Elem::Usize(_)) => true,
+            (Elem::Recursive(r1), Elem::Recursive(r2)) => r1 == r2,
+            (Elem::Failed(_), Elem::Failed(_)) => true,
+            (Elem::TooLarge(_), Elem::TooLarge(_)) => true,
+            _ => false,
+        }
+    }
 }
 impl Elem {
     pub fn array_eq(&self, other: &Self) -> bool {
         match self {
-            Elem::Array(e, _) => e.as_ref() == other,
+            Elem::Array(e, _, _) => e.as_ref() == other,
             e => e == other,
         }
     }
     pub fn size(&self) -> usize {
         match self {
-            Elem::Ref(_) | Elem::VFTable | Elem::Usize | Elem::Recursive(_) => 4,
-            Elem::Struct(e) => e.size,
-            Elem::Array(e, n) => e.size() * n,
+            Elem::Ref(_, _)
+            | Elem::VFTable(_)
+            | Elem::Usize(_)
+            | Elem::Recursive(_)
+            | Elem::Failed(_)
+            | Elem::TooLarge(_) => 4,
+            Elem::Struct(e, _) => e.size,
+            Elem::Array(e, _, n) => e.size() * n,
         }
+    }
+    pub fn value(&self) -> Option<u32> {
+        Some(match self {
+            Elem::Ref(_, v) => *v,
+            Elem::Struct(_, v) => *v,
+            Elem::VFTable(v) => *v,
+            Elem::Array(_, _, _) => return None,
+            Elem::Usize(v) => *v,
+            Elem::Recursive(v) => *v,
+            Elem::TooLarge(v) => *v,
+            Elem::Failed(v) => *v,
+        })
     }
     #[allow(clippy::too_many_arguments)]
     pub fn from_addr(
@@ -134,11 +168,13 @@ impl Elem {
         skip: bool,
     ) -> Self {
         if addrs.len() > 16 {
-            return Elem::Usize
+            return Elem::TooLarge(reference);
         }
         let mut s = Struct::new(name, size);
+        let ptr = reference;
         if skip {
-            s.fields.push(Elem::VFTable);
+            s.fields
+                .push(Elem::VFTable(read_byte(mem, reference).unwrap()));
             reference += 4;
         }
         let mut i = 0;
@@ -153,11 +189,20 @@ impl Elem {
             if let Some(last) = s.fields.last_mut()
                 && last.array_eq(&e)
             {
-                if let Elem::Array(_, n) = last {
+                if let Elem::Array(_, vec, n) = last {
+                    if let Some(v) = e.value() {
+                        vec.push(v);
+                    }
                     *n += 1;
                 } else {
-                    s.fields.pop();
-                    s.fields.push(Elem::Array(Box::new(e), 2));
+                    let mut vec = Vec::new();
+                    if let Some(v) = last.value() {
+                        vec.push(v);
+                    }
+                    if let Some(v) = e.value() {
+                        vec.push(v);
+                    }
+                    *last = Elem::Array(Box::new(e), vec, 2);
                 };
             } else {
                 s.fields.push(e);
@@ -166,7 +211,7 @@ impl Elem {
                 addrs.pop();
             }
         }
-        Elem::Struct(s)
+        Elem::Struct(s, ptr)
     }
 }
 fn check_global(
@@ -176,17 +221,17 @@ fn check_global(
     addrs: &mut Vec<u32>,
     parent: Option<&str>,
 ) -> Elem {
-    if let Some(n) = addrs.iter().position(|n| *n == reference) {
-        return Elem::Recursive(addrs.len() - n);
+    let Some(table) = read_byte(mem, reference) else {
+        return Elem::Failed(reference);
+    };
+    if addrs.contains(&table) {
+        return Elem::Recursive(table);
     }
     addrs.push(reference);
     let addr_size = get_size(mem, reference).unwrap_or(u32::MAX);
-    let Some(table) = read_byte(mem, reference) else {
-        return Elem::Usize;
-    };
     if let Some((name, size)) = map.get(&table) {
         if Some(name.as_ref()) == parent {
-            Elem::VFTable
+            Elem::VFTable(table)
         } else {
             Elem::from_addr(
                 reference,
@@ -205,21 +250,25 @@ fn check_global(
     } else if let Some(size) = get_size(mem, table)
         && let Some(inner) = read_byte(mem, table)
     {
-        Elem::Ref(if size == 4 {
-            Box::new(check_global(inner, mem, map, addrs, None))
-        } else {
-            Box::new(Elem::from_addr(
-                inner,
-                mem,
-                map,
-                addrs,
-                "Unk",
-                size as usize,
-                false,
-            ))
-        })
+        addrs.push(inner);
+        Elem::Ref(
+            if size == 4 {
+                Box::new(check_global(inner, mem, map, addrs, None))
+            } else {
+                Box::new(Elem::from_addr(
+                    inner,
+                    mem,
+                    map,
+                    addrs,
+                    "Unk",
+                    size as usize,
+                    false,
+                ))
+            },
+            table,
+        )
     } else {
-        Elem::Usize
+        Elem::Usize(table)
     }
 }
 impl Struct {
@@ -230,14 +279,21 @@ impl Struct {
             ..Default::default()
         }
     }
-    fn print(&self, n: usize, count: usize, entry: usize, array: Option<usize>) {
+    fn print(&self, n: usize, count: usize, entry: usize, v: u32, array: Option<(usize, &[u32])>) {
         println!(
-            "{}[{entry}]{}{}<{}>{}",
+            "{}[{entry}]{}{}<{}>{}({})",
             "  ".repeat(n),
             "&".repeat(count),
             self.name,
             self.size,
-            array.map(|a| format!("[{a}]")).unwrap_or_default()
+            array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+            array
+                .map(|(_, b)| b
+                    .iter()
+                    .map(|v| format!("0x{v:x}"))
+                    .collect::<Vec<String>>()
+                    .join(","))
+                .unwrap_or(format!("0x{v:x}")),
         );
         let mut e = 0;
         for f in self.fields.iter() {
@@ -247,33 +303,82 @@ impl Struct {
     }
 }
 impl Elem {
-    fn print(&self, n: usize, count: usize, e: usize, array: Option<usize>) {
+    fn print(&self, n: usize, count: usize, e: usize, array: Option<(usize, &[u32])>) {
         match self {
-            Elem::Ref(r) => r.print(n, count + 1, e, array),
-            Elem::Array(r, k) => r.print(n, count, e, Some(*k)),
-            Elem::Struct(s) => s.print(n, count, e, array),
-            Elem::Usize => {
+            Elem::Ref(r, _) => r.print(n, count + 1, e, array),
+            Elem::Array(r, v, k) => r.print(n, count, e, Some((*k, v))),
+            Elem::Struct(s, v) => s.print(n, count, e, *v, array),
+            Elem::Usize(v) => {
                 println!(
-                    "{}[{e}]{}usize{}",
+                    "{}[{e}]{}usize{}({})",
                     "  ".repeat(n),
                     "&".repeat(count),
-                    array.map(|a| format!("[{a}]")).unwrap_or_default()
+                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array
+                        .map(|(_, b)| b
+                            .iter()
+                            .map(|v| format!("0x{v:x}"))
+                            .collect::<Vec<String>>()
+                            .join(","))
+                        .unwrap_or(format!("0x{v:x}")),
                 )
             }
-            Elem::Recursive(k) => {
+            Elem::Recursive(v) => {
                 println!(
-                    "{}[{e}]{}recursive<{k}>{}",
+                    "{}[{e}]{}recursive{}({})",
                     "  ".repeat(n),
                     "&".repeat(count),
-                    array.map(|a| format!("[{a}]")).unwrap_or_default()
+                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array
+                        .map(|(_, b)| b
+                            .iter()
+                            .map(|v| format!("0x{v:x}"))
+                            .collect::<Vec<String>>()
+                            .join(","))
+                        .unwrap_or(format!("0x{v:x}")),
                 )
             }
-            Elem::VFTable => {
+            Elem::VFTable(v) => {
                 println!(
-                    "{}[{e}]{}VFTable{}",
+                    "{}[{e}]{}VFTable{}({})",
                     "  ".repeat(n),
                     "&".repeat(count),
-                    array.map(|a| format!("[{a}]")).unwrap_or_default()
+                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array
+                        .map(|(_, b)| b
+                            .iter()
+                            .map(|v| format!("0x{v:x}"))
+                            .collect::<Vec<String>>()
+                            .join(","))
+                        .unwrap_or(format!("0x{v:x}")),
+                )
+            }
+            Elem::TooLarge(v) => {
+                println!(
+                    "{}[{e}]{}({})TooLarge",
+                    "  ".repeat(n),
+                    "&".repeat(count),
+                    array
+                        .map(|(_, b)| b
+                            .iter()
+                            .map(|v| format!("0x{v:x}"))
+                            .collect::<Vec<String>>()
+                            .join(","))
+                        .unwrap_or(format!("0x{v:x}")),
+                )
+            }
+            Elem::Failed(v) => {
+                println!(
+                    "{}[{e}]{}({})Failed",
+                    "  ".repeat(n),
+                    "&".repeat(count),
+                    array
+                        .map(|(_, b)| b
+                            .iter()
+                            .map(|v| format!("0x{v:x}"))
+                            .collect::<Vec<String>>()
+                            .join(","))
+                        .unwrap_or(format!("0x{v:x}")),
                 )
             }
         }
