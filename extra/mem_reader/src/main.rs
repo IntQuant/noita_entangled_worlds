@@ -167,7 +167,7 @@ impl Elem {
         size: usize,
         skip: bool,
     ) -> Self {
-        if addrs.len() > 16 {
+        if addrs.len() > 6 {
             return Elem::TooLarge(reference);
         }
         let mut s = Struct::new(name, size);
@@ -222,7 +222,7 @@ fn check_global(
     parent: Option<&str>,
 ) -> Elem {
     let Some(table) = read_byte(mem, reference) else {
-        return Elem::Failed(reference);
+        return Elem::Usize(reference);
     };
     if addrs.contains(&table) {
         return Elem::Recursive(table);
@@ -247,16 +247,17 @@ fn check_global(
                 true,
             )
         }
-    } else if let Some(size) = get_size(mem, table)
-        && let Some(inner) = read_byte(mem, table)
-    {
-        addrs.push(inner);
+    } else if let Some(size) = get_size(mem, table) {
         Elem::Ref(
-            if size == 4 {
-                Box::new(check_global(inner, mem, map, addrs, None))
+            if size == 4
+                || read_byte(mem, table)
+                    .map(|a| map.get(&a).is_some())
+                    .unwrap_or_default()
+            {
+                Box::new(check_global(table, mem, map, addrs, None))
             } else {
                 Box::new(Elem::from_addr(
-                    inner,
+                    table,
                     mem,
                     map,
                     addrs,
@@ -355,9 +356,10 @@ impl Elem {
             }
             Elem::TooLarge(v) => {
                 println!(
-                    "{}[{e}]{}({})TooLarge",
+                    "{}[{e}]{}TooLarge{}({})",
                     "  ".repeat(n),
                     "&".repeat(count),
+                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array
                         .map(|(_, b)| b
                             .iter()
@@ -369,9 +371,10 @@ impl Elem {
             }
             Elem::Failed(v) => {
                 println!(
-                    "{}[{e}]{}({})Failed",
+                    "{}[{e}]{}Failed{}({})",
                     "  ".repeat(n),
                     "&".repeat(count),
+                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array
                         .map(|(_, b)| b
                             .iter()
