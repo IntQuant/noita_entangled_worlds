@@ -24,7 +24,7 @@ fn main() {
                 reader,
                 map,
                 elem,
-                reference: format!("0x{reference:x}"),
+                reference: format!("0x{reference:08x}"),
                 data: None,
             }))
         }),
@@ -86,8 +86,12 @@ impl eframe::App for App {
                     egui::ScrollArea::vertical().id_salt("2").show(ui, |ui| {
                         if let Some(data) = &self.data {
                             for n in data {
-                                ui.label(format!("{n:x}"));
-                                ui.label(n.to_string());
+                                ui.label(format!("{n:08x}"));
+                                ui.label(format!("{n:032b}"));
+                                ui.label(format!("{n:010}"));
+                                if n.cast_signed() < 0 {
+                                    ui.label(format!("{:010}", n.cast_signed()));
+                                }
                                 ui.label(f32::from_bits(*n).to_string());
                                 if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
                                     ui.label(v);
@@ -438,10 +442,10 @@ impl Struct {
             array
                 .map(|(_, b)| b
                     .iter()
-                    .map(|v| format!("0x{v:x}"))
+                    .map(|v| format!("0x{v:08x}"))
                     .collect::<Vec<String>>()
                     .join(","))
-                .unwrap_or(format!("0x{v:x}")),
+                .unwrap_or(format!("0x{v:08x}")),
         )
     }
 }
@@ -460,10 +464,10 @@ impl Elem {
                     array
                         .map(|(_, b)| b
                             .iter()
-                            .map(|v| format!("0x{v:x}"))
+                            .map(|v| format!("0x{v:08x}"))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:x}")),
+                        .unwrap_or(format!("0x{v:08x}")),
                 )
             }
             Elem::Recursive(v) => {
@@ -474,10 +478,10 @@ impl Elem {
                     array
                         .map(|(_, b)| b
                             .iter()
-                            .map(|v| format!("0x{v:x}"))
+                            .map(|v| format!("0x{v:08x}"))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:x}")),
+                        .unwrap_or(format!("0x{v:08x}")),
                 )
             }
             Elem::VFTable(v) => {
@@ -488,10 +492,10 @@ impl Elem {
                     array
                         .map(|(_, b)| b
                             .iter()
-                            .map(|v| format!("0x{v:x}"))
+                            .map(|v| format!("0x{v:08x}"))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:x}")),
+                        .unwrap_or(format!("0x{v:08x}")),
                 )
             }
             Elem::TooLarge(v) => {
@@ -502,10 +506,10 @@ impl Elem {
                     array
                         .map(|(_, b)| b
                             .iter()
-                            .map(|v| format!("0x{v:x}"))
+                            .map(|v| format!("0x{v:08x}"))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:x}")),
+                        .unwrap_or(format!("0x{v:08x}")),
                 )
             }
             Elem::Failed(v) => {
@@ -516,10 +520,10 @@ impl Elem {
                     array
                         .map(|(_, b)| b
                             .iter()
-                            .map(|v| format!("0x{v:x}"))
+                            .map(|v| format!("0x{v:08x}"))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:x}")),
+                        .unwrap_or(format!("0x{v:08x}")),
                 )
             }
         }
