@@ -1,3 +1,5 @@
+use eframe::Frame;
+use egui::{CentralPanel, Context, Ui};
 use libc::{SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
@@ -11,60 +13,90 @@ fn main() {
         return;
     };
     let pid = pid.parse::<usize>().unwrap();
-    unsafe {
-        kill(pid_t::from(pid as i32), SIGSTOP);
-    }
-    let path = format!("/proc/{pid}/mem");
-    let mem = File::open(path).unwrap();
-    #[allow(unused)]
-    let print = |addr: u32| {
-        check_global(addr, &mem, &map, &mut Vec::new(), None).print(0, 0, 0, None);
-    };
-    #[allow(unused)]
-    let print_sized = |addr: u32| {
-        let elem = Elem::from_addr(
-            addr,
-            &mem,
-            &map,
-            &mut vec![addr],
-            "Unk",
-            get_size(&mem, addr).unwrap() as usize,
-            false,
-        );
-        elem.print(0, 0, 0, None);
-    };
-    print_sized(read_byte(&mem, 0x0122374c).unwrap());
-}
-fn get_size(mem: &File, addr: u32) -> Option<u32> {
-    if addr < 16
-        || read_byte(mem, addr - 16)? != addr
-        || read_byte(mem, addr - 12)? != 1
-        || read_byte(mem, addr - 8)? != u32::MAX - 1
-    {
-        return None;
-    }
-    read_byte(mem, addr - 4)
-}
-#[allow(unused)]
-fn read_unsized(mem: &File, addr: u32) -> Option<Vec<u32>> {
-    let size = get_size(mem, addr)?;
-    read(mem, addr, size as usize)
-}
-fn read_byte(mem: &File, addr: u32) -> Option<u32> {
-    let mut buf = [0; 4];
-    mem.read_exact_at(&mut buf, addr as u64).ok()?;
-    Some(u32::from_le_bytes(buf))
-}
-#[allow(unused)]
-fn read(mem: &File, addr: u32, size: usize) -> Option<Vec<u32>> {
-    let size = (size + 0x11) & !0x11;
-    let mut buf = vec![0; size];
-    mem.read_exact_at(&mut buf, addr as u64).ok()?;
-    Some(
-        buf.chunks_exact(4)
-            .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-            .collect(),
+    let reader = Reader::new(pid);
+    let reference = reader.read_byte(0x0122374c).unwrap();
+    let elem = Elem::from_addr(
+        reference,
+        "Unk",
+        reader.get_size(reference).unwrap() as usize,
+        false,
+    );
+    eframe::run_native(
+        &reference.to_string(),
+        eframe::NativeOptions {
+            ..Default::default()
+        },
+        Box::new(|_| Ok(Box::new(App { reader, map, elem }))),
     )
+    .unwrap();
+}
+impl eframe::App for App {
+    fn update(&mut self, ctx: &Context, _: &mut Frame) {
+        CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    self.elem.show(
+                        ui,
+                        &self.reader,
+                        &self.map,
+                        &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
+                        1,
+                        0,
+                    );
+                });
+        });
+    }
+}
+pub struct App {
+    reader: Reader,
+    map: HashMap<u32, (String, usize)>,
+    elem: Elem,
+}
+pub struct Reader {
+    mem: File,
+}
+impl Reader {
+    fn new(pid: usize) -> Self {
+        unsafe {
+            kill(pid_t::from(pid as i32), SIGSTOP);
+        }
+        let path = format!("/proc/{pid}/mem");
+        Reader {
+            mem: File::open(path).unwrap(),
+        }
+    }
+    fn get_size(&self, addr: u32) -> Option<u32> {
+        if addr < 16
+            || self.read_byte(addr - 16)? != addr
+            || self.read_byte(addr - 12)? != 1
+            || self.read_byte(addr - 8)? != u32::MAX - 1
+        {
+            return None;
+        }
+        self.read_byte(addr - 4)
+    }
+    #[allow(unused)]
+    fn read_unsized(&self, addr: u32) -> Option<Vec<u32>> {
+        let size = self.get_size(addr)?;
+        self.read(addr, size as usize)
+    }
+    fn read_byte(&self, addr: u32) -> Option<u32> {
+        let mut buf = [0; 4];
+        self.mem.read_exact_at(&mut buf, addr as u64).ok()?;
+        Some(u32::from_le_bytes(buf))
+    }
+    #[allow(unused)]
+    fn read(&self, addr: u32, size: usize) -> Option<Vec<u32>> {
+        let size = (size + 0x11) & !0x11;
+        let mut buf = vec![0; size];
+        self.mem.read_exact_at(&mut buf, addr as u64).ok()?;
+        Some(
+            buf.chunks_exact(4)
+                .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+                .collect(),
+        )
+    }
 }
 fn get_map() -> HashMap<u32, (String, usize)> {
     let vftables = include_str!("../vftables.txt");
@@ -94,11 +126,15 @@ fn get_map() -> HashMap<u32, (String, usize)> {
     }
     map
 }
-#[derive(Default, PartialEq, Debug)]
+#[derive(Debug)]
 pub struct Struct {
     name: String,
     size: usize,
-    fields: Vec<Elem>,
+    fields: Option<Vec<Elem>>,
+    reference: u32,
+    skip: bool,
+    #[allow(dead_code)]
+    open: bool,
 }
 #[derive(Debug)]
 pub enum Elem {
@@ -116,7 +152,7 @@ impl PartialEq for Elem {
         match (self, other) {
             (Elem::Array(r1, n1, _), Elem::Array(r2, n2, _)) => r1 == r2 && n1 == n2,
             (Elem::Ref(r1, _), Elem::Ref(r2, _)) => r1 == r2,
-            (Elem::Struct(r1, _), Elem::Struct(r2, _)) => r1 == r2,
+            (Elem::Struct(_, _), Elem::Struct(_, _)) => false,
             (Elem::VFTable(_), Elem::VFTable(_)) => true,
             (Elem::Usize(_), Elem::Usize(_)) => true,
             (Elem::Recursive(r1), Elem::Recursive(r2)) => r1 == r2,
@@ -127,9 +163,46 @@ impl PartialEq for Elem {
     }
 }
 impl Elem {
+    pub fn reference(&self) -> Option<u32> {
+        match self {
+            Elem::Ref(_, r) => Some(*r),
+            Elem::Struct(_, r) => Some(*r),
+            _ => None,
+        }
+    }
+    pub fn show(
+        &mut self,
+        ui: &mut Ui,
+        reader: &Reader,
+        map: &HashMap<u32, (String, usize)>,
+        addrs: &mut Vec<u32>,
+        count: usize,
+        entry: usize,
+    ) {
+        match self {
+            Elem::Struct(s, r) => {
+                addrs.push(*r);
+                egui::CollapsingHeader::new(s.print(count, entry, *r, None)).show(ui, |ui| {
+                    let mut e = 0;
+                    for f in s.fields(reader, map, addrs) {
+                        f.show(ui, reader, map, addrs, 0, e / 4);
+                        e += f.size();
+                    }
+                });
+            }
+            Elem::Ref(s, r) => {
+                addrs.push(*r);
+                s.show(ui, reader, map, addrs, count + 1, entry);
+            }
+            s => {
+                ui.label(s.print(count, entry, None));
+            }
+        }
+    }
     pub fn array_eq(&self, other: &Self) -> bool {
         match self {
             Elem::Array(e, _, _) => e.as_ref() == other,
+            Elem::Struct(_, _) => false,
             e => e == other,
         }
     }
@@ -158,35 +231,102 @@ impl Elem {
         })
     }
     #[allow(clippy::too_many_arguments)]
-    pub fn from_addr(
-        mut reference: u32,
-        mem: &File,
+    pub fn from_addr(reference: u32, name: &str, size: usize, skip: bool) -> Self {
+        let s = Struct {
+            name: name.to_string(),
+            size,
+            fields: None,
+            open: false,
+            reference,
+            skip,
+        };
+        Elem::Struct(s, reference)
+    }
+    fn check_global(
+        reference: u32,
+        mem: &Reader,
         map: &HashMap<u32, (String, usize)>,
         addrs: &mut Vec<u32>,
-        name: &str,
-        size: usize,
-        skip: bool,
-    ) -> Self {
-        if addrs.len() > 6 {
-            return Elem::TooLarge(reference);
+        parent: Option<&str>,
+    ) -> Elem {
+        let Some(table) = mem.read_byte(reference) else {
+            return Elem::Usize(reference);
+        };
+        if addrs.contains(&table) {
+            return Elem::Recursive(table);
         }
-        let mut s = Struct::new(name, size);
-        let ptr = reference;
-        if skip {
-            s.fields
-                .push(Elem::VFTable(read_byte(mem, reference).unwrap()));
+        addrs.push(reference);
+        let addr_size = mem.get_size(reference).unwrap_or(u32::MAX);
+        if let Some((name, size)) = map.get(&table) {
+            if Some(name.as_ref()) == parent {
+                Elem::VFTable(table)
+            } else {
+                Elem::from_addr(
+                    reference,
+                    name,
+                    if addr_size != u32::MAX {
+                        addr_size as usize
+                    } else {
+                        *size
+                    },
+                    true,
+                )
+            }
+        } else if let Some(size) = mem.get_size(table) {
+            Elem::Ref(
+                if size == 4
+                    || mem
+                        .read_byte(table)
+                        .map(|a| map.get(&a).is_some())
+                        .unwrap_or_default()
+                {
+                    Box::new(Elem::check_global(table, mem, map, addrs, None))
+                } else {
+                    Box::new(Elem::from_addr(table, "Unk", size as usize, false))
+                },
+                table,
+            )
+        } else {
+            Elem::Usize(table)
+        }
+    }
+}
+impl Struct {
+    fn fields(
+        &mut self,
+        mem: &Reader,
+        map: &HashMap<u32, (String, usize)>,
+        addrs: &mut Vec<u32>,
+    ) -> &mut Vec<Elem> {
+        if self.fields.is_some() {
+            self.fields.as_mut().unwrap()
+        } else {
+            self.fields = Some(self.get_fields(mem, map, addrs));
+            self.fields.as_mut().unwrap()
+        }
+    }
+    fn get_fields(
+        &self,
+        mem: &Reader,
+        map: &HashMap<u32, (String, usize)>,
+        addrs: &mut Vec<u32>,
+    ) -> Vec<Elem> {
+        let mut reference = self.reference;
+        let mut fields = Vec::new();
+        if self.skip {
+            fields.push(Elem::VFTable(mem.read_byte(reference).unwrap()));
             reference += 4;
         }
         let mut i = 0;
-        while i < if skip {
-            (size / 4).saturating_sub(1)
+        while i < if self.skip {
+            (self.size / 4).saturating_sub(1)
         } else {
-            size / 4
+            self.size / 4
         } {
             let len = addrs.len();
-            let e = check_global(reference + 4 * i as u32, mem, map, addrs, Some(name));
+            let e = Elem::check_global(reference + 4 * i as u32, mem, map, addrs, Some(&self.name));
             i += (e.size() / 4).max(1);
-            if let Some(last) = s.fields.last_mut()
+            if let Some(last) = fields.last_mut()
                 && last.array_eq(&e)
             {
                 if let Elem::Array(_, vec, n) = last {
@@ -205,85 +345,18 @@ impl Elem {
                     *last = Elem::Array(Box::new(e), vec, 2);
                 };
             } else {
-                s.fields.push(e);
+                fields.push(e);
             }
             while len < addrs.len() {
                 addrs.pop();
             }
         }
-        Elem::Struct(s, ptr)
+        fields
     }
-}
-fn check_global(
-    reference: u32,
-    mem: &File,
-    map: &HashMap<u32, (String, usize)>,
-    addrs: &mut Vec<u32>,
-    parent: Option<&str>,
-) -> Elem {
-    let Some(table) = read_byte(mem, reference) else {
-        return Elem::Usize(reference);
-    };
-    if addrs.contains(&table) {
-        return Elem::Recursive(table);
-    }
-    addrs.push(reference);
-    let addr_size = get_size(mem, reference).unwrap_or(u32::MAX);
-    if let Some((name, size)) = map.get(&table) {
-        if Some(name.as_ref()) == parent {
-            Elem::VFTable(table)
-        } else {
-            Elem::from_addr(
-                reference,
-                mem,
-                map,
-                addrs,
-                name,
-                if addr_size != u32::MAX {
-                    addr_size as usize
-                } else {
-                    *size
-                },
-                true,
-            )
-        }
-    } else if let Some(size) = get_size(mem, table) {
-        Elem::Ref(
-            if size == 4
-                || read_byte(mem, table)
-                    .map(|a| map.get(&a).is_some())
-                    .unwrap_or_default()
-            {
-                Box::new(check_global(table, mem, map, addrs, None))
-            } else {
-                Box::new(Elem::from_addr(
-                    table,
-                    mem,
-                    map,
-                    addrs,
-                    "Unk",
-                    size as usize,
-                    false,
-                ))
-            },
-            table,
-        )
-    } else {
-        Elem::Usize(table)
-    }
-}
-impl Struct {
-    pub fn new(name: &str, size: usize) -> Self {
-        Self {
-            name: name.to_string(),
-            size,
-            ..Default::default()
-        }
-    }
-    fn print(&self, n: usize, count: usize, entry: usize, v: u32, array: Option<(usize, &[u32])>) {
-        println!(
-            "{}[{entry}]{}{}<{}>{}({})",
-            "  ".repeat(n),
+    #[allow(clippy::too_many_arguments)]
+    fn print(&self, count: usize, entry: usize, v: u32, array: Option<(usize, &[u32])>) -> String {
+        format!(
+            "[{entry}]{}{}<{}>{}({})",
             "&".repeat(count),
             self.name,
             self.size,
@@ -295,24 +368,19 @@ impl Struct {
                     .collect::<Vec<String>>()
                     .join(","))
                 .unwrap_or(format!("0x{v:x}")),
-        );
-        let mut e = 0;
-        for f in self.fields.iter() {
-            f.print(n + 1, 0, e / 4, None);
-            e += f.size();
-        }
+        )
     }
 }
+#[allow(clippy::too_many_arguments)]
 impl Elem {
-    fn print(&self, n: usize, count: usize, e: usize, array: Option<(usize, &[u32])>) {
+    fn print(&self, count: usize, e: usize, array: Option<(usize, &[u32])>) -> String {
         match self {
-            Elem::Ref(r, _) => r.print(n, count + 1, e, array),
-            Elem::Array(r, v, k) => r.print(n, count, e, Some((*k, v))),
-            Elem::Struct(s, v) => s.print(n, count, e, *v, array),
+            Elem::Ref(r, _) => r.print(count + 1, e, array),
+            Elem::Array(r, v, k) => r.print(count, e, Some((*k, v))),
+            Elem::Struct(s, v) => s.print(count, e, *v, array),
             Elem::Usize(v) => {
-                println!(
-                    "{}[{e}]{}usize{}({})",
-                    "  ".repeat(n),
+                format!(
+                    "[{e}]{}usize{}({})",
                     "&".repeat(count),
                     array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array
@@ -325,9 +393,8 @@ impl Elem {
                 )
             }
             Elem::Recursive(v) => {
-                println!(
-                    "{}[{e}]{}recursive{}({})",
-                    "  ".repeat(n),
+                format!(
+                    "[{e}]{}recursive{}({})",
                     "&".repeat(count),
                     array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array
@@ -340,9 +407,8 @@ impl Elem {
                 )
             }
             Elem::VFTable(v) => {
-                println!(
-                    "{}[{e}]{}VFTable{}({})",
-                    "  ".repeat(n),
+                format!(
+                    "[{e}]{}VFTable{}({})",
                     "&".repeat(count),
                     array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array
@@ -355,9 +421,8 @@ impl Elem {
                 )
             }
             Elem::TooLarge(v) => {
-                println!(
-                    "{}[{e}]{}TooLarge{}({})",
-                    "  ".repeat(n),
+                format!(
+                    "[{e}]{}TooLarge{}({})",
                     "&".repeat(count),
                     array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array
@@ -370,9 +435,8 @@ impl Elem {
                 )
             }
             Elem::Failed(v) => {
-                println!(
-                    "{}[{e}]{}Failed{}({})",
-                    "  ".repeat(n),
+                format!(
+                    "[{e}]{}Failed{}({})",
                     "&".repeat(count),
                     array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
                     array

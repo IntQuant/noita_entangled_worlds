@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 #noita_api = {path = "../../noita_api"}
 libc = "0.2.177"
+egui = "0.33.2"
+eframe = "0.33.2"
