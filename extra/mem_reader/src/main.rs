@@ -1,5 +1,5 @@
-use eframe::Frame;
-use egui::{CentralPanel, Context, Ui};
+use eframe::{Frame, NativeOptions};
+use egui::{CentralPanel, Context, Ui, UiBuilder};
 use libc::{SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
@@ -14,37 +14,90 @@ fn main() {
     };
     let pid = pid.parse::<usize>().unwrap();
     let reader = Reader::new(pid);
-    let reference = reader.read_byte(0x0122374c).unwrap();
-    let elem = Elem::from_addr(
-        reference,
-        "Unk",
-        reader.get_size(reference).unwrap() as usize,
-        false,
-    );
+    let reference = 0x0122374c;
+    let elem = Elem::check_global(reference, &reader, &map, &mut vec![reference], None);
     eframe::run_native(
         &reference.to_string(),
-        eframe::NativeOptions {
-            ..Default::default()
-        },
-        Box::new(|_| Ok(Box::new(App { reader, map, elem }))),
+        NativeOptions::default(),
+        Box::new(|_| {
+            Ok(Box::new(App {
+                reader,
+                map,
+                elem,
+                reference: format!("0x{reference:x}"),
+                data: None,
+            }))
+        }),
     )
     .unwrap();
 }
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
         CentralPanel::default().show(ctx, |ui| {
-            egui::ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    self.elem.show(
-                        ui,
-                        &self.reader,
-                        &self.map,
-                        &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
-                        1,
-                        0,
-                    );
-                });
+            let rect = ui.max_rect();
+            let (top, rect) = rect.split_top_bottom_at_y(rect.height() * 0.035);
+            ui.scope_builder(
+                UiBuilder {
+                    max_rect: Some(top),
+                    ..Default::default()
+                },
+                |ui| {
+                    if ui
+                        .add_sized(
+                            [200.0, 20.0],
+                            egui::TextEdit::singleline(&mut self.reference),
+                        )
+                        .changed()
+                        && self.reference.starts_with("0x")
+                        && let Ok(n) = u32::from_str_radix(&self.reference[2..], 16)
+                    {
+                        self.elem =
+                            Elem::check_global(n, &self.reader, &self.map, &mut vec![n], None);
+                    }
+                },
+            );
+            let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
+            ui.scope_builder(
+                UiBuilder {
+                    max_rect: Some(settings_rect),
+                    ..Default::default()
+                },
+                |ui| {
+                    egui::ScrollArea::vertical().id_salt("1").show(ui, |ui| {
+                        if let Some(d) = self.elem.show(
+                            ui,
+                            &self.reader,
+                            &self.map,
+                            &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
+                            0,
+                            0,
+                        ) {
+                            self.data = Some(d);
+                        }
+                    });
+                },
+            );
+            ui.scope_builder(
+                UiBuilder {
+                    max_rect: Some(right),
+                    ..Default::default()
+                },
+                |ui| {
+                    egui::ScrollArea::vertical().id_salt("2").show(ui, |ui| {
+                        if let Some(data) = &self.data {
+                            for n in data {
+                                ui.label(format!("{n:x}"));
+                                ui.label(n.to_string());
+                                ui.label(f32::from_bits(*n).to_string());
+                                if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
+                                    ui.label(v);
+                                }
+                                ui.separator();
+                            }
+                        }
+                    });
+                },
+            );
         });
     }
 }
@@ -52,6 +105,8 @@ pub struct App {
     reader: Reader,
     map: HashMap<u32, (String, usize)>,
     elem: Elem,
+    reference: String,
+    data: Option<Vec<u32>>,
 }
 pub struct Reader {
     mem: File,
@@ -133,8 +188,6 @@ pub struct Struct {
     fields: Option<Vec<Elem>>,
     reference: u32,
     skip: bool,
-    #[allow(dead_code)]
-    open: bool,
 }
 #[derive(Debug)]
 pub enum Elem {
@@ -170,6 +223,18 @@ impl Elem {
             _ => None,
         }
     }
+    pub fn data(&self) -> Vec<u32> {
+        vec![match self {
+            Elem::Ref(_, v) => *v,
+            Elem::Struct(_, v) => *v,
+            Elem::VFTable(v) => *v,
+            Elem::Array(_, v, _) => return v.clone(),
+            Elem::Usize(v) => *v,
+            Elem::Recursive(v) => *v,
+            Elem::TooLarge(v) => *v,
+            Elem::Failed(v) => *v,
+        }]
+    }
     pub fn show(
         &mut self,
         ui: &mut Ui,
@@ -178,26 +243,36 @@ impl Elem {
         addrs: &mut Vec<u32>,
         count: usize,
         entry: usize,
-    ) {
+    ) -> Option<Vec<u32>> {
         match self {
             Elem::Struct(s, r) => {
                 addrs.push(*r);
-                egui::CollapsingHeader::new(s.print(count, entry, *r, None)).show(ui, |ui| {
-                    let mut e = 0;
-                    for f in s.fields(reader, map, addrs) {
-                        f.show(ui, reader, map, addrs, 0, e / 4);
-                        e += f.size();
-                    }
-                });
+                let resp =
+                    egui::CollapsingHeader::new(s.print(count, entry, *r, None)).show(ui, |ui| {
+                        let mut e = 0;
+                        let mut ret = None;
+                        for f in s.fields(reader, map, addrs) {
+                            ret = ret.or(f.show(ui, reader, map, addrs, 0, e / 4));
+                            e += f.size();
+                        }
+                        ret
+                    });
+                if resp.header_response.hovered() {
+                    return Some(self.data());
+                }
+                return resp.body_returned.flatten();
             }
             Elem::Ref(s, r) => {
                 addrs.push(*r);
-                s.show(ui, reader, map, addrs, count + 1, entry);
+                return s.show(ui, reader, map, addrs, count + 1, entry);
             }
             s => {
-                ui.label(s.print(count, entry, None));
+                if ui.label(s.print(count, entry, None)).hovered() {
+                    return Some(s.data());
+                }
             }
         }
+        None
     }
     pub fn array_eq(&self, other: &Self) -> bool {
         match self {
@@ -236,7 +311,6 @@ impl Elem {
             name: name.to_string(),
             size,
             fields: None,
-            open: false,
             reference,
             skip,
         };
