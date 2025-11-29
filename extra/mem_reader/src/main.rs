@@ -136,7 +136,10 @@ impl eframe::App for App {
                                         );
                                         ui.separator();
                                     }
-                                    for n in data {
+                                    for (i, n) in data.iter().enumerate() {
+                                        if data.len() != 1 {
+                                            ui.label(i.to_string());
+                                        }
                                         ui.label(format!("0x{n:08x}"));
                                         ui.label(format!("{n:032b}"));
                                         ui.label(format!("{n:010}"));
@@ -337,6 +340,7 @@ impl Elem {
                         let mut e = 0;
                         let mut ret = None;
                         for f in s.fields(reader, map, addrs) {
+                            let len = addrs.len();
                             ret = ret.or(f.show(
                                 ui,
                                 reader,
@@ -348,6 +352,9 @@ impl Elem {
                                 display_type,
                             ));
                             e += f.size();
+                            while len < addrs.len() {
+                                addrs.pop();
+                            }
                         }
                         ret
                     });
