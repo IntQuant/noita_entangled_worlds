@@ -90,6 +90,11 @@ impl eframe::App for App {
                                     DisplayType::Str,
                                     "Str",
                                 );
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::None,
+                                    "None",
+                                );
                             });
                     });
                 },
@@ -188,6 +193,7 @@ pub enum DisplayType {
     SignedNum,
     Float,
     Str,
+    None,
 }
 pub enum Data {
     Struct(Vec<(u32, u32)>),
@@ -571,13 +577,7 @@ impl Elem {
                     "[{e}]{}usize{}({})",
                     "&".repeat(count),
                     array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    array
-                        .map(|b| b
-                            .iter()
-                            .map(|v| display_type.print(v))
-                            .collect::<Vec<String>>()
-                            .join(","))
-                        .unwrap_or(display_type.print(v)),
+                    display_type.print_opt(array, v)
                 )
             }
             Elem::Recursive(v) => {
@@ -585,13 +585,7 @@ impl Elem {
                     "[{e}]{}recursive{}({})",
                     "&".repeat(count),
                     array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    array
-                        .map(|b| b
-                            .iter()
-                            .map(|v| display_type.print(v))
-                            .collect::<Vec<String>>()
-                            .join(","))
-                        .unwrap_or(display_type.print(v)),
+                    display_type.print_opt(array, v)
                 )
             }
             Elem::VFTable(v) => {
@@ -599,13 +593,7 @@ impl Elem {
                     "[{e}]{}VFTable{}({})",
                     "&".repeat(count),
                     array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    array
-                        .map(|b| b
-                            .iter()
-                            .map(|v| display_type.print(v))
-                            .collect::<Vec<String>>()
-                            .join(","))
-                        .unwrap_or(display_type.print(v)),
+                    display_type.print_opt(array, v)
                 )
             }
             Elem::TooLarge(v) => {
@@ -613,13 +601,7 @@ impl Elem {
                     "[{e}]{}TooLarge{}({})",
                     "&".repeat(count),
                     array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    array
-                        .map(|b| b
-                            .iter()
-                            .map(|v| display_type.print(v))
-                            .collect::<Vec<String>>()
-                            .join(","))
-                        .unwrap_or(display_type.print(v)),
+                    display_type.print_opt(array, v)
                 )
             }
             Elem::Failed(v) => {
@@ -627,20 +609,14 @@ impl Elem {
                     "[{e}]{}Failed{}({})",
                     "&".repeat(count),
                     array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    array
-                        .map(|b| b
-                            .iter()
-                            .map(|v| display_type.print(v))
-                            .collect::<Vec<String>>()
-                            .join(","))
-                        .unwrap_or(display_type.print(v)),
+                    display_type.print_opt(array, v)
                 )
             }
         }
     }
 }
 impl DisplayType {
-    fn print(&self, n: &u32) -> String {
+    fn print(self, n: &u32) -> String {
         match self {
             DisplayType::Hex => {
                 format!("{n:08x}")
@@ -658,6 +634,19 @@ impl DisplayType {
                 format!("{}", f32::from_bits(*n))
             }
             DisplayType::Str => String::from_utf8(n.to_le_bytes().to_vec()).unwrap_or_default(),
+            DisplayType::None => String::new(),
         }
+    }
+    fn print_opt(self, a: Option<&[u32]>, v: &u32) -> String {
+        if DisplayType::None == self {
+            return String::new();
+        }
+        a.map(|b| {
+            b.iter()
+                .map(|v| self.print(v))
+                .collect::<Vec<String>>()
+                .join(",")
+        })
+        .unwrap_or(self.print(v))
     }
 }
