@@ -1,9 +1,10 @@
 use eframe::{Frame, NativeOptions};
-use egui::{CentralPanel, Context, Ui, UiBuilder};
+use egui::{CentralPanel, ComboBox, Context, Ui, UiBuilder};
 use libc::{SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
+use std::mem;
 use std::os::unix::fs::FileExt;
 fn main() {
     let map = get_map();
@@ -26,6 +27,7 @@ fn main() {
                 elem,
                 reference: format!("0x{reference:08x}"),
                 data: None,
+                display_type: DisplayType::Hex,
             }))
         }),
     )
@@ -42,18 +44,54 @@ impl eframe::App for App {
                     ..Default::default()
                 },
                 |ui| {
-                    if ui
-                        .add_sized(
-                            [200.0, 20.0],
-                            egui::TextEdit::singleline(&mut self.reference),
-                        )
-                        .changed()
-                        && self.reference.starts_with("0x")
-                        && let Ok(n) = u32::from_str_radix(&self.reference[2..], 16)
-                    {
-                        self.elem =
-                            Elem::check_global(n, &self.reader, &self.map, &mut vec![n], None);
-                    }
+                    ui.horizontal(|ui| {
+                        if ui
+                            .add_sized(
+                                [200.0, 20.0],
+                                egui::TextEdit::singleline(&mut self.reference),
+                            )
+                            .changed()
+                            && self.reference.starts_with("0x")
+                            && let Ok(n) = u32::from_str_radix(&self.reference[2..], 16)
+                        {
+                            self.elem =
+                                Elem::check_global(n, &self.reader, &self.map, &mut vec![n], None);
+                        }
+                        ComboBox::from_label("")
+                            .selected_text(format!("{:?}", self.display_type))
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::Hex,
+                                    "Hex",
+                                );
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::Bin,
+                                    "Bin",
+                                );
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::Num,
+                                    "Num",
+                                );
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::SignedNum,
+                                    "SignedNum",
+                                );
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::Float,
+                                    "Float",
+                                );
+                                ui.selectable_value(
+                                    &mut self.display_type,
+                                    DisplayType::Str,
+                                    "Str",
+                                );
+                            });
+                    });
                 },
             );
             let (settings_rect, right) = rect.split_left_right_at_fraction(0.5);
@@ -71,6 +109,8 @@ impl eframe::App for App {
                             &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
                             0,
                             0,
+                            Vec::new(),
+                            self.display_type,
                         ) {
                             self.data = Some(d);
                         }
@@ -85,18 +125,42 @@ impl eframe::App for App {
                 |ui| {
                     egui::ScrollArea::vertical().id_salt("2").show(ui, |ui| {
                         if let Some(data) = &self.data {
-                            for n in data {
-                                ui.label(format!("{n:08x}"));
-                                ui.label(format!("{n:032b}"));
-                                ui.label(format!("{n:010}"));
-                                if n.cast_signed() < 0 {
-                                    ui.label(format!("{:010}", n.cast_signed()));
+                            match data {
+                                Data::Values(refs, data) => {
+                                    if !refs.is_empty() {
+                                        ui.label(
+                                            refs.iter()
+                                                .map(|(a, b)| format!("0x{a:08x}->0x{b:08x}"))
+                                                .collect::<Vec<String>>()
+                                                .join(","),
+                                        );
+                                        ui.separator();
+                                    }
+                                    for n in data {
+                                        ui.label(format!("0x{n:08x}"));
+                                        ui.label(format!("{n:032b}"));
+                                        ui.label(format!("{n:010}"));
+                                        if n.cast_signed() < 0 {
+                                            ui.label(format!("{:010}", n.cast_signed()));
+                                        }
+                                        ui.label(f32::from_bits(*n).to_string());
+                                        if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
+                                            ui.label(v);
+                                        }
+                                        ui.separator();
+                                    }
                                 }
-                                ui.label(f32::from_bits(*n).to_string());
-                                if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
-                                    ui.label(v);
+                                Data::Struct(refs) => {
+                                    if !refs.is_empty() {
+                                        ui.label(
+                                            refs.iter()
+                                                .map(|(a, b)| format!("0x{a:08x}->0x{b:08x}"))
+                                                .collect::<Vec<String>>()
+                                                .join(","),
+                                        );
+                                        ui.separator();
+                                    }
                                 }
-                                ui.separator();
                             }
                         }
                     });
@@ -110,7 +174,21 @@ pub struct App {
     map: HashMap<u32, (String, usize)>,
     elem: Elem,
     reference: String,
-    data: Option<Vec<u32>>,
+    data: Option<Data>,
+    display_type: DisplayType,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DisplayType {
+    Hex,
+    Bin,
+    Num,
+    SignedNum,
+    Float,
+    Str,
+}
+pub enum Data {
+    Struct(Vec<(u32, u32)>),
+    Values(Vec<(u32, u32)>, Vec<u32>),
 }
 pub struct Reader {
     mem: File,
@@ -195,10 +273,10 @@ pub struct Struct {
 }
 #[derive(Debug)]
 pub enum Elem {
-    Ref(Box<Elem>, u32),
+    Ref(Box<Elem>, u32, u32),
     Struct(Struct, u32),
     VFTable(u32),
-    Array(Box<Elem>, Vec<u32>, usize),
+    Array(Box<Elem>, Vec<u32>),
     Usize(u32),
     Recursive(u32),
     TooLarge(u32),
@@ -207,8 +285,8 @@ pub enum Elem {
 impl PartialEq for Elem {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Elem::Array(r1, n1, _), Elem::Array(r2, n2, _)) => r1 == r2 && n1 == n2,
-            (Elem::Ref(r1, _), Elem::Ref(r2, _)) => r1 == r2,
+            (Elem::Array(r1, n1), Elem::Array(r2, n2)) => r1 == r2 && n1 == n2,
+            (Elem::Ref(r1, _, _), Elem::Ref(r2, _, _)) => r1 == r2,
             (Elem::Struct(_, _), Elem::Struct(_, _)) => false,
             (Elem::VFTable(_), Elem::VFTable(_)) => true,
             (Elem::Usize(_), Elem::Usize(_)) => true,
@@ -222,23 +300,24 @@ impl PartialEq for Elem {
 impl Elem {
     pub fn reference(&self) -> Option<u32> {
         match self {
-            Elem::Ref(_, r) => Some(*r),
+            Elem::Ref(_, r, _) => Some(*r),
             Elem::Struct(_, r) => Some(*r),
             _ => None,
         }
     }
     pub fn data(&self) -> Vec<u32> {
         vec![match self {
-            Elem::Ref(_, v) => *v,
+            Elem::Ref(_, v, _) => *v,
             Elem::Struct(_, v) => *v,
             Elem::VFTable(v) => *v,
-            Elem::Array(_, v, _) => return v.clone(),
+            Elem::Array(_, v) => return v.clone(),
             Elem::Usize(v) => *v,
             Elem::Recursive(v) => *v,
             Elem::TooLarge(v) => *v,
             Elem::Failed(v) => *v,
         }]
     }
+    #[allow(clippy::too_many_arguments)]
     pub fn show(
         &mut self,
         ui: &mut Ui,
@@ -247,7 +326,9 @@ impl Elem {
         addrs: &mut Vec<u32>,
         count: usize,
         entry: usize,
-    ) -> Option<Vec<u32>> {
+        mut refs: Vec<(u32, u32)>,
+        display_type: DisplayType,
+    ) -> Option<Data> {
         match self {
             Elem::Struct(s, r) => {
                 addrs.push(*r);
@@ -256,23 +337,36 @@ impl Elem {
                         let mut e = 0;
                         let mut ret = None;
                         for f in s.fields(reader, map, addrs) {
-                            ret = ret.or(f.show(ui, reader, map, addrs, 0, e / 4));
+                            ret = ret.or(f.show(
+                                ui,
+                                reader,
+                                map,
+                                addrs,
+                                0,
+                                e / 4,
+                                Vec::new(),
+                                display_type,
+                            ));
                             e += f.size();
                         }
                         ret
                     });
                 if resp.header_response.hovered() {
-                    return Some(self.data());
+                    return Some(Data::Struct(mem::take(&mut refs)));
                 }
                 return resp.body_returned.flatten();
             }
-            Elem::Ref(s, r) => {
+            Elem::Ref(s, r, v) => {
                 addrs.push(*r);
-                return s.show(ui, reader, map, addrs, count + 1, entry);
+                refs.push((*r, *v));
+                return s.show(ui, reader, map, addrs, count + 1, entry, refs, display_type);
             }
             s => {
-                if ui.label(s.print(count, entry, None)).hovered() {
-                    return Some(s.data());
+                if ui
+                    .label(s.print(count, entry, None, display_type))
+                    .hovered()
+                {
+                    return Some(Data::Values(mem::take(&mut refs), s.data()));
                 }
             }
         }
@@ -280,29 +374,29 @@ impl Elem {
     }
     pub fn array_eq(&self, other: &Self) -> bool {
         match self {
-            Elem::Array(e, _, _) => e.as_ref() == other,
+            Elem::Array(e, _) => e.as_ref() == other,
             Elem::Struct(_, _) => false,
             e => e == other,
         }
     }
     pub fn size(&self) -> usize {
         match self {
-            Elem::Ref(_, _)
+            Elem::Ref(_, _, _)
             | Elem::VFTable(_)
             | Elem::Usize(_)
             | Elem::Recursive(_)
             | Elem::Failed(_)
             | Elem::TooLarge(_) => 4,
             Elem::Struct(e, _) => e.size,
-            Elem::Array(e, _, n) => e.size() * n,
+            Elem::Array(e, v) => e.size() * v.len(),
         }
     }
     pub fn value(&self) -> Option<u32> {
         Some(match self {
-            Elem::Ref(_, v) => *v,
+            Elem::Ref(_, v, _) => *v,
             Elem::Struct(_, v) => *v,
             Elem::VFTable(v) => *v,
-            Elem::Array(_, _, _) => return None,
+            Elem::Array(_, _) => return None,
             Elem::Usize(v) => *v,
             Elem::Recursive(v) => *v,
             Elem::TooLarge(v) => *v,
@@ -362,6 +456,7 @@ impl Elem {
                 } else {
                     Box::new(Elem::from_addr(table, "Unk", size as usize, false))
                 },
+                reference,
                 table,
             )
         } else {
@@ -390,7 +485,7 @@ impl Struct {
         addrs: &mut Vec<u32>,
     ) -> Vec<Elem> {
         let mut reference = self.reference;
-        let mut fields = Vec::new();
+        let mut fields = Vec::with_capacity(self.size / 4);
         if self.skip {
             fields.push(Elem::VFTable(mem.read_byte(reference).unwrap()));
             reference += 4;
@@ -407,11 +502,12 @@ impl Struct {
             if let Some(last) = fields.last_mut()
                 && last.array_eq(&e)
             {
-                if let Elem::Array(_, vec, n) = last {
-                    if let Some(v) = e.value() {
+                if let Elem::Array(_, vec) = last {
+                    if vec.len() >= 1024 {
+                        fields.push(e);
+                    } else if let Some(v) = e.value() {
                         vec.push(v);
                     }
-                    *n += 1;
                 } else {
                     let mut vec = Vec::new();
                     if let Some(v) = last.value() {
@@ -420,7 +516,7 @@ impl Struct {
                     if let Some(v) = e.value() {
                         vec.push(v);
                     }
-                    *last = Elem::Array(Box::new(e), vec, 2);
+                    *last = Elem::Array(Box::new(e), vec);
                 };
             } else {
                 fields.push(e);
@@ -429,18 +525,19 @@ impl Struct {
                 addrs.pop();
             }
         }
+        fields.shrink_to_fit();
         fields
     }
     #[allow(clippy::too_many_arguments)]
-    fn print(&self, count: usize, entry: usize, v: u32, array: Option<(usize, &[u32])>) -> String {
+    fn print(&self, count: usize, entry: usize, v: u32, array: Option<&[u32]>) -> String {
         format!(
             "[{entry}]{}{}<{}>{}({})",
             "&".repeat(count),
             self.name,
             self.size,
-            array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+            array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
             array
-                .map(|(_, b)| b
+                .map(|b| b
                     .iter()
                     .map(|v| format!("0x{v:08x}"))
                     .collect::<Vec<String>>()
@@ -451,81 +548,109 @@ impl Struct {
 }
 #[allow(clippy::too_many_arguments)]
 impl Elem {
-    fn print(&self, count: usize, e: usize, array: Option<(usize, &[u32])>) -> String {
+    fn print(
+        &self,
+        count: usize,
+        e: usize,
+        array: Option<&[u32]>,
+        display_type: DisplayType,
+    ) -> String {
         match self {
-            Elem::Ref(r, _) => r.print(count + 1, e, array),
-            Elem::Array(r, v, k) => r.print(count, e, Some((*k, v))),
+            Elem::Ref(r, _, _) => r.print(count + 1, e, array, display_type),
+            Elem::Array(r, v) => r.print(count, e, Some(v), display_type),
             Elem::Struct(s, v) => s.print(count, e, *v, array),
             Elem::Usize(v) => {
                 format!(
                     "[{e}]{}usize{}({})",
                     "&".repeat(count),
-                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
                     array
-                        .map(|(_, b)| b
+                        .map(|b| b
                             .iter()
-                            .map(|v| format!("0x{v:08x}"))
+                            .map(|v| display_type.print(v))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:08x}")),
+                        .unwrap_or(display_type.print(v)),
                 )
             }
             Elem::Recursive(v) => {
                 format!(
                     "[{e}]{}recursive{}({})",
                     "&".repeat(count),
-                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
                     array
-                        .map(|(_, b)| b
+                        .map(|b| b
                             .iter()
-                            .map(|v| format!("0x{v:08x}"))
+                            .map(|v| display_type.print(v))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:08x}")),
+                        .unwrap_or(display_type.print(v)),
                 )
             }
             Elem::VFTable(v) => {
                 format!(
                     "[{e}]{}VFTable{}({})",
                     "&".repeat(count),
-                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
                     array
-                        .map(|(_, b)| b
+                        .map(|b| b
                             .iter()
-                            .map(|v| format!("0x{v:08x}"))
+                            .map(|v| display_type.print(v))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:08x}")),
+                        .unwrap_or(display_type.print(v)),
                 )
             }
             Elem::TooLarge(v) => {
                 format!(
                     "[{e}]{}TooLarge{}({})",
                     "&".repeat(count),
-                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
                     array
-                        .map(|(_, b)| b
+                        .map(|b| b
                             .iter()
-                            .map(|v| format!("0x{v:08x}"))
+                            .map(|v| display_type.print(v))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:08x}")),
+                        .unwrap_or(display_type.print(v)),
                 )
             }
             Elem::Failed(v) => {
                 format!(
                     "[{e}]{}Failed{}({})",
                     "&".repeat(count),
-                    array.map(|(a, _)| format!("[{a}]")).unwrap_or_default(),
+                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
                     array
-                        .map(|(_, b)| b
+                        .map(|b| b
                             .iter()
-                            .map(|v| format!("0x{v:08x}"))
+                            .map(|v| display_type.print(v))
                             .collect::<Vec<String>>()
                             .join(","))
-                        .unwrap_or(format!("0x{v:08x}")),
+                        .unwrap_or(display_type.print(v)),
                 )
             }
+        }
+    }
+}
+impl DisplayType {
+    fn print(&self, n: &u32) -> String {
+        match self {
+            DisplayType::Hex => {
+                format!("{n:08x}")
+            }
+            DisplayType::Bin => {
+                format!("{n:032b}")
+            }
+            DisplayType::Num => {
+                format!("{n:010}")
+            }
+            DisplayType::SignedNum => {
+                format!("{:010}", n.cast_signed())
+            }
+            DisplayType::Float => {
+                format!("{}", f32::from_bits(*n))
+            }
+            DisplayType::Str => String::from_utf8(n.to_le_bytes().to_vec()).unwrap_or_default(),
         }
     }
 }
