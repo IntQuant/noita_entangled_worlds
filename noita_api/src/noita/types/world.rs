@@ -532,14 +532,13 @@ impl LiquidCell {
 
     fn remove_vegetation_if_it_exists(&mut self) {
         if !self.vegetation_sprite.is_null() {
-            unsafe {
-                (Globals::default()
-                    .game_global_mut()
-                    .m_grid_world
-                    .vtable
-                    .remove_vegetation
-                    .unwrap())(self, self.vegetation_sprite)
-            }
+            Globals::default()
+                .game_global_mut()
+                .m_grid_world
+                .vtable
+                .remove_vegetation
+                .unwrap()
+                .call(self, self.vegetation_sprite)
         }
         self.vegetation_sprite = null_mut();
     }
@@ -757,11 +756,11 @@ impl Chunk {
     #[inline]
     pub fn remove_pixel(&mut self, x: isize, y: isize) {
         let cell = self.get_mut_raw(x, y);
-        if let Some(cell) = unsafe { cell.as_mut() } {
-            if cell.material.cell_type == CellType::Liquid {
-                let liquid_cell = unsafe { cell.get_liquid_mut() };
-                liquid_cell.remove_vegetation_if_it_exists();
-            }
+        if let Some(cell) = unsafe { cell.as_mut() }
+            && cell.material.cell_type == CellType::Liquid
+        {
+            let liquid_cell = unsafe { cell.get_liquid_mut() };
+            liquid_cell.remove_vegetation_if_it_exists();
         }
         unsafe {
             cell.delete();
@@ -852,9 +851,26 @@ pub struct GridWorldVTable {
     pub get_chunk_map: *const ThiscallFn,  // 3
     pub unknownmagic: *const ThiscallFn,   // 4
     pub unknown2: [*const ThiscallFn; 30], // 5
-    pub remove_vegetation: Option<unsafe extern "stdcall" fn(*mut LiquidCell, *mut c_void)>, // 35
+    pub remove_vegetation: Option<StdCall<*mut LiquidCell, *mut c_void>>, // 35
 }
-
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+#[cfg(target_os = "windows")]
+pub struct StdCall<T, K>(unsafe extern "stdcall" fn(T, K));
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+#[cfg(not(target_os = "windows"))]
+pub struct StdCall<T, K>(fn(T, K));
+impl<T, K> StdCall<T, K> {
+    fn call(&self, a: T, b: K) {
+        #[cfg(target_os = "windows")]
+        unsafe {
+            self.0(a, b)
+        }
+        #[cfg(not(target_os = "windows"))]
+        self.0(a, b)
+    }
+}
 #[repr(C)]
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -937,7 +953,7 @@ pub struct GridWorld {
 #[derive(Debug)]
 pub struct BiomeModifiers {
     pub vftable: &'static BiomeModifiersVFTable,
-    pub unk: [usize; 6]
+    pub unk: [usize; 6],
 }
 #[repr(C)]
 #[derive(Debug)]

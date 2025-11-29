@@ -57,7 +57,7 @@ pub struct Ptr<T>(*mut T);
 
 impl<T> Clone for Ptr<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 
@@ -128,7 +128,7 @@ impl<T> Ptr<T> {
     /// # Safety
     ///
     /// Pointer has to be not yet freed and of correct type.
-    pub unsafe fn as_mut(&self) -> Option<&mut T> {
+    pub unsafe fn as_mut(&mut self) -> Option<&mut T> {
         if self.is_null() {
             return None;
         }
