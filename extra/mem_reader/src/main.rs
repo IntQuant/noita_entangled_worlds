@@ -1,5 +1,5 @@
 use eframe::{Frame, NativeOptions};
-use egui::{CentralPanel, ComboBox, Context, Ui, UiBuilder};
+use egui::{CentralPanel, Color32, ComboBox, Context, Ui, UiBuilder};
 use libc::{SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
@@ -113,7 +113,7 @@ impl eframe::App for App {
                             &self.map,
                             &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
                             0,
-                            0,
+                            "f0",
                             Vec::new(),
                             self.display_type,
                         ) {
@@ -131,7 +131,7 @@ impl eframe::App for App {
                     egui::ScrollArea::vertical().id_salt("2").show(ui, |ui| {
                         if let Some(data) = &self.data {
                             match data {
-                                Data::Values(refs, data) => {
+                                Data::Values(refs, n) => {
                                     if !refs.is_empty() {
                                         ui.label(
                                             refs.iter()
@@ -141,21 +141,15 @@ impl eframe::App for App {
                                         );
                                         ui.separator();
                                     }
-                                    for (i, n) in data.iter().enumerate() {
-                                        if data.len() != 1 {
-                                            ui.label(i.to_string());
-                                        }
-                                        ui.label(format!("0x{n:08x}"));
-                                        ui.label(format!("{n:032b}"));
-                                        ui.label(format!("{n:010}"));
-                                        if n.cast_signed() < 0 {
-                                            ui.label(format!("{:010}", n.cast_signed()));
-                                        }
-                                        ui.label(f32::from_bits(*n).to_string());
-                                        if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
-                                            ui.label(v);
-                                        }
-                                        ui.separator();
+                                    ui.label(format!("0x{n:08x}"));
+                                    ui.label(format!("{n:032b}"));
+                                    ui.label(format!("{n:010}"));
+                                    if n.cast_signed() < 0 {
+                                        ui.label(format!("{:010}", n.cast_signed()));
+                                    }
+                                    ui.label(f32::from_bits(*n).to_string());
+                                    if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
+                                        ui.label(v);
                                     }
                                 }
                                 Data::Struct(refs) => {
@@ -197,7 +191,7 @@ pub enum DisplayType {
 }
 pub enum Data {
     Struct(Vec<(u32, u32)>),
-    Values(Vec<(u32, u32)>, Vec<u32>),
+    Values(Vec<(u32, u32)>, u32),
 }
 pub struct Reader {
     mem: File,
@@ -272,31 +266,40 @@ fn get_map() -> HashMap<u32, (String, usize)> {
     }
     map
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Struct {
     name: String,
     size: usize,
-    fields: Option<Vec<Elem>>,
+    fields: Option<Vec<(String, Elem)>>,
     reference: u32,
     skip: bool,
 }
-#[derive(Debug)]
+impl PartialEq for Struct {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.size == other.size && self.fields == other.fields
+    }
+}
+#[derive(Debug, Clone)]
 pub enum Elem {
     Ref(Box<Elem>, u32, u32),
     Struct(Struct, u32),
     VFTable(u32),
-    Array(Box<Elem>, Vec<u32>),
+    Array(Vec<Elem>),
     Usize(u32),
     Recursive(u32),
     TooLarge(u32),
     Failed(u32),
+    Null,
 }
 impl PartialEq for Elem {
     fn eq(&self, other: &Self) -> bool {
+        if (self.null() && other.is_ref()) || (self.is_ref() && other.null()) {
+            return true;
+        }
         match (self, other) {
-            (Elem::Array(r1, n1), Elem::Array(r2, n2)) => r1 == r2 && n1 == n2,
+            (Elem::Array(r1), Elem::Array(r2)) => r1 == r2,
             (Elem::Ref(r1, _, _), Elem::Ref(r2, _, _)) => r1 == r2,
-            (Elem::Struct(_, _), Elem::Struct(_, _)) => false,
+            (Elem::Struct(r1, _), Elem::Struct(r2, _)) => r1 == r2,
             (Elem::VFTable(_), Elem::VFTable(_)) => true,
             (Elem::Usize(_), Elem::Usize(_)) => true,
             (Elem::Recursive(r1), Elem::Recursive(r2)) => r1 == r2,
@@ -307,6 +310,9 @@ impl PartialEq for Elem {
     }
 }
 impl Elem {
+    pub fn is_ref(&self) -> bool {
+        !matches!(self, Elem::Struct(_, _))
+    }
     pub fn reference(&self) -> Option<u32> {
         match self {
             Elem::Ref(_, r, _) => Some(*r),
@@ -314,17 +320,18 @@ impl Elem {
             _ => None,
         }
     }
-    pub fn data(&self) -> Vec<u32> {
-        vec![match self {
+    pub fn data(&self) -> u32 {
+        match self {
             Elem::Ref(_, v, _) => *v,
             Elem::Struct(_, v) => *v,
             Elem::VFTable(v) => *v,
-            Elem::Array(_, v) => return v.clone(),
+            Elem::Array(_) => 0,
             Elem::Usize(v) => *v,
             Elem::Recursive(v) => *v,
             Elem::TooLarge(v) => *v,
             Elem::Failed(v) => *v,
-        }]
+            Elem::Null => 0,
+        }
     }
     #[allow(clippy::too_many_arguments)]
     pub fn show(
@@ -334,18 +341,19 @@ impl Elem {
         map: &HashMap<u32, (String, usize)>,
         addrs: &mut Vec<u32>,
         count: usize,
-        entry: usize,
+        entry: &str,
         mut refs: Vec<(u32, u32)>,
         display_type: DisplayType,
     ) -> Option<Data> {
         match self {
             Elem::Struct(s, r) => {
                 addrs.push(*r);
-                let resp =
-                    egui::CollapsingHeader::new(s.print(count, entry, *r, None)).show(ui, |ui| {
-                        let mut e = 0;
+                let text = s.print(count, entry, *r, Vec::new());
+                let resp = egui::CollapsingHeader::new(&text)
+                    .id_salt((text, addrs.len(), addrs.last().copied().unwrap_or_default()))
+                    .show(ui, |ui| {
                         let mut ret = None;
-                        for f in s.fields(reader, map, addrs) {
+                        for (n, f) in s.fields(reader, map, addrs) {
                             let len = addrs.len();
                             ret = ret.or(f.show(
                                 ui,
@@ -353,11 +361,10 @@ impl Elem {
                                 map,
                                 addrs,
                                 0,
-                                e / 4,
+                                n,
                                 Vec::new(),
                                 display_type,
                             ));
-                            e += f.size();
                             while len < addrs.len() {
                                 addrs.pop();
                             }
@@ -374,9 +381,39 @@ impl Elem {
                 refs.push((*r, *v));
                 return s.show(ui, reader, map, addrs, count + 1, entry, refs, display_type);
             }
+            Elem::Array(v) => {
+                let text = v.iter().find(|a| !a.null()).unwrap_or(&Elem::Null).print(
+                    count,
+                    entry,
+                    vec![v.len()],
+                    display_type,
+                );
+                let resp = egui::CollapsingHeader::new(&text)
+                    .id_salt((text, addrs.len(), addrs.last().copied().unwrap_or_default()))
+                    .show(ui, |ui| {
+                        let mut ret = None;
+                        for (i, n) in v.iter_mut().enumerate() {
+                            ret = ret.or(n.show(
+                                ui,
+                                reader,
+                                map,
+                                addrs,
+                                0,
+                                &i.to_string(),
+                                Vec::new(),
+                                display_type,
+                            ));
+                        }
+                        ret
+                    });
+                return resp.body_returned.flatten();
+            }
             s => {
                 if ui
-                    .label(s.print(count, entry, None, display_type))
+                    .colored_label(
+                        Color32::WHITE,
+                        format!("      {}", s.print(count, entry, Vec::new(), display_type)),
+                    )
                     .hovered()
                 {
                     return Some(Data::Values(mem::take(&mut refs), s.data()));
@@ -385,9 +422,20 @@ impl Elem {
         }
         None
     }
-    pub fn array_eq(&self, other: &Self) -> bool {
+    pub fn null(&self) -> bool {
         match self {
-            Elem::Array(e, _) => e.as_ref() == other,
+            Elem::Null => true,
+            Elem::Ref(r, _, _) => r.null(),
+            Elem::Array(v) => v.iter().all(|a| a.null()),
+            _ => false,
+        }
+    }
+    pub fn array_eq(&self, other: &Self) -> bool {
+        if (self.null() && other.is_ref()) || (self.is_ref() && other.null()) {
+            return true;
+        }
+        match self {
+            Elem::Array(e) => e.iter().find(|a| !a.null()).unwrap_or(&Elem::Null) == other,
             Elem::Struct(_, _) => false,
             e => e == other,
         }
@@ -399,22 +447,11 @@ impl Elem {
             | Elem::Usize(_)
             | Elem::Recursive(_)
             | Elem::Failed(_)
+            | Elem::Null
             | Elem::TooLarge(_) => 4,
             Elem::Struct(e, _) => e.size,
-            Elem::Array(e, v) => e.size() * v.len(),
+            Elem::Array(e) => e.iter().map(|a| a.size()).sum(),
         }
-    }
-    pub fn value(&self) -> Option<u32> {
-        Some(match self {
-            Elem::Ref(_, v, _) => *v,
-            Elem::Struct(_, v) => *v,
-            Elem::VFTable(v) => *v,
-            Elem::Array(_, _) => return None,
-            Elem::Usize(v) => *v,
-            Elem::Recursive(v) => *v,
-            Elem::TooLarge(v) => *v,
-            Elem::Failed(v) => *v,
-        })
     }
     #[allow(clippy::too_many_arguments)]
     pub fn from_addr(reference: u32, name: &str, size: usize, skip: bool) -> Self {
@@ -437,6 +474,9 @@ impl Elem {
         let Some(table) = mem.read_byte(reference) else {
             return Elem::Usize(reference);
         };
+        if table == 0 {
+            return Elem::Null;
+        }
         if addrs.contains(&table) {
             return Elem::Recursive(table);
         }
@@ -483,7 +523,7 @@ impl Struct {
         mem: &Reader,
         map: &HashMap<u32, (String, usize)>,
         addrs: &mut Vec<u32>,
-    ) -> &mut Vec<Elem> {
+    ) -> &mut Vec<(String, Elem)> {
         if self.fields.is_some() {
             self.fields.as_mut().unwrap()
         } else {
@@ -496,66 +536,115 @@ impl Struct {
         mem: &Reader,
         map: &HashMap<u32, (String, usize)>,
         addrs: &mut Vec<u32>,
-    ) -> Vec<Elem> {
-        let mut reference = self.reference;
-        let mut fields = Vec::with_capacity(self.size / 4);
-        if self.skip {
-            fields.push(Elem::VFTable(mem.read_byte(reference).unwrap()));
-            reference += 4;
-        }
+    ) -> Vec<(String, Elem)> {
+        let mut fields: Vec<(String, Elem)> = Vec::with_capacity(self.size / 4);
         let mut i = 0;
-        while i < if self.skip {
-            (self.size / 4).saturating_sub(1)
-        } else {
-            self.size / 4
-        } {
+        if self.skip {
+            fields.push((
+                "f0".to_string(),
+                Elem::VFTable(mem.read_byte(self.reference).unwrap()),
+            ));
+            i += 1;
+        }
+        while i < self.size / 4 {
             let len = addrs.len();
-            let e = Elem::check_global(reference + 4 * i as u32, mem, map, addrs, Some(&self.name));
-            i += (e.size() / 4).max(1);
-            if let Some(last) = fields.last_mut()
-                && last.array_eq(&e)
-            {
-                if let Elem::Array(_, vec) = last {
-                    if vec.len() >= 1024 {
-                        fields.push(e);
-                    } else if let Some(v) = e.value() {
-                        vec.push(v);
-                    }
-                } else {
-                    let mut vec = Vec::new();
-                    if let Some(v) = last.value() {
-                        vec.push(v);
-                    }
-                    if let Some(v) = e.value() {
-                        vec.push(v);
-                    }
-                    *last = Elem::Array(Box::new(e), vec);
-                };
-            } else {
-                fields.push(e);
-            }
+            let e = Elem::check_global(
+                self.reference + 4 * i as u32,
+                mem,
+                map,
+                addrs,
+                Some(&self.name),
+            );
+            let size = (e.size() / 4).max(1);
+            fields.push((format!("f{i}"), e));
+            i += size;
             while len < addrs.len() {
                 addrs.pop();
             }
+        }
+        let mut i = fields.len();
+        let mut not_null = false;
+        let mut v: Option<usize> = None;
+        let mut s = fields.len();
+        let mut null = None;
+        while i > 0 {
+            i -= 1;
+            if fields[i].1.null() {
+                continue;
+            }
+            if let Some(k) = v {
+                if fields[i].1 == fields[k].1 {
+                    not_null = true;
+                } else if not_null {
+                    let f = fields[i + 1].0.clone();
+                    let arr = fields.drain(i + 1..s).map(|(_, b)| b).collect();
+                    fields.insert(i + 1, (f, Elem::Array(arr)));
+                    s = i;
+                    not_null = false;
+                    v = None;
+                } else {
+                    if let Some((i, k)) = mem::take(&mut null) {
+                        let (f, _): &(String, _) = &fields[i];
+                        let f = f.clone();
+                        let arr = fields.drain(i..k).map(|(_, b)| b).collect();
+                        fields.insert(i, (f, Elem::Array(arr)));
+                    }
+                    if s - k > 2 {
+                        let f = fields[k + 1].0.clone();
+                        let arr = fields.drain(k + 1..s).map(|(_, b)| b).collect();
+                        fields.insert(k + 1, (f, Elem::Array(arr)));
+                    }
+                    if k - i > 2 {
+                        null = Some((i + 1, k));
+                    }
+                    s = k;
+                    v = Some(i);
+                }
+            } else {
+                v = Some(i);
+            }
+        }
+        if not_null {
+            if s == fields.len() {
+                return if fields.len() == 512 * 512 {
+                    let mut f = Vec::with_capacity(512);
+                    for _ in 0..512 {
+                        let mut fi = Vec::with_capacity(512);
+                        fi.extend(fields.drain(0..512).map(|(_, a)| a));
+                        f.push(Elem::Array(fi))
+                    }
+                    vec![("f0".to_string(), Elem::Array(f))]
+                } else {
+                    vec![(
+                        "f0".to_string(),
+                        Elem::Array(fields.into_iter().map(|(_, b)| b).collect()),
+                    )]
+                };
+            }
+            let v = fields.drain(0..s).map(|(_, b)| b).collect();
+            fields.insert(0, ("f0".to_string(), Elem::Array(v)))
         }
         fields.shrink_to_fit();
         fields
     }
     #[allow(clippy::too_many_arguments)]
-    fn print(&self, count: usize, entry: usize, v: u32, array: Option<&[u32]>) -> String {
+    fn print(&self, count: usize, entry: &str, v: u32, array: Vec<usize>) -> String {
         format!(
-            "[{entry}]{}{}<{}>{}({})",
+            "{entry}: {}{}{}<{}>{} {}",
+            "[".repeat(array.len()),
             "&".repeat(count),
             self.name,
-            self.size,
-            array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
+            display_size(self.size / 4),
             array
-                .map(|b| b
-                    .iter()
-                    .map(|v| format!("0x{v:08x}"))
-                    .collect::<Vec<String>>()
-                    .join(","))
-                .unwrap_or(format!("0x{v:08x}")),
+                .iter()
+                .map(|a| format!("; {}]", display_size(*a)))
+                .collect::<Vec<String>>()
+                .join(""),
+            if array.is_empty() {
+                DisplayType::Hex.print(&v)
+            } else {
+                String::new()
+            }
         )
     }
 }
@@ -564,55 +653,128 @@ impl Elem {
     fn print(
         &self,
         count: usize,
-        e: usize,
-        array: Option<&[u32]>,
+        e: &str,
+        mut array: Vec<usize>,
         display_type: DisplayType,
     ) -> String {
         match self {
             Elem::Ref(r, _, _) => r.print(count + 1, e, array, display_type),
-            Elem::Array(r, v) => r.print(count, e, Some(v), display_type),
+            Elem::Array(r) => {
+                array.insert(0, r.len());
+                r.iter().find(|a| !a.null()).unwrap_or(&Elem::Null).print(
+                    count,
+                    e,
+                    array,
+                    display_type,
+                )
+            }
             Elem::Struct(s, v) => s.print(count, e, *v, array),
             Elem::Usize(v) => {
                 format!(
-                    "[{e}]{}usize{}({})",
+                    "{e}: {}{}usize{} {}",
+                    "[".repeat(array.len()),
                     "&".repeat(count),
-                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    display_type.print_opt(array, v)
+                    array
+                        .iter()
+                        .map(|a| format!("; {}]", display_size(*a)))
+                        .collect::<Vec<String>>()
+                        .join(""),
+                    if array.is_empty() {
+                        display_type.print(v)
+                    } else {
+                        String::new()
+                    }
                 )
             }
             Elem::Recursive(v) => {
                 format!(
-                    "[{e}]{}recursive{}({})",
+                    "{e}: {}{}recursive{} {}",
+                    "[".repeat(array.len()),
                     "&".repeat(count),
-                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    display_type.print_opt(array, v)
+                    array
+                        .iter()
+                        .map(|a| format!("; {}]", display_size(*a)))
+                        .collect::<Vec<String>>()
+                        .join(""),
+                    if array.is_empty() {
+                        display_type.print(v)
+                    } else {
+                        String::new()
+                    }
                 )
             }
             Elem::VFTable(v) => {
                 format!(
-                    "[{e}]{}VFTable{}({})",
+                    "{e}: {}{}vftable{} {}",
+                    "[".repeat(array.len()),
                     "&".repeat(count),
-                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    display_type.print_opt(array, v)
+                    array
+                        .iter()
+                        .map(|a| format!("; {}]", display_size(*a)))
+                        .collect::<Vec<String>>()
+                        .join(""),
+                    if array.is_empty() {
+                        display_type.print(v)
+                    } else {
+                        String::new()
+                    }
                 )
             }
             Elem::TooLarge(v) => {
                 format!(
-                    "[{e}]{}TooLarge{}({})",
+                    "{e}: {}{}large{} {}",
+                    "[".repeat(array.len()),
                     "&".repeat(count),
-                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    display_type.print_opt(array, v)
+                    array
+                        .iter()
+                        .map(|a| format!("; {}]", display_size(*a)))
+                        .collect::<Vec<String>>()
+                        .join(""),
+                    if array.is_empty() {
+                        display_type.print(v)
+                    } else {
+                        String::new()
+                    }
                 )
             }
             Elem::Failed(v) => {
                 format!(
-                    "[{e}]{}Failed{}({})",
+                    "{e}: {}{}failed{} {}",
+                    "[".repeat(array.len()),
                     "&".repeat(count),
-                    array.map(|a| format!("[{}]", a.len())).unwrap_or_default(),
-                    display_type.print_opt(array, v)
+                    array
+                        .iter()
+                        .map(|a| format!("; {}]", display_size(*a)))
+                        .collect::<Vec<String>>()
+                        .join(""),
+                    if array.is_empty() {
+                        display_type.print(v)
+                    } else {
+                        String::new()
+                    }
+                )
+            }
+            Elem::Null => {
+                format!(
+                    "{e}: {}{}null{}",
+                    "[".repeat(array.len()),
+                    "&".repeat(count),
+                    array
+                        .iter()
+                        .map(|a| format!("; {}]", display_size(*a)))
+                        .collect::<Vec<String>>()
+                        .join("")
                 )
             }
         }
+    }
+}
+fn display_size(n: usize) -> String {
+    let rt = n.isqrt();
+    if n >= 256 && rt * rt == n {
+        format!("{rt} * {rt}")
+    } else {
+        n.to_string()
     }
 }
 impl DisplayType {
@@ -636,17 +798,5 @@ impl DisplayType {
             DisplayType::Str => String::from_utf8(n.to_le_bytes().to_vec()).unwrap_or_default(),
             DisplayType::None => String::new(),
         }
-    }
-    fn print_opt(self, a: Option<&[u32]>, v: &u32) -> String {
-        if DisplayType::None == self {
-            return String::new();
-        }
-        a.map(|b| {
-            b.iter()
-                .map(|v| self.print(v))
-                .collect::<Vec<String>>()
-                .join(",")
-        })
-        .unwrap_or(self.print(v))
     }
 }
