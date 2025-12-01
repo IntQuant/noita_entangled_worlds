@@ -55,5 +55,9 @@ pub extern "stdcall" fn DllMain(_: *const u8, _: u32, _: *const u8) -> u32 {
         0x00f07504 as *mut *const usize, //operator_delete
         operator_delete as *const usize,
     );
+    write(
+        0x00f0750c as *mut *const usize, //operator_delete[]
+        operator_delete as *const usize,
+    );
     1
 }
