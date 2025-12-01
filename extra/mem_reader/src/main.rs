@@ -106,20 +106,23 @@ impl eframe::App for App {
                     ..Default::default()
                 },
                 |ui| {
-                    egui::ScrollArea::vertical().id_salt("1").show(ui, |ui| {
-                        if let Some(d) = self.elem.show(
-                            ui,
-                            &self.reader,
-                            &self.map,
-                            &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
-                            0,
-                            "f0",
-                            Vec::new(),
-                            self.display_type,
-                        ) {
-                            self.data = Some(d);
-                        }
-                    });
+                    egui::ScrollArea::vertical()
+                        .id_salt("1")
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            if let Some(d) = self.elem.show(
+                                ui,
+                                &self.reader,
+                                &self.map,
+                                &mut self.elem.reference().map(|a| vec![a]).unwrap_or_default(),
+                                0,
+                                "f0",
+                                Vec::new(),
+                                self.display_type,
+                            ) {
+                                self.data = Some(d);
+                            }
+                        });
                 },
             );
             ui.scope_builder(
@@ -128,44 +131,47 @@ impl eframe::App for App {
                     ..Default::default()
                 },
                 |ui| {
-                    egui::ScrollArea::vertical().id_salt("2").show(ui, |ui| {
-                        if let Some(data) = &self.data {
-                            match data {
-                                Data::Values(refs, n) => {
-                                    if !refs.is_empty() {
-                                        ui.label(
-                                            refs.iter()
-                                                .map(|(a, b)| format!("0x{a:08x}->0x{b:08x}"))
-                                                .collect::<Vec<String>>()
-                                                .join(","),
-                                        );
-                                        ui.separator();
+                    egui::ScrollArea::vertical()
+                        .id_salt("2")
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            if let Some(data) = &self.data {
+                                match data {
+                                    Data::Values(refs, n) => {
+                                        if !refs.is_empty() {
+                                            ui.label(
+                                                refs.iter()
+                                                    .map(|(a, b)| format!("0x{a:08x}->0x{b:08x}"))
+                                                    .collect::<Vec<String>>()
+                                                    .join(","),
+                                            );
+                                            ui.separator();
+                                        }
+                                        ui.label(format!("0x{n:08x}"));
+                                        ui.label(format!("{n:032b}"));
+                                        ui.label(format!("{n:010}"));
+                                        if n.cast_signed() < 0 {
+                                            ui.label(format!("{:010}", n.cast_signed()));
+                                        }
+                                        ui.label(f32::from_bits(*n).to_string());
+                                        if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
+                                            ui.label(v);
+                                        }
                                     }
-                                    ui.label(format!("0x{n:08x}"));
-                                    ui.label(format!("{n:032b}"));
-                                    ui.label(format!("{n:010}"));
-                                    if n.cast_signed() < 0 {
-                                        ui.label(format!("{:010}", n.cast_signed()));
-                                    }
-                                    ui.label(f32::from_bits(*n).to_string());
-                                    if let Ok(v) = String::from_utf8(n.to_le_bytes().to_vec()) {
-                                        ui.label(v);
-                                    }
-                                }
-                                Data::Struct(refs) => {
-                                    if !refs.is_empty() {
-                                        ui.label(
-                                            refs.iter()
-                                                .map(|(a, b)| format!("0x{a:08x}->0x{b:08x}"))
-                                                .collect::<Vec<String>>()
-                                                .join(","),
-                                        );
-                                        ui.separator();
+                                    Data::Struct(refs) => {
+                                        if !refs.is_empty() {
+                                            ui.label(
+                                                refs.iter()
+                                                    .map(|(a, b)| format!("0x{a:08x}->0x{b:08x}"))
+                                                    .collect::<Vec<String>>()
+                                                    .join(","),
+                                            );
+                                            ui.separator();
+                                        }
                                     }
                                 }
                             }
-                        }
-                    });
+                        });
                 },
             );
         });
@@ -582,11 +588,13 @@ impl Struct {
                     s = i;
                     not_null = false;
                     v = None;
+                    null = None
                 } else {
-                    if let Some((i, k)) = mem::take(&mut null) {
+                    if let Some((i, v)) = mem::take(&mut null) {
                         let (f, _): &(String, _) = &fields[i];
                         let f = f.clone();
-                        let arr = fields.drain(i..k).map(|(_, b)| b).collect();
+                        let arr: Vec<Elem> = fields.drain(i..v).map(|(_, b)| b).collect();
+                        s -= arr.len();
                         fields.insert(i, (f, Elem::Array(arr)));
                     }
                     if s - k > 2 {
@@ -602,6 +610,7 @@ impl Struct {
                 }
             } else {
                 v = Some(i);
+                null = None
             }
         }
         if not_null {

@@ -332,7 +332,6 @@ pub struct LiquidCellVTable {
 #[derive(Clone, Debug, Copy)]
 pub struct Cell {
     pub vtable: CellVTable,
-
     pub hp: isize,
     unknown1: [isize; 2],
     pub is_burning: bool,

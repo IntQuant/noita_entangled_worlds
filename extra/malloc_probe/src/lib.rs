@@ -38,19 +38,19 @@ fn write(addr: *mut *const usize, new: *const usize) {
 
 #[unsafe(no_mangle)]
 pub extern "stdcall" fn DllMain(_: *const u8, _: u32, _: *const u8) -> u32 {
-    /*write(
+    write(
         0x00f074f0 as *mut *const usize, //malloc
         operator_new as *const usize,
-    );*/
+    );
     write(
         0x00f07500 as *mut *const usize, //operator_new
         operator_new as *const usize,
     );
 
-    /*write(
+    write(
         0x00f074f4 as *mut *const usize, //free
         operator_delete as *const usize,
-    );*/
+    );
     write(
         0x00f07504 as *mut *const usize, //operator_delete
         operator_delete as *const usize,
