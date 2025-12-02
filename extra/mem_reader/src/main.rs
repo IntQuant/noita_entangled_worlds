@@ -288,9 +288,9 @@ impl PartialEq for Struct {
 #[derive(Debug, Clone)]
 pub enum Elem {
     Ref(Box<Elem>, u32, u32),
-    Struct(Struct, u32),
+    Struct(Struct, u32, usize),
     VFTable(u32),
-    Array(Vec<Elem>),
+    Array(Vec<Elem>, usize),
     Usize(u32),
     Recursive(u32),
     TooLarge(u32),
@@ -303,9 +303,9 @@ impl PartialEq for Elem {
             return true;
         }
         match (self, other) {
-            (Elem::Array(r1), Elem::Array(r2)) => r1 == r2,
+            (Elem::Array(r1, _), Elem::Array(r2, _)) => r1 == r2,
             (Elem::Ref(r1, _, _), Elem::Ref(r2, _, _)) => r1 == r2,
-            (Elem::Struct(r1, _), Elem::Struct(r2, _)) => r1 == r2,
+            (Elem::Struct(r1, _, _), Elem::Struct(r2, _, _)) => r1 == r2,
             (Elem::VFTable(_), Elem::VFTable(_)) => true,
             (Elem::Usize(_), Elem::Usize(_)) => true,
             (Elem::Recursive(r1), Elem::Recursive(r2)) => r1 == r2,
@@ -315,23 +315,24 @@ impl PartialEq for Elem {
         }
     }
 }
+const LIM: usize = 512;
 impl Elem {
     pub fn is_ref(&self) -> bool {
-        !matches!(self, Elem::Struct(_, _))
+        !matches!(self, Elem::Struct(_, _, _))
     }
     pub fn reference(&self) -> Option<u32> {
         match self {
             Elem::Ref(_, r, _) => Some(*r),
-            Elem::Struct(_, r) => Some(*r),
+            Elem::Struct(_, r, _) => Some(*r),
             _ => None,
         }
     }
     pub fn data(&self) -> u32 {
         match self {
             Elem::Ref(_, v, _) => *v,
-            Elem::Struct(_, v) => *v,
+            Elem::Struct(_, v, _) => *v,
             Elem::VFTable(v) => *v,
-            Elem::Array(_) => 0,
+            Elem::Array(_, _) => 0,
             Elem::Usize(v) => *v,
             Elem::Recursive(v) => *v,
             Elem::TooLarge(v) => *v,
@@ -352,14 +353,20 @@ impl Elem {
         display_type: DisplayType,
     ) -> Option<Data> {
         match self {
-            Elem::Struct(s, r) => {
+            Elem::Struct(s, r, lim) => {
                 addrs.push(*r);
                 let text = s.print(count, entry, *r, Vec::new());
                 let resp = egui::CollapsingHeader::new(&text)
                     .id_salt((text, addrs.len(), addrs.last().copied().unwrap_or_default()))
                     .show(ui, |ui| {
                         let mut ret = None;
-                        for (n, f) in s.fields(reader, map, addrs) {
+                        for (i, (n, f)) in s.fields(reader, map, addrs).iter_mut().enumerate() {
+                            if i > *lim {
+                                if ui.button("...").clicked() {
+                                    *lim *= 2;
+                                }
+                                break;
+                            }
                             let len = addrs.len();
                             ret = ret.or(f.show(
                                 ui,
@@ -387,7 +394,7 @@ impl Elem {
                 refs.push((*r, *v));
                 return s.show(ui, reader, map, addrs, count + 1, entry, refs, display_type);
             }
-            Elem::Array(v) => {
+            Elem::Array(v, lim) => {
                 let text = v.iter().find(|a| !a.null()).unwrap_or(&Elem::Null).print(
                     count,
                     entry,
@@ -399,6 +406,12 @@ impl Elem {
                     .show(ui, |ui| {
                         let mut ret = None;
                         for (i, n) in v.iter_mut().enumerate() {
+                            if i > *lim {
+                                if ui.button("...").clicked() {
+                                    *lim *= 2;
+                                }
+                                break;
+                            }
                             ret = ret.or(n.show(
                                 ui,
                                 reader,
@@ -432,7 +445,7 @@ impl Elem {
         match self {
             Elem::Null => true,
             Elem::Ref(r, _, _) => r.null(),
-            Elem::Array(v) => v.iter().all(|a| a.null()),
+            Elem::Array(v, _) => v.iter().all(|a| a.null()),
             _ => false,
         }
     }
@@ -441,8 +454,8 @@ impl Elem {
             return true;
         }
         match self {
-            Elem::Array(e) => e.iter().find(|a| !a.null()).unwrap_or(&Elem::Null) == other,
-            Elem::Struct(_, _) => false,
+            Elem::Array(e, _) => e.iter().find(|a| !a.null()).unwrap_or(&Elem::Null) == other,
+            Elem::Struct(_, _, _) => false,
             e => e == other,
         }
     }
@@ -455,8 +468,8 @@ impl Elem {
             | Elem::Failed(_)
             | Elem::Null
             | Elem::TooLarge(_) => 4,
-            Elem::Struct(e, _) => e.size,
-            Elem::Array(e) => e.iter().map(|a| a.size()).sum(),
+            Elem::Struct(e, _, _) => e.size,
+            Elem::Array(e, _) => e.iter().map(|a| a.size()).sum(),
         }
     }
     #[allow(clippy::too_many_arguments)]
@@ -468,7 +481,7 @@ impl Elem {
             reference,
             skip,
         };
-        Elem::Struct(s, reference)
+        Elem::Struct(s, reference, LIM)
     }
     fn check_global(
         reference: u32,
@@ -584,7 +597,7 @@ impl Struct {
                 } else if not_null {
                     let f = fields[i + 1].0.clone();
                     let arr = fields.drain(i + 1..s).map(|(_, b)| b).collect();
-                    fields.insert(i + 1, (f, Elem::Array(arr)));
+                    fields.insert(i + 1, (f, Elem::Array(arr, LIM)));
                     s = i;
                     not_null = false;
                     v = None;
@@ -595,12 +608,12 @@ impl Struct {
                         let f = f.clone();
                         let arr: Vec<Elem> = fields.drain(i..v).map(|(_, b)| b).collect();
                         s -= arr.len();
-                        fields.insert(i, (f, Elem::Array(arr)));
+                        fields.insert(i, (f, Elem::Array(arr, LIM)));
                     }
                     if s - k > 2 {
                         let f = fields[k + 1].0.clone();
                         let arr = fields.drain(k + 1..s).map(|(_, b)| b).collect();
-                        fields.insert(k + 1, (f, Elem::Array(arr)));
+                        fields.insert(k + 1, (f, Elem::Array(arr, LIM)));
                     }
                     if k - i > 2 {
                         null = Some((i + 1, k));
@@ -620,18 +633,18 @@ impl Struct {
                     for _ in 0..512 {
                         let mut fi = Vec::with_capacity(512);
                         fi.extend(fields.drain(0..512).map(|(_, a)| a));
-                        f.push(Elem::Array(fi))
+                        f.push(Elem::Array(fi, LIM))
                     }
-                    vec![("f0".to_string(), Elem::Array(f))]
+                    vec![("f0".to_string(), Elem::Array(f, LIM))]
                 } else {
                     vec![(
                         "f0".to_string(),
-                        Elem::Array(fields.into_iter().map(|(_, b)| b).collect()),
+                        Elem::Array(fields.into_iter().map(|(_, b)| b).collect(), LIM),
                     )]
                 };
             }
             let v = fields.drain(0..s).map(|(_, b)| b).collect();
-            fields.insert(0, ("f0".to_string(), Elem::Array(v)))
+            fields.insert(0, ("f0".to_string(), Elem::Array(v, LIM)))
         }
         fields.shrink_to_fit();
         fields
@@ -668,7 +681,7 @@ impl Elem {
     ) -> String {
         match self {
             Elem::Ref(r, _, _) => r.print(count + 1, e, array, display_type),
-            Elem::Array(r) => {
+            Elem::Array(r, _) => {
                 array.insert(0, r.len());
                 r.iter().find(|a| !a.null()).unwrap_or(&Elem::Null).print(
                     count,
@@ -677,7 +690,7 @@ impl Elem {
                     display_type,
                 )
             }
-            Elem::Struct(s, v) => s.print(count, e, *v, array),
+            Elem::Struct(s, v, _) => s.print(count, e, *v, array),
             Elem::Usize(v) => {
                 format!(
                     "{e}: {}{}usize{} {}",
