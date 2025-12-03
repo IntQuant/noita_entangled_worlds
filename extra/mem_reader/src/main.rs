@@ -26,6 +26,7 @@ fn main() {
                 map,
                 elem,
                 reference: format!("0x{reference:08x}"),
+                size: "-1".to_string(),
                 data: None,
                 display_type: DisplayType::Hex,
             }))
@@ -45,17 +46,33 @@ impl eframe::App for App {
                 },
                 |ui| {
                     ui.horizontal(|ui| {
-                        if ui
+                        if (ui
                             .add_sized(
                                 [200.0, 20.0],
                                 egui::TextEdit::singleline(&mut self.reference),
                             )
                             .changed()
+                            || ui
+                                .add_sized(
+                                    [200.0, 20.0],
+                                    egui::TextEdit::singleline(&mut self.size),
+                                )
+                                .changed()
+                            || ui.button("refresh").clicked())
                             && self.reference.starts_with("0x")
-                            && let Ok(n) = u32::from_str_radix(&self.reference[2..], 16)
+                            && let Ok(addr) = u32::from_str_radix(&self.reference[2..], 16)
                         {
-                            self.elem =
-                                Elem::check_global(n, &self.reader, &self.map, &mut vec![n], None);
+                            if let Ok(size) = self.size.parse::<usize>() {
+                                self.elem = Elem::from_addr(addr, "Unk", 4 * size, false);
+                            } else {
+                                self.elem = Elem::check_global(
+                                    addr,
+                                    &self.reader,
+                                    &self.map,
+                                    &mut vec![addr],
+                                    None,
+                                );
+                            }
                         }
                         ComboBox::from_label("")
                             .selected_text(format!("{:?}", self.display_type))
@@ -182,6 +199,7 @@ pub struct App {
     map: HashMap<u32, (String, usize)>,
     elem: Elem,
     reference: String,
+    size: String,
     data: Option<Data>,
     display_type: DisplayType,
 }
