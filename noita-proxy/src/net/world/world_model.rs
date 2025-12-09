@@ -183,10 +183,6 @@ impl WorldModel {
         Some(ChunkDelta { chunk_coord, runs })
     }
 
-    pub fn updated_chunks(&self) -> &FxHashSet<ChunkCoord> {
-        &self.updated_chunks
-    }
-
     pub fn reset_change_tracking(&mut self) {
         for chunk_pos in &self.updated_chunks {
             if let Some(chunk) = self.chunks.get_mut(chunk_pos) {
