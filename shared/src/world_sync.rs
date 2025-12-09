@@ -8,6 +8,7 @@ pub struct PixelRun<Pixel> {
 }
 
 pub const CHUNK_SIZE: usize = 128;
+pub const CHUNKLET_SIZE_POWER: isize = 7;
 
 #[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ChunkCoord(pub i32, pub i32);
@@ -71,7 +72,7 @@ impl Pixel {
 #[derive(Debug, Encode, Decode, Clone)]
 pub enum WorldSyncToProxy {
     Updates(Vec<NoitaWorldUpdate>),
-    End(Option<(i32, i32, i32, i32, bool)>, u8, u8),
+    End(Option<(i32, i32, i32, i32, bool)>, u8, u8, Vec<ChunkCoord>),
 }
 #[derive(Debug, Encode, Decode, Clone)]
 pub enum ProxyToWorldSync {

@@ -47,7 +47,8 @@ impl Module for WorldSync {
             return Ok(());
         }
 
-        self.change_tracker
+        let should_update = self
+            .change_tracker
             .update(Globals::default().game_global().m_grid_world);
 
         let Some(ent) = ctx.player_map.get_by_left(&my_peer_id()) else {
@@ -56,34 +57,40 @@ impl Module for WorldSync {
         let Some(ent) = ctx.globals.entity_manager.get_entity(ent.0.get() as usize) else {
             return Ok(());
         };
-
         let (x, y) = (ent.transform.pos.x, ent.transform.pos.y);
-
-        // Check is any pixel scenes are still being loaded
-        let ix = x as i32;
-        let iy = y as i32;
-        let extra_margin = (CHUNK_SIZE + CHUNK_SIZE / 2) as i32;
-        for pixel_scene in ctx.globals.game_global.m_game_world.pixel_scenes.iter() {
-            if pixel_scene.width * pixel_scene.height > 0
-                && pixel_scene.x - extra_margin <= ix
-                && ix <= pixel_scene.x + pixel_scene.width + extra_margin
-                && pixel_scene.y - extra_margin <= iy
-                && iy <= pixel_scene.y + pixel_scene.height + extra_margin
-            {
-                // noita_api::game_print("Pixel scenes are being loaded");
-                return Ok(());
-            }
-        }
-
-        let updates = (0..9)
+        let tracked_radius = 2;
+        let tracked_square = tracked_radius * 2 + 1;
+        let tracked_chunks = (0..tracked_square * tracked_square)
             .into_par_iter()
-            .filter_map(|i| {
-                let dx = i % 3;
-                let dy = i / 3;
-                let cx = (x as i32).div_euclid(CHUNK_SIZE as i32) - 1 + dx;
-                let cy = (y as i32).div_euclid(CHUNK_SIZE as i32) - 1 + dy;
+            .map(|i| {
+                let dx = i % tracked_square;
+                let dy = i / tracked_square;
+                let cx = (x as i32).div_euclid(CHUNK_SIZE as i32) - tracked_radius + dx;
+                let cy = (y as i32).div_euclid(CHUNK_SIZE as i32) - tracked_radius + dy;
+                ChunkCoord(cx, cy)
+            })
+            .collect::<Vec<_>>();
+
+        let updates = should_update
+            .into_iter()
+            .filter_map(|chunk_pos| {
+                // Check is any pixel scenes are still being loaded
+                let ix = chunk_pos.0 * CHUNK_SIZE as i32;
+                let iy = chunk_pos.1 * CHUNK_SIZE as i32;
+                let extra_margin = (CHUNK_SIZE) as i32;
+                for pixel_scene in ctx.globals.game_global.m_game_world.pixel_scenes.iter() {
+                    if pixel_scene.width * pixel_scene.height > 0
+                        && pixel_scene.x <= ix
+                        && ix <= pixel_scene.x + pixel_scene.width + extra_margin
+                        && pixel_scene.y <= iy
+                        && iy <= pixel_scene.y + pixel_scene.height + extra_margin
+                    {
+                        return None;
+                    }
+                }
+
                 let mut update = NoitaWorldUpdate {
-                    coord: ChunkCoord(cx, cy),
+                    coord: chunk_pos,
                     pixels: std::array::from_fn(|_| Pixel::default()),
                 };
                 if unsafe {
@@ -102,6 +109,9 @@ impl Module for WorldSync {
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
         let Vec2 { x: cx, y: cy } = ctx.globals.game_global.m_game_world.camera_center();
+
+        let ix = x as i32;
+        let iy = y as i32;
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::End(
             Some((
                 ix.div_euclid(CHUNK_SIZE as i32),
@@ -112,6 +122,7 @@ impl Module for WorldSync {
             )),
             1,
             self.world_num,
+            tracked_chunks,
         ));
         ctx.net.send(&msg)?;
         Ok(())

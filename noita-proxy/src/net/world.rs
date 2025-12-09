@@ -3339,12 +3339,12 @@ impl WorldManager {
                         .apply_noita_update(update, &mut self.is_storage_recent)
                 }
             }
-            WorldSyncToProxy::End(pos, priority, world_num) => {
-                let updated_chunks = self.outbound_model.updated_chunks().clone();
+            WorldSyncToProxy::End(pos, priority, world_num, tracked_chunks) => {
+                // let updated_chunks = self.outbound_model.updated_chunks().clone();
                 self.current_update += 1;
                 let mut chunk_packet: HashMap<OmniPeerId, Vec<(ChunkDelta, u8)>> = HashMap::new();
                 self.update_world_info(pos, world_num);
-                for chunk in updated_chunks {
+                for chunk in tracked_chunks {
                     // who sending may be better to be after the let some
                     // but im too lazy to figure out for sure
                     let who_sending = self.chunk_updated_locally(chunk, priority);
