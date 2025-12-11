@@ -1,6 +1,6 @@
 use eframe::{Frame, NativeOptions};
 use egui::{CentralPanel, Color32, ComboBox, Context, Ui, UiBuilder};
-use libc::{SIGSTOP, kill, pid_t};
+use libc::{SIGCONT, SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
@@ -15,6 +15,7 @@ fn main() {
     };
     let pid = pid.parse::<usize>().unwrap();
     let reader = Reader::new(pid);
+    reader.stop();
     let reference = 0x0122374c;
     let elem = Elem::check_global(reference, &reader, &map, &mut vec![reference], None);
     eframe::run_native(
@@ -219,15 +220,25 @@ pub enum Data {
 }
 pub struct Reader {
     mem: File,
+    pid: usize,
 }
 impl Reader {
     fn new(pid: usize) -> Self {
-        unsafe {
-            kill(pid_t::from(pid as i32), SIGSTOP);
-        }
         let path = format!("/proc/{pid}/mem");
         Reader {
             mem: File::open(path).unwrap(),
+            pid,
+        }
+    }
+    fn stop(&self) {
+        unsafe {
+            kill(pid_t::from(self.pid as i32), SIGSTOP);
+        }
+    }
+    #[allow(dead_code)]
+    fn cont(&self) {
+        unsafe {
+            kill(pid_t::from(self.pid as i32), SIGCONT);
         }
     }
     fn get_size(&self, addr: u32) -> Option<u32> {
