@@ -10,7 +10,7 @@ pub struct PixelRun<Pixel> {
 pub const CHUNK_SIZE: usize = 128;
 pub const CHUNKLET_SIZE_POWER: isize = 7;
 
-#[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Encode, Decode, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ChunkCoord(pub i32, pub i32);
 
 #[derive(Debug, Encode, Decode, Clone)]
