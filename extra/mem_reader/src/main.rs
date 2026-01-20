@@ -318,7 +318,7 @@ impl PartialEq for Struct {
 pub enum Elem {
     Ref(Box<Elem>, u32, u32),
     Struct(Struct, u32, usize),
-    VFTable(u32),
+    VFTable(String, u32),
     Array(Vec<Elem>, usize),
     Usize(u32),
     Recursive(u32),
@@ -335,7 +335,7 @@ impl PartialEq for Elem {
             (Elem::Array(r1, _), Elem::Array(r2, _)) => r1 == r2,
             (Elem::Ref(r1, _, _), Elem::Ref(r2, _, _)) => r1 == r2,
             (Elem::Struct(r1, _, _), Elem::Struct(r2, _, _)) => r1 == r2,
-            (Elem::VFTable(_), Elem::VFTable(_)) => true,
+            (Elem::VFTable(_, _), Elem::VFTable(_, _)) => true,
             (Elem::Usize(_), Elem::Usize(_)) => true,
             (Elem::Recursive(r1), Elem::Recursive(r2)) => r1 == r2,
             (Elem::Failed(_), Elem::Failed(_)) => true,
@@ -360,7 +360,7 @@ impl Elem {
         match self {
             Elem::Ref(_, v, _) => *v,
             Elem::Struct(_, v, _) => *v,
-            Elem::VFTable(v) => *v,
+            Elem::VFTable(_, v) => *v,
             Elem::Array(_, _) => 0,
             Elem::Usize(v) => *v,
             Elem::Recursive(v) => *v,
@@ -491,7 +491,7 @@ impl Elem {
     pub fn size(&self) -> usize {
         match self {
             Elem::Ref(_, _, _)
-            | Elem::VFTable(_)
+            | Elem::VFTable(_, _)
             | Elem::Usize(_)
             | Elem::Recursive(_)
             | Elem::Failed(_)
@@ -532,7 +532,7 @@ impl Elem {
         let addr_size = mem.get_size(reference).unwrap_or(u32::MAX);
         if let Some((name, size)) = map.get(&table) {
             if Some(name.as_ref()) == parent {
-                Elem::VFTable(table)
+                Elem::VFTable(name.to_string(), table)
             } else {
                 Elem::from_addr(
                     reference,
@@ -590,7 +590,7 @@ impl Struct {
         if self.skip {
             fields.push((
                 "f0".to_string(),
-                Elem::VFTable(mem.read_byte(self.reference).unwrap()),
+                Elem::VFTable(self.name.clone(), mem.read_byte(self.reference).unwrap()),
             ));
             i += 1;
         }
@@ -754,9 +754,9 @@ impl Elem {
                     }
                 )
             }
-            Elem::VFTable(v) => {
+            Elem::VFTable(n, v) => {
                 format!(
-                    "{e}: {}{}vftable{} {}",
+                    "{e}: {}{}vftable<{n}>{} {}",
                     "[".repeat(array.len()),
                     "&".repeat(count),
                     array
