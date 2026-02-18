@@ -63,8 +63,17 @@ jobs:
           path: target/noita-proxy-linux.zip
 
   build-proxy-macos:
-    name: Build proxy for macos
-    runs-on: macos-latest
+    name: Build proxy for macos (${{ matrix.architecture }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            architecture: arm64
+            zip_name: noita-proxy-macos-arm64.zip
+          - os: macos-15-intel
+            architecture: intel
+            zip_name: noita-proxy-macos-intel.zip
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -79,10 +88,13 @@ jobs:
       - name: Create archives
         run: python scripts/ci_make_archives.py macos
 
+      - name: Rename archive
+        run: mv target/noita-proxy-macos.zip target/${{ matrix.zip_name }}
+
       - uses: actions/upload-artifact@v4
         with:
-          name: noita-proxy-macos-arm64.zip
-          path: target/noita-proxy-macos.zip
+          name: ${{ matrix.zip_name }}
+          path: target/${{ matrix.zip_name }}
 
   build-proxy-windows:
     name: Build proxy for windows
