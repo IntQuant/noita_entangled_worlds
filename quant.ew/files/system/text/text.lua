@@ -11,13 +11,33 @@ local RPressed = false
 local unread_messages_counter = 0
 
 local chatMessages = {}
-local maxMessages = 128
+local maxVisibleLines = 1024
+local maxFileLines = 2048
 local lineHeight = 10
-local maxVisibleLines = 15
-local visibleChars = 384 -- it's actually pixel width now
+local visibleLines = 15
+local pixelWidth = 384
 local currentMessageIndex = 1
+local maxLines = 8
 
 local in_camera_ref
+
+local appdata = os.getenv("APPDATA")
+local chatHistoryFileName = appdata .. "/Noita Proxy/data/ew_chat.txt"
+
+local function fileExist(path)
+    local file = io.open(path, "r")
+    if file then
+        file:close()
+        return true
+    end
+    return false
+end
+
+-- create path to chat history file with 2 cmd jumpscares
+if (not fileExist(chatHistoryFileName)) and ModSettingGet("quant.ew.texthistory") then
+    os.execute('mkdir "' .. appdata .. '\\Noita Proxy" 2>nul')
+    os.execute('mkdir "' .. appdata .. '\\Noita Proxy\\data" 2>nul')
+end
 
 local function world2gui(x, y)
     in_camera_ref = in_camera_ref or false
@@ -30,11 +50,6 @@ local function world2gui(x, y)
     x, y = w / 2 + vres_scaling_factor * (x - cam_x), h / 2 + vres_scaling_factor * (y - cam_y)
 
     return x, y, vres_scaling_factor
-end
-
-local function calculateTextWidth(msg)
-    local width, _ = GuiGetTextDimensions(gui, msg)
-    return width
 end
 
 local function getColorComponents(color)
@@ -82,81 +97,227 @@ local function wrapText(msg, maxWidth, senderWidth)
     return wrappedLines
 end
 
+local function getFileLineCount(fileName)
+    local lineCount = 0
+    local file = io.open(chatHistoryFileName, "r")
+
+    if file then
+        for _ in file:lines() do
+            lineCount = lineCount + 1
+        end
+        file:close()
+    end
+
+    return lineCount
+end
+
+local function trimFile(fileName)
+    local file = io.open(chatHistoryFileName, "r")
+    local lines = {}
+    
+    if file then
+        for line in file:lines() do
+            table.insert(lines, line)
+        end
+        file:close()
+    end
+    
+    local removeCount = math.floor(#lines / 2)
+    for i = 1, removeCount do
+        table.remove(lines, 1)
+    end
+
+    file = io.open(chatHistoryFileName, "w")
+    for _, line in ipairs(lines) do
+        file:write(line .. "\n")
+    end
+    file:close()
+end
+
+local function saveMessageToFile(sender, message, color, colorAlt)
+    local lineCount = getFileLineCount(chatHistoryFileName)
+
+    if lineCount >= maxFileLines then
+        trimFile(chatHistoryFileName)
+    end
+
+    local file = io.open(chatHistoryFileName, "a")
+    local line
+    if sender == "" then
+        line = string.format("[%s,%s] : %s\n", color, colorAlt, message)
+    else
+        line = string.format("[%s,%s] %s: %s\n", color, colorAlt, sender, message)
+    end
+    file:write(line)
+    file:close()
+end
+
+local function isFileEmpty(fileName)
+    local file = io.open(chatHistoryFileName, "r")
+    if not file then
+        return true
+    end
+    
+    local firstLine = file:read("*l")
+    file:close()
+    
+    return firstLine == nil
+end
+
+local function copyPresetChatHistory()
+    local presetFileName = "mods/quant.ew/files/system/text/chat_preset.txt"
+
+    local presetFile = io.open(presetFileName, "r")
+    local file = io.open(chatHistoryFileName, "a")
+
+    if presetFile and file then
+        for line in presetFile:lines() do
+            file:write(line .. "\n")
+        end
+        presetFile:close()
+        file:close()
+    end
+end
+
+local function loadChatHistory()
+    if isFileEmpty(chatHistoryFileName) then
+        copyPresetChatHistory()
+    end
+
+    local file = io.open(chatHistoryFileName, "r")
+    local lines = {}
+    local maxLinesToLoad = 128
+
+    if file then
+        local allLines = {}
+        for line in file:lines() do
+            table.insert(allLines, line)
+        end
+        file:close()
+
+        local startIdx = math.max(1, #allLines - maxLinesToLoad + 1)
+        for i = startIdx, #allLines do
+            table.insert(lines, allLines[i])
+        end
+    end
+
+    chatMessages = {}
+    for _, line in ipairs(lines) do
+        local color1, color2, sender, message = line:match("%[(%d+),(%d+)%] (%S+): (.*)")
+
+        if not sender then
+            sender = ""
+            color1, color2, message = line:match("%[(%d+),(%d+)%] : (.*)")
+        end
+
+        if color1 and color2 and message then
+            table.insert(chatMessages, {
+                sender = sender,
+                message = message,
+                color = tonumber(color1),
+                colorAlt = tonumber(color2),
+            })
+        end
+    end
+
+    currentMessageIndex = math.max(1, #chatMessages - visibleLines + 1)
+end
+
+if ModSettingGet("quant.ew.clearhistory") == true then
+    chatMessages = {}
+    os.remove(chatHistoryFileName)
+    ModSettingSetNextValue("quant.ew.clearhistory", "false", false)
+end
+
+if not ModSettingGet("quant.ew.texthistory") and fileExist(chatHistoryFileName) then
+    os.remove(chatHistoryFileName)
+end
+
 local function saveMessage(sender, message, color, colorAlt)
-    local senderWidth = sender ~= "" and calculateTextWidth(string.format("%s: ", sender)) or 0
-    local wrappedMessage = wrapText(message or "", visibleChars, senderWidth)
+    local senderWidth = sender ~= "" and GuiGetTextDimensions(gui, string.format("%s: ", sender)) or 0
+    local wrappedMessage = wrapText(message or "", pixelWidth, senderWidth)
+
+    if #wrappedMessage > maxLines then
+        wrappedMessage = {unpack(wrappedMessage, 1, maxLines)}
+    end
 
     local isFirstLine = true
     for _, line in ipairs(wrappedMessage) do
         if isFirstLine then
             table.insert(chatMessages, { sender = sender, message = line, color = color, colorAlt = colorAlt })
+            if ModSettingGet("quant.ew.texthistory") then
+                saveMessageToFile(sender, line, color, colorAlt)
+            end
             isFirstLine = false
         else
             table.insert(chatMessages, { sender = "", message = line, color = color, colorAlt = colorAlt })
+            if ModSettingGet("quant.ew.texthistory") then
+                saveMessageToFile("", line, color, colorAlt)
+            end
         end
 
-        if #chatMessages > maxMessages then
+        if #chatMessages > maxVisibleLines then
             table.remove(chatMessages, 1)
         end
     end
 
-    currentMessageIndex = math.max(1, #chatMessages - maxVisibleLines + 1)
+    currentMessageIndex = math.max(1, #chatMessages - visibleLines + 1)
 end
 
-local function lightenColor(r, g, b, threshold)
-    local function brighten(c)
-        return c < threshold and threshold or c
+local function adjustColorToThreshold(r, g, b, threshold)
+    local function adjust(c)
+        if c < threshold then
+            return c + (threshold - c) * 0.5
+        elseif c > threshold then
+            return c - (c - threshold) * 0.5
+        else
+            return c
+        end
     end
 
-    return brighten(r), brighten(g), brighten(b)
+    return math.floor(adjust(r)), math.floor(adjust(g)), math.floor(adjust(b))
 end
 
 local function renderChat()
     unread_messages_counter = 0
-
     local startY = 128
-    currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - maxVisibleLines + 1)
+    currentMessageIndex = math.min(math.max(1, currentMessageIndex), #chatMessages - visibleLines + 1)
+
     if #chatMessages <= 0 then
         return
     end
 
     local startIdx = currentMessageIndex
-    local endIdx = math.min(#chatMessages, startIdx + maxVisibleLines - 1)
+    local endIdx = math.min(#chatMessages, startIdx + visibleLines - 1)
 
     local minaColorThreshold = math.floor(ModSettingGet("quant.ew.textcolor") or 0)
     local minaAltColorThreshold = math.floor(ModSettingGet("quant.ew.textaltcolor") or 255)
-    local color = 0
-    local colorAlt = 0
 
     for i = startIdx, endIdx do
         local msg = chatMessages[i]
         if msg then
-            local senderWidth = msg.sender ~= "" and calculateTextWidth(string.format("%s: ", msg.sender)) or 0
-            local wrappedMessage = wrapText(msg.message or "", visibleChars, senderWidth)
+            local senderWidth = msg.sender ~= "" and GuiGetTextDimensions(gui, string.format("%s: ", msg.sender)) or 0
+            local wrappedMessage = wrapText(msg.message or "", pixelWidth, senderWidth)
 
             local senderRendered = false
             for _, line in ipairs(wrappedMessage) do
                 if not senderRendered and msg.sender ~= "" then
-                    local senderR, senderG, senderB = getColorComponents(msg.color or color)
-                    senderR, senderG, senderB = lightenColor(senderR, senderG, senderB, minaColorThreshold)
+                    local senderR, senderG, senderB = getColorComponents(msg.color)
+                    local senderR, senderG, senderB = adjustColorToThreshold(senderR, senderG, senderB, minaColorThreshold)
                     GuiColorSetForNextWidget(gui, senderR / 255, senderG / 255, senderB / 255, 1)
-
-                    local senderText = string.format("%s: ", msg.sender)
-                    GuiText(gui, 64, startY, senderText)
-
-                    local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                    textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                    GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
-
-                    GuiText(gui, 64 + senderWidth, startY, line)
+                    GuiText(gui, 128, startY, string.format("%s: ", msg.sender))
                     senderRendered = true
-                else
-                    local textR, textG, textB = getColorComponents(msg.colorAlt or colorAlt)
-                    textR, textG, textB = lightenColor(textR, textG, textB, minaAltColorThreshold)
-                    GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
-
-                    GuiText(gui, 64, startY, line)
                 end
+
+                local textR, textG, textB
+                if msg.message == "---------------------------- Skill Issue ----------------------------" then
+                    textR, textG, textB = 255, 0, 0
+                else
+                    textR, textG, textB = getColorComponents(msg.colorAlt)
+                    textR, textG, textB = adjustColorToThreshold(textR, textG, textB, minaAltColorThreshold)
+                end
+                GuiColorSetForNextWidget(gui, textR / 255, textG / 255, textB / 255, 1)
+                GuiText(gui, senderRendered and (128 + senderWidth) or 128, startY, line)
                 startY = startY + lineHeight
             end
         end
@@ -169,11 +330,10 @@ local function renderTextInput()
 
     if text == "" then
         GuiColorSetForNextWidget(gui, 0.5, 0.5, 0.5, 1)
-        GuiText(gui, 64, startY, "Message *")
+        GuiText(gui, 128, startY, "Message *")
     else
-        local wrappedMessage = wrapText(text or "", visibleChars, 0)
+        local wrappedMessage = wrapText(text or "", pixelWidth, 0)
 
-        local maxLines = 8
         if #wrappedMessage > maxLines then
             wrappedMessage = { unpack(wrappedMessage, 1, maxLines) }
         end
@@ -184,38 +344,45 @@ local function renderTextInput()
                 charCounter = charCounter + 1
                 lineCharCounter = lineCharCounter + 1
                 if charCounter == cursorPos then
-                    GuiText(gui, 63 + calculateTextWidth(string.sub(line, 1, lineCharCounter)), startY + 2, "_")
+                    GuiText(gui, 127 + GuiGetTextDimensions(gui, string.sub(line, 1, lineCharCounter)), startY + 2, "_")
                 end
             end
 
-            GuiText(gui, 64, startY, line)
+            GuiText(gui, 128, startY, line)
             startY = startY + lineHeight
         end
     end
 end
 
 local function disable_movement(controls)
-    ComponentSetValue2(controls, "mButtonDownFire", false)
-    ComponentSetValue2(controls, "mButtonDownFire2", false)
-    ComponentSetValue2(controls, "mButtonDownLeft", false)
-    ComponentSetValue2(controls, "mButtonDownDown", false)
-    ComponentSetValue2(controls, "mButtonDownRight", false)
-    ComponentSetValue2(controls, "mButtonDownUp", false)
-    ComponentSetValue2(controls, "mButtonDownJump", false)
-    ComponentSetValue2(controls, "mButtonDownFly", false)
-    ComponentSetValue2(controls, "mButtonDownKick", false)
-    ComponentSetValue2(controls, "mButtonDownEat", false)
+    local actions = {
+        "mButtonDownFire",
+        "mButtonDownFire2",
+        "mButtonDownLeft",
+        "mButtonDownDown",
+        "mButtonDownRight",
+        "mButtonDownUp",
+        "mButtonDownJump",
+        "mButtonDownFly",
+        "mButtonDownKick",
+        "mButtonDownEat"
+    }
+
+    for _, action in ipairs(actions) do
+        ComponentSetValue2(controls, action, false)
+    end
 end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
+
 function rpc.text(msg, color, colorAlt, tx, ty)
     local x, y = GameGetCameraPos()
     local r = tonumber(ModSettingGet("quant.ew.text_range") or 0) or 0
     local dx = x - tx
     local dy = y - ty
     if not ModSettingGet("quant.ew.notext") and (r == 0 or dx * dx + dy * dy <= r * r) then
-        GamePrint(ctx.rpc_player_data.name .. ": " .. msg)
+        GamePrint(ctx.rpc_player_data.name .. ": " .. msg) -- it needs to be colored
         saveMessage(ctx.rpc_player_data.name, msg, color, colorAlt)
 
         if ctx.rpc_player_data.name ~= ctx.my_player.name then
@@ -266,19 +433,66 @@ function string.insert(str1, str2, pos)
     return str1:sub(1, pos) .. str2 .. str1:sub(pos + 1)
 end
 
-local counterL
+local counterL = 0
 
-local counterR
+local counterR = 0
 
-local counterB
+local counterB = 0
+
+local counterD = 0
+
+local function utf8_next(str, pos)
+    local c = str:byte(pos)
+    if not c then
+        return pos + 1
+    end
+    if c < 0x80 then
+        return pos + 1
+    elseif c < 0xE0 then
+        return pos + 2
+    elseif c < 0xF0 then
+        return pos + 3
+    elseif c < 0xF8 then
+        return pos + 4
+    else
+        return pos + 1
+    end
+end
+
+local function utf8_prev(str, pos)
+    if pos <= 1 then
+        return 1
+    end
+    pos = pos - 1
+    while pos > 1 do
+        local c = str:byte(pos)
+        if not c then
+            break
+        end
+        if c < 0x80 or c >= 0xC0 then
+            return pos
+        end
+        pos = pos - 1
+    end
+    return pos
+end
 
 function module.on_world_update()
+
+    if #chatMessages == 0 and ModSettingGet("quant.ew.texthistory") then
+        loadChatHistory()
+    end
     local gui_started = false
     if not ModSettingGet("quant.ew.nochathint") then
         if unread_messages_counter > 0 then --prevents hint from appearing all the time (can be annoying) and just appear when there is some unread message
             GuiStartFrame(gui)
             gui_started = true
-            create_chat_hint("Use 'Enter' to open chat.(" .. unread_messages_counter .. " unread messages)")
+            if unread_messages_counter < 15 then
+                create_chat_hint("Use 'Enter' to open chat.(" .. unread_messages_counter .. " unread messages)")
+            end
+            if unread_messages_counter >= 15 then
+                create_chat_hint("READ CHAT NOW!!!(" .. unread_messages_counter .. " unread messages)")
+            end
         end
     end
 
@@ -302,7 +516,7 @@ function module.on_world_update()
     end
 
     if
-        ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 76)))
+        ctx.is_texting == true and (InputIsKeyJustDown(tonumber(ModSettingGet("quant.ew.stoptext") or 73)))
         or ctx.is_paused
         or ctx.is_wand_pickup
     then
@@ -317,87 +531,111 @@ function module.on_world_update()
         renderTextInput()
 
         if InputIsMouseButtonJustDown(4) or InputIsKeyDown(82) then
-            if #chatMessages > 0 then
-                currentMessageIndex = math.max(1, currentMessageIndex - 1)
-            end
+            currentMessageIndex = math.max(1, currentMessageIndex - 1)
         end
-
+        
         if InputIsMouseButtonJustDown(5) or InputIsKeyDown(81) then
-            if #chatMessages > 0 then
-                currentMessageIndex = math.min(#chatMessages - maxVisibleLines + 1, currentMessageIndex + 1)
-            end
+            currentMessageIndex = math.min(currentMessageIndex + 1, #chatMessages - visibleLines + 1)
         end
 
-        if InputIsKeyJustDown(42) and cursorPos - 1 >= 0 then --backspace
-            cursorPos = cursorPos - 1
-            text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos + 2, -1)
+        if InputIsKeyJustDown(42) and cursorPos - 1 >= 0 then -- backspace
+            local dummy = utf8_prev(text, cursorPos + 1)
+            text = string.sub(text, 1, dummy - 1) .. string.sub(text, cursorPos + 1)
+            cursorPos = dummy - 1
             counterB = 10
         elseif InputIsKeyDown(42) and cursorPos - 1 >= 0 then
             counterB = counterB + 1
             if counterB == 3 then
-                cursorPos = cursorPos - 1
-                text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos + 2, -1)
+                local dummy = utf8_prev(text, cursorPos + 1)
+                text = string.sub(text, 1, dummy - 1) .. string.sub(text, cursorPos + 1)
+                cursorPos = dummy - 1
                 counterB = 0
-            end
-            if counterB == 30 then --delay for deleting only 1 character
+            elseif counterB == 30 then -- delay for deleting only 1 character
                 counterB = 0
             end
         end
 
-        --home, end, left and right arrow implementation
-        if InputIsKeyDown(74) then --home
+        if InputIsKeyJustDown(76) and cursorPos < #text then -- delete
+            text = string.sub(text, 1, cursorPos) .. string.sub(text, utf8_next(text, cursorPos + 1))
+            counterD = 10
+        elseif InputIsKeyDown(76) and cursorPos < #text then
+            counterD = counterD + 1
+            if counterD == 3 then
+                text = string.sub(text, 1, cursorPos) .. string.sub(text, utf8_next(text, cursorPos + 1))
+                counterD = 0
+            elseif counterD == 30 then -- delay for deleting only 1 character
+                counterD = 0
+            end
+        end
+
+        -- home, end, left and right arrow implementation
+        if InputIsKeyDown(74) then -- home
             cursorPos = 0
         end
-        if InputIsKeyDown(77) then --end
+        if InputIsKeyDown(77) then -- end
             cursorPos = #text
         end
-
         if InputIsKeyJustUp(80) then
             LPressed = false
         end
         if InputIsKeyJustUp(79) then
             RPressed = false
         end
-
+        
         if not InputIsKeyDown(224) then
-            if InputIsKeyJustDown(80) and cursorPos - 1 >= 0 then --left arrow
-                cursorPos = cursorPos - 1
+            if InputIsKeyJustDown(80) and cursorPos > 0 then -- left arrow
+                cursorPos = utf8_prev(text, cursorPos + 1) - 1
+                if cursorPos < 0 then cursorPos = 0 end
                 counterL = 10
-
                 LPressed = true
                 RPressed = false
-            elseif not RPressed and InputIsKeyDown(80) and cursorPos - 1 >= 0 then
+            elseif not RPressed and InputIsKeyDown(80) and cursorPos > 0 then
                 counterL = counterL + 1
                 if counterL == 3 then
-                    cursorPos = cursorPos - 1
+                    cursorPos = utf8_prev(text, cursorPos + 1) - 1
+                    if cursorPos < 0 then cursorPos = 0 end
                     counterL = 0
-                end
-                if counterL == 30 then --delay for moving only 1 character
+                elseif counterL == 30 then -- delay for moving only 1 character
                     counterL = 0
                 end
             end
-            if InputIsKeyJustDown(79) and cursorPos + 1 < #text + 1 then --right arrow
-                cursorPos = cursorPos + 1
+        
+            if InputIsKeyJustDown(79) and cursorPos < #text then -- right arrow
+                cursorPos = utf8_next(text, cursorPos + 1) - 1
+                if cursorPos > #text then cursorPos = #text end
                 counterR = 10
-
                 RPressed = true
                 LPressed = false
-            elseif not LPressed and InputIsKeyDown(79) and cursorPos + 1 < #text + 1 then
+            elseif not LPressed and InputIsKeyDown(79) and cursorPos < #text then
                 counterR = counterR + 1
                 if counterR == 3 then
-                    cursorPos = cursorPos + 1
+                    cursorPos = utf8_next(text, cursorPos + 1) - 1
+                    if cursorPos > #text then cursorPos = #text end
                     counterR = 0
-                end
-                if counterR == 30 then --delay for moving only 1 character
+                elseif counterR == 30 then -- delay for moving only 1 character
                     counterR = 0
                 end
             end
         else
             local moveLength = (string.find(string.reverse(string.sub(text, 1, cursorPos)), " ") or cursorPos)
-            if InputIsKeyJustDown(80) and cursorPos - moveLength >= 0 then --left arrow
+            if InputIsKeyJustDown(42) and cursorPos - moveLength >= 0 then -- backspace with Ctrl
+                text = string.sub(text, 1, cursorPos - moveLength) .. string.sub(text, cursorPos + 1)
+                cursorPos = cursorPos - moveLength
+                counterB = 10
+            elseif InputIsKeyDown(42) and cursorPos - moveLength >= 0 then
+                counterB = counterB + 1
+                if counterB == 3 then
+                    text = string.sub(text, 1, cursorPos - moveLength) .. string.sub(text, cursorPos + 1)
+                    cursorPos = cursorPos - moveLength
+                    counterB = 0
+                end
+                if counterB == 30 then -- delay for deleting only 1 character
+                    counterB = 0
+                end
+            end
+            if InputIsKeyJustDown(80) and cursorPos - moveLength >= 0 then -- left arrow with Ctrl
                 cursorPos = cursorPos - moveLength
                 counterL = 10
-
                 LPressed = true
                 RPressed = false
             elseif not RPressed and InputIsKeyDown(80) and cursorPos - moveLength >= 0 then
@@ -406,26 +644,36 @@ function module.on_world_update()
                     cursorPos = cursorPos - moveLength
                     counterL = 0
                 end
-                if counterL == 30 then --delay for moving only 1 character
+                if counterL == 30 then -- delay for moving only 1 character
                     counterL = 0
                 end
             end
-            moveLength = (string.find(string.sub(text, cursorPos + 2, -1), " ") or #text - cursorPos)
-            if InputIsKeyJustDown(79) and cursorPos + moveLength < #text + 1 then --right arrow
+            local moveLength = (string.find(string.sub(text, cursorPos + 2, -1), " ") or #text - cursorPos)
+            if InputIsKeyJustDown(76) and cursorPos < #text then -- delete with Ctrl
+                text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos + moveLength + 1)
+                counterD = 10
+            elseif InputIsKeyDown(76) and cursorPos < #text then
+                counterD = counterD + 1
+                if counterD == 3 then
+                    text = string.sub(text, 1, cursorPos) .. string.sub(text, cursorPos + moveLength + 1)
+                    counterD = 0
+                end
+                if counterD == 30 then -- delay for deleting only 1 character
+                    counterD = 0
+                end
+            end
+            if InputIsKeyJustDown(79) and cursorPos + moveLength < #text + 1 then -- right arrow with Ctrl
                 cursorPos = cursorPos + moveLength
-
                 counterR = 10
-
                 RPressed = true
                 LPressed = false
             elseif not LPressed and InputIsKeyDown(79) and cursorPos + moveLength < #text + 1 then
                 counterR = counterR + 1
                 if counterR == 3 then
                     cursorPos = cursorPos + moveLength
-
                     counterR = 0
                 end
-                if counterR == 30 then --delay for moving only 1 character
+                if counterR == 30 then -- delay for moving only 1 character
                     counterR = 0
                 end
             end
@@ -435,9 +683,16 @@ function module.on_world_update()
         x, y = world2gui(x, y)
         local new = GuiTextInput(gui, 421, x, y - 6, " ", 0, 256)
         if new ~= " " then
-            text = string.insert(text, string.sub(new, 2, -1), cursorPos)
-            --text = text .. string.sub(new, 2, -1)
-            cursorPos = cursorPos + #string.sub(new, 2, -1)
+            local updateText = string.insert(text, string.sub(new, 2, -1), cursorPos)
+
+            local wrapped = wrapText(updateText, pixelWidth, 0)
+
+            if #wrapped > maxLines then
+                hamis = being_pet
+            else
+                text = updateText
+                cursorPos = cursorPos + #string.sub(new, 2, -1)
+            end
         end
     end
 end

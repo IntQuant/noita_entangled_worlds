@@ -8,7 +8,7 @@ function module.on_world_update()
     end
     local rebind = tonumber(ModSettingGet("quant.ew.rebind_ptt") or 42)
     if ModSettingGet("quant.ew.ptt_toggle") then
-        if InputIsKeyJustDown(rebind) then
+        if InputIsKeyJustDown(rebind) and ctx.is_texting == false then
             if ptt == 1 then
                 ptt = 0
             else
@@ -17,7 +17,7 @@ function module.on_world_update()
         end
     else
         ptt = 0
-        if InputIsKeyDown(rebind) then
+        if InputIsKeyDown(rebind) and ctx.is_texting == false then
             ptt = 1
         end
     end
