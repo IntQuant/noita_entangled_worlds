@@ -1,8 +1,6 @@
-use crate::modules::world_sync::change_tracker::ChangeTracker;
 use crate::modules::{Module, ModuleCtx};
 use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
-use noita_api::addr_grabber::Globals;
 use noita_api::heap::Ptr;
 use noita_api::noita::types::*;
 use noita_api::noita::world::ParticleWorldState;
@@ -11,10 +9,8 @@ use shared::NoitaOutbound;
 use shared::world_sync::{
     CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, ProxyToWorldSync, WorldSyncToProxy,
 };
-use std::iter::Peekable;
+use std::iter::{Peekable, Skip};
 use std::mem::MaybeUninit;
-
-mod change_tracker;
 
 /// Iterates over elements that are only present in one of two sorted inputs.
 struct SortedSymmetricDifference<I1, I2, T>
@@ -126,10 +122,41 @@ where
     }
 }
 
+struct SubsetOf<I: Iterator> {
+    iterator: Skip<I>,
+    period: usize,
+    first: bool,
+}
+
+impl<I: Iterator> SubsetOf<I> {
+    fn new(into_iterator: impl IntoIterator<IntoIter = I>, frame: usize, period: usize) -> Self {
+        let skip = frame % period;
+        let iterator = into_iterator.into_iter().skip(skip);
+
+        Self {
+            iterator,
+            period,
+            first: true,
+        }
+    }
+}
+
+impl<I: Iterator> Iterator for SubsetOf<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.first {
+            self.first = false;
+            self.iterator.next()
+        } else {
+            self.iterator.nth(self.period - 1)
+        }
+    }
+}
+
 pub struct WorldSync {
     pub particle_world_state: MaybeUninit<ParticleWorldState>,
     pub world_num: u8,
-    change_tracker: ChangeTracker,
     initialized: bool,
     tracked_chunks_prev: Vec<ChunkCoord>,
 }
@@ -142,7 +169,6 @@ impl Default for WorldSync {
         Self {
             particle_world_state: MaybeUninit::uninit(),
             world_num: 0,
-            change_tracker: ChangeTracker::new(),
             tracked_chunks_prev: Vec::new(),
             initialized: false,
         }
@@ -159,10 +185,6 @@ impl Module for WorldSync {
         if !self.initialized {
             return Ok(());
         }
-
-        let mut had_updates = self
-            .change_tracker
-            .update(Globals::default().game_global().m_grid_world);
 
         let Some(ent) = ctx.player_map.get_by_left(&my_peer_id()) else {
             return Ok(());
@@ -206,14 +228,11 @@ impl Module for WorldSync {
             .collect::<Vec<_>>();
         // Needed for SortedSymmetricDifference
         tracked_chunks.sort_unstable();
-        had_updates.sort_unstable();
 
         // Get a list of all chunks that either changed their `tracked` state, or ones that have changes detected in them and are tracked.
         let should_update = SortedUnion::new(
             SortedSymmetricDifference::new(&tracked_chunks, &self.tracked_chunks_prev),
-            had_updates
-                .iter()
-                .filter(|chunk_pos| tracked_chunks.contains(chunk_pos)),
+            SubsetOf::new(&tracked_chunks, ctx.globals.game_global.frame_num, 5),
         )
         .copied()
         .collect::<Vec<_>>();
