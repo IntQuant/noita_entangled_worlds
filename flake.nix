@@ -43,6 +43,6 @@
         default = pkgs.callPackage ./nix/shell.nix { };
       }) pkgsFor;
 
-      formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-classic);
+      formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
     };
 }
