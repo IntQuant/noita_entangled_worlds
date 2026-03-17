@@ -41,6 +41,10 @@
 
       devShells = lib.mapAttrs (system: pkgs: {
         default = pkgs.callPackage ./nix/shell.nix { };
+
+        # devShells for cross-compiling. You may use ./nix/cross/build-* directly instead.
+        cross-ewext = pkgs.callPackage ./nix/cross/ewext.nix { };
+        cross-noita-proxy = pkgs.callPackage ./nix/cross/noita-proxy.nix { };
       }) pkgsFor;
 
       formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);

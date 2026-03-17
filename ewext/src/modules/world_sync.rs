@@ -148,6 +148,38 @@ impl<I: Iterator> Iterator for SubsetOf<I> {
     }
 }
 
+struct SubsetOf<I: Iterator> {
+    iterator: Skip<I>,
+    period: usize,
+    first: bool,
+}
+
+impl<I: Iterator> SubsetOf<I> {
+    fn new(into_iterator: impl IntoIterator<IntoIter = I>, frame: usize, period: usize) -> Self {
+        let skip = frame % period;
+        let iterator = into_iterator.into_iter().skip(skip);
+
+        Self {
+            iterator,
+            period,
+            first: true,
+        }
+    }
+}
+
+impl<I: Iterator> Iterator for SubsetOf<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.first {
+            self.first = false;
+            self.iterator.next()
+        } else {
+            self.iterator.nth(self.period - 1)
+        }
+    }
+}
+
 pub struct WorldSync {
     pub particle_world_state: MaybeUninit<ParticleWorldState>,
     pub world_num: u8,
