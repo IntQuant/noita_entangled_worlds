@@ -1,12 +1,37 @@
-{ sourceRoot, lib, runCommandNoCC, rustPlatform, copyDesktopItems
-, makeDesktopItem, pkg-config, cmake, patchelf, imagemagick, openssl, libjack2
-, alsa-lib, libopus, wayland, libxkbcommon, libGL }:
+{
+  sourceRoot,
+  lib,
+  runCommandNoCC,
+  rustPlatform,
+  copyDesktopItems,
+  makeDesktopItem,
+  pkg-config,
+  cmake,
+  patchelf,
+  imagemagick,
+  openssl,
+  libjack2,
+  alsa-lib,
+  libopus,
+  wayland,
+  libxkbcommon,
+  libGL,
+}:
 
-rustPlatform.buildRustPackage (finalAttrs:
+rustPlatform.buildRustPackage (
+  finalAttrs:
   let
-    inherit (finalAttrs) src pname version meta buildInputs steamworksRedist;
+    inherit (finalAttrs)
+      src
+      pname
+      version
+      meta
+      buildInputs
+      steamworksRedist
+      ;
     manifest = lib.importTOML "${src}/noita-proxy/Cargo.toml";
-  in {
+  in
+  {
     pname = "noita-entangled-worlds-proxy";
     inherit (manifest.package) version;
 
@@ -19,8 +44,13 @@ rustPlatform.buildRustPackage (finalAttrs:
     cargoLock.lockFile = "${src}/noita-proxy/Cargo.lock";
 
     strictDeps = true;
-    nativeBuildInputs =
-      [ copyDesktopItems pkg-config cmake patchelf imagemagick ];
+    nativeBuildInputs = [
+      copyDesktopItems
+      pkg-config
+      cmake
+      patchelf
+      imagemagick
+    ];
 
     # TODO: Add dependencies for X11 desktop environments.
     buildInputs = [
@@ -63,10 +93,9 @@ rustPlatform.buildRustPackage (finalAttrs:
 
     # This attribute is defined here instead of a `let` block, because in this position,
     # it can be overridden with `overrideAttrs`, and shares a `src` with the top-level.
-    steamworksRedist =
-      runCommandNoCC "${pname}-steamworks-redist" { inherit src; } ''
-        install -Dm555 $src/redist/libsteam_api.so -t $out/lib
-      '';
+    steamworksRedist = runCommandNoCC "${pname}-steamworks-redist" { inherit src; } ''
+      install -Dm555 $src/redist/libsteam_api.so -t $out/lib
+    '';
 
     desktopItems = [
       (makeDesktopItem {
@@ -75,8 +104,17 @@ rustPlatform.buildRustPackage (finalAttrs:
         comment = meta.description;
         exec = "noita-proxy";
         icon = "noita-proxy";
-        categories = [ "Game" "Utility" ];
-        keywords = [ "noita" "proxy" "server" "steam" "game" ];
+        categories = [
+          "Game"
+          "Utility"
+        ];
+        keywords = [
+          "noita"
+          "proxy"
+          "server"
+          "steam"
+          "game"
+        ];
         terminal = false;
         singleMainWindow = true;
       })
@@ -85,11 +123,14 @@ rustPlatform.buildRustPackage (finalAttrs:
     meta = {
       inherit (manifest.package) description;
       homepage = "https://github.com/IntQuant/noita_entangled_worlds";
-      changelog =
-        "https://github.com/IntQuant/noita_entangled_worlds/releases/tag/v${version}";
-      license = with lib.licenses; [ mit asl20 ];
+      changelog = "https://github.com/IntQuant/noita_entangled_worlds/releases/tag/v${version}";
+      license = with lib.licenses; [
+        mit
+        asl20
+      ];
       platforms = [ "x86_64-linux" ];
       maintainers = with lib.maintainers; [ spikespaz ];
       mainProgram = "noita-proxy";
     };
-  })
+  }
+)

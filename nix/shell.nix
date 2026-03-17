@@ -1,4 +1,8 @@
-{ rust-bin, mkShell, noita-proxy }:
+{
+  rust-bin,
+  mkShell,
+  noita-proxy,
+}:
 mkShell {
   strictDeps = true;
 
@@ -8,14 +12,23 @@ mkShell {
     # Derivations in `rust-stable` provide the toolchain,
     # must be listed first to take precedence over nightly.
     (rust-bin.stable.latest.minimal.override {
-      extensions = [ "rust-src" "rust-docs" "clippy" ];
+      extensions = [
+        "rust-src"
+        "rust-docs"
+        "clippy"
+      ];
     })
 
     # Use rustfmt, and other tools that require nightly features.
-    (rust-bin.selectLatestNightlyWith (toolchain:
+    (rust-bin.selectLatestNightlyWith (
+      toolchain:
       toolchain.minimal.override {
-        extensions = [ "rustfmt" "rust-analyzer" ];
-      }))
+        extensions = [
+          "rustfmt"
+          "rust-analyzer"
+        ];
+      }
+    ))
   ];
 
   env = {
