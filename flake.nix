@@ -13,16 +13,25 @@
     };
   };
 
-  outputs = { self, nixpkgs, rust-overlay, systems, }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      rust-overlay,
+      systems,
+    }:
     let
       inherit (nixpkgs) lib;
       eachSystem = lib.genAttrs (import systems);
-      pkgsFor = eachSystem (system:
+      pkgsFor = eachSystem (
+        system:
         import nixpkgs {
           localSystem = system;
           overlays = [ self.overlays.default ];
-        });
-    in {
+        }
+      );
+    in
+    {
       overlays = import ./nix/overlays { inherit self lib rust-overlay; };
 
       packages = lib.mapAttrs (system: pkgs: {
@@ -30,11 +39,10 @@
         inherit (pkgs) noita-proxy;
       }) pkgsFor;
 
-      devShells = lib.mapAttrs
-        (system: pkgs: { default = pkgs.callPackage ./nix/shell.nix { }; })
-        pkgsFor;
+      devShells = lib.mapAttrs (system: pkgs: {
+        default = pkgs.callPackage ./nix/shell.nix { };
+      }) pkgsFor;
 
-      formatter =
-        eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-classic);
+      formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-classic);
     };
 }
