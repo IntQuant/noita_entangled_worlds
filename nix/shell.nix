@@ -2,7 +2,21 @@
   rust-bin,
   mkShell,
   noita-proxy,
+  pkgs,
+  lib,
 }:
+let
+  buildInputs = with pkgs; [
+    openssl
+    libjack2
+    alsa-lib
+    libopus
+    wayland
+    libxkbcommon
+    libGL
+    noita-proxy.steamworksRedist
+  ];
+in
 mkShell {
   strictDeps = true;
 
@@ -35,5 +49,6 @@ mkShell {
     inherit (noita-proxy) OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_NO_VENDOR;
 
     RUST_BACKTRACE = 1;
+    LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
   };
 }
