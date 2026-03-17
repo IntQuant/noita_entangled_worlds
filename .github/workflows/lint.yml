@@ -14,7 +14,6 @@ jobs:
         with:
           targets: i686-pc-windows-gnu
           components: clippy, rustfmt
-          toolchain: 'nightly'
 
       - uses: Swatinem/rust-cache@v2
         with:
