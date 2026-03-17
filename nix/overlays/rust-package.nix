@@ -13,7 +13,8 @@ let
     cargo = rust-stable;
     rustc = rust-stable;
   };
-in {
+in
+{
   ${packageName} = final.callPackage "${../packages}/${packageName}.nix" {
     inherit sourceRoot rustPlatform;
   };
