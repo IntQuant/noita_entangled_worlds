@@ -95,7 +95,7 @@ impl LocalDiffModel {
             .entity_entries
             .iter()
             .skip(start)
-            .take(end.checked_sub(start).unwrap_or_default())
+            .take(end.saturating_sub(start))
             .filter_map(|(lid, p)| {
                 let EntityEntryPair {
                     current: Some(current),

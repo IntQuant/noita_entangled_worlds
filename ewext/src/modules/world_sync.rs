@@ -99,25 +99,19 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let Some(a_element) = self.a.peek() else {
-                return self.b.next();
-            };
-            let Some(b_element) = self.b.peek() else {
-                return self.a.next();
-            };
-            match a_element.cmp(b_element) {
-                std::cmp::Ordering::Less => {
-                    return self.a.next();
-                }
-                std::cmp::Ordering::Equal => {
-                    self.a.next();
-                    return self.b.next();
-                }
-                std::cmp::Ordering::Greater => {
-                    return self.b.next();
-                }
+        let Some(a_element) = self.a.peek() else {
+            return self.b.next();
+        };
+        let Some(b_element) = self.b.peek() else {
+            return self.a.next();
+        };
+        match a_element.cmp(b_element) {
+            std::cmp::Ordering::Less => self.a.next(),
+            std::cmp::Ordering::Equal => {
+                self.a.next();
+                self.b.next()
             }
+            std::cmp::Ordering::Greater => self.b.next(),
         }
     }
 }
@@ -196,7 +190,6 @@ impl Module for WorldSync {
         let tracked_radius = 2;
         let tracked_square = tracked_radius * 2 + 1;
         let mut tracked_chunks = (0..tracked_square * tracked_square)
-            .into_iter()
             .filter_map(|i| {
                 let dx = i % tracked_square;
                 let dy = i / tracked_square;
