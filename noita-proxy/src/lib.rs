@@ -5,8 +5,8 @@ use std::{
 };
 
 pub use app::App;
-pub use cli::{connect_cli, host_cli};
-pub use util::{args, lang, steam_helper};
+pub use cli::{Args, connect_cli, host_cli};
+pub use util::{lang, steam_helper};
 
 use app::AppSavedState;
 use audio_settings::AudioSettings;

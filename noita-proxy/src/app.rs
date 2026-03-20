@@ -38,6 +38,7 @@ use crate::{
         self_restart::SelfRestarter,
         self_update,
     },
+    cli::Args,
     lang::{set_current_locale, tr},
     lobby_code::{LobbyCode, LobbyError, LobbyKind},
     net::{
@@ -48,7 +49,7 @@ use crate::{
     },
     player_cosmetics::{PlayerPngDesc, display_player_skin, player_path},
     steam_helper,
-    util::{args::Args, steam_helper::LobbyExtraData},
+    util::steam_helper::LobbyExtraData,
 };
 use crate::{DEFAULT_PORT, lang::LANGS};
 
