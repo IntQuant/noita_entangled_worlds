@@ -1,4 +1,4 @@
-use crate::GameMode;
+use crate::game_settings::GameMode;
 use std::io::Write;
 
 /// Trait that allows to pass value to mod as proxy options.

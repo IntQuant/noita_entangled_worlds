@@ -33,8 +33,9 @@ use crate::net::world::world_model::ChunkData;
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::steam_helper::LobbyExtraData;
 use crate::{
-    AudioSettings, DefaultSettings, GameMode, GameSettings, LocalHealthMode,
+    AudioSettings, DefaultSettings, GameSettings,
     bookkeeping::save_state::{SaveState, SaveStateEntry},
+    game_settings::{GameMode, LocalHealthMode},
 };
 use shared::des::ProxyToDes;
 use shared::world_sync::{ChunkCoord, Pixel, PixelFlags, ProxyToWorldSync};
