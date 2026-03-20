@@ -7,12 +7,11 @@ use bookkeeping::{
     save_state::SaveState,
     self_restart::SelfRestarter,
 };
-use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui::load::TexturePoll;
 use eframe::egui::{
-    self, Align2, Button, Color32, ComboBox, Context, FontDefinitions, FontFamily, InnerResponse,
-    Key, Layout, Margin, OpenUrl, Rect, RichText, ScrollArea, Sense, SizeHint, Slider,
-    TextureOptions, ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window, pos2,
+    self, Align2, Button, Color32, Context, FontDefinitions, FontFamily, InnerResponse, Key,
+    Layout, Margin, OpenUrl, Rect, RichText, ScrollArea, Sense, SizeHint, Slider, TextureOptions,
+    ThemePreference, Ui, UiBuilder, Vec2, Visuals, Window, pos2,
 };
 use eframe::epaint::TextureHandle;
 use image::DynamicImage::ImageRgba8;
@@ -29,9 +28,9 @@ use player_cosmetics::PlayerPngDesc;
 use rustc_hash::FxHashMap;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::process::exit;
 use std::thread::sleep;
-use std::{collections::HashMap, fs};
 use std::{
     fmt::Display,
     mem,
@@ -66,8 +65,10 @@ mod lobby_code;
 pub mod net;
 mod player_cosmetics;
 
+mod audio_settings;
 mod game_settings;
 
+pub use audio_settings::AudioSettings;
 pub use game_settings::{DefaultSettings, GameSettings};
 
 const DEFAULT_PORT: u16 = 5123;
@@ -356,140 +357,6 @@ impl EndRunButton {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Decode, Encode, Clone)]
-#[serde(default)]
-pub struct AudioSettings {
-    volume: HashMap<OmniPeerId, f32>,
-    dropoff: f32,
-    range: u64,
-    //walls_strength: f32,
-    //max_wall_durability: u32,
-    player_position: bool,
-    global: bool,
-    push_to_talk: bool,
-    mute_out: bool,
-    mute_in: bool,
-    mute_in_while_polied: bool,
-    mute_in_while_dead: bool,
-    disabled: bool,
-    loopback: bool,
-    global_output_volume: f32,
-    global_input_volume: f32,
-    input_device: Option<String>,
-    output_device: Option<String>,
-    input_devices: Vec<String>,
-    output_devices: Vec<String>,
-}
-
-impl AudioSettings {
-    fn show_ui(&mut self, ui: &mut Ui, main: bool) -> bool {
-        let mut changed = false;
-        ui.label("drop off rate of audio from others");
-        changed |= ui
-            .add(Slider::new(&mut self.dropoff, 0.0..=128.0))
-            .changed();
-        ui.label("maximal range of audio");
-        changed |= ui.add(Slider::new(&mut self.range, 0..=4096)).changed();
-        ui.label("global input volume");
-        changed |= ui
-            .add(Slider::new(&mut self.global_input_volume, 0.0..=8.0))
-            .changed();
-        ui.label("global output volume");
-        changed |= ui
-            .add(Slider::new(&mut self.global_output_volume, 0.0..=8.0))
-            .changed();
-        changed |= ui.checkbox(&mut self.loopback, "loopback audio").changed();
-        changed |= ui
-            .checkbox(&mut self.global, "have voice always be played")
-            .changed();
-        changed |= ui
-            .checkbox(
-                &mut self.push_to_talk,
-                "push to talk, keybinds in noita, T by default",
-            )
-            .changed();
-        changed |= ui
-            .checkbox(
-                &mut self.player_position,
-                "use player position rather than camera position",
-            )
-            .changed();
-        changed |= ui.checkbox(&mut self.mute_in, "mute input").changed();
-        changed |= ui
-            .checkbox(&mut self.mute_in_while_polied, "mute input while polied")
-            .changed();
-        changed |= ui
-            .checkbox(&mut self.mute_in_while_dead, "mute input while dead")
-            .changed();
-        changed |= ui.checkbox(&mut self.mute_out, "mute output").changed();
-        if main {
-            changed |= ui.checkbox(&mut self.disabled, "disabled").changed();
-            if self.input_devices.is_empty() {
-                #[cfg(target_os = "linux")]
-                let host = cpal::available_hosts()
-                    .into_iter()
-                    .find(|id| *id == cpal::HostId::Jack)
-                    .and_then(|id| cpal::host_from_id(id).ok())
-                    .unwrap_or(cpal::default_host());
-                #[cfg(not(target_os = "linux"))]
-                let host = cpal::default_host();
-                self.input_devices = host
-                    .input_devices()
-                    .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
-                    .unwrap_or_default();
-                self.output_devices = host
-                    .output_devices()
-                    .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
-                    .unwrap_or_default();
-                if self.input_device.is_none() {
-                    self.input_device = host.default_input_device().and_then(|a| a.name().ok())
-                }
-                if self.output_device.is_none() {
-                    self.output_device = host.default_output_device().and_then(|a| a.name().ok())
-                }
-            }
-            ComboBox::from_label("Input Device")
-                .selected_text(
-                    self.input_device
-                        .clone()
-                        .unwrap_or_else(|| "None".to_string()),
-                )
-                .show_ui(ui, |ui| {
-                    for device in &self.input_devices {
-                        if ui
-                            .selectable_label(self.input_device.as_deref() == Some(device), device)
-                            .clicked()
-                        {
-                            self.input_device = Some(device.clone());
-                            changed = true;
-                        }
-                    }
-                });
-            ComboBox::from_label("Output Device")
-                .selected_text(
-                    self.output_device
-                        .clone()
-                        .unwrap_or_else(|| "None".to_string()),
-                )
-                .show_ui(ui, |ui| {
-                    for device in &self.output_devices {
-                        if ui
-                            .selectable_label(self.output_device.as_deref() == Some(device), device)
-                            .clicked()
-                        {
-                            self.output_device = Some(device.clone());
-                            changed = true;
-                        }
-                    }
-                });
-        }
-        if ui.button("default").clicked() {
-            *self = Default::default();
-            changed = true;
-        }
-        changed
-    }
-}
 struct ImageMap {
     textures: FxHashMap<ChunkCoord, TextureHandle>,
     zoom: f32,
@@ -721,33 +588,6 @@ impl ImageMap {
                     );
                 }
             }
-        }
-    }
-}
-
-impl Default for AudioSettings {
-    fn default() -> Self {
-        Self {
-            volume: Default::default(),
-            dropoff: 1.0,
-            range: 1024,
-            global: false,
-            //walls_strength: 1.0,
-            //max_wall_durability: 14,
-            player_position: true,
-            push_to_talk: true,
-            mute_out: false,
-            mute_in: false,
-            mute_in_while_polied: true,
-            mute_in_while_dead: false,
-            disabled: false,
-            input_device: None,
-            output_device: None,
-            input_devices: Vec::new(),
-            output_devices: Vec::new(),
-            global_output_volume: 1.0,
-            global_input_volume: 1.0,
-            loopback: false,
         }
     }
 }
