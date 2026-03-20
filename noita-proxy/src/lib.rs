@@ -1,72 +1,38 @@
-use arboard::Clipboard;
-use bookkeeping::{
-    noita_launcher::{LaunchTokenResult, NoitaLauncher},
-    releases::Version,
-    save_paths::SavePaths,
-    save_state::SaveState,
-    self_restart::SelfRestarter,
-};
-use eframe::egui::{
-    self, Align2, Button, Color32, Context, FontDefinitions, FontFamily, InnerResponse, Key,
-    Layout, Margin, OpenUrl, Rect, RichText, ScrollArea, Slider, TextureOptions, ThemePreference,
-    Ui, UiBuilder, Vec2, Visuals, Window,
-};
-use image::DynamicImage::ImageRgba8;
-use image::RgbaImage;
-use lang::{LANGS, set_current_locale, tr};
-use lobby_code::{LobbyCode, LobbyError, LobbyKind};
-use mod_manager::{Modmanager, ModmanagerSettings};
-use net::{
-    NetManagerInit, RunInfo,
-    omni::PeerVariant,
-    steam_networking::{ExtraPeerState, PerPeerStatusEntry},
-};
-use player_cosmetics::PlayerPngDesc;
-use self_update::SelfUpdateManager;
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::process::exit;
-use std::thread::sleep;
 use std::{
-    fmt::Display,
-    mem,
-    net::SocketAddr,
     ops::Deref,
     sync::{Arc, atomic::Ordering},
     thread::JoinHandle,
-    time::Duration,
 };
-use std::{net::IpAddr, path::PathBuf};
-use steamworks::{LobbyId, SteamAPIInitError};
-use tangled::{Peer, Reliability};
-use tokio::time;
-use tracing::info;
-use unic_langid::LanguageIdentifier;
 
-mod util;
+pub use app::App;
+pub use cli::{connect_cli, host_cli};
 pub use util::{args, lang, steam_helper};
-use util::{args::Args, steam_helper::LobbyExtraData};
+
+use app::AppSavedState;
+use audio_settings::AudioSettings;
+use bookkeeping::{mod_manager, releases};
+use game_map::ImageMap;
+use game_settings::{DefaultSettings, GameSettings};
+use lang::tr;
+use mod_manager::ModmanagerSettings;
+use player_cosmetics::player_path;
+use player_settings::{PlayerAppearance, PlayerColor, PlayerPicker};
+
+use serde::{Deserialize, Serialize};
 
 mod bookkeeping;
-use crate::net::messages::NetMsg;
-use crate::net::omni::OmniPeerId;
-use crate::player_cosmetics::{display_player_skin, player_path};
-pub use bookkeeping::{mod_manager, releases, self_update};
 mod lobby_code;
 pub mod net;
 mod player_cosmetics;
+mod util;
 
+mod app;
 mod audio_settings;
+mod game_map;
 mod game_settings;
 mod player_settings;
 
-mod game_map;
-
-pub use audio_settings::AudioSettings;
-pub use game_settings::{DefaultSettings, GameSettings};
-pub use player_settings::{PlayerAppearance, PlayerColor, PlayerPicker};
-
-pub use game_map::ImageMap;
+mod cli;
 
 const DEFAULT_PORT: u16 = 5123;
 
@@ -85,178 +51,6 @@ impl Drop for NetManStopOnDrop {
         self.0.continue_running.store(false, Ordering::Relaxed);
         self.1.take().unwrap().join().unwrap();
     }
-}
-
-impl Drop for App {
-    fn drop(&mut self) {
-        self.set_settings()
-    }
-}
-
-enum AppState {
-    Connect,
-    ModManager,
-    TangledConnecting {
-        peer: Peer,
-    },
-    ConnectedLobby {
-        netman: NetManStopOnDrop,
-        noita_launcher: NoitaLauncher,
-    },
-    Error {
-        message: String,
-    },
-    SelfUpdate,
-    LangPick,
-    AskSavestateReset,
-    GogModeIssue(LobbyCode),
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum ConnectedMenu {
-    Normal,
-    Settings,
-    Mods,
-    BanList,
-    ConnectionInfo,
-    VoIP,
-    Map,
-    NoitaLog,
-    ProxyLog,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(default)]
-struct AppSavedState {
-    addr: String,
-    nickname: Option<String>,
-    times_started: u32,
-    lang_id: Option<LanguageIdentifier>,
-    #[serde(default)]
-    game_settings: GameSettings,
-    start_game_automatically: bool,
-    #[serde(default)]
-    show_extra_debug_stuff: bool,
-    #[serde(default)]
-    record_all: bool,
-    spacewars: bool,
-    random_ports: bool,
-    public_lobby: bool,
-    allow_friends: bool,
-}
-
-impl Default for AppSavedState {
-    fn default() -> Self {
-        Self {
-            addr: "127.0.0.1:5123".to_string(),
-            nickname: None,
-            times_started: 0,
-            lang_id: None,
-            game_settings: GameSettings::default(),
-            start_game_automatically: false,
-            show_extra_debug_stuff: false,
-            record_all: false,
-            spacewars: false,
-            random_ports: false,
-            public_lobby: false,
-            allow_friends: true,
-        }
-    }
-}
-
-#[derive(Default)]
-struct EndRunButton {
-    end_run_confirmation: bool,
-}
-impl EndRunButton {
-    fn show(&mut self, ui: &mut Ui, netman: &mut NetManStopOnDrop) {
-        ui.horizontal(|ui| {
-            let dirty = netman.dirty.load(Ordering::Relaxed);
-            let button = Button::new(tr("launcher_end_run"))
-                .small()
-                .fill(Color32::LIGHT_RED);
-            if !self.end_run_confirmation
-                && if dirty {
-                    ui.add(button).clicked()
-                } else {
-                    ui.button(tr("launcher_end_run")).clicked()
-                }
-            {
-                self.end_run_confirmation = true
-            } else if self.end_run_confirmation
-                && ui.button(tr("launcher_end_run_confirm")).clicked()
-            {
-                self.end_run_confirmation = false;
-                netman.end_run.store(true, Ordering::Relaxed);
-            };
-            if dirty {
-                ui.label("PENDING SETTINGS NOT SET UNTIL RUN ENDS");
-            }
-        });
-    }
-}
-
-pub struct App {
-    state: AppState,
-    audio: AudioSettings,
-    modmanager: Modmanager,
-    steam_state: Result<steam_helper::SteamState, SteamAPIInitError>,
-    app_saved_state: AppSavedState,
-    run_save_state: SaveState,
-    modmanager_settings: ModmanagerSettings,
-    self_update: SelfUpdateManager,
-    lobby_id_field: String,
-    args: Args,
-    /// `true` if we haven't started noita automatically yet.
-    can_start_automatically: bool,
-    player_image: RgbaImage,
-    end_run_button: EndRunButton,
-    appearance: PlayerAppearance,
-    connected_menu: ConnectedMenu,
-    show_host_settings: bool,
-    show_audio_settings: bool,
-    running_on_steamdeck: bool,
-    copied_lobby: bool,
-    my_lobby_kind: LobbyKind,
-    show_lobby_list: bool,
-    map: ImageMap,
-    refresh_timer: time::Instant,
-    noitalog_number: usize,
-    noitalog: Vec<String>,
-    proxylog: String,
-    save_paths: SavePaths,
-    clipboard: Option<Clipboard>,
-}
-
-fn filled_group<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
-    let style = ui.style();
-    let frame = egui::Frame {
-        inner_margin: Margin::same(6), // same and symmetric looks best in corners when nesting groups
-        stroke: style.visuals.widgets.noninteractive.bg_stroke,
-        fill: Color32::from_rgba_premultiplied(20, 20, 20, 180),
-        ..Default::default()
-    };
-    frame.show(ui, add_contents)
-}
-
-fn heading_with_underline(ui: &mut Ui, text: impl Into<RichText>) {
-    ui.vertical_centered_justified(|ui| {
-        ui.heading(text);
-    });
-    ui.separator();
-}
-
-fn square_button_text(ui: &mut Ui, text: &str, size: f32) -> egui::Response {
-    let side = ui.available_width();
-    ui.add_sized([side, side], Button::new(RichText::new(text).size(size)))
-}
-
-fn square_button_icon(ui: &mut Ui, icon: egui::Image) -> egui::Response {
-    let side = ui.available_width();
-    ui.add_sized(
-        [side, side],
-        Button::image(icon), // Somewhy it doesnt inherit style correctly
-    )
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
