@@ -1,7 +1,6 @@
-use std::{net::SocketAddr, process::exit, thread::sleep, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, process::exit, thread::sleep, time::Duration};
 
-use crate::player_cosmetics::player_path;
-
+use argh::{FromArgValue, FromArgs};
 use tangled::Peer;
 
 use crate::{
@@ -11,9 +10,61 @@ use crate::{
     mod_manager::ModmanagerSettings,
     net::{NetManager, NetManagerInit, omni::PeerVariant, steam_networking},
     player_cosmetics::PlayerPngDesc,
+    player_cosmetics::player_path,
     steam_helper,
-    util::{args::Args, steam_helper::LobbyExtraData},
+    util::steam_helper::LobbyExtraData,
 };
+
+#[derive(FromArgs, PartialEq, Debug, Clone)]
+/// Noita proxy.
+pub struct Args {
+    /// noita launch command that will be used.
+    #[argh(option)]
+    pub launch_cmd: Option<String>,
+    /// adjust ui scale; default is 1.0.
+    #[argh(option)]
+    pub ui_zoom_factor: Option<f32>,
+    /// steam lobby code.
+    #[argh(option)]
+    pub lobby: Option<String>,
+    /// host either steam or ip.
+    #[argh(option)]
+    pub host: Option<String>,
+    /// noita.exe path
+    #[argh(option)]
+    pub exe_path: Option<PathBuf>,
+    /// language for gui
+    #[argh(option)]
+    pub language: Option<String>,
+
+    // Used internally.
+    /// override lobby mode to use. Options: "Gog", "Steam".
+    #[argh(option)]
+    pub override_lobby_kind: Option<LobbyKind>,
+    /// used internally.
+    #[argh(option)]
+    pub auto_connect_to: Option<LobbyCode>,
+
+    /// also run gdbserver when starting noita. Used for development.
+    #[argh(switch)]
+    pub run_noita_with_gdb: bool,
+}
+
+impl FromArgValue for LobbyKind {
+    fn from_arg_value(value: &str) -> Result<Self, String> {
+        match value {
+            "Steam" => Ok(LobbyKind::Steam),
+            "Gog" => Ok(LobbyKind::Gog),
+            _ => Err("Unknown mode".to_string()),
+        }
+    }
+}
+
+impl FromArgValue for LobbyCode {
+    fn from_arg_value(value: &str) -> Result<Self, String> {
+        LobbyCode::parse(value).map_err(|e| e.to_string())
+    }
+}
 
 fn cli_setup(
     args: Args,
