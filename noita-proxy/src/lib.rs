@@ -1,5 +1,4 @@
 use arboard::Clipboard;
-use bitcode::{Decode, Encode};
 use bookkeeping::{
     noita_launcher::{LaunchTokenResult, NoitaLauncher},
     releases::Version,
@@ -54,10 +53,7 @@ use util::{args::Args, steam_helper::LobbyExtraData};
 mod bookkeeping;
 use crate::net::messages::NetMsg;
 use crate::net::omni::OmniPeerId;
-use crate::player_cosmetics::{
-    display_player_skin, get_player_skin, player_path, player_select_current_color_slot,
-    player_skin_display_color_picker, shift_hue,
-};
+use crate::player_cosmetics::{display_player_skin, player_path};
 pub use bookkeeping::{mod_manager, releases, self_update};
 use shared::WorldPos;
 use shared::world_sync::ChunkCoord;
@@ -67,9 +63,11 @@ mod player_cosmetics;
 
 mod audio_settings;
 mod game_settings;
+mod player_settings;
 
 pub use audio_settings::AudioSettings;
 pub use game_settings::{DefaultSettings, GameSettings};
+pub use player_settings::{PlayerAppearance, PlayerColor, PlayerPicker};
 
 const DEFAULT_PORT: u16 = 5123;
 
@@ -130,119 +128,6 @@ enum ConnectedMenu {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
-struct PlayerAppearance {
-    player_color: PlayerColor,
-    player_picker: PlayerPicker,
-    hue: f64,
-    cosmetics: (bool, bool, bool),
-    invert_border: bool,
-}
-
-impl PlayerAppearance {
-    fn create_png_desc(&self, game_save_path: Option<PathBuf>) -> PlayerPngDesc {
-        let mut cosmetics = self.cosmetics;
-        if let Some(path) = &game_save_path {
-            let flags = path.join("save00/persistent/flags");
-            let hat = flags.join("secret_hat").exists();
-            let amulet = flags.join("secret_amulet").exists();
-            let gem = flags.join("secret_amulet_gem").exists();
-            if !hat {
-                cosmetics.0 = false
-            }
-            if !amulet {
-                cosmetics.1 = false
-            }
-            if !gem {
-                cosmetics.2 = false
-            }
-        }
-        PlayerPngDesc {
-            cosmetics: cosmetics.into(),
-            colors: self.player_color,
-            invert_border: self.invert_border,
-        }
-    }
-    fn mina_color_picker(
-        &mut self,
-        ui: &mut Ui,
-        game_save_path: Option<PathBuf>,
-        player_image: RgbaImage,
-    ) {
-        let old_hue = self.hue;
-        let old = ui.style_mut().spacing.slider_width;
-        ui.style_mut().spacing.slider_width = 256.0;
-        ui.add(
-            Slider::new(&mut self.hue, 0.0..=360.0)
-                .text(tr("Shift-hue"))
-                .min_decimals(0)
-                .max_decimals(0)
-                .step_by(2.0),
-        );
-        ui.style_mut().spacing.slider_width = old;
-        if old_hue != self.hue {
-            let diff = self.hue - old_hue;
-            match self.player_picker {
-                PlayerPicker::PlayerAlt => {
-                    shift_hue(diff, &mut self.player_color.player_alt);
-                }
-                PlayerPicker::PlayerArm => {
-                    shift_hue(diff, &mut self.player_color.player_arm);
-                }
-                PlayerPicker::PlayerCape => {
-                    shift_hue(diff, &mut self.player_color.player_cape);
-                }
-                PlayerPicker::PlayerForearm => {
-                    shift_hue(diff, &mut self.player_color.player_forearm);
-                }
-                PlayerPicker::PlayerCapeEdge => {
-                    shift_hue(diff, &mut self.player_color.player_cape_edge);
-                }
-                PlayerPicker::PlayerMain => {
-                    shift_hue(diff, &mut self.player_color.player_main);
-                }
-                PlayerPicker::None => {
-                    shift_hue(diff, &mut self.player_color.player_main);
-                    shift_hue(diff, &mut self.player_color.player_alt);
-                    shift_hue(diff, &mut self.player_color.player_arm);
-                    shift_hue(diff, &mut self.player_color.player_forearm);
-                    shift_hue(diff, &mut self.player_color.player_cape);
-                    shift_hue(diff, &mut self.player_color.player_cape_edge);
-                }
-            }
-        }
-        ui.horizontal(|ui| {
-            display_player_skin(
-                ui,
-                get_player_skin(
-                    player_image.clone(),
-                    self.create_png_desc(game_save_path.clone()),
-                ),
-                12.0,
-            );
-            player_select_current_color_slot(ui, self, game_save_path.clone());
-            player_skin_display_color_picker(ui, &mut self.player_color, &self.player_picker);
-        });
-        if ui.button(tr("Reset-colors-to-default")).clicked() {
-            self.hue = 0.0;
-            self.player_color = Default::default();
-        }
-    }
-}
-
-impl Default for PlayerAppearance {
-    fn default() -> Self {
-        Self {
-            player_color: PlayerColor::default(),
-            player_picker: PlayerPicker::None,
-            hue: 0.0,
-            cosmetics: (true, true, true),
-            invert_border: false,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(default)]
 struct AppSavedState {
     addr: String,
     nickname: Option<String>,
@@ -278,51 +163,6 @@ impl Default for AppSavedState {
             allow_friends: true,
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
-pub struct PlayerColor {
-    player_main: [f64; 4],
-    player_alt: [f64; 4],
-    player_arm: [f64; 4],
-    player_cape: [f64; 4],
-    player_cape_edge: [f64; 4],
-    player_forearm: [f64; 4],
-}
-
-impl Default for PlayerColor {
-    fn default() -> Self {
-        Self {
-            player_main: [155.0, 111.0, 154.0, 255.0],
-            player_alt: [127.0, 84.0, 118.0, 255.0],
-            player_arm: [89.0, 67.0, 84.0, 255.0],
-            player_cape: [118.0, 84.0, 127.0, 255.0],
-            player_cape_edge: [154.0, 111.0, 155.0, 255.0],
-            player_forearm: [158.0, 115.0, 154.0, 255.0],
-        }
-    }
-}
-/*impl PlayerColor {
-    pub fn notplayer() -> Self {
-        Self {
-            player_main: [155.0, 111.0, 154.0, 255.0],
-            player_alt: [127.0, 84.0, 118.0, 255.0],
-            player_arm: [89.0, 67.0, 84.0, 255.0],
-            player_cape: [118.0, 84.0, 127.0, 255.0],
-            player_cape_edge: [154.0, 111.0, 155.0, 255.0],
-            player_forearm: [158.0, 115.0, 154.0, 255.0],
-        }
-    }
-}*/
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-enum PlayerPicker {
-    None,
-    PlayerMain,
-    PlayerAlt,
-    PlayerArm,
-    PlayerCape,
-    PlayerCapeEdge,
-    PlayerForearm,
 }
 
 #[derive(Default)]
