@@ -4,7 +4,7 @@ use eframe::{
     NativeOptions,
     egui::{IconData, ViewportBuilder},
 };
-use noita_proxy::{App, args::Args, connect_cli, host_cli};
+use noita_proxy::{App, Args, connect_cli, host_cli};
 use std::{
     backtrace, fs,
     fs::File,
