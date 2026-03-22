@@ -22,7 +22,7 @@ use crate::{
     steam_helper::SteamState,
 };
 
-use crate::util::args::Args;
+use crate::cli::Args;
 
 #[derive(Default)]
 enum State {

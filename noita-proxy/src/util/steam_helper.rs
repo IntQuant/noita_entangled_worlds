@@ -5,7 +5,7 @@ use steamworks::{LobbyId, SResult, SteamAPIInitError, SteamId};
 use tokio::time;
 use tracing::{error, info, warn};
 
-use crate::{GameMode, releases::Version};
+use crate::{game_settings::GameMode, releases::Version};
 
 pub struct SteamUserAvatar {
     avatar: TextureHandle,
