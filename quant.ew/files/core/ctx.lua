@@ -54,6 +54,14 @@ function ctx.add_hook(hook_name, system_name, fn)
                         local end_time = GameGetRealWorldTimeSinceStarted()
                         local delta = (end_time - start_time) * 1000000
                         ctx.timings = ctx.timings .. hook_name .. "/" .. entry.system_name .. ":" .. delta .. ","
+                        local delta_ms = delta / 1000
+                        local limit = 0.2
+                        if entry.system_name == "ewext_init" then
+                            limit = 2.2
+                        end
+                        if delta_ms > limit then
+                            GamePrint("Hook "..hook_name.." of system "..entry.system_name.." took way too long: "..delta_ms)
+                        end
                     end
                 end,
             })
