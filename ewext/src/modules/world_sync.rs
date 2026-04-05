@@ -1,6 +1,8 @@
 use crate::modules::{Module, ModuleCtx};
 use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
+use noita_api::addr_grabber::GlobalsMut;
+use noita_api::game_print;
 use noita_api::heap::Ptr;
 use noita_api::noita::types::*;
 use noita_api::noita::world::ParticleWorldState;
@@ -198,25 +200,13 @@ impl Module for WorldSync {
 
                 // Check is any pixel scenes are still being loaded
                 // TODO: find a way that's better than O(number of tracked chunks * number of pixel scenes)
-                {
-                    let ix = cx * CHUNK_SIZE as i32;
-                    let iy = cy * CHUNK_SIZE as i32;
-                    let chunk_size = (CHUNK_SIZE) as i32;
-                    // Not sure how exactly this works but extra_margin helps prevent parts of HMs vanishing.
-                    let extra_margin = 4;
-                    for pixel_scene in ctx.globals.game_global.m_game_world.pixel_scenes.iter() {
-                        if pixel_scene.width * pixel_scene.height > 0
-                            && pixel_scene.x - extra_margin <= ix
-                            && ix <= pixel_scene.x + pixel_scene.width + chunk_size + extra_margin
-                            && pixel_scene.y - extra_margin <= iy
-                            && iy <= pixel_scene.y + pixel_scene.height + chunk_size + extra_margin
-                        {
-                            return None;
-                        }
-                    }
+                let chunk_coord = ChunkCoord(cx, cy);
+
+                if chunk_has_pending_pixel_scenes(&mut ctx.globals, chunk_coord) {
+                    return None;
                 }
 
-                Some(ChunkCoord(cx, cy))
+                Some(chunk_coord)
             })
             .collect::<Vec<_>>();
         // Needed for SortedSymmetricDifference
@@ -250,6 +240,11 @@ impl Module for WorldSync {
                 }
             })
             .collect::<Vec<_>>();
+        // for update in &updates {
+        //     if update.is_all_empty_pixels() {
+        //         game_print!("Sent a chunk with all empty pixels. Whoops?");
+        //     }
+        // }
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
         let Vec2 { x: cx, y: cy } = ctx.globals.game_global.m_game_world.camera_center();
@@ -272,6 +267,25 @@ impl Module for WorldSync {
         self.tracked_chunks_prev = tracked_chunks;
         Ok(())
     }
+}
+
+fn chunk_has_pending_pixel_scenes(globals_mut: &mut GlobalsMut, chunk_coord: ChunkCoord) -> bool {
+    let ix = chunk_coord.0 * CHUNK_SIZE as i32;
+    let iy = chunk_coord.1 * CHUNK_SIZE as i32;
+    let chunk_size = (CHUNK_SIZE) as i32;
+    let extra_margin = 4;
+    // Not sure how exactly this works but extra_margin helps prevent parts of HMs vanishing.
+    for pixel_scene in globals_mut.game_global.m_game_world.pixel_scenes.iter() {
+        if pixel_scene.width * pixel_scene.height > 0
+            && pixel_scene.x - extra_margin <= ix
+            && ix <= pixel_scene.x + pixel_scene.width + chunk_size + extra_margin
+            && pixel_scene.y - extra_margin <= iy
+            && iy <= pixel_scene.y + pixel_scene.height + chunk_size + extra_margin
+        {
+            return true;
+        }
+    }
+    false
 }
 impl WorldSync {
     pub fn handle_remote(&mut self, msg: ProxyToWorldSync) -> eyre::Result<()> {

@@ -19,6 +19,12 @@ pub struct NoitaWorldUpdate {
     pub pixels: [Pixel; CHUNK_SIZE * CHUNK_SIZE],
 }
 
+impl NoitaWorldUpdate {
+    pub fn is_all_empty_pixels(&self) -> bool {
+        self.pixels.iter().all(|pix| pix.is_air())
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Encode, Decode)]
 pub enum PixelFlags {
