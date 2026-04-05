@@ -285,6 +285,13 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "log_stutters",
+                    ui_name = "log stutters",
+                    ui_description = "logs when things take way more time than they normally do",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "cache",
                     ui_name = "cache entities",
                     ui_description = "cache entity data to improve performance",

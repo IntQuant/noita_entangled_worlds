@@ -164,6 +164,8 @@ local function handle_message(msg)
 end
 
 function net.update()
+    local log_stutters = ModSettingGet("quant.ew.log_stutters")
+    local start_time = GameGetRealWorldTimeSinceStarted()
     while true do
         local msg = ewext.netmanager_recv()
         if msg == nil then
@@ -172,6 +174,13 @@ function net.update()
         handle_message(msg)
     end
     ewext.netmanager_flush()
+    local end_time = GameGetRealWorldTimeSinceStarted()
+    if log_stutters then
+        local delta = (end_time - start_time) * 1000
+        if delta > 1 then
+            GamePrint("Network message handling took longer than normal: "..delta)
+        end
+    end
 end
 
 function net.init()

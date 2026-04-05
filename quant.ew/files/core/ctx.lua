@@ -31,21 +31,26 @@ ctx.init = function()
     ctx.timings = ""
 end
 
-local function is_measure_perf_enabled()
+local function is_log_performance_enabled()
     return ModSettingGet("quant.ew.log_performance")
 end
 
+local function is_log_stutters_enabled()
+    return ModSettingGet("quant.ew.log_stutters")
+end
+
+
 function ctx.finish()
-    if is_measure_perf_enabled() and string.len(ctx.timings) > 1 then
+    if is_log_performance_enabled() and string.len(ctx.timings) > 1 then
         print(string.sub(ctx.timings, 1, -2) .. "}")
-        ctx.timings = "{"
     end
+    ctx.timings = "{"
 end
 
 function ctx.add_hook(hook_name, system_name, fn)
     if rawget(ctx.hook, hook_name) == nil then
         local tbl = {}
-        if is_measure_perf_enabled() then
+        if is_log_performance_enabled() or is_log_stutters_enabled() then
             setmetatable(tbl, {
                 __call = function(self, ...)
                     for _, entry in ipairs(self) do
@@ -59,7 +64,7 @@ function ctx.add_hook(hook_name, system_name, fn)
                         if entry.system_name == "ewext_init" then
                             limit = 2.2
                         end
-                        if delta_ms > limit then
+                        if delta_ms > limit and is_log_stutters_enabled() then
                             GamePrint("Hook "..hook_name.." of system "..entry.system_name.." took way too long: "..delta_ms)
                         end
                     end
