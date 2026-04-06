@@ -175,8 +175,10 @@ local exists
 
 local new_ents = {}
 
+local enable_explosion_cuts = false
+
 function mod.on_new_entity(arr)
-    if ctx.is_host then
+    if ctx.is_host and enable_explosion_cuts then
         for _, ent in ipairs(arr) do
             table.insert(new_ents, ent)
         end
@@ -189,6 +191,7 @@ function mod.on_world_update()
         rpc.check_mats(mats, true)
         first = false
     end
+    if not enable_explosion_cuts then return end
     if not ctx.is_host then
         return
     end
