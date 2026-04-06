@@ -2,7 +2,6 @@ use crate::modules::{Module, ModuleCtx};
 use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
 use noita_api::addr_grabber::GlobalsMut;
-use noita_api::game_print;
 use noita_api::heap::Ptr;
 use noita_api::noita::types::*;
 use noita_api::noita::world::ParticleWorldState;
