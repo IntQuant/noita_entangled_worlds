@@ -37,6 +37,14 @@ pub struct Args {
     #[argh(option)]
     pub language: Option<String>,
 
+    /// overrides the default settings file location
+    #[argh(option)]
+    pub settings_path: Option<PathBuf>,
+
+    /// overrides the default save state file location
+    #[argh(option)]
+    pub save_state_path: Option<PathBuf>,
+
     // Used internally.
     /// override lobby mode to use. Options: "Gog", "Steam".
     #[argh(option)]
@@ -75,7 +83,11 @@ fn cli_setup(
     AudioSettings,
     steamworks::LobbyType,
 ) {
-    let settings = SavePaths::new().load_settings();
+    let settings = SavePaths::new_with_maybe_override(
+        args.settings_path.clone(),
+        args.save_state_path.clone(),
+    )
+    .load_settings();
     let saved_state: AppSavedState = settings.app;
     let mut mod_manager: ModmanagerSettings = settings.modmanager;
     let appearance: PlayerAppearance = settings.color;
