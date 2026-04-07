@@ -85,7 +85,9 @@ impl SavePaths {
                     .config_dir(),
             );
         }
-        let _ = fs::create_dir_all(&save_state_path);
+        if let Some(save_state_path_parent) = &save_state_path.parent() {
+            let _ = fs::create_dir_all(save_state_path_parent);
+        }
 
         info!("Settings path: {}", settings_path.display());
         info!("Save state path: {}", save_state_path.display());
