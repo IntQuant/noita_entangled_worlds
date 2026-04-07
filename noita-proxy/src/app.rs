@@ -165,7 +165,10 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, args: Args) -> Self {
         cc.egui_ctx.set_visuals(Visuals::dark());
         cc.egui_ctx.set_theme(ThemePreference::Dark);
-        let save_paths = SavePaths::new();
+        let save_paths = SavePaths::new_with_maybe_override(
+            args.settings_path.clone(),
+            args.save_state_path.clone(),
+        );
         let settings = save_paths.load_settings();
         let mut saved_state: AppSavedState = settings.app;
         let modmanager_settings: ModmanagerSettings = settings.modmanager;

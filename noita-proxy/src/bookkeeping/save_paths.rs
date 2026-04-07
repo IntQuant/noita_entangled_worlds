@@ -9,41 +9,94 @@ use tracing::{info, warn};
 
 use crate::Settings;
 
+const DEFAULT_SETTINGS_NAME: &str = "proxy.ron";
+const DEFAULT_SAVE_STATE_NAME: &str = "save_state";
+
+const PROJECT_DIRS_ORGANIZATION: &str = "quant";
+const PROJECT_DIRS_APPLICATION: &str = "entangledworlds";
+
 pub(crate) struct SavePaths {
     settings_path: PathBuf,
     pub save_state_path: PathBuf,
 }
 
 impl SavePaths {
-    pub fn new() -> Self {
-        if Self::settings_next_to_exe_path().exists() {
-            Self::new_next_to_exe()
-        } else if let Some(project_dirs) = Self::project_dirs() {
-            info!("Using 'system' paths to store things");
-            let me = Self {
-                settings_path: project_dirs.config_dir().join("proxy.ron"),
-                save_state_path: project_dirs.data_dir().join("save_state"),
-            };
-            info!("Settings path: {}", me.settings_path.display());
-            let _ = fs::create_dir_all(project_dirs.config_dir());
-            let _ = fs::create_dir_all(&me.save_state_path);
-            me
-        } else {
-            warn!("Failed to get project dirst!");
-            Self::new_next_to_exe()
+    pub fn new(settings_path: PathBuf, save_state_path: PathBuf) -> Self {
+        SavePaths {
+            settings_path,
+            save_state_path,
         }
     }
 
-    fn new_next_to_exe() -> Self {
-        info!("Using 'next to exe' path to store things");
-        Self {
-            settings_path: Self::settings_next_to_exe_path(),
-            save_state_path: Self::next_to_exe_path().join("save_state"),
+    pub fn new_with_maybe_override(
+        settings_path: Option<PathBuf>,
+        save_state_path: Option<PathBuf>,
+    ) -> SavePaths {
+        use Prefer::*;
+        enum Prefer {
+            Custom,
+            NextToExe,
+            ProjectDirs,
         }
+
+        let project_dirs = Self::project_dirs();
+        let settings_next_to_exe_path = Self::default_settings_next_to_exe_path();
+
+        let settings_prefer: Prefer;
+        let settings_path = if let Some(settings_path) = settings_path {
+            settings_prefer = Custom;
+            settings_path
+        } else if settings_next_to_exe_path.exists() {
+            settings_prefer = NextToExe;
+            settings_next_to_exe_path
+        } else if let Some(project_dirs) = &project_dirs {
+            settings_prefer = ProjectDirs;
+            project_dirs.config_dir().join(DEFAULT_SETTINGS_NAME)
+        } else {
+            warn!(
+                "There is no path override and failed to get project dirs. Falling back to 'next to exe' to store settings and save states."
+            );
+            settings_prefer = NextToExe;
+            settings_next_to_exe_path
+        };
+
+        let save_state_path = if let Some(save_state_path) = save_state_path {
+            save_state_path
+        } else {
+            let get_project_dirs_path = || {
+                project_dirs
+                    .as_ref()
+                    .expect("project_dirs is already checked to be some")
+                    .data_dir()
+                    .join(DEFAULT_SAVE_STATE_NAME)
+            };
+            match settings_prefer {
+                Custom if project_dirs.is_some() => get_project_dirs_path(),
+                Custom => Self::default_save_state_next_to_exe_path(),
+                ProjectDirs => get_project_dirs_path(),
+                NextToExe => Self::default_save_state_next_to_exe_path(),
+            }
+        };
+
+        if matches!(settings_prefer, ProjectDirs) {
+            let _ = fs::create_dir_all(
+                project_dirs
+                    .expect("project_dirs is already checked to be some")
+                    .config_dir(),
+            );
+        }
+        if let Some(save_state_path_parent) = &save_state_path.parent() {
+            let _ = fs::create_dir_all(save_state_path_parent);
+        }
+
+        info!("Settings path: {}", settings_path.display());
+        info!("Save state path: {}", save_state_path.display());
+
+        Self::new(settings_path, save_state_path)
     }
 
     fn project_dirs() -> Option<ProjectDirs> {
-        ProjectDirs::from("", "quant", "entangledworlds")
+        ProjectDirs::from("", PROJECT_DIRS_ORGANIZATION, PROJECT_DIRS_APPLICATION)
     }
 
     fn next_to_exe_path() -> PathBuf {
@@ -52,12 +105,12 @@ impl SavePaths {
             .unwrap_or(".".into())
     }
 
-    fn settings_next_to_exe_path() -> PathBuf {
-        let base_path = std::env::current_exe()
-            .map(|p| p.parent().unwrap().to_path_buf())
-            .unwrap_or(".".into());
-        let config_name = "proxy.ron";
-        base_path.join(config_name)
+    fn default_settings_next_to_exe_path() -> PathBuf {
+        Self::next_to_exe_path().join(DEFAULT_SETTINGS_NAME)
+    }
+
+    fn default_save_state_next_to_exe_path() -> PathBuf {
+        Self::next_to_exe_path().join(DEFAULT_SAVE_STATE_NAME)
     }
 
     pub fn load_settings(&self) -> Settings {
