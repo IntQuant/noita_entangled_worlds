@@ -2,12 +2,10 @@ use std::sync::Arc;
 
 use bitcode::{Decode, Encode};
 use chunk::Chunk;
-use encoding::PixelRunner;
 use rustc_hash::{FxHashMap, FxHashSet};
-use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, PixelRun};
+use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, PixelRun, PixelRunner};
 use tracing::info;
 pub(crate) mod chunk;
-pub mod encoding;
 
 #[derive(Default)]
 pub(crate) struct WorldModel {
@@ -127,7 +125,7 @@ impl WorldModel {
         );
         let chunk_coord = update.coord;
         let chunk = self.chunks.entry(update.coord).or_default();
-        for (i, pixel) in update.pixels.into_iter().enumerate() {
+        for (i, pixel) in update.iter_pixels().enumerate() {
             let x = (i % CHUNK_SIZE) as i32;
             let y = (i / CHUNK_SIZE) as i32;
             let xs = start_x + x;
@@ -146,7 +144,7 @@ impl WorldModel {
             if let Some(chunk) = self.chunks.get_mut(&coord) {
                 updates.push(NoitaWorldUpdate {
                     coord,
-                    pixels: chunk.pixels,
+                    pixel_runs: PixelRunner::compress(&chunk.pixels),
                 });
             }
         }

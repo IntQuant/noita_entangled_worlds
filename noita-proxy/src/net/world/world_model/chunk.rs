@@ -1,5 +1,5 @@
-use super::{ChunkData, encoding::PixelRunner};
-use shared::world_sync::{CHUNK_SIZE, Pixel};
+use super::ChunkData;
+use shared::world_sync::{CHUNK_SIZE, Pixel, PixelRunner};
 
 pub struct Chunk {
     pub pixels: [Pixel; CHUNK_SQUARE],

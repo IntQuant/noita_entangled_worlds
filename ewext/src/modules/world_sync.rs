@@ -2,16 +2,18 @@ use crate::modules::{Module, ModuleCtx};
 use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
 use noita_api::addr_grabber::GlobalsMut;
+use noita_api::game_print;
 use noita_api::heap::Ptr;
 use noita_api::noita::types::*;
 use noita_api::noita::world::ParticleWorldState;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use shared::NoitaOutbound;
 use shared::world_sync::{
-    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel, ProxyToWorldSync, WorldSyncToProxy,
+    CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, PixelRunner, ProxyToWorldSync, WorldSyncToProxy,
 };
 use std::iter::{Peekable, Skip};
 use std::mem::MaybeUninit;
+use std::time::Instant;
 
 /// Iterates over elements that are only present in one of two sorted inputs.
 struct SortedSymmetricDifference<I1, I2, T>
@@ -185,6 +187,7 @@ impl Module for WorldSync {
             return Ok(());
         }
 
+        let start = Instant::now();
         let Some(ent) = ctx.player_map.get_by_left(&my_peer_id()) else {
             return Ok(());
         };
@@ -223,12 +226,14 @@ impl Module for WorldSync {
         .copied()
         .collect::<Vec<_>>();
 
+        game_print!("Took {} us to prepare", start.elapsed().as_micros());
+        let start = Instant::now();
         let updates = should_update
             .into_par_iter()
             .filter_map(|chunk_pos| {
                 let mut update = NoitaWorldUpdate {
                     coord: chunk_pos,
-                    pixels: std::array::from_fn(|_| Pixel::default()),
+                    pixel_runs: Vec::new(),
                 };
                 if unsafe {
                     self.particle_world_state
@@ -243,11 +248,13 @@ impl Module for WorldSync {
                 }
             })
             .collect::<Vec<_>>();
+        game_print!("Took {} us to collect updates", start.elapsed().as_micros());
         // for update in &updates {
         //     if update.is_all_empty_pixels() {
         //         game_print!("Sent a chunk with all empty pixels. Whoops?");
         //     }
         // }
+        let start = Instant::now();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
         let Vec2 { x: cx, y: cy } = ctx.globals.game_global.m_game_world.camera_center();
@@ -268,6 +275,7 @@ impl Module for WorldSync {
         ));
         ctx.net.send(&msg)?;
         self.tracked_chunks_prev = tracked_chunks;
+        game_print!("Took {} us to send updates", start.elapsed().as_micros());
         Ok(())
     }
 }
@@ -316,7 +324,6 @@ impl WorldData for ParticleWorldState {
     unsafe fn encode_world(&self, chunk: &mut NoitaWorldUpdate) -> eyre::Result<()> {
         let ChunkCoord(cx, cy) = chunk.coord;
         let (cx, cy) = (cx as isize, cy as isize);
-        let chunk = &mut chunk.pixels;
         let Some(pixel_array) = unsafe { self.world_ptr.as_mut() }
             .wrap_err("no world")?
             .chunk_map
@@ -324,13 +331,15 @@ impl WorldData for ParticleWorldState {
         else {
             return Err(eyre!("chunk not loaded"));
         };
-        let mut chunk_iter = chunk.iter_mut();
+        let mut pixel_runner = PixelRunner::new();
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
         for j in shift_y..shift_y + CHUNK_SIZE as isize {
             for i in shift_x..shift_x + CHUNK_SIZE as isize {
-                *chunk_iter.next().unwrap() = pixel_array.get_pixel(i, j);
+                let pixel = pixel_array.get_pixel(i, j);
+                pixel_runner.put_pixel(pixel);
             }
         }
+        chunk.pixel_runs = pixel_runner.build();
 
         Ok(())
     }
@@ -347,7 +356,7 @@ impl WorldData for ParticleWorldState {
         let (shift_x, shift_y) = self.get_shift::<CHUNK_SIZE>(cx, cy);
         let start_x = cx * CHUNK_SIZE as isize;
         let start_y = cy * CHUNK_SIZE as isize;
-        for (i, pixel) in chunk.pixels.into_iter().enumerate() {
+        for (i, pixel) in chunk.iter_pixels().enumerate() {
             let x = (i % CHUNK_SIZE) as isize;
             let y = (i / CHUNK_SIZE) as isize;
 
@@ -424,7 +433,7 @@ mod test {
         },
         world::ParticleWorldState,
     };
-    use shared::world_sync::{CHUNK_SIZE, ChunkCoord, NoitaWorldUpdate, Pixel};
+    use shared::world_sync::{ChunkCoord, NoitaWorldUpdate};
 
     use crate::modules::world_sync::{SortedSymmetricDifference, SortedUnion, WorldData};
 
@@ -543,15 +552,15 @@ mod test {
         }
         let mut upd = NoitaWorldUpdate {
             coord: ChunkCoord(5, 5),
-            pixels: [Pixel::default(); CHUNK_SIZE * CHUNK_SIZE],
+            pixel_runs: Vec::new(),
         };
         unsafe {
             assert!(pws.encode_world(&mut upd).is_ok());
         }
         assert_eq!(
-            upd.pixels[0..128]
+            upd.pixel_runs[0..128]
                 .iter()
-                .map(|a| a.mat())
+                .map(|a| a.data.mat())
                 .collect::<Vec<_>>(),
             vec![0; 128]
         );
@@ -562,9 +571,9 @@ mod test {
         }
         println!("{}", tmr.elapsed().as_nanos());
         assert_eq!(
-            upd.pixels[0..128]
+            upd.pixel_runs[0..128]
                 .iter()
-                .map(|a| a.mat())
+                .map(|a| a.data.mat())
                 .collect::<Vec<_>>(),
             list[0..128].iter().map(|a| *a as u16).collect::<Vec<_>>()
         );
@@ -579,9 +588,9 @@ mod test {
             assert!(pws.encode_world(&mut upd).is_ok());
         }
         assert_eq!(
-            upd.pixels[0..128]
+            upd.pixel_runs[0..128]
                 .iter()
-                .map(|a| a.mat())
+                .map(|a| a.data.mat())
                 .collect::<Vec<_>>(),
             list[0..128].iter().map(|a| *a as u16).collect::<Vec<_>>()
         );
