@@ -96,7 +96,7 @@ function module.on_world_update()
         oh_another_world_state(GameGetWorldStateEntity())
         initial_world_state_entity = GameGetWorldStateEntity()
     end
-    ewext.module_on_world_update()
+    ewext.module_on_world_update(ModSettingGet("quant.ew.log_stutters"))
 end
 
 function module.on_new_entity(arr)

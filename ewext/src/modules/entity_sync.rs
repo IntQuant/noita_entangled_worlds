@@ -519,6 +519,10 @@ impl EntitySync {
 }
 
 impl Module for EntitySync {
+    fn name(&self) -> &'static str {
+        "EntitySync"
+    }
+
     fn on_world_init(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
         send_remotedes(ctx.net, true, Destination::Broadcast, RemoteDes::Reset)?;
         Ok(())

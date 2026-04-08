@@ -62,6 +62,7 @@ impl ModuleCtx<'_> {
     }
 }
 pub(crate) trait Module {
+    fn name(&self) -> &'static str;
     // fn init() -> Self;
     fn on_world_init(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
         Ok(())

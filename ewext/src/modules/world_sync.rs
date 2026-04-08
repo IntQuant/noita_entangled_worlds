@@ -171,6 +171,10 @@ impl Default for WorldSync {
 }
 
 impl Module for WorldSync {
+    fn name(&self) -> &'static str {
+        "WorldSync"
+    }
+
     fn on_world_init(&mut self, _ctx: &mut ModuleCtx) -> eyre::Result<()> {
         self.particle_world_state = MaybeUninit::new(ParticleWorldState::new()?);
         self.initialized = true;

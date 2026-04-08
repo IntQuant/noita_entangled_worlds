@@ -6,7 +6,6 @@ use bimap::BiHashMap;
 use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
-use noita_api::add_lua_fn;
 use noita_api::addr_grabber::Globals;
 use noita_api::noita::types::EntityManager;
 use noita_api::{
@@ -16,11 +15,13 @@ use noita_api::{
         lua_bindings::{LUA_REGISTRYINDEX, lua_State},
     },
 };
+use noita_api::{add_lua_fn, game_print};
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
 use std::array::IntoIter;
 use std::backtrace::Backtrace;
+use std::time::{Duration, Instant};
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -242,12 +243,29 @@ fn module_on_world_init(_lua: LuaState) -> eyre::Result<()> {
     with_every_module(|ctx, module| module.on_world_init(ctx))
 }
 
-fn module_on_world_update(_lua: LuaState) -> eyre::Result<()> {
+fn module_on_world_update(lua: LuaState) -> eyre::Result<()> {
     #[cfg(feature = "debug")]
     if noita_api::raw::game_get_frame_num()? == 180 {
         ExtState::with_global(debug::check_globals)??;
     }
-    with_every_module(|ctx, module| module.on_world_update(ctx))
+    let log_stutters: bool = noita_api::lua::LuaGetValue::get(lua, -1)?;
+    with_every_module(|ctx, module| {
+        if log_stutters {
+            let start = Instant::now();
+            module.on_world_update(ctx)?;
+            let elapsed = start.elapsed();
+            if elapsed > Duration::from_millis(1) {
+                game_print!(
+                    "Module {} update took {} us",
+                    module.name(),
+                    elapsed.as_micros()
+                );
+            }
+        } else {
+            module.on_world_update(ctx)?;
+        }
+        Ok(())
+    })
 }
 
 fn module_on_new_entity(lua: LuaState) -> eyre::Result<()> {
