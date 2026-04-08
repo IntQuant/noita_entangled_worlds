@@ -51,7 +51,7 @@ impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbo
         }));
 
         Ok(Self {
-            socket: BufWriter::new(socket),
+            socket: BufWriter::with_capacity(1024 * 1024, socket),
             recv_messages,
             reader_thread,
             _phantom: PhantomData,
