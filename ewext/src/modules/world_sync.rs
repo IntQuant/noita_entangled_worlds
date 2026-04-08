@@ -2,7 +2,6 @@ use crate::modules::{Module, ModuleCtx};
 use crate::my_peer_id;
 use eyre::{ContextCompat, eyre};
 use noita_api::addr_grabber::GlobalsMut;
-use noita_api::game_print;
 use noita_api::heap::Ptr;
 use noita_api::noita::types::*;
 use noita_api::noita::world::ParticleWorldState;
@@ -13,7 +12,6 @@ use shared::world_sync::{
 };
 use std::iter::{Peekable, Skip};
 use std::mem::MaybeUninit;
-use std::time::Instant;
 
 /// Iterates over elements that are only present in one of two sorted inputs.
 struct SortedSymmetricDifference<I1, I2, T>
@@ -187,7 +185,6 @@ impl Module for WorldSync {
             return Ok(());
         }
 
-        let start = Instant::now();
         let Some(ent) = ctx.player_map.get_by_left(&my_peer_id()) else {
             return Ok(());
         };
@@ -226,8 +223,6 @@ impl Module for WorldSync {
         .copied()
         .collect::<Vec<_>>();
 
-        game_print!("Took {} us to prepare", start.elapsed().as_micros());
-        let start = Instant::now();
         let updates = should_update
             .into_par_iter()
             .filter_map(|chunk_pos| {
@@ -248,13 +243,6 @@ impl Module for WorldSync {
                 }
             })
             .collect::<Vec<_>>();
-        game_print!("Took {} us to collect updates", start.elapsed().as_micros());
-        // for update in &updates {
-        //     if update.is_all_empty_pixels() {
-        //         game_print!("Sent a chunk with all empty pixels. Whoops?");
-        //     }
-        // }
-        let start = Instant::now();
         let msg = NoitaOutbound::WorldSyncToProxy(WorldSyncToProxy::Updates(updates));
         ctx.net.send(&msg)?;
         let Vec2 { x: cx, y: cy } = ctx.globals.game_global.m_game_world.camera_center();
@@ -275,7 +263,6 @@ impl Module for WorldSync {
         ));
         ctx.net.send(&msg)?;
         self.tracked_chunks_prev = tracked_chunks;
-        game_print!("Took {} us to send updates", start.elapsed().as_micros());
         Ok(())
     }
 }
