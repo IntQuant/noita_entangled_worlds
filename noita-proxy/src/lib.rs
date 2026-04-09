@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 mod bookkeeping;
 mod lobby_code;
 pub mod net;
+pub mod paths;
 mod player_cosmetics;
 mod util;
 
