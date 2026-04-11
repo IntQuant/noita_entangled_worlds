@@ -6,9 +6,9 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_PROXY_LOG_NAME: &str = "ew_log.txt";
-pub const DEFAULT_OLD_PROXY_LOG_NAME: &str = "ew_log_old.txt";
-pub const DEFAULT_SETTINGS_NAME: &str = "proxy.ron";
-pub const DEFAULT_SAVE_STATE_NAME: &str = "save_state"; // this is a dir
+pub const DEFAULT_PROXY_LOG_OLD_NAME: &str = "ew_log_old.txt";
+pub const DEFAULT_PROXY_SETTINGS_NAME: &str = "proxy.ron";
+pub const DEFAULT_PROXY_SAVE_STATE_NAME: &str = "save_state"; // this is a dir
 
 pub const STEAM_COMPATDATA_NOITA_SAVE: &str =
     "compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita";

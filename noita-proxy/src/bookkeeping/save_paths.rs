@@ -32,7 +32,7 @@ impl SavePaths {
 
         let project_dirs = paths::project_dirs();
         let proxy_exe_dir = paths::proxy_exe_dir();
-        let settings_next_to_exe_path = proxy_exe_dir.join(paths::DEFAULT_SETTINGS_NAME);
+        let settings_next_to_exe_path = proxy_exe_dir.join(paths::DEFAULT_PROXY_SETTINGS_NAME);
 
         let settings_prefer: Prefer;
         let settings_path = if let Some(settings_path) = settings_path {
@@ -43,7 +43,9 @@ impl SavePaths {
             settings_next_to_exe_path
         } else if let Some(project_dirs) = &project_dirs {
             settings_prefer = ProjectDirs;
-            project_dirs.config_dir().join(paths::DEFAULT_SETTINGS_NAME)
+            project_dirs
+                .config_dir()
+                .join(paths::DEFAULT_PROXY_SETTINGS_NAME)
         } else {
             warn!(
                 "There is no path override and failed to get project dirs. Falling back to 'next to exe' to store settings and save states."
@@ -60,13 +62,13 @@ impl SavePaths {
                     .as_ref()
                     .expect("project_dirs is already checked to be some")
                     .data_dir()
-                    .join(paths::DEFAULT_SAVE_STATE_NAME)
+                    .join(paths::DEFAULT_PROXY_SAVE_STATE_NAME)
             };
             match settings_prefer {
                 Custom if project_dirs.is_some() => get_project_dirs_path(),
-                Custom => proxy_exe_dir.join(paths::DEFAULT_SAVE_STATE_NAME),
+                Custom => proxy_exe_dir.join(paths::DEFAULT_PROXY_SAVE_STATE_NAME),
                 ProjectDirs => get_project_dirs_path(),
-                NextToExe => proxy_exe_dir.join(paths::DEFAULT_SAVE_STATE_NAME),
+                NextToExe => proxy_exe_dir.join(paths::DEFAULT_PROXY_SAVE_STATE_NAME),
             }
         };
 

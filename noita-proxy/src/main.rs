@@ -36,7 +36,7 @@ async fn main() {
             log.clone()
                 .parent()
                 .unwrap()
-                .join(paths::DEFAULT_OLD_PROXY_LOG_NAME),
+                .join(paths::DEFAULT_PROXY_LOG_OLD_NAME),
         );
     }
     let file = File::create(log);
