@@ -4,13 +4,13 @@ use argh::{FromArgValue, FromArgs};
 use tangled::Peer;
 
 use crate::{
-    AppSavedState, AudioSettings, PlayerAppearance,
-    bookkeeping::{save_paths::SavePaths, save_state::SaveState},
+    AudioSettings,
+    bookkeeping::{save_paths::SavePaths, save_state::SaveState, settings::Settings},
     lobby_code::{LobbyCode, LobbyKind},
-    mod_manager::ModmanagerSettings,
-    net::{NetManager, NetManagerInit, omni::PeerVariant, steam_networking},
+    mod_manager,
+    net::{NetManager, NetManagerInit, NetManagerPaths, omni::PeerVariant, steam_networking},
+    paths,
     player_cosmetics::PlayerPngDesc,
-    player_cosmetics::player_path,
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -83,36 +83,34 @@ fn cli_setup(
     AudioSettings,
     steamworks::LobbyType,
 ) {
-    let settings = SavePaths::new_with_maybe_override(
+    let save_paths = SavePaths::new_with_maybe_override(
         args.settings_path.clone(),
         args.save_state_path.clone(),
-    )
-    .load_settings();
-    let saved_state: AppSavedState = settings.app;
-    let mut mod_manager: ModmanagerSettings = settings.modmanager;
-    let appearance: PlayerAppearance = settings.color;
-    let audio: AudioSettings = settings.audio;
+    );
+    let settings = save_paths.load_settings();
+    let Settings {
+        color: appearance,
+        app: saved_state,
+        audio,
+        mut paths,
+    } = settings;
     let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
         .unwrap_or("no nickname found".to_string());
 
     if let Some(state) = &mut state {
-        mod_manager.try_find_game_path(Some(state));
+        mod_manager::try_find_game_path(&mut paths, Some(state));
     } else if let Some(p) = args.exe_path {
-        mod_manager.game_exe_path = p
+        paths.noita_exe = Some(p);
     } else {
-        println!("needs game exe path if you want to join as host")
+        panic!("noita.exe is not provided and can't find it in settings.");
     }
-    mod_manager.try_find_save_path();
-    let run_save_state = if let Ok(path) = std::env::current_exe() {
-        SaveState::new(path.parent().unwrap().join("save_state"))
-    } else {
-        SaveState::new("./save_state/")
-    };
-    let player_path = player_path(mod_manager.mod_path());
+    paths::realize_noita_paths_from_noita_exe(&mut paths);
+    mod_manager::try_find_save_path(&mut paths);
+    let run_save_state = SaveState::new(save_paths.save_state_path);
     let mut cosmetics = (false, false, false);
-    if let Some(path) = &mod_manager.game_save_path {
+    if let Some(path) = &paths.noita_save {
         let flags = path.join("save00/persistent/flags");
         let hat = flags.join("secret_hat").exists();
         let amulet = flags.join("secret_amulet").exists();
@@ -127,13 +125,13 @@ fn cli_setup(
             cosmetics.2 = false
         }
     }
+    let paths =
+        NetManagerPaths::try_from_paths(&paths).expect("necessary paths for networking are some");
     let netmaninit = NetManagerInit {
         my_nickname,
         save_state: run_save_state,
         cosmetics,
-        mod_path: mod_manager.mod_path(),
-        player_path,
-        modmanager_settings: mod_manager,
+        paths,
         player_png_desc: PlayerPngDesc {
             cosmetics: cosmetics.into(),
             colors: appearance.player_color,
@@ -178,7 +176,7 @@ pub fn connect_cli(lobby: String, args: Args) {
         println!("no steam");
         exit(1)
     };
-    let player_path = netmaninit.player_path.clone();
+    let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
     netman.start_inner(player_path, Some(kind)).unwrap();
 }
@@ -206,7 +204,7 @@ pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
         println!("no steam");
         exit(1)
     };
-    let player_path = netmaninit.player_path.clone();
+    let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
     netman.start_inner(player_path, Some(kind)).unwrap();
 }

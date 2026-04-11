@@ -1,22 +1,13 @@
-use std::{
-    fs::{self, File},
-    io::{Read, Write},
-    path::PathBuf,
-};
+use std::fs;
+use std::path::PathBuf;
 
-use directories::ProjectDirs;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
-use crate::Settings;
+use crate::{bookkeeping::settings::Settings, paths};
 
-const DEFAULT_SETTINGS_NAME: &str = "proxy.ron";
-const DEFAULT_SAVE_STATE_NAME: &str = "save_state";
-
-const PROJECT_DIRS_ORGANIZATION: &str = "quant";
-const PROJECT_DIRS_APPLICATION: &str = "entangledworlds";
-
+/// Paths that are saved and loaded by the proxy
 pub(crate) struct SavePaths {
-    settings_path: PathBuf,
+    pub settings_path: PathBuf,
     pub save_state_path: PathBuf,
 }
 
@@ -39,8 +30,9 @@ impl SavePaths {
             ProjectDirs,
         }
 
-        let project_dirs = Self::project_dirs();
-        let settings_next_to_exe_path = Self::default_settings_next_to_exe_path();
+        let project_dirs = paths::project_dirs();
+        let proxy_exe_dir = paths::proxy_exe_dir();
+        let settings_next_to_exe_path = proxy_exe_dir.join(paths::DEFAULT_PROXY_SETTINGS_NAME);
 
         let settings_prefer: Prefer;
         let settings_path = if let Some(settings_path) = settings_path {
@@ -51,7 +43,9 @@ impl SavePaths {
             settings_next_to_exe_path
         } else if let Some(project_dirs) = &project_dirs {
             settings_prefer = ProjectDirs;
-            project_dirs.config_dir().join(DEFAULT_SETTINGS_NAME)
+            project_dirs
+                .config_dir()
+                .join(paths::DEFAULT_PROXY_SETTINGS_NAME)
         } else {
             warn!(
                 "There is no path override and failed to get project dirs. Falling back to 'next to exe' to store settings and save states."
@@ -68,13 +62,13 @@ impl SavePaths {
                     .as_ref()
                     .expect("project_dirs is already checked to be some")
                     .data_dir()
-                    .join(DEFAULT_SAVE_STATE_NAME)
+                    .join(paths::DEFAULT_PROXY_SAVE_STATE_NAME)
             };
             match settings_prefer {
                 Custom if project_dirs.is_some() => get_project_dirs_path(),
-                Custom => Self::default_save_state_next_to_exe_path(),
+                Custom => proxy_exe_dir.join(paths::DEFAULT_PROXY_SAVE_STATE_NAME),
                 ProjectDirs => get_project_dirs_path(),
-                NextToExe => Self::default_save_state_next_to_exe_path(),
+                NextToExe => proxy_exe_dir.join(paths::DEFAULT_PROXY_SAVE_STATE_NAME),
             }
         };
 
@@ -95,39 +89,22 @@ impl SavePaths {
         Self::new(settings_path, save_state_path)
     }
 
-    fn project_dirs() -> Option<ProjectDirs> {
-        ProjectDirs::from("", PROJECT_DIRS_ORGANIZATION, PROJECT_DIRS_APPLICATION)
-    }
-
-    fn next_to_exe_path() -> PathBuf {
-        std::env::current_exe()
-            .map(|p| p.parent().unwrap().to_path_buf())
-            .unwrap_or(".".into())
-    }
-
-    fn default_settings_next_to_exe_path() -> PathBuf {
-        Self::next_to_exe_path().join(DEFAULT_SETTINGS_NAME)
-    }
-
-    fn default_save_state_next_to_exe_path() -> PathBuf {
-        Self::next_to_exe_path().join(DEFAULT_SAVE_STATE_NAME)
-    }
-
     pub fn load_settings(&self) -> Settings {
-        if let Ok(mut file) = File::open(&self.settings_path) {
-            let mut s = String::new();
-            let _ = file.read_to_string(&mut s);
-            ron::from_str::<Settings>(&s).unwrap_or_default()
-        } else {
-            info!("Failed to load settings file, returing default settings");
-            Settings::default()
+        match Settings::load(&self.settings_path) {
+            Ok(settings) => settings,
+            Err(e) => {
+                warn!("Failed to load settings: {e}");
+                info!("Using default settings");
+                Settings::default()
+            }
         }
     }
 
+    #[expect(unused, reason = "Saving is done through Settings directly for now")]
     pub fn save_settings(&self, settings: Settings) {
-        let settings = ron::to_string(&settings).unwrap();
-        if let Ok(mut file) = File::create(&self.settings_path) {
-            file.write_all(settings.as_bytes()).unwrap();
+        match settings.save(&self.settings_path) {
+            Ok(()) => (),
+            Err(e) => error!("Failed to save settings: {e}"),
         }
     }
 }

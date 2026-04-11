@@ -28,8 +28,9 @@ use std::{
 use world::WorldManager;
 
 use crate::lobby_code::LobbyKind;
-use crate::mod_manager::{ModmanagerSettings, get_mods};
+use crate::mod_manager::get_mods;
 use crate::net::world::world_model::ChunkData;
+use crate::paths::Paths;
 use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
 use crate::steam_helper::LobbyExtraData;
 use crate::{
@@ -161,13 +162,32 @@ fn get_flags(mut flags: String) -> Option<FlagType> {
     }
 }
 
+/// A safer subset of Paths for use with NetManager
+#[derive(Debug)]
+pub struct NetManagerPaths {
+    pub noita_quantew_install: PathBuf,
+    pub noita_quantew_player_spritesheet: PathBuf,
+    pub noita_save: Option<PathBuf>,
+}
+
+impl NetManagerPaths {
+    pub fn try_from_paths(paths: &Paths) -> Option<NetManagerPaths> {
+        let noita_quantew_install = paths.noita_quantew_install.as_ref()?;
+        let noita_quantew_player_spritesheet = paths.noita_quantew_player_spritesheet.as_ref()?;
+        let noita_save = paths.noita_save.as_ref();
+        Some(NetManagerPaths {
+            noita_quantew_install: noita_quantew_install.clone(),
+            noita_quantew_player_spritesheet: noita_quantew_player_spritesheet.clone(),
+            noita_save: noita_save.cloned(),
+        })
+    }
+}
+
 pub struct NetManagerInit {
     pub my_nickname: String,
     pub save_state: SaveState,
     pub cosmetics: (bool, bool, bool),
-    pub mod_path: PathBuf,
-    pub player_path: PathBuf,
-    pub modmanager_settings: ModmanagerSettings,
+    pub paths: NetManagerPaths,
     pub player_png_desc: PlayerPngDesc,
     pub noita_port: u16,
 }
@@ -308,8 +328,8 @@ impl NetManager {
     pub fn new_desc(&self, desc: PlayerPngDesc, player_image: RgbaImage) {
         create_player_png(
             self.peer.my_id(),
-            &self.init_settings.mod_path,
-            &self.init_settings.player_path,
+            &self.init_settings.paths.noita_quantew_install,
+            &self.init_settings.paths.noita_quantew_player_spritesheet,
             &desc,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
@@ -401,7 +421,7 @@ impl NetManager {
             audio: audio_state,
         };
         let mut last_iter = Instant::now();
-        let path = crate::player_path(self.init_settings.modmanager_settings.mod_path());
+        let path = crate::player_path(self.init_settings.paths.noita_quantew_install.clone());
         let player_image = if path.exists() {
             image::open(path)
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
@@ -413,8 +433,8 @@ impl NetManager {
         // Create appearance files for local player.
         create_player_png(
             self.peer.my_id(),
-            &self.init_settings.mod_path,
-            &self.init_settings.player_path,
+            &self.init_settings.paths.noita_quantew_install,
+            &self.init_settings.paths.noita_quantew_player_spritesheet,
             &self.init_settings.player_png_desc,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
@@ -653,8 +673,8 @@ impl NetManager {
                     info!("Created temporary appearance for {id}");
                     create_player_png(
                         id,
-                        &self.init_settings.mod_path,
-                        &self.init_settings.player_path,
+                        &self.init_settings.paths.noita_quantew_install,
+                        &self.init_settings.paths.noita_quantew_player_spritesheet,
                         &PlayerPngDesc::default(),
                         id == self.peer.host_id(),
                         &mut self.players_sprite.lock().unwrap(),
@@ -759,7 +779,7 @@ impl NetManager {
                 let _ = sendm.send(colors);
             }
             NetMsg::RequestMods => {
-                if let Some(n) = &self.init_settings.modmanager_settings.game_save_path {
+                if let Some(n) = &self.init_settings.paths.noita_save {
                     let res = get_mods(n);
                     if let Ok(mods) = res {
                         self.send(src, &NetMsg::Mods { mods }, Reliability::Reliable)
@@ -801,8 +821,8 @@ impl NetManager {
                 // Create proper appearance files for new player.
                 create_player_png(
                     src,
-                    &self.init_settings.mod_path,
-                    &self.init_settings.player_path,
+                    &self.init_settings.paths.noita_quantew_install,
+                    &self.init_settings.paths.noita_quantew_player_spritesheet,
                     &rgb,
                     host,
                     &mut self.players_sprite.lock().unwrap(),
@@ -1446,11 +1466,9 @@ impl NetManager {
                 settings.seed = rand::random();
             }
             info!("New seed: {}", settings.seed);
-            settings.progress = self
-                .init_settings
-                .modmanager_settings
-                .get_progress()
-                .unwrap_or_default();
+            settings.progress =
+                crate::mod_manager::get_progress(self.init_settings.paths.noita_save.as_deref())
+                    .unwrap_or_default();
             if settings.world_num == u8::MAX {
                 settings.world_num = 0
             } else {

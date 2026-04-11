@@ -4,7 +4,7 @@ use eframe::{
     NativeOptions,
     egui::{IconData, ViewportBuilder},
 };
-use noita_proxy::{App, Args, connect_cli, host_cli};
+use noita_proxy::{App, Args, connect_cli, host_cli, paths};
 use std::{
     backtrace, fs,
     fs::File,
@@ -26,14 +26,17 @@ async fn main() {
         }
     }
     let log = if let Ok(path) = std::env::current_exe() {
-        path.parent().unwrap().join("ew_log.txt")
+        path.parent().unwrap().join(paths::DEFAULT_PROXY_LOG_NAME)
     } else {
-        "ew_log.txt".into()
+        paths::DEFAULT_PROXY_LOG_NAME.into()
     };
     if log.exists() {
         let _ = fs::copy(
             log.clone(),
-            log.clone().parent().unwrap().join("ew_log_old.txt"),
+            log.clone()
+                .parent()
+                .unwrap()
+                .join(paths::DEFAULT_PROXY_LOG_OLD_NAME),
         );
     }
     let file = File::create(log);
