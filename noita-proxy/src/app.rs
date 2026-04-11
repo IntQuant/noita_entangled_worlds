@@ -11,13 +11,13 @@ use std::{
 
 use arboard::Clipboard;
 use image::{DynamicImage::ImageRgba8, RgbaImage};
-use mod_manager::{Modmanager, ModmanagerSettings};
+use mod_manager::Modmanager;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
 use steamworks::{LobbyId, SteamAPIInitError};
 use tangled::{Peer, Reliability};
 use tokio::time;
-use tracing::info;
+use tracing::{error, info};
 use unic_langid::LanguageIdentifier;
 
 use eframe::egui::{
@@ -28,7 +28,6 @@ use eframe::egui::{
 
 use crate::{
     AudioSettings, DefaultSettings, GameSettings, ImageMap, NetManStopOnDrop, PlayerAppearance,
-    Settings,
     bookkeeping::{
         mod_manager,
         noita_launcher::{LaunchTokenResult, NoitaLauncher},
@@ -37,17 +36,19 @@ use crate::{
         save_state::SaveState,
         self_restart::SelfRestarter,
         self_update,
+        settings::Settings,
     },
     cli::Args,
     lang::{set_current_locale, tr},
     lobby_code::{LobbyCode, LobbyError, LobbyKind},
     net::{
-        NetManager, NetManagerInit, RunInfo,
+        NetManager, NetManagerInit, NetManagerPaths, RunInfo,
         messages::NetMsg,
         omni::{OmniPeerId, PeerVariant},
         steam_networking,
     },
-    player_cosmetics::{PlayerPngDesc, display_player_skin, player_path},
+    paths::{self, Paths},
+    player_cosmetics::{PlayerPngDesc, display_player_skin},
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -169,11 +170,19 @@ impl App {
             args.save_state_path.clone(),
         );
         let settings = save_paths.load_settings();
-        let mut saved_state: AppSavedState = settings.app;
-        let modmanager_settings: ModmanagerSettings = settings.modmanager;
-        let appearance: PlayerAppearance = settings.color;
-        let audio: AudioSettings = settings.audio;
+        let Settings {
+            color: appearance,
+            app: mut saved_state,
+            audio,
+            mut paths,
+        } = settings;
+        paths.proxy_settings = Some(save_paths.settings_path.clone());
+        paths.proxy_save_state = Some(save_paths.save_state_path.clone());
         saved_state.times_started += 1;
+
+        if paths.noita_exe.is_some() {
+            paths::realize_noita_paths_from_noita_exe(&mut paths);
+        }
 
         info!("Setting fonts...");
         Self::set_fonts(&cc.egui_ctx);
@@ -215,8 +224,9 @@ impl App {
             .set_zoom_factor(args.ui_zoom_factor.unwrap_or(default_zoom_factor));
         info!("Creating the app...");
         let run_save_state = SaveState::new(&save_paths.save_state_path);
-        let path = player_path(modmanager_settings.mod_path());
-        let player_image = if path.exists() {
+        let player_image = if let Some(path) = &paths.noita_quantew_player_spritesheet
+            && path.exists()
+        {
             image::open(path)
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
                 .crop(1, 1, 7, 16)
@@ -231,7 +241,6 @@ impl App {
             modmanager: Modmanager::default(),
             steam_state,
             app_saved_state: saved_state,
-            modmanager_settings,
             self_update: SelfUpdateManager::new(),
             lobby_id_field: "".to_string(),
             args,
@@ -252,8 +261,8 @@ impl App {
             noitalog_number: 0,
             noitalog: Vec::new(),
             proxylog: String::new(),
-            save_paths,
             clipboard: Clipboard::new().ok(),
+            paths,
         };
 
         if let Some(connect_to) = me.args.auto_connect_to {
@@ -267,19 +276,24 @@ impl App {
         let mut audio = self.audio.clone();
         audio.input_devices.clear();
         audio.output_devices.clear();
-        self.save_paths.save_settings(Settings {
+
+        let result = Settings {
             color: self.appearance.clone(),
             app: self.app_saved_state.clone(),
-            modmanager: self.modmanager_settings.clone(),
+            paths: self.paths.clone(),
             audio,
-        });
+        }
+        .save(self.paths.proxy_settings());
+        match result {
+            Ok(()) => (),
+            Err(e) => error!("Failed to save settings: {e}"),
+        }
     }
 
     fn get_netman_init(&self) -> NetManagerInit {
         let my_nickname = self.nickname();
-        let mod_path = self.modmanager_settings.mod_path();
         let mut cosmetics = self.appearance.cosmetics;
-        if let Some(path) = &self.modmanager_settings.game_save_path {
+        if let Some(path) = &self.paths.noita_save {
             let flags = path.join("save00/persistent/flags");
             let hat = flags.join("secret_hat").exists();
             let amulet = flags.join("secret_amulet").exists();
@@ -300,13 +314,13 @@ impl App {
             21251
         };
 
+        let paths = NetManagerPaths::try_from_paths(&self.paths).expect("necessary paths are some");
+
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
             cosmetics,
-            mod_path,
-            player_path: player_path(self.modmanager_settings.mod_path()),
-            modmanager_settings: self.modmanager_settings.clone(),
+            paths,
             player_png_desc: PlayerPngDesc {
                 cosmetics: cosmetics.into(),
                 colors: self.appearance.player_color,
@@ -340,7 +354,7 @@ impl App {
         self.state = AppState::ConnectedLobby {
             netman: NetManStopOnDrop(netman, Some(handle)),
             noita_launcher: NoitaLauncher::new(
-                &self.modmanager_settings.game_exe_path,
+                self.paths.noita_exe(),
                 self.args.launch_cmd.as_deref(),
                 self.args.run_noita_with_gdb,
                 self.steam_state.as_mut().ok(),
@@ -358,7 +372,10 @@ impl App {
             self.audio.clone(),
         );
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
+        self.change_state_to_netman(
+            netman,
+            self.paths.noita_quantew_player_spritesheet().clone(),
+        );
     }
 
     fn set_netman_settings(&mut self, netman: &Arc<NetManager>) {
@@ -376,7 +393,8 @@ impl App {
         } else {
             info!("Using constant seed: {}", settings.seed);
         }
-        settings.progress = self.modmanager_settings.get_progress().unwrap_or_default();
+        settings.progress =
+            mod_manager::get_progress(self.paths.noita_save.as_deref()).unwrap_or_default();
         *netman.pending_settings.lock().unwrap() = settings.clone();
     }
 
@@ -391,7 +409,10 @@ impl App {
             self.get_netman_init(),
             self.audio.clone(),
         );
-        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
+        self.change_state_to_netman(
+            netman,
+            self.paths.noita_quantew_player_spritesheet().clone(),
+        );
     }
 
     fn start_steam_host(&mut self) {
@@ -417,7 +438,10 @@ impl App {
             self.audio.clone(),
         );
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
+        self.change_state_to_netman(
+            netman,
+            self.paths.noita_quantew_player_spritesheet().clone(),
+        );
     }
 
     fn make_lobby_extra_data(&self) -> LobbyExtraData {
@@ -449,7 +473,10 @@ impl App {
             self.get_netman_init(),
             self.audio.clone(),
         );
-        self.change_state_to_netman(netman, player_path(self.modmanager_settings.mod_path()));
+        self.change_state_to_netman(
+            netman,
+            self.paths.noita_quantew_player_spritesheet().clone(),
+        );
     }
 
     fn connect_screen(&mut self, ctx: &Context) {
@@ -694,7 +721,7 @@ impl App {
         let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
         if secret_active && ui.button("reset all data").clicked() {
             self.app_saved_state = Default::default();
-            self.modmanager_settings = Default::default();
+            self.paths = Default::default();
             self.state = AppState::LangPick;
         }
     }
@@ -808,7 +835,7 @@ impl App {
             tr("connect_settings_random_ports"),
         );
         if self.player_image.width() == 1 {
-            self.player_image = image::open(player_path(self.modmanager_settings.mod_path()))
+            self.player_image = image::open(self.paths.noita_quantew_player_spritesheet())
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
                 .crop(1, 1, 7, 16)
                 .into_rgba8();
@@ -816,7 +843,7 @@ impl App {
         ui.add_space(20.0);
         self.appearance.mina_color_picker(
             ui,
-            self.modmanager_settings.game_save_path.clone(),
+            self.paths.noita_save.clone(),
             self.player_image.clone(),
         );
     }
@@ -1022,7 +1049,7 @@ impl App {
                 }
                 ui.separator();
             }
-            if let Some(game) = self.modmanager_settings.game_exe_path.parent()
+            if let Some(game) = self.paths.noita_exe().parent()
                 && let Ok(s) = fs::read_to_string(game.join("logger.txt")) {
                     let l = self.noitalog.len();
                     if l != 0 && s.len() >= self.noitalog[l - 1].len() {
@@ -1054,7 +1081,7 @@ impl App {
                     }
                     self.appearance.mina_color_picker(
                         ui,
-                        self.modmanager_settings.game_save_path.clone(),
+                        self.paths.noita_save.clone(),
                         self.player_image.clone(),
                     );
                     ui.add_space(15.0);
@@ -1062,7 +1089,7 @@ impl App {
                         if ui.button("save colors").clicked() {
                             let desc = self
                                 .appearance
-                                .create_png_desc(self.modmanager_settings.game_save_path.clone());
+                                .create_png_desc(self.paths.noita_save.clone());
                             netman.new_desc(desc, self.player_image.clone());
                             *netman.new_desc.lock().unwrap() = Some(desc);
                         };
@@ -1309,7 +1336,7 @@ impl eframe::App for App {
                         self.modmanager.update(
                             ctx,
                             ui,
-                            &mut self.modmanager_settings,
+                            &mut self.paths,
                             self.steam_state.as_mut().ok(),
                             &self.args,
                         )
