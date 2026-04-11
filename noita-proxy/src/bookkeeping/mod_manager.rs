@@ -18,6 +18,7 @@ use tracing::{error, info, warn};
 
 use crate::{
     lang::tr,
+    paths::{self, Paths},
     releases::{Downloader, ReleasesError, Version, get_release_by_tag},
     steam_helper::SteamState,
 };
@@ -52,24 +53,35 @@ impl Modmanager {
         &mut self,
         ctx: &Context,
         ui: &mut Ui,
-        settings: &mut ModmanagerSettings,
+        paths: &mut Paths,
         steam_state: Option<&mut SteamState>,
         args: &Args,
     ) {
         if let State::JustStarted = self.state {
             if let Some(path) = &args.exe_path {
-                if check_path_valid(path) {
-                    settings.game_exe_path = path.to_path_buf();
+                if check_noita_exe_path_valid(path) {
+                    paths.noita_exe = Some(path.to_path_buf());
+                    paths::realize_noita_paths_from_noita_exe(paths);
                     info!("Path from command line is valid, checking mod now");
                     self.state = State::PreCheckMod;
+                } else {
+                    panic!(
+                        "Exe path {} received from command line is invalid",
+                        path.display()
+                    );
                 }
-            } else if check_path_valid(&settings.game_exe_path) {
+            } else if let Some(noita_exe) = &paths.noita_exe
+                && check_noita_exe_path_valid(noita_exe)
+            {
                 info!("Path is valid, checking mod now");
+                paths::realize_noita_paths_from_noita_exe(paths);
                 self.state = State::PreCheckMod;
             } else {
-                settings.try_find_game_path(steam_state);
-                let could_find_automatically = check_path_valid(&settings.game_exe_path);
-                if could_find_automatically {
+                try_find_game_path(paths, steam_state.as_deref());
+                if let Some(noita_exe) = &paths.noita_exe
+                    && check_noita_exe_path_valid(noita_exe)
+                {
+                    paths::realize_noita_paths_from_noita_exe(paths);
                     self.state = State::IsAutomaticPathOk;
                 } else {
                     self.select_noita_file();
@@ -81,7 +93,7 @@ impl Modmanager {
             State::JustStarted => unreachable!(),
             State::IsAutomaticPathOk => {
                 ui.heading(tr("modman_found_automatically"));
-                ui.label(settings.game_exe_path.display().to_string());
+                ui.label(paths.noita_exe().display().to_string());
                 if ui.button(tr("modman_use_this")).clicked() {
                     self.state = State::PreCheckMod;
                     ctx.request_repaint();
@@ -97,10 +109,11 @@ impl Modmanager {
             State::SelectPath(promise) => {
                 match promise.ready() {
                     Some(Ok(path)) => {
-                        settings.game_exe_path = path.to_path_buf();
-                        if !check_path_valid(&settings.game_exe_path) {
+                        if !check_noita_exe_path_valid(path) {
                             self.state = State::InvalidPath;
                         } else {
+                            paths.noita_exe = Some(path.to_path_buf());
+                            paths::realize_noita_paths_from_noita_exe(paths);
                             self.state = State::PreCheckMod;
                         }
                     }
@@ -118,9 +131,9 @@ impl Modmanager {
                 }
             }
             State::PreCheckMod => {
-                settings.try_find_save_path();
+                try_find_save_path(paths);
 
-                if let Some(path) = &settings.game_save_path {
+                if let Some(path) = &paths.noita_save {
                     info!("Trying to enable mod: {:?}", enable_mod(path));
                 }
                 ui.label("Will check mod install now...");
@@ -129,10 +142,10 @@ impl Modmanager {
             }
             State::CheckMod => {
                 ctx.request_repaint();
-                let mod_path = settings.mod_path();
+                let mod_path = paths.noita_quantew_install();
                 info!("Mod path: {}", mod_path.display());
 
-                self.state = match is_mod_ok(&mod_path).wrap_err("Failed to check if mod is ok") {
+                self.state = match is_mod_ok(mod_path).wrap_err("Failed to check if mod is ok") {
                     Ok(true) => State::Done,
                     Ok(false) => State::ConfirmInstall,
                     Err(err) => {
@@ -142,7 +155,7 @@ impl Modmanager {
                 }
             }
             State::ConfirmInstall => {
-                let mod_path = settings.mod_path();
+                let mod_path = paths.noita_quantew_install();
                 ui.label(tr("modman_will_install_to"));
                 ui.label(mod_path.display().to_string());
                 ui.horizontal(|ui| {
@@ -184,12 +197,12 @@ impl Modmanager {
                         Ok(downloader) => {
                             if downloader.ready().is_some() {
                                 let path = downloader.path().to_path_buf();
-                                let directory = settings.mod_path();
+                                let directory = paths.noita_quantew_install().clone();
                                 match downloader.into_ready() {
                                     Ok(_) => {
                                         let promise: Promise<Result<(), ReleasesError>> =
                                             Promise::spawn_thread("unpack", move || {
-                                                extract_and_remove_zip(path, directory)
+                                                extract_and_remove_zip(&path, &directory)
                                             });
                                         info!("Switching to UnpackMod state");
                                         self.state = State::UnpackMod(promise);
@@ -370,13 +383,13 @@ fn mod_downloader_for(
         .wrap_err("Failed to download mod")
 }
 
-fn extract_and_remove_zip(zip_file: PathBuf, extract_to: PathBuf) -> Result<(), ReleasesError> {
-    extract_zip(&zip_file, extract_to)?;
-    fs::remove_file(&zip_file).ok();
+fn extract_and_remove_zip(zip_file: &Path, extract_to: &Path) -> Result<(), ReleasesError> {
+    extract_zip(zip_file, extract_to)?;
+    fs::remove_file(zip_file).ok();
     Ok(())
 }
 
-fn extract_zip(zip_file: &Path, extract_to: PathBuf) -> Result<(), eyre::Error> {
+fn extract_zip(zip_file: &Path, extract_to: &Path) -> Result<(), eyre::Error> {
     let zip_file = zip_file.canonicalize().unwrap_or(zip_file.to_path_buf());
     let reader = File::open(&zip_file)
         .wrap_err_with(|| format!("Failed to open zip file: {}", zip_file.display()))?;
@@ -387,7 +400,7 @@ fn extract_zip(zip_file: &Path, extract_to: PathBuf) -> Result<(), eyre::Error> 
         )
     })?;
     info!("Extracting zip file");
-    zip.extract(&extract_to)
+    zip.extract(extract_to)
         .wrap_err_with(|| format!("Failed to extract zip to: {}", extract_to.display()))?;
     info!("Zip file extracted");
     Ok(())
@@ -420,7 +433,7 @@ fn is_mod_ok(mod_path: &Path) -> eyre::Result<bool> {
     Ok(true)
 }
 
-fn check_path_valid(game_path: &Path) -> bool {
+fn check_noita_exe_path_valid(game_path: &Path) -> bool {
     game_path.ends_with("noita.exe") && game_path.exists()
 }
 
