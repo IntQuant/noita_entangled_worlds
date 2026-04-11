@@ -1254,9 +1254,9 @@ impl App {
                 }
                 ConnectedMenu::ProxyLog => {
                     if let Ok(s) = fs::read_to_string(if let Ok(path) = std::env::current_exe() {
-                        path.parent().unwrap().join("ew_log.txt")
+                        path.parent().unwrap().join(paths::DEFAULT_PROXY_LOG_NAME)
                     } else {
-                        "ew_log.txt".into()
+                        paths::DEFAULT_PROXY_LOG_NAME.into()
                     })
                         && s.len() > self.proxylog.len() {
                             self.proxylog = s
