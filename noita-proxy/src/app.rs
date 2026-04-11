@@ -131,7 +131,6 @@ pub struct App {
     steam_state: Result<steam_helper::SteamState, SteamAPIInitError>,
     app_saved_state: AppSavedState,
     run_save_state: SaveState,
-    modmanager_settings: ModmanagerSettings,
     self_update: SelfUpdateManager,
     lobby_id_field: String,
     args: Args,
@@ -152,8 +151,8 @@ pub struct App {
     noitalog_number: usize,
     noitalog: Vec<String>,
     proxylog: String,
-    save_paths: SavePaths,
     clipboard: Option<Clipboard>,
+    paths: Paths,
 }
 
 impl Drop for App {
