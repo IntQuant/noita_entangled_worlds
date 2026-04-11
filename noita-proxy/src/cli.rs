@@ -94,6 +94,8 @@ fn cli_setup(
         audio,
         mut paths,
     } = settings;
+    paths.proxy_settings = Some(save_paths.settings_path.clone());
+    paths.proxy_save_state = Some(save_paths.save_state_path.clone());
     let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
