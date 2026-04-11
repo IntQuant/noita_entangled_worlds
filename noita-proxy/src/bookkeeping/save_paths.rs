@@ -88,20 +88,21 @@ impl SavePaths {
     }
 
     pub fn load_settings(&self) -> Settings {
-        if let Ok(mut file) = File::open(&self.settings_path) {
-            let mut s = String::new();
-            let _ = file.read_to_string(&mut s);
-            ron::from_str::<Settings>(&s).unwrap_or_default()
-        } else {
-            info!("Failed to load settings file, returing default settings");
-            Settings::default()
+        match Settings::load(&self.settings_path) {
+            Ok(settings) => settings,
+            Err(e) => {
+                warn!("Failed to load settings: {e}");
+                info!("Using default settings");
+                Settings::default()
+            }
         }
     }
 
+    #[expect(unused, reason = "Saving is done through Settings directly for now")]
     pub fn save_settings(&self, settings: Settings) {
-        let settings = ron::to_string(&settings).unwrap();
-        if let Ok(mut file) = File::create(&self.settings_path) {
-            file.write_all(settings.as_bytes()).unwrap();
+        match settings.save(&self.settings_path) {
+            Ok(()) => (),
+            Err(e) => error!("Failed to save settings: {e}"),
         }
     }
 }
