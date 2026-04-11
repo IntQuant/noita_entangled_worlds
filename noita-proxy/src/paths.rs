@@ -23,49 +23,49 @@ pub const PROJECT_DIRS_APPLICATION: &str = "entangledworlds";
 #[serde(default)]
 pub struct Paths {
     /// Usually
-    /// - Windows: [TODO]
-    /// - Linux: `/home/<name>/.local/share/Steam/steamapps/common/Noita`
+    /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita`
+    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita`
     ///
     /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
     #[serde(skip)]
     pub noita_install: Option<PathBuf>,
 
     /// Usually
-    /// - Windows: [TODO]
-    /// - Linux: `/home/<name>/.local/share/Steam/steamapps/common/Noita/noita.exe`
+    /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\noita.exe`
+    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/noita.exe`
     pub noita_exe: Option<PathBuf>,
 
     /// Usually
-    /// - Windows: [TODO]
-    /// - Linux: `/home/<name>/.local/share/Steam/steamapps/common/Noita/mods/quant.ew`
+    /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\mods\quant.ew`
+    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/mods/quant.ew`
     ///
     /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
     #[serde(skip)]
     pub noita_quantew_install: Option<PathBuf>,
 
     /// Usually
-    /// - Windows: [TODO]
-    /// - Linux: `/home/<name>/.local/share/Steam/steamapps/common/Noita/mods/quant.ew/files/system/player/unmodified.png`
+    /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\mods\quant.ew\files\system\player\unmodified.png`
+    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/mods/quant.ew/files/system/player/unmodified.png`
     ///
     /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
     #[serde(skip)]
     pub noita_quantew_player_spritesheet: Option<PathBuf>,
 
     /// Usually
-    /// - Windows: `C:\Users\<name>\AppData\LocalLow\Nolla_Games_Noita`
-    /// - Linux: `/home/<name>/.local/share/Steam/steamapps/compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita`
+    /// - Windows: `%USERPROFILE%\AppData\LocalLow\Nolla_Games_Noita\`
+    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita/`
     pub noita_save: Option<PathBuf>,
 
     /// Usually
-    /// - Windows: [TODO]
-    /// - Linux: `/home/<name>/.config/entangledworlds/proxy.ron`
+    /// - Windows: `%APPDATA%\quant\entangledworlds\proxy.ron`
+    /// - Linux: `$XDG_CONFIG_HOME/entangledworlds/proxy.ron`
     ///
     /// This is not serialized because this path is always either taken from CLI args or searched.
     #[serde(skip)]
     pub proxy_settings: Option<PathBuf>,
 
     /// Usually
-    /// - Windows: [TODO]
+    /// - Windows: `%APPDATA%\quant\entangledworlds\save_state\`
     /// - Linux: `/home/<name>/.local/share/entangledworlds/save_state/`
     ///
     /// This is not serialized because this path is always either taken from CLI args or searched.
