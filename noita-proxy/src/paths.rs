@@ -66,7 +66,7 @@ pub struct Paths {
 
     /// Usually
     /// - Windows: `%APPDATA%\quant\entangledworlds\save_state\`
-    /// - Linux: `/home/<name>/.local/share/entangledworlds/save_state/`
+    /// - Linux: `$XDG_DATA_HOME/entangledworlds/save_state/`
     ///
     /// This is not serialized because this path is always either taken from CLI args or searched.
     #[serde(skip)]
