@@ -6,3 +6,4 @@ pub mod save_paths;
 pub mod save_state;
 pub mod self_restart;
 pub mod self_update;
+pub mod settings;
