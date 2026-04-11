@@ -47,96 +47,6 @@ pub struct Modmanager {
     state: State,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-#[serde(default)]
-pub struct ModmanagerSettings {
-    pub game_exe_path: PathBuf,
-    pub game_save_path: Option<PathBuf>,
-}
-
-impl ModmanagerSettings {
-    pub fn try_find_game_path(&mut self, steam_state: Option<&mut SteamState>) {
-        info!("Trying to find game path");
-        if let Some(state) = steam_state {
-            let apps = state.client.apps();
-            let app_id = AppId::from(881100);
-            if apps.is_app_installed(app_id) {
-                let app_install_dir = apps.app_install_dir(app_id);
-                self.game_exe_path = PathBuf::from(app_install_dir).join("noita.exe");
-                info!(
-                    "Found game path with steam: {}",
-                    self.game_exe_path.display()
-                )
-            } else {
-                info!("App not installed");
-            }
-        }
-    }
-
-    pub fn try_find_save_path(&mut self) {
-        if cfg!(target_os = "windows") {
-            // Noita uses AppData folder instead of %AppData%
-            let appdata_path = PathBuf::from(
-                env::var_os("USERPROFILE").expect("homepath to be defined on windows"),
-            )
-            .join("AppData");
-            info!("Appdata path: {}", appdata_path.display());
-            let save_path = appdata_path.join("LocalLow/Nolla_Games_Noita/");
-            info!("Trying save path: {}", save_path.display());
-            if save_path.exists() {
-                info!("Save path exists");
-                self.game_save_path = Some(save_path);
-            } else {
-                info!("Save path does not exist");
-            }
-        }
-        if cfg!(target_os = "linux") {
-            let mut save_path = self.game_exe_path.clone();
-            // Reach steamapps/
-            save_path.pop();
-            save_path.pop();
-            save_path.pop();
-            save_path.push(
-                "compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita/",
-            );
-            info!("Probable save_path: {}", save_path.display());
-            if save_path.exists() {
-                info!("Save path exists");
-                self.game_save_path = Some(save_path);
-            }
-        }
-
-        match &self.game_save_path {
-            Some(path) => info!("Found game save path: {}", path.display()),
-            None => warn!("Could not find game save path"),
-        }
-    }
-
-    pub fn mod_path(&self) -> PathBuf {
-        let mut path = self.game_exe_path.clone();
-        path.pop();
-        path.push("mods");
-        path.push("quant.ew");
-        path
-    }
-
-    pub fn get_progress(&self) -> Option<Vec<String>> {
-        let flags_path = self
-            .game_save_path
-            .as_ref()?
-            .join("save00/persistent/flags/");
-        Some(
-            fs::read_dir(&flags_path)
-                .inspect_err(|e| warn!("Could not read progress: read_dir failed: {e}"))
-                .ok()?
-                .filter_map(|entry| entry.ok())
-                .filter_map(|entry| entry.file_name().into_string().ok())
-                .collect(),
-        )
-        .inspect(|progress: &Vec<String>| info!("Found {} progress entries", progress.len()))
-    }
-}
-
 impl Modmanager {
     pub fn update(
         &mut self,
@@ -357,6 +267,78 @@ impl Modmanager {
     pub fn is_done(&self) -> bool {
         matches!(self.state, State::Done)
     }
+}
+
+pub fn try_find_game_path(paths: &mut Paths, steam_state: Option<&SteamState>) {
+    info!("Trying to find game path");
+    if let Some(state) = steam_state {
+        let apps = state.client.apps();
+        let app_id = AppId::from(881100);
+        if apps.is_app_installed(app_id) {
+            let app_install_dir = apps.app_install_dir(app_id);
+            paths.noita_install = Some(app_install_dir.into());
+            let noita_install = paths.noita_install();
+            paths.noita_exe = Some(PathBuf::from(noita_install).join("noita.exe"));
+            info!(
+                "Found game path with steam: {}",
+                paths.noita_exe().display()
+            )
+        } else {
+            info!("App not installed");
+        }
+    }
+}
+
+pub fn try_find_save_path(paths: &mut Paths) {
+    if cfg!(target_os = "windows") {
+        // Noita uses AppData folder instead of %AppData%
+        let appdata_path =
+            PathBuf::from(env::var_os("USERPROFILE").expect("homepath to be defined on windows"))
+                .join("AppData");
+        info!("Appdata path: {}", appdata_path.display());
+        let save_path = appdata_path.join("LocalLow/Nolla_Games_Noita/");
+        info!("Trying save path: {}", save_path.display());
+        if save_path.exists() {
+            info!("Save path exists");
+            paths.noita_save = Some(save_path);
+        } else {
+            info!("Save path does not exist");
+        }
+    }
+    if cfg!(target_os = "linux") {
+        let Some(mut save_path) = paths.noita_install.clone() else {
+            warn!("noita_install path is None");
+            return;
+        };
+        info!("Assuming noita_install path is in steam");
+        // Reach steamapps/
+        save_path.pop();
+        save_path.pop();
+        save_path.push(paths::STEAM_COMPATDATA_NOITA_SAVE);
+        info!("Probable save_path: {}", save_path.display());
+        if save_path.exists() {
+            info!("Save path exists");
+            paths.noita_save = Some(save_path);
+        }
+    }
+
+    match &paths.noita_save {
+        Some(path) => info!("Found game save path: {}", path.display()),
+        None => warn!("Could not find game save path"),
+    }
+}
+
+pub fn get_progress(noita_save: Option<&Path>) -> Option<Vec<String>> {
+    let flags_path = noita_save?.join("save00/persistent/flags/");
+    Some(
+        fs::read_dir(&flags_path)
+            .inspect_err(|e| warn!("Could not read progress: read_dir failed: {e}"))
+            .ok()?
+            .filter_map(|entry| entry.ok())
+            .filter_map(|entry| entry.file_name().into_string().ok())
+            .collect(),
+    )
+    .inspect(|progress: &Vec<String>| info!("Found {} progress entries", progress.len()))
 }
 
 fn mod_downloader_for(
