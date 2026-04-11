@@ -161,6 +161,27 @@ fn get_flags(mut flags: String) -> Option<FlagType> {
     }
 }
 
+/// A safer subset of Paths for use with NetManager
+#[derive(Debug)]
+pub struct NetManagerPaths {
+    pub noita_quantew_install: PathBuf,
+    pub noita_quantew_player_spritesheet: PathBuf,
+    pub noita_save: Option<PathBuf>,
+}
+
+impl NetManagerPaths {
+    pub fn try_from_paths(paths: &Paths) -> Option<NetManagerPaths> {
+        let noita_quantew_install = paths.noita_quantew_install.as_ref()?;
+        let noita_quantew_player_spritesheet = paths.noita_quantew_player_spritesheet.as_ref()?;
+        let noita_save = paths.noita_save.as_ref();
+        Some(NetManagerPaths {
+            noita_quantew_install: noita_quantew_install.clone(),
+            noita_quantew_player_spritesheet: noita_quantew_player_spritesheet.clone(),
+            noita_save: noita_save.cloned(),
+        })
+    }
+}
+
 pub struct NetManagerInit {
     pub my_nickname: String,
     pub save_state: SaveState,
