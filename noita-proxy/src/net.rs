@@ -751,28 +751,25 @@ impl NetManager {
                 state.try_ms_write(&NoitaInbound::ProxyToWorldSync(msg));
             }
             NetMsg::AudioData(data, global, tx, ty, vol) => {
-                if state.audio.is_none() {
+                let Some(state_audio) = &mut state.audio else {
+                    return;
+                };
+                if self.is_cess.load(Ordering::Relaxed) {
                     return;
                 }
-                if !self.is_cess.load(Ordering::Relaxed) {
-                    let audio = self.audio.lock().unwrap().clone();
-                    let pos = if audio.player_position {
-                        (
-                            self.player_pos.0.load(Ordering::Relaxed),
-                            self.player_pos.1.load(Ordering::Relaxed),
-                        )
-                    } else {
-                        (
-                            self.camera_pos.0.load(Ordering::Relaxed),
-                            self.camera_pos.1.load(Ordering::Relaxed),
-                        )
-                    };
-                    state
-                        .audio
-                        .as_mut()
-                        .expect("AudioSettings is checked to be some")
-                        .play_audio(audio, pos, src, data, global, (tx, ty), vol);
-                }
+                let audio = self.audio.lock().unwrap().clone();
+                let pos = if audio.player_position {
+                    (
+                        self.player_pos.0.load(Ordering::Relaxed),
+                        self.player_pos.1.load(Ordering::Relaxed),
+                    )
+                } else {
+                    (
+                        self.camera_pos.0.load(Ordering::Relaxed),
+                        self.camera_pos.1.load(Ordering::Relaxed),
+                    )
+                };
+                state_audio.play_audio(audio, pos, src, data, global, (tx, ty), vol);
             }
             NetMsg::PlayerPosition(x, y, is_dead, does_exist) => {
                 let map = &mut self.players_sprite.lock().unwrap();
