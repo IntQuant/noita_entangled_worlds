@@ -85,7 +85,7 @@ pub(crate) struct NetInnerState {
     pub(crate) ms: Option<MessageSocket<NoitaOutbound, NoitaInbound>>,
     world: WorldManager,
     des: DesManager,
-    audio: AudioManager,
+    audio: Option<AudioManager>,
     explosion_data: Vec<ExplosionData>,
     had_a_disconnect: bool,
     flags: FxHashSet<String>,
@@ -404,7 +404,11 @@ impl NetManager {
         info!("Is host: {is_host}");
 
         let audio_settings = self.audio.lock().unwrap().clone();
-        let audio_state = AudioManager::new(audio_settings);
+        let audio_state = if !audio_settings.disabled {
+            Some(AudioManager::new(audio_settings))
+        } else {
+            None
+        };
 
         let (world, rx, recv, sendm, tx) = WorldManager::new(
             is_host,
@@ -577,7 +581,11 @@ impl NetManager {
             }
 
             let mut audio_data = Vec::new();
-            while let Ok(data) = state.audio.recv_audio() {
+            while let Some(data) = state
+                .audio
+                .as_mut()
+                .and_then(|audio| audio.recv_audio().ok())
+            {
                 audio_data.push(data)
             }
             if !audio_data.is_empty() {
@@ -743,6 +751,9 @@ impl NetManager {
                 state.try_ms_write(&NoitaInbound::ProxyToWorldSync(msg));
             }
             NetMsg::AudioData(data, global, tx, ty, vol) => {
+                if state.audio.is_none() {
+                    return;
+                }
                 if !self.is_cess.load(Ordering::Relaxed) {
                     let audio = self.audio.lock().unwrap().clone();
                     let pos = if audio.player_position {
@@ -758,6 +769,8 @@ impl NetManager {
                     };
                     state
                         .audio
+                        .as_mut()
+                        .expect("AudioSettings is checked to be some")
                         .play_audio(audio, pos, src, data, global, (tx, ty), vol);
                 }
             }
