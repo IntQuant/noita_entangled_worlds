@@ -103,7 +103,7 @@ impl AudioSettings {
         changed |= ui.checkbox(&mut self.mute_out, "mute output").changed();
         if main {
             changed |= ui.checkbox(&mut self.disabled, "disabled").changed();
-            if self.input_devices.is_empty() {
+            if self.input_devices.is_empty() && !self.disabled {
                 #[cfg(target_os = "linux")]
                 let host = cpal::available_hosts()
                     .into_iter()
