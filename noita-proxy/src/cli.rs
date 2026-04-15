@@ -6,6 +6,7 @@ use tangled::Peer;
 use crate::{
     AudioSettings,
     bookkeeping::{save_paths::SavePaths, save_state::SaveState, settings::Settings},
+    game_settings::GameSettings,
     lobby_code::{LobbyCode, LobbyKind},
     mod_manager,
     net::{NetManager, NetManagerInit, NetManagerPaths, omni::PeerVariant, steam_networking},
@@ -82,6 +83,7 @@ fn cli_setup(
     LobbyKind,
     AudioSettings,
     steamworks::LobbyType,
+    GameSettings,
 ) {
     let save_paths = SavePaths::new_with_maybe_override(
         args.settings_path.clone(),
@@ -157,11 +159,12 @@ fn cli_setup(
         } else {
             steamworks::LobbyType::Private
         },
+        saved_state.game_settings,
     )
 }
 
 pub fn connect_cli(lobby: String, args: Args) {
-    let (state, netmaninit, kind, audio, _) = cli_setup(args);
+    let (state, netmaninit, kind, audio, _, _) = cli_setup(args);
     let variant = if lobby.contains(':') {
         let p = Peer::connect(lobby.parse().unwrap(), None).unwrap();
         while p.my_id().is_none() {
@@ -187,7 +190,7 @@ pub fn connect_cli(lobby: String, args: Args) {
 ///
 /// The `bind_addr` is either `Some` address/port pair to bind to, or `None` to use Steam networking.
 pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
-    let (state, netmaninit, kind, audio, lobbytype) = cli_setup(args);
+    let (state, netmaninit, kind, audio, lobbytype, game_settings) = cli_setup(args);
     let variant = if let Some(bind_addr) = bind_addr {
         let peer = Peer::host(bind_addr, None).unwrap();
         PeerVariant::Tangled(peer)
@@ -208,5 +211,6 @@ pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
     };
     let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
+    *netman.settings.lock().unwrap() = game_settings;
     netman.start_inner(player_path, Some(kind)).unwrap();
 }
