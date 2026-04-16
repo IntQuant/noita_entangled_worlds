@@ -349,13 +349,36 @@ impl WorldManager {
             ChunkState::Listening {
                 authority,
                 priority: pri,
-            } => {
-                if *pri > priority {
-                    let cs = ChunkState::WantToGetAuth {
+            } if *pri > priority => {
+                let cs = ChunkState::WantToGetAuth {
+                    authority: *authority,
+                    auth_priority: *pri,
+                    my_priority: priority,
+                };
+                emit_queue.push((
+                    Destination::Peer(*authority),
+                    WorldNetMessage::LoseAuthority {
+                        chunk,
+                        new_priority: priority,
+                        new_authority: self.my_peer_id,
+                    },
+                ));
+                self.chunk_state.insert(chunk, cs);
+            }
+
+            ChunkState::WantToGetAuth {
+                authority,
+                auth_priority: auth_pri,
+                my_priority: my_pri,
+            } if *my_pri != priority => {
+                *my_pri = priority;
+                if *auth_pri <= priority {
+                    let cs = ChunkState::Listening {
                         authority: *authority,
-                        auth_priority: *pri,
-                        my_priority: priority,
+                        priority: *auth_pri,
                     };
+                    self.chunk_state.insert(chunk, cs);
+                } else {
                     emit_queue.push((
                         Destination::Peer(*authority),
                         WorldNetMessage::LoseAuthority {
@@ -364,34 +387,9 @@ impl WorldManager {
                             new_authority: self.my_peer_id,
                         },
                     ));
-                    self.chunk_state.insert(chunk, cs);
                 }
             }
-            ChunkState::WantToGetAuth {
-                authority,
-                auth_priority: auth_pri,
-                my_priority: my_pri,
-            } => {
-                if *my_pri != priority {
-                    *my_pri = priority;
-                    if *auth_pri <= priority {
-                        let cs = ChunkState::Listening {
-                            authority: *authority,
-                            priority: *auth_pri,
-                        };
-                        self.chunk_state.insert(chunk, cs);
-                    } else {
-                        emit_queue.push((
-                            Destination::Peer(*authority),
-                            WorldNetMessage::LoseAuthority {
-                                chunk,
-                                new_priority: priority,
-                                new_authority: self.my_peer_id,
-                            },
-                        ));
-                    }
-                }
-            }
+
             ChunkState::Authority {
                 listeners,
                 priority: pri,
