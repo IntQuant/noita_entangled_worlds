@@ -385,8 +385,9 @@ impl NetManager {
                 SocketAddr::new("127.0.0.1".parse().unwrap(), self.init_settings.noita_port)
             });
         info!("Listening for noita connection on {}", address);
-        let address = address.into();
-        socket.bind(&address)?;
+        socket
+            .bind(&address.into())
+            .map_err(|e| io::Error::new(e.kind(), format!("Error binding to {address}: {e}")))?;
         socket.listen(1)?;
         socket.set_nonblocking(true)?;
 
