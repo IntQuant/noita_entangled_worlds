@@ -525,9 +525,24 @@ local last_hp
 
 local last_active
 
+-- only check via parent, if entity is too deep this returns false
+-- assumes that inventory quick always named `inventory_quick`
+local function is_entity_in_quick_inventory(entity)
+    local parent = EntityGetParent(entity)
+    if parent == nil then
+        return false
+    end
+    local name = EntityGetName(parent)
+    if name ~= "inventory_quick" then
+        return false
+    end
+    return true
+end
+
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
-    local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+    local player_ent = ctx.my_player.entity
+    local hp, max_hp = util.get_ent_health(player_ent)
     if GameGetFrameNum() % 17 == 3 or hp ~= last_hp or last_active ~= notplayer_active then
         last_active = notplayer_active
         last_hp = hp
@@ -539,10 +554,18 @@ function module.on_world_update()
         rpc.send_status(status)
     end
 
-    if ctx.proxy_opt.no_notplayer and notplayer_active then
+    local should_revive =
+        ctx.proxy_opt.no_notplayer
+        and notplayer_active
+        and not is_entity_in_quick_inventory(player_ent)
+
+    if should_revive then
         local x, y = EntityGetTransform(ctx.my_player.entity)
         for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 14, "drillable")) do
-            if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
+            ent_filename = EntityGetFilename(ent)
+            if ent_filename == "data/entities/items/pickup/heart_fullhp.xml"
+                or ent_filename == "data/entities/items/pickup/heart_fullhp_temple.xml"
+            then
                 GameRemoveFlagRun("ew_flag_notplayer_active")
                 EntityKill(ent)
                 EntityRemoveFromParent(ctx.my_player.entity)
