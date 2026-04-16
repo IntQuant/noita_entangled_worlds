@@ -16,6 +16,19 @@ let
     libGL
     noita-proxy.steamworksRedist
   ];
+  DearImGui = pkgs.fetchzip {
+    url = "https://github.com/dextercd/Noita-Dear-ImGui/releases/download/release-1.26.0/NoitaDearImGui-1.26.0.zip";
+    hash = "sha256-StvMK9udG+gbf1EOUO9O2nOORtxYEls3bh+qSdh4Qrs=";
+    stripRoot = false;
+  };
+  ComponentExplorer = pkgs.fetchzip {
+    url = "https://github.com/dextercd/Noita-Component-Explorer/releases/download/release-1.60.5/ComponentExplorer-1.60.5.zip";
+    hash = "sha256-KooMsP588WPjruBcgf0tnbOMckFQFtuai/aWUt4nDDk=";
+  };
+  MiniDump = pkgs.fetchzip {
+    url = "https://github.com/dextercd/Noita-Minidump/releases/download/release-1.2.1/NoitaMinidump-1.2.1.zip";
+    hash = "sha256-MIqiHdND+d3lPI66SH3I1DcZeIP/sU37fu/MjNlgEu4=";
+  };
 in
 mkShell {
   strictDeps = true;
@@ -43,7 +56,13 @@ mkShell {
         ];
       }
     ))
+
+    pkgs.lua-language-server
   ];
+
+  NOITA_MOD_COMPONENTEXPLORER = "${ComponentExplorer}";
+  NOITA_MOD_NOITADEARIMGUI = "${DearImGui}/NoitaDearImGui";
+  NOITA_MOD_MINIDUMP = "${MiniDump}";
 
   env = {
     inherit (noita-proxy) OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_NO_VENDOR;
