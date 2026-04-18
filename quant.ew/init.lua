@@ -81,6 +81,7 @@ local function load_modules()
         ctx.load_system("notplayer_ai")
         ctx.load_system("spectator_helps")
         ctx.load_system("end_fight")
+        ctx.load_system("heart_statue")
     end
 
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/nickname.lua")
