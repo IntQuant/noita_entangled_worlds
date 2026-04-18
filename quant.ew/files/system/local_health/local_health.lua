@@ -590,7 +590,7 @@ function module.on_world_update()
     if ctx.proxy_opt.no_notplayer and first and notplayer_active then
         GuiStartFrame(gui)
         local w, h = GuiGetScreenDimensions(gui)
-        local note = "find potion mimic player at last point of death, throw at full hp to revive"
+        local note = "Have your friend find your Heart Statue at last point of death, throw at full HP pickup to revive"
         local tw, th = GuiGetTextDimensions(gui, note)
         GuiText(gui, w - 2 - tw, h - 1 - th, note)
     end
