@@ -307,23 +307,11 @@ local function reset_cast_state_if_has_any_other_item(player_data)
 end
 
 local function no_notplayer()
-    local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/poly.xml")
+    local ent = LoadGameEffectEntityTo(
+        ctx.my_player.entity,
+        "mods/quant.ew/files/system/heart_statue/polymorph_to_heart_statue.xml"
+    )
     EntityAddTag(ent + 1, "ew_notplayer")
-
-    EntityAddComponent2(ent + 1, "LuaComponent", {
-        script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-        script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-    })
-
-    for _, com in ipairs(EntityGetComponent(ent + 1, "LuaComponent")) do
-        if ComponentGetValue2(com, "script_death") == "data/scripts/items/potion_glass_break.lua" then
-            EntityRemoveComponent(ent + 1, com)
-            break
-        end
-    end
-    for _, com in ipairs(EntityGetComponent(ent + 1, "DamageModelComponent")) do
-        EntityRemoveComponent(ent + 1, com)
-    end
 
     polymorph.switch_entity(ent + 1)
 end
