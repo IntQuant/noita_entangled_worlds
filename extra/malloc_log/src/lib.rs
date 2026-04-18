@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::{Arc, LazyLock, Mutex};
@@ -9,13 +8,13 @@ use std::{
 };
 use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, PAGE_READWRITE, VirtualProtect};
 #[allow(clippy::type_complexity)]
-static LIST: LazyLock<Arc<Mutex<HashMap<usize, usize>>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(HashMap::with_capacity(65536))));
+static LIST: LazyLock<Arc<Mutex<Vec<(usize, usize)>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(Vec::with_capacity(65536))));
 unsafe extern "cdecl" fn operator_new(size: usize) -> *mut c_void {
     unsafe {
         let buffer = alloc::alloc(Layout::from_size_align_unchecked(size + 16, 4)).cast::<usize>();
         buffer.write(buffer.offset(4) as usize);
-        LIST.lock().unwrap().insert(buffer.offset(4) as usize, size);
+        LIST.lock().unwrap().push((buffer.offset(4) as usize, size));
         buffer.offset(1).write(1);
         buffer.offset(2).write(usize::MAX - 1);
         buffer.offset(3).write(size);
@@ -28,7 +27,7 @@ unsafe extern "cdecl" fn operator_delete(pointer: *mut c_void) {
         let size_ptr = pointer.cast::<usize>().offset(-1);
         let size = size_ptr.read();
         let ptr = pointer.offset(-4);
-        LIST.lock().unwrap().remove(&(ptr as usize));
+        //LIST.lock().unwrap().remove(&(ptr as usize));
         alloc::dealloc(ptr.cast(), Layout::from_size_align_unchecked(size + 16, 4));
     }
 }
@@ -48,12 +47,9 @@ pub unsafe extern "C" fn put_data(s: *const u8, l: usize) {
     for (ptr, size) in LIST.lock().unwrap().iter().map(|(a, b)| (*a, *b)) {
         file.write_all(&ptr.to_le_bytes()).unwrap();
         file.write_all(&size.to_le_bytes()).unwrap();
-        let mut ptr = ptr as *const u8;
-        for _ in 0..size {
-            let b = unsafe { ptr.read() };
-            file.write_all(&[b]).unwrap();
-            ptr = unsafe { ptr.offset(1) };
-        }
+        let ptr = ptr as *const u8;
+        let slice = unsafe { slice::from_raw_parts(ptr, size) };
+        file.write_all(slice).unwrap();
     }
 }
 
