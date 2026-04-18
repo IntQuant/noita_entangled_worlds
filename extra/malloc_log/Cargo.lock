@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "dll_injector"
+name = "malloc_log"
 version = "0.1.0"
 dependencies = [
  "windows",

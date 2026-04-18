@@ -1,5 +1,5 @@
 use eframe::{Frame, NativeOptions};
-use egui::{CentralPanel, Color32, ComboBox, Context, Ui, UiBuilder};
+use egui::{CentralPanel, Color32, ComboBox, Ui, UiBuilder};
 use libc::{SIGCONT, SIGSTOP, kill, pid_t};
 use std::collections::HashMap;
 use std::env::args;
@@ -36,8 +36,8 @@ fn main() {
     .unwrap();
 }
 impl eframe::App for App {
-    fn update(&mut self, ctx: &Context, _: &mut Frame) {
-        CentralPanel::default().show(ctx, |ui| {
+    fn ui(&mut self, ui: &mut Ui, _: &mut Frame) {
+        CentralPanel::default().show_inside(ui, |ui| {
             let rect = ui.max_rect();
             let (top, rect) = rect.split_top_bottom_at_y(rect.height() * 0.035);
             ui.scope_builder(
@@ -572,12 +572,10 @@ impl Struct {
         map: &HashMap<u32, (String, usize)>,
         addrs: &mut Vec<u32>,
     ) -> &mut Vec<(String, Elem)> {
-        if self.fields.is_some() {
-            self.fields.as_mut().unwrap()
-        } else {
+        if self.fields.is_none() {
             self.fields = Some(self.get_fields(mem, map, addrs));
-            self.fields.as_mut().unwrap()
         }
+        self.fields.as_mut().unwrap()
     }
     fn get_fields(
         &self,

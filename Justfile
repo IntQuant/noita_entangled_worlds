@@ -47,6 +47,14 @@ build_malloc_debug:
     cd extra/malloc_probe && cargo build --target=i686-pc-windows-gnu
     cp extra/malloc_probe/target/i686-pc-windows-gnu/debug/malloc_probe.dll $HOME/.local/share/Steam/steamapps/common/Noita
 
+build_malloc_log:
+    cd extra/malloc_log && cargo build --release --target=i686-pc-windows-gnu
+    cp extra/malloc_log/target/i686-pc-windows-gnu/release/malloc_log.dll $HOME/.local/share/Steam/steamapps/common/Noita/malloc_probe.dll
+
+build_malloc_log_debug:
+    cd extra/malloc_log && cargo build --target=i686-pc-windows-gnu
+    cp extra/malloc_log/target/i686-pc-windows-gnu/debug/malloc_log.dll $HOME/.local/share/Steam/steamapps/common/Noita/malloc_probe.dll
+
 ##
 build_blob:
     cd blob_guy && cargo build --release --target=i686-pc-windows-gnu
