@@ -1,0 +1,180 @@
+<Entity
+  name="heart_statue"
+  tags="teleportable_NOT,item_physics,item_pickup,heart_statue"
+>
+  <StreamingKeepAliveComponent>
+  </StreamingKeepAliveComponent>
+
+  <LuaComponent
+    script_item_picked_up = "mods/quant.ew/files/system/heart_statue/script.lua"
+    script_throw_item = "mods/quant.ew/files/system/heart_statue/script.lua"
+  ></LuaComponent>
+
+  <HitboxComponent
+    _tags="enabled_in_world"
+  ></HitboxComponent>
+
+  <PhysicsBodyComponent 
+    _tags="enabled_in_world"
+    linear_damping="0"
+    angular_damping="0" 
+    fixed_rotation="0" 
+    allow_sleep="1" 
+    auto_clean="0"
+    hax_fix_going_through_ground="1"
+    kill_entity_if_body_destroyed="0"
+    auto_clean="0"
+    force_add_update_areas="1"
+  ></PhysicsBodyComponent>
+  
+  <!-- <PhysicsImageShapeComponent --> 
+    <!-- centered="1" -->
+    <!-- image_file="mods/quant.ew/files/system/heart_statue/heart_statue.png" -->
+    <!-- material="rock_box2d_nohit" -->
+  <!-- ></PhysicsImageShapeComponent> -->
+
+  <!-- Sprite is 16x14 -->
+  <PhysicsShapeComponent 
+    _tags="enabled_in_world"
+    radius_x="7"
+    radius_y="8"
+    friction="0.75"
+    restitution="0.1"
+    density="0.75"
+    material="rock_box2d_hard"
+  ></PhysicsShapeComponent>
+  
+  <PhysicsThrowableComponent
+    _tags="enabled_in_world"
+    max_throw_speed="180"
+    throw_force_coeff="1.5"
+  ></PhysicsThrowableComponent>
+
+  <VelocityComponent
+    _tags="enabled_in_world"
+  ></VelocityComponent>
+
+  <ItemComponent
+    _tags="enabled_in_world"
+    item_name="$entangled_heart_statue"
+    max_child_items="0"
+    is_pickable="1"
+    is_equipable_forced="1"
+    ui_sprite="mods/quant.ew/files/system/heart_statue/heart_statue.png"
+    ui_description="$entangled_heart_statue_desc"
+		preferred_inventory="QUICK"
+  ></ItemComponent>
+
+	<AbilityComponent
+		ui_name="$entangled_heart_statue"
+		throw_as_item="1"
+		><gun_config
+			deck_capacity="0"
+		></gun_config>
+	</AbilityComponent>
+
+  <SpriteComponent 
+		_tags="enabled_in_world"
+		image_file="mods/quant.ew/files/system/heart_statue/heart_statue.png"
+    offset_x="8"
+    offset_y="8" 
+  ></SpriteComponent>
+
+  <SpriteComponent 
+		_tags="enabled_in_hand"
+		_enabled="0"
+		image_file="mods/quant.ew/files/system/heart_statue/heart_statue_in_hand.png"
+    offset_x="4"
+    offset_y="4" 
+  ></SpriteComponent>
+
+  <!-- <SpriteAnimatorComponent --> 
+		<!-- _tags="enabled_in_world" -->
+		<!-- rotate_to_surface_normal="1" -->
+  <!-- ></SpriteAnimatorComponent> -->
+
+	<LightComponent 
+		_tags="enabled_in_world,enabled_in_hand"
+		r="255"
+		g="255"
+		b="255"
+		radius="64"
+		fade_out_time="0.75" >
+	</LightComponent>
+
+  <!-- color hex format is argb -->
+	<ParticleEmitterComponent 
+		_tags="enabled_in_world"
+		emitted_material_name="spark"
+		render_ultrabright="1"
+		offset.x="0"
+		offset.y="0"
+		x_pos_offset_min="0"
+		x_pos_offset_max="0"
+		y_pos_offset_min="0"
+		y_pos_offset_max="0"
+		x_vel_min="0"
+		x_vel_max="0"
+		y_vel_min="0"
+		y_vel_max="0"
+		count_min="1"
+		count_max="1"
+		emission_interval_min_frames="1"
+		emission_interval_max_frames="2"
+		area_circle_radius.max="10"
+		emit_cosmetic_particles="1"
+		create_real_particles="0"
+		lifetime_min="0.5"
+		lifetime_max="3"
+		render_on_grid="1"
+		draw_as_long="1"
+		fade_based_on_lifetime="1"
+		airflow_force="0.5"
+		airflow_time="0.5"
+		airflow_scale="0.1"
+		friction="2.0"
+		collide_with_grid="0"
+		gravity.y="-100.0"
+		render_back="1"
+		color="5cffd96a"
+		>
+	</ParticleEmitterComponent>
+
+	<ParticleEmitterComponent 
+		_tags="enabled_in_hand"
+		_enabled="0"
+		emitted_material_name="spark"
+		render_ultrabright="1"
+		offset.x="0"
+		offset.y="0"
+		x_pos_offset_min="0"
+		x_pos_offset_max="0"
+		y_pos_offset_min="0"
+		y_pos_offset_max="0"
+		x_vel_min="0"
+		x_vel_max="0"
+		y_vel_min="0"
+		y_vel_max="0"
+		count_min="1"
+		count_max="1"
+		emission_interval_min_frames="1"
+		emission_interval_max_frames="2"
+		area_circle_radius.max="4"
+		emit_cosmetic_particles="1"
+		create_real_particles="0"
+		lifetime_min="0.5"
+		lifetime_max="3"
+		render_on_grid="1"
+		draw_as_long="1"
+		fade_based_on_lifetime="1"
+		airflow_force="0.5"
+		airflow_time="0.5"
+		airflow_scale="0.1"
+		friction="2.0"
+		collide_with_grid="0"
+		gravity.y="-100.0"
+		render_back="1"
+		color="5cffd96a"
+		>
+	</ParticleEmitterComponent>
+</Entity>
