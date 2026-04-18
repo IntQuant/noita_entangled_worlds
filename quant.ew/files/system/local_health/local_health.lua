@@ -665,7 +665,9 @@ function module.on_client_polymorphed(peer_id, playerdata)
         script_damage_about_to_be_received = "mods/quant.ew/files/system/local_health/immortal.lua",
     })
     local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
-    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    end
 end
 
 --[[function module.health()
