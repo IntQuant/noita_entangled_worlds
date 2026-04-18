@@ -1,5 +1,3 @@
-local potion = dofile_once("mods/quant.ew/files/system/potion_mimic/potion_mimic.lua")
-
 local rpc = net.new_rpc_namespace()
 
 local module = {}
@@ -153,12 +151,18 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
     GameShootProjectile(ctx.rpc_player_data.entity, position_x, position_y, target_x, target_y, ent)
 end
 
+local function enable_in_world(item)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_hand", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_inventory", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_world", true)
+end
+
 local function apply_seri_ent(player_data, seri_ent)
     if
         EntityGetRootEntity(ctx.my_player.entity) == player_data.entity
         and player_data.peer_id ~= ctx.my_player.peer_id
     then
-        potion.enable_in_world(ctx.my_player.entity)
+        enable_in_world(ctx.my_player.entity)
     end
     if seri_ent ~= nil then
         local ent = util.deserialize_entity(seri_ent.data)
