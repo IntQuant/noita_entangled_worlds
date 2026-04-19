@@ -307,23 +307,11 @@ local function reset_cast_state_if_has_any_other_item(player_data)
 end
 
 local function no_notplayer()
-    local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/poly.xml")
+    local ent = LoadGameEffectEntityTo(
+        ctx.my_player.entity,
+        "mods/quant.ew/files/system/heart_statue/polymorph_to_heart_statue.xml"
+    )
     EntityAddTag(ent + 1, "ew_notplayer")
-
-    EntityAddComponent2(ent + 1, "LuaComponent", {
-        script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-        script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-    })
-
-    for _, com in ipairs(EntityGetComponent(ent + 1, "LuaComponent")) do
-        if ComponentGetValue2(com, "script_death") == "data/scripts/items/potion_glass_break.lua" then
-            EntityRemoveComponent(ent + 1, com)
-            break
-        end
-    end
-    for _, com in ipairs(EntityGetComponent(ent + 1, "DamageModelComponent")) do
-        EntityRemoveComponent(ent + 1, com)
-    end
 
     polymorph.switch_entity(ent + 1)
 end
@@ -525,9 +513,24 @@ local last_hp
 
 local last_active
 
+-- only check via parent, if entity is too deep this returns false
+-- assumes that inventory quick always named `inventory_quick`
+local function is_entity_in_quick_inventory(entity)
+    local parent = EntityGetParent(entity)
+    if parent == nil then
+        return false
+    end
+    local name = EntityGetName(parent)
+    if name ~= "inventory_quick" then
+        return false
+    end
+    return true
+end
+
 function module.on_world_update()
     local notplayer_active = GameHasFlagRun("ew_flag_notplayer_active")
-    local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
+    local player_ent = ctx.my_player.entity
+    local hp, max_hp = util.get_ent_health(player_ent)
     if GameGetFrameNum() % 17 == 3 or hp ~= last_hp or last_active ~= notplayer_active then
         last_active = notplayer_active
         last_hp = hp
@@ -539,10 +542,18 @@ function module.on_world_update()
         rpc.send_status(status)
     end
 
-    if ctx.proxy_opt.no_notplayer and notplayer_active then
+    local should_revive =
+        ctx.proxy_opt.no_notplayer
+        and notplayer_active
+        and not is_entity_in_quick_inventory(player_ent)
+
+    if should_revive then
         local x, y = EntityGetTransform(ctx.my_player.entity)
         for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 14, "drillable")) do
-            if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
+            ent_filename = EntityGetFilename(ent)
+            if ent_filename == "data/entities/items/pickup/heart_fullhp.xml"
+                or ent_filename == "data/entities/items/pickup/heart_fullhp_temple.xml"
+            then
                 GameRemoveFlagRun("ew_flag_notplayer_active")
                 EntityKill(ent)
                 EntityRemoveFromParent(ctx.my_player.entity)
@@ -579,7 +590,7 @@ function module.on_world_update()
     if ctx.proxy_opt.no_notplayer and first and notplayer_active then
         GuiStartFrame(gui)
         local w, h = GuiGetScreenDimensions(gui)
-        local note = "find potion mimic player at last point of death, throw at full hp to revive"
+        local note = "Have your friend find your Heart Statue at last point of death, throw at full HP pickup to revive"
         local tw, th = GuiGetTextDimensions(gui, note)
         GuiText(gui, w - 2 - tw, h - 1 - th, note)
     end
@@ -654,7 +665,9 @@ function module.on_client_polymorphed(peer_id, playerdata)
         script_damage_about_to_be_received = "mods/quant.ew/files/system/local_health/immortal.lua",
     })
     local damage_model = EntityGetFirstComponentIncludingDisabled(playerdata.entity, "DamageModelComponent")
-    ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    if damage_model ~= nil then
+        ComponentSetValue2(damage_model, "wait_for_kill_flag_on_death", true)
+    end
 end
 
 --[[function module.health()
