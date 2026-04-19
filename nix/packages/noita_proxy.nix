@@ -39,9 +39,16 @@ rustPlatform.buildRustPackage (
     # This is the only place `sourceRoot` is used.
     src = sourceRoot;
     # The root of this particular binary crate to build.
-    sourceRoot = "source/noita_proxy";
+    sourceRoot = "source";
 
-    cargoLock.lockFile = "${src}/noita_proxy/Cargo.lock";
+    cargoLock = {
+      lockFile = "${src}/Cargo.lock";
+      outputHashes = {
+        "tangled-0.5.0" = "sha256-056MpdCH9H/e9Ekl0jtnnU2YszzygLNQz28f6ft1Wxk=";
+      };
+    };
+
+    buildAndTestSubdir = "noita_proxy";
 
     strictDeps = true;
     nativeBuildInputs = [
@@ -80,7 +87,7 @@ rustPlatform.buildRustPackage (
       for size in 16 20 22 24 32 48 64 96 128 144 180 192 256 512 1024; do
         icon_dir=$out/share/icons/hicolor/''${size}x''${size}/apps
         mkdir -p $icon_dir
-        magick assets/icon.png \
+        magick noita_proxy/assets/icon.png \
           -strip -filter Point -resize ''${size}x''${size} \
           $icon_dir/noita_proxy.png
       done
