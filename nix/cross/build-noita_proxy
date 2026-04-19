@@ -1,7 +1,7 @@
 #! /usr/bin/env nix
-#! nix develop ../..#cross-noita-proxy --command bash
+#! nix develop ../..#cross-noita_proxy --command bash
 
 # You can pass any arguments to this script which will be passed to cargo
-# e.g. `./build-noita-proxy --release`
+# e.g. `./build-noita_proxy --release`
 
 cargo build --target=x86_64-pc-windows-gnu "$@"
