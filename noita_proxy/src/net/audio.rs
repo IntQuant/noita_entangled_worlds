@@ -3,9 +3,10 @@ use crate::net::omni::OmniPeerId;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use opus::{Application, Channels, Decoder, Encoder};
 use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, OutputStreamBuilder, Sink};
+use rodio::{DeviceSinkBuilder, MixerDeviceSink, Player};
 use rubato::{FftFixedIn, Resampler};
 use std::collections::HashMap;
+use std::num::NonZero;
 use std::ops::Mul;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{self, TryRecvError};
@@ -86,14 +87,14 @@ fn make_dsp() -> (Arc<AtomicUsize>, BigBlockAdapter) {
 }*/
 struct PlayerInfo {
     //tracker: VelocityTracker,
-    sink: Sink,
+    sink: Player,
     //dsp: BigBlockAdapter,
     //pitch_control: Arc<AtomicUsize>,
 }
 
 pub(crate) struct AudioManager {
     per_player: HashMap<OmniPeerId, PlayerInfo>,
-    stream_handle: Option<OutputStream>,
+    stream_handle: Option<MixerDeviceSink>,
     decoder: Decoder,
     rx: Receiver<Vec<u8>>,
 }
@@ -117,7 +118,7 @@ impl AudioManager {
                 host.default_input_device()
             } else if let Some(d) = host
                 .input_devices()
-                .map(|mut d| d.find(|d| d.name().ok() == input))
+                .map(|mut d| d.find(|d| d.description().map(|s| s.to_string()).ok() == input))
                 .ok()
                 .flatten()
             {
@@ -140,7 +141,7 @@ impl AudioManager {
                         cpal::SampleFormat::F32,
                     );
                     if let Ok(mut resamp) =
-                        FftFixedIn::<f32>::new(sample.0 as usize, SAMPLE_RATE, FRAME_SIZE, 8, 1)
+                        FftFixedIn::<f32>::new(sample as usize, SAMPLE_RATE, FRAME_SIZE, 8, 1)
                     {
                         let mut encoder =
                             Encoder::new(SAMPLE_RATE as u32, CHANNELS, Application::Audio).unwrap();
@@ -190,7 +191,7 @@ impl AudioManager {
                                     "no stream {}, {}, {}, {}",
                                     s,
                                     cfg.channels(),
-                                    cfg.sample_rate().0,
+                                    cfg.sample_rate(),
                                     cfg.sample_format()
                                 )
                             }
@@ -205,7 +206,7 @@ impl AudioManager {
                 warn!("input device not found")
             }
         });
-        let stream_handle: Option<OutputStream> = OutputStreamBuilder::open_default_stream().ok();
+        let stream_handle: Option<MixerDeviceSink> = DeviceSinkBuilder::open_default_sink().ok();
         let sink: HashMap<OmniPeerId, PlayerInfo> = Default::default();
         Self {
             decoder,
@@ -235,7 +236,7 @@ impl AudioManager {
         {
             //let (pitch_control, dsp) = make_dsp();
             e.insert(PlayerInfo {
-                sink: Sink::connect_new(stream_handle.mixer()),
+                sink: Player::connect_new(stream_handle.mixer()),
                 //tracker: VelocityTracker::default(),
                 //pitch_control,
                 //dsp,
@@ -290,7 +291,11 @@ impl AudioManager {
                         &mut [dsp_out.as_mut_slice()],
                     );
                     let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dsp_out);*/
-                    let source = SamplesBuffer::new(1, SAMPLE_RATE as u32, dec);
+                    let source = SamplesBuffer::new(
+                        NonZero::new(1).unwrap(),
+                        NonZero::new(SAMPLE_RATE as u32).unwrap(),
+                        dec,
+                    );
                     player_info.sink.append(source);
                     player_info.sink.play();
                 }

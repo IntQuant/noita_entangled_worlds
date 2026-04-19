@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use eframe::egui::{Context, Ui};
+use eframe::egui::Ui;
 use eyre::Context as _;
 use eyre::eyre;
 use poll_promise::Promise;
@@ -51,7 +51,6 @@ pub struct Modmanager {
 impl Modmanager {
     pub fn update(
         &mut self,
-        ctx: &Context,
         ui: &mut Ui,
         paths: &mut Paths,
         steam_state: Option<&mut SteamState>,
@@ -96,7 +95,7 @@ impl Modmanager {
                 ui.label(paths.noita_exe().display().to_string());
                 if ui.button(tr("modman_use_this")).clicked() {
                     self.state = State::PreCheckMod;
-                    ctx.request_repaint();
+                    ui.request_repaint();
                 }
                 if ui.button(tr("modman_select_manually")).clicked() {
                     self.state = State::PreSelectPath;
@@ -138,10 +137,10 @@ impl Modmanager {
                 }
                 ui.label("Will check mod install now...");
                 self.state = State::CheckMod;
-                ctx.request_repaint();
+                ui.request_repaint();
             }
             State::CheckMod => {
-                ctx.request_repaint();
+                ui.request_repaint();
                 let mod_path = paths.noita_quantew_install();
                 info!("Mod path: {}", mod_path.display());
 

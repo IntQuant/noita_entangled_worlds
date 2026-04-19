@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bitcode = "0.6.7"
+bitcode = "0.6.9"
 eyre = "0.6.12"
-tracing = "0.1.41"
-strum = { version = "0.27.2", features = ["derive"] }
+tracing = "0.1.44"
+strum = { version = "0.28.0", features = ["derive"] }

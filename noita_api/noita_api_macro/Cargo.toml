@@ -8,7 +8,7 @@ proc-macro = true
 
 [dependencies]
 heck = "0.5.0"
-proc-macro2 = "1.0.101"
-quote = "1.0.40"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.143"
+proc-macro2 = "1.0.106"
+quote = "1.0.45"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"

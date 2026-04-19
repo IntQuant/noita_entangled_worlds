@@ -479,12 +479,12 @@ impl App {
         );
     }
 
-    fn connect_screen(&mut self, ctx: &Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+    fn connect_screen(&mut self, ui: &mut Ui) {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             if self.app_saved_state.times_started.is_multiple_of(20) {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
                     .texture_options(TextureOptions::NEAREST);
-                image.paint_at(ui, ctx.viewport_rect());
+                image.paint_at(ui, ui.viewport_rect());
             } else {
                 draw_bg(ui);
             }
@@ -539,8 +539,7 @@ impl App {
                 |ui| {
                     filled_group(ui, |ui| {
                         ui.set_min_size(ui.available_size());
-
-                        self.panel_right_bar(ui, ctx);
+                        self.panel_right_bar(ui);
                     })
                 },
             );
@@ -606,7 +605,7 @@ impl App {
             let mut connect_to = None;
             Window::new(tr("Lobby-list"))
                 .open(&mut self.show_lobby_list)
-                .show(ctx, |ui| {
+                .show(ui, |ui| {
                     ui.set_min_height(100.0);
                     let steam_state = self.steam_state.as_mut().unwrap();
                     ui.horizontal(|ui| {
@@ -696,7 +695,7 @@ impl App {
         }
     }
 
-    fn panel_right_bar(&mut self, ui: &mut Ui, ctx: &Context) {
+    fn panel_right_bar(&mut self, ui: &mut Ui) {
         let lang_label = self
             .app_saved_state
             .lang_id
@@ -716,7 +715,7 @@ impl App {
         .on_hover_text(tr("button_open_discord"))
         .clicked()
         {
-            ctx.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
+            ui.open_url(OpenUrl::new_tab("https://discord.gg/uAK7utvVWN"));
         }
         let secret_active = ui.input(|i| i.modifiers.ctrl && i.key_down(Key::D));
         if secret_active && ui.button("reset all data").clicked() {
@@ -949,7 +948,7 @@ impl App {
         };
     }
 
-    fn show_lobby(&mut self, ctx: &Context) {
+    fn show_lobby(&mut self, ui: &mut Ui) {
         let AppState::ConnectedLobby {
             netman,
             noita_launcher,
@@ -961,7 +960,7 @@ impl App {
         let stopped = netman.stopped.load(Ordering::Relaxed);
         let accept_local = netman.accept_local.load(Ordering::Relaxed);
         let local_connected = netman.local_connected.load(Ordering::Relaxed);
-        egui::TopBottomPanel::bottom("noita_status").show(ctx, |ui| {
+        egui::Panel::bottom("noita_status").show_inside(ui, |ui| {
             ui.add_space(3.0);
             if accept_local {
                 if local_connected {
@@ -973,15 +972,15 @@ impl App {
                 ui.label(tr("noita_not_yet"));
             }
         });
-        egui::SidePanel::left("players")
+        egui::Panel::left("players")
             .resizable(false)
-            .exact_width(230.0)
-            .show(ctx, |ui| {
+            .exact_size(230.0)
+            .show_inside(ui, |ui| {
                 ui.add_space(3.0);
                 show_player_list(ui, netman);
             });
         let mut update_lobby_data = false;
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 let last = self.connected_menu;
                 ui.selectable_value(&mut self.connected_menu, ConnectedMenu::Normal, "Lobby");
@@ -1160,7 +1159,7 @@ impl App {
                         self.connected_menu = ConnectedMenu::Normal
                     }
                 }
-                ConnectedMenu::Map => self.map.ui(ui, netman, ctx),
+                ConnectedMenu::Map => self.map.ui(ui, netman),
                 ConnectedMenu::BanList => {
                     let mut ban_list = netman.ban_list.lock().unwrap();
                     let mut i = ban_list.len();
@@ -1195,7 +1194,7 @@ impl App {
                             .show(ui, |ui| {
                                 add_per_status_ui(&report, steam, ui);
                             });
-                        ctx.request_repaint_after(Duration::from_millis(16));
+                        ui.request_repaint_after(Duration::from_millis(16));
                     }
                 },
                 ConnectedMenu::VoIP => {
@@ -1299,11 +1298,11 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        ctx.request_repaint_after(Duration::from_millis(500));
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+        ui.request_repaint_after(Duration::from_millis(500));
         match &mut self.state {
             AppState::Connect => {
-                self.connect_screen(ctx);
+                self.connect_screen(ui);
             }
             AppState::ConnectedLobby {
                 netman,
@@ -1314,7 +1313,7 @@ impl eframe::App for App {
                     self.notify_error(err);
                     return;
                 }
-                self.show_lobby(ctx);
+                self.show_lobby(ui);
             }
             AppState::Error { message } => {
                 let add_contents = |ui: &mut Ui| {
@@ -1322,19 +1321,21 @@ impl eframe::App for App {
                     ui.label(&*message);
                     ui.button(tr("button_back")).clicked()
                 };
-                if egui::CentralPanel::default().show(ctx, add_contents).inner {
+                if egui::CentralPanel::default()
+                    .show_inside(ui, add_contents)
+                    .inner
+                {
                     self.state = AppState::Connect;
                 }
             }
             AppState::ModManager => {
-                egui::CentralPanel::default().show(ctx, draw_bg);
+                egui::CentralPanel::default().show_inside(ui, draw_bg);
                 Window::new(tr("modman"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                    .show(ctx, |ui| {
+                    .show(ui, |ui| {
                         ui.set_max_width(600.0);
                         self.modmanager.update(
-                            ctx,
                             ui,
                             &mut self.paths,
                             self.steam_state.as_mut().ok(),
@@ -1346,11 +1347,11 @@ impl eframe::App for App {
                 }
             }
             AppState::SelfUpdate => {
-                egui::CentralPanel::default().show(ctx, draw_bg);
+                egui::CentralPanel::default().show_inside(ui, draw_bg);
                 Window::new(tr("selfupdate"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                    .show(ctx, |ui| {
+                    .show(ui, |ui| {
                         ui.set_max_width(600.0);
                         self.self_update.self_update(ui);
                     });
@@ -1363,11 +1364,11 @@ impl eframe::App for App {
                     self.state = AppState::ModManager;
                     return;
                 }
-                egui::CentralPanel::default().show(ctx, draw_bg);
+                egui::CentralPanel::default().show_inside(ui, draw_bg);
                 Window::new(tr("lang_picker"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                    .show(ctx, |ui| {
+                    .show(ui, |ui| {
                         for lang in &LANGS {
                             ui.set_max_width(200.0);
                             ui.vertical_centered_justified(|ui| {
@@ -1386,7 +1387,7 @@ impl eframe::App for App {
                 Window::new(tr("An-in-progress-run-has-been-detected"))
                     .auto_sized()
                     .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                    .show(ctx, |ui| {
+                    .show(ui, |ui| {
                         ui.label(tr("savestate_desc"));
                         ui.horizontal(|ui| {
                             if ui.button(tr("Continue")).clicked() {
@@ -1400,7 +1401,7 @@ impl eframe::App for App {
                     });
             }
             AppState::TangledConnecting { peer } => {
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     ui.label(tr("ip_wait_for_connection"));
                 });
                 if peer.state() == tangled::PeerState::Disconnected {
@@ -1421,7 +1422,7 @@ impl eframe::App for App {
             AppState::GogModeIssue(target_lobby) => {
                 let mut button_back = false;
                 let mut button_restart = false;
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     ui.label(format!(
                         "Mismathing modes: Host is in {:?} mode, you're in {:?} mode",
                         target_lobby.kind, self.my_lobby_kind

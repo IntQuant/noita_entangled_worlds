@@ -114,17 +114,29 @@ impl AudioSettings {
                 let host = cpal::default_host();
                 self.input_devices = host
                     .input_devices()
-                    .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+                    .map(|devices| {
+                        devices
+                            .filter_map(|d| d.description().map(|s| s.name().to_string()).ok())
+                            .collect()
+                    })
                     .unwrap_or_default();
                 self.output_devices = host
                     .output_devices()
-                    .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+                    .map(|devices| {
+                        devices
+                            .filter_map(|d| d.description().map(|s| s.name().to_string()).ok())
+                            .collect()
+                    })
                     .unwrap_or_default();
                 if self.input_device.is_none() {
-                    self.input_device = host.default_input_device().and_then(|a| a.name().ok())
+                    self.input_device = host
+                        .default_input_device()
+                        .and_then(|a| a.description().map(|s| s.name().to_string()).ok())
                 }
                 if self.output_device.is_none() {
-                    self.output_device = host.default_output_device().and_then(|a| a.name().ok())
+                    self.output_device = host
+                        .default_output_device()
+                        .and_then(|a| a.description().map(|s| s.name().to_string()).ok())
                 }
             }
             ComboBox::from_label("Input Device")

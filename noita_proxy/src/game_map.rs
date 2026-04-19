@@ -5,8 +5,7 @@ use rustc_hash::FxHashMap;
 
 use eframe::egui::load::TexturePoll;
 use eframe::egui::{
-    Color32, ColorImage, Context, Key, Rect, Sense, SizeHint, TextureOptions, Ui, Vec2,
-    include_image, pos2,
+    Color32, ColorImage, Key, Rect, Sense, SizeHint, TextureOptions, Ui, Vec2, include_image, pos2,
 };
 use eframe::epaint::TextureHandle;
 
@@ -39,16 +38,11 @@ impl Default for ImageMap {
     }
 }
 impl ImageMap {
-    pub fn update_textures(
-        &mut self,
-        ui: &mut Ui,
-        map: &FxHashMap<ChunkCoord, RgbaImage>,
-        ctx: &Context,
-    ) {
+    pub fn update_textures(&mut self, ui: &mut Ui, map: &FxHashMap<ChunkCoord, RgbaImage>) {
         for (coord, img) in map {
             let name = format!("{}x{}", coord.0, coord.1);
             if self.textures.contains_key(coord) {
-                ctx.forget_image(&name)
+                ui.forget_image(&name)
             }
             let size = [img.width() as usize, img.height() as usize];
             let color_image =
@@ -85,7 +79,7 @@ impl ImageMap {
         }
     }
 
-    pub fn ui(&mut self, ui: &mut Ui, netman: &NetManStopOnDrop, ctx: &Context) {
+    pub fn ui(&mut self, ui: &mut Ui, netman: &NetManStopOnDrop) {
         if self.offset == Vec2::new(f32::MAX, f32::MAX) {
             self.offset = Vec2::new(ui.available_width() / 2.0, ui.available_height() / 2.0);
         }
@@ -96,14 +90,14 @@ impl ImageMap {
         {
             let map = &mut netman.chunk_map.lock().unwrap();
             if !map.is_empty() {
-                self.update_textures(ui, map, ctx);
+                self.update_textures(ui, map);
             }
             map.clear();
         }
         if self.notplayer.is_none() {
             self.notplayer = include_image!("../assets/notplayer.png")
                 .load(
-                    ctx,
+                    ui,
                     TextureOptions::NEAREST,
                     SizeHint::Size {
                         width: 7,
@@ -125,10 +119,10 @@ impl ImageMap {
             self.offset += response.drag_delta();
         }
 
-        if ui.input(|i| i.raw_scroll_delta.y) != 0.0 {
+        if ui.input(|i| i.smooth_scroll_delta.y) != 0.0 {
             let mouse_pos = ui.input(|i| i.pointer.latest_pos().unwrap_or_default());
             let mouse_relative = mouse_pos - self.offset;
-            let zoom_factor = 2.0_f32.powf(ui.input(|i| i.raw_scroll_delta.y / 256.0));
+            let zoom_factor = 2.0_f32.powf(ui.input(|i| i.smooth_scroll_delta.y / 256.0));
             self.zoom *= zoom_factor;
             let new_mouse_relative = mouse_relative * zoom_factor;
             self.offset = mouse_pos - new_mouse_relative;

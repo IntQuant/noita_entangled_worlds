@@ -1,6 +1,6 @@
 use bitcode::{Decode, Encode};
 use image::RgbaImage;
-use rand::{Rng, rng};
+use rand::{RngExt, rng};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rustc_hash::{FxHashMap, FxHashSet};
