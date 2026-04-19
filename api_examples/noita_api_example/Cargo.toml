@@ -7,5 +7,5 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-noita_api = {path = "../../noita_api" }
+noita_api = {workspace = true}
 eyre = "0.6.12"

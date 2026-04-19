@@ -42,7 +42,7 @@ dashmap = "6.1.0"
 eyre = "0.6.12"
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
 tracing-appender = "0.2.3"
-shared = {path = "../shared"}
+shared = {workspace = true}
 rstar = "0.12.2"
 cpal = {version= "0.16.0", features=["jack"]}
 rodio = "0.21.1"
