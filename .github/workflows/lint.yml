@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-22.04
     name: Check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install extra deps
         run: sudo apt-get update && sudo apt-get install -y libclang-dev libasound2-dev libjack-dev
       - uses: dtolnay/rust-toolchain@stable

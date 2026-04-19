@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-22.04
     name: Build mod and ewext
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-pc-windows-gnu
@@ -30,7 +30,7 @@ jobs:
       - name: Create archive
         run: python scripts/ci_make_archives.py mod
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: quant.ew.zip
           path: target/quant.ew.zip
@@ -39,7 +39,7 @@ jobs:
     name: Build proxy for linux
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-gnu
@@ -57,7 +57,7 @@ jobs:
       - name: Create archives
         run: python scripts/ci_make_archives.py linux
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: noita_proxy-linux.zip
           path: target/noita_proxy-linux.zip
@@ -75,7 +75,7 @@ jobs:
             architecture: intel
             zip_name: noita_proxy-macos-intel.zip
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -91,7 +91,7 @@ jobs:
       - name: Rename archive
         run: mv target/noita_proxy-macos.zip target/${{ matrix.zip_name }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.zip_name }}
           path: target/${{ matrix.zip_name }}
@@ -100,7 +100,7 @@ jobs:
     name: Build proxy for windows
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -113,7 +113,7 @@ jobs:
       - name: Create archives
         run: python scripts/ci_make_archives.py windows
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: noita_proxy-win.zip
           path: target/noita_proxy-win.zip
@@ -127,7 +127,7 @@ jobs:
     needs: [build-mod, build-proxy-linux, build-proxy-windows, build-proxy-macos]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           sparse-checkout: last_release_notes.md
       - name: Download all workflow run artifacts
