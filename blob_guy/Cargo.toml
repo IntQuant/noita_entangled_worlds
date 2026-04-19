@@ -3,12 +3,14 @@ name = "blob_guy"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+
 [lib]
 crate-type = ["cdylib"]
 #crate-type = ["rlib"]
 
 [dependencies]
-noita_api = {workspace = true}
+noita_api = { path = "../noita_api" }
 eyre = "0.6.12"
 smallvec = "1.15.1"
 rustc-hash = "2.1.2"
