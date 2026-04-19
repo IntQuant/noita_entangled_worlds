@@ -58,6 +58,8 @@ mkShell {
     ))
 
     pkgs.lua-language-server
+
+    pkgs.pkg-config
   ];
 
   NOITA_MOD_COMPONENTEXPLORER = "${ComponentExplorer}";
