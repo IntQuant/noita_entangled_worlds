@@ -56,12 +56,6 @@ build_malloc_log_debug:
     cp target/i686-pc-windows-gnu/debug/malloc_probe.dll $HOME/.local/share/Steam/steamapps/common/Noita
 
 ##
-build_blob:
-    cd blob_guy && cargo build --release --target=i686-pc-windows-gnu
-    cp target/i686-pc-windows-gnu/release/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
-build_blob_debug:
-    cd blob_guy && cargo build --target=i686-pc-windows-gnu
-    cp target/i686-pc-windows-gnu/debug/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
 
 run-rel: add_dylib_release build_ext
     cd noita_proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
