@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass
 import readline
 
-cargo_manifest = tomllib.load(open("noita-proxy/Cargo.toml", "rb"))
+cargo_manifest = tomllib.load(open("noita_proxy/Cargo.toml", "rb"))
 version = cargo_manifest["package"]["version"]
 
 print("Current version: ", version)
@@ -67,7 +67,7 @@ def extract_steam_redist():
 def make_release_assets():
     print("Compiling Noita Proxy...")
 
-    os.chdir("noita-proxy")
+    os.chdir("noita_proxy")
 
     subprocess.run(["cross", "build", "--profile", "release-lto", "--target", "x86_64-unknown-linux-gnu"], check=True)
     subprocess.run(["cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"], check=True)
@@ -77,8 +77,8 @@ def make_release_assets():
     os.makedirs("target", exist_ok=True)
     os.makedirs("target/tmp", exist_ok=True)
 
-    try_remove("target/noita-proxy-win.zip")
-    try_remove("target/noita-proxy-linux.zip")
+    try_remove("target/noita_proxy-win.zip")
+    try_remove("target/noita_proxy-linux.zip")
     try_remove("target/quant.ew.zip")
 
     print("Extracting steam dylib...")
@@ -87,14 +87,14 @@ def make_release_assets():
 
     print("Writing win release...")
 
-    with ZipFile("target/noita-proxy-win.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-pc-windows-gnu/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    with ZipFile("target/noita_proxy-win.zip", "w") as release:
+        release.write("target/x86_64-pc-windows-gnu/release/noita_proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing linux release...")
 
-    with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-        release.write("noita-proxy/target/x86_64-unknown-linux-gnu/release-lto/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    with ZipFile("target/noita_proxy-linux.zip", "w") as release:
+        release.write("target/x86_64-unknown-linux-gnu/release-lto/noita_proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 
     print("Writing mod release...")
@@ -145,14 +145,14 @@ def main():
         notes.p("No pull requests have been accepted in this release.")
 
     notes.title("Installation")
-    notes.p("Download and unpack `noita-proxy-win.zip` or `noita-proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
+    notes.p("Download and unpack `noita_proxy-win.zip` or `noita_proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
     notes.p("Proxy is able to download and install the mod automatically. There is no need to download the mod (`quant.ew.zip`) manually.")
     notes.p("""You'll be prompted for a path to `noita.exe` when launching the proxy for the first time.
 It should be detected automatically as long as you use steam version of the game and steam is launched.
         """)
 
     notes.title("Updating")
-    notes.p("There is a button in bottom-left corner on noita-proxy's main screen that allows to auto-update to a new version when one is available")
+    notes.p("There is a button in bottom-left corner on noita_proxy's main screen that allows to auto-update to a new version when one is available")
 
     print()
     notes_path = "/tmp/rnotes.md"
@@ -163,7 +163,7 @@ It should be detected automatically as long as you use steam version of the game
 
     title = input("Release title: ")
 
-    subprocess.call(["gh", "release", "create", tag, "--title", f"{tag} - {title}", "-F", notes_path, "./target/noita-proxy-linux.zip", "./target/noita-proxy-win.zip", "./target/quant.ew.zip"])
+    subprocess.call(["gh", "release", "create", tag, "--title", f"{tag} - {title}", "-F", notes_path, "./target/noita_proxy-linux.zip", "./target/noita_proxy-win.zip", "./target/quant.ew.zip"])
 
 if __name__ == "__main__":
     main()

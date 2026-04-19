@@ -1,5 +1,5 @@
 # Installation
-Download Noita Proxy (noita-proxy-win.zip) and unpack it somewhere.
+Download Noita Proxy (noita_proxy-win.zip) and unpack it somewhere.
 
 Download the mod in quant.ew.zip
 

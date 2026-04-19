@@ -1,0 +1,24 @@
+[workspace.package]
+edition = "2024"
+
+[profile.release]
+lto = true
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[workspace]
+resolver = "3"
+members = [
+    "noita_proxy",
+    "ewext",
+    "noita_api",
+    "noita_api/noita_api_macro",
+    "api_examples/noita_api_example",
+    "blob_guy",
+    "extra/diff",
+    "extra/dll_injector",
+    "extra/malloc_probe",
+    "extra/mem_reader",
+]

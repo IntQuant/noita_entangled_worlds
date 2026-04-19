@@ -18,7 +18,7 @@
     ],
     "rust-analyzer.linkedProjects": [
         "ewext/Cargo.toml",
-        "noita-proxy/Cargo.toml",
+        "noita_proxy/Cargo.toml",
         "extra/malloc_probe/Cargo.toml",
     ]
 }

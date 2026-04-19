@@ -6,16 +6,9 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"]
 
-[profile.dev]
-panic = "abort"
+[features]
+default=[]
+log=[]
 
-[profile.release]
-lto = true
-panic = "abort"
-split-debuginfo = "packed"
-incremental=true
-codegen-units=1
-opt-level = 3
-
-[dependencies]
+[target.'cfg(windows)'.dependencies]
 windows = {version="0.62.2", features = ["Win32", "Win32_System", "Win32_System_Memory"]}

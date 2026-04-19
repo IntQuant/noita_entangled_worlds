@@ -1,6 +1,6 @@
 import re
 
-cargo_manifest = open("noita-proxy/Cargo.toml", "r").read()
+cargo_manifest = open("noita_proxy/Cargo.toml", "r").read()
 version = re.findall('version = "(.*?)"', cargo_manifest)[0]
 
 print("Version:", version)

@@ -18,17 +18,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ewext -> target
-                      noita-proxy -> target
+                      noita_proxy -> target
 
       - name: Check ewext for formatting
         run: cargo fmt --check
         working-directory: ./ewext
       - name: Check proxy for formatting
         run: cargo fmt --check
-        working-directory: ./noita-proxy
+        working-directory: ./noita_proxy
       - name: Ask clippy for approval (ewext)
         run: cargo clippy -- -D clippy::all
         working-directory: ./ewext
       - name: Ask clippy for approval (proxy)
         run: cargo clippy -- -D clippy::all
-        working-directory: ./noita-proxy
+        working-directory: ./noita_proxy
