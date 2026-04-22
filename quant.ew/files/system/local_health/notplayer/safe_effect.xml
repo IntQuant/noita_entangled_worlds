@@ -4,8 +4,14 @@
 
     <GameEffectComponent
         effect="PROTECTION_ALL"
-        frames="104"
+        frames="120"
         disable_movement="0"
+    >
+    </GameEffectComponent >
+
+    <GameEffectComponent
+        effect="PROTECTION_POLYMORPH"
+        frames="120"
     >
     </GameEffectComponent >
 </Entity>

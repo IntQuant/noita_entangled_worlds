@@ -391,16 +391,26 @@ local function player_died()
     local _, max_hp = util.get_ent_health(ctx.my_player.entity)
     local cap = util.get_ent_health_cap(ctx.my_player.entity)
 
-    local ent = LoadGameEffectEntityTo(
-        ctx.my_player.entity,
-        "mods/quant.ew/files/system/local_health/notplayer/poly_effect.xml"
-    )
-    ctx.my_player.entity = ent + 1
+    local player_entity = ctx.my_player.entity
+    local x, y = EntityGetTransform(player_entity)
+    local notplayer = EntityLoad("mods/quant.ew/files/system/local_health/notplayer/notplayer.xml", x, y)
+    np.SetPlayerEntity(notplayer)
+
+    EntityAddTag(notplayer, "ew_notplayer")
+    EntityAddTag(notplayer, "ew_peer")
+    EntityAddComponent(notplayer, "VariableStorageComponent", {
+        name="serialized_player_entity",
+        value_string=tostring(base64.encode(util.serialize_entity(player_entity))),
+    })
+    EntityKill(player_entity)
+
+    ctx.my_player.entity = notplayer
+
     if ctx.proxy_opt.physics_damage then
         local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         ComponentSetValue2(damage, "physics_objects_damage", true)
     end
-    do_switch_effect(false)
+    do_switch_effect(true)
     EntitySetName(ctx.my_player.entity, ctx.my_id .. "?")
     util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
     util.set_ent_health_cap(ctx.my_player.entity, cap)
@@ -431,7 +441,7 @@ local function player_died()
         end
     end
 
-    polymorph.switch_entity(ent + 1, true)
+    polymorph.switch_entity(notplayer, true)
 
     remove_healthbar_locally()
     inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
@@ -613,6 +623,8 @@ function module.on_world_update_host()
                 any_player_alive = true
             end
         end
+        -- prevent gameover for testing
+        any_player_alive = true
         if not any_player_alive then
             gameover_frame_check = 0
         elseif gameover_frame_check + 60 <= GameGetFrameNum() then
@@ -723,7 +735,32 @@ ctx.cap.health = {
             local item_data = inventory_helper.get_item_data(ctx.my_player)
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
-            ctx.my_player.entity = end_poly_effect(ctx.my_player.entity)
+
+            local notplayer = ctx.my_player.entity
+            local x, y = EntityGetTransform(notplayer)
+            local variable_storage = EntityGetComponent(notplayer, "VariableStorageComponent")
+            local base64_string
+
+            assert(variable_storage ~= nil, "VARIABLE STORAGE ON NOTPLAYER IS MISSING !!!")
+
+            for _, v in pairs(variable_storage)do
+                local name = ComponentGetValue2(v, "name")
+
+                if(name == "serialized_player_entity")then
+                    base64_string = ComponentGetValue2(v, "value_string")
+                    break
+                end
+            end
+
+            assert(base64_string ~= nil, "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
+
+            local player_entity = util.deserialize_entity(base64.decode(base64_string), x, y)
+            np.SetPlayerEntity(player_entity)
+
+            EntityKill(notplayer)
+            ctx.my_player.entity = player_entity
+
+            rpc.remove_homing(true)
             remove_stuff()
             inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
             local controls = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "ControlsComponent")
@@ -774,7 +811,7 @@ ctx.cap.health = {
                     end
                 end)
             else
-                do_switch_effect(true)
+                do_switch_effect(false)
                 polymorph.switch_entity(ctx.my_player.entity)
             end
             reduce_hp()
