@@ -355,8 +355,6 @@ local function player_died()
         return
     end
 
-    -- This may look like a hack, but it allows to use existing poly machinery to change player entity AND to store the original player for later,
-    -- Which is, like, perfect.
     GameAddFlagRun("ew_flag_notplayer_active")
     if ctx.proxy_opt.no_notplayer then
         no_notplayer()
