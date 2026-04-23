@@ -621,8 +621,6 @@ function module.on_world_update_host()
                 any_player_alive = true
             end
         end
-        -- prevent gameover for testing
-        any_player_alive = true
         if not any_player_alive then
             gameover_frame_check = 0
         elseif gameover_frame_check + 60 <= GameGetFrameNum() then
