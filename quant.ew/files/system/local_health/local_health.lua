@@ -678,7 +678,6 @@ function module.on_world_update_host()
                 break
             end
         end
-        any_player_alive = true
         if not any_player_alive then
             if gameover_frame_check == 0 then
                 gameover_frame_check = GameGetFrameNum() + 180
