@@ -306,26 +306,43 @@ local function reset_cast_state_if_has_any_other_item(player_data)
     end
 end
 
-local function no_notplayer()
-    local ent = LoadGameEffectEntityTo(ctx.my_player.entity, "mods/quant.ew/files/system/local_health/poly.xml")
-    EntityAddTag(ent + 1, "ew_notplayer")
+local function fake_polymorph_into_entity(entity_path)
+    local player_entity = ctx.my_player.entity
+    local x, y = EntityGetTransform(player_entity)
+    local notplayer = EntityLoad(entity_path, x, y)
+    np.SetPlayerEntity(notplayer)
 
-    EntityAddComponent2(ent + 1, "LuaComponent", {
+    EntityAddTag(notplayer, "ew_notplayer")
+    EntityAddComponent(notplayer, "VariableStorageComponent", {
+        name="serialized_player_entity",
+        value_string=tostring(base64.encode(util.serialize_entity(player_entity))),
+    })
+    EntityKill(player_entity)
+
+    ctx.my_player.entity = notplayer
+
+    return notplayer
+end
+
+local function no_notplayer()
+    local ent = fake_polymorph_into_entity("mods/quant.ew/files/system/local_health/mimic_potion.xml")
+
+    EntityAddComponent2(ent, "LuaComponent", {
         script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
         script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
     })
 
-    for _, com in ipairs(EntityGetComponent(ent + 1, "LuaComponent")) do
+    for _, com in ipairs(EntityGetComponent(ent, "LuaComponent")) do
         if ComponentGetValue2(com, "script_death") == "data/scripts/items/potion_glass_break.lua" then
-            EntityRemoveComponent(ent + 1, com)
+            EntityRemoveComponent(ent, com)
             break
         end
     end
-    for _, com in ipairs(EntityGetComponent(ent + 1, "DamageModelComponent")) do
-        EntityRemoveComponent(ent + 1, com)
+    for _, com in ipairs(EntityGetComponent(ent, "DamageModelComponent")) do
+        EntityRemoveComponent(ent, com)
     end
 
-    polymorph.switch_entity(ent + 1)
+    polymorph.switch_entity(ent)
 end
 
 rpc.opts_everywhere()
@@ -389,20 +406,7 @@ local function player_died()
     local _, max_hp = util.get_ent_health(ctx.my_player.entity)
     local cap = util.get_ent_health_cap(ctx.my_player.entity)
 
-    local player_entity = ctx.my_player.entity
-    local x, y = EntityGetTransform(player_entity)
-    local notplayer = EntityLoad("mods/quant.ew/files/system/local_health/notplayer/notplayer.xml", x, y)
-    np.SetPlayerEntity(notplayer)
-
-    EntityAddTag(notplayer, "ew_notplayer")
-    EntityAddTag(notplayer, "ew_peer")
-    EntityAddComponent(notplayer, "VariableStorageComponent", {
-        name="serialized_player_entity",
-        value_string=tostring(base64.encode(util.serialize_entity(player_entity))),
-    })
-    EntityKill(player_entity)
-
-    ctx.my_player.entity = notplayer
+    local notplayer = fake_polymorph_into_entity("mods/quant.ew/files/system/local_health/notplayer/notplayer.xml")
 
     if ctx.proxy_opt.physics_damage then
         local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
