@@ -1,2 +1,8 @@
 [build]
 target = "i686-pc-windows-gnu"
+
+[profile.debug]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
