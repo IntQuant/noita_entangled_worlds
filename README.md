@@ -20,7 +20,7 @@ Discord server: [https://discord.gg/uAK7utvVWN](https://discord.gg/uAK7utvVWN)
 
 ## Installation (provided by @stefnotch)
 
-Go to [releases](https://github.com/IntQuant/noita_entangled_worlds/releases) and download the latest `noita-proxy-win.zip` or `noita-proxy-linux.zip`, depending on your OS.
+Go to [releases](https://github.com/IntQuant/noita_entangled_worlds/releases) and download the latest `noita_proxy-win.zip` or `noita_proxy-linux.zip`, depending on your OS.
 
 Unpack it, and launch the proxy. Proxy is able to download and install the mod automatically.
 
@@ -40,9 +40,9 @@ Now you're ready to start a server and have fun!
    1. Set the Engine to "WS12WineKegworks10.0-battle.net"
    2. Set the Operating System to "Windows 11". 
 2. After confirming that the game launch, open the folder where the game is installed and navigate to where the `noita.exe` is located (usually in "/Users/{User}/Applications/Noita.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Noita") and add a shortcut to it in the sidebar of the Finder. 
-3. Go to [releases](https://github.com/IntQuant/noita_entangled_worlds/releases), download the latest `noita-proxy-macos.zip`.
+3. Go to [releases](https://github.com/IntQuant/noita_entangled_worlds/releases), download the latest `noita_proxy-macos.zip`.
 4. Unpack it and launch the proxy, it will ask to give the path to the `noita.exe` (that we save a shortcut to!). Once the path is given, the proxy will be able to download and install the mod automatically.
-5. Close the proxy, then launch it again via a terminal with the following command: `~/Applications/noita-proxy-macos/noita_proxy --launch-cmd '"/Users/{User}/Applications/Noita.app/Contents/MacOS/wineskinlauncher" --run "C:\GOG Games\Noita\noita.exe"'`
+5. Close the proxy, then launch it again via a terminal with the following command: `~/Applications/noita_proxy-macos/noita_proxy --launch-cmd '"/Users/{User}/Applications/Noita.app/Contents/MacOS/wineskinlauncher" --run "C:\GOG Games\Noita\noita.exe"'`
 6. Then you can enjoy the mod as usual, by enabling it in the "Mods" menu of Noita.
 
 Note: The proxy must be launched via terminal with the command above every time you want to play multiplayer.

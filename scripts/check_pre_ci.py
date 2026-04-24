@@ -20,14 +20,14 @@ def generate_notes(tag):
         notes.p("No pull requests have been accepted in this release.")
 
     notes.title("Installation")
-    notes.p("Download and unpack `noita-proxy-win.zip` or `noita-proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
+    notes.p("Download and unpack `noita_proxy-win.zip` or `noita_proxy-linux.zip`, depending on your OS. After that, launch the proxy.")
     notes.p("Proxy is able to download and install the mod automatically. There is no need to download the mod (`quant.ew.zip`) manually.")
     notes.p("""You'll be prompted for a path to `noita.exe` when launching the proxy for the first time.
 It should be detected automatically as long as you use steam version of the game and steam is launched.
         """)
 
     notes.title("Updating")
-    notes.p("There is a button in bottom-left corner on noita-proxy's main screen that allows to auto-update to a new version when one is available")
+    notes.p("There is a button in bottom-left corner on noita_proxy's main screen that allows to auto-update to a new version when one is available")
 
     print()
     notes_path = "./last_release_notes.md"
@@ -45,12 +45,12 @@ def main():
         exit(1)
 
     subprocess.run(["git", "pull"])
-    
+
     notes_path = generate_notes(tag)
 
     subprocess.run(["git", "add", "-A"])
     subprocess.run(["git", "commit", "-am", "Automated commit: "+tag])
-    
+
     subprocess.check_call(["git", "tag", "-a", "-F", notes_path, tag ])
     subprocess.check_call(["git", "push", "--follow-tags"])
     subprocess.check_call(["git", "push"])

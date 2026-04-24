@@ -14,22 +14,22 @@ mode = sys.argv[1]
 if mode == "windows":
     print("Writing windows release...")
 
-    with ZipFile("target/noita-proxy-win.zip", "w") as release:
-        release.write("noita-proxy/target/release/noita-proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    with ZipFile("target/noita_proxy-win.zip", "w") as release:
+        release.write("target/release/noita_proxy.exe", arcname="noita_proxy.exe", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/steam_api64.dll", arcname="steam_api64.dll", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 elif mode == "linux":
     print("Writing linux release...")
 
-    with ZipFile("target/noita-proxy-linux.zip", "w") as release:
-        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    with ZipFile("target/noita_proxy-linux.zip", "w") as release:
+        release.write("target/release/noita_proxy", arcname="noita_proxy.x86_64", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("scripts/start-lutris.sh", arcname="start-lutris.sh", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/libsteam_api.so", arcname="libsteam_api.so", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 elif mode == "macos":
     print("Writing macos release...")
 
-    with ZipFile("target/noita-proxy-macos.zip", "w") as release:
-        #release.write("noita-proxy/assets/Info.plist", arcname="noita_proxy.app/Contents/Info.plist", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
-        release.write("noita-proxy/target/release/noita-proxy", arcname="noita_proxy", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+    with ZipFile("target/noita_proxy-macos.zip", "w") as release:
+        #release.write("noita_proxy/assets/Info.plist", arcname="noita_proxy.app/Contents/Info.plist", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
+        release.write("target/release/noita_proxy", arcname="noita_proxy", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
         release.write("redist/libsteam_api.dylib", arcname="libsteam_api.dylib", compress_type=COMPRESS_TYPE, compresslevel=COMPRESS_LEVEL)
 elif mode == "mod":
     print("Writing mod release...")

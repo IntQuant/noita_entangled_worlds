@@ -1,12 +1,18 @@
 #![windows_subsystem = "windows"]
+#[cfg(windows)]
 use std::ffi::CString;
+#[cfg(windows)]
 use std::mem::transmute;
+#[cfg(windows)]
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
+#[cfg(windows)]
 use windows::Win32::{
     Foundation::*,
     System::{Diagnostics::Debug::WriteProcessMemory, Memory::*, Threading::*},
 };
+#[cfg(windows)]
 use windows::core::PCSTR;
+#[cfg(windows)]
 unsafe fn inject_and_resume(exe: &str, dll: &str) -> windows::core::Result<()> {
     unsafe {
         let exe_c = CString::new(exe).unwrap();
@@ -62,6 +68,7 @@ unsafe fn inject_and_resume(exe: &str, dll: &str) -> windows::core::Result<()> {
     Ok(())
 }
 fn main() {
+    #[cfg(windows)]
     unsafe {
         inject_and_resume(r"./noita_back.exe", r"./malloc_probe.dll").unwrap();
     }

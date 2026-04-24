@@ -10,6 +10,7 @@ use std::num::NonZeroIsize;
 use std::sync::LazyLock;
 use std::{
     borrow::Cow,
+    env::current_exe,
     num::{NonZero, TryFromIntError},
     ops::Deref,
 };
@@ -54,6 +55,19 @@ impl GameEffectComponent {
 impl TelekinesisComponent {
     pub fn set_m_state(self, value: isize) -> eyre::Result<()> {
         raw::component_set_value(*self, "mState", value)
+    }
+}
+#[allow(unused)]
+pub fn dump_mem(s: &str) {
+    unsafe {
+        let lib = libloading::Library::new(format!(
+            "{}/malloc_probe.dll",
+            current_exe().unwrap().parent().unwrap().to_str().unwrap()
+        ))
+        .unwrap();
+        let func: libloading::Symbol<unsafe extern "C" fn(*const u8, usize)> =
+            lib.get(b"put_data").unwrap();
+        func(s.as_ptr(), s.len());
     }
 }
 impl EntityID {

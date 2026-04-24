@@ -1,0 +1,61 @@
+[package]
+name = "noita_proxy"
+description = "Noita Entangled Worlds proxy application."
+version = "1.7.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+eframe = { version= "0.34.1", features = ["glow", "default_fonts", "wayland", "x11"], default-features = false }
+rfd = "0.17.2"
+egui_extras = { version = "0.34.1", features = ["all_loaders"] }
+#egui_plot = "0.29.0"
+image = { version = "0.25.10", default-features = false, features = ["png", "webp"] }
+
+wide = "1.3.0"
+rayon = "1.12.0"
+ron = "0.12.1"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tracing = "0.1.44"
+tangled = {version="0.5.0", git = "https://github.com/IntQuant/tangled"}
+serde = { version = "1.0.228", features = ["serde_derive", "derive"] }
+bitcode = "0.6.9"
+lz4_flex = { version = "0.13.0", default-features = false, features = ["std"]}
+rand = "0.10.1"
+steamworks = "0.13.0"
+crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
+arboard = { version = "3.6.1", features = ["wayland-data-control"]}
+socket2 = { version = "0.6.3", features = ["all"] }
+reqwest = { version = "0.13.2", features = ["blocking", "json", "rustls"]}
+poll-promise = "0.3.0"
+zip = "8.5.1"
+self-replace = "1.5.0"
+rustc-hash = "2.1.2"
+fluent-templates = "0.13.3"
+unic-langid = { version = "0.9.6", features = ["serde"] }
+fluent-bundle = "0.16.0"
+argh = "0.1.19"
+shlex = "1.3.0"
+quick-xml = { version = "0.39.2", features = ["serialize"] }
+dashmap = "6.1.0"
+eyre = "0.6.12"
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread"] }
+tracing-appender = "0.2.5"
+shared = {workspace = true}
+rstar = "0.12.2"
+cpal = {version= "0.17.3", features=["jack"]}
+rodio = "0.22.2"
+opus = "0.3.1"
+rubato = "0.16.2"
+directories = "6.0.0"
+#fundsp = {version = "0.20.0", default-features = false, features = ["std"]}
+
+[target.'cfg(windows)'.dependencies]
+winapi={version="0.3.9",features = ["wincon"]}
+
+[dev-dependencies]
+serial_test = "3.4.0"
+
+[build-dependencies]
+winresource = "0.1.31"

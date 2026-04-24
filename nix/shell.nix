@@ -1,7 +1,7 @@
 {
   rust-bin,
   mkShell,
-  noita-proxy,
+  noita_proxy,
   pkgs,
   lib,
 }:
@@ -14,7 +14,7 @@ let
     wayland
     libxkbcommon
     libGL
-    noita-proxy.steamworksRedist
+    noita_proxy.steamworksRedist
   ];
   DearImGui = pkgs.fetchzip {
     url = "https://github.com/dextercd/Noita-Dear-ImGui/releases/download/release-1.26.0/NoitaDearImGui-1.26.0.zip";
@@ -33,7 +33,7 @@ in
 mkShell {
   strictDeps = true;
 
-  inputsFrom = [ noita-proxy ];
+  inputsFrom = [ noita_proxy ];
 
   packages = [
     # Derivations in `rust-stable` provide the toolchain,
@@ -58,6 +58,8 @@ mkShell {
     ))
 
     pkgs.lua-language-server
+
+    pkgs.pkg-config
   ];
 
   NOITA_MOD_COMPONENTEXPLORER = "${ComponentExplorer}";
@@ -65,7 +67,7 @@ mkShell {
   NOITA_MOD_MINIDUMP = "${MiniDump}";
 
   env = {
-    inherit (noita-proxy) OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_NO_VENDOR;
+    inherit (noita_proxy) OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_NO_VENDOR;
 
     RUST_BACKTRACE = 1;
     LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
