@@ -313,6 +313,8 @@ local function fake_polymorph_into_entity(entity_path)
     np.SetPlayerEntity(notplayer)
 
     EntityAddTag(notplayer, "ew_notplayer")
+    EntityAddTag(notplayer, "polymorphed")
+    EntityAddTag(notplayer, "polymorphed_player")
     EntityAddComponent(notplayer, "VariableStorageComponent", {
         name="serialized_player_entity",
         value_string=tostring(base64.encode(util.serialize_entity(player_entity))),
@@ -322,6 +324,57 @@ local function fake_polymorph_into_entity(entity_path)
     ctx.my_player.entity = notplayer
 
     return notplayer
+end
+
+function fake_unpolymorph()
+    local notplayer = ctx.my_player.entity
+    local x, y = EntityGetTransform(notplayer)
+    local variable_storage = EntityGetComponent(notplayer, "VariableStorageComponent")
+    local base64_string
+
+    assert(variable_storage ~= nil, "VARIABLE STORAGE ON NOTPLAYER IS MISSING !!!")
+
+    for _, v in pairs(variable_storage)do
+        local name = ComponentGetValue2(v, "name")
+
+        if(name == "serialized_player_entity")then
+            base64_string = ComponentGetValue2(v, "value_string")
+            break
+        end
+    end
+
+    assert(base64_string ~= nil, "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
+
+    local player_entity = util.deserialize_entity(base64.decode(base64_string), x, y)
+    np.SetPlayerEntity(player_entity)
+
+    EntityKill(notplayer)
+    ctx.my_player.entity = player_entity
+
+    return player_entity
+end
+
+-- this was a funny bug during testing, i wanted to keep it
+local function add_player_cape_for_fun(entity)
+    local cape
+    local player_child_entities = EntityGetAllChildren(entity)
+    if player_child_entities ~= nil then
+        for _, child_entity in ipairs(player_child_entities) do
+            local child_entity_name = EntityGetName(child_entity)
+            if child_entity_name == "cape" then
+                cape = child_entity
+                break
+            end
+        end
+    end
+
+    if cape then
+        EntityKill(cape)
+    end
+    local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
+    local x, y = EntityGetTransform(entity)
+    local cape2 = EntityLoad(player_cape_sprite_file, x, y)
+    EntityAddChild(entity, cape2)
 end
 
 local function no_notplayer()
@@ -341,6 +394,7 @@ local function no_notplayer()
     for _, com in ipairs(EntityGetComponent(ent, "DamageModelComponent")) do
         EntityRemoveComponent(ent, com)
     end
+    add_player_cape_for_fun(ent)
 
     polymorph.switch_entity(ent)
 end
@@ -407,6 +461,7 @@ local function player_died()
     local cap = util.get_ent_health_cap(ctx.my_player.entity)
 
     local notplayer = fake_polymorph_into_entity("mods/quant.ew/files/system/local_health/notplayer/notplayer.xml")
+    ctx.my_player.entity = notplayer
 
     if ctx.proxy_opt.physics_damage then
         local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
@@ -551,14 +606,14 @@ function module.on_world_update()
         rpc.send_status(status)
     end
 
+    -- flask resurrection
     if ctx.proxy_opt.no_notplayer and notplayer_active then
         local x, y = EntityGetTransform(ctx.my_player.entity)
         for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 14, "drillable")) do
             if EntityGetFilename(ent) == "data/entities/items/pickup/heart_fullhp_temple.xml" then
                 GameRemoveFlagRun("ew_flag_notplayer_active")
                 EntityKill(ent)
-                EntityRemoveFromParent(ctx.my_player.entity)
-                ent = end_poly_effect(ctx.my_player.entity)
+                local ent = fake_unpolymorph()
                 remove_stuff(ent)
                 polymorph.switch_entity(ent)
                 spectate.disable_throwing(false, ctx.my_player.entity)
@@ -619,16 +674,19 @@ function module.on_world_update_host()
         for _, player_data in pairs(ctx.players) do
             local is_alive = player_data.status.is_alive
             if is_alive then
-                if gameover_frame_check == 0 then
-                    gameover_frame_check = GameGetFrameNum()
-                end
                 any_player_alive = true
+                break
             end
         end
+        any_player_alive = true
         if not any_player_alive then
+            if gameover_frame_check == 0 then
+                gameover_frame_check = GameGetFrameNum() + 180
+            elseif gameover_frame_check <= GameGetFrameNum() then
+                gameover_primed = true
+            end
+        else
             gameover_frame_check = 0
-        elseif gameover_frame_check + 60 <= GameGetFrameNum() then
-            gameover_primed = true
         end
         if gameover_primed and not any_player_alive then
             print("Triggering a game over")
@@ -736,30 +794,7 @@ ctx.cap.health = {
             remove_inventory()
             GameRemoveFlagRun("ew_flag_notplayer_active")
 
-            local notplayer = ctx.my_player.entity
-            local x, y = EntityGetTransform(notplayer)
-            local variable_storage = EntityGetComponent(notplayer, "VariableStorageComponent")
-            local base64_string
-
-            assert(variable_storage ~= nil, "VARIABLE STORAGE ON NOTPLAYER IS MISSING !!!")
-
-            for _, v in pairs(variable_storage)do
-                local name = ComponentGetValue2(v, "name")
-
-                if(name == "serialized_player_entity")then
-                    base64_string = ComponentGetValue2(v, "value_string")
-                    break
-                end
-            end
-
-            assert(base64_string ~= nil, "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
-
-            local player_entity = util.deserialize_entity(base64.decode(base64_string), x, y)
-            np.SetPlayerEntity(player_entity)
-
-            EntityKill(notplayer)
-            ctx.my_player.entity = player_entity
-
+            local player_entity = fake_unpolymorph()
             rpc.remove_homing(true)
             remove_stuff()
             inventory_helper.set_item_data(item_data, ctx.my_player, true, false)
