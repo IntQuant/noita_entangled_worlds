@@ -247,7 +247,7 @@ local function allow_notplayer_perk(perk_id)
 end
 
 local function reduce_hp()
-    local p = 100 - ctx.proxy_opt.health_lost_on_revive
+    local p = 100 - (ctx.proxy_opt.health_lost_on_revive or 0)
     if p ~= 100 then
         if ctx.proxy_opt.global_hp_loss then
             rpc.loss_hp()
@@ -315,10 +315,8 @@ local function fake_polymorph_into_entity(entity_path)
     EntityAddTag(notplayer, "ew_notplayer")
     EntityAddTag(notplayer, "polymorphed")
     EntityAddTag(notplayer, "polymorphed_player")
-    EntityAddComponent(notplayer, "VariableStorageComponent", {
-        name="serialized_player_entity",
-        value_string=tostring(base64.encode(util.serialize_entity(player_entity))),
-    })
+
+    GlobalsSetValue("ew_local_player_dead", tostring(base64.encode(util.serialize_entity(player_entity))))
     EntityKill(player_entity)
 
     ctx.my_player.entity = notplayer
@@ -329,21 +327,9 @@ end
 function fake_unpolymorph()
     local notplayer = ctx.my_player.entity
     local x, y = EntityGetTransform(notplayer)
-    local variable_storage = EntityGetComponent(notplayer, "VariableStorageComponent")
-    local base64_string
+    local base64_string = tostring(GlobalsGetValue("ew_local_player_dead", ""))
 
-    assert(variable_storage ~= nil, "VARIABLE STORAGE ON NOTPLAYER IS MISSING !!!")
-
-    for _, v in pairs(variable_storage)do
-        local name = ComponentGetValue2(v, "name")
-
-        if(name == "serialized_player_entity")then
-            base64_string = ComponentGetValue2(v, "value_string")
-            break
-        end
-    end
-
-    assert(base64_string ~= nil, "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
+    assert(not (base64_string == nil or base64_string == ""), "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
 
     local player_entity = util.deserialize_entity(base64.decode(base64_string), x, y)
     np.SetPlayerEntity(player_entity)
@@ -750,7 +736,7 @@ end
 
 rpc.opts_reliable()
 function rpc.loss_hp()
-    local p = 100 - ctx.proxy_opt.health_lost_on_revive
+    local p = 100 - (ctx.proxy_opt.health_lost_on_revive or 0)
     local hp, max_hp = util.get_ent_health(ctx.my_player.entity)
     util.set_ent_health(ctx.my_player.entity, { (hp * p) / 100, (max_hp * p) / 100 })
 end
