@@ -29,6 +29,12 @@ let
     url = "https://github.com/dextercd/Noita-Minidump/releases/download/release-1.2.1/NoitaMinidump-1.2.1.zip";
     hash = "sha256-MIqiHdND+d3lPI66SH3I1DcZeIP/sU37fu/MjNlgEu4=";
   };
+  Cheatgui = pkgs.fetchFromGitHub {
+    owner = "probable-basilisk";
+    repo = "cheatgui";
+    rev = "225c0c7accb6e6eb46bab188ef49bf7ec678c844";
+    hash = "sha256-EsKMiCAN8vNv4W7KW6WgddJTjBZIoNG1Xha9CKpyB68=";
+  };
 in
 mkShell {
   strictDeps = true;
@@ -65,6 +71,7 @@ mkShell {
   NOITA_MOD_COMPONENTEXPLORER = "${ComponentExplorer}";
   NOITA_MOD_NOITADEARIMGUI = "${DearImGui}/NoitaDearImGui";
   NOITA_MOD_MINIDUMP = "${MiniDump}";
+  NOITA_MOD_CHEATGUI = "${Cheatgui}";
 
   env = {
     inherit (noita_proxy) OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_NO_VENDOR;
