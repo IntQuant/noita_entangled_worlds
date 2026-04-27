@@ -253,6 +253,9 @@ local function target()
             --if cam_target.entity ~= ctx.my_player.entity and not EntityHasTag(cam_target, "ew_notplayer") then
             --    EntityAddComponent2(cam_target.entity, "StreamingKeepAliveComponent")
             --end
+        else
+            local audio_n = EntityAddComponent2(cam_target.entity, "AudioListenerComponent")
+            ComponentSetValue2(audio_n, "z", -60)
         end
     end
     camera_target = cam_target
