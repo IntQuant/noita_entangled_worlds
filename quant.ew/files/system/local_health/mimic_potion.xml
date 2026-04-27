@@ -1,34 +1,34 @@
 <Entity tags="glue_NOT" name="$animal_mimic_potion" >
-  
+
     <Base file="data/entities/items/pickup/potion.xml">
-  
-        <PhysicsBodyComponent 
+
+        <PhysicsBodyComponent
             _tags="enabled_in_world"
-            uid="1" 
-            allow_sleep="1" 
-            fixed_rotation="0" 
-            is_bullet="1" 
+            uid="1"
+            allow_sleep="0"
+            fixed_rotation="0"
+            is_bullet="1"
             linear_damping="0"
             angular_damping="4.5"
             auto_clean="0"
             on_death_leave_physics_body="0"
             hax_fix_going_through_ground="1"
          ></PhysicsBodyComponent>
-      
-        <PhysicsImageShapeComponent 
+
+        <PhysicsImageShapeComponent
             _tags="enabled_in_world"
             body_id="1"
             centered="1"
             is_circle="1"
             image_file="data/items_gfx/potion_normals.png"
-            material="rock_box2d_nohit_hard" 
+            material="rock_box2d_nohit_hard"
         ></PhysicsImageShapeComponent>
-      
-        <MaterialInventoryComponent 
+
+        <MaterialInventoryComponent
             _tags="enabled_in_world"
-            _enabled="1" 
-            drop_as_item="0" 
-            leak_on_damage_percent="0.0" 
+            _enabled="1"
+            drop_as_item="0"
+            leak_on_damage_percent="0.0"
             on_death_spill="1"
             leak_pressure_min="0.1"
             leak_pressure_max="0.2"
@@ -38,19 +38,19 @@
             <Material material="blood" count="1"  />
              </count_per_material_type>
         </MaterialInventoryComponent>
-         <DamageModelComponent 
+         <DamageModelComponent
            _tags="enabled_in_world"
-           air_needed="0" 
-           blood_material="" 
-           drop_items_on_death="0" 
-           falling_damages="0" 
-           fire_damage_amount="0.2" 
-           fire_probability_of_ignition="0" 
+           air_needed="0"
+           blood_material=""
+           drop_items_on_death="0"
+           falling_damages="0"
+           fire_damage_amount="0.2"
+           fire_probability_of_ignition="0"
             critical_damage_resistance="1"
-           hp="1" 
-           is_on_fire="0" 
-           materials_create_messages="0" 
-           materials_damage="1" 
+           hp="1"
+           is_on_fire="0"
+           materials_create_messages="0"
+           materials_damage="1"
            materials_that_damage="lava"
            materials_how_much_damage="0.001"
            ragdoll_filenames_file=""
@@ -75,12 +75,12 @@
           ></SpriteComponent>
 
           <!-- should not die on collisions -->
-        <PhysicsBodyCollisionDamageComponent 
+        <PhysicsBodyCollisionDamageComponent
             _remove_from_base="1"
         ></PhysicsBodyCollisionDamageComponent>
 
           <!-- should not suck most materials -->
-        <MaterialSuckerComponent 
+        <MaterialSuckerComponent
             suck_tag=""
             randomized_position.min_x="-3"
             randomized_position.max_x="3"
@@ -89,12 +89,12 @@
         ></MaterialSuckerComponent>
 
         <!-- should not run potion.lua -->
-        <LuaComponent 
+        <LuaComponent
             _remove_from_base="1"
         ></LuaComponent>
 
         <!-- should not run potion pick effect -->
-        <LuaComponent 
+        <LuaComponent
             _remove_from_base="1"
         ></LuaComponent>
 
@@ -109,7 +109,7 @@
           ></SpriteParticleEmitterComponent>
 
     </Base>
-  
+
     <Base file="data/entities/base_enemy_flying.xml" >
 
         <ItemChestComponent
@@ -119,21 +119,26 @@
             item_count_max="0"
         ></ItemChestComponent>
 
-        <AnimalAIComponent 
+        <AnimalAIComponent
             _tags="enabled_in_world,alive"
-            _enabled="1" 
-            preferred_job="JobDefault"
+            _enabled="1"
+            preferred_job="Escaping"
             keep_state_alive_when_enabled="1"
-            escape_if_damaged_probability="35"
-            attack_dash_enabled="0"
-            attack_dash_damage="0.4"
+            escape_if_damaged_probability="100"
+            attack_melee_enabled="0"
+            attack_ranged_entity_file=""
+            attack_ranged_predict="1"
+            attack_ranged_enabled="0"
+            attack_melee_enabled="0"
+            attack_melee_damage_min="0"
+            attack_melee_damage_max="0"
             creature_detection_range_x="250"
             creature_detection_range_y="250"
             needs_food="0"
             sense_creatures="1"
             attack_ranged_enabled="0"
             attack_melee_enabled="0"
-            can_fly="0"  
+            can_fly="1"
             >
         </AnimalAIComponent>
 
@@ -149,7 +154,7 @@
             jump_speed="100"
             initial_jump_lob="1"
             initial_jump_max_distance_x="40"
-            initial_jump_max_distance_y="-30" >            
+            initial_jump_max_distance_y="10" >
             <jump_trajectories>
                 <JumpTrajectory x="5" y="15" lob="1" />
                 <JumpTrajectory x="7" y="20" lob="1" />
@@ -163,55 +168,55 @@
 
         <PathFindingGridMarkerComponent
             _tags="enabled_in_world"
-            marker_work_flag="16" 
+            marker_work_flag="16"
         ></PathFindingGridMarkerComponent>
-            
-        <CharacterCollisionComponent 
+
+        <CharacterCollisionComponent
             _tags="enabled_in_world"
             getting_crushed_threshold="6"
             moving_up_before_getting_crushed_threshold="6" >
         </CharacterCollisionComponent>
 
         <!-- platforming_type should be set to -1 or there's some glitchy behaviour -->
-        <CharacterDataComponent 
+        <CharacterDataComponent
             _tags="enabled_in_world"
-            platforming_type="0"
+            platforming_type="-1"
             dont_update_velocity_and_xform="1"
             collision_aabb_min_x="-2"
-            collision_aabb_max_x="2"  
+            collision_aabb_max_x="2"
             collision_aabb_min_y="-2"
             collision_aabb_max_y="0"
             mass="1.9"
         ></CharacterDataComponent>
-        
-        <GenomeDataComponent 
+
+        <GenomeDataComponent
             _tags="enabled_in_world"
             herd_id="ghost"
-            food_chain_rank="7"
-            is_predator="1" 
+            food_chain_rank="20"
+            is_predator="0"
         ></GenomeDataComponent>
 
-        <CharacterPlatformingComponent 
+        <CharacterPlatformingComponent
             _tags="enabled_in_world"
-            jump_velocity_y="-12" 
+            jump_velocity_y="-12"
             run_velocity="0"
             audio_liquid_splash_intensity="0.2"
         ></CharacterPlatformingComponent>
-        
+
         <ControlsComponent
             _tags="enabled_in_world"
             enabled="0" >
         </ControlsComponent>
 
-        <HitboxComponent 
+        <HitboxComponent
             _tags="enabled_in_world"
-            _enabled="1" 
-            aabb_max_x="3" 
-            aabb_max_y="3" 
-            aabb_min_x="-3" 
-            aabb_min_y="-3" 
+            _enabled="1"
+            aabb_max_x="3"
+            aabb_max_y="3"
+            aabb_min_x="-3"
+            aabb_min_y="-3"
         ></HitboxComponent>
-    
+
         <SpriteAnimatorComponent
             _tags="enabled_in_world"
         ></SpriteAnimatorComponent>
@@ -236,18 +241,18 @@
         <CameraBoundComponent
             _remove_from_base="1"
         ></CameraBoundComponent>
-        
+
         <!-- no duplicates -->
-        <SpriteComponent 
+        <SpriteComponent
             _remove_from_base="1"
             _tags="enabled_in_world"
-            image_file="" 
+            image_file=""
             offset_x="0"
             offset_y="0"
         ></SpriteComponent>
 
         <!-- should not drop gold -->
-        <LuaComponent 
+        <LuaComponent
             _remove_from_base="1"
         ></LuaComponent>
 
@@ -261,7 +266,7 @@
 
     </Base>
 
-    <AudioComponent 
+    <AudioComponent
         _tags="enabled_in_world"
         file="data/audio/Desktop/animals.bank"
         event_root="animals/lukki_tiny"
@@ -279,7 +284,7 @@
         torque_jump_random="3.5"
         damage_deactivation_probability="80"
         damage_deactivation_time_min="60"
-        damage_deactivation_time_max="120" 
+        damage_deactivation_time_max="120"
         die_on_remaining_mass_percentage="0.5"
         levitate="0"
         v0_swim_logic="0"
@@ -288,7 +293,7 @@
         torque_damaged_max="10"
     ></PhysicsAIComponent>
 
-    <LuaComponent 
+    <LuaComponent
         _tags="enabled_in_world,enabled_in_hand"
         call_init_function="1"
         script_source_file="mods/quant.ew/files/system/local_health/mimic_potion.lua"
@@ -296,7 +301,7 @@
         execute_on_added="1"
         execute_every_n_frame="30"
     ></LuaComponent>
-  
+
     <VariableStorageComponent
         _tags="potion_mimic_awoken,enabled_in_world,enabled_in_hand"
         value_bool="1"
@@ -316,12 +321,12 @@
         energy_lerp_up_speed_multiplier="4"
         is_enemy="0">
     </MusicEnergyAffectorComponent>
-    <!--<LuaComponent 
+    <!--<LuaComponent
         _tags="enabled_in_hand"
         script_source_file="data/scripts/animals/mimic_potion_in_hand.lua"
         execute_every_n_frame="30"
     ></LuaComponent>-->
-  
+
     <IKLimbsAnimatorComponent
         _tags="enabled_in_world,enabled_in_hand"
         ray_skip_material="rock_box2d_nohit_hard"
