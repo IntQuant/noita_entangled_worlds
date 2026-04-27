@@ -283,7 +283,8 @@ local function get_item(itemInfo, inv, player, local_ent)
         ComponentSetValue2(itemComp, "inventory_slot", itemInfo.slot_x, itemInfo.slot_y)
     end
     if not local_ent then
-        if itemInfo.egg == nil then
+        if itemInfo.egg == nil
+            and not EntityHasTag(item_entity, "heart_statue") then -- Don't kill Heart Statue, it will destroy player entity
             EntityAddComponent(item_entity, "LuaComponent", {
                 script_throw_item = "mods/quant.ew/files/resource/cbs/throw_item.lua",
             })

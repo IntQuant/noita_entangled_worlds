@@ -1,5 +1,3 @@
-local potion = dofile_once("mods/quant.ew/files/system/potion_mimic/potion_mimic.lua")
-
 local rpc = net.new_rpc_namespace()
 
 local module = {}
@@ -90,39 +88,16 @@ function module.on_world_update_post()
     local ent = np.GetPlayerEntity()
     if ent ~= nil and ent ~= ctx.my_player.entity then
         if EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent") ~= nil then
-            local effect
-            for _, child in ipairs(EntityGetAllChildren(ent) or {}) do
-                local com = EntityGetFirstComponentIncludingDisabled(child, "GameEffectComponent")
-                if com ~= nil then
-                    local effect_name = ComponentGetValue2(com, "effect")
-                    if
-                        effect_name == "POLYMORPH"
-                        or effect_name == "POLYMORPH_RANDOM"
-                        or effect_name == "POLYMORPH_CESSATION"
-                        or effect_name == "POLYMORPH_UNSTABLE"
-                    then
-                        effect = com
-                        break
-                    end
-                end
-            end
-            if effect ~= nil then
-                local frames = ComponentGetValue2(effect, "frames")
-                if frames < 1200 and frames > 0 then
-                    ComponentSetValue2(effect, "frames", 1200)
-                end
-            end
-
             if EntityHasTag(ent, "mimic_potion") then
                 local item = EntityGetFirstComponentIncludingDisabled(ent, "ItemComponent")
                 ComponentRemoveTag(item, "enabled_if_charmed")
                 EntitySetComponentIsEnabled(ent, item, true)
-            end
 
-            EntityAddComponent2(ent, "LuaComponent", {
-                script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-                script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
-            })
+                EntityAddComponent2(ent, "LuaComponent", {
+                    script_item_picked_up = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+                    script_throw_item = "mods/quant.ew/files/system/potion_mimic/pickup.lua",
+                })
+            end
         end
         module.switch_entity(ent)
         if ctx.proxy_opt.game_mode == "local_health" then
@@ -176,12 +151,18 @@ function rpc.replicate_projectile(seri_ent, position_x, position_y, target_x, ta
     GameShootProjectile(ctx.rpc_player_data.entity, position_x, position_y, target_x, target_y, ent)
 end
 
+local function enable_in_world(item)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_hand", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_inventory", false)
+    EntitySetComponentsWithTagEnabled(item, "enabled_in_world", true)
+end
+
 local function apply_seri_ent(player_data, seri_ent)
     if
         EntityGetRootEntity(ctx.my_player.entity) == player_data.entity
         and player_data.peer_id ~= ctx.my_player.peer_id
     then
-        potion.enable_in_world(ctx.my_player.entity)
+        enable_in_world(ctx.my_player.entity)
     end
     if seri_ent ~= nil then
         local ent = util.deserialize_entity(seri_ent.data)
