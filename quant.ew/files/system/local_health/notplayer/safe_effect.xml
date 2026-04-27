@@ -8,4 +8,10 @@
         disable_movement="0"
     >
     </GameEffectComponent >
+
+    <GameEffectComponent
+        effect="PROTECTION_POLYMORPH"
+        frames="104"
+    >
+    </GameEffectComponent >
 </Entity>
