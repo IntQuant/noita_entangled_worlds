@@ -453,7 +453,7 @@ local function player_died()
         local damage = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "DamageModelComponent")
         ComponentSetValue2(damage, "physics_objects_damage", true)
     end
-    do_switch_effect(true)
+    do_switch_effect(false)
     EntitySetName(ctx.my_player.entity, ctx.my_id .. "?")
     util.set_ent_health(ctx.my_player.entity, { max_hp, max_hp })
     util.set_ent_health_cap(ctx.my_player.entity, cap)
@@ -831,7 +831,7 @@ ctx.cap.health = {
                     end
                 end)
             else
-                do_switch_effect(false)
+                do_switch_effect(true)
                 polymorph.switch_entity(ctx.my_player.entity)
             end
             reduce_hp()
