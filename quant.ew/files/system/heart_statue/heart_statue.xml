@@ -10,23 +10,30 @@
         script_throw_item = "mods/quant.ew/files/system/heart_statue/script.lua"
     ></LuaComponent>
 
+    <LuaComponent
+        execute_on_added="0"
+        remove_after_executed="1"
+        execute_every_n_frame="180"
+        script_source_file="mods/quant.ew/files/system/heart_statue/start_movement.lua"
+    ></LuaComponent>
+
     <PhysicsBodyComponent
         _tags="enabled_in_world"
         linear_damping="4.5"
-        angular_damping="2.5"
+        angular_damping="4.5"
         fixed_rotation="0"
         allow_sleep="1"
         auto_clean="0"
         hax_fix_going_through_ground="1"
         kill_entity_if_body_destroyed="0"
         force_add_update_areas="1"
-        buoyancy="3"
+        buoyancy="4"
     ></PhysicsBodyComponent>
 
     <PhysicsShapeComponent
         _tags="enabled_in_world"
-        radius_x="7"
-        radius_y="6"
+        radius_x="4"
+        radius_y="3"
         friction="0.0"
         restitution="0.1"
         density="0.75"
@@ -67,10 +74,6 @@
         offset_y="8"
      ></SpriteComponent>
 
-    <LimbBossComponent
-        state = "1">
-    </LimbBossComponent>
-
     <PathFindingComponent
         _tags="enabled_in_world"
         distance_to_reach_node_x="20"
@@ -100,6 +103,7 @@
     <IKLimbsAnimatorComponent
         _tags="enabled_in_world,enabled_in_hand"
         ray_skip_material="rock_box2d_nohit_hard"
+        ground_attachment_ray_length_coeff="0.75"
         no_ground_attachment_penalty_coeff="0.01">
     </IKLimbsAnimatorComponent>
 
@@ -109,10 +113,10 @@
         force_coeff="0.0"
         force_balancing_coeff="0.8"
         force_max="30"
-        torque_coeff="50"
-        torque_balancing_coeff="4"
-        torque_max="50.0"
-        torque_jump_random="3.5"
+        torque_coeff="0"
+        torque_balancing_coeff="0"
+        torque_max="0.0"
+        torque_jump_random="0.0"
         damage_deactivation_probability="80"
         damage_deactivation_time_min="60"
         damage_deactivation_time_max="120"
@@ -202,12 +206,6 @@
         offset_y="0"
     ></SpriteComponent>
 
-    <Entity _tags="enabled_in_world,alive" name="hs_leg">  <Base file="mods/quant.ew/files/system/heart_statue/heart_statue_leg.xml" />  </Entity>
-    <Entity _tags="enabled_in_world,alive" name="hs_leg">  <Base file="mods/quant.ew/files/system/heart_statue/heart_statue_leg.xml" />  </Entity>
-    <Entity _tags="enabled_in_world,alive" name="hs_leg">  <Base file="mods/quant.ew/files/system/heart_statue/heart_statue_leg.xml" />  </Entity>
-    <Entity _tags="enabled_in_world,alive" name="hs_leg">  <Base file="mods/quant.ew/files/system/heart_statue/heart_statue_leg.xml" />  </Entity>
-    <Entity _tags="enabled_in_world,alive" name="hs_leg">  <Base file="mods/quant.ew/files/system/heart_statue/heart_statue_leg.xml" />  </Entity>
-
     <AudioComponent
         _tags="enabled_in_world,enabled_in_hand"
         file="data/audio/Desktop/animals.bank"
@@ -253,8 +251,12 @@
 
     <SpriteComponent 
         _tags="enabled_in_world"
-        image_file="data/particles/fog_of_war_hole_128.xml" 
-        fog_of_war_hole="1" >
+        image_file="data/particles/fog_of_war_hole.xml"
+        smooth_filtering="1"
+        fog_of_war_hole="1"
+        has_special_scale="true"
+        special_scale_x="5.5"
+        special_scale_y="5.5" >
     </SpriteComponent>
 
     <!-- color hex format is argb -->

@@ -13,6 +13,10 @@ local function enable_in_world(item)
 end
 
 local function add_legs(item)
+    if ctx.proxy_opt.lha_dont_run then
+        return
+    end
+
     local child_entities = EntityGetAllChildren(item)
     if child_entities ~= nil then
         for _, child_entity in ipairs(child_entities) do
@@ -53,12 +57,17 @@ function rpc.got_thrown(peer_id, phys_transform)
     end
 
     add_legs(item)
+    if not EntityHasTag(item, "ew_hs_moving") then
+        async(function ()
+            wait(10)
+            CrossCall("ew_heart_statue_start_movement", item)
+        end)
+    end
+
     async(function()
         wait(1)
-        util.add_player_cape_for_fun(item)
-
         local x, y, rot, scale_x, scale_y = EntityGetTransform(item)
-        EntitySetTransform(item, x, y, 0, math.abs(scale_x), math.abs(scale_y))
+        EntityApplyTransform(item, x, y, 0, math.abs(scale_x), math.abs(scale_y))
     end)
 
     if peer_id == ctx.my_player.peer_id then
@@ -138,7 +147,23 @@ end
 
 local last_movement_dir = 1
 local last_x, last_y = 0, 0
+local dist_accum = 0
 local frames_little_change = 0
+
+util.add_cross_call("ew_heart_statue_start_movement", function(entity_id)
+    add_legs(entity_id)
+    if not ctx.proxy_opt.lha_dont_run then
+        EntityAddTag(entity_id, "ew_hs_moving")
+    end
+    async(function ()
+        wait(10)
+        local shape_comp = EntityGetFirstComponent(entity_id, "PhysicsShapeComponent")
+        if shape_comp ~= nil then
+            ComponentSetValue2(shape_comp, "radius_x", 6)
+            ComponentSetValue2(shape_comp, "radius_y", 4)
+        end
+    end)
+end)
 
 function heart_statue.on_world_update()
     local entity_id = ctx.my_player.entity
@@ -177,7 +202,7 @@ function heart_statue.on_world_update()
                 rpc.ensure_held(data.peer_id)
             end
         end
-    else
+    elseif EntityHasTag(entity_id, "ew_hs_moving") then
         local ik_animator = EntityGetFirstComponent(entity_id, "IKLimbsAnimatorComponent")
         local any_leg_attached = false
         if ik_animator ~= nil then
@@ -188,16 +213,24 @@ function heart_statue.on_world_update()
         local force_magnitude
         local px, py
         local dx, dy
+        local prob_mult = 1.0
         local dist = math.abs(last_x - x + last_y - y)
 
-        if dist < 0.1 then
+        if dist < 0.25 then
+            dist_accum = dist_accum + dist
             frames_little_change = frames_little_change + 1
         else
             frames_little_change = 0
+            dist_accum = 0
         end
 
+        if frames_little_change > 0 then
+            local avg = dist_accum / frames_little_change
+            prob_mult = avg < 0.1 and frames_little_change or 0
+        end 
+
         local rand_val = ProceduralRandomf(GameGetFrameNum(), (x / 2) + (y / 2))
-        local base_prob = (1.0 + frames_little_change) / 500
+        local base_prob = (1.0 * prob_mult) / 500
         base_prob = base_prob > 1.0 and 1.0 or base_prob
         if rand_val < base_prob then
             last_movement_dir = (rand_val < (base_prob / 2)) and 1 or -1
@@ -206,7 +239,7 @@ function heart_statue.on_world_update()
         local closest_player = get_closest_real_player(entity_id)
         if closest_player then
             px, py = EntityGetTransform(closest_player)
-            force_magnitude = 50
+            force_magnitude = 20
         end
 
         if px then
@@ -221,22 +254,23 @@ function heart_statue.on_world_update()
             dx = x - px
             dy = y - py
             dist = math.sqrt(dx*dx + dy*dy)
-            force_magnitude = 40
+            force_magnitude = 15
         end
 
-        if any_leg_attached then
-            local fx = (dx / dist) * force_magnitude
-            local fy = (dy / dist) * force_magnitude - 8
-    
-            PhysicsApplyForce(entity_id, fx, fy)
+        if not any_leg_attached then
+            PhysicsApplyForce(entity_id, 0, 12)
+            force_magnitude = force_magnitude * 0.25
         end
+        local fx = (dx / dist) * force_magnitude
+        local fy = (dy / dist) * force_magnitude
+        fy = (fy < 2) and (fy - 4) or fy
+        PhysicsApplyForce(entity_id, fx, fy)
 
         last_x = x
         last_y = y
         if GameGetFrameNum() % 60 == 53 then
-            EntitySetTransform(entity_id, x, y, 0, math.abs(scale_x), math.abs(scale_y))
+            EntityApplyTransform(entity_id, x, y, 0, math.abs(scale_x), math.abs(scale_y))
         end
-
     end
 end
 

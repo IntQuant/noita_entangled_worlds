@@ -329,7 +329,7 @@ function fake_unpolymorph()
     local x, y = EntityGetTransform(notplayer)
     local base64_string = tostring(GlobalsGetValue("ew_local_player_dead", ""))
 
-    assert(not (base64_string == nil or base64_string == ""), "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
+    assert(not (base64_string == nil or base64_string == ""), "SERIALIZED PLAYER ENTITY STRING IS MISSING !!!")
 
     local player_entity = util.deserialize_entity(base64.decode(base64_string), x, y)
     np.SetPlayerEntity(player_entity)
@@ -342,8 +342,12 @@ end
 
 local function no_notplayer()
     local ent = fake_polymorph_into_entity("mods/quant.ew/files/system/heart_statue/heart_statue.xml")
-    -- this was a funny bug during testing, i wanted to keep it
-    util.add_player_cape_for_fun(ent)
+    local x, y = EntityGetTransform(ent)
+    EntityLoad("mods/quant.ew/files/system/heart_statue/heart_statue_pedestal.xml", x, y - 1)
+    if not ctx.proxy_opt.lha_dont_run then
+        -- this was a funny bug during testing, i wanted to keep it
+        util.add_player_cape_for_fun(ent)
+    end
     polymorph.switch_entity(ent)
 end
 
