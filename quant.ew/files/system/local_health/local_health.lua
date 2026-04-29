@@ -342,8 +342,6 @@ end
 
 local function no_notplayer()
     local ent = fake_polymorph_into_entity("mods/quant.ew/files/system/heart_statue/heart_statue.xml")
-    local x, y = EntityGetTransform(ent)
-    EntityLoad("mods/quant.ew/files/system/heart_statue/heart_statue_pedestal.xml", x, y - 1)
     if not ctx.proxy_opt.lha_dont_run then
         -- this was a funny bug during testing, i wanted to keep it
         util.add_player_cape_for_fun(ent)

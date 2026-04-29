@@ -64,12 +64,6 @@ function rpc.got_thrown(peer_id, phys_transform)
         end)
     end
 
-    async(function()
-        wait(1)
-        local x, y, rot, scale_x, scale_y = EntityGetTransform(item)
-        EntityApplyTransform(item, x, y, 0, math.abs(scale_x), math.abs(scale_y))
-    end)
-
     if peer_id == ctx.my_player.peer_id then
         local phys_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PhysicsBodyComponent")
         local t = phys_transform
@@ -165,6 +159,31 @@ util.add_cross_call("ew_heart_statue_start_movement", function(entity_id)
     end)
 end)
 
+local function spawn_pedestal(x, y)
+    LoadPixelScene(
+        "mods/quant.ew/files/system/heart_statue/heart_statue_pedestal.png",
+        "mods/quant.ew/files/system/heart_statue/heart_statue_pedestal_visual.png",
+        x - 8,
+        y - 9,
+        "",
+        true,
+        true
+    )
+end
+
+util.add_cross_call("ew_heart_statue_spawn_pedestal", function(entity_id)
+    local x, y = EntityGetTransform(entity_id)
+    if ctx.my_player.peer_id == ctx.host_id then
+        spawn_pedestal(x, y)
+    else
+        -- this is needed to have see the texture
+        async(function ()
+            wait(10)
+            spawn_pedestal(x, y)
+        end)
+    end
+end)
+
 function heart_statue.on_world_update()
     local entity_id = ctx.my_player.entity
     if not EntityHasTag(entity_id, "heart_statue") then
@@ -209,7 +228,7 @@ function heart_statue.on_world_update()
             any_leg_attached = ComponentGetValue2(ik_animator, "mHasGroundAttachmentOnAnyLeg")
         end
 
-        local x, y, rot, scale_x, scale_y = EntityGetTransform(entity_id)
+        local x, y, rot = EntityGetTransform(entity_id)
         local force_magnitude
         local px, py
         local dx, dy
@@ -265,12 +284,10 @@ function heart_statue.on_world_update()
         local fy = (dy / dist) * force_magnitude
         fy = (fy < 2) and (fy - 4) or fy
         PhysicsApplyForce(entity_id, fx, fy)
+        PhysicsApplyTorque(entity_id, (rot) * -10)
 
         last_x = x
         last_y = y
-        if GameGetFrameNum() % 60 == 53 then
-            EntityApplyTransform(entity_id, x, y, 0, math.abs(scale_x), math.abs(scale_y))
-        end
     end
 end
 
