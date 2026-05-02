@@ -121,7 +121,7 @@ fn linux_try_get_noita_start_cmd(
     paths: &Paths,
     steam_state: Option<&mut SteamState>,
 ) -> Option<NoitaStartCmd> {
-    let steam_install = paths.steam_install().to_owned();
+    let steam_install = paths.steam_install.as_ref()?.to_owned();
     let noita_compatdata_path = steam_install.join("steamapps/compatdata/881100/");
     if !noita_compatdata_path.exists() {
         return None;

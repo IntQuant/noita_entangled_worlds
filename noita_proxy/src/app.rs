@@ -178,6 +178,7 @@ impl App {
         } = settings;
         paths.proxy_settings = Some(save_paths.settings_path.clone());
         paths.proxy_save_state = Some(save_paths.save_state_path.clone());
+        paths.steam_install = paths::get_steam_install();
         saved_state.times_started += 1;
 
         if paths.noita_exe.is_some() {
