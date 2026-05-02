@@ -10,14 +10,15 @@ pub const DEFAULT_PROXY_LOG_OLD_NAME: &str = "ew_log_old.txt";
 pub const DEFAULT_PROXY_SETTINGS_NAME: &str = "proxy.ron";
 pub const DEFAULT_PROXY_SAVE_STATE_NAME: &str = "save_state"; // this is a dir
 
-pub const STEAM_COMPATDATA_NOITA_SAVE: &str =
-    "compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita";
-
 pub const NOITA_QUANTEW_INSTALL: &str = "mods/quant.ew";
 pub const QUANTEW_PLAYER_SPRITESHEET: &str = "files/system/player/unmodified.png";
 
 pub const PROJECT_DIRS_ORGANIZATION: &str = "quant";
 pub const PROJECT_DIRS_APPLICATION: &str = "entangledworlds";
+
+// Linux only paths
+pub const STEAM_COMPATDATA_NOITA_SAVE: &str =
+    "compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita";
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(default)]
@@ -57,6 +58,13 @@ pub struct Paths {
     pub noita_save: Option<PathBuf>,
 
     /// Usually
+    /// - Linux: `$XDG_DATA_HOME/Steam`
+    /// Not used in Windows at the momment.
+    ///
+    /// This is not serialized because they're always defaulted to the xdg.
+    pub steam_install: Option<PathBuf>,
+
+    /// Usually
     /// - Windows: `%APPDATA%\quant\entangledworlds\proxy.ron`
     /// - Linux: `$XDG_CONFIG_HOME/entangledworlds/proxy.ron`
     ///
@@ -89,6 +97,9 @@ impl Paths {
     }
     pub fn noita_save(&self) -> &PathBuf {
         self.noita_save.as_ref().expect("noita_save path is Some")
+    }
+    pub fn steam_install(&self) -> &PathBuf {
+        self.steam_install.as_ref().expect("steam_install path is Some")
     }
     pub fn proxy_settings(&self) -> &PathBuf {
         self.proxy_settings.as_ref().expect("proxy_settings path is Some")
