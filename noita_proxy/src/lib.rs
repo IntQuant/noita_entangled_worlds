@@ -6,7 +6,7 @@ use std::{
 
 pub use app::App;
 pub use cli::{Args, connect_cli, host_cli};
-pub use util::{lang, steam_helper};
+pub use util::{color, lang, steam_helper};
 
 use audio_settings::AudioSettings;
 use bookkeeping::{mod_manager, releases};
