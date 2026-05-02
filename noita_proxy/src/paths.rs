@@ -138,3 +138,13 @@ pub fn realize_noita_paths_from_noita_exe(paths: &mut Paths) {
             .join(QUANTEW_PLAYER_SPRITESHEET),
     );
 }
+
+pub fn get_steam_install() -> Option<PathBuf> {
+    if let Ok(data_home) = std::env::var("XDG_DATA_HOME") {
+        Some(PathBuf::from(data_home).join("Steam"))
+    } else if let Ok(home) = std::env::var("HOME") {
+        Some(PathBuf::from(home).join(".local/share/Steam"))
+    } else {
+        None
+    }
+}
