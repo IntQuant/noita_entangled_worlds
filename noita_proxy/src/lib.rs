@@ -13,7 +13,6 @@ use bookkeeping::{mod_manager, releases};
 use game_map::ImageMap;
 use game_settings::{DefaultSettings, GameSettings};
 use lang::tr;
-use player_cosmetics::player_path;
 
 mod bookkeeping;
 mod lobby_code;

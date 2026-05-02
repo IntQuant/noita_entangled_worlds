@@ -13,10 +13,6 @@ use shared::WorldPos;
 
 use crate::{color::*, net::omni::OmniPeerId, player_settings::PlayerColor};
 
-pub fn player_path(path: PathBuf) -> PathBuf {
-    path.join("files/system/player/unmodified.png")
-}
-
 pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf, PathBuf) {
     let parent = path.parent().unwrap();
     let p = parent.join("player_arrows");

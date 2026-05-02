@@ -426,7 +426,11 @@ impl NetManager {
             audio: audio_state,
         };
         let mut last_iter = Instant::now();
-        let path = crate::player_path(self.init_settings.paths.noita_quantew_install.clone());
+        let path = self
+            .init_settings
+            .paths
+            .noita_quantew_player_spritesheet
+            .clone();
         let player_image = if path.exists() {
             image::open(path)
                 .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
