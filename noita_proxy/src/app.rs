@@ -354,7 +354,7 @@ impl App {
         self.state = AppState::ConnectedLobby {
             netman: NetManStopOnDrop(netman, Some(handle)),
             noita_launcher: NoitaLauncher::new(
-                self.paths.noita_exe(),
+                &self.paths,
                 self.args.launch_cmd.as_deref(),
                 self.args.run_noita_with_gdb,
                 self.steam_state.as_mut().ok(),
