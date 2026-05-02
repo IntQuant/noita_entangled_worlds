@@ -27,7 +27,7 @@ use eframe::egui::{
 };
 
 use crate::{
-    AudioSettings, DefaultSettings, GameSettings, ImageMap, NetManStopOnDrop, PlayerAppearance,
+    AudioSettings, DefaultSettings, GameSettings, ImageMap, NetManStopOnDrop,
     bookkeeping::{
         mod_manager,
         noita_launcher::{LaunchTokenResult, NoitaLauncher},
@@ -48,7 +48,8 @@ use crate::{
         steam_networking,
     },
     paths::{self, Paths},
-    player_cosmetics::{PlayerPngDesc, display_player_skin},
+    player_cosmetics::PlayerPngDesc,
+    player_settings::{PlayerAppearance, display_player_skin},
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };

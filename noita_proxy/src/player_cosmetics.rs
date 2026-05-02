@@ -1,20 +1,18 @@
-use crate::lang::tr;
-use crate::net::omni::OmniPeerId;
-use crate::{PlayerAppearance, PlayerColor, PlayerPicker};
+use std::{
+    ffi::OsString,
+    fs::{self, File, remove_file},
+    io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
+    sync::MutexGuard,
+};
+
 use bitcode::{Decode, Encode};
-use eframe::egui;
-use eframe::egui::color_picker::{Alpha, color_picker_color32};
-use eframe::egui::{Color32, Image, TextureHandle, TextureOptions, Ui};
-use image::DynamicImage::ImageRgba8;
-use image::{ImageBuffer, Pixel, Rgba, RgbaImage};
+use image::{DynamicImage::ImageRgba8, ImageBuffer, Rgba, RgbaImage};
 use rustc_hash::FxHashMap;
 use shared::WorldPos;
-use std::ffi::OsString;
-use std::fs::{self, File, remove_file};
-use std::io::Write;
-use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
-use std::sync::MutexGuard;
+
+use crate::{color::*, net::omni::OmniPeerId, player_settings::PlayerColor};
+
 pub fn player_path(path: PathBuf) -> PathBuf {
     path.join("files/system/player/unmodified.png")
 }
@@ -132,98 +130,6 @@ pub fn add_cosmetics(image: &mut RgbaImage, cosmetics: &[bool]) {
     }
 }
 
-pub fn player_skin_display_color_picker(
-    ui: &mut Ui,
-    player_color: &mut PlayerColor,
-    player_picker: &PlayerPicker,
-) {
-    match player_picker {
-        PlayerPicker::PlayerMain => {
-            color_picker(ui, &mut player_color.player_main);
-        }
-        PlayerPicker::PlayerAlt => {
-            color_picker(ui, &mut player_color.player_alt);
-        }
-        PlayerPicker::PlayerArm => {
-            color_picker(ui, &mut player_color.player_arm);
-        }
-        PlayerPicker::PlayerForearm => {
-            color_picker(ui, &mut player_color.player_forearm);
-        }
-        PlayerPicker::PlayerCape => {
-            color_picker(ui, &mut player_color.player_cape);
-        }
-        PlayerPicker::PlayerCapeEdge => {
-            color_picker(ui, &mut player_color.player_cape_edge);
-        }
-        PlayerPicker::None => {}
-    }
-}
-
-pub fn color_picker(ui: &mut Ui, color: &mut [f64; 4]) {
-    let mut rgb = Color32::from_rgb(f_to_u(color[0]), f_to_u(color[1]), f_to_u(color[2]));
-    if color_picker_color32(ui, &mut rgb, Alpha::Opaque) {
-        *color = [rgb.r() as f64, rgb.g() as f64, rgb.b() as f64, 255.0]
-    }
-}
-
-pub fn player_select_current_color_slot(
-    ui: &mut Ui,
-    appearance: &mut PlayerAppearance,
-    game_save_path: Option<PathBuf>,
-) {
-    let mut clicked = false;
-    let last = appearance.player_picker.clone();
-    ui.scope(|ui| {
-        ui.set_max_width(100.0);
-        ui.vertical_centered_justified(|ui| {
-            if ui.button(tr("Main-color")).clicked() {
-                clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerMain
-            }
-            if ui.button(tr("Alt-color")).clicked() {
-                clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerAlt
-            }
-            if ui.button(tr("Arm-color")).clicked() {
-                clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerArm
-            }
-            if ui.button(tr("Forearm-color")).clicked() {
-                clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerForearm
-            }
-            if ui.button(tr("Cape-color")).clicked() {
-                clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerCape
-            }
-            if ui.button(tr("Cape-edge-color")).clicked() {
-                clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerCapeEdge
-            }
-            if let Some(path) = game_save_path {
-                let flags = path.join("save00/persistent/flags");
-                let hat = flags.join("secret_hat").exists();
-                let amulet = flags.join("secret_amulet").exists();
-                let gem = flags.join("secret_amulet_gem").exists();
-                ui.checkbox(&mut appearance.invert_border, "Invert border");
-                if hat {
-                    ui.checkbox(&mut appearance.cosmetics.0, tr("Crown"));
-                }
-                if amulet {
-                    ui.checkbox(&mut appearance.cosmetics.1, tr("Amulet"));
-                }
-                if gem {
-                    ui.checkbox(&mut appearance.cosmetics.2, tr("Gem"));
-                }
-            }
-        });
-    });
-    if clicked && last == appearance.player_picker {
-        appearance.player_picker = PlayerPicker::None
-    }
-}
-
 pub fn get_player_skin(
     mut img: RgbaImage,
     colors: PlayerPngDesc,
@@ -231,18 +137,6 @@ pub fn get_player_skin(
     add_cosmetics(&mut img, &colors.cosmetics);
     make_player_image(&mut img, colors.colors);
     img
-}
-
-pub fn display_player_skin(ui: &mut Ui, img: ImageBuffer<Rgba<u8>, Vec<u8>>, scale: f32) {
-    let texture: TextureHandle = ui.ctx().load_texture(
-        "player",
-        egui::ColorImage::from_rgba_unmultiplied(
-            [img.width() as usize, img.height() as usize],
-            &img.into_raw(),
-        ),
-        TextureOptions::NEAREST,
-    );
-    ui.add(Image::new(&texture).fit_to_original_size(scale));
 }
 
 pub fn create_arm(arm: Rgba<u8>) -> RgbaImage {

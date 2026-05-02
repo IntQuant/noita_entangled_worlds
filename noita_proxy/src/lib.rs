@@ -14,7 +14,6 @@ use game_map::ImageMap;
 use game_settings::{DefaultSettings, GameSettings};
 use lang::tr;
 use player_cosmetics::player_path;
-use player_settings::{PlayerAppearance, PlayerColor, PlayerPicker};
 
 mod bookkeeping;
 mod lobby_code;
