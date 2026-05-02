@@ -1,14 +1,17 @@
-use crate::steam_helper::SteamState;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::mem;
 use std::{
     ffi::OsString,
+    fs::File,
+    io::{BufRead, BufReader},
+    mem,
     path::{Path, PathBuf},
     process::{Child, Command},
 };
+
 use steamworks::AppId;
 use tracing::{info, warn};
+
+use crate::{paths::Paths, steam_helper::SteamState};
+
 struct NoitaStartCmd {
     executable: OsString,
     args: Vec<OsString>,
@@ -39,41 +42,39 @@ pub enum LaunchTokenResult<'a> {
 pub struct LaunchToken<'a>(&'a mut NoitaLauncher);
 
 pub struct NoitaLauncher {
-    game_dir_path: PathBuf,
+    noita_install: PathBuf,
     start_args: Option<NoitaStartCmd>,
     noita_process: Option<Child>,
 }
 
 impl NoitaLauncher {
     pub fn new(
-        game_exe_path: &Path,
+        paths: &Paths,
         start_args: Option<&str>,
         run_with_gdb: bool,
         steam_state: Option<&mut SteamState>,
     ) -> Self {
-        let game_dir_path = game_exe_path
-            .parent()
-            .expect("game directory to exist")
-            .to_path_buf();
+        let noita_install = paths.noita_install();
 
-        let default_start_args = if cfg!(target_os = "windows") {
-            let executable = game_exe_path.as_os_str().to_owned();
-            Some(NoitaStartCmd {
-                executable,
-                args: Vec::new(),
-                steam_install: None,
-                noita_compat_data: None,
-                noita_install: None,
-            })
-        } else {
-            linux_try_get_noita_start_cmd(game_exe_path, steam_state)
+        let default_start_args = || {
+            if cfg!(target_os = "windows") {
+                Some(NoitaStartCmd {
+                    executable: paths.noita_exe().as_os_str().to_owned(),
+                    args: Vec::new(),
+                    steam_install: None,
+                    noita_compat_data: None,
+                    noita_install: None,
+                })
+            } else {
+                linux_try_get_noita_start_cmd(paths, steam_state)
+            }
         };
 
         let start_args = start_args
             .and_then(shlex::split)
             .map(|v| v.into_iter().map(OsString::from).collect::<Vec<_>>())
             .and_then(|args| NoitaStartCmd::from_full_args(&args));
-        let mut start_args = start_args.or(default_start_args);
+        let mut start_args = start_args.or_else(default_start_args);
 
         if let Some(start_args) = start_args.as_mut()
             && run_with_gdb
@@ -88,7 +89,7 @@ impl NoitaLauncher {
         }
 
         Self {
-            game_dir_path,
+            noita_install: noita_install.to_path_buf(),
             start_args,
             noita_process: None,
         }
@@ -117,98 +118,73 @@ impl NoitaLauncher {
 }
 
 fn linux_try_get_noita_start_cmd(
-    game_exe_path: &Path,
+    paths: &Paths,
     steam_state: Option<&mut SteamState>,
 ) -> Option<NoitaStartCmd> {
-    let executable = game_exe_path.as_os_str().to_owned();
-    // ~/.local/share/Steam/steamapps/common/Noita/noita.exe
-    let game_path = game_exe_path.parent()?;
-    let steamapps_path = game_path.parent()?.parent()?;
-    let noita_compatdata_path = steamapps_path.join("compatdata/881100/");
-    if noita_compatdata_path.exists() {
-        let config_info_path = noita_compatdata_path.join("config_info");
-        let config_info_file = File::open(config_info_path)
-            .inspect_err(|err| warn!("Couldn't open proton fonts file: {}", err))
-            .ok()?;
-        let file = BufReader::new(config_info_file)
-            .lines()
-            .nth(1)?
-            .inspect_err(|err| warn!("Couldn't find proton fonts paths: {}", err))
-            .ok()?;
-        let proton_path_fonts = Path::new(&file);
-        let proton_path = proton_path_from_fonts(proton_path_fonts)?;
-        let tool_manifest = File::open(proton_path.join("toolmanifest.vdf"))
-            .inspect_err(|err| warn!("Couldn't open toolmanifest.vdf file: {}", err))
-            .ok()?;
-        let runtime_appid = BufReader::new(tool_manifest)
-            .lines()
-            .map(|l| l.unwrap())
-            .find(|l| l.contains("require_tool_appid"))
-            .map(|a| a.split('"').nth(3).map(|b| b.parse::<u32>()));
-        match (steam_state, runtime_appid) {
-            (Some(state), Some(Some(Ok(1628350)))) => {
-                let apps = state.client.apps();
-                let app_id = AppId::from(1628350);
-                let app_install_dir = apps.app_install_dir(app_id);
-                Some(NoitaStartCmd {
-                    executable: PathBuf::from(app_install_dir)
-                        .join("_v2-entry-point")
-                        .into(),
-                    args: vec![
-                        "--verb=run".into(),
-                        proton_path.join("proton").into_os_string(),
-                        "run".into(),
-                        executable,
-                    ],
-                    steam_install: steam_intall_path(steamapps_path),
-                    noita_compat_data: Some(noita_compatdata_path),
-                    noita_install: Some(game_path.to_path_buf()),
-                })
-            }
-            (_, Some(Some(Ok(_)))) => {
-                let app_install_dir = proton_path.parent()?.join("SteamLinuxRuntime_sniper");
-                if app_install_dir.exists() {
-                    Some(NoitaStartCmd {
-                        executable: app_install_dir.join("_v2-entry-point").into(),
-                        args: vec![
-                            "--verb=run".into(),
-                            proton_path.join("proton").into_os_string(),
-                            "run".into(),
-                            executable,
-                        ],
-                        steam_install: steam_intall_path(steamapps_path),
-                        noita_compat_data: Some(noita_compatdata_path),
-                        noita_install: Some(game_path.to_path_buf()),
-                    })
-                } else {
-                    Some(NoitaStartCmd {
-                        executable: proton_path.join("proton").into_os_string(),
-                        args: vec!["run".into(), executable],
-                        steam_install: steam_intall_path(steamapps_path),
-                        noita_compat_data: Some(noita_compatdata_path),
-                        noita_install: Some(game_path.to_path_buf()),
-                    })
-                }
-            }
-            _ => Some(NoitaStartCmd {
-                executable: proton_path.join("proton").into_os_string(),
-                args: vec!["run".into(), executable],
-                steam_install: steam_intall_path(steamapps_path),
-                noita_compat_data: Some(noita_compatdata_path),
-                noita_install: Some(game_path.to_path_buf()),
-            }),
-        }
-    } else {
-        None
+    let steam_install = paths.steam_install().to_owned();
+    let noita_compatdata_path = steam_install.join("steamapps/compatdata/881100/");
+    if !noita_compatdata_path.exists() {
+        return None;
     }
+    let config_info_path = noita_compatdata_path.join("config_info");
+    let config_info_file = File::open(config_info_path)
+        .inspect_err(|err| warn!("Couldn't open config_info : {}", err))
+        .ok()?;
+    let proton_fonts = BufReader::new(config_info_file)
+        .lines()
+        .nth(1)?
+        .inspect_err(|err| warn!("Couldn't find proton fonts paths: {}", err))
+        .ok()?;
+    let proton_fonts = Path::new(&proton_fonts);
+    let proton_install = proton_path_from_fonts(proton_fonts)?;
+    let proton_binary = proton_install.join("proton").into_os_string();
+    let tool_manifest = File::open(proton_install.join("toolmanifest.vdf"))
+        .inspect_err(|err| warn!("Couldn't open toolmanifest.vdf file: {}", err))
+        .ok()?;
+    let runtime_appid = BufReader::new(tool_manifest)
+        .lines()
+        .map(|l| l.unwrap())
+        .find(|l| l.contains("require_tool_appid"))
+        .map(|a| a.split('"').nth(3).map(|b| b.parse::<u32>()));
+
+    let noita_exe = paths.noita_exe().as_os_str().to_owned();
+    let noita_install = paths.noita_install().to_owned();
+    let (executable, args) = match (steam_state, runtime_appid) {
+        (Some(state), Some(Some(Ok(1628350)))) => {
+            let apps = state.client.apps();
+            let app_id = AppId::from(1628350);
+            let app_install_dir = apps.app_install_dir(app_id);
+            (
+                PathBuf::from(app_install_dir)
+                    .join("_v2-entry-point")
+                    .into(),
+                vec!["--verb=run".into(), proton_binary, "run".into(), noita_exe],
+            )
+        }
+        (_, Some(Some(Ok(_)))) => {
+            let app_install_dir = proton_install.parent()?.join("SteamLinuxRuntime_sniper");
+            if app_install_dir.exists() {
+                (
+                    app_install_dir.join("_v2-entry-point").into(),
+                    vec!["--verb=run".into(), proton_binary, "run".into(), noita_exe],
+                )
+            } else {
+                (proton_binary, vec!["run".into(), noita_exe])
+            }
+        }
+        _ => (proton_binary, vec!["run".into(), noita_exe]),
+    };
+    Some(NoitaStartCmd {
+        executable,
+        args,
+        steam_install: Some(steam_install),
+        noita_compat_data: Some(noita_compatdata_path),
+        noita_install: Some(noita_install),
+    })
 }
 
 fn proton_path_from_fonts(proton_path_fonts: &Path) -> Option<PathBuf> {
     Some(proton_path_fonts.parent()?.parent()?.parent()?.into())
-}
-
-fn steam_intall_path(steamapps_path: &Path) -> Option<PathBuf> {
-    steamapps_path.parent().map(|p| p.to_path_buf())
 }
 
 impl LaunchToken<'_> {
@@ -232,7 +208,7 @@ impl LaunchToken<'_> {
                 .env("NP_NOITA_ADDR", &addr_env)
                 .env("SteamAppId", "881100")
                 .env("SteamGameId", "881100")
-                .current_dir(&self.0.game_dir_path)
+                .current_dir(&self.0.noita_install)
                 .args(&start_cmd.args)
                 .spawn()
         } else {
@@ -240,7 +216,7 @@ impl LaunchToken<'_> {
                 .env("NP_NOITA_ADDR", &addr_env)
                 .env("SteamAppId", "881100")
                 .env("SteamGameId", "881100")
-                .current_dir(&self.0.game_dir_path)
+                .current_dir(&self.0.noita_install)
                 .args(&start_cmd.args)
                 .spawn()
         };
