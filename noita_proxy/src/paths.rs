@@ -59,7 +59,8 @@ pub struct Paths {
 
     /// Usually
     /// - Linux: `$XDG_DATA_HOME/Steam`
-    /// Not used in Windows at the momment.
+    ///
+    /// Not used in Windows at the momment. Only used by noita_launcher.rs
     ///
     /// This is not serialized because they're always defaulted to the xdg.
     pub steam_install: Option<PathBuf>,
