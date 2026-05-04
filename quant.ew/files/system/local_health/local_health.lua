@@ -329,7 +329,7 @@ function fake_unpolymorph()
     local x, y = EntityGetTransform(notplayer)
     local base64_string = tostring(GlobalsGetValue("ew_local_player_dead", ""))
 
-    assert(not (base64_string == nil or base64_string == ""), "SEREALIZED PLAYER ENTITY STRING IS MISSING !!!")
+    assert(not (base64_string == nil or base64_string == ""), "SERIALIZED PLAYER ENTITY STRING IS MISSING !!!")
 
     local player_entity = util.deserialize_entity(base64.decode(base64_string), x, y)
     np.SetPlayerEntity(player_entity)
@@ -340,31 +340,14 @@ function fake_unpolymorph()
     return player_entity
 end
 
--- this was a funny bug during testing, i wanted to keep it
-local function add_player_cape_for_fun(entity)
-    local cape
-    local player_child_entities = EntityGetAllChildren(entity)
-    if player_child_entities ~= nil then
-        for _, child_entity in ipairs(player_child_entities) do
-            local child_entity_name = EntityGetName(child_entity)
-            if child_entity_name == "cape" then
-                cape = child_entity
-                break
-            end
-        end
-    end
-
-    if cape then
-        EntityKill(cape)
-    end
-    local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
-    local x, y = EntityGetTransform(entity)
-    local cape2 = EntityLoad(player_cape_sprite_file, x, y)
-    EntityAddChild(entity, cape2)
-end
-
 local function no_notplayer()
-    local ent = fake_polymorph_into_entity("mods/quant.ew/files/system/heart_statue/heart_statue.xml")
+    local entity_name
+    if ctx.proxy_opt.local_health_alternate_dont_run then
+        entity_name = "mods/quant.ew/files/system/heart_statue/heart_statue.xml"
+    else
+        entity_name = "mods/quant.ew/files/system/heart_statue/heart_statue_running.xml"
+    end
+    local ent = fake_polymorph_into_entity(entity_name)
     polymorph.switch_entity(ent)
 end
 
@@ -669,6 +652,8 @@ function module.on_world_update_host()
                 break
             end
         end
+        -- testing change
+        any_player_alive = true
         if not any_player_alive then
             if gameover_frame_check == 0 then
                 gameover_frame_check = GameGetFrameNum() + 120

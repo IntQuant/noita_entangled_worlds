@@ -1,0 +1,348 @@
+<Entity
+    name="heart_statue_running"
+    tags="teleportable_NOT,item_physics,item_pickup,heart_statue"
+>
+    <StreamingKeepAliveComponent>
+    </StreamingKeepAliveComponent>
+
+    <LuaComponent
+        script_item_picked_up = "mods/quant.ew/files/system/heart_statue/script.lua"
+        script_throw_item = "mods/quant.ew/files/system/heart_statue/script.lua"
+    ></LuaComponent>
+
+    <LuaComponent
+        execute_on_added="0"
+        remove_after_executed="1"
+        execute_every_n_frame="180"
+        script_source_file="mods/quant.ew/files/system/heart_statue/start_movement.lua"
+    ></LuaComponent>
+
+    <LuaComponent
+        execute_on_added="0"
+        remove_after_executed="1"
+        execute_every_n_frame="1"
+        script_source_file="mods/quant.ew/files/system/heart_statue/spawn_pedestal.lua"
+    ></LuaComponent>
+
+    <PhysicsBodyComponent
+        _tags="enabled_in_world"
+        linear_damping="4.5"
+        angular_damping="4.5"
+        fixed_rotation="0"
+        allow_sleep="1"
+        auto_clean="0"
+        hax_fix_going_through_ground="1"
+        kill_entity_if_body_destroyed="0"
+        force_add_update_areas="1"
+        buoyancy="4"
+    ></PhysicsBodyComponent>
+
+    <PhysicsShapeComponent
+        _tags="enabled_in_world"
+        radius_x="6"
+        radius_y="4"
+        friction="0.01"
+        restitution="0.1"
+        density="0.75"
+        material="rock_box2d_hard"
+        is_circle="true"
+        is_box="false"
+    ></PhysicsShapeComponent>
+
+    <PhysicsThrowableComponent
+        _tags="enabled_in_world"
+        max_throw_speed="180"
+        throw_force_coeff="1.5"
+    ></PhysicsThrowableComponent>
+
+    <ItemComponent
+        _tags="enabled_in_world"
+        item_name="$entangled_heart_statue"
+        max_child_items="0"
+        is_pickable="1"
+        is_equipable_forced="1"
+        ui_sprite="mods/quant.ew/files/system/heart_statue/heart_statue.png"
+        ui_description="$entangled_heart_statue_desc"
+            preferred_inventory="QUICK"
+    ></ItemComponent>
+
+    <AbilityComponent
+        ui_name="$entangled_heart_statue"
+        throw_as_item="1"
+        ><gun_config
+            deck_capacity="0"
+        ></gun_config>
+    </AbilityComponent>
+
+    <SpriteComponent
+        _tags="enabled_in_world"
+        image_file="mods/quant.ew/files/system/heart_statue/heart_statue.png"
+        offset_x="8"
+        offset_y="8"
+        update_transform_rotation="0"
+        has_special_scale="true"
+        special_scale_x="1"
+        special_scale_y="1"
+     ></SpriteComponent>
+
+    <PathFindingComponent
+        _tags="enabled_in_world"
+        distance_to_reach_node_x="20"
+        distance_to_reach_node_y="20"
+        frames_to_get_stuck="20"
+        can_swim_on_surface="1"
+        can_dive="0"
+        can_walk="1"
+        can_jump="1"
+        can_fly="1"
+        can_swim_on_surface="1"
+        jump_speed="100"
+        y_walking_compensation="10"
+        initial_jump_lob="1"
+        initial_jump_max_distance_x="40"
+        initial_jump_max_distance_y="10" >
+    </PathFindingComponent>
+
+    <PathFindingGridMarkerComponent
+        _tags="enabled_in_world"
+        _enabled="1" 
+        marker_offset_x="0" 
+        marker_offset_y="-10" 
+        marker_work_flag="16" >
+    </PathFindingGridMarkerComponent>
+
+    <IKLimbsAnimatorComponent
+        _tags="enabled_in_world,enabled_in_hand"
+        ray_skip_material="rock_box2d_nohit_hard"
+        ground_attachment_ray_length_coeff="0.75"
+        no_ground_attachment_penalty_coeff="0.01">
+    </IKLimbsAnimatorComponent>
+
+    <PhysicsAIComponent
+        _tags="enabled_in_world,alive"
+        target_vec_max_len="15.0"
+        force_coeff="0.0"
+        force_balancing_coeff="0.8"
+        force_max="30"
+        torque_coeff="0"
+        torque_balancing_coeff="0"
+        torque_max="0.0"
+        torque_jump_random="0.0"
+        damage_deactivation_probability="80"
+        damage_deactivation_time_min="60"
+        damage_deactivation_time_max="120"
+        levitate="0"
+        v0_swim_logic="1"
+        v0_jump_logic="1"
+        v0_body_id_logic="0"
+    ></PhysicsAIComponent>
+
+    <CharacterDataComponent
+        _tags="enabled_in_world"
+        platforming_type="1"
+        collision_aabb_min_x="-11"
+        collision_aabb_max_x="11"
+        collision_aabb_min_y="-11"
+        collision_aabb_max_y="11"
+        mass="1.9"
+        climb_over_y="11"
+        check_collision_max_size_x="11"
+        check_collision_max_size_y="11"
+    ></CharacterDataComponent>
+
+    <CharacterCollisionComponent
+        _tags="enabled_in_world"
+        getting_crushed_threshold="6"
+        moving_up_before_getting_crushed_threshold="6" >
+    </CharacterCollisionComponent>
+
+    <GenomeDataComponent
+        _tags="enabled_in_world"
+        herd_id="helpless"
+        food_chain_rank="20"
+        is_predator="0"
+    ></GenomeDataComponent>
+
+    <CharacterPlatformingComponent
+        _tags="enabled_in_world"
+        jump_velocity_y="-12"
+        run_velocity="0"
+        audio_liquid_splash_intensity="0.2"
+    ></CharacterPlatformingComponent>
+
+    <ControlsComponent
+        _tags="enabled_in_world"
+        enabled="0" >
+    </ControlsComponent>
+
+    <HitboxComponent
+        _tags="enabled_in_world"
+        _enabled="1"
+        aabb_max_x="10"
+        aabb_max_y="10"
+        aabb_min_x="-10"
+        aabb_min_y="-10"
+    ></HitboxComponent>
+
+    <SpriteAnimatorComponent
+        _tags="enabled_in_world"
+    ></SpriteAnimatorComponent>
+
+    <SpriteStainsComponent
+        _tags="enabled_in_world"
+        _enabled="1"
+        sprite_id="1"
+    ></SpriteStainsComponent>
+
+    <StatusEffectDataComponent
+        _tags="enabled_in_world"
+    ></StatusEffectDataComponent>
+
+    <AudioComponent
+        _tags="enabled_in_world,enabled_in_hand"
+        file="data/audio/Desktop/animals.bank"
+        event_root="animals/mimic_potion"
+    ></AudioComponent>
+
+    <AudioComponent
+        _tags="enabled_in_world,enabled_in_hand"
+        file="data/audio/Desktop/animals.bank"
+        event_root="animals/mimic_potion"
+    ></AudioComponent>
+
+    <SpriteComponent
+        _tags="enabled_in_world"
+        image_file=""
+        offset_x="0"
+        offset_y="0"
+    ></SpriteComponent>
+
+    <AudioComponent
+        _tags="enabled_in_world,enabled_in_hand"
+        file="data/audio/Desktop/animals.bank"
+        event_root="animals/lukki_tiny"
+    ></AudioComponent>
+
+    <MusicEnergyAffectorComponent
+        _tags="alive"
+        energy_target="0.5"
+        fade_range="256"
+        energy_lerp_up_speed_multiplier="4"
+        is_enemy="0">
+    </MusicEnergyAffectorComponent>
+
+    <MusicEnergyAffectorComponent
+        energy_target="0.0"
+        fade_range="256"
+        energy_lerp_up_speed_multiplier="4"
+        is_enemy="0">
+    </MusicEnergyAffectorComponent>
+
+    <VariableStorageComponent
+        _tags="potion_mimic_awoken,enabled_in_world,enabled_in_hand"
+        value_bool="1"
+    ></VariableStorageComponent>
+
+    <SpriteComponent
+        _tags="enabled_in_hand"
+        _enabled="0"
+        image_file="mods/quant.ew/files/system/heart_statue/heart_statue_in_hand.png"
+        offset_x="4"
+        offset_y="4"
+    ></SpriteComponent>
+
+    <LightComponent
+        _tags="enabled_in_world,enabled_in_hand"
+        r="255"
+        g="255"
+        b="255"
+        radius="64"
+        fade_out_time="0.75" >
+    </LightComponent>
+
+    <SpriteComponent 
+        _tags="enabled_in_world"
+        image_file="data/particles/fog_of_war_hole.xml"
+        smooth_filtering="1"
+        fog_of_war_hole="1"
+        has_special_scale="true"
+        special_scale_x="5.5"
+        special_scale_y="5.5" >
+    </SpriteComponent>
+
+    <!-- color hex format is argb -->
+    <ParticleEmitterComponent
+        _tags="enabled_in_world"
+        emitted_material_name="spark"
+        render_ultrabright="1"
+        offset.x="0"
+        offset.y="0"
+        x_pos_offset_min="0"
+        x_pos_offset_max="0"
+        y_pos_offset_min="0"
+        y_pos_offset_max="0"
+        x_vel_min="0"
+        x_vel_max="0"
+        y_vel_min="0"
+        y_vel_max="0"
+        count_min="1"
+        count_max="1"
+        emission_interval_min_frames="1"
+        emission_interval_max_frames="2"
+        area_circle_radius.max="10"
+        emit_cosmetic_particles="1"
+        create_real_particles="0"
+        lifetime_min="0.5"
+        lifetime_max="3"
+        render_on_grid="1"
+        draw_as_long="1"
+        fade_based_on_lifetime="1"
+        airflow_force="0.5"
+        airflow_time="0.5"
+        airflow_scale="0.1"
+        friction="2.0"
+        collide_with_grid="0"
+        gravity.y="-100.0"
+        render_back="1"
+        color="5cffd96a"
+        >
+    </ParticleEmitterComponent>
+
+    <ParticleEmitterComponent
+        _tags="enabled_in_hand"
+        _enabled="0"
+        emitted_material_name="spark"
+        render_ultrabright="1"
+        offset.x="0"
+        offset.y="0"
+        x_pos_offset_min="0"
+        x_pos_offset_max="0"
+        y_pos_offset_min="0"
+        y_pos_offset_max="0"
+        x_vel_min="0"
+        x_vel_max="0"
+        y_vel_min="0"
+        y_vel_max="0"
+        count_min="1"
+        count_max="1"
+        emission_interval_min_frames="1"
+        emission_interval_max_frames="2"
+        area_circle_radius.max="4"
+        emit_cosmetic_particles="1"
+        create_real_particles="0"
+        lifetime_min="0.5"
+        lifetime_max="3"
+        render_on_grid="1"
+        draw_as_long="1"
+        fade_based_on_lifetime="1"
+        airflow_force="0.5"
+        airflow_time="0.5"
+        airflow_scale="0.1"
+        friction="2.0"
+        collide_with_grid="0"
+        gravity.y="-100.0"
+        render_back="1"
+        color="5cffd96a"
+        >
+    </ParticleEmitterComponent>
+</Entity>
