@@ -12,8 +12,47 @@ local function enable_in_world(item)
     end
 end
 
+local function find_player_cape(entity)
+    local cape
+    local player_child_entities = EntityGetAllChildren(entity)
+    if player_child_entities ~= nil then
+        for _, child_entity in ipairs(player_child_entities) do
+            local child_entity_name = EntityGetName(child_entity)
+            if child_entity_name == "cape" then
+                cape = child_entity
+                break
+            end
+        end
+    end
+
+    return cape
+end
+
+local function add_player_cape_for_fun(entity)
+    local cape = find_player_cape(entity)
+
+    if cape then
+        EntityRemoveFromParent(cape)
+        EntityKill(cape)
+    end
+
+    local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
+    local x, y = EntityGetTransform(entity)
+    local cape2 = EntityLoad(player_cape_sprite_file, x, y)
+    EntityAddChild(entity, cape2)
+end
+
+local function remove_cape(entity)
+    local cape = find_player_cape(entity)
+
+    if cape then
+        EntityRemoveFromParent(cape)
+        EntityKill(cape)
+    end
+end
+
 local function add_legs(item)
-    if ctx.proxy_opt.lha_dont_run then
+    if ctx.proxy_opt.local_health_alternate_dont_run then
         return
     end
 
@@ -30,7 +69,7 @@ local function add_legs(item)
 
     async(function()
         wait(1)
-        util.add_player_cape_for_fun(item)
+        add_player_cape_for_fun(item)
 
         local x, y = EntityGetTransform(item)
         for i = 1, 5 do
@@ -41,6 +80,7 @@ local function add_legs(item)
 end
 
 rpc.opts_everywhere()
+rpc.opts_reliable()
 function rpc.got_thrown(peer_id, phys_transform)
     local item = ctx.players[peer_id].entity
     enable_in_world(item)
@@ -83,7 +123,7 @@ end)
 
 util.add_cross_call("ew_heart_statue_pickup", function(item)
     if item then
-        util.remove_cape(item)
+        remove_cape(item)
     end
 
     local inventory_state = player_fns.serialize_items(ctx.my_player)
@@ -92,6 +132,7 @@ util.add_cross_call("ew_heart_statue_pickup", function(item)
     end
 end)
 
+rpc.opts_reliable()
 function rpc.ensure_held(peer_id)
     if peer_id ~= ctx.my_player.peer_id then
         return
@@ -119,6 +160,43 @@ function rpc.ensure_held(peer_id)
     end
 end
 
+util.add_cross_call("ew_heart_statue_start_movement", function(entity_id)
+    if ctx.proxy_opt.local_health_alternate_dont_run then
+        return
+    end
+    add_legs(entity_id)
+    EntityAddTag(entity_id, "ew_hs_moving")
+end)
+
+local function spawn_pedestal(x, y)
+    LoadPixelScene(
+        "mods/quant.ew/files/system/heart_statue/heart_statue_pedestal.png",
+        "mods/quant.ew/files/system/heart_statue/heart_statue_pedestal_visual.png",
+        x - 8,
+        y - 9,
+        "",
+        true,
+        true
+    )
+end
+
+rpc.opts_reliable()
+function rpc.spawn_pedestal( x, y)
+    async(function ()
+        --delay is here to hopefully avoid not having a texture
+        wait(10)
+        spawn_pedestal(x, y)
+    end)
+end
+
+util.add_cross_call("ew_heart_statue_spawn_pedestal", function(entity_id)
+    local x, y = EntityGetTransform(entity_id)
+    if ctx.my_player.peer_id == ctx.host_id then
+        spawn_pedestal(x, y)
+        rpc.spawn_pedestal(x, y)
+    end
+end)
+
 local function get_closest_real_player(entity_id)
     local x, y = EntityGetTransform(entity_id)
     local players = EntityGetWithTag("ew_peer") or {}
@@ -139,50 +217,91 @@ local function get_closest_real_player(entity_id)
     return closest_player
 end
 
-local last_movement_dir = 1
-local last_x, last_y = 0, 0
-local dist_accum = 0
-local frames_little_change = 0
-
-util.add_cross_call("ew_heart_statue_start_movement", function(entity_id)
-    add_legs(entity_id)
-    if not ctx.proxy_opt.lha_dont_run then
-        EntityAddTag(entity_id, "ew_hs_moving")
+local function run_away_from_player(entity_id)
+    if not ctx.my_player.heart_statue_running_data then
+        ctx.my_player.heart_statue_running_data = {
+            last_movement_dir = 1,
+            last_x = 0, 
+            last_y = 0,
+            dist_accum = 0,
+            frames_little_change = 0
+        }
     end
-    async(function ()
-        wait(10)
-        local shape_comp = EntityGetFirstComponent(entity_id, "PhysicsShapeComponent")
-        if shape_comp ~= nil then
-            ComponentSetValue2(shape_comp, "radius_x", 6)
-            ComponentSetValue2(shape_comp, "radius_y", 4)
-        end
-    end)
-end)
 
-local function spawn_pedestal(x, y)
-    LoadPixelScene(
-        "mods/quant.ew/files/system/heart_statue/heart_statue_pedestal.png",
-        "mods/quant.ew/files/system/heart_statue/heart_statue_pedestal_visual.png",
-        x - 8,
-        y - 9,
-        "",
-        true,
-        true
-    )
-end
+    local data = ctx.my_player.heart_statue_running_data
+    local dist_accum = data.dist_accum
+    local frames_little_change = data.frames_little_change
 
-util.add_cross_call("ew_heart_statue_spawn_pedestal", function(entity_id)
-    local x, y = EntityGetTransform(entity_id)
-    if ctx.my_player.peer_id == ctx.host_id then
-        spawn_pedestal(x, y)
+    local ik_animator = EntityGetFirstComponent(entity_id, "IKLimbsAnimatorComponent")
+    local any_leg_attached = false
+    if ik_animator ~= nil then
+        any_leg_attached = ComponentGetValue2(ik_animator, "mHasGroundAttachmentOnAnyLeg")
+    end
+
+    local x, y, rot = EntityGetTransform(entity_id)
+    local force_magnitude
+    local px, py
+    local dx, dy
+    local prob_mult = 1.0
+    local dist = math.abs(data.last_x - x + data.last_y - y)
+
+    if dist < 0.25 then
+        dist_accum = dist_accum + dist
+        frames_little_change = frames_little_change + 1
     else
-        -- this is needed to have see the texture
-        async(function ()
-            wait(10)
-            spawn_pedestal(x, y)
-        end)
+        frames_little_change = 0
+        dist_accum = 0
     end
-end)
+
+    if frames_little_change > 0 then
+        local avg = dist_accum / frames_little_change
+        prob_mult = avg < 0.1 and frames_little_change or 0
+    end
+
+    data.dist_accum = dist_accum
+    data.frames_little_change = frames_little_change
+
+    local rand_val = ProceduralRandomf(GameGetFrameNum(), (x / 2) + (y / 2))
+    local base_prob = (1.0 * prob_mult) / 500
+    base_prob = base_prob > 1.0 and 1.0 or base_prob
+    if rand_val < base_prob then
+        data.last_movement_dir = (rand_val < (base_prob / 2)) and 1 or -1
+    end
+
+    local closest_player = get_closest_real_player(entity_id)
+    if closest_player then
+        px, py = EntityGetTransform(closest_player)
+        force_magnitude = 20
+    end
+
+    if px then
+        dx = x - px
+        dy = y - py
+        dist = math.sqrt(dx*dx + dy*dy)
+    end
+
+    if (not closest_player) or (dist > 100) or (not px) then
+        px = data.last_movement_dir + x
+        py = y
+        dx = x - px
+        dy = y - py
+        dist = math.sqrt(dx*dx + dy*dy)
+        force_magnitude = 15
+    end
+
+    if not any_leg_attached then
+        PhysicsApplyForce(entity_id, 0, 12)
+        force_magnitude = force_magnitude * 0.25
+    end
+    local fx = (dx / dist) * force_magnitude
+    local fy = (dy / dist) * force_magnitude
+    fy = (fy < 2) and (fy - 4) or fy
+    PhysicsApplyForce(entity_id, fx, fy)
+    PhysicsApplyTorque(entity_id, (rot) * -10)
+
+    data.last_x = x
+    data.last_y = y
+end
 
 function heart_statue.on_world_update()
     local entity_id = ctx.my_player.entity
@@ -214,7 +333,7 @@ function heart_statue.on_world_update()
 
     if root ~= entity_id then
         if GameGetFrameNum() % 60 == 53 then
-            util.remove_cape(entity_id)
+            remove_cape(entity_id)
 
             local data = player_fns.get_player_data_by_local_entity_id(root)
             if data ~= nil then
@@ -222,72 +341,7 @@ function heart_statue.on_world_update()
             end
         end
     elseif EntityHasTag(entity_id, "ew_hs_moving") then
-        local ik_animator = EntityGetFirstComponent(entity_id, "IKLimbsAnimatorComponent")
-        local any_leg_attached = false
-        if ik_animator ~= nil then
-            any_leg_attached = ComponentGetValue2(ik_animator, "mHasGroundAttachmentOnAnyLeg")
-        end
-
-        local x, y, rot = EntityGetTransform(entity_id)
-        local force_magnitude
-        local px, py
-        local dx, dy
-        local prob_mult = 1.0
-        local dist = math.abs(last_x - x + last_y - y)
-
-        if dist < 0.25 then
-            dist_accum = dist_accum + dist
-            frames_little_change = frames_little_change + 1
-        else
-            frames_little_change = 0
-            dist_accum = 0
-        end
-
-        if frames_little_change > 0 then
-            local avg = dist_accum / frames_little_change
-            prob_mult = avg < 0.1 and frames_little_change or 0
-        end 
-
-        local rand_val = ProceduralRandomf(GameGetFrameNum(), (x / 2) + (y / 2))
-        local base_prob = (1.0 * prob_mult) / 500
-        base_prob = base_prob > 1.0 and 1.0 or base_prob
-        if rand_val < base_prob then
-            last_movement_dir = (rand_val < (base_prob / 2)) and 1 or -1
-        end
-
-        local closest_player = get_closest_real_player(entity_id)
-        if closest_player then
-            px, py = EntityGetTransform(closest_player)
-            force_magnitude = 20
-        end
-
-        if px then
-            dx = x - px
-            dy = y - py
-            dist = math.sqrt(dx*dx + dy*dy)
-        end
-
-        if (not closest_player) or (dist > 100) or (not px) then
-            px = last_movement_dir + x
-            py = y
-            dx = x - px
-            dy = y - py
-            dist = math.sqrt(dx*dx + dy*dy)
-            force_magnitude = 15
-        end
-
-        if not any_leg_attached then
-            PhysicsApplyForce(entity_id, 0, 12)
-            force_magnitude = force_magnitude * 0.25
-        end
-        local fx = (dx / dist) * force_magnitude
-        local fy = (dy / dist) * force_magnitude
-        fy = (fy < 2) and (fy - 4) or fy
-        PhysicsApplyForce(entity_id, fx, fy)
-        PhysicsApplyTorque(entity_id, (rot) * -10)
-
-        last_x = x
-        last_y = y
+        run_away_from_player(entity_id)
     end
 end
 

@@ -341,11 +341,13 @@ function fake_unpolymorph()
 end
 
 local function no_notplayer()
-    local ent = fake_polymorph_into_entity("mods/quant.ew/files/system/heart_statue/heart_statue.xml")
-    if not ctx.proxy_opt.lha_dont_run then
-        -- this was a funny bug during testing, i wanted to keep it
-        util.add_player_cape_for_fun(ent)
+    local entity_name
+    if ctx.proxy_opt.local_health_alternate_dont_run then
+        entity_name = "mods/quant.ew/files/system/heart_statue/heart_statue.xml"
+    else
+        entity_name = "mods/quant.ew/files/system/heart_statue/heart_statue_running.xml"
     end
+    local ent = fake_polymorph_into_entity(entity_name)
     polymorph.switch_entity(ent)
 end
 

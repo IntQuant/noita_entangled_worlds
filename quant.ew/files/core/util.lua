@@ -513,43 +513,4 @@ function util.run_in_new_context(code)
     EntityKill(entity)
 end
 
-function util.find_player_cape(entity)
-    local cape
-    local player_child_entities = EntityGetAllChildren(entity)
-    if player_child_entities ~= nil then
-        for _, child_entity in ipairs(player_child_entities) do
-            local child_entity_name = EntityGetName(child_entity)
-            if child_entity_name == "cape" then
-                cape = child_entity
-                break
-            end
-        end
-    end
-
-    return cape
-end
-
-function util.add_player_cape_for_fun(entity)
-    local cape = util.find_player_cape(entity)
-
-    if cape then
-        EntityRemoveFromParent(cape)
-        EntityKill(cape)
-    end
-
-    local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. ctx.my_id .. "_cape.xml"
-    local x, y = EntityGetTransform(entity)
-    local cape2 = EntityLoad(player_cape_sprite_file, x, y)
-    EntityAddChild(entity, cape2)
-end
-
-function util.remove_cape(entity)
-    local cape = util.find_player_cape(entity)
-
-    if cape then
-        EntityRemoveFromParent(cape)
-        EntityKill(cape)
-    end
-end
-
 return util

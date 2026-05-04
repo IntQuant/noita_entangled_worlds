@@ -44,7 +44,7 @@ pub struct GameSettings {
     pub chest_on_win: Option<bool>,
     pub wait_for_time: Option<bool>,
     pub timed: Option<bool>,
-    pub lha_dont_run: Option<bool>,
+    pub local_health_alternate_dont_run: Option<bool>,
 }
 
 pub struct DefaultSettings {
@@ -78,7 +78,7 @@ pub struct DefaultSettings {
     pub chest_on_win: bool,
     pub wait_for_time: bool,
     pub timed: bool,
-    pub lha_dont_run: bool,
+    pub local_health_alternate_dont_run: bool,
 }
 
 impl Default for DefaultSettings {
@@ -114,7 +114,7 @@ impl Default for DefaultSettings {
             chest_on_win: true,
             wait_for_time: false,
             timed: true,
-            lha_dont_run: false,
+            local_health_alternate_dont_run: false,
         }
     }
 }
@@ -291,9 +291,9 @@ impl GameSettings {
                                 }
                                 {
                                     let mut temp =
-                                        game_settings.lha_dont_run.unwrap_or(def.lha_dont_run);
-                                    if ui.checkbox(&mut temp, tr("lha_dont_run")).changed() {
-                                        game_settings.lha_dont_run = Some(temp)
+                                        game_settings.local_health_alternate_dont_run.unwrap_or(def.local_health_alternate_dont_run);
+                                    if ui.checkbox(&mut temp, tr("local_health_alternate_dont_run")).changed() {
+                                        game_settings.local_health_alternate_dont_run = Some(temp)
                                     }
                                 }
                             }

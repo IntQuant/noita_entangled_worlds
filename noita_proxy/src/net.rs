@@ -1059,8 +1059,8 @@ impl NetManager {
                             .unwrap_or(def.health_lost_on_revive),
                     );
                     state.try_ws_write_option(
-                        "lha_dont_run",
-                        settings.lha_dont_run.unwrap_or(def.lha_dont_run),
+                        "local_health_alternate_dont_run",
+                        settings.local_health_alternate_dont_run.unwrap_or(def.local_health_alternate_dont_run),
                     );
                 }
                 LocalHealthMode::PvP => {
