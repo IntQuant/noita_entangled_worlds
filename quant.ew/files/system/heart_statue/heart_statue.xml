@@ -34,7 +34,7 @@
         _tags="enabled_in_world"
         radius_x="6"
         radius_y="4"
-        friction="0.0"
+        friction="0.75"
         restitution="0.1"
         density="0.75"
         material="rock_box2d_hard"
@@ -75,7 +75,7 @@
         image_file="mods/quant.ew/files/system/heart_statue/heart_statue.png"
         offset_x="8"
         offset_y="8"
-     ></SpriteComponent>
+    ></SpriteComponent>
 
     <SpriteComponent
         _tags="enabled_in_hand"

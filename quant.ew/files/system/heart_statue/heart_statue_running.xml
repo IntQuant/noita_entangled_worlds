@@ -1,5 +1,5 @@
 <Entity
-    name="heart_statue"
+    name="heart_statue_running"
     tags="teleportable_NOT,item_physics,item_pickup,heart_statue"
 >
     <StreamingKeepAliveComponent>
@@ -41,7 +41,7 @@
         _tags="enabled_in_world"
         radius_x="6"
         radius_y="4"
-        friction="0.0"
+        friction="0.01"
         restitution="0.1"
         density="0.75"
         material="rock_box2d_hard"
