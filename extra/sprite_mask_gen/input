@@ -1,0 +1,28 @@
+(
+    colors: {
+        "arm": (89, 67, 84),
+        "alt": (127, 84, 118),
+        "main": (155, 111, 154),
+    },
+    files: [
+        ("player_spritesheet", "../../quant.ew/files/system/player/unmodified.png"),
+        ("player_lukki_spritesheet", "../../quant.ew/files/system/player/unmodified_lukki.png"),
+        ("player_head_sprite", "../../quant.ew/files/system/player/head.png"),
+        ("player_knee_sprite", "../../quant.ew/files/system/player/knee.png"),
+        ("player_left_arm_sprite", "../../quant.ew/files/system/player/left_arm.png"),
+        ("player_left_hand_sprite", "../../quant.ew/files/system/player/left_hand.png"),
+        ("player_left_thigh_sprite", "../../quant.ew/files/system/player/left_thigh.png"),
+        ("player_right_arm_sprite", "../../quant.ew/files/system/player/right_arm.png"),
+        ("player_right_hand_sprite", "../../quant.ew/files/system/player/right_hand.png"),
+        ("player_right_thigh_sprite", "../../quant.ew/files/system/player/right_thigh.png"),
+        ("player_limb_a_sprite", "../../quant.ew/files/system/player/limb_a.png"),
+        ("player_limb_b_sprite", "../../quant.ew/files/system/player/limb_b.png"),
+        ("player_torso_sprite", "../../quant.ew/files/system/player/torso.png"),
+        ("player_arrow_sprite", "../../quant.ew/files/system/player_arrows/arrow.png"),
+        ("player_arrow_notplayer_sprite", "../../quant.ew/files/system/player_arrows/arrow_notplayer.png"),
+        ("player_arrow_host_sprite", "../../quant.ew/files/system/player_arrows/arrow_host.png"),
+        ("player_arrow_host_notplayer_sprite", "../../quant.ew/files/system/player_arrows/arrow_host_notplayer.png"),
+        ("player_ping_sprite", "../../quant.ew/files/system/player_ping/arrow.png"),
+        ("player_cursor_sprite", "../../quant.ew/files/resource/sprites/cursor.png"),
+    ],
+)
