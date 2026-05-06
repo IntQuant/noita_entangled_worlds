@@ -75,24 +75,31 @@ pub struct Paths {
 
 #[rustfmt::skip]
 impl Paths {
+    #[track_caller]
     pub fn noita_install(&self) -> &PathBuf {
         self.noita_install.as_ref().expect("noita_install path is Some")
     }
+    #[track_caller]
     pub fn noita_exe(&self) -> &PathBuf {
         self.noita_exe.as_ref().expect("noita_exe path is Some")
     }
+    #[track_caller]
     pub fn noita_quantew_install(&self) -> &PathBuf {
         self.noita_quantew_install.as_ref().expect("noita_quantew_install path is Some")
     }
+    #[track_caller]
     pub fn noita_quantew_player_spritesheet(&self) -> &PathBuf {
         self.noita_quantew_player_spritesheet.as_ref().expect("noita_quantew_player_spritesheet path is Some")
     }
+    #[track_caller]
     pub fn noita_save(&self) -> &PathBuf {
         self.noita_save.as_ref().expect("noita_save path is Some")
     }
+    #[track_caller]
     pub fn proxy_settings(&self) -> &PathBuf {
         self.proxy_settings.as_ref().expect("proxy_settings path is Some")
     }
+    #[track_caller]
     pub fn proxy_save_state(&self) -> &PathBuf {
         self.proxy_save_state.as_ref().expect("save_state path is Some")
     }
