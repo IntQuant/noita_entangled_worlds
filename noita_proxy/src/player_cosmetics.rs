@@ -7,11 +7,16 @@ use std::{
 };
 
 use bitcode::{Decode, Encode};
-use image::{DynamicImage::ImageRgba8, ImageBuffer, Rgba, RgbaImage};
+use image::{Pixel, RgbaImage};
 use rustc_hash::FxHashMap;
 use shared::WorldPos;
 
-use crate::{color::*, net::omni::OmniPeerId, player_settings::PlayerColor};
+use crate::{
+    asset::{Asset, AssetManager},
+    color::*,
+    net::omni::OmniPeerId,
+    player_settings::{Cosmetics, PlayerColor},
+};
 
 #[rustfmt::skip]
 const SPRITES: &[(&str, &str)] = &[
@@ -54,6 +59,33 @@ const PLAYER_PREIVEW_SPRITES: &[(&str, &str)] = &[
     ("player_preview_cape_mask"        , "files/resource/sprite_masks/player_preview_cape_mask.png"),
     ("player_preview_cape_edge_mask"   , "files/resource/sprite_masks/player_preview_cape_edge_mask.png"),
 ];
+
+pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
+    let sprites = SPRITES.iter().map(|(name, path)| {
+        (
+            name.to_string(),
+            Asset::new(quantew_install.join(path)).with_format_guessed(),
+        )
+    });
+    assets.extend(sprites);
+    let sprite_masks = SPRITES.iter().flat_map(|(name, _)| {
+        ["alt", "arm", "main"].map(|mask_name| {
+            let path = format!("files/resource/sprite_masks/{name}_{mask_name}_mask.png");
+            (
+                format!("{name}_{mask_name}_mask"),
+                Asset::new(quantew_install.join(path)).with_format_guessed(),
+            )
+        })
+    });
+    assets.extend(sprite_masks);
+    let player_preview_sprites = PLAYER_PREIVEW_SPRITES.iter().map(|(name, path)| {
+        (
+            name.to_string(),
+            Asset::new(quantew_install.join(path)).with_format_guessed(),
+        )
+    });
+    assets.extend(player_preview_sprites);
+}
 
 pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf, PathBuf) {
     let parent = path.parent().unwrap();
