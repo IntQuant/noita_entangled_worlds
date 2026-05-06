@@ -1,5 +1,5 @@
-use std::fs;
 use std::path::PathBuf;
+use std::{fs, io};
 
 use tracing::{error, info, warn};
 
@@ -93,7 +93,11 @@ impl SavePaths {
         match Settings::load(&self.settings_path) {
             Ok(settings) => settings,
             Err(e) => {
-                warn!("Failed to load settings: {e}");
+                if let io::ErrorKind::NotFound = e.kind() {
+                    warn!("Settings not found");
+                } else {
+                    error!("Failed to load settings: {e}");
+                }
                 info!("Using default settings");
                 Settings::default()
             }

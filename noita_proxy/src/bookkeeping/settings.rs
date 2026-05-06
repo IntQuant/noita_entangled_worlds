@@ -23,7 +23,8 @@ impl Settings {
         let mut file = File::open(path)?;
         let mut s = String::new();
         let _ = file.read_to_string(&mut s);
-        let settings = ron::from_str::<Settings>(&s).unwrap_or_default();
+        let settings =
+            ron::from_str::<Settings>(&s).map_err(|_| io::Error::other("parse failed"))?;
         Ok(settings)
     }
 
