@@ -87,6 +87,31 @@ pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
     assets.extend(player_preview_sprites);
 }
 
+fn write_color_with_mask_to_image(color: Rgba, mask: &RgbaImage, target: &mut RgbaImage) {
+    assert!(
+        mask.dimensions() == target.dimensions(),
+        "mask and target must be of the same dimensions"
+    );
+    for (mask_pixel, target_pixel) in mask.pixels().zip(target.pixels_mut()) {
+        if mask_pixel.channels()[0..3] == [255, 255, 255] {
+            *target_pixel = color;
+        }
+    }
+}
+
+fn write_overlay_to_image(overlay: &RgbaImage, target: &mut RgbaImage) {
+    assert!(
+        overlay.dimensions() == target.dimensions(),
+        "overlay and target must be of the same dimensions"
+    );
+    for (overlay_pixel, target_pixel) in overlay.pixels().zip(target.pixels_mut()) {
+        // Pixel is not completely transparent
+        if overlay_pixel.channels()[3] != 0 {
+            *target_pixel = *overlay_pixel;
+        }
+    }
+}
+
 pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf, PathBuf) {
     let parent = path.parent().unwrap();
     let p = parent.join("player_arrows");
