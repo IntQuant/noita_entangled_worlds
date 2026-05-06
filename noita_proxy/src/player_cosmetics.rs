@@ -255,17 +255,19 @@ pub fn create_player_png(
     peer: OmniPeerId,
     mod_path: &Path,
     player_path: &Path,
+    assets: &AssetManager,
     rgb: &PlayerPngDesc,
     is_host: bool,
     player_map: &mut MutexGuard<FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, RgbaImage)>>,
 ) {
-    let icon = get_player_skin(
-        image::open(player_path)
-            .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-            .crop(1, 1, 7, 16)
-            .into_rgba8(),
-        *rgb,
-    );
+    // let icon = get_player_skin(
+    //     image::open(player_path)
+    //         .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
+    //         .crop(1, 1, 7, 16)
+    //         .into_rgba8(),
+    //     *rgb,
+    // );
+    let icon = make_player_preview(assets, rgb);
     player_map.insert(peer, (None, false, false, icon.clone()));
     let inv = rgb.invert_border;
     let id = peer.as_hex();
