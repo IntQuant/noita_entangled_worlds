@@ -13,6 +13,48 @@ use shared::WorldPos;
 
 use crate::{color::*, net::omni::OmniPeerId, player_settings::PlayerColor};
 
+#[rustfmt::skip]
+const SPRITES: &[(&str, &str)] = &[
+    ("player_spritesheet"                , "files/system/player/unmodified.png"),
+    ("player_lukki_spritesheet"          , "files/system/player/unmodified_lukki.png"),
+
+    ("player_head_sprite"                , "files/system/player/head.png"),
+    ("player_knee_sprite"                , "files/system/player/knee.png"),
+    ("player_left_arm_sprite"            , "files/system/player/left_arm.png"),
+    ("player_left_hand_sprite"           , "files/system/player/left_hand.png"),
+    ("player_left_thigh_sprite"          , "files/system/player/left_thigh.png"),
+    ("player_right_arm_sprite"           , "files/system/player/right_arm.png"),
+    ("player_right_hand_sprite"          , "files/system/player/right_hand.png"),
+    ("player_right_thigh_sprite"         , "files/system/player/right_thigh.png"),
+    ("player_limb_a_sprite"              , "files/system/player/limb_a.png"),
+    ("player_limb_b_sprite"              , "files/system/player/limb_b.png"),
+    ("player_torso_sprite"               , "files/system/player/torso.png"),
+
+    ("player_arrow_sprite"               , "files/system/player_arrows/arrow.png"),
+    ("player_arrow_notplayer_sprite"     , "files/system/player_arrows/arrow_notplayer.png"),
+    ("player_arrow_host_sprite"          , "files/system/player_arrows/arrow_host.png"),
+    ("player_arrow_host_notplayer_sprite", "files/system/player_arrows/arrow_host_notplayer.png"),
+    ("player_ping_sprite"                , "files/system/player_ping/arrow.png"),
+    ("player_cursor_sprite"              , "files/resource/sprites/cursor.png"),
+];
+
+#[rustfmt::skip]
+const PLAYER_PREIVEW_SPRITES: &[(&str, &str)] = &[
+    ("player_preview_sprite"           , "files/resource/sprites/player_preview.png"),
+
+    ("player_preview_amulet_sprite"    , "files/resource/sprites/player_preview_amulet.png"),
+    ("player_preview_amulet_gem_sprite", "files/resource/sprites/player_preview_amulet_gem.png"),
+    ("player_preview_hat_sprite"     , "files/resource/sprites/player_preview_hat.png"),
+
+
+    ("player_preview_main_mask"        , "files/resource/sprite_masks/player_preview_main_mask.png"),
+    ("player_preview_alt_mask"         , "files/resource/sprite_masks/player_preview_alt_mask.png"),
+    ("player_preview_arm_mask"         , "files/resource/sprite_masks/player_preview_arm_mask.png"),
+    ("player_preview_forearm_mask"     , "files/resource/sprite_masks/player_preview_forearm_mask.png"),
+    ("player_preview_cape_mask"        , "files/resource/sprite_masks/player_preview_cape_mask.png"),
+    ("player_preview_cape_edge_mask"   , "files/resource/sprite_masks/player_preview_cape_edge_mask.png"),
+];
+
 pub fn arrows_path(path: PathBuf, is_host: bool) -> (PathBuf, PathBuf, PathBuf) {
     let parent = path.parent().unwrap();
     let p = parent.join("player_arrows");
