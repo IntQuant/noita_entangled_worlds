@@ -148,6 +148,7 @@ pub enum Parsed {
 
 impl Parsed {
     #[allow(irrefutable_let_patterns)]
+    #[track_caller]
     pub fn as_image(&self) -> &image::DynamicImage {
         if let Parsed::Image(image) = self {
             image
