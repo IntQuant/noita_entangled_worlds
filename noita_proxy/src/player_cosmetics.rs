@@ -60,6 +60,8 @@ const PLAYER_PREIVEW_SPRITES: &[(&str, &str)] = &[
     ("player_preview_cape_edge_mask"   , "files/resource/sprite_masks/player_preview_cape_edge_mask.png"),
 ];
 
+type Rgba = image::Rgba<u8>;
+
 pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
     let sprites = SPRITES.iter().map(|(name, path)| {
         (
@@ -135,7 +137,7 @@ pub fn cursor_path(path: PathBuf) -> PathBuf {
         .join("resource/sprites/cursor.png")
 }
 
-pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: Rgba<u8>) {
+pub fn replace_color(image: &mut RgbaImage, main: Rgba, alt: Rgba, arm: Rgba) {
     let target_main = Rgba::from([155, 111, 154, 255]);
     let target_alt = Rgba::from([127, 84, 118, 255]);
     let target_arm = Rgba::from([89, 67, 84, 255]);
@@ -150,13 +152,7 @@ pub fn replace_color(image: &mut RgbaImage, main: Rgba<u8>, alt: Rgba<u8>, arm: 
     }
 }
 
-pub fn replace_color_opt(
-    image: &mut RgbaImage,
-    main: Rgba<u8>,
-    alt: Rgba<u8>,
-    arm: Rgba<u8>,
-    inv: bool,
-) {
+pub fn replace_color_opt(image: &mut RgbaImage, main: Rgba, alt: Rgba, arm: Rgba, inv: bool) {
     let target_main = Rgba::from([155, 111, 154, 255]);
     let target_alt = Rgba::from([127, 84, 118, 255]);
     let target_arm = Rgba::from([89, 67, 84, 255]);
@@ -234,7 +230,7 @@ pub fn get_player_skin(
     img
 }
 
-pub fn create_arm(arm: Rgba<u8>) -> RgbaImage {
+pub fn create_arm(arm: Rgba) -> RgbaImage {
     let hand = Rgba::from([219, 192, 103, 255]);
     let mut img = RgbaImage::new(5, 15);
     for (i, pixel) in img.pixels_mut().enumerate() {
