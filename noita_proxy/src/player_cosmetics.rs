@@ -170,64 +170,41 @@ pub fn replace_color_opt(image: &mut RgbaImage, main: Rgba, alt: Rgba, arm: Rgba
     }
 }
 
-pub fn make_player_image(image: &mut RgbaImage, colors: PlayerColor) {
-    let target_main = Rgba::from([155, 111, 154, 255]);
-    let target_alt = Rgba::from([127, 84, 118, 255]);
-    let target_arm = Rgba::from([89, 67, 84, 255]);
-    let main = Rgba::from(to_u8(colors.player_main));
-    let alt = Rgba::from(to_u8(colors.player_alt));
-    let arm = Rgba::from(to_u8(colors.player_arm));
-    let cape = Rgba::from(to_u8(colors.player_cape));
-    let cape_edge = Rgba::from(to_u8(colors.player_cape_edge));
-    let forearm = Rgba::from(to_u8(colors.player_forearm));
-    for (i, pixel) in image.pixels_mut().enumerate() {
-        if *pixel == target_main {
-            *pixel = main
-        } else if *pixel == target_alt {
-            *pixel = alt
-        } else if *pixel == target_arm {
-            *pixel = arm
-        } else {
-            match i {
-                29 | 36 | 43 => *pixel = forearm,
-                22 => *pixel = Rgba::from([219, 192, 103, 255]),
-                105 | 98 | 91 | 84 | 112 | 99 | 92 | 85 | 78 | 106 | 86 | 79 | 72 | 93 => {
-                    *pixel = cape
-                }
-                70 | 77 | 64 | 71 | 65 => *pixel = cape_edge,
-                _ => {}
-            }
-        }
-    }
-}
+pub fn make_player_preview(assets: &AssetManager, settings: &PlayerPngDesc) -> RgbaImage {
+    let mut base = assets
+        .get_parsed("player_preview_sprite")
+        .as_image()
+        .to_rgba8();
 
-pub fn add_cosmetics(image: &mut RgbaImage, cosmetics: &[bool]) {
-    for (i, pixel) in image.pixels_mut().enumerate() {
-        match i {
-            2 | 4 | 6 if cosmetics[0] => *pixel = Rgba::from([255, 244, 140, 255]),
-            9 | 13 if cosmetics[0] => *pixel = Rgba::from([191, 141, 65, 255]),
-            10..=12 if cosmetics[0] => *pixel = Rgba::from([255, 206, 98, 255]),
-            54 if cosmetics[2] => *pixel = Rgba::from([255, 242, 162, 255]),
-            60 if cosmetics[2] => *pixel = Rgba::from([255, 227, 133, 255]),
-            61 if cosmetics[2] => *pixel = Rgba::from([255, 94, 38, 255]),
-            62 | 68 if cosmetics[2] => *pixel = Rgba::from([247, 188, 86, 255]),
-            45 | 53 if cosmetics[1] => *pixel = Rgba::from([247, 188, 86, 255]),
-            54 if cosmetics[1] => *pixel = Rgba::from([255, 227, 133, 255]),
-            61 if cosmetics[1] => *pixel = Rgba::from([255, 242, 162, 255]),
-            55 if cosmetics[1] => *pixel = Rgba::from([198, 111, 57, 255]),
-            48 if cosmetics[1] => *pixel = Rgba::from([177, 97, 48, 149]),
-            _ => {}
-        }
+    let colors = [
+        ("main", settings.colors.player_main),
+        ("alt", settings.colors.player_alt),
+        ("arm", settings.colors.player_arm),
+        ("forearm", settings.colors.player_forearm),
+        ("cape", settings.colors.player_cape),
+        ("cape_edge", settings.colors.player_cape_edge),
+    ];
+    for (name, color) in colors {
+        let color = Rgba::from(to_u8(color));
+        let asset = format!("player_preview_{name}_mask");
+        let mask = assets.get_parsed(&asset).as_image().to_rgba8();
+        write_color_with_mask_to_image(color, &mask, &mut base);
     }
-}
 
-pub fn get_player_skin(
-    mut img: RgbaImage,
-    colors: PlayerPngDesc,
-) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-    add_cosmetics(&mut img, &colors.cosmetics);
-    make_player_image(&mut img, colors.colors);
-    img
+    let cosmetics = [
+        ("hat", settings.cosmetics.hat),
+        ("amulet", settings.cosmetics.amulet),
+        ("amulet_gem", settings.cosmetics.amulet_gem),
+    ];
+    for (name, enabled) in cosmetics {
+        if !enabled {
+            continue;
+        }
+        let asset = format!("player_preview_{name}_sprite");
+        let sprite = assets.get_parsed(&asset).as_image().to_rgba8();
+        write_overlay_to_image(&sprite, &mut base);
+    }
+    base
 }
 
 pub fn create_arm(arm: Rgba) -> RgbaImage {
