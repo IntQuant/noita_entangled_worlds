@@ -10,7 +10,7 @@ use std::{
 };
 
 use arboard::Clipboard;
-use image::{DynamicImage::ImageRgba8, RgbaImage};
+use image::RgbaImage;
 use mod_manager::Modmanager;
 use self_update::SelfUpdateManager;
 use serde::{Deserialize, Serialize};
@@ -226,16 +226,6 @@ impl App {
             .set_zoom_factor(args.ui_zoom_factor.unwrap_or(default_zoom_factor));
         info!("Creating the app...");
         let run_save_state = SaveState::new(&save_paths.save_state_path);
-        let player_image = if let Some(path) = &paths.noita_quantew_player_spritesheet
-            && path.exists()
-        {
-            image::open(path)
-                .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-                .crop(1, 1, 7, 16)
-                .into_rgba8()
-        } else {
-            RgbaImage::new(7, 17)
-        };
 
         let mut me = Self {
             state,
@@ -294,22 +284,7 @@ impl App {
 
     fn get_netman_init(&self) -> NetManagerInit {
         let my_nickname = self.nickname();
-        let mut cosmetics = self.appearance.cosmetics;
-        if let Some(path) = &self.paths.noita_save {
-            let flags = path.join("save00/persistent/flags");
-            let hat = flags.join("secret_hat").exists();
-            let amulet = flags.join("secret_amulet").exists();
-            let gem = flags.join("secret_amulet_gem").exists();
-            if !hat {
-                cosmetics.0 = false
-            }
-            if !amulet {
-                cosmetics.1 = false
-            }
-            if !gem {
-                cosmetics.2 = false
-            }
-        }
+        let desc = self.appearance.create_png_desc();
         let noita_port = if self.app_saved_state.random_ports {
             0
         } else {
@@ -321,14 +296,11 @@ impl App {
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
-            cosmetics,
+            cosmetics: self.appearance.cosmetics,
             paths,
-            player_png_desc: PlayerPngDesc {
-                cosmetics: cosmetics.into(),
-                colors: self.appearance.player_color,
-                invert_border: self.appearance.invert_border,
-            },
+            player_png_desc: desc,
             noita_port,
+            asset_manager: self.asset_manager.clone(),
         }
     }
 
@@ -835,18 +807,8 @@ impl App {
             &mut self.app_saved_state.random_ports,
             tr("connect_settings_random_ports"),
         );
-        if self.player_image.width() == 1 {
-            self.player_image = image::open(self.paths.noita_quantew_player_spritesheet())
-                .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-                .crop(1, 1, 7, 16)
-                .into_rgba8();
-        }
         ui.add_space(20.0);
-        self.appearance.mina_color_picker(
-            ui,
-            self.paths.noita_save.clone(),
-            self.player_image.clone(),
-        );
+        self.appearance.mina_color_picker(ui, &self.asset_manager);
     }
 
     fn connect_to_steam_lobby(&mut self, lobby_id_raw: String) {
@@ -1082,16 +1044,15 @@ impl App {
                     }
                     self.appearance.mina_color_picker(
                         ui,
-                        self.paths.noita_save.clone(),
-                        self.player_image.clone(),
+                        &self.asset_manager
                     );
                     ui.add_space(15.0);
                     ui.horizontal(|ui| {
                         if ui.button("save colors").clicked() {
                             let desc = self
                                 .appearance
-                                .create_png_desc(self.paths.noita_save.clone());
-                            netman.new_desc(desc, self.player_image.clone());
+                                .create_png_desc();
+                            netman.new_desc(desc);
                             *netman.new_desc.lock().unwrap() = Some(desc);
                         };
                         ui.label("requires noita restart")

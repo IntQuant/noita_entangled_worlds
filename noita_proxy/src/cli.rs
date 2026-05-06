@@ -11,7 +11,7 @@ use crate::{
     mod_manager,
     net::{NetManager, NetManagerInit, NetManagerPaths, omni::PeerVariant, steam_networking},
     paths,
-    player_cosmetics::PlayerPngDesc,
+    player_settings::Cosmetics,
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -91,13 +91,14 @@ fn cli_setup(
     );
     let settings = save_paths.load_settings();
     let Settings {
-        color: appearance,
+        color: mut appearance,
         app: saved_state,
         audio,
         mut paths,
     } = settings;
     paths.proxy_settings = Some(save_paths.settings_path.clone());
     paths.proxy_save_state = Some(save_paths.save_state_path.clone());
+
     let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
@@ -112,37 +113,27 @@ fn cli_setup(
     }
     paths::realize_noita_paths_from_noita_exe(&mut paths);
     mod_manager::try_find_save_path(&mut paths);
+
     let run_save_state = SaveState::new(save_paths.save_state_path);
-    let mut cosmetics = (false, false, false);
-    if let Some(path) = &paths.noita_save {
-        let flags = path.join("save00/persistent/flags");
-        let hat = flags.join("secret_hat").exists();
-        let amulet = flags.join("secret_amulet").exists();
-        let gem = flags.join("secret_amulet_gem").exists();
-        if !hat {
-            cosmetics.0 = false
-        }
-        if !amulet {
-            cosmetics.1 = false
-        }
-        if !gem {
-            cosmetics.2 = false
-        }
+
+    if let Some(path) = paths.noita_save.as_ref() {
+        appearance.cosmetics = Cosmetics::get(path);
     }
+
+    let asset_manager = crate::init_assets(&paths);
+
     let paths =
         NetManagerPaths::try_from_paths(&paths).expect("necessary paths for networking are some");
     let netmaninit = NetManagerInit {
         my_nickname,
         save_state: run_save_state,
-        cosmetics,
+        cosmetics: appearance.cosmetics,
         paths,
-        player_png_desc: PlayerPngDesc {
-            cosmetics: cosmetics.into(),
-            colors: appearance.player_color,
-            invert_border: appearance.invert_border,
-        },
+        player_png_desc: appearance.create_png_desc(),
+        asset_manager,
         noita_port: 21251,
     };
+
     (
         state,
         netmaninit,

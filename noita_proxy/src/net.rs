@@ -1,8 +1,7 @@
 use audio::AudioManager;
 use bitcode::{Decode, Encode};
 use des::DesManager;
-use image::DynamicImage::ImageRgba8;
-use image::{ImageBuffer, Rgba, RgbaImage};
+use image::RgbaImage;
 use messages::{MessageRequest, NetMsg};
 use omni::OmniPeerId;
 use proxy_opt::ProxyOpt;
@@ -27,11 +26,13 @@ use std::{
 };
 use world::WorldManager;
 
+use crate::asset::AssetManager;
 use crate::lobby_code::LobbyKind;
 use crate::mod_manager::get_mods;
 use crate::net::world::world_model::ChunkData;
 use crate::paths::Paths;
-use crate::player_cosmetics::{PlayerPngDesc, create_player_png, get_player_skin};
+use crate::player_cosmetics::{PlayerPngDesc, create_player_png, make_player_preview};
+use crate::player_settings::Cosmetics;
 use crate::steam_helper::LobbyExtraData;
 use crate::{
     AudioSettings, DefaultSettings, GameSettings,
@@ -186,10 +187,11 @@ impl NetManagerPaths {
 pub struct NetManagerInit {
     pub my_nickname: String,
     pub save_state: SaveState,
-    pub cosmetics: (bool, bool, bool),
+    pub cosmetics: Cosmetics,
     pub paths: NetManagerPaths,
     pub player_png_desc: PlayerPngDesc,
     pub noita_port: u16,
+    pub asset_manager: AssetManager,
 }
 
 pub struct NetManager {
@@ -325,19 +327,20 @@ impl NetManager {
         create_dir(tmp).ok();
     }
 
-    pub fn new_desc(&self, desc: PlayerPngDesc, player_image: RgbaImage) {
+    pub fn new_desc(&self, desc: PlayerPngDesc) {
         create_player_png(
             self.peer.my_id(),
             &self.init_settings.paths.noita_quantew_install,
             &self.init_settings.paths.noita_quantew_player_spritesheet,
+            &self.init_settings.asset_manager,
             &desc,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
         );
-        self.minas
-            .lock()
-            .unwrap()
-            .insert(self.peer.my_id(), get_player_skin(player_image, desc));
+        self.minas.lock().unwrap().insert(
+            self.peer.my_id(),
+            make_player_preview(&self.init_settings.asset_manager, &desc),
+        );
         self.broadcast(
             &NetMsg::PlayerColor(
                 desc,
@@ -355,13 +358,13 @@ impl NetManager {
         mut kind: Option<LobbyKind>,
     ) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
-        if !self.init_settings.cosmetics.0 {
+        if !self.init_settings.cosmetics.hat {
             File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
         }
-        if !self.init_settings.cosmetics.1 {
+        if !self.init_settings.cosmetics.amulet {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet"))?;
         }
-        if !self.init_settings.cosmetics.2 {
+        if !self.init_settings.cosmetics.amulet_gem {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
         }
 
@@ -431,19 +434,12 @@ impl NetManager {
             .paths
             .noita_quantew_player_spritesheet
             .clone();
-        let player_image = if path.exists() {
-            image::open(path)
-                .unwrap_or(ImageRgba8(RgbaImage::new(20, 20)))
-                .crop(1, 1, 7, 16)
-                .into_rgba8()
-        } else {
-            RgbaImage::new(7, 17)
-        };
         // Create appearance files for local player.
         create_player_png(
             self.peer.my_id(),
             &self.init_settings.paths.noita_quantew_install,
             &self.init_settings.paths.noita_quantew_player_spritesheet,
+            &self.init_settings.asset_manager,
             &self.init_settings.player_png_desc,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
@@ -454,7 +450,10 @@ impl NetManager {
             .insert(self.peer.my_id(), self.init_settings.my_nickname.clone());
         self.minas.lock().unwrap().insert(
             self.peer.my_id(),
-            get_player_skin(player_image.clone(), self.init_settings.player_png_desc),
+            make_player_preview(
+                &self.init_settings.asset_manager,
+                &self.init_settings.player_png_desc,
+            ),
         );
 
         while self.continue_running.load(Ordering::Relaxed) {
@@ -529,23 +528,12 @@ impl NetManager {
             }
             to_kick.clear();
             for net_event in self.peer.recv() {
-                self.clone().handle_network_event(
-                    &mut state,
-                    &player_image,
-                    net_event,
-                    &tx,
-                    &sendm,
-                );
+                self.clone()
+                    .handle_network_event(&mut state, net_event, &tx, &sendm);
             }
             for net_msg in self.loopback_channel.1.try_iter() {
-                self.clone().handle_net_msg(
-                    &mut state,
-                    &player_image,
-                    self.peer.my_id(),
-                    net_msg,
-                    &tx,
-                    &sendm,
-                );
+                self.clone()
+                    .handle_net_msg(&mut state, self.peer.my_id(), net_msg, &tx, &sendm);
             }
             // Handle all available messages from Noita.
             while let Some(ws) = &mut state.ms {
@@ -661,7 +649,6 @@ impl NetManager {
     fn handle_network_event(
         self: Arc<NetManager>,
         state: &mut NetInnerState,
-        player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         net_event: omni::OmniNetworkEvent,
         tx: &Sender<(ChunkCoord, ChunkData)>,
         sendm: &Sender<FxHashMap<u16, u32>>,
@@ -688,6 +675,7 @@ impl NetManager {
                         id,
                         &self.init_settings.paths.noita_quantew_install,
                         &self.init_settings.paths.noita_quantew_player_spritesheet,
+                        &self.init_settings.asset_manager,
                         &PlayerPngDesc::default(),
                         id == self.peer.host_id(),
                         &mut self.players_sprite.lock().unwrap(),
@@ -736,7 +724,7 @@ impl NetManager {
                 else {
                     return;
                 };
-                self.handle_net_msg(state, player_image, src, net_msg, tx, sendm);
+                self.handle_net_msg(state, src, net_msg, tx, sendm);
             }
         }
     }
@@ -745,7 +733,6 @@ impl NetManager {
     fn handle_net_msg(
         self: Arc<NetManager>,
         state: &mut NetInnerState,
-        player_image: &ImageBuffer<Rgba<u8>, Vec<u8>>,
         src: OmniPeerId,
         net_msg: NetMsg,
         tx: &Sender<(ChunkCoord, ChunkData)>,
@@ -838,15 +825,16 @@ impl NetManager {
                     src,
                     &self.init_settings.paths.noita_quantew_install,
                     &self.init_settings.paths.noita_quantew_player_spritesheet,
+                    &self.init_settings.asset_manager,
                     &rgb,
                     host,
                     &mut self.players_sprite.lock().unwrap(),
                 );
                 self.nicknames.lock().unwrap().insert(src, name);
-                self.minas
-                    .lock()
-                    .unwrap()
-                    .insert(src, get_player_skin(player_image.clone(), rgb));
+                self.minas.lock().unwrap().insert(
+                    src,
+                    make_player_preview(&self.init_settings.asset_manager, &rgb),
+                );
                 if let Some(id) = pong
                     && id != self.peer.my_id()
                 {

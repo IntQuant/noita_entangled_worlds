@@ -222,7 +222,7 @@ pub fn create_arm(arm: Rgba) -> RgbaImage {
 
 #[derive(Clone, Copy, Debug, Decode, Encode, Default)]
 pub struct PlayerPngDesc {
-    pub(crate) cosmetics: [bool; 3],
+    pub(crate) cosmetics: Cosmetics,
     pub(crate) colors: PlayerColor,
     pub(crate) invert_border: bool,
 }
@@ -407,7 +407,7 @@ pub fn create_player_png(
         &[
             (
                 "MARKER_HAT2_ENABLED",
-                (if cosmetics[0] {
+                (if cosmetics.hat {
                     "image_file=\"data/enemies_gfx/player_hat2.xml\""
                 } else {
                     ""
@@ -416,7 +416,7 @@ pub fn create_player_png(
             ),
             (
                 "MARKER_AMULET_ENABLED",
-                (if cosmetics[1] {
+                (if cosmetics.amulet {
                     "image_file=\"data/enemies_gfx/player_amulet.xml\""
                 } else {
                     ""
@@ -425,7 +425,7 @@ pub fn create_player_png(
             ),
             (
                 "MARKER_AMULET_GEM_ENABLED",
-                (if cosmetics[2] {
+                (if cosmetics.amulet_gem {
                     "image_file=\"data/enemies_gfx/player_amulet_gem.xml\""
                 } else {
                     ""

@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use bitcode::{Decode, Encode};
-use image::{ImageBuffer, Rgba, RgbaImage};
+use image::{ImageBuffer, Rgba};
 use serde::{Deserialize, Serialize};
 
 use eframe::egui::{
@@ -10,8 +10,9 @@ use eframe::egui::{
 };
 
 use crate::{
+    asset::AssetManager,
     color::{f_to_u, shift_hue},
-    player_cosmetics::{PlayerPngDesc, get_player_skin},
+    player_cosmetics::{PlayerPngDesc, make_player_preview},
     tr,
 };
 
@@ -42,41 +43,20 @@ pub struct PlayerAppearance {
     pub player_color: PlayerColor,
     pub player_picker: PlayerPicker,
     pub hue: f64,
-    pub cosmetics: (bool, bool, bool),
+    pub cosmetics: Cosmetics,
     pub invert_border: bool,
 }
 
 impl PlayerAppearance {
-    pub fn create_png_desc(&self, game_save_path: Option<PathBuf>) -> PlayerPngDesc {
-        let mut cosmetics = self.cosmetics;
-        if let Some(path) = &game_save_path {
-            let flags = path.join("save00/persistent/flags");
-            let hat = flags.join("secret_hat").exists();
-            let amulet = flags.join("secret_amulet").exists();
-            let gem = flags.join("secret_amulet_gem").exists();
-            if !hat {
-                cosmetics.0 = false
-            }
-            if !amulet {
-                cosmetics.1 = false
-            }
-            if !gem {
-                cosmetics.2 = false
-            }
-        }
+    pub fn create_png_desc(&self) -> PlayerPngDesc {
         PlayerPngDesc {
-            cosmetics: cosmetics.into(),
+            cosmetics: self.cosmetics,
             colors: self.player_color,
             invert_border: self.invert_border,
         }
     }
 
-    pub fn mina_color_picker(
-        &mut self,
-        ui: &mut Ui,
-        game_save_path: Option<PathBuf>,
-        player_image: RgbaImage,
-    ) {
+    pub fn mina_color_picker(&mut self, ui: &mut Ui, asset_mananger: &AssetManager) {
         let old_hue = self.hue;
         let old = ui.style_mut().spacing.slider_width;
         ui.style_mut().spacing.slider_width = 256.0;
@@ -122,13 +102,10 @@ impl PlayerAppearance {
         ui.horizontal(|ui| {
             display_player_skin(
                 ui,
-                get_player_skin(
-                    player_image.clone(),
-                    self.create_png_desc(game_save_path.clone()),
-                ),
+                make_player_preview(asset_mananger, &self.create_png_desc()),
                 12.0,
             );
-            player_select_current_color_slot(ui, self, game_save_path.clone());
+            player_select_current_color_slot(ui, self);
             player_skin_display_color_picker(ui, &mut self.player_color, &self.player_picker);
         });
         if ui.button(tr("Reset-colors-to-default")).clicked() {
@@ -144,7 +121,7 @@ impl Default for PlayerAppearance {
             player_color: PlayerColor::default(),
             player_picker: PlayerPicker::None,
             hue: 0.0,
-            cosmetics: (true, true, true),
+            cosmetics: Default::default(),
             invert_border: false,
         }
     }
@@ -243,11 +220,7 @@ pub fn player_skin_display_color_picker(
     }
 }
 
-pub fn player_select_current_color_slot(
-    ui: &mut Ui,
-    appearance: &mut PlayerAppearance,
-    game_save_path: Option<PathBuf>,
-) {
+pub fn player_select_current_color_slot(ui: &mut Ui, appearance: &mut PlayerAppearance) {
     let mut clicked = false;
     let last = appearance.player_picker.clone();
     ui.scope(|ui| {
@@ -277,21 +250,16 @@ pub fn player_select_current_color_slot(
                 clicked = true;
                 appearance.player_picker = PlayerPicker::PlayerCapeEdge
             }
-            if let Some(path) = game_save_path {
-                let flags = path.join("save00/persistent/flags");
-                let hat = flags.join("secret_hat").exists();
-                let amulet = flags.join("secret_amulet").exists();
-                let gem = flags.join("secret_amulet_gem").exists();
-                ui.checkbox(&mut appearance.invert_border, "Invert border");
-                if hat {
-                    ui.checkbox(&mut appearance.cosmetics.0, tr("Crown"));
-                }
-                if amulet {
-                    ui.checkbox(&mut appearance.cosmetics.1, tr("Amulet"));
-                }
-                if gem {
-                    ui.checkbox(&mut appearance.cosmetics.2, tr("Gem"));
-                }
+
+            ui.checkbox(&mut appearance.invert_border, "Invert border");
+            if appearance.cosmetics.hat {
+                ui.checkbox(&mut appearance.cosmetics.hat, tr("Crown"));
+            }
+            if appearance.cosmetics.amulet {
+                ui.checkbox(&mut appearance.cosmetics.amulet, tr("Amulet"));
+            }
+            if appearance.cosmetics.amulet_gem {
+                ui.checkbox(&mut appearance.cosmetics.amulet_gem, tr("Gem"));
             }
         });
     });
