@@ -429,11 +429,6 @@ impl NetManager {
             audio: audio_state,
         };
         let mut last_iter = Instant::now();
-        let path = self
-            .init_settings
-            .paths
-            .noita_quantew_player_spritesheet
-            .clone();
         // Create appearance files for local player.
         create_player_png(
             self.peer.my_id(),
