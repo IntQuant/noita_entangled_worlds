@@ -28,6 +28,7 @@ use eframe::egui::{
 
 use crate::{
     AudioSettings, DefaultSettings, GameSettings, ImageMap, NetManStopOnDrop,
+    asset::AssetManager,
     bookkeeping::{
         mod_manager,
         noita_launcher::{LaunchTokenResult, NoitaLauncher},
@@ -48,8 +49,7 @@ use crate::{
         steam_networking,
     },
     paths::{self, Paths},
-    player_cosmetics::PlayerPngDesc,
-    player_settings::{PlayerAppearance, display_player_skin},
+    player_settings::{Cosmetics, PlayerAppearance, display_player_skin},
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -58,6 +58,7 @@ use crate::{DEFAULT_PORT, lang::LANGS};
 enum AppState {
     Connect,
     ModManager,
+    ModReady,
     TangledConnecting {
         peer: Peer,
     },
@@ -138,7 +139,6 @@ pub struct App {
     args: Args,
     /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
-    player_image: RgbaImage,
     end_run_button: EndRunButton,
     appearance: PlayerAppearance,
     connected_menu: ConnectedMenu,
@@ -155,6 +155,7 @@ pub struct App {
     proxylog: String,
     clipboard: Option<Clipboard>,
     paths: Paths,
+    asset_manager: AssetManager,
 }
 
 impl Drop for App {
@@ -247,7 +248,6 @@ impl App {
             args,
             can_start_automatically: false,
             run_save_state,
-            player_image,
             end_run_button: EndRunButton::default(),
             appearance,
             connected_menu: ConnectedMenu::Normal,
@@ -264,6 +264,7 @@ impl App {
             proxylog: String::new(),
             clipboard: Clipboard::new().ok(),
             paths,
+            asset_manager: AssetManager::default(),
         };
 
         if let Some(connect_to) = me.args.auto_connect_to {
@@ -1344,8 +1345,15 @@ impl eframe::App for App {
                         )
                     });
                 if self.modmanager.is_done() {
-                    self.switch_to_connect();
+                    self.state = AppState::ModReady;
                 }
+            }
+            AppState::ModReady => {
+                self.asset_manager = crate::init_assets(&self.paths);
+                if let Some(path) = self.paths.noita_save.as_ref() {
+                    self.appearance.cosmetics = Cosmetics::get(path);
+                }
+                self.switch_to_connect();
             }
             AppState::SelfUpdate => {
                 egui::CentralPanel::default().show_inside(ui, draw_bg);
