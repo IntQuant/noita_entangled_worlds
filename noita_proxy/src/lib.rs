@@ -55,9 +55,9 @@ impl Drop for NetManStopOnDrop {
 fn init_assets(paths: &Paths) -> AssetManager {
     let mut asset_manager = AssetManager::default();
     player_cosmetics::extend_assets(paths.noita_quantew_install(), &mut asset_manager);
-    let errors = asset_manager.fetch_all();
+    let errors = asset_manager.fetch_auto();
     if !errors.is_empty() {
-        error!("Some asset failed to fetch:");
+        error!("Some asset failed to automatically fetch:");
         for error in errors {
             error!("{error}")
         }

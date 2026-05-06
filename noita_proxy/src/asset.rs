@@ -1,6 +1,9 @@
-#![expect(dead_code)]
-
-use std::{collections::HashMap, fs, io::BufReader, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs,
+    io::{BufReader, Read},
+    path::PathBuf,
+};
 use tracing::warn;
 
 // Maybe should be arc but the memory usage aint that big of a deal
@@ -10,6 +13,7 @@ use tracing::warn;
 #[derive(Debug)]
 pub enum AssetError {
     OpenFailed(AssetInfo, std::io::Error),
+    ReadFailed(AssetInfo, std::io::Error),
     FormatNotSpecified(AssetInfo),
     ParseFailed(AssetInfo, Box<dyn std::error::Error>),
 }
@@ -27,6 +31,9 @@ impl std::fmt::Display for AssetError {
             AssetError::OpenFailed(asset, error) => {
                 write!(f, "{asset} failed to open: {error}")
             }
+            AssetError::ReadFailed(asset, error) => {
+                write!(f, "{asset} failed to read: {error}")
+            }
             AssetError::ParseFailed(asset, error) => {
                 write!(f, "{asset} failed to parse: {error}")
             }
@@ -37,6 +44,7 @@ impl AssetError {
     pub fn with_name(mut self, name: String) -> AssetError {
         match &mut self {
             AssetError::OpenFailed(asset_info, _)
+            | AssetError::ReadFailed(asset_info, _)
             | AssetError::FormatNotSpecified(asset_info)
             | AssetError::ParseFailed(asset_info, _) => {
                 asset_info.set_name(name);
@@ -73,16 +81,21 @@ impl AssetManager {
         } else {
             panic!("{name} does not exists");
         };
-        if let Some(parsed) = asset.parsed().as_ref() {
-            parsed
-        } else {
-            panic!("{name} is not parsed");
+        match asset.content() {
+            Content::NotLoaded => panic!("{name} have not been loaded"),
+            Content::Raw(_) => panic!("{name} have not been parsed"),
+            Content::Parsed(parsed) => parsed,
+            Content::FailedToLoad => panic!("{name} failed to load"),
+            Content::FailedToParse => panic!("{name} failed to parse"),
         }
     }
 
-    pub fn fetch_all(&mut self) -> Vec<AssetError> {
+    pub fn fetch_auto(&mut self) -> Vec<AssetError> {
         let mut errors = vec![];
         for (name, asset) in self.map.iter_mut() {
+            if !asset.config.auto_fetch {
+                continue;
+            }
             let result = asset.fetch();
             match result {
                 Ok(()) => {}
@@ -145,10 +158,36 @@ impl Parsed {
 }
 
 #[derive(Debug, Default, Clone)]
+pub enum Content {
+    #[default]
+    NotLoaded,
+    Raw(Vec<u8>),
+    Parsed(Parsed),
+    FailedToLoad,
+    FailedToParse,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssetConfig {
+    pub auto_fetch: bool,
+    pub do_parse: bool,
+}
+
+impl Default for AssetConfig {
+    fn default() -> Self {
+        Self {
+            auto_fetch: true,
+            do_parse: true,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Asset {
     path: PathBuf,
     format: Format,
-    parsed: Option<Parsed>,
+    content: Content,
+    config: AssetConfig,
 }
 
 impl Asset {
@@ -163,8 +202,8 @@ impl Asset {
         self.format
     }
 
-    pub fn parsed(&self) -> &Option<Parsed> {
-        &self.parsed
+    pub fn content(&self) -> &Content {
+        &self.content
     }
 
     pub fn get_info(&self) -> AssetInfo {
@@ -175,21 +214,36 @@ impl Asset {
     }
 
     pub fn fetch(&mut self) -> Result<()> {
-        if matches!(self.format, Format::Unknown) {
+        if self.config.do_parse && matches!(self.format, Format::Unknown) {
+            self.content = Content::FailedToParse;
             return Err(AssetError::FormatNotSpecified(self.get_info()));
         }
-        let file = fs::OpenOptions::new()
+        let mut file = fs::OpenOptions::new()
             .read(true)
             .open(&self.path)
-            .map_err(|e| AssetError::OpenFailed(self.get_info(), e))?;
-        match self.format {
-            Format::Image(format) => {
-                let file_reader = BufReader::new(file);
-                let image = image::load(file_reader, format)
-                    .map_err(|e| AssetError::ParseFailed(self.get_info(), Box::new(e)))?;
-                self.parsed = Some(Parsed::Image(image));
+            .map_err(|e| {
+                self.content = Content::FailedToLoad;
+                AssetError::OpenFailed(self.get_info(), e)
+            })?;
+        if self.config.do_parse {
+            match self.format {
+                Format::Image(format) => {
+                    let file_reader = BufReader::new(file);
+                    let image = image::load(file_reader, format).map_err(|e| {
+                        self.content = Content::FailedToParse;
+                        AssetError::ParseFailed(self.get_info(), Box::new(e))
+                    })?;
+                    self.content = Content::Parsed(Parsed::Image(image));
+                }
+                Format::Unknown => unreachable!(),
             }
-            Format::Unknown => unreachable!(),
+        } else {
+            let mut content = vec![];
+            file.read_to_end(&mut content).map_err(|e| {
+                self.content = Content::FailedToLoad;
+                AssetError::ReadFailed(self.get_info(), e)
+            })?;
+            self.content = Content::Raw(content);
         }
         Ok(())
     }
