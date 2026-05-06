@@ -15,6 +15,27 @@ use crate::{
     tr,
 };
 
+#[derive(Default, Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
+pub struct Cosmetics {
+    pub hat: bool,
+    pub amulet: bool,
+    pub amulet_gem: bool,
+}
+
+impl Cosmetics {
+    pub fn get(noita_save: &Path) -> Cosmetics {
+        let flags = noita_save.join("save00/persistent/flags");
+        let hat = flags.join("secret_hat").exists();
+        let amulet = flags.join("secret_amulet").exists();
+        let amulet_gem = flags.join("secret_amulet_gem").exists();
+        Cosmetics {
+            hat,
+            amulet,
+            amulet_gem,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct PlayerAppearance {
