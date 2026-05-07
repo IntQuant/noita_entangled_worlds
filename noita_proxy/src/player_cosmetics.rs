@@ -18,74 +18,81 @@ use crate::{
 };
 
 #[rustfmt::skip]
-const SPRITES: &[(&str, &str)] = &[
-    ("player_spritesheet"                , "files/system/player/unmodified.png"),
-    ("player_lukki_spritesheet"          , "files/system/player/unmodified_lukki.png"),
+#[allow(clippy::complexity)]
+const SPRITES_WITH_MASKS: &[(&[&str], &[(&str, &str)])] = &[
+    (
+        &["main", "alt", "arm"],
+        &[
+            ("player_spritesheet"                , "files/system/player/unmodified.png"),
+            ("player_lukki_spritesheet"          , "files/system/player/unmodified_lukki.png"),
 
-    ("player_head_sprite"                , "files/system/player/head.png"),
-    ("player_knee_sprite"                , "files/system/player/knee.png"),
-    ("player_left_arm_sprite"            , "files/system/player/left_arm.png"),
-    ("player_left_hand_sprite"           , "files/system/player/left_hand.png"),
-    ("player_left_thigh_sprite"          , "files/system/player/left_thigh.png"),
-    ("player_right_arm_sprite"           , "files/system/player/right_arm.png"),
-    ("player_right_hand_sprite"          , "files/system/player/right_hand.png"),
-    ("player_right_thigh_sprite"         , "files/system/player/right_thigh.png"),
-    ("player_limb_a_sprite"              , "files/system/player/limb_a.png"),
-    ("player_limb_b_sprite"              , "files/system/player/limb_b.png"),
-    ("player_torso_sprite"               , "files/system/player/torso.png"),
-
-    ("player_arrow_sprite"               , "files/system/player_arrows/arrow.png"),
-    ("player_arrow_notplayer_sprite"     , "files/system/player_arrows/arrow_notplayer.png"),
-    ("player_arrow_host_sprite"          , "files/system/player_arrows/arrow_host.png"),
-    ("player_arrow_host_notplayer_sprite", "files/system/player_arrows/arrow_host_notplayer.png"),
-    ("player_ping_sprite"                , "files/system/player_ping/arrow.png"),
-    ("player_cursor_sprite"              , "files/resource/sprites/cursor.png"),
-];
-
-#[rustfmt::skip]
-const SPRITES_MANUAL_MASKS: &[(&str, &str)] = &[
-    ("player_arm_spritesheet"             , "files/system/player/unmodified_arm.png"),
-    ("player_arm_spritesheet_forearm_mask", "files/resource/sprite_masks/player_arm_spritesheet_forearm_mask.png"),
-];
-
-#[rustfmt::skip]
-const PLAYER_PREIVEW_SPRITES: &[(&str, &str)] = &[
-    ("player_preview_sprite"           , "files/resource/sprites/player_preview.png"),
-
-    ("player_preview_amulet_sprite"    , "files/resource/sprites/player_preview_amulet.png"),
-    ("player_preview_amulet_gem_sprite", "files/resource/sprites/player_preview_amulet_gem.png"),
-    ("player_preview_hat_sprite"       , "files/resource/sprites/player_preview_hat.png"),
-
-    ("player_preview_main_mask"        , "files/resource/sprite_masks/player_preview_main_mask.png"),
-    ("player_preview_alt_mask"         , "files/resource/sprite_masks/player_preview_alt_mask.png"),
-    ("player_preview_arm_mask"         , "files/resource/sprite_masks/player_preview_arm_mask.png"),
-    ("player_preview_forearm_mask"     , "files/resource/sprite_masks/player_preview_forearm_mask.png"),
-    ("player_preview_cape_mask"        , "files/resource/sprite_masks/player_preview_cape_mask.png"),
-    ("player_preview_cape_edge_mask"   , "files/resource/sprite_masks/player_preview_cape_edge_mask.png"),
+            ("player_head_sprite"                , "files/system/player/head.png"),
+            ("player_knee_sprite"                , "files/system/player/knee.png"),
+            ("player_left_arm_sprite"            , "files/system/player/left_arm.png"),
+            ("player_left_hand_sprite"           , "files/system/player/left_hand.png"),
+            ("player_left_thigh_sprite"          , "files/system/player/left_thigh.png"),
+            ("player_right_arm_sprite"           , "files/system/player/right_arm.png"),
+            ("player_right_hand_sprite"          , "files/system/player/right_hand.png"),
+            ("player_right_thigh_sprite"         , "files/system/player/right_thigh.png"),
+            ("player_limb_a_sprite"              , "files/system/player/limb_a.png"),
+            ("player_limb_b_sprite"              , "files/system/player/limb_b.png"),
+            ("player_torso_sprite"               , "files/system/player/torso.png"),
+        ]
+    ),
+    (
+        &["forearm"],
+        &[
+            ("player_arm_spritesheet", "files/system/player/unmodified_arm.png"),
+        ],
+    ),
+    (
+        &["main", "alt", "arm", "border"],
+        &[
+            ("player_arrow_sprite"               , "files/system/player_arrows/arrow.png"),
+            ("player_arrow_notplayer_sprite"     , "files/system/player_arrows/arrow_notplayer.png"),
+            ("player_arrow_host_sprite"          , "files/system/player_arrows/arrow_host.png"),
+            ("player_arrow_host_notplayer_sprite", "files/system/player_arrows/arrow_host_notplayer.png"),
+            ("player_ping_sprite"                , "files/system/player_ping/arrow.png"),
+            ("player_cursor_sprite"              , "files/resource/sprites/cursor.png"),
+        ],
+    ),
+    (
+        &["main", "alt", "arm", "forearm", "cape", "cape_edge"],
+        &[
+            ("player_preview_sprite" , "files/resource/sprites/player_preview.png"),
+        ]
+    ),
+    (
+        &[],
+        &[
+            ("player_preview_amulet_sprite"    , "files/resource/sprites/player_preview_amulet.png"),
+            ("player_preview_amulet_gem_sprite", "files/resource/sprites/player_preview_amulet_gem.png"),
+            ("player_preview_hat_sprite"       , "files/resource/sprites/player_preview_hat.png"),
+        ],
+    ),
 ];
 
 type Rgba = image::Rgba<u8>;
 
-pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
-    let map_to_asset = |(name, path): &(&str, &str)| {
-        (
-            name.to_string(),
-            Asset::new(quantew_install.join(path)).with_format_guessed(),
-        )
-    };
-    assets.extend(SPRITES.iter().map(map_to_asset));
-    let sprite_masks = SPRITES.iter().flat_map(|(name, _)| {
-        ["alt", "arm", "main"].map(|mask_name| {
-            let path = format!("files/resource/sprite_masks/{name}_{mask_name}_mask.png");
+pub fn extend_assets(quantew_install: &Path, asset_manager: &mut AssetManager) {
+    for (mask_names, assets) in SPRITES_WITH_MASKS {
+        asset_manager.extend(assets.iter().map(|(name, path)| {
             (
-                format!("{name}_{mask_name}_mask"),
+                name.to_string(),
                 Asset::new(quantew_install.join(path)).with_format_guessed(),
             )
-        })
-    });
-    assets.extend(sprite_masks);
-    assets.extend(SPRITES_MANUAL_MASKS.iter().map(map_to_asset));
-    assets.extend(PLAYER_PREIVEW_SPRITES.iter().map(map_to_asset));
+        }));
+        for mask_name in *mask_names {
+            asset_manager.extend(assets.iter().map(|(name, _)| {
+                let path = format!("files/resource/sprite_masks/{name}_{mask_name}_mask.png");
+                let asset_name = format!("{name}_{mask_name}_mask");
+                (
+                    asset_name,
+                    Asset::new(quantew_install.join(path)).with_format_guessed(),
+                )
+            }));
+        }
+    }
 }
 
 fn write_color_rgb_with_mask_to_image(color: Rgba, mask: &RgbaImage, target: &mut RgbaImage) {
