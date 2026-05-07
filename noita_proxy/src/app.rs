@@ -49,7 +49,7 @@ use crate::{
         steam_networking,
     },
     paths::{self, Paths},
-    player_settings::{Cosmetics, PlayerAppearance, display_player_skin},
+    player_settings::{Cosmetics, PlayerAppearanceSettings, display_player_skin},
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -140,7 +140,7 @@ pub struct App {
     /// `true` if we haven't started noita automatically yet.
     can_start_automatically: bool,
     end_run_button: EndRunButton,
-    appearance: PlayerAppearance,
+    appearance: PlayerAppearanceSettings,
     connected_menu: ConnectedMenu,
     show_host_settings: bool,
     show_audio_settings: bool,

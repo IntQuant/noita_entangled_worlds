@@ -39,7 +39,7 @@ impl Cosmetics {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
-pub struct PlayerAppearance {
+pub struct PlayerAppearanceSettings {
     pub player_color: PlayerColor,
     pub player_picker: PlayerPicker,
     pub hue: f64,
@@ -47,7 +47,7 @@ pub struct PlayerAppearance {
     pub invert_border: bool,
 }
 
-impl PlayerAppearance {
+impl PlayerAppearanceSettings {
     pub fn create_png_desc(&self) -> PlayerPngDesc {
         PlayerPngDesc {
             cosmetics: self.cosmetics,
@@ -115,7 +115,7 @@ impl PlayerAppearance {
     }
 }
 
-impl Default for PlayerAppearance {
+impl Default for PlayerAppearanceSettings {
     fn default() -> Self {
         Self {
             player_color: PlayerColor::default(),
@@ -220,7 +220,7 @@ pub fn player_skin_display_color_picker(
     }
 }
 
-pub fn player_select_current_color_slot(ui: &mut Ui, appearance: &mut PlayerAppearance) {
+pub fn player_select_current_color_slot(ui: &mut Ui, appearance: &mut PlayerAppearanceSettings) {
     let mut clicked = false;
     let last = appearance.player_picker.clone();
     ui.scope(|ui| {
