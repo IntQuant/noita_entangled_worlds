@@ -6,7 +6,6 @@ use std::{
     sync::MutexGuard,
 };
 
-use bitcode::{Decode, Encode};
 use image::{Pixel, RgbaImage};
 use rustc_hash::FxHashMap;
 use shared::WorldPos;
@@ -15,7 +14,7 @@ use crate::{
     asset::{Asset, AssetManager},
     color::*,
     net::omni::OmniPeerId,
-    player_settings::{Cosmetics, PlayerColor},
+    player_settings::{PlayerAppearance, PlayerColor},
 };
 
 #[rustfmt::skip]
@@ -170,19 +169,19 @@ pub fn replace_color_opt(image: &mut RgbaImage, main: Rgba, alt: Rgba, arm: Rgba
     }
 }
 
-pub fn make_player_preview(assets: &AssetManager, settings: &PlayerPngDesc) -> RgbaImage {
+pub fn make_player_preview(assets: &AssetManager, appearance: &PlayerAppearance) -> RgbaImage {
     let mut base = assets
         .get_parsed("player_preview_sprite")
         .as_image()
         .to_rgba8();
 
     let colors = [
-        ("main", settings.colors.player_main),
-        ("alt", settings.colors.player_alt),
-        ("arm", settings.colors.player_arm),
-        ("forearm", settings.colors.player_forearm),
-        ("cape", settings.colors.player_cape),
-        ("cape_edge", settings.colors.player_cape_edge),
+        ("main", appearance.color.player_main),
+        ("alt", appearance.color.player_alt),
+        ("arm", appearance.color.player_arm),
+        ("forearm", appearance.color.player_forearm),
+        ("cape", appearance.color.player_cape),
+        ("cape_edge", appearance.color.player_cape_edge),
     ];
     for (name, color) in colors {
         let color = Rgba::from(to_u8(color));
@@ -192,9 +191,9 @@ pub fn make_player_preview(assets: &AssetManager, settings: &PlayerPngDesc) -> R
     }
 
     let cosmetics = [
-        ("hat", settings.cosmetics.hat),
-        ("amulet", settings.cosmetics.amulet),
-        ("amulet_gem", settings.cosmetics.amulet_gem),
+        ("hat", appearance.cosmetics.hat),
+        ("amulet", appearance.cosmetics.amulet),
+        ("amulet_gem", appearance.cosmetics.amulet_gem),
     ];
     for (name, enabled) in cosmetics {
         if !enabled {
@@ -218,13 +217,6 @@ pub fn create_arm(arm: Rgba) -> RgbaImage {
         }
     }
     img
-}
-
-#[derive(Clone, Copy, Debug, Decode, Encode, Default)]
-pub struct PlayerPngDesc {
-    pub(crate) cosmetics: Cosmetics,
-    pub(crate) colors: PlayerColor,
-    pub(crate) invert_border: bool,
 }
 
 fn replace_colors(path: PathBuf, save: PathBuf, rgb: &PlayerColor) {
@@ -256,7 +248,7 @@ pub fn create_player_png(
     mod_path: &Path,
     player_path: &Path,
     assets: &AssetManager,
-    rgb: &PlayerPngDesc,
+    rgb: &PlayerAppearance,
     is_host: bool,
     player_map: &mut MutexGuard<FxHashMap<OmniPeerId, (Option<WorldPos>, bool, bool, RgbaImage)>>,
 ) {
@@ -272,7 +264,7 @@ pub fn create_player_png(
     let inv = rgb.invert_border;
     let id = peer.as_hex();
     let cosmetics = rgb.cosmetics;
-    let rgb = rgb.colors;
+    let rgb = rgb.color;
     let tmp_path = player_path.parent().unwrap();
     let (arrows_path, ping_path, map_icon) = arrows_path(tmp_path.into(), is_host);
     let cursor_path = cursor_path(tmp_path.into());

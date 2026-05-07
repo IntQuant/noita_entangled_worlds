@@ -31,8 +31,8 @@ use crate::lobby_code::LobbyKind;
 use crate::mod_manager::get_mods;
 use crate::net::world::world_model::ChunkData;
 use crate::paths::Paths;
-use crate::player_cosmetics::{PlayerPngDesc, create_player_png, make_player_preview};
-use crate::player_settings::Cosmetics;
+use crate::player_cosmetics::{create_player_png, make_player_preview};
+use crate::player_settings::PlayerAppearance;
 use crate::steam_helper::LobbyExtraData;
 use crate::{
     AudioSettings, DefaultSettings, GameSettings,
@@ -187,9 +187,8 @@ impl NetManagerPaths {
 pub struct NetManagerInit {
     pub my_nickname: String,
     pub save_state: SaveState,
-    pub cosmetics: Cosmetics,
     pub paths: NetManagerPaths,
-    pub player_png_desc: PlayerPngDesc,
+    pub appearance: PlayerAppearance,
     pub noita_port: u16,
     pub asset_manager: AssetManager,
 }
@@ -219,7 +218,7 @@ pub struct NetManager {
     pub active_mods: Mutex<Vec<String>>,
     pub nicknames: Mutex<HashMap<OmniPeerId, String>>,
     pub minas: Mutex<HashMap<OmniPeerId, RgbaImage>>,
-    pub new_desc: Mutex<Option<PlayerPngDesc>>,
+    pub new_appearance: Mutex<Option<PlayerAppearance>>,
     loopback_channel: (
         crossbeam::channel::Sender<NetMsg>,
         crossbeam::channel::Receiver<NetMsg>,
@@ -263,7 +262,7 @@ impl NetManager {
             active_mods: Default::default(),
             nicknames: Default::default(),
             minas: Default::default(),
-            new_desc: Default::default(),
+            new_appearance: Default::default(),
             loopback_channel: crossbeam::channel::unbounded(),
             audio: audio.into(),
             push_to_talk: Default::default(),
@@ -327,23 +326,23 @@ impl NetManager {
         create_dir(tmp).ok();
     }
 
-    pub fn new_desc(&self, desc: PlayerPngDesc) {
+    pub fn new_appearance(&self, appearance: PlayerAppearance) {
         create_player_png(
             self.peer.my_id(),
             &self.init_settings.paths.noita_quantew_install,
             &self.init_settings.paths.noita_quantew_player_spritesheet,
             &self.init_settings.asset_manager,
-            &desc,
+            &appearance,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
         );
         self.minas.lock().unwrap().insert(
             self.peer.my_id(),
-            make_player_preview(&self.init_settings.asset_manager, &desc),
+            make_player_preview(&self.init_settings.asset_manager, &appearance),
         );
         self.broadcast(
             &NetMsg::PlayerColor(
-                desc,
+                appearance,
                 self.is_host(),
                 Some(self.peer.my_id()),
                 self.init_settings.my_nickname.clone(),
@@ -358,13 +357,13 @@ impl NetManager {
         mut kind: Option<LobbyKind>,
     ) -> io::Result<()> {
         Self::clean_dir(player_path.clone());
-        if !self.init_settings.cosmetics.hat {
+        if !self.init_settings.appearance.cosmetics.hat {
             File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
         }
-        if !self.init_settings.cosmetics.amulet {
+        if !self.init_settings.appearance.cosmetics.amulet {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet"))?;
         }
-        if !self.init_settings.cosmetics.amulet_gem {
+        if !self.init_settings.appearance.cosmetics.amulet_gem {
             File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
         }
 
@@ -435,7 +434,7 @@ impl NetManager {
             &self.init_settings.paths.noita_quantew_install,
             &self.init_settings.paths.noita_quantew_player_spritesheet,
             &self.init_settings.asset_manager,
-            &self.init_settings.player_png_desc,
+            &self.init_settings.appearance,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
         );
@@ -447,7 +446,7 @@ impl NetManager {
             self.peer.my_id(),
             make_player_preview(
                 &self.init_settings.asset_manager,
-                &self.init_settings.player_png_desc,
+                &self.init_settings.appearance,
             ),
         );
 
@@ -671,7 +670,7 @@ impl NetManager {
                         &self.init_settings.paths.noita_quantew_install,
                         &self.init_settings.paths.noita_quantew_player_spritesheet,
                         &self.init_settings.asset_manager,
-                        &PlayerPngDesc::default(),
+                        &PlayerAppearance::default(),
                         id == self.peer.host_id(),
                         &mut self.players_sprite.lock().unwrap(),
                     );
@@ -679,7 +678,7 @@ impl NetManager {
                     self.send(
                         id,
                         &NetMsg::PlayerColor(
-                            self.init_settings.player_png_desc,
+                            self.init_settings.appearance.clone(),
                             self.is_host(),
                             Some(self.peer.my_id()),
                             self.init_settings.my_nickname.clone(),
@@ -836,7 +835,7 @@ impl NetManager {
                     self.send(
                         id,
                         &NetMsg::PlayerColor(
-                            self.init_settings.player_png_desc,
+                            self.init_settings.appearance.clone(),
                             self.is_host(),
                             None,
                             self.init_settings.my_nickname.clone(),
@@ -1119,11 +1118,12 @@ impl NetManager {
         );
         state.world.nice_terraforming = settings.nice_terraforming.unwrap_or(def.nice_terraforming);
         let rgb = self
-            .new_desc
+            .new_appearance
             .lock()
             .unwrap()
-            .unwrap_or(self.init_settings.player_png_desc)
-            .colors
+            .as_ref()
+            .unwrap_or(&self.init_settings.appearance)
+            .color
             .player_main;
         state.try_ws_write_option(
             "mina_color",
@@ -1131,11 +1131,12 @@ impl NetManager {
         );
 
         let rgb = self
-            .new_desc
+            .new_appearance
             .lock()
             .unwrap()
-            .unwrap_or(self.init_settings.player_png_desc)
-            .colors
+            .as_ref()
+            .unwrap_or(&self.init_settings.appearance)
+            .color
             .player_alt;
         state.try_ws_write_option(
             "mina_color_alt",

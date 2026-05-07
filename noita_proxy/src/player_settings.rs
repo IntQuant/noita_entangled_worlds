@@ -12,7 +12,7 @@ use eframe::egui::{
 use crate::{
     asset::AssetManager,
     color::{f_to_u, shift_hue},
-    player_cosmetics::{PlayerPngDesc, make_player_preview},
+    player_cosmetics::make_player_preview,
     tr,
 };
 
@@ -37,80 +37,84 @@ impl Cosmetics {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Decode, Encode, Clone)]
 #[serde(default)]
-pub struct PlayerAppearanceSettings {
-    pub player_color: PlayerColor,
-    pub player_picker: PlayerPicker,
-    pub hue: f64,
+pub struct PlayerAppearance {
+    pub color: PlayerColor,
     pub cosmetics: Cosmetics,
     pub invert_border: bool,
+    pub hue: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlayerAppearanceSettings {
+    pub player_picker: PlayerPicker,
+    pub appearance: PlayerAppearance,
 }
 
 impl PlayerAppearanceSettings {
-    pub fn create_png_desc(&self) -> PlayerPngDesc {
-        PlayerPngDesc {
-            cosmetics: self.cosmetics,
-            colors: self.player_color,
-            invert_border: self.invert_border,
+    pub fn new(appearance: PlayerAppearance) -> PlayerAppearanceSettings {
+        PlayerAppearanceSettings {
+            appearance,
+            ..Default::default()
         }
     }
 
     pub fn mina_color_picker(&mut self, ui: &mut Ui, asset_mananger: &AssetManager) {
-        let old_hue = self.hue;
+        let old_hue = self.appearance.hue;
         let old = ui.style_mut().spacing.slider_width;
         ui.style_mut().spacing.slider_width = 256.0;
         ui.add(
-            Slider::new(&mut self.hue, 0.0..=360.0)
+            Slider::new(&mut self.appearance.hue, 0.0..=360.0)
                 .text(tr("Shift-hue"))
                 .min_decimals(0)
                 .max_decimals(0)
                 .step_by(2.0),
         );
         ui.style_mut().spacing.slider_width = old;
-        if old_hue != self.hue {
-            let diff = self.hue - old_hue;
+        if old_hue != self.appearance.hue {
+            let diff = self.appearance.hue - old_hue;
             match self.player_picker {
                 PlayerPicker::PlayerAlt => {
-                    shift_hue(diff, &mut self.player_color.player_alt);
+                    shift_hue(diff, &mut self.appearance.color.player_alt);
                 }
                 PlayerPicker::PlayerArm => {
-                    shift_hue(diff, &mut self.player_color.player_arm);
+                    shift_hue(diff, &mut self.appearance.color.player_arm);
                 }
                 PlayerPicker::PlayerCape => {
-                    shift_hue(diff, &mut self.player_color.player_cape);
+                    shift_hue(diff, &mut self.appearance.color.player_cape);
                 }
                 PlayerPicker::PlayerForearm => {
-                    shift_hue(diff, &mut self.player_color.player_forearm);
+                    shift_hue(diff, &mut self.appearance.color.player_forearm);
                 }
                 PlayerPicker::PlayerCapeEdge => {
-                    shift_hue(diff, &mut self.player_color.player_cape_edge);
+                    shift_hue(diff, &mut self.appearance.color.player_cape_edge);
                 }
                 PlayerPicker::PlayerMain => {
-                    shift_hue(diff, &mut self.player_color.player_main);
+                    shift_hue(diff, &mut self.appearance.color.player_main);
                 }
                 PlayerPicker::None => {
-                    shift_hue(diff, &mut self.player_color.player_main);
-                    shift_hue(diff, &mut self.player_color.player_alt);
-                    shift_hue(diff, &mut self.player_color.player_arm);
-                    shift_hue(diff, &mut self.player_color.player_forearm);
-                    shift_hue(diff, &mut self.player_color.player_cape);
-                    shift_hue(diff, &mut self.player_color.player_cape_edge);
+                    shift_hue(diff, &mut self.appearance.color.player_main);
+                    shift_hue(diff, &mut self.appearance.color.player_alt);
+                    shift_hue(diff, &mut self.appearance.color.player_arm);
+                    shift_hue(diff, &mut self.appearance.color.player_forearm);
+                    shift_hue(diff, &mut self.appearance.color.player_cape);
+                    shift_hue(diff, &mut self.appearance.color.player_cape_edge);
                 }
             }
         }
         ui.horizontal(|ui| {
             display_player_skin(
                 ui,
-                make_player_preview(asset_mananger, &self.create_png_desc()),
+                make_player_preview(asset_mananger, &self.appearance),
                 12.0,
             );
             player_select_current_color_slot(ui, self);
-            player_skin_display_color_picker(ui, &mut self.player_color, &self.player_picker);
+            player_skin_display_color_picker(ui, &mut self.appearance.color, &self.player_picker);
         });
         if ui.button(tr("Reset-colors-to-default")).clicked() {
-            self.hue = 0.0;
-            self.player_color = Default::default();
+            self.appearance.hue = 0.0;
+            self.appearance.color = Default::default();
         }
     }
 }
@@ -118,11 +122,8 @@ impl PlayerAppearanceSettings {
 impl Default for PlayerAppearanceSettings {
     fn default() -> Self {
         Self {
-            player_color: PlayerColor::default(),
             player_picker: PlayerPicker::None,
-            hue: 0.0,
-            cosmetics: Default::default(),
-            invert_border: false,
+            appearance: PlayerAppearance::default(),
         }
     }
 }
@@ -220,50 +221,50 @@ pub fn player_skin_display_color_picker(
     }
 }
 
-pub fn player_select_current_color_slot(ui: &mut Ui, appearance: &mut PlayerAppearanceSettings) {
+pub fn player_select_current_color_slot(ui: &mut Ui, settings: &mut PlayerAppearanceSettings) {
     let mut clicked = false;
-    let last = appearance.player_picker.clone();
+    let last = settings.player_picker.clone();
     ui.scope(|ui| {
         ui.set_max_width(100.0);
         ui.vertical_centered_justified(|ui| {
             if ui.button(tr("Main-color")).clicked() {
                 clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerMain
+                settings.player_picker = PlayerPicker::PlayerMain
             }
             if ui.button(tr("Alt-color")).clicked() {
                 clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerAlt
+                settings.player_picker = PlayerPicker::PlayerAlt
             }
             if ui.button(tr("Arm-color")).clicked() {
                 clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerArm
+                settings.player_picker = PlayerPicker::PlayerArm
             }
             if ui.button(tr("Forearm-color")).clicked() {
                 clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerForearm
+                settings.player_picker = PlayerPicker::PlayerForearm
             }
             if ui.button(tr("Cape-color")).clicked() {
                 clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerCape
+                settings.player_picker = PlayerPicker::PlayerCape
             }
             if ui.button(tr("Cape-edge-color")).clicked() {
                 clicked = true;
-                appearance.player_picker = PlayerPicker::PlayerCapeEdge
+                settings.player_picker = PlayerPicker::PlayerCapeEdge
             }
 
-            ui.checkbox(&mut appearance.invert_border, "Invert border");
-            if appearance.cosmetics.hat {
-                ui.checkbox(&mut appearance.cosmetics.hat, tr("Crown"));
+            ui.checkbox(&mut settings.appearance.invert_border, "Invert border");
+            if settings.appearance.cosmetics.hat {
+                ui.checkbox(&mut settings.appearance.cosmetics.hat, tr("Crown"));
             }
-            if appearance.cosmetics.amulet {
-                ui.checkbox(&mut appearance.cosmetics.amulet, tr("Amulet"));
+            if settings.appearance.cosmetics.amulet {
+                ui.checkbox(&mut settings.appearance.cosmetics.amulet, tr("Amulet"));
             }
-            if appearance.cosmetics.amulet_gem {
-                ui.checkbox(&mut appearance.cosmetics.amulet_gem, tr("Gem"));
+            if settings.appearance.cosmetics.amulet_gem {
+                ui.checkbox(&mut settings.appearance.cosmetics.amulet_gem, tr("Gem"));
             }
         });
     });
-    if clicked && last == appearance.player_picker {
-        appearance.player_picker = PlayerPicker::None
+    if clicked && last == settings.player_picker {
+        settings.player_picker = PlayerPicker::None
     }
 }

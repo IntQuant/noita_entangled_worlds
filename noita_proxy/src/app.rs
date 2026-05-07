@@ -173,7 +173,7 @@ impl App {
         );
         let settings = save_paths.load_settings();
         let Settings {
-            color: appearance,
+            appearance,
             app: mut saved_state,
             audio,
             mut paths,
@@ -239,7 +239,7 @@ impl App {
             can_start_automatically: false,
             run_save_state,
             end_run_button: EndRunButton::default(),
-            appearance,
+            appearance: PlayerAppearanceSettings::new(appearance),
             connected_menu: ConnectedMenu::Normal,
             show_host_settings: false,
             show_audio_settings: false,
@@ -270,7 +270,7 @@ impl App {
         audio.output_devices.clear();
 
         let result = Settings {
-            color: self.appearance.clone(),
+            appearance: self.appearance.appearance.clone(),
             app: self.app_saved_state.clone(),
             paths: self.paths.clone(),
             audio,
@@ -284,7 +284,7 @@ impl App {
 
     fn get_netman_init(&self) -> NetManagerInit {
         let my_nickname = self.nickname();
-        let desc = self.appearance.create_png_desc();
+        let appearance = self.appearance.appearance.clone();
         let noita_port = if self.app_saved_state.random_ports {
             0
         } else {
@@ -296,9 +296,8 @@ impl App {
         NetManagerInit {
             my_nickname,
             save_state: self.run_save_state.clone(),
-            cosmetics: self.appearance.cosmetics,
             paths,
-            player_png_desc: desc,
+            appearance,
             noita_port,
             asset_manager: self.asset_manager.clone(),
         }
@@ -1049,11 +1048,9 @@ impl App {
                     ui.add_space(15.0);
                     ui.horizontal(|ui| {
                         if ui.button("save colors").clicked() {
-                            let desc = self
-                                .appearance
-                                .create_png_desc();
-                            netman.new_desc(desc);
-                            *netman.new_desc.lock().unwrap() = Some(desc);
+                            let appearance = &self.appearance.appearance;
+                            netman.new_appearance(appearance.clone());
+                            *netman.new_appearance.lock().unwrap() = Some(appearance.clone());
                         };
                         ui.label("requires noita restart")
                     });
@@ -1312,7 +1309,7 @@ impl eframe::App for App {
             AppState::ModReady => {
                 self.asset_manager = crate::init_assets(&self.paths);
                 if let Some(path) = self.paths.noita_save.as_ref() {
-                    self.appearance.cosmetics = Cosmetics::get(path);
+                    self.appearance.appearance.cosmetics = Cosmetics::get(path);
                 }
                 self.switch_to_connect();
             }

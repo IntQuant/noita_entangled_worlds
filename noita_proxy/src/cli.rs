@@ -91,7 +91,7 @@ fn cli_setup(
     );
     let settings = save_paths.load_settings();
     let Settings {
-        color: mut appearance,
+        mut appearance,
         app: saved_state,
         audio,
         mut paths,
@@ -127,9 +127,8 @@ fn cli_setup(
     let netmaninit = NetManagerInit {
         my_nickname,
         save_state: run_save_state,
-        cosmetics: appearance.cosmetics,
         paths,
-        player_png_desc: appearance.create_png_desc(),
+        appearance,
         asset_manager,
         noita_port: 21251,
     };
