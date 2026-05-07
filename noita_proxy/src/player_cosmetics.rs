@@ -194,7 +194,7 @@ pub fn make_player_preview(assets: &AssetManager, appearance: &PlayerAppearance)
     ];
     for (name, color) in colors {
         let color = Rgba::from(to_u8(color));
-        let asset = format!("player_preview_{name}_mask");
+        let asset = format!("player_preview_sprite_{name}_mask");
         let mask = assets.get_parsed(&asset).as_image().to_rgba8();
         write_color_rgb_with_mask_to_image(color, &mask, &mut base);
     }
