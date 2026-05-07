@@ -1,6 +1,6 @@
 use image::{Pixel, Rgb};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, ffi::OsString, fs, path::PathBuf};
+use std::{collections::HashMap, env, ffi::OsString, fs, path::PathBuf};
 
 #[derive(Deserialize, Serialize)]
 struct Input {
@@ -9,8 +9,9 @@ struct Input {
 }
 
 fn main() {
+    let input_path = env::args().nth(1).expect("Expected input path");
     fs::create_dir_all("masks").unwrap();
-    let input = fs::read_to_string("input").unwrap();
+    let input = fs::read_to_string(input_path).unwrap();
     let input = ron::from_str::<Input>(&input).unwrap();
     for (name, file) in input.files {
         let original = image::open(&file).unwrap().into_rgba8();
