@@ -176,12 +176,12 @@ pub fn make_player_preview(assets: &AssetManager, appearance: &PlayerAppearance)
         .to_rgba8();
 
     let colors = [
-        ("main", appearance.color.player_main),
-        ("alt", appearance.color.player_alt),
-        ("arm", appearance.color.player_arm),
-        ("forearm", appearance.color.player_forearm),
-        ("cape", appearance.color.player_cape),
-        ("cape_edge", appearance.color.player_cape_edge),
+        ("main", appearance.color.main),
+        ("alt", appearance.color.alt),
+        ("arm", appearance.color.arm),
+        ("forearm", appearance.color.forearm),
+        ("cape", appearance.color.cape),
+        ("cape_edge", appearance.color.cape_edge),
     ];
     for (name, color) in colors {
         let color = Rgba::from(to_u8(color));
@@ -223,9 +223,9 @@ fn replace_colors(path: PathBuf, save: PathBuf, rgb: &PlayerColor) {
     let mut img = image::open(path).unwrap().into_rgba8();
     replace_color(
         &mut img,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
+        Rgba::from(to_u8(rgb.main)),
+        Rgba::from(to_u8(rgb.alt)),
+        Rgba::from(to_u8(rgb.arm)),
     );
     img.save(save).unwrap();
 }
@@ -234,9 +234,9 @@ fn replace_colors_opt(path: PathBuf, save: PathBuf, rgb: &PlayerColor, inv: bool
     let mut img = image::open(path).unwrap().into_rgba8();
     replace_color_opt(
         &mut img,
-        Rgba::from(to_u8(rgb.player_main)),
-        Rgba::from(to_u8(rgb.player_alt)),
-        Rgba::from(to_u8(rgb.player_arm)),
+        Rgba::from(to_u8(rgb.main)),
+        Rgba::from(to_u8(rgb.alt)),
+        Rgba::from(to_u8(rgb.arm)),
         inv,
     );
     img.save(save).unwrap();
@@ -280,9 +280,9 @@ pub fn create_player_png(
         let mut img = image::open(player_path).unwrap().into_rgba8();
         replace_color(
             &mut img,
-            Rgba::from(to_u8(rgb.player_main)),
-            Rgba::from(to_u8(rgb.player_alt)),
-            Rgba::from(to_u8(rgb.player_arm)),
+            Rgba::from(to_u8(rgb.main)),
+            Rgba::from(to_u8(rgb.alt)),
+            Rgba::from(to_u8(rgb.arm)),
         );
         for px in img.pixels_mut() {
             px.0[3] = px.0[3].min(64)
@@ -352,7 +352,7 @@ pub fn create_player_png(
         files = format!("{files}mods/quant.ew/files/system/player/tmp/{id}_ragdoll_{s}\n");
     }
     ragdoll.write_all(files.as_bytes()).unwrap();
-    let img = create_arm(Rgba::from(to_u8(rgb.player_forearm)));
+    let img = create_arm(Rgba::from(to_u8(rgb.forearm)));
     let path = tmp_path.join(format!("tmp/{id}_arm.png"));
     img.save(path).unwrap();
     edit_nth_line(
@@ -360,10 +360,10 @@ pub fn create_player_png(
         tmp_path.join(format!("tmp/{id}_cape.xml")).into_os_string(),
         vec![16, 16],
         vec![
-            format!("cloth_color=\"0xFF{}\"", rgb_to_hex(to_u8(rgb.player_cape))),
+            format!("cloth_color=\"0xFF{}\"", rgb_to_hex(to_u8(rgb.cape))),
             format!(
                 "cloth_color_edge=\"0xFF{}\"",
-                rgb_to_hex(to_u8(rgb.player_cape_edge))
+                rgb_to_hex(to_u8(rgb.cape_edge))
             ),
         ],
     );

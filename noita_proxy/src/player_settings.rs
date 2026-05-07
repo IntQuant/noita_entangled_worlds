@@ -76,30 +76,30 @@ impl PlayerAppearanceSettings {
             let diff = self.appearance.hue - old_hue;
             match self.player_picker {
                 PlayerPicker::PlayerAlt => {
-                    shift_hue(diff, &mut self.appearance.color.player_alt);
+                    shift_hue(diff, &mut self.appearance.color.alt);
                 }
                 PlayerPicker::PlayerArm => {
-                    shift_hue(diff, &mut self.appearance.color.player_arm);
+                    shift_hue(diff, &mut self.appearance.color.arm);
                 }
                 PlayerPicker::PlayerCape => {
-                    shift_hue(diff, &mut self.appearance.color.player_cape);
+                    shift_hue(diff, &mut self.appearance.color.cape);
                 }
                 PlayerPicker::PlayerForearm => {
-                    shift_hue(diff, &mut self.appearance.color.player_forearm);
+                    shift_hue(diff, &mut self.appearance.color.forearm);
                 }
                 PlayerPicker::PlayerCapeEdge => {
-                    shift_hue(diff, &mut self.appearance.color.player_cape_edge);
+                    shift_hue(diff, &mut self.appearance.color.cape_edge);
                 }
                 PlayerPicker::PlayerMain => {
-                    shift_hue(diff, &mut self.appearance.color.player_main);
+                    shift_hue(diff, &mut self.appearance.color.main);
                 }
                 PlayerPicker::None => {
-                    shift_hue(diff, &mut self.appearance.color.player_main);
-                    shift_hue(diff, &mut self.appearance.color.player_alt);
-                    shift_hue(diff, &mut self.appearance.color.player_arm);
-                    shift_hue(diff, &mut self.appearance.color.player_forearm);
-                    shift_hue(diff, &mut self.appearance.color.player_cape);
-                    shift_hue(diff, &mut self.appearance.color.player_cape_edge);
+                    shift_hue(diff, &mut self.appearance.color.main);
+                    shift_hue(diff, &mut self.appearance.color.alt);
+                    shift_hue(diff, &mut self.appearance.color.arm);
+                    shift_hue(diff, &mut self.appearance.color.forearm);
+                    shift_hue(diff, &mut self.appearance.color.cape);
+                    shift_hue(diff, &mut self.appearance.color.cape_edge);
                 }
             }
         }
@@ -130,23 +130,23 @@ impl Default for PlayerAppearanceSettings {
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Copy, Clone)]
 pub struct PlayerColor {
-    pub player_main: [f64; 4],
-    pub player_alt: [f64; 4],
-    pub player_arm: [f64; 4],
-    pub player_cape: [f64; 4],
-    pub player_cape_edge: [f64; 4],
-    pub player_forearm: [f64; 4],
+    pub main: [f64; 4],
+    pub alt: [f64; 4],
+    pub arm: [f64; 4],
+    pub cape: [f64; 4],
+    pub cape_edge: [f64; 4],
+    pub forearm: [f64; 4],
 }
 
 impl Default for PlayerColor {
     fn default() -> Self {
         Self {
-            player_main: [155.0, 111.0, 154.0, 255.0],
-            player_alt: [127.0, 84.0, 118.0, 255.0],
-            player_arm: [89.0, 67.0, 84.0, 255.0],
-            player_cape: [118.0, 84.0, 127.0, 255.0],
-            player_cape_edge: [154.0, 111.0, 155.0, 255.0],
-            player_forearm: [158.0, 115.0, 154.0, 255.0],
+            main: [155.0, 111.0, 154.0, 255.0],
+            alt: [127.0, 84.0, 118.0, 255.0],
+            arm: [89.0, 67.0, 84.0, 255.0],
+            cape: [118.0, 84.0, 127.0, 255.0],
+            cape_edge: [154.0, 111.0, 155.0, 255.0],
+            forearm: [158.0, 115.0, 154.0, 255.0],
         }
     }
 }
@@ -200,22 +200,22 @@ pub fn player_skin_display_color_picker(
 ) {
     match player_picker {
         PlayerPicker::PlayerMain => {
-            color_picker(ui, &mut player_color.player_main);
+            color_picker(ui, &mut player_color.main);
         }
         PlayerPicker::PlayerAlt => {
-            color_picker(ui, &mut player_color.player_alt);
+            color_picker(ui, &mut player_color.alt);
         }
         PlayerPicker::PlayerArm => {
-            color_picker(ui, &mut player_color.player_arm);
+            color_picker(ui, &mut player_color.arm);
         }
         PlayerPicker::PlayerForearm => {
-            color_picker(ui, &mut player_color.player_forearm);
+            color_picker(ui, &mut player_color.forearm);
         }
         PlayerPicker::PlayerCape => {
-            color_picker(ui, &mut player_color.player_cape);
+            color_picker(ui, &mut player_color.cape);
         }
         PlayerPicker::PlayerCapeEdge => {
-            color_picker(ui, &mut player_color.player_cape_edge);
+            color_picker(ui, &mut player_color.cape_edge);
         }
         PlayerPicker::None => {}
     }

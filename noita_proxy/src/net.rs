@@ -1124,7 +1124,7 @@ impl NetManager {
             .as_ref()
             .unwrap_or(&self.init_settings.appearance)
             .color
-            .player_main;
+            .main;
         state.try_ws_write_option(
             "mina_color",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
@@ -1137,7 +1137,7 @@ impl NetManager {
             .as_ref()
             .unwrap_or(&self.init_settings.appearance)
             .color
-            .player_alt;
+            .alt;
         state.try_ws_write_option(
             "mina_color_alt",
             rgb[0] as u32 + ((rgb[1] as u32) << 8) + ((rgb[2] as u32) << 16),
