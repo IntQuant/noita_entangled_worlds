@@ -43,13 +43,18 @@ const SPRITES: &[(&str, &str)] = &[
 ];
 
 #[rustfmt::skip]
+const SPRITES_MANUAL_MASKS: &[(&str, &str)] = &[
+    ("player_arm_spritesheet"             , "files/system/player/unmodified_arm.png"),
+    ("player_arm_spritesheet_forearm_mask", "files/resource/sprite_masks/player_arm_spritesheet_forearm_mask.png"),
+];
+
+#[rustfmt::skip]
 const PLAYER_PREIVEW_SPRITES: &[(&str, &str)] = &[
     ("player_preview_sprite"           , "files/resource/sprites/player_preview.png"),
 
     ("player_preview_amulet_sprite"    , "files/resource/sprites/player_preview_amulet.png"),
     ("player_preview_amulet_gem_sprite", "files/resource/sprites/player_preview_amulet_gem.png"),
-    ("player_preview_hat_sprite"     , "files/resource/sprites/player_preview_hat.png"),
-
+    ("player_preview_hat_sprite"       , "files/resource/sprites/player_preview_hat.png"),
 
     ("player_preview_main_mask"        , "files/resource/sprite_masks/player_preview_main_mask.png"),
     ("player_preview_alt_mask"         , "files/resource/sprite_masks/player_preview_alt_mask.png"),
@@ -62,13 +67,13 @@ const PLAYER_PREIVEW_SPRITES: &[(&str, &str)] = &[
 type Rgba = image::Rgba<u8>;
 
 pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
-    let sprites = SPRITES.iter().map(|(name, path)| {
+    let map_to_asset = |(name, path): &(&str, &str)| {
         (
             name.to_string(),
             Asset::new(quantew_install.join(path)).with_format_guessed(),
         )
-    });
-    assets.extend(sprites);
+    };
+    assets.extend(SPRITES.iter().map(map_to_asset));
     let sprite_masks = SPRITES.iter().flat_map(|(name, _)| {
         ["alt", "arm", "main"].map(|mask_name| {
             let path = format!("files/resource/sprite_masks/{name}_{mask_name}_mask.png");
@@ -79,13 +84,8 @@ pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
         })
     });
     assets.extend(sprite_masks);
-    let player_preview_sprites = PLAYER_PREIVEW_SPRITES.iter().map(|(name, path)| {
-        (
-            name.to_string(),
-            Asset::new(quantew_install.join(path)).with_format_guessed(),
-        )
-    });
-    assets.extend(player_preview_sprites);
+    assets.extend(SPRITES_MANUAL_MASKS.iter().map(map_to_asset));
+    assets.extend(PLAYER_PREIVEW_SPRITES.iter().map(map_to_asset));
 }
 
 fn write_color_rgb_with_mask_to_image(color: Rgba, mask: &RgbaImage, target: &mut RgbaImage) {
