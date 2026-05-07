@@ -1,0 +1,13 @@
+(
+    colors: {
+        "border": (0, 0, 0),
+    },
+    files: [
+        ("player_arrow_notplayer_sprite", "../../quant.ew/files/system/player_arrows/arrow_notplayer.png"),
+        ("player_arrow_host_sprite", "../../quant.ew/files/system/player_arrows/arrow_host.png"),
+        ("player_arrow_host_notplayer_sprite", "../../quant.ew/files/system/player_arrows/arrow_host_notplayer.png"),
+        ("player_arrow_sprite", "../../quant.ew/files/system/player_arrows/arrow.png"),
+        ("player_ping_sprite", "../../quant.ew/files/system/player_ping/arrow.png"),
+        ("player_cursor_sprite", "../../quant.ew/files/resource/sprites/cursor.png"),
+    ],
+)
