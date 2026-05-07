@@ -88,14 +88,16 @@ pub fn extend_assets(quantew_install: &Path, assets: &mut AssetManager) {
     assets.extend(player_preview_sprites);
 }
 
-fn write_color_with_mask_to_image(color: Rgba, mask: &RgbaImage, target: &mut RgbaImage) {
+fn write_color_rgb_with_mask_to_image(color: Rgba, mask: &RgbaImage, target: &mut RgbaImage) {
     assert!(
         mask.dimensions() == target.dimensions(),
         "mask and target must be of the same dimensions"
     );
     for (mask_pixel, target_pixel) in mask.pixels().zip(target.pixels_mut()) {
         if mask_pixel.channels()[0..3] == [255, 255, 255] {
-            *target_pixel = color;
+            target_pixel.channels_mut()[0] = color.channels()[0];
+            target_pixel.channels_mut()[1] = color.channels()[1];
+            target_pixel.channels_mut()[2] = color.channels()[2];
         }
     }
 }
@@ -187,7 +189,7 @@ pub fn make_player_preview(assets: &AssetManager, appearance: &PlayerAppearance)
         let color = Rgba::from(to_u8(color));
         let asset = format!("player_preview_{name}_mask");
         let mask = assets.get_parsed(&asset).as_image().to_rgba8();
-        write_color_with_mask_to_image(color, &mask, &mut base);
+        write_color_rgb_with_mask_to_image(color, &mask, &mut base);
     }
 
     let cosmetics = [
