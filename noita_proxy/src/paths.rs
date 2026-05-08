@@ -14,7 +14,7 @@ pub const STEAM_COMPATDATA_NOITA_SAVE: &str =
     "compatdata/881100/pfx/drive_c/users/steamuser/AppData/LocalLow/Nolla_Games_Noita";
 
 pub const NOITA_QUANTEW_INSTALL: &str = "mods/quant.ew";
-pub const QUANTEW_PLAYER_SPRITESHEET: &str = "files/system/player/unmodified.png";
+pub const NOITA_QUANTEW_RUNTIME: &str = "mods/quant.ew/files/system/player/tmp";
 
 pub const PROJECT_DIRS_ORGANIZATION: &str = "quant";
 pub const PROJECT_DIRS_APPLICATION: &str = "entangledworlds";
@@ -43,13 +43,13 @@ pub struct Paths {
     #[serde(skip)]
     pub noita_quantew_install: Option<PathBuf>,
 
-    /// Usually
-    /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\mods\quant.ew\files\system\player\unmodified.png`
-    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/mods/quant.ew/files/system/player/unmodified.png`
-    ///
-    /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
+    // /// Usually
+    // /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\mods\quant.ew\files\system\player\tmp`
+    // /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/mods/quant.ew/files/system/player/tmp`
+    // ///
+    // /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
     #[serde(skip)]
-    pub noita_quantew_player_spritesheet: Option<PathBuf>,
+    pub noita_quantew_runtime: Option<PathBuf>,
 
     /// Usually
     /// - Windows: `%USERPROFILE%\AppData\LocalLow\Nolla_Games_Noita\`
@@ -88,8 +88,8 @@ impl Paths {
         self.noita_quantew_install.as_ref().expect("noita_quantew_install path is Some")
     }
     #[track_caller]
-    pub fn noita_quantew_player_spritesheet(&self) -> &PathBuf {
-        self.noita_quantew_player_spritesheet.as_ref().expect("noita_quantew_player_spritesheet path is Some")
+    pub fn noita_quantew_runtime(&self) -> &PathBuf {
+        self.noita_quantew_runtime.as_ref().expect("noita_quantew_runtime path is Some")
     }
     #[track_caller]
     pub fn noita_save(&self) -> &PathBuf {
@@ -117,7 +117,7 @@ pub fn proxy_exe_dir() -> PathBuf {
 
 /// Set `noita_install` from `noita_exe`
 /// Set `noita_quantew_install` from `noita_install`
-/// Set `noita_quantew_player_spritesheet` from `noita_quantew_install`
+/// Set `noita_quantew_runtime` from `noita_install`
 pub fn realize_noita_paths_from_noita_exe(paths: &mut Paths) {
     let noita_exe = paths.noita_exe();
     paths.noita_install = Some(
@@ -127,9 +127,5 @@ pub fn realize_noita_paths_from_noita_exe(paths: &mut Paths) {
             .to_path_buf(),
     );
     paths.noita_quantew_install = Some(paths.noita_install().join(NOITA_QUANTEW_INSTALL));
-    paths.noita_quantew_player_spritesheet = Some(
-        paths
-            .noita_quantew_install()
-            .join(QUANTEW_PLAYER_SPRITESHEET),
-    );
+    paths.noita_quantew_runtime = Some(paths.noita_install().join(NOITA_QUANTEW_RUNTIME));
 }

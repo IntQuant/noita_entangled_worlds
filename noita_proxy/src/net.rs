@@ -33,6 +33,7 @@ use crate::net::world::world_model::ChunkData;
 use crate::paths::Paths;
 use crate::player_cosmetics::{create_player_png, make_player_preview};
 use crate::player_settings::PlayerAppearance;
+use crate::runtime_dir::RuntimeDir;
 use crate::steam_helper::LobbyExtraData;
 use crate::{
     AudioSettings, DefaultSettings, GameSettings,
@@ -166,19 +167,22 @@ fn get_flags(mut flags: String) -> Option<FlagType> {
 /// A safer subset of Paths for use with NetManager
 #[derive(Debug)]
 pub struct NetManagerPaths {
+    pub noita_install: PathBuf,
     pub noita_quantew_install: PathBuf,
-    pub noita_quantew_player_spritesheet: PathBuf,
+    pub noita_quantew_runtime: PathBuf,
     pub noita_save: Option<PathBuf>,
 }
 
 impl NetManagerPaths {
     pub fn try_from_paths(paths: &Paths) -> Option<NetManagerPaths> {
+        let noita_install = paths.noita_install.as_ref()?;
         let noita_quantew_install = paths.noita_quantew_install.as_ref()?;
-        let noita_quantew_player_spritesheet = paths.noita_quantew_player_spritesheet.as_ref()?;
+        let noita_quantew_runtime = paths.noita_quantew_runtime.as_ref()?;
         let noita_save = paths.noita_save.as_ref();
         Some(NetManagerPaths {
+            noita_install: noita_install.clone(),
             noita_quantew_install: noita_quantew_install.clone(),
-            noita_quantew_player_spritesheet: noita_quantew_player_spritesheet.clone(),
+            noita_quantew_runtime: noita_quantew_runtime.clone(),
             noita_save: noita_save.cloned(),
         })
     }
@@ -188,6 +192,7 @@ pub struct NetManagerInit {
     pub my_nickname: String,
     pub save_state: SaveState,
     pub paths: NetManagerPaths,
+    pub runtime_dir: RuntimeDir,
     pub appearance: PlayerAppearance,
     pub noita_port: u16,
     pub asset_manager: AssetManager,
@@ -318,20 +323,20 @@ impl NetManager {
         }
     }
 
-    fn clean_dir(path: PathBuf) {
-        let tmp = path.parent().unwrap().join("tmp");
-        if tmp.exists() {
-            remove_dir_all(tmp.clone()).ok();
+    fn clearn_runtime_dir(&self) {
+        let runtime_dir = &self.init_settings.paths.noita_quantew_runtime;
+        if runtime_dir.exists() {
+            remove_dir_all(runtime_dir).ok();
         }
-        create_dir(tmp).ok();
+        create_dir(runtime_dir).ok();
     }
 
     pub fn new_appearance(&self, appearance: PlayerAppearance) {
         create_player_png(
             self.peer.my_id(),
-            &self.init_settings.paths.noita_quantew_install,
-            &self.init_settings.paths.noita_quantew_player_spritesheet,
             &self.init_settings.asset_manager,
+            &self.init_settings.runtime_dir,
+            &self.init_settings.paths.noita_quantew_install,
             &appearance,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
@@ -353,18 +358,17 @@ impl NetManager {
 
     pub(crate) fn start_inner(
         self: Arc<NetManager>,
-        player_path: PathBuf,
         mut kind: Option<LobbyKind>,
     ) -> io::Result<()> {
-        Self::clean_dir(player_path.clone());
+        self.clearn_runtime_dir();
         if !self.init_settings.appearance.cosmetics.hat {
-            File::create(player_path.parent().unwrap().join("tmp/no_crown"))?;
+            File::create(self.init_settings.runtime_dir.full_path("no_crown"))?;
         }
         if !self.init_settings.appearance.cosmetics.amulet {
-            File::create(player_path.parent().unwrap().join("tmp/no_amulet"))?;
+            File::create(self.init_settings.runtime_dir.full_path("no_amulet"))?;
         }
         if !self.init_settings.appearance.cosmetics.amulet_gem {
-            File::create(player_path.parent().unwrap().join("tmp/no_amulet_gem"))?;
+            File::create(self.init_settings.runtime_dir.full_path("no_amulet_gem"))?;
         }
 
         let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
@@ -431,9 +435,9 @@ impl NetManager {
         // Create appearance files for local player.
         create_player_png(
             self.peer.my_id(),
-            &self.init_settings.paths.noita_quantew_install,
-            &self.init_settings.paths.noita_quantew_player_spritesheet,
             &self.init_settings.asset_manager,
+            &self.init_settings.runtime_dir,
+            &self.init_settings.paths.noita_quantew_install,
             &self.init_settings.appearance,
             self.is_host(),
             &mut self.players_sprite.lock().unwrap(),
@@ -667,9 +671,9 @@ impl NetManager {
                     info!("Created temporary appearance for {id}");
                     create_player_png(
                         id,
-                        &self.init_settings.paths.noita_quantew_install,
-                        &self.init_settings.paths.noita_quantew_player_spritesheet,
                         &self.init_settings.asset_manager,
+                        &self.init_settings.runtime_dir,
+                        &self.init_settings.paths.noita_quantew_install,
                         &PlayerAppearance::default(),
                         id == self.peer.host_id(),
                         &mut self.players_sprite.lock().unwrap(),
@@ -817,9 +821,9 @@ impl NetManager {
                 // Create proper appearance files for new player.
                 create_player_png(
                     src,
-                    &self.init_settings.paths.noita_quantew_install,
-                    &self.init_settings.paths.noita_quantew_player_spritesheet,
                     &self.init_settings.asset_manager,
+                    &self.init_settings.runtime_dir,
+                    &self.init_settings.paths.noita_quantew_install,
                     &rgb,
                     host,
                     &mut self.players_sprite.lock().unwrap(),
@@ -1243,10 +1247,10 @@ impl NetManager {
         }
     }
 
-    pub fn start(self: Arc<NetManager>, player_path: PathBuf) -> JoinHandle<()> {
+    pub fn start(self: Arc<NetManager>) -> JoinHandle<()> {
         info!("Starting netmanager");
         thread::spawn(move || {
-            let result = self.clone().start_inner(player_path, None);
+            let result = self.clone().start_inner(None);
             if let Err(err) = result {
                 error!("Error in netmanager: {}", err);
                 *self.error.lock().unwrap() = Some(err);

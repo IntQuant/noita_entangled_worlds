@@ -3,7 +3,6 @@ use std::{
     fs, mem,
     net::IpAddr,
     net::SocketAddr,
-    path::PathBuf,
     process::exit,
     sync::{Arc, atomic::Ordering},
     time::Duration,
@@ -50,6 +49,7 @@ use crate::{
     },
     paths::{self, Paths},
     player_settings::{Cosmetics, PlayerAppearanceSettings, display_player_skin},
+    runtime_dir::RuntimeDir,
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -156,6 +156,7 @@ pub struct App {
     clipboard: Option<Clipboard>,
     paths: Paths,
     asset_manager: AssetManager,
+    runtime_dir: Option<RuntimeDir>,
 }
 
 impl Drop for App {
@@ -182,8 +183,10 @@ impl App {
         paths.proxy_save_state = Some(save_paths.save_state_path.clone());
         saved_state.times_started += 1;
 
+        let mut runtime_dir = None;
         if paths.noita_exe.is_some() {
             paths::realize_noita_paths_from_noita_exe(&mut paths);
+            runtime_dir = RuntimeDir::from_paths(&paths);
         }
 
         info!("Setting fonts...");
@@ -255,6 +258,7 @@ impl App {
             clipboard: Clipboard::new().ok(),
             paths,
             asset_manager: AssetManager::default(),
+            runtime_dir,
         };
 
         if let Some(connect_to) = me.args.auto_connect_to {
@@ -292,6 +296,11 @@ impl App {
         };
 
         let paths = NetManagerPaths::try_from_paths(&self.paths).expect("necessary paths are some");
+        let runtime_dir = self
+            .runtime_dir
+            .as_ref()
+            .expect("runtime_dir is some")
+            .clone();
 
         NetManagerInit {
             my_nickname,
@@ -300,6 +309,7 @@ impl App {
             appearance,
             noita_port,
             asset_manager: self.asset_manager.clone(),
+            runtime_dir,
         }
     }
 
@@ -321,9 +331,9 @@ impl App {
         my_nickname.unwrap_or(default)
     }
 
-    fn change_state_to_netman(&mut self, netman: Arc<NetManager>, player_path: PathBuf) {
+    fn change_state_to_netman(&mut self, netman: Arc<NetManager>) {
         self.copied_lobby = false;
-        let handle = netman.clone().start(player_path);
+        let handle = netman.clone().start();
         self.state = AppState::ConnectedLobby {
             netman: NetManStopOnDrop(netman, Some(handle)),
             noita_launcher: NoitaLauncher::new(
@@ -345,10 +355,7 @@ impl App {
             self.audio.clone(),
         );
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(
-            netman,
-            self.paths.noita_quantew_player_spritesheet().clone(),
-        );
+        self.change_state_to_netman(netman);
     }
 
     fn set_netman_settings(&mut self, netman: &Arc<NetManager>) {
@@ -382,10 +389,7 @@ impl App {
             self.get_netman_init(),
             self.audio.clone(),
         );
-        self.change_state_to_netman(
-            netman,
-            self.paths.noita_quantew_player_spritesheet().clone(),
-        );
+        self.change_state_to_netman(netman);
     }
 
     fn start_steam_host(&mut self) {
@@ -411,10 +415,7 @@ impl App {
             self.audio.clone(),
         );
         self.set_netman_settings(&netman);
-        self.change_state_to_netman(
-            netman,
-            self.paths.noita_quantew_player_spritesheet().clone(),
-        );
+        self.change_state_to_netman(netman);
     }
 
     fn make_lobby_extra_data(&self) -> LobbyExtraData {
@@ -446,10 +447,7 @@ impl App {
             self.get_netman_init(),
             self.audio.clone(),
         );
-        self.change_state_to_netman(
-            netman,
-            self.paths.noita_quantew_player_spritesheet().clone(),
-        );
+        self.change_state_to_netman(netman);
     }
 
     fn connect_screen(&mut self, ui: &mut Ui) {
@@ -1311,6 +1309,9 @@ impl eframe::App for App {
                 if let Some(path) = self.paths.noita_save.as_ref() {
                     self.appearance.appearance.cosmetics = Cosmetics::get(path);
                 }
+                let runtime_dir =
+                    RuntimeDir::from_paths(&self.paths).expect("noita paths to be intialized");
+                self.runtime_dir = Some(runtime_dir);
                 self.switch_to_connect();
             }
             AppState::SelfUpdate => {

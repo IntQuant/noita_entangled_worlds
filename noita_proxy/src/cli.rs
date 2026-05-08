@@ -12,6 +12,7 @@ use crate::{
     net::{NetManager, NetManagerInit, NetManagerPaths, omni::PeerVariant, steam_networking},
     paths,
     player_settings::Cosmetics,
+    runtime_dir::RuntimeDir,
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -113,6 +114,7 @@ fn cli_setup(
     }
     paths::realize_noita_paths_from_noita_exe(&mut paths);
     mod_manager::try_find_save_path(&mut paths);
+    let runtime_dir = RuntimeDir::from_paths(&paths).expect("noita paths to be initialized");
 
     let run_save_state = SaveState::new(save_paths.save_state_path);
 
@@ -131,6 +133,7 @@ fn cli_setup(
         appearance,
         asset_manager,
         noita_port: 21251,
+        runtime_dir,
     };
 
     (
@@ -171,9 +174,8 @@ pub fn connect_cli(lobby: String, args: Args) {
         println!("no steam");
         exit(1)
     };
-    let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
-    netman.start_inner(player_path, Some(kind)).unwrap();
+    netman.start_inner(Some(kind)).unwrap();
 }
 
 /// Bind to the provided `bind_addr` with `args` with CLI output only.
@@ -199,8 +201,7 @@ pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
         println!("no steam");
         exit(1)
     };
-    let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
     *netman.settings.lock().unwrap() = game_settings;
-    netman.start_inner(player_path, Some(kind)).unwrap();
+    netman.start_inner(Some(kind)).unwrap();
 }
