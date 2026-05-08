@@ -73,6 +73,15 @@ const SPRITES_WITH_MASKS: &[(&[&str], &[(&str, &str)])] = &[
     ),
 ];
 
+#[rustfmt::skip]
+const XMLS: &[(&str, &str)] = &[
+    ("player_main_xml" , "files/system/player/unmodified.xml"),
+    ("player_cape_xml" , "files/system/player/unmodified_cape.xml"),
+    ("player_lukki_xml", "files/system/player/unmodified_lukki.xml"),
+    ("player_base_xml" , "files/system/player/unmodified_base.xml"),
+    ("player_arm_xml"  , "files/system/player/unmodified_arm.xml"),
+];
+
 type Rgba = image::Rgba<u8>;
 
 pub fn extend_assets(quantew_install: &Path, asset_manager: &mut AssetManager) {
@@ -94,6 +103,18 @@ pub fn extend_assets(quantew_install: &Path, asset_manager: &mut AssetManager) {
             }));
         }
     }
+
+    asset_manager.extend(XMLS.iter().map(|(name, path)| {
+        (name.to_string(), {
+            Asset::new(quantew_install.join(path)).with_config(AssetConfig::MANUAL)
+        })
+    }));
+
+    asset_manager.extend([(
+        "player_spritesheet_uv".to_string(),
+        Asset::new(quantew_install.join("files/system/player/player_uv.png"))
+            .with_config(AssetConfig::MANUAL),
+    )]);
 }
 
 fn write_color_rgb_with_mask_to_image(color: Rgba, mask: &RgbaImage, target: &mut RgbaImage) {
