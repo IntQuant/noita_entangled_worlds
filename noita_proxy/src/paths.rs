@@ -43,11 +43,11 @@ pub struct Paths {
     #[serde(skip)]
     pub noita_quantew_install: Option<PathBuf>,
 
-    // /// Usually
-    // /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\mods\quant.ew\files\system\player\tmp`
-    // /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/mods/quant.ew/files/system/player/tmp`
-    // ///
-    // /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
+    /// Usually
+    /// - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\mods\quant.ew\files\system\player\tmp`
+    /// - Linux: `$XDG_DATA_HOME/Steam/steamapps/common/Noita/mods/quant.ew/files/system/player/tmp`
+    ///
+    /// This is not serialized because it's currently always realized from [`Self::noita_exe`].
     #[serde(skip)]
     pub noita_quantew_runtime: Option<PathBuf>,
 
