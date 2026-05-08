@@ -48,15 +48,6 @@
         marker_work_flag="16" >
     </PathFindingGridMarkerComponent>
 
-    <IKLimbsAnimatorComponent
-        _tags="enabled_in_world,enabled_in_hand"
-        ray_skip_material="rock_box2d_nohit_hard"
-        ground_attachment_ray_length_coeff="0.75"
-        future_state_samples="5"
-        leg_velocity_coeff="30"
-        no_ground_attachment_penalty_coeff="0.01">
-    </IKLimbsAnimatorComponent>
-
     <PhysicsAIComponent
         _tags="enabled_in_world,alive"
         target_vec_max_len="15.0"

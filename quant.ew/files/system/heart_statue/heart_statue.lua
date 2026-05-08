@@ -68,6 +68,11 @@ local function remove_legs(entity)
             end
         end
     end
+
+    local animator = EntityGetFirstComponentIncludingDisabled(entity, "IKLimbsAnimatorComponent")
+    if animator then
+        EntityRemoveComponent(entity, animator)
+    end
 end
 
 rpc.opts_everywhere()
@@ -104,6 +109,15 @@ local function add_legs(entity)
             EntityAddChild(entity, leg)
         end
     end)
+
+    EntityAddComponent2(entity, "IKLimbsAnimatorComponent", {
+        _tags = "enabled_in_world",
+        ray_skip_material = "rock_box2d_nohit_hard",
+        ground_attachment_ray_length_coeff = 0.75,
+        future_state_samples = 5,
+        leg_velocity_coeff = 30,
+        no_ground_attachment_penalty_coeff = 0.01,
+    })
 end
 
 rpc.opts_everywhere()
@@ -153,7 +167,11 @@ util.add_cross_call("ew_heart_statue_pickup", function(item)
         local peer_id = player_fns.get_player_data_by_local_entity_id(item).peer_id
         rpc.remove_cape(peer_id)
         rpc.disable_running(peer_id)
-        rpc.remove_legs(peer_id)
+
+        async(function ()
+            wait(10)
+            rpc.remove_legs(peer_id)
+        end)
     end
 
     local inventory_state = player_fns.serialize_items(ctx.my_player)
