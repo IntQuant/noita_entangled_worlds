@@ -25,6 +25,7 @@ const SPRITES_WITH_MASKS: &[(&[&str], &[(&str, &str)])] = &[
         &[
             ("player_spritesheet"                , "files/system/player/unmodified.png"),
             ("player_lukki_spritesheet"          , "files/system/player/unmodified_lukki.png"),
+            ("player_map_icon"                   , "files/system/map/icon.png"),
 
             ("player_head_sprite"                , "files/system/player/head.png"),
             ("player_knee_sprite"                , "files/system/player/knee.png"),

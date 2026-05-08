@@ -24,5 +24,6 @@
         ("player_arrow_host_notplayer_sprite", "../../quant.ew/files/system/player_arrows/arrow_host_notplayer.png"),
         ("player_ping_sprite", "../../quant.ew/files/system/player_ping/arrow.png"),
         ("player_cursor_sprite", "../../quant.ew/files/resource/sprites/cursor.png"),
+        ("player_map_icon", "../../quant.ew/files/system/map/icon.png"),
     ],
 )
