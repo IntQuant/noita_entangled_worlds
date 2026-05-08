@@ -57,11 +57,7 @@ function rpc.remove_cape(peer_id)
     end
 end
 
-local function add_legs(entity)
-    if ctx.proxy_opt.local_health_alternate_dont_run then
-        return
-    end
-
+local function remove_legs(entity)
     local child_entities = EntityGetAllChildren(entity)
     if child_entities ~= nil then
         for _, child_entity in ipairs(child_entities) do
@@ -72,6 +68,27 @@ local function add_legs(entity)
             end
         end
     end
+end
+
+rpc.opts_everywhere()
+rpc.opts_reliable()
+function rpc.remove_legs(peer_id)
+    if ctx.proxy_opt.local_health_alternate_dont_run then
+        return
+    end
+
+    local entity = ctx.players[peer_id].entity
+    if entity then
+        remove_legs(entity)
+    end
+end
+
+local function add_legs(entity)
+    if ctx.proxy_opt.local_health_alternate_dont_run then
+        return
+    end
+
+    remove_legs(entity)
 
     async(function()
         wait(1)
@@ -136,6 +153,7 @@ util.add_cross_call("ew_heart_statue_pickup", function(item)
         local peer_id = player_fns.get_player_data_by_local_entity_id(item).peer_id
         rpc.remove_cape(peer_id)
         rpc.disable_running(peer_id)
+        rpc.remove_legs(peer_id)
     end
 
     local inventory_state = player_fns.serialize_items(ctx.my_player)
