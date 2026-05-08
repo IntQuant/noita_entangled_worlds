@@ -174,6 +174,13 @@ pub struct AssetConfig {
     pub do_parse: bool,
 }
 
+impl AssetConfig {
+    pub const MANUAL: AssetConfig = AssetConfig {
+        auto_fetch: false,
+        do_parse: false,
+    };
+}
+
 impl Default for AssetConfig {
     fn default() -> Self {
         Self {
@@ -205,6 +212,18 @@ impl Asset {
 
     pub fn content(&self) -> &Content {
         &self.content
+    }
+
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
+    pub fn config(&self) -> &AssetConfig {
+        &self.config
+    }
+
+    pub fn config_mut(&mut self) -> &mut AssetConfig {
+        &mut self.config
     }
 
     pub fn get_info(&self) -> AssetInfo {
@@ -264,6 +283,11 @@ impl Asset {
 
     pub fn with_format_guessed(mut self) -> Self {
         self.guess_format_from_extension();
+        self
+    }
+
+    pub fn with_config(mut self, config: AssetConfig) -> Self {
+        self.config = config;
         self
     }
 }
