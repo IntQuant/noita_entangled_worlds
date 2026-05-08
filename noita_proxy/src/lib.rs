@@ -23,6 +23,7 @@ mod lobby_code;
 pub mod net;
 pub mod paths;
 mod player_cosmetics;
+mod runtime_dir;
 mod util;
 
 mod app;
