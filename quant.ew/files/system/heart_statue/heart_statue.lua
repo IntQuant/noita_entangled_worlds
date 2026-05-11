@@ -112,7 +112,7 @@ local function add_legs(entity)
 
     EntityAddComponent2(entity, "IKLimbsAnimatorComponent", {
         _tags = "enabled_in_world",
-        ray_skip_material = "rock_box2d_nohit_hard",
+        ray_skip_material = CellFactory_GetType("rock_box2d_nohit_hard"),
         ground_attachment_ray_length_coeff = 0.75,
         future_state_samples = 5,
         leg_velocity_coeff = 30,
