@@ -3,12 +3,13 @@ use std::fs::OpenOptions;
 #[cfg(feature = "log")]
 use std::io::Write;
 #[cfg(feature = "log")]
+use std::slice;
+#[cfg(feature = "log")]
 use std::sync::{Arc, LazyLock, Mutex};
 #[cfg(windows)]
 use std::{
     alloc::{self, Layout},
     ffi::c_void,
-    slice,
 };
 #[cfg(windows)]
 use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, PAGE_READWRITE, VirtualProtect};
@@ -37,6 +38,20 @@ unsafe extern "cdecl" fn operator_delete(pointer: *mut c_void) {
         let size = size_ptr.read();
         let ptr = pointer.offset(-4);
         alloc::dealloc(ptr.cast(), Layout::from_size_align_unchecked(size + 16, 4));
+    }
+}
+
+#[cfg(windows)]
+unsafe extern "cdecl" fn realloc(pointer: *mut c_void, size: usize) -> *mut c_void {
+    unsafe {
+        let new = operator_new(size);
+        if !pointer.is_null() {
+            let size_ptr = pointer.cast::<usize>().offset(-1);
+            let old_size = size_ptr.read();
+            std::ptr::copy(pointer, new, old_size);
+            operator_delete(pointer);
+        }
+        new
     }
 }
 
@@ -87,13 +102,16 @@ pub extern "stdcall" fn DllMain(_: *const u8, _: u32, _: *const u8) -> u32 {
         operator_new as *const usize,
     );
     write(
-        0x00f07500 as *mut *const usize, //operator_new
-        operator_new as *const usize,
-    );
-
-    write(
         0x00f074f4 as *mut *const usize, //free
         operator_delete as *const usize,
+    );
+    write(
+        0x00f074ec as *mut *const usize, //realloc
+        realloc as *const usize,
+    );
+    write(
+        0x00f07500 as *mut *const usize, //operator_new
+        operator_new as *const usize,
     );
     write(
         0x00f07504 as *mut *const usize, //operator_delete
