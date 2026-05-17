@@ -11,7 +11,8 @@ use crate::{
     mod_manager,
     net::{NetManager, NetManagerInit, NetManagerPaths, omni::PeerVariant, steam_networking},
     paths,
-    player_cosmetics::PlayerPngDesc,
+    player_settings::Cosmetics,
+    runtime_dir::RuntimeDir,
     steam_helper,
     util::steam_helper::LobbyExtraData,
 };
@@ -91,13 +92,14 @@ fn cli_setup(
     );
     let settings = save_paths.load_settings();
     let Settings {
-        color: appearance,
+        mut appearance,
         app: saved_state,
         audio,
         mut paths,
     } = settings;
     paths.proxy_settings = Some(save_paths.settings_path.clone());
     paths.proxy_save_state = Some(save_paths.save_state_path.clone());
+
     let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
@@ -112,37 +114,28 @@ fn cli_setup(
     }
     paths::realize_noita_paths_from_noita_exe(&mut paths);
     mod_manager::try_find_save_path(&mut paths);
+    let runtime_dir = RuntimeDir::from_paths(&paths).expect("noita paths to be initialized");
+
     let run_save_state = SaveState::new(save_paths.save_state_path);
-    let mut cosmetics = (false, false, false);
-    if let Some(path) = &paths.noita_save {
-        let flags = path.join("save00/persistent/flags");
-        let hat = flags.join("secret_hat").exists();
-        let amulet = flags.join("secret_amulet").exists();
-        let gem = flags.join("secret_amulet_gem").exists();
-        if !hat {
-            cosmetics.0 = false
-        }
-        if !amulet {
-            cosmetics.1 = false
-        }
-        if !gem {
-            cosmetics.2 = false
-        }
+
+    if let Some(path) = paths.noita_save.as_ref() {
+        appearance.cosmetics = Cosmetics::get(path);
     }
+
+    let asset_manager = crate::init_assets(&paths);
+
     let paths =
         NetManagerPaths::try_from_paths(&paths).expect("necessary paths for networking are some");
     let netmaninit = NetManagerInit {
         my_nickname,
         save_state: run_save_state,
-        cosmetics,
         paths,
-        player_png_desc: PlayerPngDesc {
-            cosmetics: cosmetics.into(),
-            colors: appearance.player_color,
-            invert_border: appearance.invert_border,
-        },
+        appearance,
+        asset_manager,
         noita_port: 21251,
+        runtime_dir,
     };
+
     (
         state,
         netmaninit,
@@ -181,9 +174,8 @@ pub fn connect_cli(lobby: String, args: Args) {
         println!("no steam");
         exit(1)
     };
-    let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
-    netman.start_inner(player_path, Some(kind)).unwrap();
+    netman.start_inner(Some(kind)).unwrap();
 }
 
 /// Bind to the provided `bind_addr` with `args` with CLI output only.
@@ -209,8 +201,7 @@ pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
         println!("no steam");
         exit(1)
     };
-    let player_path = netmaninit.paths.noita_quantew_player_spritesheet.clone();
     let netman = NetManager::new(variant, netmaninit, audio);
     *netman.settings.lock().unwrap() = game_settings;
-    netman.start_inner(player_path, Some(kind)).unwrap();
+    netman.start_inner(Some(kind)).unwrap();
 }

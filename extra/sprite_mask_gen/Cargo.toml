@@ -1,0 +1,9 @@
+[package]
+name = "sprite_mask_gen"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+ron = "0.12.1"
+serde = { version = "1.0.228", features = ["serde_derive", "derive"] }

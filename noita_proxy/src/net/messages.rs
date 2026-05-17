@@ -1,6 +1,7 @@
 use super::{omni::OmniPeerId, world::WorldNetMessage};
+use crate::GameSettings;
 use crate::net::world::world_model::ChunkData;
-use crate::{GameSettings, player_cosmetics::PlayerPngDesc};
+use crate::player_settings::PlayerAppearance;
 use bitcode::{Decode, Encode};
 use rustc_hash::FxHashMap;
 use shared::world_sync::ChunkCoord;
@@ -24,7 +25,7 @@ pub(crate) enum NetMsg {
     ModRaw { data: Vec<u8> },
     ModCompressed { data: Vec<u8> },
     WorldMessage(WorldNetMessage),
-    PlayerColor(PlayerPngDesc, bool, Option<OmniPeerId>, String),
+    PlayerColor(PlayerAppearance, bool, Option<OmniPeerId>, String),
     RemoteMsg(shared::RemoteMessage),
     ForwardDesToProxy(shared::des::DesToProxy),
     ForwardProxyToDes(shared::des::ProxyToDes),

@@ -20,6 +20,7 @@ members = [
     "extra/dll_injector",
     "extra/malloc_probe",
     "extra/mem_reader",
+    "extra/sprite_mask_gen",
 ]
 
 [workspace.dependencies]
