@@ -28,6 +28,7 @@ pub struct GameSettings {
     pub global_hp_loss: Option<bool>,
     pub perk_ban_list: Option<String>,
     pub disabled_globals: Option<String>,
+    pub share_all_perks: Option<bool>,
     pub spell_ban_list: Option<String>,
     pub physics_damage: Option<bool>,
     pub share_gold: Option<bool>,
@@ -60,6 +61,7 @@ pub struct DefaultSettings {
     pub global_hp_loss: bool,
     pub perk_ban_list: String,
     pub disabled_globals: String,
+    pub share_all_perks: bool,
     pub spell_ban_list: String,
     pub physics_damage: bool,
     pub share_gold: bool,
@@ -95,6 +97,7 @@ impl Default for DefaultSettings {
             global_hp_loss: false,
             perk_ban_list: String::new(),
             disabled_globals: String::new(),
+            share_all_perks: false,
             spell_ban_list: String::new(),
             physics_damage: true,
             share_gold: false,
@@ -522,6 +525,12 @@ impl GameSettings {
                 }
             }
             {
+                let mut temp = game_settings.share_all_perks.unwrap_or(def.share_all_perks);
+                if ui.checkbox(&mut temp, "Share all perks").changed() {
+                    game_settings.share_all_perks = Some(temp)
+                }
+            }
+            {
                 let mut temp = game_settings
                     .perk_ban_list
                     .clone()
@@ -542,7 +551,9 @@ impl GameSettings {
                     .disabled_globals
                     .clone()
                     .unwrap_or(def.disabled_globals);
-                ui.label("global perks to ignore, by internal names, comma seperated, will cause undefined behaviour do not report issues, find list in perk_fns.lua");
+                ui.label(
+                    "shared/global perks to ignore, by internal names, comma seperated, will cause undefined behaviour do not report issues",
+                );
                 if ui
                     .add_sized(
                         [ui.available_width() - 30.0, 20.0],

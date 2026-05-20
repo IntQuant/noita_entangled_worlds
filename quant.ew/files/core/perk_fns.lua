@@ -264,6 +264,14 @@ local first = true
 function perk_fns.on_world_update()
     if first then
         local needs_reset = false
+        if ctx.proxy_opt.share_all_perks then
+            lazyload()
+            for i = 1, #perk_list do
+                local perk_id = perk_list[i].id
+                global_perks[perk_id] = true
+            end
+            needs_reset = true
+        end
         for _, file in ipairs(ModLuaFileGetAppends("mods/quant.ew/files/api/global_perks.lua")) do
             local perks = dofile(file)
             for _, perk in ipairs(perks) do

@@ -1017,6 +1017,10 @@ impl NetManager {
             settings.randomize_perks.unwrap_or(def.randomize_perks),
         );
         state.try_ws_write_option(
+            "share_all_perks",
+            settings.share_all_perks.unwrap_or(def.share_all_perks),
+        );
+        state.try_ws_write_option(
             "enemy_hp_scale",
             settings.enemy_hp_mult.unwrap_or(def.enemy_hp_mult),
         );
