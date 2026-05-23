@@ -158,7 +158,13 @@ impl Version {
         let mut nums = version.split('.');
         let major = nums.next()?.parse().ok()?;
         let minor = nums.next()?.parse().ok()?;
-        let patch = nums.next()?.parse().ok()?;
+        let patch = nums
+            .next()?
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse()
+            .ok()?;
         Some(Self {
             major,
             minor,
@@ -185,6 +191,14 @@ impl From<Version> for Tag {
     }
 }
 
+fn release_repository() -> &'static str {
+    option_env!("EW_RELEASE_REPOSITORY").unwrap_or("IntQuant/noita_entangled_worlds")
+}
+
+fn release_tag_override() -> Option<Tag> {
+    option_env!("EW_RELEASE_TAG").map(|tag| Tag(tag.to_string()))
+}
+
 impl Release {
     pub fn get_release_assets(&self, client: &Client) -> Result<AssetList, ReleasesError> {
         let response = client
@@ -205,21 +219,27 @@ impl Release {
 }
 
 pub fn get_latest_release(client: &Client) -> Result<Release, ReleasesError> {
+    let url = format!(
+        "https://api.github.com/repos/{}/releases/latest",
+        release_repository()
+    );
     let response = client
-        .get("https://api.github.com/repos/IntQuant/noita_entangled_worlds/releases/latest")
+        .get(&url)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-agent", "noita proxy")
         .send()
-        .wrap_err("Failed to request latest release")?;
+        .wrap_err_with(|| format!("Failed to request latest release from {url}"))?;
 
     Ok(response.json()?)
 }
 
-pub fn get_release_by_tag(client: &Client, tag: Tag) -> Result<Release, ReleasesError> {
+pub fn get_release_by_tag(client: &Client, requested_tag: Tag) -> Result<Release, ReleasesError> {
+    let tag = release_tag_override().unwrap_or(requested_tag);
     let url = format!(
-        "https://api.github.com/repos/IntQuant/noita_entangled_worlds/releases/tags/{}",
-        tag.0
+        "https://api.github.com/repos/{}/releases/tags/{}",
+        release_repository(),
+        tag.0,
     );
     let response = client
         .get(&url)
