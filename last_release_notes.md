@@ -1,6 +1,8 @@
-## Noita Entangled Worlds v1.6.2
+## Noita Entangled Worlds v1.7.0
 
-- remove the ton of debug prints i forgot about to prob help performance
+- Added an optional **Share all perks** setting.
+- When enabled, any perk picked up by one player is treated as a shared/global perk and is automatically applied to the other players.
+- Forked builds now use the fork/tag they were built from when downloading mod releases, so custom release builds can install their matching `quant.ew.zip` instead of looking only at the official upstream repository.
 
 
 ## Accepted pull requests
@@ -25,4 +27,3 @@ It should be detected automatically as long as you use steam version of the game
 
 
 There is a button in bottom-left corner on noita_proxy's main screen that allows to auto-update to a new version when one is available
-
