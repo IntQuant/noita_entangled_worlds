@@ -632,6 +632,7 @@ local function render_tooltip(origin_x, origin_y, wand, gui_, z)
         bottom - (origin_y - 5) + 5
     )
     GuiIdPop(gui)
+    return right, bottom
 end
 
 local function refresh_wand_if_in_inventory(wand_id)
@@ -1397,10 +1398,11 @@ local function get_held_wand()
 end
 
 function wand:RenderTooltip(origin_x, origin_y, gui_, z)
-    local success, error_msg = pcall(render_tooltip, origin_x, origin_y, deserialize(self:Serialize()), gui_, z)
+    local success, right, bottom = pcall(render_tooltip, origin_x, origin_y, deserialize(self:Serialize()), gui_, z)
     if not success then
-        error(error_msg, 2)
+        error(right, 2)
     end
+    return right, bottom
 end
 
 local virtual_wand = {}
