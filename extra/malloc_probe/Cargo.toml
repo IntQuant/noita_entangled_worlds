@@ -1,0 +1,14 @@
+[package]
+name = "malloc_probe"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default=[]
+log=[]
+
+[target.'cfg(windows)'.dependencies]
+windows = {version="0.62.2", features = ["Win32", "Win32_System", "Win32_System_Memory"]}
