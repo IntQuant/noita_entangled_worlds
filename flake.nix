@@ -35,8 +35,8 @@
       overlays = import ./nix/overlays { inherit self lib rust-overlay; };
 
       packages = lib.mapAttrs (system: pkgs: {
-        default = self.packages.${system}.noita-proxy;
-        inherit (pkgs) noita-proxy;
+        default = self.packages.${system}.noita_proxy;
+        inherit (pkgs) noita_proxy;
       }) pkgsFor;
 
       devShells = lib.mapAttrs (system: pkgs: {
@@ -44,7 +44,7 @@
 
         # devShells for cross-compiling. You may use ./nix/cross/build-* directly instead.
         cross-ewext = pkgs.callPackage ./nix/cross/ewext.nix { };
-        cross-noita-proxy = pkgs.callPackage ./nix/cross/noita-proxy.nix { };
+        cross-noita_proxy = pkgs.callPackage ./nix/cross/noita_proxy.nix { };
       }) pkgsFor;
 
       formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);

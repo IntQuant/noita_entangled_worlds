@@ -29,7 +29,7 @@ rustPlatform.buildRustPackage (
       buildInputs
       steamworksRedist
       ;
-    manifest = lib.importTOML "${src}/noita-proxy/Cargo.toml";
+    manifest = lib.importTOML "${src}/noita_proxy/Cargo.toml";
   in
   {
     pname = "noita-entangled-worlds-proxy";
@@ -39,9 +39,9 @@ rustPlatform.buildRustPackage (
     # This is the only place `sourceRoot` is used.
     src = sourceRoot;
     # The root of this particular binary crate to build.
-    sourceRoot = "source/noita-proxy";
+    sourceRoot = "source/noita_proxy";
 
-    cargoLock.lockFile = "${src}/noita-proxy/Cargo.lock";
+    cargoLock.lockFile = "${src}/noita_proxy/Cargo.lock";
 
     strictDeps = true;
     nativeBuildInputs = [
@@ -82,12 +82,12 @@ rustPlatform.buildRustPackage (
         mkdir -p $icon_dir
         magick assets/icon.png \
           -strip -filter Point -resize ''${size}x''${size} \
-          $icon_dir/noita-proxy.png
+          $icon_dir/noita_proxy.png
       done
     '';
 
     postFixup = ''
-      patchelf $out/bin/noita-proxy \
+      patchelf $out/bin/noita_proxy \
         --set-rpath ${lib.makeLibraryPath buildInputs}
     '';
 
@@ -99,11 +99,11 @@ rustPlatform.buildRustPackage (
 
     desktopItems = [
       (makeDesktopItem {
-        name = "noita-proxy";
+        name = "noita_proxy";
         desktopName = "Noita Entangled Worlds";
         comment = meta.description;
-        exec = "noita-proxy";
-        icon = "noita-proxy";
+        exec = "noita_proxy";
+        icon = "noita_proxy";
         categories = [
           "Game"
           "Utility"
@@ -130,7 +130,7 @@ rustPlatform.buildRustPackage (
       ];
       platforms = [ "x86_64-linux" ];
       maintainers = with lib.maintainers; [ spikespaz ];
-      mainProgram = "noita-proxy";
+      mainProgram = "noita_proxy";
     };
   }
 )

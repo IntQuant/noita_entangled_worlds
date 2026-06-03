@@ -4,7 +4,7 @@ Rust toolchain can be acquired from https://rustup.rs
 
 Another option is to use your distributions rust toolchain, but it might be too old. Proxy is currently built with rustc 1.77.1.
 
-Next, run `cargo build` (or `cargo build --release` for a faster release version) in noita-proxy directory.
+Next, run `cargo build` (or `cargo build --release` for a faster release version) in noita_proxy directory.
 
 You also might need to add steam dynamic library. The easiest way to get one is from the latest mod release.
 

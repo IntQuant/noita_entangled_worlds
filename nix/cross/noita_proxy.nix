@@ -1,7 +1,7 @@
 {
   rust-bin,
   mkShell,
-  noita-proxy,
+  noita_proxy,
   pkgs,
   pkgsCross,
   lib,
@@ -13,7 +13,7 @@ let
     pkgsCross.mingwW64.libopus
   ];
   buildInputs = [
-    noita-proxy.steamworksRedist
+    noita_proxy.steamworksRedist
   ];
 in
 mkShell {

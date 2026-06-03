@@ -2,16 +2,16 @@ extract_steam_redist:
     python scripts/extract_steam_redist.py
 
 add_dylib_debug: extract_steam_redist
-    mkdir noita-proxy/target/debug/ -p
-    cp redist/libsteam_api.so noita-proxy/target/debug/
+    mkdir noita_proxy/target/debug/ -p
+    cp redist/libsteam_api.so noita_proxy/target/debug/
 
 add_dylib_release: extract_steam_redist
-    mkdir noita-proxy/target/release/ -p
-    cp redist/libsteam_api.so noita-proxy/target/release/
+    mkdir noita_proxy/target/release/ -p
+    cp redist/libsteam_api.so noita_proxy/target/release/
 
 build:
-    cd noita-proxy && cargo build
-    cd noita-proxy && cargo build --release
+    cd noita_proxy && cargo build
+    cd noita_proxy && cargo build --release
 
 ## ewext stuff
 build_luajit:
@@ -39,33 +39,33 @@ build_blob_debug:
     cp blob_guy/target/i686-pc-windows-gnu/debug/blob_guy.dll blob_guy/blob_guy/blob_guy.dll
 
 run-rel: add_dylib_release build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
+    cd noita_proxy && NP_SKIP_MOD_CHECK=1 cargo run --release
 
 flamegraph: add_dylib_debug
-    cd noita-proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo flamegraph
+    cd noita_proxy && NP_APPID=480 NP_SKIP_MOD_CHECK=1 cargo flamegraph
 
 run: add_dylib_debug build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run
+    cd noita_proxy && NP_SKIP_MOD_CHECK=1 cargo run
 
 run2: add_dylib_debug build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
+    cd noita_proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "wine noita.exe -gamemode 0"
 
 run2-alt: add_dylib_debug build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
+    cd noita_proxy && NP_SKIP_MOD_CHECK=1 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
 
 run3: add_dylib_debug build_ext
-    cd noita-proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
+    cd noita_proxy && NP_SKIP_MOD_CHECK=1 NP_NOITA_ADDR=127.0.0.1:21253 cargo run -- --launch-cmd "strace wine noita.exe -gamemode 0"
 
 release_old: build_ext
     python scripts/prepare_release.py
 
 release:
-    cd noita-proxy && cargo check
+    cd noita_proxy && cargo check
     cd ewext && cargo check
     python scripts/check_pre_ci.py
 
 clean:
-    cd noita-proxy && cargo clean
+    cd noita_proxy && cargo clean
     cd ewext && cargo clean
 
 make_release_assets:

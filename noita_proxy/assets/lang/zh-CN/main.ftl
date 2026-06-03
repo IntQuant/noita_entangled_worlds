@@ -28,7 +28,7 @@ modman_downloading = 正在下载Mod
 modman_receiving_rel_info = 正在接收版本信息
 modman_unpacking = 正在解压Mod
 modman_installed = Mod已安装
-modman_will_install_to = noita-proxy将会把Mod安装到:
+modman_will_install_to = noita_proxy将会把Mod安装到:
 modman_another_path = 选择其他路径
 
 player_host = 房主
@@ -43,7 +43,7 @@ version_new_available = 有可用的更新，版本{ $new_version }
 selfupdate = 软件更新
 selfupdate_confirm = 确认更新
 selfupdate_receiving_rel_info = 接收版本信息...
-selfupdate_updated = noita-proxy已更新！重启软件以完成更新。
+selfupdate_updated = noita_proxy已更新！重启软件以完成更新。
 selfupdate_unpacking = 正在解压中...
 
 noita_not_yet = 还没准备好，请等待Noita启动。
@@ -59,14 +59,14 @@ ip_connect = 连接至IP
 ip_host = 创建一个服务器
 
 error_occured = 发生错误：
-error_missing_version_field = 大厅没有版本字段。大厅是由旧的noita-proxy版本创建的。
-error_version_mismatch = 版本不匹配，大厅是由{$remote_version}版本的noita-proxy创建的，当前已安装的版本是{$current_version}。
+error_missing_version_field = 大厅没有版本字段。大厅是由旧的noita_proxy版本创建的。
+error_version_mismatch = 版本不匹配，大厅是由{$remote_version}版本的noita_proxy创建的，当前已安装的版本是{$current_version}。
 error_lobby_does_not_exist = 大厅不存在
 
 launcher_already_started = Noita已启动。
 launcher_no_command = 无法启动Noita：没有启动命令。
 launcher_no_command_2 = 你可以使用 --launch-cmd <command> 选项指定启动命令。
-launcher_no_command_3 = 你可以在steam的启动项中放入`noita-proxy --launch-cmd "%command%" 用于启动游戏时执行其他命令。
+launcher_no_command_3 = 你可以在steam的启动项中放入`noita_proxy --launch-cmd "%command%" 用于启动游戏时执行其他命令。
 launcher_start_game = 启动Noita
 launcher_end_run = 结束游戏
 launcher_end_run_confirm = 确认
@@ -90,7 +90,7 @@ connect_settings_autostart = 自动启动游戏
 ## Game settings
 
 Player-have-same-starting-loadout = Player have same starting loadout
-connect_settings_spacewars = 允许使用Steam网络联机，即使你没有在Steam上购买游戏，如果你有GOG版本的游戏。所有玩家都需要勾选此选项才能生效，重启noita-proxy以生效
+connect_settings_spacewars = 允许使用Steam网络联机，即使你没有在Steam上购买游戏，如果你有GOG版本的游戏。所有玩家都需要勾选此选项才能生效，重启noita_proxy以生效
 Health-per-player = 每个玩家的生命值
 Enable-friendly-fire = 启用队友伤害
 Have-perk-pools-be-independent-of-each-other = 启用神山独立天赋池

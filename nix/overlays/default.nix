@@ -14,7 +14,7 @@ in
     self.overlays.rust-overlay
 
     # Packages provided by this flake:
-    self.overlays.noita-proxy
+    self.overlays.noita_proxy
   ];
 
   # This flake exposes `overlays.rust-overlay` which is automatically applied
@@ -26,8 +26,8 @@ in
   # The overlay definition uses `rust-bin` to construct a `rustPlatform`,
   # and `rust-bin` is not provided by this particular overlay.
   # Prefer using `overlays.default`, or composing with `rust-overlay` manually.
-  noita-proxy = rustPackageOverlay {
-    packageName = "noita-proxy";
+  noita_proxy = rustPackageOverlay {
+    packageName = "noita_proxy";
     sourceRoot = self;
   };
 }

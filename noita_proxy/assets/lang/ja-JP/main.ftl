@@ -66,7 +66,7 @@ error_lobby_does_not_exist = ロビーが存在しません。
 launcher_already_started = Noitaはすでに開始されています。
 launcher_no_command = Noitaを開始できません: 起動コマンドがありません。
 launcher_no_command_2 = 起動コマンドは --launch-cmd <command> オプションで指定できます。
-launcher_no_command_3 = Steamの起動オプションに `noita-proxy --launch-cmd "%command%"` を入力すると、Steamがゲームを開始する際のコマンドを確認できます。
+launcher_no_command_3 = Steamの起動オプションに `noita_proxy --launch-cmd "%command%"` を入力すると、Steamがゲームを開始する際のコマンドを確認できます。
 launcher_start_game = Noitaを開始する
 launcher_only_when_awaiting = 「Noita接続待機中」状態のときのみゲームを開始できます。
 
