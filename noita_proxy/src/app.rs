@@ -480,7 +480,7 @@ impl App {
 
     fn connect_screen(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.app_saved_state.times_started % 20 == 0 {
+            if self.app_saved_state.times_started.is_multiple_of(20) {
                 let image = egui::Image::new(egui::include_image!("../assets/longleg.png"))
                     .texture_options(TextureOptions::NEAREST);
                 image.paint_at(ui, ctx.screen_rect());
