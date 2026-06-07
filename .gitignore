@@ -3,9 +3,7 @@ mat_data.txt
 save_state
 *png~
 /quant.ew/files/system/player/tmp/
-/quant.ew/ewext.dll
-/quant.ew/ewext0.dll
-/quant.ew/ewext1.dll
+/quant.ew/ewext*.dll
 
 # Nix
 /result
