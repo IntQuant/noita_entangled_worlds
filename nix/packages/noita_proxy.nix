@@ -1,7 +1,7 @@
 {
   sourceRoot,
   lib,
-  runCommandNoCC,
+  runCommand,
   rustPlatform,
   copyDesktopItems,
   makeDesktopItem,
@@ -16,8 +16,8 @@
   wayland,
   libxkbcommon,
   libGL,
+  stdenv,
 }:
-
 rustPlatform.buildRustPackage (
   finalAttrs:
   let
@@ -29,6 +29,7 @@ rustPlatform.buildRustPackage (
       buildInputs
       steamworksRedist
       ;
+    inherit (stdenv.hostPlatform) isDarwin isLinux;
     manifest = lib.importTOML "${src}/noita_proxy/Cargo.toml";
   in
   {
@@ -52,16 +53,18 @@ rustPlatform.buildRustPackage (
       imagemagick
     ];
 
-    # TODO: Add dependencies for X11 desktop environments.
     buildInputs = [
       openssl
+      steamworksRedist
+      libopus
+    ]
+    # TODO: Add dependencies for X11 desktop environments.
+    ++ lib.optionals isLinux [
       libjack2
       alsa-lib
-      libopus
       wayland
       libxkbcommon
       libGL
-      steamworksRedist
     ];
 
     env = {
@@ -86,15 +89,19 @@ rustPlatform.buildRustPackage (
       done
     '';
 
-    postFixup = ''
-      patchelf $out/bin/noita_proxy \
-        --set-rpath ${lib.makeLibraryPath buildInputs}
-    '';
+    postFixup =
+      let
+        bin = "$out/bin/noita_proxy";
+      in
+      if isDarwin then
+        "install_name_tool -change @loader_path/libsteam_api.dylib ${steamworksRedist}/lib/libsteam_api.dylib ${bin}"
+      else
+        "patchelf ${bin} --set-rpath ${lib.makeLibraryPath buildInputs}";
 
     # This attribute is defined here instead of a `let` block, because in this position,
     # it can be overridden with `overrideAttrs`, and shares a `src` with the top-level.
-    steamworksRedist = runCommandNoCC "${pname}-steamworks-redist" { inherit src; } ''
-      install -Dm555 $src/redist/libsteam_api.so -t $out/lib
+    steamworksRedist = runCommand "${pname}-steamworks-redist" { inherit src; } ''
+      install -Dm555 $src/redist/libsteam_api.${if isDarwin then "dylib" else "so"} -t $out/lib
     '';
 
     desktopItems = [
@@ -128,7 +135,10 @@ rustPlatform.buildRustPackage (
         mit
         asl20
       ];
-      platforms = [ "x86_64-linux" ];
+      platforms = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
       maintainers = with lib.maintainers; [ spikespaz ];
       mainProgram = "noita_proxy";
     };
