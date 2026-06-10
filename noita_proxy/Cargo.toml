@@ -5,7 +5,7 @@ resolver = "2"
 [package]
 name = "noita_proxy"
 description = "Noita Entangled Worlds proxy application."
-version = "1.6.2"
+version = "1.6.3"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
