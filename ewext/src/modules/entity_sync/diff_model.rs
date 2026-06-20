@@ -13,7 +13,7 @@ use noita_api::{
     Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
     LaserEmitterComponent, LifetimeComponent, LuaComponent, PhysData, PhysicsAIComponent,
     PhysicsBody2Component, PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent,
-    VarName, VariableStorageComponent, VelocityComponent, WormComponent, game_print,
+    StatusEffectDataComponent, VarName, VariableStorageComponent, VelocityComponent, WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{
@@ -377,16 +377,13 @@ impl LocalDiffModelTracker {
                     )
                     .is_some());
 
-        info.limbs = entity
-            .children(None)
-            .filter_map(|ent| {
-                if let Ok(limb) = ent.get_first_component::<IKLimbComponent>(None) {
-                    limb.end_position().ok()
-                } else {
-                    None
-                }
-            })
-            .collect();
+        info.limbs = if entity_manager.try_get_first_component::<IKLimbsAnimatorComponent>(ComponentTag::None).is_some()
+            || entity_manager.try_get_first_component::<IKLimbWalkerComponent>(ComponentTag::None).is_some()
+        {
+            entity.children(None).filter_map(|ent| ent.get_first_component::<IKLimbComponent>(None).ok()?.end_position().ok()).collect()
+        } else {
+            Vec::new()
+        };
 
         if let Some(worm) =
             entity_manager.try_get_first_component::<BossDragonComponent>(ComponentTag::None)
@@ -489,11 +486,14 @@ impl LocalDiffModelTracker {
                 + (num * 32);
         }
 
-        info.game_effects = entity
-            .get_game_effects()?
-            .into_iter()
-            .map(|(e, _)| e)
-            .collect::<Vec<GameEffectData>>();
+        let has_damage_model = entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None).is_some();
+        let has_status_effect = entity_manager.try_get_first_component::<StatusEffectDataComponent>(ComponentTag::None).is_some();
+
+        info.game_effects = if has_damage_model || has_status_effect {
+            entity.get_game_effects()?.into_iter().map(|(e, _)| e).collect()
+        } else {
+            Vec::new()
+        };
 
         info.current_stains =
             if let Some(var) = entity_manager.get_var(const { VarName::from_str("rolling") }) {
@@ -512,8 +512,10 @@ impl LocalDiffModelTracker {
                         info.current_stains
                     }
                 }
+            } else if has_status_effect {
+                entity_manager.entity().get_current_stains()?
             } else {
-                entity_manager.get_current_stains()?
+                0
             };
 
         let mut any = false;
@@ -535,50 +537,54 @@ impl LocalDiffModelTracker {
                 info.ai_rotation = ai.m_ranged_attack_current_aim_angle()?;
             }
         } else {
-            let mut files = std::mem::take(&mut entity_manager.files);
-            let sprites =
-                entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
             info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
-            info.animations = sprites
-                .filter_map(|sprite| {
-                    let file = sprite.image_file().ok()?;
-                    if file.ends_with(".xml") {
-                        let text = noita_api::get_file(&mut files, file).ok()?;
-                        let animation = sprite.rect_animation().unwrap_or("".into());
-                        Some(
-                            text.iter()
-                                .position(|name| name == &animation)
-                                .unwrap_or(usize::MAX) as u16,
-                        )
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            if let Some(ai) =
-                entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)
-                && ai.attack_ranged_use_laser_sight()?
-                && !ai.is_static_turret()?
-            {
-                info.laser = if let Some(target) = ai.m_greatest_prey()? {
-                    if ![15, 16].contains(&ai.ai_state()?) {
-                        Target::None
-                    } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
-                        Target::Peer(*peer)
-                    } else if let Some(var) = target.get_var("ew_gid_lid") {
-                        if var.value_bool()? {
-                            Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+            if has_damage_model {
+                let mut files = std::mem::take(&mut entity_manager.files);
+                let sprites =
+                    entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
+                info.animations = sprites
+                    .filter_map(|sprite| {
+                        let file = sprite.image_file().ok()?;
+                        if file.ends_with(".xml") {
+                            let text = noita_api::get_file(&mut files, file).ok()?;
+                            let animation = sprite.rect_animation().unwrap_or("".into());
+                            Some(
+                                text.iter()
+                                    .position(|name| name == &animation)
+                                    .unwrap_or(usize::MAX) as u16,
+                            )
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                if let Some(ai) =
+                    entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)
+                    && ai.attack_ranged_use_laser_sight()?
+                    && !ai.is_static_turret()?
+                {
+                    info.laser = if let Some(target) = ai.m_greatest_prey()? {
+                        if ![15, 16].contains(&ai.ai_state()?) {
+                            Target::None
+                        } else if let Some(peer) = ctx.player_map.get_by_right(&target) {
+                            Target::Peer(*peer)
+                        } else if let Some(var) = target.get_var("ew_gid_lid") {
+                            if var.value_bool()? {
+                                Target::Gid(Gid(var.value_string()?.parse::<u64>()?))
+                            } else {
+                                Target::None
+                            }
                         } else {
                             Target::None
                         }
                     } else {
                         Target::None
                     }
-                } else {
-                    Target::None
                 }
+                entity_manager.files = files;
+            } else {
+                info.animations.clear();
             }
-            entity_manager.files = files;
         }
 
         info.synced_var = entity_manager
