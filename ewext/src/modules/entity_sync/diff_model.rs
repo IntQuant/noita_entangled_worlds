@@ -377,6 +377,7 @@ impl LocalDiffModelTracker {
                     )
                     .is_some());
 
+        // Check animator or walker components to avoid expensive children queries on all entities
         info.limbs = if entity_manager.try_get_first_component::<IKLimbsAnimatorComponent>(ComponentTag::None).is_some()
             || entity_manager.try_get_first_component::<IKLimbWalkerComponent>(ComponentTag::None).is_some()
         {
@@ -486,6 +487,7 @@ impl LocalDiffModelTracker {
                 + (num * 32);
         }
 
+        // Gate expensive FFI calls behind local component cache checks
         let has_damage_model = entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None).is_some();
         let has_status_effect = entity_manager.try_get_first_component::<StatusEffectDataComponent>(ComponentTag::None).is_some();
 
@@ -538,6 +540,7 @@ impl LocalDiffModelTracker {
             }
         } else {
             info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
+            // Only search for sprite XML animations if the entity has a damage model
             if has_damage_model {
                 let mut files = std::mem::take(&mut entity_manager.files);
                 let sprites =
