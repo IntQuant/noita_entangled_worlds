@@ -790,7 +790,7 @@ impl Module for EntitySync {
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
-        for (_, remote_model) in self.remote_models.iter_mut() {
+        for remote_model in self.remote_models.values_mut() {
             remote_model.kill_entities(ctx, &mut self.entity_manager)?;
         }
         for (entity, offending_peer) in self.kill_later.drain(..) {
