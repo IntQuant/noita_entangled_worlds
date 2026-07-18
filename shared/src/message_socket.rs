@@ -66,14 +66,18 @@ impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbo
     pub fn read(&mut self) -> eyre::Result<Inbound> {
         match self.recv_messages.recv() {
             Ok(msg) => msg,
-            Err(RecvError) => bail!("Channel disconnected"),
+            Err(RecvError) => {
+                bail!("Channel disconnected");
+            }
         }
     }
 
     pub fn try_read(&mut self) -> eyre::Result<Option<Inbound>> {
         match self.recv_messages.try_recv() {
             Ok(msg) => Some(msg).transpose(),
-            Err(TryRecvError::Disconnected) => bail!("Channel disconnected"),
+            Err(TryRecvError::Disconnected) => {
+                bail!("Channel disconnected");
+            }
             Err(TryRecvError::Empty) => Ok(None),
         }
     }

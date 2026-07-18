@@ -131,7 +131,7 @@ impl LuaState {
             let msg = self
                 .to_string(-1)
                 .wrap_err("Failed to get error message string")?;
-            bail!("Error while calling lua function: {}", msg)
+            bail!("Error while calling lua function: {}", msg);
         }
     }
 

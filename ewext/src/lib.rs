@@ -53,8 +53,12 @@ static MY_PEER_ID: OnceLock<PeerId> = OnceLock::new();
 fn try_lock_netmanager() -> eyre::Result<MutexGuard<'static, Option<NetManager>>> {
     match NETMANAGER.try_lock() {
         Ok(netman) => Ok(netman),
-        Err(TryLockError::WouldBlock) => bail!("Netmanager mutex already locked"),
-        Err(TryLockError::Poisoned(_)) => bail!("Netnamager mutex poisoned"),
+        Err(TryLockError::WouldBlock) => {
+            bail!("Netmanager mutex already locked");
+        }
+        Err(TryLockError::Poisoned(_)) => {
+            bail!("Netnamager mutex poisoned");
+        }
     }
 }
 
@@ -210,7 +214,9 @@ fn netmanager_connect(_lua: LuaState) -> eyre::Result<Vec<RawString>> {
                 let _ = MY_PEER_ID.set(my_peer_id);
                 break;
             }
-            _ => bail!("Received unexpected value during init"),
+            _ => {
+                bail!("Received unexpected value during init");
+            }
         }
     }
 
@@ -226,7 +232,9 @@ fn netmanager_recv(_lua: LuaState) -> eyre::Result<Option<RawString>> {
     while let Some(msg) = netmanager.try_recv()? {
         match msg {
             NoitaInbound::RawMessage(vec) => return Ok(Some(vec.into())),
-            NoitaInbound::Ready { .. } => bail!("Unexpected Ready message"),
+            NoitaInbound::Ready { .. } => {
+                bail!("Unexpected Ready message");
+            }
             NoitaInbound::ProxyToDes(proxy_to_des) => ExtState::with_global(|state| {
                 let _lock = IN_MODULE_LOCK.lock().unwrap();
                 if let Some(entity_sync) = &mut state.modules.entity_sync
@@ -327,7 +335,7 @@ fn with_every_module(
             return Err(errs.remove(0));
         }
         if errs.len() > 1 {
-            bail!("Multiple errors while running ewext modules:\n{:?}", errs)
+            bail!("Multiple errors while running ewext modules:\n{:?}", errs);
         }
         Ok(())
     })?
