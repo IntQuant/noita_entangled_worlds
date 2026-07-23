@@ -206,6 +206,9 @@ function inventory_helper.get_item_data(player_data, fresh)
 end
 
 local function pickup_item(entity, item)
+    if not entity or not EntityGetIsAlive(entity) or not item or not EntityGetIsAlive(item) then
+        return
+    end
     local item_component = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
     if item_component then
         ComponentSetValue2(item_component, "has_been_picked_by_player", true)

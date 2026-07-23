@@ -347,6 +347,7 @@ local function no_notplayer()
     else
         entity_name = "mods/quant.ew/files/system/heart_statue/heart_statue_running.xml"
     end
+    GameRemoveFlagRun("ew_flag_heart_picked_up")
     local ent = fake_polymorph_into_entity(entity_name)
     polymorph.switch_entity(ent)
 end
@@ -573,27 +574,46 @@ function module.on_world_update()
         rpc.send_status(status)
     end
 
+    local in_inventory = is_entity_in_quick_inventory(player_ent)
+    if in_inventory then
+        GameAddFlagRun("ew_flag_heart_picked_up")
+    end
+
     local heart_statue_should_revive =
         ctx.proxy_opt.no_notplayer
         and notplayer_active
-        and not is_entity_in_quick_inventory(player_ent)
+        and GameHasFlagRun("ew_flag_heart_picked_up")
+        and not in_inventory
 
     if heart_statue_should_revive then
-        local x, y = EntityGetTransform(ctx.my_player.entity)
-        for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 14, "drillable")) do
-            ent_filename = EntityGetFilename(ent)
-            if ent_filename == "data/entities/items/pickup/heart_fullhp.xml"
-                or ent_filename == "data/entities/items/pickup/heart_fullhp_temple.xml"
-            then
-                GameRemoveFlagRun("ew_flag_notplayer_active")
-                EntityKill(ent)
-                local ent = fake_unpolymorph()
-                remove_stuff(ent)
-                polymorph.switch_entity(ent)
-                spectate.disable_throwing(false, ctx.my_player.entity)
-                reduce_hp()
-                first = false
-                break
+        local revive_anywhere = ctx.proxy_opt.revive_on_drop or (ModSettingGet("quant.ew.revive_on_drop") == true)
+        if revive_anywhere then
+            GameRemoveFlagRun("ew_flag_notplayer_active")
+            GameRemoveFlagRun("ew_flag_heart_picked_up")
+            local ent_rev = fake_unpolymorph()
+            remove_stuff(ent_rev)
+            polymorph.switch_entity(ent_rev)
+            spectate.disable_throwing(false, ctx.my_player.entity)
+            reduce_hp()
+            first = false
+        else
+            local x, y = EntityGetTransform(ctx.my_player.entity)
+            for _, ent in ipairs(EntityGetInRadiusWithTag(x, y, 14, "drillable")) do
+                local ent_filename = EntityGetFilename(ent)
+                if ent_filename == "data/entities/items/pickup/heart_fullhp.xml"
+                    or ent_filename == "data/entities/items/pickup/heart_fullhp_temple.xml"
+                then
+                    GameRemoveFlagRun("ew_flag_notplayer_active")
+                    GameRemoveFlagRun("ew_flag_heart_picked_up")
+                    EntityKill(ent)
+                    local ent_rev = fake_unpolymorph()
+                    remove_stuff(ent_rev)
+                    polymorph.switch_entity(ent_rev)
+                    spectate.disable_throwing(false, ctx.my_player.entity)
+                    reduce_hp()
+                    first = false
+                    break
+                end
             end
         end
     end

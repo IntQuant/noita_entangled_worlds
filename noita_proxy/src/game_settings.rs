@@ -45,6 +45,7 @@ pub struct GameSettings {
     pub wait_for_time: Option<bool>,
     pub timed: Option<bool>,
     pub local_health_alternate_dont_run: Option<bool>,
+    pub revive_on_drop: Option<bool>,
 }
 
 pub struct DefaultSettings {
@@ -79,6 +80,7 @@ pub struct DefaultSettings {
     pub wait_for_time: bool,
     pub timed: bool,
     pub local_health_alternate_dont_run: bool,
+    pub revive_on_drop: bool,
 }
 
 impl Default for DefaultSettings {
@@ -115,6 +117,7 @@ impl Default for DefaultSettings {
             wait_for_time: false,
             timed: true,
             local_health_alternate_dont_run: false,
+            revive_on_drop: false,
         }
     }
 }
@@ -296,6 +299,13 @@ impl GameSettings {
                                         game_settings.local_health_alternate_dont_run = Some(temp)
                                     }
                                 }
+                                 {
+                                     let mut temp =
+                                         game_settings.revive_on_drop.unwrap_or(def.revive_on_drop);
+                                     if ui.checkbox(&mut temp, "Revive player anywhere when dropping heart").changed() {
+                                         game_settings.revive_on_drop = Some(temp)
+                                     }
+                                 }
                             }
                             LocalHealthMode::PermaDeath => {
                                 ui.label(tr("local_health_desc_1"));

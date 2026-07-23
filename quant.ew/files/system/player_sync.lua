@@ -22,25 +22,32 @@ local function undc(ent)
 end
 
 function rpc.send_money_and_ingestion(money, delta, ingestion_size)
-    local entity = ctx.rpc_player_data.entity
+    local entity = ctx.rpc_player_data and ctx.rpc_player_data.entity
+    if not entity or not EntityGetIsAlive(entity) then
+        return
+    end
     local wallet = EntityGetFirstComponentIncludingDisabled(entity, "WalletComponent")
     if wallet ~= nil and money ~= nil then
         if ctx.proxy_opt.share_gold and last_money ~= nil then
-            local my_wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
-            if my_wallet == nil then
-                my_wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", { money = last_money })
-            end
-            local cm = ComponentGetValue2(my_wallet, "money")
-            if cm ~= nil then
-                if ctx.is_host then
-                    ComponentSetValue2(my_wallet, "money", cm + delta)
-                elseif ctx.rpc_peer_id == ctx.host_id then
-                    local my_delta = 0
-                    if cm ~= last_money then
-                        my_delta = cm - last_money
+            if ctx.my_player and ctx.my_player.entity and EntityGetIsAlive(ctx.my_player.entity) then
+                local my_wallet = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "WalletComponent")
+                if my_wallet == nil then
+                    my_wallet = EntityAddComponent2(ctx.my_player.entity, "WalletComponent", { money = last_money })
+                end
+                if my_wallet ~= nil then
+                    local cm = ComponentGetValue2(my_wallet, "money")
+                    if cm ~= nil then
+                        if ctx.is_host then
+                            ComponentSetValue2(my_wallet, "money", cm + delta)
+                        elseif ctx.rpc_peer_id == ctx.host_id then
+                            local my_delta = 0
+                            if cm ~= last_money then
+                                my_delta = cm - last_money
+                            end
+                            last_money = money
+                            ComponentSetValue2(my_wallet, "money", money + my_delta)
+                        end
                     end
-                    last_money = money
-                    ComponentSetValue2(my_wallet, "money", money + my_delta)
                 end
             end
         end

@@ -4,6 +4,9 @@ local heart_statue = {}
 
 -- Manually remove item from the inventory
 local function enable_in_world(item)
+    if not item or not EntityGetIsAlive(item) then
+        return
+    end
     EntitySetComponentsWithTagEnabled(item, "enabled_in_hand", false)
     EntitySetComponentsWithTagEnabled(item, "enabled_in_inventory", false)
     EntitySetComponentsWithTagEnabled(item, "enabled_in_world", true)
@@ -13,6 +16,9 @@ local function enable_in_world(item)
 end
 
 local function find_player_cape(entity)
+    if not entity or not EntityGetIsAlive(entity) then
+        return nil
+    end
     local cape
     local player_child_entities = EntityGetAllChildren(entity)
     if player_child_entities ~= nil then
@@ -31,7 +37,11 @@ end
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.add_player_cape_for_fun(peer_id)
-    local entity = ctx.players[peer_id].entity
+    local player_data = ctx.players[peer_id]
+    if not player_data or not player_data.entity or not EntityGetIsAlive(player_data.entity) then
+        return
+    end
+    local entity = player_data.entity
     local cape = find_player_cape(entity)
 
     if cape then
@@ -42,13 +52,19 @@ function rpc.add_player_cape_for_fun(peer_id)
     local player_cape_sprite_file = "mods/quant.ew/files/system/player/tmp/" .. peer_id .. "_cape.xml"
     local x, y = EntityGetTransform(entity)
     local cape2 = EntityLoad(player_cape_sprite_file, x, y)
-    EntityAddChild(entity, cape2)
+    if cape2 and EntityGetIsAlive(cape2) then
+        EntityAddChild(entity, cape2)
+    end
 end
 
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.remove_cape(peer_id)
-    local entity = ctx.players[peer_id].entity
+    local player_data = ctx.players[peer_id]
+    if not player_data or not player_data.entity or not EntityGetIsAlive(player_data.entity) then
+        return
+    end
+    local entity = player_data.entity
     local cape = find_player_cape(entity)
 
     if cape then
@@ -58,6 +74,9 @@ function rpc.remove_cape(peer_id)
 end
 
 local function remove_legs(entity)
+    if not entity or not EntityGetIsAlive(entity) then
+        return
+    end
     local child_entities = EntityGetAllChildren(entity)
     if child_entities ~= nil then
         for _, child_entity in ipairs(child_entities) do
@@ -82,9 +101,9 @@ function rpc.remove_legs(peer_id)
         return
     end
 
-    local entity = ctx.players[peer_id].entity
-    if entity then
-        remove_legs(entity)
+    local player_data = ctx.players[peer_id]
+    if player_data and player_data.entity and EntityGetIsAlive(player_data.entity) then
+        remove_legs(player_data.entity)
     end
 end
 
@@ -97,6 +116,9 @@ local function add_legs(entity)
 
     async(function()
         wait(1)
+        if not entity or not EntityGetIsAlive(entity) then
+            return
+        end
         local x, y = EntityGetTransform(entity)
         for i = 1, 5 do
             local leg = EntityLoad("mods/quant.ew/files/system/heart_statue/heart_statue_leg.xml", x, y)
@@ -123,7 +145,11 @@ end
 rpc.opts_everywhere()
 rpc.opts_reliable()
 function rpc.got_thrown(peer_id, phys_transform)
-    local item = ctx.players[peer_id].entity
+    local player_data = ctx.players[peer_id]
+    if not player_data or not player_data.entity or not EntityGetIsAlive(player_data.entity) then
+        return
+    end
+    local item = player_data.entity
     enable_in_world(item)
 
     local child_entities = EntityGetAllChildren(item)
@@ -137,16 +163,21 @@ function rpc.got_thrown(peer_id, phys_transform)
         end
     end
 
-    local owner_peer_id = player_fns.get_player_data_by_local_entity_id(item).peer_id
-    if owner_peer_id == ctx.my_player.peer_id then
-        rpc.disable_running(ctx.my_player.peer_id)
-        ctx.my_player.heart_statue_running_data.running_start_frame = GameGetFrameNum() + 180
+    local owner_data = player_fns.get_player_data_by_local_entity_id(item)
+    if owner_data then
+        local owner_peer_id = owner_data.peer_id
+        if owner_peer_id == ctx.my_player.peer_id then
+            rpc.disable_running(ctx.my_player.peer_id)
+            ctx.my_player.heart_statue_running_data.running_start_frame = GameGetFrameNum() + 180
+        end
     end
 
-    if peer_id == ctx.my_player.peer_id then
+    if peer_id == ctx.my_player.peer_id and ctx.my_player and ctx.my_player.entity and EntityGetIsAlive(ctx.my_player.entity) then
         local phys_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "PhysicsBodyComponent")
         local t = phys_transform
-        np.PhysBodySetTransform(phys_component, t.px, t.py, t.pr, t.pvx, t.pvy, t.pvr)
+        if phys_component and t and t.px and t.py and t.pr and t.pvx and t.pvy and t.pvr then
+            np.PhysBodySetTransform(phys_component, t.px, t.py, t.pr, t.pvx, t.pvy, t.pvr)
+        end
     end
 end
 

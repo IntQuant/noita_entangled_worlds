@@ -606,16 +606,21 @@ function player_fns.get_active_held_item(player_entity)
 end
 
 function player_fns.get_current_slot(player_data)
+    if not player_data or not player_data.entity or not EntityGetIsAlive(player_data.entity) then
+        return
+    end
     local held_item = player_fns.get_active_held_item(player_data.entity)
-    if held_item ~= nil and held_item ~= 0 then
+    if held_item ~= nil and held_item ~= 0 and EntityGetIsAlive(held_item) then
         local item_comp = EntityGetFirstComponentIncludingDisabled(held_item, "ItemComponent")
 
-        -- the hell??
         if item_comp == nil then
             return
         end
 
         local slot_x, slot_y = ComponentGetValue2(item_comp, "inventory_slot")
+        if slot_x == nil or slot_y == nil then
+            return
+        end
         local ability_comp = EntityGetFirstComponentIncludingDisabled(held_item, "AbilityComponent")
 
         local is_wand = false
@@ -627,34 +632,37 @@ function player_fns.get_current_slot(player_data)
 end
 
 function player_fns.set_current_slot(slot_data, player_data)
+    if not slot_data or not player_data or not player_data.entity or not EntityGetIsAlive(player_data.entity) then
+        return
+    end
     local is_wand, slot_x, slot_y = slot_data[1], slot_data[2], slot_data[3]
-    if player_data.entity and EntityGetIsAlive(player_data.entity) then
-        local items = GameGetAllInventoryItems(player_data.entity) or {}
-        for i, item in ipairs(items) do
-            -- check id
+    local items = GameGetAllInventoryItems(player_data.entity) or {}
+    for i, item in ipairs(items) do
+        if EntityGetIsAlive(item) then
             local itemComp = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
             if itemComp ~= nil then
                 local item_slot_x, item_slot_y = ComponentGetValue2(itemComp, "inventory_slot")
+                if item_slot_x ~= nil and item_slot_y ~= nil then
+                    local ability_comp = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
 
-                local ability_comp = EntityGetFirstComponentIncludingDisabled(item, "AbilityComponent")
-
-                local item_is_wand = false
-                if ability_comp and ComponentGetValue2(ability_comp, "use_gun_script") then
-                    item_is_wand = true
-                end
-
-                if item_slot_x == slot_x and item_slot_y == slot_y and item_is_wand == is_wand then
-                    local inventory2Comp =
-                        EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
-                    local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
-
-                    if mActiveItem ~= item then
-                        np.SetActiveHeldEntity(player_data.entity, item, false, false)
+                    local item_is_wand = false
+                    if ability_comp and ComponentGetValue2(ability_comp, "use_gun_script") then
+                        item_is_wand = true
                     end
-                    return true
+
+                    if item_slot_x == slot_x and item_slot_y == slot_y and item_is_wand == is_wand then
+                        local inventory2Comp =
+                            EntityGetFirstComponentIncludingDisabled(player_data.entity, "Inventory2Component")
+                        if inventory2Comp ~= nil then
+                            local mActiveItem = ComponentGetValue2(inventory2Comp, "mActiveItem")
+
+                            if mActiveItem ~= item then
+                                np.SetActiveHeldEntity(player_data.entity, item, false, false)
+                            end
+                            return true
+                        end
+                    end
                 end
-            else
-                print("something in inventory that is not an item")
             end
         end
     end

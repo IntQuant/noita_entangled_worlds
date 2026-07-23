@@ -1453,41 +1453,31 @@ impl EntityManager {
         Ok(true)
     }
     pub fn try_get_first_component<C: Component>(&self, tag: ComponentTag) -> Option<C> {
-        if self.use_cache {
-            return self
-                .entity()
-                .try_get_first_component::<C>(if matches!(tag, ComponentTag::None) {
-                    None
-                } else {
-                    Some(tag.to_str().into())
-                })
-                .unwrap_or(None);
+        if !self.entity().is_alive() {
+            return None;
         }
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-            .iter()
-            .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
-            .map(|com| C::from(com.id))
+        self.entity()
+            .try_get_first_component::<C>(if matches!(tag, ComponentTag::None) {
+                None
+            } else {
+                Some(tag.to_str().into())
+            })
+            .unwrap_or(None)
     }
     pub fn try_get_first_component_including_disabled<C: Component>(
         &self,
         tag: ComponentTag,
     ) -> Option<C> {
-        if self.use_cache {
-            return self
-                .entity()
-                .try_get_first_component_including_disabled::<C>(
-                    if matches!(tag, ComponentTag::None) {
-                        None
-                    } else {
-                        Some(tag.to_str().into())
-                    },
-                )
-                .unwrap_or(None);
+        if !self.entity().is_alive() {
+            return None;
         }
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-            .iter()
-            .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
-            .map(|c| C::from(c.id))
+        self.entity()
+            .try_get_first_component_including_disabled::<C>(if matches!(tag, ComponentTag::None) {
+                None
+            } else {
+                Some(tag.to_str().into())
+            })
+            .unwrap_or(None)
     }
     pub fn get_first_component<C: Component>(&self, tag: ComponentTag) -> eyre::Result<C> {
         if self.use_cache {
